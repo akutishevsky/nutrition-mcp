@@ -16,10 +16,24 @@ export function getSupabase(): SupabaseClient {
     return supabase;
 }
 
+// ---------- Users ----------
+
+export async function createUser(): Promise<string> {
+    const { data, error } = await getSupabase()
+        .from("users")
+        .insert({})
+        .select("id")
+        .single();
+
+    if (error) throw new Error(`Failed to create user: ${error.message}`);
+    return data.id as string;
+}
+
 // ---------- Meals ----------
 
 export interface Meal {
     id: string;
+    user_id: string;
     logged_at: string;
     meal_type: string | null;
     description: string;
@@ -41,10 +55,14 @@ export interface MealInput {
     notes?: string;
 }
 
-export async function insertMeal(input: MealInput): Promise<Meal> {
+export async function insertMeal(
+    userId: string,
+    input: MealInput,
+): Promise<Meal> {
     const { data, error } = await getSupabase()
         .from("meals")
         .insert({
+            user_id: userId,
             description: input.description,
             meal_type: input.meal_type ?? null,
             calories: input.calories ?? null,
@@ -61,13 +79,17 @@ export async function insertMeal(input: MealInput): Promise<Meal> {
     return data as Meal;
 }
 
-export async function getMealsByDate(date: string): Promise<Meal[]> {
+export async function getMealsByDate(
+    userId: string,
+    date: string,
+): Promise<Meal[]> {
     const startOfDay = `${date}T00:00:00`;
     const endOfDay = `${date}T23:59:59`;
 
     const { data, error } = await getSupabase()
         .from("meals")
         .select("*")
+        .eq("user_id", userId)
         .gte("logged_at", startOfDay)
         .lte("logged_at", endOfDay)
         .order("logged_at", { ascending: true });
@@ -77,12 +99,14 @@ export async function getMealsByDate(date: string): Promise<Meal[]> {
 }
 
 export async function getMealsInRange(
+    userId: string,
     startDate: string,
     endDate: string,
 ): Promise<Meal[]> {
     const { data, error } = await getSupabase()
         .from("meals")
         .select("*")
+        .eq("user_id", userId)
         .gte("logged_at", `${startDate}T00:00:00`)
         .lte("logged_at", `${endDate}T23:59:59`)
         .order("logged_at", { ascending: true });
@@ -91,13 +115,18 @@ export async function getMealsInRange(
     return (data as Meal[]) ?? [];
 }
 
-export async function deleteMeal(id: string): Promise<void> {
-    const { error } = await getSupabase().from("meals").delete().eq("id", id);
+export async function deleteMeal(userId: string, id: string): Promise<void> {
+    const { error } = await getSupabase()
+        .from("meals")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
 
     if (error) throw new Error(`Failed to delete meal: ${error.message}`);
 }
 
 export async function updateMeal(
+    userId: string,
     id: string,
     fields: Partial<MealInput>,
 ): Promise<Meal> {
@@ -116,6 +145,7 @@ export async function updateMeal(
         .from("meals")
         .update(update)
         .eq("id", id)
+        .eq("user_id", userId)
         .select()
         .single();
 
@@ -125,7 +155,10 @@ export async function updateMeal(
 
 // ---------- OAuth tokens ----------
 
-export async function storeToken(token: string): Promise<void> {
+export async function storeToken(
+    token: string,
+    userId: string,
+): Promise<void> {
     const expiresAt = new Date(
         Date.now() + 365 * 24 * 60 * 60 * 1000,
     ).toISOString();
@@ -133,6 +166,7 @@ export async function storeToken(token: string): Promise<void> {
     const { error } = await getSupabase().from("oauth_tokens").upsert(
         {
             token,
+            user_id: userId,
             expires_at: expiresAt,
         },
         { onConflict: "token" },
@@ -141,16 +175,18 @@ export async function storeToken(token: string): Promise<void> {
     if (error) throw new Error(`Failed to store token: ${error.message}`);
 }
 
-export async function isTokenValid(token: string): Promise<boolean> {
+export async function getUserIdByToken(
+    token: string,
+): Promise<string | null> {
     const { data, error } = await getSupabase()
         .from("oauth_tokens")
-        .select("token")
+        .select("user_id")
         .eq("token", token)
         .gt("expires_at", new Date().toISOString())
         .single();
 
-    if (error || !data) return false;
-    return true;
+    if (error || !data) return null;
+    return data.user_id as string;
 }
 
 // ---------- Auth codes ----------

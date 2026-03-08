@@ -1,5 +1,5 @@
 import type { Context, Next } from "hono";
-import { isTokenValid } from "./supabase.js";
+import { getUserIdByToken } from "./supabase.js";
 
 function getBaseUrl(c: Context): string {
     const proto = c.req.header("x-forwarded-proto") || "http";
@@ -28,9 +28,9 @@ export const authenticateBearer = async (c: Context, next: Next) => {
     }
 
     const token = authHeader.substring(7);
-    const valid = await isTokenValid(token);
+    const userId = await getUserIdByToken(token);
 
-    if (!valid) {
+    if (!userId) {
         const baseUrl = getBaseUrl(c);
         const resourceMetadataUrl = `${baseUrl}/.well-known/oauth-protected-resource`;
         c.header(
@@ -47,5 +47,6 @@ export const authenticateBearer = async (c: Context, next: Next) => {
     }
 
     c.set("accessToken", token);
+    c.set("userId", userId);
     await next();
 };

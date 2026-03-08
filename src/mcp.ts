@@ -38,7 +38,7 @@ function formatMeal(meal: Meal): string {
     return parts.filter(Boolean).join("\n");
 }
 
-function registerTools(server: McpServer) {
+function registerTools(server: McpServer, userId: string) {
     server.tool(
         "log_meal",
         "Log a meal entry with nutritional information",
@@ -59,7 +59,7 @@ function registerTools(server: McpServer) {
             notes: z.string().optional().describe("Additional notes"),
         },
         async (args) => {
-            const meal = await insertMeal(args);
+            const meal = await insertMeal(userId, args);
             return {
                 content: [
                     { type: "text", text: `Meal logged:\n${formatMeal(meal)}` },
@@ -73,7 +73,7 @@ function registerTools(server: McpServer) {
         "Get all meals logged today",
         {},
         async () => {
-            const meals = await getMealsByDate(todayDate());
+            const meals = await getMealsByDate(userId, todayDate());
             if (meals.length === 0) {
                 return {
                     content: [{ type: "text", text: "No meals logged today." }],
@@ -91,7 +91,7 @@ function registerTools(server: McpServer) {
             date: z.string().describe("Date in YYYY-MM-DD format"),
         },
         async ({ date }) => {
-            const meals = await getMealsByDate(date);
+            const meals = await getMealsByDate(userId, date);
             if (meals.length === 0) {
                 return {
                     content: [
@@ -115,7 +115,11 @@ function registerTools(server: McpServer) {
             end_date: z.string().describe("End date (YYYY-MM-DD)"),
         },
         async ({ start_date, end_date }) => {
-            const meals = await getMealsInRange(start_date, end_date);
+            const meals = await getMealsInRange(
+                userId,
+                start_date,
+                end_date,
+            );
             if (meals.length === 0) {
                 return {
                     content: [
@@ -169,7 +173,7 @@ function registerTools(server: McpServer) {
             id: z.string().describe("UUID of the meal to delete"),
         },
         async ({ id }) => {
-            await deleteMeal(id);
+            await deleteMeal(userId, id);
             return {
                 content: [{ type: "text", text: `Meal ${id} deleted.` }],
             };
@@ -193,7 +197,7 @@ function registerTools(server: McpServer) {
             notes: z.string().optional(),
         },
         async ({ id, ...fields }) => {
-            const meal = await updateMeal(id, fields);
+            const meal = await updateMeal(userId, id, fields);
             return {
                 content: [
                     {
@@ -208,6 +212,7 @@ function registerTools(server: McpServer) {
 
 export const handleMcp = async (c: Context) => {
     const mcpToken = c.get("accessToken") as string;
+    const userId = c.get("userId") as string;
     const sessionId = c.req.header("mcp-session-id");
 
     const session = sessionId ? sessions.get(sessionId) : undefined;
@@ -243,7 +248,7 @@ export const handleMcp = async (c: Context) => {
         { capabilities: { tools: {} } },
     );
 
-    registerTools(server);
+    registerTools(server, userId);
     await server.connect(transport);
 
     return transport.handleRequest(c.req.raw);

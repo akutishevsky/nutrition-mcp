@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 import crypto from "node:crypto";
-import { storeToken, storeAuthCode, consumeAuthCode } from "./supabase.js";
+import {
+    storeToken,
+    storeAuthCode,
+    consumeAuthCode,
+    createUser,
+} from "./supabase.js";
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
@@ -164,15 +169,15 @@ export function createOAuthRouter() {
         const reqClientSecret = body.client_secret as string | undefined;
 
         if (grantType === "refresh_token") {
-            // For refresh_token grant, just re-issue the same token type
+            // For refresh_token grant, create a new user + token
             const refreshToken = body.refresh_token as string;
             if (!refreshToken) {
                 return c.json({ error: "invalid_request" }, 400);
             }
 
-            // Generate a new access token
+            const userId = await createUser();
             const newToken = crypto.randomUUID();
-            await storeToken(newToken);
+            await storeToken(newToken, userId);
 
             return c.json({
                 access_token: newToken,
@@ -230,9 +235,10 @@ export function createOAuthRouter() {
             }
         }
 
-        // Issue access token
+        // Create user and issue access token
+        const userId = await createUser();
         const accessToken = crypto.randomUUID();
-        await storeToken(accessToken);
+        await storeToken(accessToken, userId);
 
         const refreshToken = crypto.randomUUID();
 
