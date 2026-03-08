@@ -92,7 +92,7 @@ Server starts at `http://localhost:8080`. Health check: `GET /health`.
 3. It will detect the `Dockerfile` automatically
 4. Set environment variables in the App settings:
     - `SUPABASE_URL`
-    - `SUPABASE_SERVICE_ROLE_KEY`
+    - `SUPABASE_SECRET_KEY`
     - `OAUTH_CLIENT_ID`
     - `OAUTH_CLIENT_SECRET`
 5. Deploy — note the assigned URL (e.g. `https://nutrition-mcp-xxxxx.ondigitalocean.app`)

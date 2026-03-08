@@ -11,7 +11,7 @@ services:
           - key: SUPABASE_URL
             scope: RUN_TIME
             type: SECRET
-          - key: SUPABASE_SERVICE_ROLE_KEY
+          - key: SUPABASE_SECRET_KEY
             scope: RUN_TIME
             type: SECRET
           - key: OAUTH_CLIENT_ID
