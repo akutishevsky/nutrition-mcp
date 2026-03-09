@@ -104,6 +104,23 @@ body {
     color: #2c2416 !important;
 }
 
+/* github link */
+.github-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #8a7e6b;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    margin-top: 0.5rem;
+}
+
+.github-link:hover {
+    color: #2c2416;
+}
+
 /* --- tabs --- */
 
 .tabs-wrap .tab-input {
