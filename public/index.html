@@ -76,7 +76,7 @@
                             </li>
                             <li>
                                 Set the name and Remote MCP Server URL to
-                                <code>{{MCP_URL}}</code>
+                                <code>https://nutrition-mcp.com/mcp</code>
                             </li>
                             <li>
                                 Click <strong>Connect</strong>, then sign in or
@@ -87,14 +87,20 @@
 
                     <div class="tab-panel panel-other">
                         <p class="is-size-7 has-text-grey mb-4">
-                            Use the MCP endpoint URL with any compatible client:
+                            Add to your MCP client configuration:
                         </p>
                         <!-- prettier-ignore -->
-                        <pre class="code-block mb-4">{{MCP_URL}}</pre>
+                        <pre class="code-block mb-4">{
+  "mcpServers": {
+    "nutrition": {
+      "url": "https://nutrition-mcp.com/mcp"
+    }
+  }
+}</pre>
                         <ol class="steps">
                             <li>
-                                Set the <strong>Remote MCP Server URL</strong>
-                                to the address above
+                                Add the JSON config above to your client's MCP
+                                settings
                             </li>
                             <li>
                                 The server uses

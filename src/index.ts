@@ -107,9 +107,7 @@ app.all("/mcp", authenticateBearer, handleMcp);
 
 // Landing page
 app.get("/", async (c) => {
-    const template = await Bun.file("./public/index.html").text();
-    const baseUrl = getBaseUrl(c);
-    return c.html(template.replace("{{MCP_URL}}", `${baseUrl}/mcp`));
+    return c.html(await Bun.file("./public/index.html").text());
 });
 
 // CSS
