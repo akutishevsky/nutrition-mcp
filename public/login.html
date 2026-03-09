@@ -5,76 +5,68 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <link rel="icon" href="/favicon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
+            href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap"
             rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css"
         />
+        <link rel="stylesheet" href="/styles.css" />
     </head>
     <body>
-        <section class="section">
-            <div class="container" style="max-width: 400px">
-                <h1 class="title is-3 has-text-centered">Nutrition MCP</h1>
-                <p class="subtitle is-6 has-text-grey has-text-centered">
+        <div class="card-wrap login-card">
+            <div class="login-header">
+                <div class="icon-wrap">🍏</div>
+                <h1 class="page-title">Nutrition MCP</h1>
+                <p class="page-subtitle">
                     Sign in or create an account to connect
                 </p>
-                {{ERROR}}
-                <form method="POST" action="/approve">
-                    <input
-                        type="hidden"
-                        name="session_id"
-                        value="{{SESSION_ID}}"
-                    />
-                    <div class="field">
-                        <label class="label" for="email">Email</label>
-                        <div class="control">
-                            <input
-                                class="input"
-                                type="email"
-                                id="email"
-                                name="email"
-                                required
-                                autocomplete="email"
-                            />
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label" for="password">Password</label>
-                        <div class="control">
-                            <input
-                                class="input"
-                                type="password"
-                                id="password"
-                                name="password"
-                                required
-                                minlength="6"
-                                autocomplete="current-password"
-                            />
-                        </div>
-                    </div>
-                    <div class="field is-grouped mt-5">
-                        <div class="control is-expanded">
-                            <button
-                                type="submit"
-                                name="action"
-                                value="login"
-                                class="button is-link is-fullwidth"
-                            >
-                                Sign In
-                            </button>
-                        </div>
-                        <div class="control is-expanded">
-                            <button
-                                type="submit"
-                                name="action"
-                                value="register"
-                                class="button is-light is-fullwidth"
-                            >
-                                Register
-                            </button>
-                        </div>
-                    </div>
-                </form>
             </div>
-        </section>
+            {{ERROR}}
+            <form method="POST" action="/approve">
+                <input type="hidden" name="session_id" value="{{SESSION_ID}}" />
+                <div class="field-group">
+                    <label class="field-label" for="email">Email</label>
+                    <input
+                        class="field-input"
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                        autocomplete="email"
+                    />
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="password">Password</label>
+                    <input
+                        class="field-input"
+                        type="password"
+                        id="password"
+                        name="password"
+                        required
+                        minlength="6"
+                        autocomplete="current-password"
+                    />
+                </div>
+                <div class="btn-row">
+                    <button
+                        type="submit"
+                        name="action"
+                        value="login"
+                        class="btn btn-primary"
+                    >
+                        Sign In
+                    </button>
+                    <button
+                        type="submit"
+                        name="action"
+                        value="register"
+                        class="btn btn-secondary"
+                    >
+                        Register
+                    </button>
+                </div>
+            </form>
+        </div>
     </body>
 </html>

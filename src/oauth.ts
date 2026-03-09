@@ -52,7 +52,7 @@ const loginTemplate = await Bun.file("./public/login.html").text();
 
 function renderLoginPage(sessionId: string, error?: string): string {
     const errorHtml = error
-        ? `<div class="notification is-danger is-light">${escapeHtml(error)}</div>`
+        ? `<div class="error-banner">${escapeHtml(error)}</div>`
         : "";
     return loginTemplate
         .replace("{{SESSION_ID}}", escapeHtml(sessionId))

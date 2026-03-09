@@ -24,7 +24,7 @@ app.use("*", async (c, next) => {
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; style-src 'self' https://cdn.jsdelivr.net; img-src 'self'; frame-ancestors 'none'",
+            "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; frame-ancestors 'none'",
         );
     }
     c.header("Referrer-Policy", "no-referrer");
@@ -106,9 +106,16 @@ app.route("/", createOAuthRouter());
 app.all("/mcp", authenticateBearer, handleMcp);
 
 // Landing page
-app.get("/", async (c) => {
-    const file = Bun.file("./public/index.html");
-    return c.html(await file.text());
+const indexTemplate = await Bun.file("./public/index.html").text();
+app.get("/", (c) => {
+    const baseUrl = getBaseUrl(c);
+    return c.html(indexTemplate.replace("{{MCP_URL}}", `${baseUrl}/mcp`));
+});
+
+// CSS
+app.get("/styles.css", async (c) => {
+    const file = Bun.file("./public/styles.css");
+    return c.body(await file.text(), 200, { "Content-Type": "text/css" });
 });
 
 // Favicon endpoint

@@ -112,15 +112,14 @@ Server starts at `http://localhost:8080`. Health check: `GET /health`.
 
 ## Connect to Claude.ai
 
-1. Go to [Claude.ai Settings → Integrations](https://claude.ai/settings/integrations)
-2. Click **Add custom integration**
-3. Fill in:
-    - **Integration name**: Nutrition Tracker
-    - **MCP Server URL**: `https://your-server.com/mcp`
-    - **OAuth Client ID**: your `OAUTH_CLIENT_ID` value
-    - **OAuth Client Secret**: your `OAUTH_CLIENT_SECRET` value
-4. Click **Connect** — you'll be redirected to sign in or register
-5. After signing in, Claude can use your nutrition tools. If you reconnect later, sign in with the same email and password to keep your data.
+1. Open [Claude.ai](https://claude.ai) and click **Customize**
+2. Click **Connectors**, then the **+** button
+3. Click **Add custom connector**
+4. Fill in:
+    - **Name**: Nutrition Tracker
+    - **Remote MCP Server URL**: `https://your-server.com/mcp`
+5. Click **Connect** — sign in or register when prompted
+6. After signing in, Claude can use your nutrition tools. If you reconnect later, sign in with the same email and password to keep your data.
 
 ## API Endpoints
 

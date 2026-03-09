@@ -5,28 +5,38 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <link rel="icon" href="/favicon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
+            href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap"
             rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css"
         />
+        <link rel="stylesheet" href="/styles.css" />
     </head>
     <body>
-        <section class="section">
-            <div class="container" style="max-width: 480px">
-                <div class="has-text-centered">
-                    <h1 class="title is-2">Nutrition MCP</h1>
-                    <p class="subtitle is-5 has-text-grey">
-                        A personal nutrition tracking server for Claude. Log
-                        meals, track macros, and review your nutrition history —
-                        all through conversation.
-                    </p>
-                    <a
-                        href="https://claude.ai/settings/integrations"
-                        class="button is-link is-medium mt-4"
-                        >Connect via Claude.ai</a
-                    >
-                </div>
-            </div>
-        </section>
+        <div class="card-wrap landing-card">
+            <div class="icon-wrap">🍏</div>
+            <h1 class="page-title">Nutrition MCP</h1>
+            <p class="page-subtitle">
+                Track meals, macros, and nutrition history — all through
+                conversation with Claude.
+            </p>
+            <ol class="steps">
+                <li>
+                    Open <strong>Claude.ai</strong> and click
+                    <strong>Customize</strong>
+                </li>
+                <li>
+                    Click <strong>Connectors</strong>, then the
+                    <strong>+</strong> button
+                </li>
+                <li>Click <strong>Add custom connector</strong></li>
+                <li>
+                    Set the name and Remote MCP Server URL to
+                    <code>{{MCP_URL}}</code>
+                </li>
+                <li>Click <strong>Connect</strong>, then sign in or register</li>
+            </ol>
+        </div>
     </body>
 </html>
