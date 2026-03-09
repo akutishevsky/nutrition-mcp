@@ -110,6 +110,11 @@ app.get("/", async (c) => {
     return c.html(await Bun.file("./public/index.html").text());
 });
 
+// Privacy & Terms
+app.get("/privacy", async (c) => {
+    return c.html(await Bun.file("./public/privacy.html").text());
+});
+
 // CSS
 app.get("/styles.css", async (c) => {
     const file = Bun.file("./public/styles.css");
