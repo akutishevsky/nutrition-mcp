@@ -14,6 +14,10 @@ https://nutrition-mcp.com/mcp
 
 On first connect you'll be asked to register with an email and password. Your data persists across reconnections.
 
+## Demo
+
+[![Demo](https://img.youtube.com/vi/Y1EHbfimQ70/maxresdefault.jpg)](https://youtube.com/shorts/Y1EHbfimQ70)
+
 ## Tech Stack
 
 - **Bun** — runtime and package manager
