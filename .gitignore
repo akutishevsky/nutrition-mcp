@@ -23,7 +23,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env.local
 
 # supabase
-supabase/.temp
+supabase/
 
 # caches
 .eslintcache
