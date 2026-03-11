@@ -1,10 +1,48 @@
 <!doctype html>
 <html>
     <head>
-        <title>Nutrition MCP</title>
+        <title>Nutrition MCP — AI Meal Tracker for Claude</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging, calorie counting, and diet tracking."
+        />
+        <meta
+            name="keywords"
+            content="nutrition tracker, meal tracker, MCP server, Claude AI, calorie counter, macro tracker, food logging, diet tracker, AI nutrition, Model Context Protocol"
+        />
+        <meta property="og:title" content="Nutrition MCP — AI Meal Tracker for Claude" />
+        <meta
+            property="og:description"
+            content="Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://nutrition-mcp.com" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Nutrition MCP — AI Meal Tracker for Claude" />
+        <meta
+            name="twitter:description"
+            content="Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging."
+        />
+        <link rel="canonical" href="https://nutrition-mcp.com" />
         <link rel="icon" href="/favicon.ico" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                "name": "Nutrition MCP",
+                "description": "Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging, calorie counting, and diet tracking.",
+                "url": "https://nutrition-mcp.com",
+                "applicationCategory": "HealthApplication",
+                "operatingSystem": "Any",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                }
+            }
+        </script>
         <link
             rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css"
@@ -161,6 +199,76 @@
                     </div>
                 </div>
             </div>
+            <details class="seo-faq">
+                <summary class="seo-faq-toggle">Frequently Asked Questions</summary>
+                <div class="seo-faq-content">
+                    <h2>What is Nutrition MCP?</h2>
+                    <p>
+                        Nutrition MCP is a free Model Context Protocol (MCP)
+                        server that lets you track meals, calories, macros, and
+                        nutrition history through natural conversation with
+                        Claude AI. Instead of manually entering data into a
+                        traditional app, you simply tell Claude what you ate and
+                        it logs everything for you.
+                    </p>
+
+                    <h2>How does AI meal tracking work?</h2>
+                    <p>
+                        Once you connect Nutrition MCP to Claude, you can
+                        describe your meals in plain language — for example,
+                        "I had a chicken salad with avocado for lunch." Claude
+                        estimates the calories, protein, carbs, and fat, then
+                        logs the meal to your personal nutrition history. You can
+                        ask for daily or weekly summaries, edit past meals, or
+                        track trends over time.
+                    </p>
+
+                    <h2>Is Nutrition MCP free?</h2>
+                    <p>
+                        Yes, Nutrition MCP is completely free to use. There are
+                        no premium tiers, ads, or hidden costs. You just need a
+                        Claude account to connect.
+                    </p>
+
+                    <h2>Which Claude clients are supported?</h2>
+                    <p>
+                        Nutrition MCP works with Claude.ai, the Claude desktop
+                        app (macOS and Windows), and the Claude mobile apps for
+                        iOS and Android. It also works with any MCP-compatible
+                        client that supports OAuth 2.0 with PKCE, including
+                        Cursor, Windsurf, and Claude Code.
+                    </p>
+
+                    <h2>What is the Model Context Protocol (MCP)?</h2>
+                    <p>
+                        The Model Context Protocol is an open standard that
+                        allows AI assistants like Claude to connect to external
+                        tools and data sources. MCP servers provide specific
+                        capabilities — in this case, nutrition tracking — that
+                        the AI can use during conversation. Think of it as a
+                        plugin system for AI assistants.
+                    </p>
+
+                    <h2>What nutrition data can I track?</h2>
+                    <p>
+                        You can track calories, protein, carbohydrates, fat, and
+                        fiber for every meal. Claude estimates nutritional values
+                        based on your meal descriptions. You can view daily
+                        summaries, query meals by date range, update or delete
+                        past entries, and monitor your intake trends over time.
+                    </p>
+
+                    <h2>Is my nutrition data private?</h2>
+                    <p>
+                        Your meal data is stored securely and linked to your
+                        personal account. Only you can access your nutrition
+                        history through your authenticated Claude session.
+                        Nutrition MCP does not sell or share your data. You can
+                        delete your account and all associated data at any time.
+                    </p>
+                </div>
+            </details>
+
             <div class="footer-links">
                 <a
                     href="https://github.com/akutishevsky/nutrition-mcp"
