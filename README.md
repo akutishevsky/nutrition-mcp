@@ -116,6 +116,8 @@ CREATE POLICY "Allow all for service role" ON refresh_tokens
 | `OAUTH_CLIENT_SECRET` | Random string for OAuth client authentication |
 | `PORT`                | Server port (default: `8080`)                 |
 
+> **Note:** The HTML files in `public/` include a Google Analytics tag (`G-1K4HRB2R8X`). If you're self-hosting, remove or replace the gtag snippet in `public/index.html`, `public/login.html`, and `public/privacy.html`.
+
 Generate OAuth credentials:
 
 ```bash
