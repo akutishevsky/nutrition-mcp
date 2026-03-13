@@ -11,6 +11,7 @@ import {
     deleteAllUserData,
     type Meal,
 } from "./supabase.js";
+import { withAnalytics } from "./analytics.js";
 
 const sessions = new Map<
     string,
@@ -76,12 +77,21 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async (args) => {
-            const meal = await insertMeal(userId, args);
-            return {
-                content: [
-                    { type: "text", text: `Meal logged:\n${formatMeal(meal)}` },
-                ],
-            };
+            return withAnalytics(
+                "log_meal",
+                async () => {
+                    const meal = await insertMeal(userId, args);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Meal logged:\n${formatMeal(meal)}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
         },
     );
 
@@ -98,14 +108,25 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async () => {
-            const meals = await getMealsByDate(userId, todayDate());
-            if (meals.length === 0) {
-                return {
-                    content: [{ type: "text", text: "No meals logged today." }],
-                };
-            }
-            const text = meals.map(formatMeal).join("\n\n---\n\n");
-            return { content: [{ type: "text", text }] };
+            return withAnalytics(
+                "get_meals_today",
+                async () => {
+                    const meals = await getMealsByDate(userId, todayDate());
+                    if (meals.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "No meals logged today.",
+                                },
+                            ],
+                        };
+                    }
+                    const text = meals.map(formatMeal).join("\n\n---\n\n");
+                    return { content: [{ type: "text", text }] };
+                },
+                { userId },
+            );
         },
     );
 
@@ -125,19 +146,26 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async ({ date }) => {
-            const meals = await getMealsByDate(userId, date);
-            if (meals.length === 0) {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `No meals logged on ${date}.`,
-                        },
-                    ],
-                };
-            }
-            const text = meals.map(formatMeal).join("\n\n---\n\n");
-            return { content: [{ type: "text", text }] };
+            return withAnalytics(
+                "get_meals_by_date",
+                async () => {
+                    const meals = await getMealsByDate(userId, date);
+                    if (meals.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No meals logged on ${date}.`,
+                                },
+                            ],
+                        };
+                    }
+                    const text = meals.map(formatMeal).join("\n\n---\n\n");
+                    return { content: [{ type: "text", text }] };
+                },
+                { userId },
+                { date },
+            );
         },
     );
 
@@ -159,37 +187,57 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async ({ start_date, end_date }) => {
-            const meals = await getMealsInRange(userId, start_date, end_date);
-            if (meals.length === 0) {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `No meals found between ${start_date} and ${end_date}.`,
-                        },
-                    ],
-                };
-            }
+            return withAnalytics(
+                "get_meals_by_date_range",
+                async () => {
+                    const meals = await getMealsInRange(
+                        userId,
+                        start_date,
+                        end_date,
+                    );
+                    if (meals.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No meals found between ${start_date} and ${end_date}.`,
+                                },
+                            ],
+                        };
+                    }
 
-            // Group by date for readability
-            const byDate = new Map<string, Meal[]>();
-            for (const meal of meals) {
-                const date = meal.logged_at.slice(0, 10);
-                const existing = byDate.get(date) ?? [];
-                existing.push(meal);
-                byDate.set(date, existing);
-            }
+                    // Group by date for readability
+                    const byDate = new Map<string, Meal[]>();
+                    for (const meal of meals) {
+                        const date = meal.logged_at.slice(0, 10);
+                        const existing = byDate.get(date) ?? [];
+                        existing.push(meal);
+                        byDate.set(date, existing);
+                    }
 
-            const sections: string[] = [];
-            for (const [date, dateMeals] of [...byDate.entries()].sort()) {
-                const header = `## ${date} (${dateMeals.length} meal${dateMeals.length === 1 ? "" : "s"})`;
-                const formatted = dateMeals.map(formatMeal).join("\n\n---\n\n");
-                sections.push(`${header}\n\n${formatted}`);
-            }
+                    const sections: string[] = [];
+                    for (const [date, dateMeals] of [
+                        ...byDate.entries(),
+                    ].sort()) {
+                        const header = `## ${date} (${dateMeals.length} meal${dateMeals.length === 1 ? "" : "s"})`;
+                        const formatted = dateMeals
+                            .map(formatMeal)
+                            .join("\n\n---\n\n");
+                        sections.push(`${header}\n\n${formatted}`);
+                    }
 
-            return {
-                content: [{ type: "text", text: sections.join("\n\n===\n\n") }],
-            };
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: sections.join("\n\n===\n\n"),
+                            },
+                        ],
+                    };
+                },
+                { userId },
+                { start_date, end_date },
+            );
         },
     );
 
@@ -210,50 +258,63 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async ({ start_date, end_date }) => {
-            const meals = await getMealsInRange(userId, start_date, end_date);
-            if (meals.length === 0) {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `No meals found between ${start_date} and ${end_date}.`,
-                        },
-                    ],
-                };
-            }
+            return withAnalytics(
+                "get_nutrition_summary",
+                async () => {
+                    const meals = await getMealsInRange(
+                        userId,
+                        start_date,
+                        end_date,
+                    );
+                    if (meals.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No meals found between ${start_date} and ${end_date}.`,
+                                },
+                            ],
+                        };
+                    }
 
-            // Group by date
-            const byDate = new Map<string, Meal[]>();
-            for (const meal of meals) {
-                const date = meal.logged_at.slice(0, 10);
-                const existing = byDate.get(date) ?? [];
-                existing.push(meal);
-                byDate.set(date, existing);
-            }
+                    // Group by date
+                    const byDate = new Map<string, Meal[]>();
+                    for (const meal of meals) {
+                        const date = meal.logged_at.slice(0, 10);
+                        const existing = byDate.get(date) ?? [];
+                        existing.push(meal);
+                        byDate.set(date, existing);
+                    }
 
-            const summaries: string[] = [];
-            for (const [date, dateMeals] of [...byDate.entries()].sort()) {
-                const totals = {
-                    calories: 0,
-                    protein_g: 0,
-                    carbs_g: 0,
-                    fat_g: 0,
-                    count: dateMeals.length,
-                };
-                for (const m of dateMeals) {
-                    totals.calories += m.calories ?? 0;
-                    totals.protein_g += m.protein_g ?? 0;
-                    totals.carbs_g += m.carbs_g ?? 0;
-                    totals.fat_g += m.fat_g ?? 0;
-                }
-                summaries.push(
-                    `${date} (${totals.count} meals): ${totals.calories} kcal | P: ${totals.protein_g}g | C: ${totals.carbs_g}g | F: ${totals.fat_g}g`,
-                );
-            }
+                    const summaries: string[] = [];
+                    for (const [date, dateMeals] of [
+                        ...byDate.entries(),
+                    ].sort()) {
+                        const totals = {
+                            calories: 0,
+                            protein_g: 0,
+                            carbs_g: 0,
+                            fat_g: 0,
+                            count: dateMeals.length,
+                        };
+                        for (const m of dateMeals) {
+                            totals.calories += m.calories ?? 0;
+                            totals.protein_g += m.protein_g ?? 0;
+                            totals.carbs_g += m.carbs_g ?? 0;
+                            totals.fat_g += m.fat_g ?? 0;
+                        }
+                        summaries.push(
+                            `${date} (${totals.count} meals): ${totals.calories} kcal | P: ${totals.protein_g}g | C: ${totals.carbs_g}g | F: ${totals.fat_g}g`,
+                        );
+                    }
 
-            return {
-                content: [{ type: "text", text: summaries.join("\n") }],
-            };
+                    return {
+                        content: [{ type: "text", text: summaries.join("\n") }],
+                    };
+                },
+                { userId },
+                { start_date, end_date },
+            );
         },
     );
 
@@ -273,10 +334,18 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async ({ id }) => {
-            await deleteMeal(userId, id);
-            return {
-                content: [{ type: "text", text: `Meal ${id} deleted.` }],
-            };
+            return withAnalytics(
+                "delete_meal",
+                async () => {
+                    await deleteMeal(userId, id);
+                    return {
+                        content: [
+                            { type: "text", text: `Meal ${id} deleted.` },
+                        ],
+                    };
+                },
+                { userId },
+            );
         },
     );
 
@@ -306,15 +375,21 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async ({ id, ...fields }) => {
-            const meal = await updateMeal(userId, id, fields);
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `Meal updated:\n${formatMeal(meal)}`,
-                    },
-                ],
-            };
+            return withAnalytics(
+                "update_meal",
+                async () => {
+                    const meal = await updateMeal(userId, id, fields);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Meal updated:\n${formatMeal(meal)}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
         },
     );
     server.registerTool(
@@ -338,25 +413,31 @@ function registerTools(server: McpServer, userId: string) {
             },
         },
         async ({ confirm }) => {
-            if (!confirm) {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: "Account deletion cancelled. No data was removed.",
-                        },
-                    ],
-                };
-            }
-            await deleteAllUserData(userId);
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "Your account and all associated data have been permanently deleted.",
-                    },
-                ],
-            };
+            return withAnalytics(
+                "delete_account",
+                async () => {
+                    if (!confirm) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "Account deletion cancelled. No data was removed.",
+                                },
+                            ],
+                        };
+                    }
+                    await deleteAllUserData(userId);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: "Your account and all associated data have been permanently deleted.",
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
         },
     );
 }
@@ -402,7 +483,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.3.0",
+            version: "1.4.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
