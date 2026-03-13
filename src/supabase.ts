@@ -172,6 +172,13 @@ export async function updateMeal(
 export async function deleteAllUserData(userId: string): Promise<void> {
     const sb = getSupabase();
 
+    const { error: analyticsErr } = await sb
+        .from("tool_analytics")
+        .delete()
+        .eq("user_id", userId);
+    if (analyticsErr)
+        throw new Error(`Failed to delete analytics: ${analyticsErr.message}`);
+
     const { error: mealsErr } = await sb
         .from("meals")
         .delete()
