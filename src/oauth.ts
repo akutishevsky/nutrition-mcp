@@ -151,10 +151,11 @@ export function createOAuthRouter() {
 
         let userId: string;
         try {
-            if (action === "register") {
-                userId = await signUpUser(email, password);
-            } else {
+            // Try sign-in first; if user doesn't exist, sign them up
+            try {
                 userId = await signInUser(email, password);
+            } catch {
+                userId = await signUpUser(email, password);
             }
         } catch (err: unknown) {
             const message =
