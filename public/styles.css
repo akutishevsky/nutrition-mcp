@@ -35,6 +35,7 @@
 html,
 body {
     min-height: 100vh;
+    color-scheme: light;
 }
 
 body {
