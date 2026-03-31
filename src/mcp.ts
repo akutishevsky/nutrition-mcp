@@ -60,13 +60,13 @@ function registerTools(server: McpServer, userId: string) {
                     .describe(
                         "Type of meal (breakfast, lunch, dinner, or snack). Always ask the user if not provided.",
                     ),
-                calories: z.number().optional().describe("Total calories"),
-                protein_g: z.number().optional().describe("Protein in grams"),
+                calories: z.coerce.number().optional().describe("Total calories"),
+                protein_g: z.coerce.number().optional().describe("Protein in grams"),
                 carbs_g: z
-                    .number()
+                    .coerce.number()
                     .optional()
                     .describe("Carbohydrates in grams"),
-                fat_g: z.number().optional().describe("Fat in grams"),
+                fat_g: z.coerce.number().optional().describe("Fat in grams"),
                 logged_at: z
                     .string()
                     .optional()
@@ -366,10 +366,10 @@ function registerTools(server: McpServer, userId: string) {
                 meal_type: z
                     .enum(["breakfast", "lunch", "dinner", "snack"])
                     .optional(),
-                calories: z.number().optional(),
-                protein_g: z.number().optional(),
-                carbs_g: z.number().optional(),
-                fat_g: z.number().optional(),
+                calories: z.coerce.number().optional(),
+                protein_g: z.coerce.number().optional(),
+                carbs_g: z.coerce.number().optional(),
+                fat_g: z.coerce.number().optional(),
                 logged_at: z.string().optional(),
                 notes: z.string().optional(),
             },
@@ -483,7 +483,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.6.0",
+            version: "1.6.1",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
