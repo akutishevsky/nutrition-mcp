@@ -33,6 +33,8 @@ function cleanExpiredSessions() {
     }
 }
 
+setInterval(cleanExpiredSessions, 60 * 1000);
+
 function base64URLEncode(buffer: Buffer): string {
     return buffer
         .toString("base64")

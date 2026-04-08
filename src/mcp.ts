@@ -13,13 +13,26 @@ import {
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
 
+const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
+
 const sessions = new Map<
     string,
     {
         transport: WebStandardStreamableHTTPServerTransport;
         mcpToken: string;
+        lastActivity: number;
     }
 >();
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [id, session] of sessions) {
+        if (now - session.lastActivity > SESSION_TTL_MS) {
+            sessions.delete(id);
+        }
+    }
+}, CLEANUP_INTERVAL_MS);
 
 function todayDate(): string {
     return new Date().toISOString().slice(0, 10);
@@ -458,6 +471,7 @@ export const handleMcp = async (c: Context) => {
     }
 
     if (session) {
+        session.lastActivity = Date.now();
         return session.transport.handleRequest(c.req.raw);
     }
 
@@ -468,7 +482,11 @@ export const handleMcp = async (c: Context) => {
     const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: () => crypto.randomUUID(),
         onsessioninitialized: (id) => {
-            sessions.set(id, { transport, mcpToken });
+            sessions.set(id, {
+                transport,
+                mcpToken,
+                lastActivity: Date.now(),
+            });
         },
         onsessionclosed: (id) => {
             sessions.delete(id);
