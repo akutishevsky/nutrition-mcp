@@ -9,7 +9,10 @@ import {
     deleteMeal,
     updateMeal,
     deleteAllUserData,
+    upsertNutritionGoals,
+    getNutritionGoals,
     type Meal,
+    type NutritionGoals,
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
 
@@ -36,6 +39,93 @@ setInterval(() => {
 
 function todayDate(): string {
     return new Date().toISOString().slice(0, 10);
+}
+
+interface DailyTotals {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+}
+
+function sumMeals(meals: Meal[]): DailyTotals {
+    const totals: DailyTotals = {
+        calories: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+    };
+    for (const m of meals) {
+        totals.calories += m.calories ?? 0;
+        totals.protein_g += m.protein_g ?? 0;
+        totals.carbs_g += m.carbs_g ?? 0;
+        totals.fat_g += m.fat_g ?? 0;
+    }
+    return totals;
+}
+
+function formatGoalLine(
+    label: string,
+    unit: string,
+    actual: number,
+    target: number | null,
+): string {
+    if (target == null || target <= 0) {
+        return `${label}: ${Math.round(actual * 10) / 10}${unit}`;
+    }
+    const pct = Math.round((actual / target) * 100);
+    const delta = Math.round((target - actual) * 10) / 10;
+    const deltaStr =
+        delta > 0 ? `${delta}${unit} to go` : `${Math.abs(delta)}${unit} over`;
+    return `${label}: ${Math.round(actual * 10) / 10} / ${target}${unit} (${pct}%, ${deltaStr})`;
+}
+
+function formatProgress(
+    totals: DailyTotals,
+    goals: NutritionGoals | null,
+): string {
+    const lines = [
+        formatGoalLine(
+            "Calories",
+            " kcal",
+            totals.calories,
+            goals?.daily_calories ?? null,
+        ),
+        formatGoalLine(
+            "Protein",
+            "g",
+            totals.protein_g,
+            goals?.daily_protein_g ?? null,
+        ),
+        formatGoalLine(
+            "Carbs",
+            "g",
+            totals.carbs_g,
+            goals?.daily_carbs_g ?? null,
+        ),
+        formatGoalLine("Fat", "g", totals.fat_g, goals?.daily_fat_g ?? null),
+    ];
+    return lines.join("\n");
+}
+
+function formatGoals(goals: NutritionGoals | null): string {
+    if (!goals) {
+        return "No nutrition goals set. Use set_nutrition_goals to define daily targets.";
+    }
+    const parts: string[] = ["Current daily goals:"];
+    parts.push(
+        `- Calories: ${goals.daily_calories != null ? `${goals.daily_calories} kcal` : "not set"}`,
+    );
+    parts.push(
+        `- Protein: ${goals.daily_protein_g != null ? `${goals.daily_protein_g}g` : "not set"}`,
+    );
+    parts.push(
+        `- Carbs: ${goals.daily_carbs_g != null ? `${goals.daily_carbs_g}g` : "not set"}`,
+    );
+    parts.push(
+        `- Fat: ${goals.daily_fat_g != null ? `${goals.daily_fat_g}g` : "not set"}`,
+    );
+    return parts.join("\n");
 }
 
 function formatMeal(meal: Meal): string {
@@ -73,10 +163,16 @@ function registerTools(server: McpServer, userId: string) {
                     .describe(
                         "Type of meal (breakfast, lunch, dinner, or snack). Always ask the user if not provided.",
                     ),
-                calories: z.coerce.number().optional().describe("Total calories"),
-                protein_g: z.coerce.number().optional().describe("Protein in grams"),
-                carbs_g: z
-                    .coerce.number()
+                calories: z.coerce
+                    .number()
+                    .optional()
+                    .describe("Total calories"),
+                protein_g: z.coerce
+                    .number()
+                    .optional()
+                    .describe("Protein in grams"),
+                carbs_g: z.coerce
+                    .number()
                     .optional()
                     .describe("Carbohydrates in grams"),
                 fat_g: z.coerce.number().optional().describe("Fat in grams"),
@@ -274,11 +370,10 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_nutrition_summary",
                 async () => {
-                    const meals = await getMealsInRange(
-                        userId,
-                        start_date,
-                        end_date,
-                    );
+                    const [meals, goals] = await Promise.all([
+                        getMealsInRange(userId, start_date, end_date),
+                        getNutritionGoals(userId),
+                    ]);
                     if (meals.length === 0) {
                         return {
                             content: [
@@ -299,34 +394,181 @@ function registerTools(server: McpServer, userId: string) {
                         byDate.set(date, existing);
                     }
 
-                    const summaries: string[] = [];
+                    const sections: string[] = [];
                     for (const [date, dateMeals] of [
                         ...byDate.entries(),
                     ].sort()) {
-                        const totals = {
-                            calories: 0,
-                            protein_g: 0,
-                            carbs_g: 0,
-                            fat_g: 0,
-                            count: dateMeals.length,
-                        };
-                        for (const m of dateMeals) {
-                            totals.calories += m.calories ?? 0;
-                            totals.protein_g += m.protein_g ?? 0;
-                            totals.carbs_g += m.carbs_g ?? 0;
-                            totals.fat_g += m.fat_g ?? 0;
-                        }
-                        summaries.push(
-                            `${date} (${totals.count} meals): ${totals.calories} kcal | P: ${totals.protein_g}g | C: ${totals.carbs_g}g | F: ${totals.fat_g}g`,
+                        const totals = sumMeals(dateMeals);
+                        const header = `## ${date} (${dateMeals.length} meal${dateMeals.length === 1 ? "" : "s"})`;
+                        sections.push(
+                            `${header}\n${formatProgress(totals, goals)}`,
                         );
                     }
 
+                    const footer = goals
+                        ? ""
+                        : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)";
+
                     return {
-                        content: [{ type: "text", text: summaries.join("\n") }],
+                        content: [
+                            {
+                                type: "text",
+                                text: sections.join("\n\n") + footer,
+                            },
+                        ],
                     };
                 },
                 { userId },
                 { start_date, end_date },
+            );
+        },
+    );
+
+    server.registerTool(
+        "set_nutrition_goals",
+        {
+            title: "Set Nutrition Goals",
+            description:
+                "Set the user's daily calorie and macro targets. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                daily_calories: z.coerce
+                    .number()
+                    .nullable()
+                    .optional()
+                    .describe("Daily calorie target (kcal). Null to clear."),
+                daily_protein_g: z.coerce
+                    .number()
+                    .nullable()
+                    .optional()
+                    .describe("Daily protein target (grams). Null to clear."),
+                daily_carbs_g: z.coerce
+                    .number()
+                    .nullable()
+                    .optional()
+                    .describe("Daily carbs target (grams). Null to clear."),
+                daily_fat_g: z.coerce
+                    .number()
+                    .nullable()
+                    .optional()
+                    .describe("Daily fat target (grams). Null to clear."),
+            },
+        },
+        async (args) => {
+            return withAnalytics(
+                "set_nutrition_goals",
+                async () => {
+                    const existing = await getNutritionGoals(userId);
+                    const merged = {
+                        daily_calories:
+                            args.daily_calories === undefined
+                                ? (existing?.daily_calories ?? null)
+                                : args.daily_calories,
+                        daily_protein_g:
+                            args.daily_protein_g === undefined
+                                ? (existing?.daily_protein_g ?? null)
+                                : args.daily_protein_g,
+                        daily_carbs_g:
+                            args.daily_carbs_g === undefined
+                                ? (existing?.daily_carbs_g ?? null)
+                                : args.daily_carbs_g,
+                        daily_fat_g:
+                            args.daily_fat_g === undefined
+                                ? (existing?.daily_fat_g ?? null)
+                                : args.daily_fat_g,
+                    };
+                    const goals = await upsertNutritionGoals(userId, merged);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Goals updated.\n\n${formatGoals(goals)}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_nutrition_goals",
+        {
+            title: "Get Nutrition Goals",
+            description:
+                "Get the user's current daily calorie and macro targets.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_nutrition_goals",
+                async () => {
+                    const goals = await getNutritionGoals(userId);
+                    return {
+                        content: [{ type: "text", text: formatGoals(goals) }],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_goal_progress",
+        {
+            title: "Get Goal Progress",
+            description:
+                "Get progress against daily nutrition goals for a specific date (defaults to today). Returns intake vs. target with remaining amounts for each macro.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                date: z
+                    .string()
+                    .optional()
+                    .describe("Date in YYYY-MM-DD format. Defaults to today."),
+            },
+        },
+        async ({ date }) => {
+            return withAnalytics(
+                "get_goal_progress",
+                async () => {
+                    const targetDate = date ?? todayDate();
+                    const [meals, goals] = await Promise.all([
+                        getMealsByDate(userId, targetDate),
+                        getNutritionGoals(userId),
+                    ]);
+                    const totals = sumMeals(meals);
+                    const header = `Progress for ${targetDate} (${meals.length} meal${meals.length === 1 ? "" : "s"})`;
+                    const body = formatProgress(totals, goals);
+                    const footer = goals
+                        ? ""
+                        : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)";
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${header}\n${body}${footer}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+                { date: date ?? todayDate() },
             );
         },
     );
@@ -501,7 +743,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.6.1",
+            version: "1.7.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,

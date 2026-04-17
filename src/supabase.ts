@@ -167,6 +167,61 @@ export async function updateMeal(
     return data as Meal;
 }
 
+// ---------- Nutrition goals ----------
+
+export interface NutritionGoals {
+    user_id: string;
+    daily_calories: number | null;
+    daily_protein_g: number | null;
+    daily_carbs_g: number | null;
+    daily_fat_g: number | null;
+    updated_at: string;
+}
+
+export interface NutritionGoalsInput {
+    daily_calories?: number | null;
+    daily_protein_g?: number | null;
+    daily_carbs_g?: number | null;
+    daily_fat_g?: number | null;
+}
+
+export async function upsertNutritionGoals(
+    userId: string,
+    input: NutritionGoalsInput,
+): Promise<NutritionGoals> {
+    const { data, error } = await getSupabase()
+        .from("nutrition_goals")
+        .upsert(
+            {
+                user_id: userId,
+                daily_calories: input.daily_calories ?? null,
+                daily_protein_g: input.daily_protein_g ?? null,
+                daily_carbs_g: input.daily_carbs_g ?? null,
+                daily_fat_g: input.daily_fat_g ?? null,
+                updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" },
+        )
+        .select()
+        .single();
+
+    if (error) throw new Error(`Failed to save goals: ${error.message}`);
+    return data as NutritionGoals;
+}
+
+export async function getNutritionGoals(
+    userId: string,
+): Promise<NutritionGoals | null> {
+    const { data, error } = await getSupabase()
+        .from("nutrition_goals")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (error) throw new Error(`Failed to get goals: ${error.message}`);
+    return (data as NutritionGoals | null) ?? null;
+}
+
 // ---------- Delete all user data ----------
 
 export async function deleteAllUserData(userId: string): Promise<void> {
@@ -178,6 +233,13 @@ export async function deleteAllUserData(userId: string): Promise<void> {
         .eq("user_id", userId);
     if (analyticsErr)
         throw new Error(`Failed to delete analytics: ${analyticsErr.message}`);
+
+    const { error: goalsErr } = await sb
+        .from("nutrition_goals")
+        .delete()
+        .eq("user_id", userId);
+    if (goalsErr)
+        throw new Error(`Failed to delete goals: ${goalsErr.message}`);
 
     const { error: mealsErr } = await sb
         .from("meals")
