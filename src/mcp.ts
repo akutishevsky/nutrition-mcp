@@ -20,6 +20,12 @@ import {
     type WaterEntry,
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
+import {
+    buildDailyBuckets,
+    computeTrends,
+    computeMealPatterns,
+    computeWeeklyDigest,
+} from "./insights.js";
 
 const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
@@ -44,6 +50,12 @@ setInterval(() => {
 
 function todayDate(): string {
     return new Date().toISOString().slice(0, 10);
+}
+
+function shiftDate(date: string, days: number): string {
+    const d = new Date(`${date}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
 }
 
 interface DailyTotals {
@@ -874,6 +886,147 @@ function registerTools(server: McpServer, userId: string) {
     );
 
     server.registerTool(
+        "get_trends",
+        {
+            title: "Get Trends",
+            description:
+                "Rolling 7/14/30-day averages, standard deviation, coefficient of variation, logging streaks, day-of-week breakdowns, and best/worst day for calories and each macro. Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                days: z.coerce
+                    .number()
+                    .int()
+                    .min(2)
+                    .max(365)
+                    .optional()
+                    .describe("Window size in days (default 30, max 365)."),
+                end_date: z
+                    .string()
+                    .optional()
+                    .describe("Window end date YYYY-MM-DD (default today)."),
+            },
+        },
+        async ({ days, end_date }) => {
+            return withAnalytics(
+                "get_trends",
+                async () => {
+                    const endDate = end_date ?? todayDate();
+                    const windowDays = days ?? 30;
+                    const startDate = shiftDate(endDate, -(windowDays - 1));
+                    const [meals, water, goals] = await Promise.all([
+                        getMealsInRange(userId, startDate, endDate),
+                        getWaterInRange(userId, startDate, endDate),
+                        getNutritionGoals(userId),
+                    ]);
+                    const buckets = buildDailyBuckets(
+                        meals,
+                        water,
+                        startDate,
+                        endDate,
+                    );
+                    return {
+                        content: [
+                            { type: "text", text: computeTrends(buckets, goals) },
+                        ],
+                    };
+                },
+                { userId },
+                { start_date: shiftDate(end_date ?? todayDate(), -((days ?? 30) - 1)), end_date: end_date ?? todayDate() },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_meal_patterns",
+        {
+            title: "Get Meal Patterns",
+            description:
+                "Pre-aggregated behavioural patterns across the logged window: meal-type presence rates, breakfast effect (days with vs without), high-calorie-lunch effect, late-dinner effect, weekday vs weekend, and outlier days. Narrate findings conversationally to the user. Defaults to the last 30 days.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                days: z.coerce
+                    .number()
+                    .int()
+                    .min(7)
+                    .max(365)
+                    .optional()
+                    .describe("Window size in days (default 30, min 7, max 365)."),
+                end_date: z
+                    .string()
+                    .optional()
+                    .describe("Window end date YYYY-MM-DD (default today)."),
+            },
+        },
+        async ({ days, end_date }) => {
+            return withAnalytics(
+                "get_meal_patterns",
+                async () => {
+                    const endDate = end_date ?? todayDate();
+                    const windowDays = days ?? 30;
+                    const startDate = shiftDate(endDate, -(windowDays - 1));
+                    const [meals, water] = await Promise.all([
+                        getMealsInRange(userId, startDate, endDate),
+                        getWaterInRange(userId, startDate, endDate),
+                    ]);
+                    const buckets = buildDailyBuckets(
+                        meals,
+                        water,
+                        startDate,
+                        endDate,
+                    );
+                    return {
+                        content: [
+                            { type: "text", text: computeMealPatterns(buckets) },
+                        ],
+                    };
+                },
+                { userId },
+                { start_date: shiftDate(end_date ?? todayDate(), -((days ?? 30) - 1)), end_date: end_date ?? todayDate() },
+            );
+        },
+    );
+
+    server.registerResource(
+        "weekly-summary",
+        "nutrition://weekly-summary",
+        {
+            title: "Weekly Nutrition Summary",
+            description:
+                "Rolling 7-day digest: logged-day count, daily averages vs targets, and the best/roughest day of the week. Good to pull at the start of a chat for proactive check-ins.",
+            mimeType: "text/plain",
+        },
+        async (uri) => {
+            const endDate = todayDate();
+            const startDate = shiftDate(endDate, -6);
+            const [meals, water, goals] = await Promise.all([
+                getMealsInRange(userId, startDate, endDate),
+                getWaterInRange(userId, startDate, endDate),
+                getNutritionGoals(userId),
+            ]);
+            const buckets = buildDailyBuckets(meals, water, startDate, endDate);
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: "text/plain",
+                        text: computeWeeklyDigest(buckets, goals),
+                    },
+                ],
+            };
+        },
+    );
+
+    server.registerTool(
         "delete_account",
         {
             title: "Delete Account",
@@ -969,7 +1122,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.8.0",
+            version: "1.9.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
@@ -977,7 +1130,7 @@ export const handleMcp = async (c: Context) => {
                 },
             ],
         },
-        { capabilities: { tools: {} } },
+        { capabilities: { tools: {}, resources: {} } },
     );
 
     registerTools(server, userId);
