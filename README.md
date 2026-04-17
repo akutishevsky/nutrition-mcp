@@ -37,101 +37,33 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `log_meal`                | Log a meal with description, type, calories, macros, notes |
 | `get_meals_today`         | Get all meals logged today                                 |
 | `get_meals_by_date`       | Get meals for a specific date (YYYY-MM-DD)                 |
-| `get_nutrition_summary`   | Daily nutrition totals for a date range                    |
-| `delete_meal`             | Delete a meal by ID                                        |
-| `update_meal`             | Update any fields of an existing meal                      |
 | `get_meals_by_date_range` | Get meals between two dates (inclusive)                    |
+| `get_nutrition_summary`   | Daily nutrition totals + goal progress for a date range    |
+| `update_meal`             | Update any fields of an existing meal                      |
+| `delete_meal`             | Delete a meal by ID                                        |
+| `set_nutrition_goals`     | Set daily calorie and macro targets                        |
+| `get_nutrition_goals`     | Get the current daily targets                              |
+| `get_goal_progress`       | Get intake vs. targets for a given day (default: today)    |
 | `delete_account`          | Permanently delete account and all associated data         |
 
-## Supabase Setup
+## Self-hosting
 
-1. Create a [Supabase](https://supabase.com) project
-2. Enable **Email Auth** (Authentication → Providers → Email) and disable email confirmation
-3. Run the following SQL in the SQL Editor:
+### 1. Supabase setup
 
-```sql
--- Meals
-CREATE TABLE meals (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL REFERENCES auth.users(id),
-    logged_at timestamptz NOT NULL DEFAULT now(),
-    meal_type text CHECK (meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
-    description text NOT NULL,
-    calories integer,
-    protein_g numeric,
-    carbs_g numeric,
-    fat_g numeric,
-    notes text
-);
+1. Create a [Supabase](https://supabase.com) project.
+2. Enable **Email Auth** (Authentication → Providers → Email) and disable email confirmation.
+3. Apply the schema. The full schema lives in [`supabase/migrations/`](supabase/migrations/). With the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started):
 
--- OAuth access tokens
-CREATE TABLE oauth_tokens (
-    token text PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES auth.users(id),
-    expires_at timestamptz NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now()
-);
+    ```bash
+    supabase link --project-ref <your-project-ref>
+    supabase db push
+    ```
 
--- OAuth authorization codes (short-lived, single-use)
-CREATE TABLE auth_codes (
-    code text PRIMARY KEY,
-    redirect_uri text NOT NULL,
-    user_id uuid NOT NULL REFERENCES auth.users(id),
-    code_challenge text,
-    expires_at timestamptz NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now()
-);
+    This creates every table, index, RLS policy, and foreign key the app needs. No local Postgres is involved — migrations run against your hosted project.
 
--- Refresh tokens
-CREATE TABLE refresh_tokens (
-    token text PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES auth.users(id),
-    expires_at timestamptz NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now()
-);
+4. Copy the **service role key** from Project Settings → API and use it as `SUPABASE_SECRET_KEY`.
 
--- Tool analytics
-CREATE TABLE tool_analytics (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR(255) NOT NULL,
-    tool_name VARCHAR(100) NOT NULL,
-    success BOOLEAN NOT NULL,
-    duration_ms INTEGER NOT NULL,
-    error_category VARCHAR(50),
-    date_range_days INTEGER,
-    mcp_session_id VARCHAR(255),
-    invoked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_tool_analytics_user_id ON tool_analytics(user_id);
-CREATE INDEX idx_tool_analytics_tool_name ON tool_analytics(tool_name);
-CREATE INDEX idx_tool_analytics_invoked_at ON tool_analytics(invoked_at);
-CREATE INDEX idx_tool_analytics_user_tool ON tool_analytics(user_id, tool_name);
-
--- Enable Row Level Security on all tables
-ALTER TABLE meals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE oauth_tokens ENABLE ROW LEVEL SECURITY;
-ALTER TABLE auth_codes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
-
--- Allow access for the service role
-CREATE POLICY "Allow all for service role" ON meals
-    FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for service role" ON oauth_tokens
-    FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for service role" ON auth_codes
-    FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for service role" ON refresh_tokens
-    FOR ALL USING (true) WITH CHECK (true);
-ALTER TABLE tool_analytics ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role has full access to tool_analytics" ON tool_analytics
-    FOR ALL TO service_role USING (true) WITH CHECK (true);
-```
-
-4. Copy the **service role key** from Project Settings → API and use it as `SUPABASE_SECRET_KEY`
-
-## Environment Variables
+### 2. Environment variables
 
 | Variable              | Description                                   |
 | --------------------- | --------------------------------------------- |
