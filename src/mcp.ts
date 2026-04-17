@@ -216,18 +216,32 @@ function registerTools(server: McpServer, userId: string) {
                         "ISO 8601 timestamp (defaults to now). If you don't know the current date or time, ask the user before calling this tool.",
                     ),
                 notes: z.string().optional().describe("Additional notes"),
+                idempotency_key: z
+                    .string()
+                    .min(1)
+                    .max(255)
+                    .optional()
+                    .describe(
+                        "Optional stable key for safe retries. If you (or the user) might replay this same log_meal call after a network hiccup, pass a UUID or other unique string — the server will return the original meal instead of creating a duplicate. Do NOT reuse a key for genuinely different meals.",
+                    ),
             },
         },
         async (args) => {
             return withAnalytics(
                 "log_meal",
                 async () => {
-                    const meal = await insertMeal(userId, args);
+                    const { meal, deduplicated } = await insertMeal(
+                        userId,
+                        args,
+                    );
+                    const header = deduplicated
+                        ? "Meal already logged (idempotent retry):"
+                        : "Meal logged:";
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Meal logged:\n${formatMeal(meal)}`,
+                                text: `${header}\n${formatMeal(meal)}`,
                             },
                         ],
                     };
@@ -742,18 +756,32 @@ function registerTools(server: McpServer, userId: string) {
                     .string()
                     .optional()
                     .describe("Optional notes (e.g. 'tea', 'post-workout')."),
+                idempotency_key: z
+                    .string()
+                    .min(1)
+                    .max(255)
+                    .optional()
+                    .describe(
+                        "Optional stable key for safe retries. If the same call might be replayed after a network hiccup, pass a UUID — the server will return the original entry instead of duplicating it. Do NOT reuse a key for genuinely different sips.",
+                    ),
             },
         },
         async (args) => {
             return withAnalytics(
                 "log_water",
                 async () => {
-                    const entry = await insertWater(userId, args);
+                    const { entry, deduplicated } = await insertWater(
+                        userId,
+                        args,
+                    );
+                    const prefix = deduplicated
+                        ? "Already logged (idempotent retry)"
+                        : "Water logged";
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Water logged: ${entry.amount_ml} ml at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}`,
+                                text: `${prefix}: ${entry.amount_ml} ml at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}`,
                             },
                         ],
                     };
@@ -1237,7 +1265,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.10.0",
+            version: "1.11.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,

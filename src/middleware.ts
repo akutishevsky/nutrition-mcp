@@ -1,5 +1,6 @@
 import type { Context, Next } from "hono";
 import { getUserIdByToken } from "./supabase.js";
+import { checkRateLimit } from "./rate-limit.js";
 
 function getBaseUrl(c: Context): string {
     const proto = c.req.header("x-forwarded-proto") || "http";
@@ -48,5 +49,27 @@ export const authenticateBearer = async (c: Context, next: Next) => {
 
     c.set("accessToken", token);
     c.set("userId", userId);
+    await next();
+};
+
+export const rateLimit = async (c: Context, next: Next) => {
+    const userId = c.get("userId") as string | undefined;
+    if (!userId) {
+        await next();
+        return;
+    }
+    const result = checkRateLimit(userId);
+    c.header("X-RateLimit-Limit", String(result.limit));
+    c.header("X-RateLimit-Remaining", String(result.remaining));
+    if (!result.allowed) {
+        c.header("Retry-After", String(result.retryAfterSeconds ?? 60));
+        return c.json(
+            {
+                error: "rate_limited",
+                error_description: `Rate limit exceeded (${result.limit} requests per minute). Retry after ${result.retryAfterSeconds}s.`,
+            },
+            429,
+        );
+    }
     await next();
 };
