@@ -11,8 +11,13 @@ import {
     deleteAllUserData,
     upsertNutritionGoals,
     getNutritionGoals,
+    insertWater,
+    getWaterByDate,
+    getWaterInRange,
+    deleteWater,
     type Meal,
     type NutritionGoals,
+    type WaterEntry,
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
 
@@ -46,6 +51,7 @@ interface DailyTotals {
     protein_g: number;
     carbs_g: number;
     fat_g: number;
+    water_ml: number;
 }
 
 function sumMeals(meals: Meal[]): DailyTotals {
@@ -54,6 +60,7 @@ function sumMeals(meals: Meal[]): DailyTotals {
         protein_g: 0,
         carbs_g: 0,
         fat_g: 0,
+        water_ml: 0,
     };
     for (const m of meals) {
         totals.calories += m.calories ?? 0;
@@ -62,6 +69,12 @@ function sumMeals(meals: Meal[]): DailyTotals {
         totals.fat_g += m.fat_g ?? 0;
     }
     return totals;
+}
+
+function sumWater(entries: WaterEntry[]): number {
+    let total = 0;
+    for (const e of entries) total += e.amount_ml;
+    return total;
 }
 
 function formatGoalLine(
@@ -104,6 +117,12 @@ function formatProgress(
             goals?.daily_carbs_g ?? null,
         ),
         formatGoalLine("Fat", "g", totals.fat_g, goals?.daily_fat_g ?? null),
+        formatGoalLine(
+            "Water",
+            " ml",
+            totals.water_ml,
+            goals?.daily_water_ml ?? null,
+        ),
     ];
     return lines.join("\n");
 }
@@ -124,6 +143,9 @@ function formatGoals(goals: NutritionGoals | null): string {
     );
     parts.push(
         `- Fat: ${goals.daily_fat_g != null ? `${goals.daily_fat_g}g` : "not set"}`,
+    );
+    parts.push(
+        `- Water: ${goals.daily_water_ml != null ? `${goals.daily_water_ml} ml` : "not set"}`,
     );
     return parts.join("\n");
 }
@@ -370,16 +392,17 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_nutrition_summary",
                 async () => {
-                    const [meals, goals] = await Promise.all([
+                    const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, start_date, end_date),
+                        getWaterInRange(userId, start_date, end_date),
                         getNutritionGoals(userId),
                     ]);
-                    if (meals.length === 0) {
+                    if (meals.length === 0 && water.length === 0) {
                         return {
                             content: [
                                 {
                                     type: "text",
-                                    text: `No meals found between ${start_date} and ${end_date}.`,
+                                    text: `No meals or water logged between ${start_date} and ${end_date}.`,
                                 },
                             ],
                         };
@@ -393,12 +416,22 @@ function registerTools(server: McpServer, userId: string) {
                         existing.push(meal);
                         byDate.set(date, existing);
                     }
+                    const waterByDate = new Map<string, number>();
+                    for (const entry of water) {
+                        const date = entry.logged_at.slice(0, 10);
+                        waterByDate.set(
+                            date,
+                            (waterByDate.get(date) ?? 0) + entry.amount_ml,
+                        );
+                        if (!byDate.has(date)) byDate.set(date, []);
+                    }
 
                     const sections: string[] = [];
                     for (const [date, dateMeals] of [
                         ...byDate.entries(),
                     ].sort()) {
                         const totals = sumMeals(dateMeals);
+                        totals.water_ml = waterByDate.get(date) ?? 0;
                         const header = `## ${date} (${dateMeals.length} meal${dateMeals.length === 1 ? "" : "s"})`;
                         sections.push(
                             `${header}\n${formatProgress(totals, goals)}`,
@@ -457,6 +490,13 @@ function registerTools(server: McpServer, userId: string) {
                     .nullable()
                     .optional()
                     .describe("Daily fat target (grams). Null to clear."),
+                daily_water_ml: z.coerce
+                    .number()
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Daily water target (milliliters). Null to clear.",
+                    ),
             },
         },
         async (args) => {
@@ -481,6 +521,10 @@ function registerTools(server: McpServer, userId: string) {
                             args.daily_fat_g === undefined
                                 ? (existing?.daily_fat_g ?? null)
                                 : args.daily_fat_g,
+                        daily_water_ml:
+                            args.daily_water_ml === undefined
+                                ? (existing?.daily_water_ml ?? null)
+                                : args.daily_water_ml,
                     };
                     const goals = await upsertNutritionGoals(userId, merged);
                     return {
@@ -548,12 +592,14 @@ function registerTools(server: McpServer, userId: string) {
                 "get_goal_progress",
                 async () => {
                     const targetDate = date ?? todayDate();
-                    const [meals, goals] = await Promise.all([
+                    const [meals, water, goals] = await Promise.all([
                         getMealsByDate(userId, targetDate),
+                        getWaterByDate(userId, targetDate),
                         getNutritionGoals(userId),
                     ]);
                     const totals = sumMeals(meals);
-                    const header = `Progress for ${targetDate} (${meals.length} meal${meals.length === 1 ? "" : "s"})`;
+                    totals.water_ml = sumWater(water);
+                    const header = `Progress for ${targetDate} (${meals.length} meal${meals.length === 1 ? "" : "s"}, ${water.length} water entr${water.length === 1 ? "y" : "ies"})`;
                     const body = formatProgress(totals, goals);
                     const footer = goals
                         ? ""
@@ -647,6 +693,186 @@ function registerTools(server: McpServer, userId: string) {
             );
         },
     );
+    server.registerTool(
+        "log_water",
+        {
+            title: "Log Water",
+            description:
+                "Log a hydration entry in milliliters. If the user gives a volume in another unit (cups, oz, liters), convert it: 1 cup = 240 ml, 1 fl oz = 30 ml, 1 L = 1000 ml. If only 'a glass' is mentioned, ask for the size or assume 250 ml and confirm.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                amount_ml: z.coerce
+                    .number()
+                    .int()
+                    .positive()
+                    .describe("Amount in milliliters (integer, > 0)."),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "ISO 8601 timestamp (defaults to now). If you don't know the current date or time, ask the user before calling this tool.",
+                    ),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe("Optional notes (e.g. 'tea', 'post-workout')."),
+            },
+        },
+        async (args) => {
+            return withAnalytics(
+                "log_water",
+                async () => {
+                    const entry = await insertWater(userId, args);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Water logged: ${entry.amount_ml} ml at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_water_today",
+        {
+            title: "Get Today's Water",
+            description:
+                "Get today's total water intake (ml) and the list of entries.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_water_today",
+                async () => {
+                    const entries = await getWaterByDate(userId, todayDate());
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "No water logged today.",
+                                },
+                            ],
+                        };
+                    }
+                    const total = sumWater(entries);
+                    const lines = entries.map(
+                        (e) =>
+                            `- ${e.amount_ml} ml at ${e.logged_at}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Total: ${total} ml (${entries.length} entr${entries.length === 1 ? "y" : "ies"})\n\n${lines.join("\n")}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_water_by_date",
+        {
+            title: "Get Water by Date",
+            description: "Get water intake total and entries for a specific date.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                date: z.string().describe("Date in YYYY-MM-DD format"),
+            },
+        },
+        async ({ date }) => {
+            return withAnalytics(
+                "get_water_by_date",
+                async () => {
+                    const entries = await getWaterByDate(userId, date);
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No water logged on ${date}.`,
+                                },
+                            ],
+                        };
+                    }
+                    const total = sumWater(entries);
+                    const lines = entries.map(
+                        (e) =>
+                            `- ${e.amount_ml} ml at ${e.logged_at}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Total on ${date}: ${total} ml (${entries.length} entr${entries.length === 1 ? "y" : "ies"})\n\n${lines.join("\n")}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+                { date },
+            );
+        },
+    );
+
+    server.registerTool(
+        "delete_water",
+        {
+            title: "Delete Water Entry",
+            description: "Delete a water log entry by ID.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                id: z.string().describe("UUID of the water entry to delete"),
+            },
+        },
+        async ({ id }) => {
+            return withAnalytics(
+                "delete_water",
+                async () => {
+                    await deleteWater(userId, id);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Water entry ${id} deleted.`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
     server.registerTool(
         "delete_account",
         {
@@ -743,7 +969,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.7.0",
+            version: "1.8.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,

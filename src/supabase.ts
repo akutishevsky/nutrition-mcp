@@ -175,6 +175,7 @@ export interface NutritionGoals {
     daily_protein_g: number | null;
     daily_carbs_g: number | null;
     daily_fat_g: number | null;
+    daily_water_ml: number | null;
     updated_at: string;
 }
 
@@ -183,6 +184,7 @@ export interface NutritionGoalsInput {
     daily_protein_g?: number | null;
     daily_carbs_g?: number | null;
     daily_fat_g?: number | null;
+    daily_water_ml?: number | null;
 }
 
 export async function upsertNutritionGoals(
@@ -198,6 +200,7 @@ export async function upsertNutritionGoals(
                 daily_protein_g: input.daily_protein_g ?? null,
                 daily_carbs_g: input.daily_carbs_g ?? null,
                 daily_fat_g: input.daily_fat_g ?? null,
+                daily_water_ml: input.daily_water_ml ?? null,
                 updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" },
@@ -222,6 +225,85 @@ export async function getNutritionGoals(
     return (data as NutritionGoals | null) ?? null;
 }
 
+// ---------- Water log ----------
+
+export interface WaterEntry {
+    id: string;
+    user_id: string;
+    amount_ml: number;
+    logged_at: string;
+    notes: string | null;
+    created_at: string;
+}
+
+export interface WaterInput {
+    amount_ml: number;
+    logged_at?: string;
+    notes?: string;
+}
+
+export async function insertWater(
+    userId: string,
+    input: WaterInput,
+): Promise<WaterEntry> {
+    const { data, error } = await getSupabase()
+        .from("water_log")
+        .insert({
+            user_id: userId,
+            amount_ml: input.amount_ml,
+            logged_at: input.logged_at ?? new Date().toISOString(),
+            notes: input.notes ?? null,
+        })
+        .select()
+        .single();
+
+    if (error) throw new Error(`Failed to insert water: ${error.message}`);
+    return data as WaterEntry;
+}
+
+export async function getWaterByDate(
+    userId: string,
+    date: string,
+): Promise<WaterEntry[]> {
+    const { data, error } = await getSupabase()
+        .from("water_log")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("logged_at", `${date}T00:00:00`)
+        .lte("logged_at", `${date}T23:59:59`)
+        .order("logged_at", { ascending: true });
+
+    if (error) throw new Error(`Failed to get water: ${error.message}`);
+    return (data as WaterEntry[]) ?? [];
+}
+
+export async function getWaterInRange(
+    userId: string,
+    startDate: string,
+    endDate: string,
+): Promise<WaterEntry[]> {
+    const { data, error } = await getSupabase()
+        .from("water_log")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("logged_at", `${startDate}T00:00:00`)
+        .lte("logged_at", `${endDate}T23:59:59`)
+        .order("logged_at", { ascending: true });
+
+    if (error) throw new Error(`Failed to get water: ${error.message}`);
+    return (data as WaterEntry[]) ?? [];
+}
+
+export async function deleteWater(userId: string, id: string): Promise<void> {
+    const { error } = await getSupabase()
+        .from("water_log")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
+
+    if (error) throw new Error(`Failed to delete water: ${error.message}`);
+}
+
 // ---------- Delete all user data ----------
 
 export async function deleteAllUserData(userId: string): Promise<void> {
@@ -233,6 +315,13 @@ export async function deleteAllUserData(userId: string): Promise<void> {
         .eq("user_id", userId);
     if (analyticsErr)
         throw new Error(`Failed to delete analytics: ${analyticsErr.message}`);
+
+    const { error: waterErr } = await sb
+        .from("water_log")
+        .delete()
+        .eq("user_id", userId);
+    if (waterErr)
+        throw new Error(`Failed to delete water log: ${waterErr.message}`);
 
     const { error: goalsErr } = await sb
         .from("nutrition_goals")
