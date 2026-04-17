@@ -57,6 +57,7 @@ export interface Meal {
     carbs_g: number | null;
     fat_g: number | null;
     notes: string | null;
+    idempotency_key: string | null;
 }
 
 export interface MealInput {
@@ -68,13 +69,33 @@ export interface MealInput {
     fat_g?: number;
     logged_at?: string;
     notes?: string;
+    idempotency_key?: string;
+}
+
+export interface MealInsertResult {
+    meal: Meal;
+    deduplicated: boolean;
 }
 
 export async function insertMeal(
     userId: string,
     input: MealInput,
-): Promise<Meal> {
-    const { data, error } = await getSupabase()
+): Promise<MealInsertResult> {
+    const sb = getSupabase();
+
+    if (input.idempotency_key) {
+        const { data: existing, error: selErr } = await sb
+            .from("meals")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("idempotency_key", input.idempotency_key)
+            .maybeSingle();
+        if (selErr)
+            throw new Error(`Failed to look up meal: ${selErr.message}`);
+        if (existing) return { meal: existing as Meal, deduplicated: true };
+    }
+
+    const { data, error } = await sb
         .from("meals")
         .insert({
             user_id: userId,
@@ -86,12 +107,30 @@ export async function insertMeal(
             fat_g: input.fat_g ?? null,
             logged_at: input.logged_at ?? new Date().toISOString(),
             notes: input.notes ?? null,
+            idempotency_key: input.idempotency_key ?? null,
         })
         .select()
         .single();
 
-    if (error) throw new Error(`Failed to insert meal: ${error.message}`);
-    return data as Meal;
+    if (error) {
+        // Concurrent retry with the same idempotency key — the other request
+        // already inserted the row. Fetch and return it instead of failing.
+        if (input.idempotency_key && error.code === "23505") {
+            const { data: existing, error: raceErr } = await sb
+                .from("meals")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("idempotency_key", input.idempotency_key)
+                .maybeSingle();
+            if (raceErr)
+                throw new Error(
+                    `Failed to resolve idempotent meal: ${raceErr.message}`,
+                );
+            if (existing) return { meal: existing as Meal, deduplicated: true };
+        }
+        throw new Error(`Failed to insert meal: ${error.message}`);
+    }
+    return { meal: data as Meal, deduplicated: false };
 }
 
 export async function getMealsByDate(
@@ -286,31 +325,73 @@ export interface WaterEntry {
     logged_at: string;
     notes: string | null;
     created_at: string;
+    idempotency_key: string | null;
 }
 
 export interface WaterInput {
     amount_ml: number;
     logged_at?: string;
     notes?: string;
+    idempotency_key?: string;
+}
+
+export interface WaterInsertResult {
+    entry: WaterEntry;
+    deduplicated: boolean;
 }
 
 export async function insertWater(
     userId: string,
     input: WaterInput,
-): Promise<WaterEntry> {
-    const { data, error } = await getSupabase()
+): Promise<WaterInsertResult> {
+    const sb = getSupabase();
+
+    if (input.idempotency_key) {
+        const { data: existing, error: selErr } = await sb
+            .from("water_log")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("idempotency_key", input.idempotency_key)
+            .maybeSingle();
+        if (selErr)
+            throw new Error(`Failed to look up water: ${selErr.message}`);
+        if (existing)
+            return { entry: existing as WaterEntry, deduplicated: true };
+    }
+
+    const { data, error } = await sb
         .from("water_log")
         .insert({
             user_id: userId,
             amount_ml: input.amount_ml,
             logged_at: input.logged_at ?? new Date().toISOString(),
             notes: input.notes ?? null,
+            idempotency_key: input.idempotency_key ?? null,
         })
         .select()
         .single();
 
-    if (error) throw new Error(`Failed to insert water: ${error.message}`);
-    return data as WaterEntry;
+    if (error) {
+        if (input.idempotency_key && error.code === "23505") {
+            const { data: existing, error: raceErr } = await sb
+                .from("water_log")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("idempotency_key", input.idempotency_key)
+                .maybeSingle();
+            if (raceErr)
+                throw new Error(
+                    `Failed to resolve idempotent water: ${raceErr.message}`,
+                );
+            if (existing)
+                return {
+                    entry: existing as WaterEntry,
+                    deduplicated: true,
+                };
+        }
+        throw new Error(`Failed to insert water: ${error.message}`);
+    }
+    return { entry: data as WaterEntry, deduplicated: false };
 }
 
 export async function getWaterByDate(

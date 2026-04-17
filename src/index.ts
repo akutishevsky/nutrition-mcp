@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
 import { createOAuthRouter } from "./oauth.js";
-import { authenticateBearer } from "./middleware.js";
+import { authenticateBearer, rateLimit } from "./middleware.js";
 import { handleMcp } from "./mcp.js";
 
 const app = new Hono();
@@ -103,7 +103,7 @@ app.get("/.well-known/oauth-authorization-server", (c) => {
 app.route("/", createOAuthRouter());
 
 // MCP endpoint (protected)
-app.all("/mcp", authenticateBearer, handleMcp);
+app.all("/mcp", authenticateBearer, rateLimit, handleMcp);
 
 // Landing page
 app.get("/", async (c) => {
