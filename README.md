@@ -41,9 +41,13 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_nutrition_summary`   | Daily nutrition totals + goal progress for a date range    |
 | `update_meal`             | Update any fields of an existing meal                      |
 | `delete_meal`             | Delete a meal by ID                                        |
-| `set_nutrition_goals`     | Set daily calorie and macro targets                        |
+| `set_nutrition_goals`     | Set daily calorie, macro, and water targets                |
 | `get_nutrition_goals`     | Get the current daily targets                              |
 | `get_goal_progress`       | Get intake vs. targets for a given day (default: today)    |
+| `log_water`               | Log a hydration entry in milliliters                       |
+| `get_water_today`         | Get today's water intake total and entries                 |
+| `get_water_by_date`       | Get water intake for a specific date                       |
+| `delete_water`            | Delete a water log entry by ID                             |
 | `delete_account`          | Permanently delete account and all associated data         |
 
 ## Self-hosting
