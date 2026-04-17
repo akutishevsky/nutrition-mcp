@@ -48,7 +48,15 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_water_today`         | Get today's water intake total and entries                 |
 | `get_water_by_date`       | Get water intake for a specific date                       |
 | `delete_water`            | Delete a water log entry by ID                             |
+| `get_trends`              | 7/14/30-day averages, std dev, streaks, day-of-week, best/worst day |
+| `get_meal_patterns`       | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers) |
 | `delete_account`          | Permanently delete account and all associated data         |
+
+## MCP Resources
+
+| URI                          | Description                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------- |
+| `nutrition://weekly-summary` | Rolling 7-day digest (averages vs targets, best/roughest day) for proactive pulls |
 
 ## Self-hosting
 
