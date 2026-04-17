@@ -1,4 +1,5 @@
 import type { Meal, NutritionGoals, WaterEntry } from "./supabase.js";
+import { dateInTz, hourInTz } from "./tz.js";
 
 export interface DailyBucket {
     date: string; // YYYY-MM-DD
@@ -45,12 +46,14 @@ function dateDiffDays(start: string, end: string): number {
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** Build per-day buckets for every date in [startDate, endDate], including days with no logs. */
+/** Build per-day buckets for every date in [startDate, endDate], including days with no logs.
+ * Dates are interpreted in the given IANA timezone. */
 export function buildDailyBuckets(
     meals: Meal[],
     water: WaterEntry[],
     startDate: string,
     endDate: string,
+    tz: string = "UTC",
 ): DailyBucket[] {
     const buckets = new Map<string, DailyBucket>();
     const totalDays = dateDiffDays(startDate, endDate);
@@ -69,7 +72,7 @@ export function buildDailyBuckets(
     }
 
     for (const m of meals) {
-        const date = m.logged_at.slice(0, 10);
+        const date = dateInTz(m.logged_at, tz);
         const b = buckets.get(date);
         if (!b) continue;
         b.meals.push(m);
@@ -81,7 +84,7 @@ export function buildDailyBuckets(
     }
 
     for (const w of water) {
-        const date = w.logged_at.slice(0, 10);
+        const date = dateInTz(w.logged_at, tz);
         const b = buckets.get(date);
         if (!b) continue;
         b.waterMl += w.amount_ml;
@@ -293,7 +296,10 @@ export function computeTrends(
     return sections.join("\n\n");
 }
 
-export function computeMealPatterns(buckets: DailyBucket[]): string {
+export function computeMealPatterns(
+    buckets: DailyBucket[],
+    tz: string = "UTC",
+): string {
     const logged = buckets.filter(nonEmpty);
     if (logged.length === 0) return "No data in range.";
 
@@ -349,11 +355,11 @@ export function computeMealPatterns(buckets: DailyBucket[]): string {
         );
     }
 
-    // Late-dinner effect (dinner logged after 20:00 local — using UTC hour, fine for v1)
+    // Late-dinner effect (dinner logged at or after 20:00 local time)
     const isLateDinner = (b: DailyBucket) =>
         b.meals.some((m) => {
             if (m.meal_type !== "dinner") return false;
-            const h = new Date(m.logged_at).getUTCHours();
+            const h = hourInTz(m.logged_at, tz);
             return h >= 20 || h < 4;
         });
     const lateDinnerDays = logged.filter(isLateDinner);
@@ -363,7 +369,7 @@ export function computeMealPatterns(buckets: DailyBucket[]): string {
     if (lateDinnerDays.length > 0 && earlyDinnerDays.length > 0) {
         sections.push(
             [
-                "Late-dinner effect (dinner ≥ 20:00 UTC):",
+                "Late-dinner effect (dinner ≥ 20:00 local):",
                 `  Late-dinner days: ${lateDinnerDays.length} — avg ${round(mean(lateDinnerDays.map((b) => b.calories)))} kcal, ${round(mean(lateDinnerDays.map((b) => b.protein_g)))}g P`,
                 `  Early-dinner days: ${earlyDinnerDays.length} — avg ${round(mean(earlyDinnerDays.map((b) => b.calories)))} kcal, ${round(mean(earlyDinnerDays.map((b) => b.protein_g)))}g P`,
             ].join("\n"),

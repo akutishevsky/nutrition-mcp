@@ -15,11 +15,20 @@ import {
     getWaterByDate,
     getWaterInRange,
     deleteWater,
+    getUserTimezone,
+    upsertProfile,
+    getProfile,
     type Meal,
     type NutritionGoals,
     type WaterEntry,
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
+import {
+    todayInTz,
+    validateTz,
+    shiftLocalDate,
+    dateInTz,
+} from "./tz.js";
 import {
     buildDailyBuckets,
     computeTrends,
@@ -47,16 +56,6 @@ setInterval(() => {
         }
     }
 }, CLEANUP_INTERVAL_MS);
-
-function todayDate(): string {
-    return new Date().toISOString().slice(0, 10);
-}
-
-function shiftDate(date: string, days: number): string {
-    const d = new Date(`${date}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + days);
-    return d.toISOString().slice(0, 10);
-}
 
 interface DailyTotals {
     calories: number;
@@ -254,7 +253,12 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_meals_today",
                 async () => {
-                    const meals = await getMealsByDate(userId, todayDate());
+                    const tz = await getUserTimezone(userId);
+                    const meals = await getMealsByDate(
+                        userId,
+                        todayInTz(tz),
+                        tz,
+                    );
                     if (meals.length === 0) {
                         return {
                             content: [
@@ -292,7 +296,8 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_meals_by_date",
                 async () => {
-                    const meals = await getMealsByDate(userId, date);
+                    const tz = await getUserTimezone(userId);
+                    const meals = await getMealsByDate(userId, date, tz);
                     if (meals.length === 0) {
                         return {
                             content: [
@@ -333,10 +338,12 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_meals_by_date_range",
                 async () => {
+                    const tz = await getUserTimezone(userId);
                     const meals = await getMealsInRange(
                         userId,
                         start_date,
                         end_date,
+                        tz,
                     );
                     if (meals.length === 0) {
                         return {
@@ -404,9 +411,10 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_nutrition_summary",
                 async () => {
+                    const tz = await getUserTimezone(userId);
                     const [meals, water, goals] = await Promise.all([
-                        getMealsInRange(userId, start_date, end_date),
-                        getWaterInRange(userId, start_date, end_date),
+                        getMealsInRange(userId, start_date, end_date, tz),
+                        getWaterInRange(userId, start_date, end_date, tz),
                         getNutritionGoals(userId),
                     ]);
                     if (meals.length === 0 && water.length === 0) {
@@ -420,17 +428,17 @@ function registerTools(server: McpServer, userId: string) {
                         };
                     }
 
-                    // Group by date
+                    // Group by date (local to user timezone)
                     const byDate = new Map<string, Meal[]>();
                     for (const meal of meals) {
-                        const date = meal.logged_at.slice(0, 10);
+                        const date = dateInTz(meal.logged_at, tz);
                         const existing = byDate.get(date) ?? [];
                         existing.push(meal);
                         byDate.set(date, existing);
                     }
                     const waterByDate = new Map<string, number>();
                     for (const entry of water) {
-                        const date = entry.logged_at.slice(0, 10);
+                        const date = dateInTz(entry.logged_at, tz);
                         waterByDate.set(
                             date,
                             (waterByDate.get(date) ?? 0) + entry.amount_ml,
@@ -603,10 +611,11 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_goal_progress",
                 async () => {
-                    const targetDate = date ?? todayDate();
+                    const tz = await getUserTimezone(userId);
+                    const targetDate = date ?? todayInTz(tz);
                     const [meals, water, goals] = await Promise.all([
-                        getMealsByDate(userId, targetDate),
-                        getWaterByDate(userId, targetDate),
+                        getMealsByDate(userId, targetDate, tz),
+                        getWaterByDate(userId, targetDate, tz),
                         getNutritionGoals(userId),
                     ]);
                     const totals = sumMeals(meals);
@@ -626,7 +635,7 @@ function registerTools(server: McpServer, userId: string) {
                     };
                 },
                 { userId },
-                { date: date ?? todayDate() },
+                { date: date ?? "today" },
             );
         },
     );
@@ -771,7 +780,12 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_water_today",
                 async () => {
-                    const entries = await getWaterByDate(userId, todayDate());
+                    const tz = await getUserTimezone(userId);
+                    const entries = await getWaterByDate(
+                        userId,
+                        todayInTz(tz),
+                        tz,
+                    );
                     if (entries.length === 0) {
                         return {
                             content: [
@@ -820,7 +834,8 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_water_by_date",
                 async () => {
-                    const entries = await getWaterByDate(userId, date);
+                    const tz = await getUserTimezone(userId);
+                    const entries = await getWaterByDate(userId, date, tz);
                     if (entries.length === 0) {
                         return {
                             content: [
@@ -915,12 +930,13 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_trends",
                 async () => {
-                    const endDate = end_date ?? todayDate();
+                    const tz = await getUserTimezone(userId);
+                    const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    const startDate = shiftDate(endDate, -(windowDays - 1));
+                    const startDate = shiftLocalDate(endDate, -(windowDays - 1));
                     const [meals, water, goals] = await Promise.all([
-                        getMealsInRange(userId, startDate, endDate),
-                        getWaterInRange(userId, startDate, endDate),
+                        getMealsInRange(userId, startDate, endDate, tz),
+                        getWaterInRange(userId, startDate, endDate, tz),
                         getNutritionGoals(userId),
                     ]);
                     const buckets = buildDailyBuckets(
@@ -928,6 +944,7 @@ function registerTools(server: McpServer, userId: string) {
                         water,
                         startDate,
                         endDate,
+                        tz,
                     );
                     return {
                         content: [
@@ -936,7 +953,7 @@ function registerTools(server: McpServer, userId: string) {
                     };
                 },
                 { userId },
-                { start_date: shiftDate(end_date ?? todayDate(), -((days ?? 30) - 1)), end_date: end_date ?? todayDate() },
+                { days: days ?? 30 },
             );
         },
     );
@@ -971,27 +988,32 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_meal_patterns",
                 async () => {
-                    const endDate = end_date ?? todayDate();
+                    const tz = await getUserTimezone(userId);
+                    const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    const startDate = shiftDate(endDate, -(windowDays - 1));
+                    const startDate = shiftLocalDate(endDate, -(windowDays - 1));
                     const [meals, water] = await Promise.all([
-                        getMealsInRange(userId, startDate, endDate),
-                        getWaterInRange(userId, startDate, endDate),
+                        getMealsInRange(userId, startDate, endDate, tz),
+                        getWaterInRange(userId, startDate, endDate, tz),
                     ]);
                     const buckets = buildDailyBuckets(
                         meals,
                         water,
                         startDate,
                         endDate,
+                        tz,
                     );
                     return {
                         content: [
-                            { type: "text", text: computeMealPatterns(buckets) },
+                            {
+                                type: "text",
+                                text: computeMealPatterns(buckets, tz),
+                            },
                         ],
                     };
                 },
                 { userId },
-                { start_date: shiftDate(end_date ?? todayDate(), -((days ?? 30) - 1)), end_date: end_date ?? todayDate() },
+                { days: days ?? 30 },
             );
         },
     );
@@ -1006,14 +1028,21 @@ function registerTools(server: McpServer, userId: string) {
             mimeType: "text/plain",
         },
         async (uri) => {
-            const endDate = todayDate();
-            const startDate = shiftDate(endDate, -6);
+            const tz = await getUserTimezone(userId);
+            const endDate = todayInTz(tz);
+            const startDate = shiftLocalDate(endDate, -6);
             const [meals, water, goals] = await Promise.all([
-                getMealsInRange(userId, startDate, endDate),
-                getWaterInRange(userId, startDate, endDate),
+                getMealsInRange(userId, startDate, endDate, tz),
+                getWaterInRange(userId, startDate, endDate, tz),
                 getNutritionGoals(userId),
             ]);
-            const buckets = buildDailyBuckets(meals, water, startDate, endDate);
+            const buckets = buildDailyBuckets(
+                meals,
+                water,
+                startDate,
+                endDate,
+                tz,
+            );
             return {
                 contents: [
                     {
@@ -1023,6 +1052,92 @@ function registerTools(server: McpServer, userId: string) {
                     },
                 ],
             };
+        },
+    );
+
+    server.registerTool(
+        "set_timezone",
+        {
+            title: "Set Timezone",
+            description:
+                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). This controls which calendar day meals and water are grouped into — e.g. a meal logged at 11pm in LA counts on that LA day, not the next UTC day. If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                timezone: z
+                    .string()
+                    .describe(
+                        "IANA timezone identifier (e.g. 'America/New_York'). Must be a valid tzdata name.",
+                    ),
+            },
+        },
+        async ({ timezone }) => {
+            return withAnalytics(
+                "set_timezone",
+                async () => {
+                    if (!validateTz(timezone)) {
+                        throw new Error(
+                            `Invalid timezone: ${timezone}. Use an IANA identifier like 'America/Los_Angeles' or 'Europe/London'.`,
+                        );
+                    }
+                    const profile = await upsertProfile(userId, timezone);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Timezone set to ${profile.timezone}. Local today is ${todayInTz(profile.timezone)}.`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_timezone",
+        {
+            title: "Get Timezone",
+            description:
+                "Get the user's configured IANA timezone. Returns UTC if no profile has been set.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_timezone",
+                async () => {
+                    const profile = await getProfile(userId);
+                    if (!profile) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "No timezone set yet (defaulting to UTC). Call set_timezone to configure one so 'today' matches the user's local calendar day.",
+                                },
+                            ],
+                        };
+                    }
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Timezone: ${profile.timezone}. Local today is ${todayInTz(profile.timezone)}.`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
         },
     );
 
@@ -1122,7 +1237,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.9.0",
+            version: "1.10.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,

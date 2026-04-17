@@ -50,6 +50,8 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `delete_water`            | Delete a water log entry by ID                             |
 | `get_trends`              | 7/14/30-day averages, std dev, streaks, day-of-week, best/worst day |
 | `get_meal_patterns`       | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers) |
+| `set_timezone`            | Set the user's IANA timezone (e.g. `America/Los_Angeles`)  |
+| `get_timezone`            | Get the user's configured timezone                         |
 | `delete_account`          | Permanently delete account and all associated data         |
 
 ## MCP Resources
