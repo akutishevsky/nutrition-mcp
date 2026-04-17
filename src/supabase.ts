@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
 
 let supabase: SupabaseClient;
 
@@ -96,16 +97,17 @@ export async function insertMeal(
 export async function getMealsByDate(
     userId: string,
     date: string,
+    tz: string = "UTC",
 ): Promise<Meal[]> {
-    const startOfDay = `${date}T00:00:00`;
-    const endOfDay = `${date}T23:59:59`;
+    const startUtc = zonedDayStartUtc(date, tz);
+    const endUtc = zonedNextDayStartUtc(date, tz);
 
     const { data, error } = await getSupabase()
         .from("meals")
         .select("*")
         .eq("user_id", userId)
-        .gte("logged_at", startOfDay)
-        .lte("logged_at", endOfDay)
+        .gte("logged_at", startUtc.toISOString())
+        .lt("logged_at", endUtc.toISOString())
         .order("logged_at", { ascending: true });
 
     if (error) throw new Error(`Failed to get meals: ${error.message}`);
@@ -116,13 +118,17 @@ export async function getMealsInRange(
     userId: string,
     startDate: string,
     endDate: string,
+    tz: string = "UTC",
 ): Promise<Meal[]> {
+    const startUtc = zonedDayStartUtc(startDate, tz);
+    const endUtc = zonedNextDayStartUtc(endDate, tz);
+
     const { data, error } = await getSupabase()
         .from("meals")
         .select("*")
         .eq("user_id", userId)
-        .gte("logged_at", `${startDate}T00:00:00`)
-        .lte("logged_at", `${endDate}T23:59:59`)
+        .gte("logged_at", startUtc.toISOString())
+        .lt("logged_at", endUtc.toISOString())
         .order("logged_at", { ascending: true });
 
     if (error) throw new Error(`Failed to get meals: ${error.message}`);
@@ -165,6 +171,52 @@ export async function updateMeal(
 
     if (error) throw new Error(`Failed to update meal: ${error.message}`);
     return data as Meal;
+}
+
+// ---------- Profiles ----------
+
+export interface Profile {
+    user_id: string;
+    timezone: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export async function getProfile(userId: string): Promise<Profile | null> {
+    const { data, error } = await getSupabase()
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (error) throw new Error(`Failed to get profile: ${error.message}`);
+    return (data as Profile | null) ?? null;
+}
+
+export async function getUserTimezone(userId: string): Promise<string> {
+    const profile = await getProfile(userId);
+    return profile?.timezone ?? "UTC";
+}
+
+export async function upsertProfile(
+    userId: string,
+    timezone: string,
+): Promise<Profile> {
+    const { data, error } = await getSupabase()
+        .from("profiles")
+        .upsert(
+            {
+                user_id: userId,
+                timezone,
+                updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" },
+        )
+        .select()
+        .single();
+
+    if (error) throw new Error(`Failed to save profile: ${error.message}`);
+    return data as Profile;
 }
 
 // ---------- Nutrition goals ----------
@@ -264,13 +316,17 @@ export async function insertWater(
 export async function getWaterByDate(
     userId: string,
     date: string,
+    tz: string = "UTC",
 ): Promise<WaterEntry[]> {
+    const startUtc = zonedDayStartUtc(date, tz);
+    const endUtc = zonedNextDayStartUtc(date, tz);
+
     const { data, error } = await getSupabase()
         .from("water_log")
         .select("*")
         .eq("user_id", userId)
-        .gte("logged_at", `${date}T00:00:00`)
-        .lte("logged_at", `${date}T23:59:59`)
+        .gte("logged_at", startUtc.toISOString())
+        .lt("logged_at", endUtc.toISOString())
         .order("logged_at", { ascending: true });
 
     if (error) throw new Error(`Failed to get water: ${error.message}`);
@@ -281,13 +337,17 @@ export async function getWaterInRange(
     userId: string,
     startDate: string,
     endDate: string,
+    tz: string = "UTC",
 ): Promise<WaterEntry[]> {
+    const startUtc = zonedDayStartUtc(startDate, tz);
+    const endUtc = zonedNextDayStartUtc(endDate, tz);
+
     const { data, error } = await getSupabase()
         .from("water_log")
         .select("*")
         .eq("user_id", userId)
-        .gte("logged_at", `${startDate}T00:00:00`)
-        .lte("logged_at", `${endDate}T23:59:59`)
+        .gte("logged_at", startUtc.toISOString())
+        .lt("logged_at", endUtc.toISOString())
         .order("logged_at", { ascending: true });
 
     if (error) throw new Error(`Failed to get water: ${error.message}`);
@@ -329,6 +389,13 @@ export async function deleteAllUserData(userId: string): Promise<void> {
         .eq("user_id", userId);
     if (goalsErr)
         throw new Error(`Failed to delete goals: ${goalsErr.message}`);
+
+    const { error: profileErr } = await sb
+        .from("profiles")
+        .delete()
+        .eq("user_id", userId);
+    if (profileErr)
+        throw new Error(`Failed to delete profile: ${profileErr.message}`);
 
     const { error: mealsErr } = await sb
         .from("meals")
