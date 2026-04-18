@@ -3,15 +3,27 @@ import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
 
 let supabase: SupabaseClient;
 
-export function getSupabase(): SupabaseClient {
-    if (!supabase) {
-        const url = process.env.SUPABASE_URL;
-        const key = process.env.SUPABASE_SECRET_KEY;
-        if (!url || !key) {
-            throw new Error("Missing SUPABASE_URL or SUPABASE_SECRET_KEY");
-        }
-        supabase = createClient(url, key);
+function buildClient(): SupabaseClient {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SECRET_KEY;
+    if (!url || !key) {
+        throw new Error("Missing SUPABASE_URL or SUPABASE_SECRET_KEY");
     }
+    // persistSession: false keeps the client stateless — signIn/signUp on this
+    // client won't attach a user JWT to future requests. Without this, the
+    // singleton would silently downgrade from service-role to authenticated
+    // after any auth call, making RLS fire on subsequent writes.
+    return createClient(url, key, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+        },
+    });
+}
+
+export function getSupabase(): SupabaseClient {
+    if (!supabase) supabase = buildClient();
     return supabase;
 }
 
@@ -21,7 +33,8 @@ export async function signUpUser(
     email: string,
     password: string,
 ): Promise<string> {
-    const { data, error } = await getSupabase().auth.signUp({
+    // Use a throw-away client so the session never lands on the shared singleton.
+    const { data, error } = await buildClient().auth.signUp({
         email,
         password,
     });
@@ -35,7 +48,7 @@ export async function signInUser(
     email: string,
     password: string,
 ): Promise<string> {
-    const { data, error } = await getSupabase().auth.signInWithPassword({
+    const { data, error } = await buildClient().auth.signInWithPassword({
         email,
         password,
     });
