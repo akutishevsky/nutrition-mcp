@@ -237,11 +237,31 @@ function registerTools(server: McpServer, userId: string) {
                     const header = deduplicated
                         ? "Meal already logged (idempotent retry):"
                         : "Meal logged:";
+
+                    const tz = await getUserTimezone(userId);
+                    const mealDate = dateInTz(meal.logged_at, tz);
+                    const [meals, waterEntries, goals] = await Promise.all([
+                        getMealsByDate(userId, mealDate, tz),
+                        getWaterByDate(userId, mealDate, tz),
+                        getNutritionGoals(userId),
+                    ]);
+
+                    const totals = sumMeals(meals);
+                    totals.water_ml = sumWater(waterEntries);
+
+                    let progressSection: string;
+                    if (goals) {
+                        progressSection = `\n\nDaily progress (${mealDate}):\n${formatProgress(totals, goals)}`;
+                    } else {
+                        progressSection =
+                            "\n\nNo nutrition goals set — use the set_nutrition_goals tool to track progress against daily targets.";
+                    }
+
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `${header}\n${formatMeal(meal)}`,
+                                text: `${header}\n${formatMeal(meal)}${progressSection}`,
                             },
                         ],
                     };
