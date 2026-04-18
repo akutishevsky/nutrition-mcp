@@ -1,5 +1,4 @@
 import { getSupabase } from "./supabase.js";
-import { buildTipInstruction } from "./tips.js";
 
 interface AnalyticsRecord {
     user_id: string;
@@ -114,23 +113,6 @@ export async function withAnalytics<T>(
             mcp_session_id: context.sessionId,
             invoked_at: invokedAt,
         });
-
-        const instruction = buildTipInstruction(toolName);
-        if (instruction) {
-            const r = result as unknown as {
-                content?: Array<{ type: string; text?: string }>;
-                isError?: boolean;
-            };
-            const first = r?.content?.[0];
-            if (
-                !r.isError &&
-                first &&
-                first.type === "text" &&
-                typeof first.text === "string"
-            ) {
-                first.text = `${first.text}\n${instruction}`;
-            }
-        }
 
         return result;
     } catch (error) {
