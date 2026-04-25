@@ -130,6 +130,30 @@ body {
     color: #2c2416;
 }
 
+.support-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    background: #2c2416;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.support-link:hover {
+    background: #4a7c59;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
 /* --- tabs --- */
 
 .tabs-wrap .tab-input {
