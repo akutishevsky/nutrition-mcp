@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
+import { decodeEscapeSequences } from "./normalize.js";
 
 let supabase: SupabaseClient;
 
@@ -112,14 +113,15 @@ export async function insertMeal(
         .from("meals")
         .insert({
             user_id: userId,
-            description: input.description,
+            description: decodeEscapeSequences(input.description),
             meal_type: input.meal_type,
             calories: input.calories ?? null,
             protein_g: input.protein_g ?? null,
             carbs_g: input.carbs_g ?? null,
             fat_g: input.fat_g ?? null,
             logged_at: input.logged_at ?? new Date().toISOString(),
-            notes: input.notes ?? null,
+            notes:
+                input.notes != null ? decodeEscapeSequences(input.notes) : null,
             idempotency_key: input.idempotency_key ?? null,
         })
         .select()
@@ -204,14 +206,18 @@ export async function updateMeal(
 ): Promise<Meal> {
     const update: Record<string, unknown> = {};
     if (fields.description !== undefined)
-        update.description = fields.description;
+        update.description = decodeEscapeSequences(fields.description);
     if (fields.meal_type !== undefined) update.meal_type = fields.meal_type;
     if (fields.calories !== undefined) update.calories = fields.calories;
     if (fields.protein_g !== undefined) update.protein_g = fields.protein_g;
     if (fields.carbs_g !== undefined) update.carbs_g = fields.carbs_g;
     if (fields.fat_g !== undefined) update.fat_g = fields.fat_g;
     if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
-    if (fields.notes !== undefined) update.notes = fields.notes;
+    if (fields.notes !== undefined)
+        update.notes =
+            fields.notes != null
+                ? decodeEscapeSequences(fields.notes)
+                : fields.notes;
 
     const { data, error } = await getSupabase()
         .from("meals")
