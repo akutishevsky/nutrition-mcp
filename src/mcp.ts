@@ -222,7 +222,7 @@ function registerTools(server: McpServer, userId: string) {
                     .max(255)
                     .optional()
                     .describe(
-                        "Optional stable key for safe retries. If you (or the user) might replay this same log_meal call after a network hiccup, pass a UUID or other unique string — the server will return the original meal instead of creating a duplicate. Do NOT reuse a key for genuinely different meals.",
+                        "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the meal content (including logged_at), so replaying the identical call returns the original meal instead of duplicating it. Pass a UUID only to force-override that behavior. Do NOT reuse a key for genuinely different meals.",
                     ),
             },
         },
@@ -782,7 +782,7 @@ function registerTools(server: McpServer, userId: string) {
                     .max(255)
                     .optional()
                     .describe(
-                        "Optional stable key for safe retries. If the same call might be replayed after a network hiccup, pass a UUID — the server will return the original entry instead of duplicating it. Do NOT reuse a key for genuinely different sips.",
+                        "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the entry content (including logged_at), so replaying the identical call returns the original entry instead of duplicating it. Pass a UUID only to force-override that behavior. Do NOT reuse a key for genuinely different sips.",
                     ),
             },
         },

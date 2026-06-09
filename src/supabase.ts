@@ -58,6 +58,24 @@ export async function signInUser(
     return data.user.id;
 }
 
+// ---------- Idempotency ----------
+
+// Derive a stable idempotency key from the request content so the column is
+// always populated and retries dedupe even when the client omits a key. The
+// resolved logged_at is part of the digest, so two genuinely separate but
+// otherwise-identical entries (logged at different times) get distinct keys and
+// are never wrongly merged. A retry replays the same args — including the same
+// logged_at — and therefore lands on the same key. The "auto:" prefix marks
+// server-derived keys, distinguishing them from client-supplied ones.
+function deriveIdempotencyKey(
+    parts: (string | number | null | undefined)[],
+): string {
+    const digest = new Bun.CryptoHasher("sha256")
+        .update(parts.map((p) => p ?? "").join("\u0000"))
+        .digest("hex");
+    return `auto:${digest}`;
+}
+
 // ---------- Meals ----------
 
 export interface Meal {
@@ -97,17 +115,32 @@ export async function insertMeal(
 ): Promise<MealInsertResult> {
     const sb = getSupabase();
 
-    if (input.idempotency_key) {
-        const { data: existing, error: selErr } = await sb
-            .from("meals")
-            .select("*")
-            .eq("user_id", userId)
-            .eq("idempotency_key", input.idempotency_key)
-            .maybeSingle();
-        if (selErr)
-            throw new Error(`Failed to look up meal: ${selErr.message}`);
-        if (existing) return { meal: existing as Meal, deduplicated: true };
-    }
+    // Resolve logged_at once so the digest and the persisted row agree.
+    const loggedAt = input.logged_at ?? new Date().toISOString();
+    // Always populate the key: use the client's if given, otherwise derive a
+    // stable one from the request content (see deriveIdempotencyKey).
+    const idempotencyKey =
+        input.idempotency_key ??
+        deriveIdempotencyKey([
+            userId,
+            input.description,
+            input.meal_type,
+            input.calories,
+            input.protein_g,
+            input.carbs_g,
+            input.fat_g,
+            input.notes,
+            loggedAt,
+        ]);
+
+    const { data: existing, error: selErr } = await sb
+        .from("meals")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+    if (selErr) throw new Error(`Failed to look up meal: ${selErr.message}`);
+    if (existing) return { meal: existing as Meal, deduplicated: true };
 
     const { data, error } = await sb
         .from("meals")
@@ -119,10 +152,10 @@ export async function insertMeal(
             protein_g: input.protein_g ?? null,
             carbs_g: input.carbs_g ?? null,
             fat_g: input.fat_g ?? null,
-            logged_at: input.logged_at ?? new Date().toISOString(),
+            logged_at: loggedAt,
             notes:
                 input.notes != null ? decodeEscapeSequences(input.notes) : null,
-            idempotency_key: input.idempotency_key ?? null,
+            idempotency_key: idempotencyKey,
         })
         .select()
         .single();
@@ -130,12 +163,12 @@ export async function insertMeal(
     if (error) {
         // Concurrent retry with the same idempotency key — the other request
         // already inserted the row. Fetch and return it instead of failing.
-        if (input.idempotency_key && error.code === "23505") {
+        if (error.code === "23505") {
             const { data: existing, error: raceErr } = await sb
                 .from("meals")
                 .select("*")
                 .eq("user_id", userId)
-                .eq("idempotency_key", input.idempotency_key)
+                .eq("idempotency_key", idempotencyKey)
                 .maybeSingle();
             if (raceErr)
                 throw new Error(
@@ -365,38 +398,42 @@ export async function insertWater(
 ): Promise<WaterInsertResult> {
     const sb = getSupabase();
 
-    if (input.idempotency_key) {
-        const { data: existing, error: selErr } = await sb
-            .from("water_log")
-            .select("*")
-            .eq("user_id", userId)
-            .eq("idempotency_key", input.idempotency_key)
-            .maybeSingle();
-        if (selErr)
-            throw new Error(`Failed to look up water: ${selErr.message}`);
-        if (existing)
-            return { entry: existing as WaterEntry, deduplicated: true };
-    }
+    // Resolve logged_at once so the digest and the persisted row agree.
+    const loggedAt = input.logged_at ?? new Date().toISOString();
+    // Always populate the key: use the client's if given, otherwise derive a
+    // stable one from the request content (see deriveIdempotencyKey).
+    const idempotencyKey =
+        input.idempotency_key ??
+        deriveIdempotencyKey([userId, input.amount_ml, input.notes, loggedAt]);
+
+    const { data: existing, error: selErr } = await sb
+        .from("water_log")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+    if (selErr) throw new Error(`Failed to look up water: ${selErr.message}`);
+    if (existing) return { entry: existing as WaterEntry, deduplicated: true };
 
     const { data, error } = await sb
         .from("water_log")
         .insert({
             user_id: userId,
             amount_ml: input.amount_ml,
-            logged_at: input.logged_at ?? new Date().toISOString(),
+            logged_at: loggedAt,
             notes: input.notes ?? null,
-            idempotency_key: input.idempotency_key ?? null,
+            idempotency_key: idempotencyKey,
         })
         .select()
         .single();
 
     if (error) {
-        if (input.idempotency_key && error.code === "23505") {
+        if (error.code === "23505") {
             const { data: existing, error: raceErr } = await sb
                 .from("water_log")
                 .select("*")
                 .eq("user_id", userId)
-                .eq("idempotency_key", input.idempotency_key)
+                .eq("idempotency_key", idempotencyKey)
                 .maybeSingle();
             if (raceErr)
                 throw new Error(
