@@ -4,6 +4,7 @@ import { bodyLimit } from "hono/body-limit";
 import { createOAuthRouter } from "./oauth.js";
 import { authenticateBearer, rateLimit } from "./middleware.js";
 import { handleMcp } from "./mcp.js";
+import { startExportCleanup } from "./export.js";
 
 const app = new Hono();
 
@@ -145,6 +146,9 @@ app.onError((_err, c) => {
 const port = parseInt(process.env.PORT || "8080");
 
 console.log(`Nutrition MCP server listening on 0.0.0.0:${port}`);
+
+// Periodically delete expired meal-export files from the storage bucket.
+startExportCleanup();
 
 export default {
     port,

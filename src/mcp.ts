@@ -35,6 +35,7 @@ import {
     computeMealPatterns,
     computeWeeklyDigest,
 } from "./insights.js";
+import { exportMeals } from "./export.js";
 
 const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
@@ -1062,6 +1063,48 @@ function registerTools(server: McpServer, userId: string) {
                 },
                 { userId },
                 { days: days ?? 30 },
+            );
+        },
+    );
+
+    server.registerTool(
+        "export_meals",
+        {
+            title: "Export Meals",
+            description:
+                "Export all of the user's logged meals as a CSV file and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Share the link with the user so they can download their data.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "export_meals",
+                async () => {
+                    const { count, url } = await exportMeals(userId);
+                    if (count === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "No meals to export yet.",
+                                },
+                            ],
+                        };
+                    }
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Exported ${count} meal${count === 1 ? "" : "s"} to CSV.\nDownload (link valid for 60 minutes): ${url}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
             );
         },
     );
