@@ -1101,36 +1101,54 @@ html:has(body.landing) {
     margin: 0 auto;
 }
 
-/* ---------- try-saying prompts ---------- */
-.prompts {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-    max-width: 820px;
+/* ---------- try-saying carousel ---------- */
+.carousel {
+    max-width: 540px;
     margin: 0 auto;
 }
-.prompt {
+.carousel-viewport {
+    overflow: hidden;
+}
+.carousel-track {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 0.85rem 1rem;
+    align-items: stretch;
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.prompt-icon {
-    color: var(--accent);
-    font-size: 1rem;
-    flex-shrink: 0;
+.slide {
+    min-width: 100%;
+    padding: 0 0.5rem;
 }
-.prompt-text {
-    flex: 1;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    color: var(--ink);
+.mini-chat {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.7rem;
+    min-height: 220px;
 }
-.prompt .copy-mini {
-    flex-shrink: 0;
+.mini-chat .msg {
+    animation: none;
+}
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.75rem;
+}
+.dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: var(--line);
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        width 0.2s ease;
+}
+.dot.active {
+    width: 22px;
+    background: var(--accent);
 }
 
 /* ---------- comparison ---------- */
@@ -1342,8 +1360,7 @@ html:has(body.landing) {
     .features-grid,
     .steps3,
     .compare,
-    .support-grid,
-    .prompts {
+    .support-grid {
         grid-template-columns: 1fr;
     }
     .trust-grid {
