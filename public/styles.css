@@ -1749,3 +1749,229 @@ body.landing[data-theme="dark"] .cw-avatar {
 body.landing[data-theme="dark"] .section.cta {
     background: #234a33;
 }
+
+/* =====================================================================
+   Auth / login page — self-contained styling with light & dark variants.
+   Mirrors the landing look (Inter, green accent) and shares the same
+   theme toggle + localStorage "theme" key. Bulma is not loaded here, so
+   everything below is fully custom and scoped under body.auth.
+   ===================================================================== */
+/* Bulma is not loaded here, so supply the box-sizing reset it used to give. */
+body.auth,
+body.auth *,
+body.auth *::before,
+body.auth *::after {
+    box-sizing: border-box;
+}
+body.auth {
+    --font-display: "Inter Tight", -apple-system, sans-serif;
+    --font-body:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --auth-bg: #f5f5f7;
+    --auth-card: #ffffff;
+    --auth-ink: #1d1d1f;
+    --auth-ink-2: #6e6e73;
+    --auth-line: #d2d2d7;
+    --auth-field-bg: #ffffff;
+    --accent: #4a7c59;
+    --accent-hover: #3d6649;
+
+    background: var(--auth-bg);
+    color: var(--auth-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+}
+
+/* Dark palette — applied for OS-dark (no manual override) ... */
+@media (prefers-color-scheme: dark) {
+    body.auth:not([data-theme="light"]) {
+        --auth-bg: #161617;
+        --auth-card: #1f1f21;
+        --auth-ink: #f5f5f7;
+        --auth-ink-2: #a1a1a6;
+        --auth-line: #38383b;
+        --auth-field-bg: #161617;
+        --accent: #5e9b6f;
+        --accent-hover: #74b487;
+        color-scheme: dark;
+    }
+}
+/* ... and for the explicit "dark" override from the toggle. */
+body.auth[data-theme="dark"] {
+    --auth-bg: #161617;
+    --auth-card: #1f1f21;
+    --auth-ink: #f5f5f7;
+    --auth-ink-2: #a1a1a6;
+    --auth-line: #38383b;
+    --auth-field-bg: #161617;
+    --accent: #5e9b6f;
+    --accent-hover: #74b487;
+    color-scheme: dark;
+}
+
+.auth-wrap {
+    width: 100%;
+    max-width: 380px;
+}
+.auth-card {
+    width: 100%;
+    background: var(--auth-card);
+    border: 1px solid var(--auth-line);
+    border-radius: 22px;
+    padding: 2.25rem 2rem;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    animation: fadeUp 0.5s ease-out;
+}
+
+/* header */
+.auth-head {
+    text-align: center;
+    margin-bottom: 1.75rem;
+}
+.auth-mark {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    line-height: 1;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.auth-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    color: var(--auth-ink);
+    margin: 0;
+}
+.auth-sub {
+    margin: 0.3rem 0 0;
+    font-size: 0.95rem;
+    color: var(--auth-ink-2);
+}
+
+/* form */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+}
+.auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.auth-field label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--auth-ink-2);
+}
+.auth-field input {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--auth-ink);
+    background: var(--auth-field-bg);
+    border: 1px solid var(--auth-line);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+.auth-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.auth-btn {
+    margin-top: 0.4rem;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease;
+}
+.auth-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+.auth-btn:active {
+    transform: translateY(0);
+}
+.auth-note {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--auth-ink-2);
+}
+
+/* error banner (rendered into {{ERROR}} as .error-banner) */
+body.auth .error-banner {
+    background: color-mix(in srgb, #a8432a 12%, var(--auth-card));
+    border: 1px solid color-mix(in srgb, #a8432a 35%, var(--auth-card));
+    color: #d97a64;
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+    text-align: center;
+}
+
+/* theme toggle (fixed, top-right) */
+.auth-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--auth-line);
+    background: var(--auth-card);
+    color: var(--auth-ink-2);
+    cursor: pointer;
+    transition:
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s ease;
+}
+.auth-toggle:hover {
+    color: var(--auth-ink);
+    border-color: var(--auth-ink-2);
+    transform: translateY(-1px);
+}
+.auth-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+.auth-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-card {
+        animation: none;
+    }
+}
