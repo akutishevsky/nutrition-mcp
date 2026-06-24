@@ -1205,6 +1205,34 @@ html:has(body.landing) {
     border: 1px solid var(--line);
 }
 
+/* inline progress card inside an AI reply */
+.prog {
+    margin-top: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.prog-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--ink-2);
+    margin-bottom: 0.25rem;
+}
+.prog-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+.prog-bar span {
+    display: block;
+    height: 100%;
+    width: var(--w);
+    border-radius: 999px;
+    background: var(--accent);
+}
+
 /* typing indicator */
 .typing {
     align-self: flex-start;
