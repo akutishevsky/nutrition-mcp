@@ -1,44 +1,52 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
-        <title>Nutrition MCP — AI Meal Tracker for Claude</title>
+        <title>
+            Nutrition MCP — AI Meal &amp; Macro Tracker for Claude &amp; ChatGPT
+        </title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <meta
             name="description"
-            content="Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging, calorie counting, and diet tracking."
+            content="Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, calorie counting, and diet tracking."
         />
         <meta
             name="keywords"
-            content="nutrition tracker, meal tracker, MCP server, Claude AI, calorie counter, macro tracker, food logging, diet tracker, AI nutrition, Model Context Protocol"
+            content="nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, food logging, diet tracker, AI nutrition, Model Context Protocol"
         />
         <meta
             property="og:title"
-            content="Nutrition MCP — AI Meal Tracker for Claude"
+            content="Nutrition MCP — AI Meal &amp; Macro Tracker for Claude &amp; ChatGPT"
         />
         <meta
             property="og:description"
-            content="Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging."
+            content="Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://nutrition-mcp.com" />
-        <meta name="twitter:card" content="summary" />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
         <meta
             name="twitter:title"
-            content="Nutrition MCP — AI Meal Tracker for Claude"
+            content="Nutrition MCP — AI Meal &amp; Macro Tracker for Claude &amp; ChatGPT"
         />
         <meta
             name="twitter:description"
-            content="Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging."
+            content="Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging."
         />
         <link rel="canonical" href="https://nutrition-mcp.com" />
         <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#4a7c59" />
         <script type="application/ld+json">
             {
                 "@context": "https://schema.org",
                 "@type": "SoftwareApplication",
                 "name": "Nutrition MCP",
-                "description": "Track meals, macros, and nutrition history through conversation with Claude. Free MCP server for AI-powered food logging, calorie counting, and diet tracking.",
+                "description": "Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, calorie counting, and diet tracking.",
                 "url": "https://nutrition-mcp.com",
                 "applicationCategory": "HealthApplication",
                 "operatingSystem": "Any",
@@ -49,15 +57,88 @@
                 }
             }
         </script>
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css"
-        />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "What is Nutrition MCP?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Nutrition MCP is a free Model Context Protocol (MCP) server that lets you track meals, calories, macros, and nutrition history through natural conversation with Claude or ChatGPT. Instead of typing into a traditional app, you tell your AI what you ate and it logs everything for you."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "What is the Model Context Protocol (MCP)?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "The Model Context Protocol is an open standard that lets AI assistants like Claude and ChatGPT connect to external tools and data sources. An MCP server provides specific capabilities — here, nutrition tracking — that the AI can use during a conversation. Think of it as a plugin system for AI assistants."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Does it work with ChatGPT?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL https://nutrition-mcp.com/mcp using OAuth, and sign in. It works on every ChatGPT plan."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Which other clients are supported?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Any MCP client that supports OAuth 2.0 with PKCE — including Claude.ai, the Claude desktop and mobile apps, Claude Code, Cursor, Windsurf, and VS Code."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Can I self-host it?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes. Nutrition MCP is open source (MIT). You can run your own instance with your own Supabase project — the GitHub repository includes a full self-hosting guide and a Dockerfile."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is Nutrition MCP free?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes, it is completely free — no premium tiers, ads, or hidden costs. You just need a Claude or ChatGPT account to connect. Donations on Patreon help cover server costs."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "What can I track?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Calories, protein, carbohydrates, fat, and water for every entry. You can view daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is my data private?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Your data is stored securely and linked to your personal account. Only you can access your nutrition history through your authenticated session. Nutrition MCP does not sell or share your data, and you can delete your account and all data at any time."
+                        }
+                    }
+                ]
+            }
+        </script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap"
             rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
         />
         <link rel="stylesheet" href="/styles.css" />
         <script
@@ -71,259 +152,968 @@
             }
             gtag("js", new Date());
             gtag("config", "G-1K4HRB2R8X");
-            gtag("config", "AW-18014886578");
         </script>
     </head>
-    <body>
-        <div class="page-wrap">
-            <div class="card" style="max-width: 480px; width: 100%">
-                <div class="card-content">
-                    <div class="has-text-centered mb-5">
-                        <div class="icon-wrap">🍏</div>
-                        <h1 class="title is-3 page-title">Nutrition MCP</h1>
-                        <p class="subtitle is-6 has-text-grey">
-                            Track meals, macros, and nutrition history — all
-                            through conversation with Claude. 100% free.
+    <body class="landing">
+        <header class="nav">
+            <a class="nav-brand" href="/">
+                <span class="nav-mark" aria-hidden="true"
+                    ><i class="fa-solid fa-apple-whole"></i
+                ></span>
+                <span>Nutrition&nbsp;MCP</span>
+            </a>
+            <nav class="nav-links">
+                <a href="#install">Install</a>
+                <a href="#stats">Stats</a>
+                <a href="#features">Features</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+            </nav>
+        </header>
+
+        <main>
+            <!-- Hero -->
+            <section class="hero">
+                <div class="container hero-grid">
+                    <div class="hero-copy">
+                        <p class="eyebrow">Free · Open source · OAuth 2.0</p>
+                        <h1 class="hero-title">
+                            Track your nutrition by <em>talking</em> to your AI.
+                        </h1>
+                        <p class="lead">
+                            Connect Claude or ChatGPT, then just say what you
+                            ate. Calories and macros, logged automatically.
                         </p>
-                        <a
-                            class="support-link"
-                            href="https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            >Help me pay for the servers on Patreon</a
-                        >
+                        <div class="hero-actions">
+                            <a class="btn btn-primary" href="#install"
+                                >Quick install</a
+                            >
+                            <a class="btn btn-secondary" href="#support"
+                                >Support</a
+                            >
+                        </div>
                     </div>
 
-                    <div class="tabs-wrap">
-                        <input
-                            type="radio"
-                            name="tab"
-                            id="tab-claude"
-                            class="tab-input"
-                            checked
-                        />
-                        <input
-                            type="radio"
-                            name="tab"
-                            id="tab-other"
-                            class="tab-input"
-                        />
+                    <!-- Illustrative chat demo (decorative) -->
+                    <div class="hero-card" aria-hidden="true">
+                        <div class="card chat-card">
+                            <div class="chat-thread">
+                                <div class="msg msg-user">
+                                    Log oatmeal with banana and peanut butter
+                                    for breakfast
+                                </div>
 
-                        <div class="tabs is-fullwidth is-small">
-                            <ul>
-                                <li>
-                                    <label
-                                        for="tab-claude"
-                                        class="tab-claude-label"
-                                        >Claude</label
-                                    >
-                                </li>
-                                <li>
-                                    <label
-                                        for="tab-other"
-                                        class="tab-other-label"
-                                        >Other Clients</label
-                                    >
-                                </li>
-                            </ul>
+                                <div class="msg msg-ai">
+                                    Done — added that to breakfast: oatmeal,
+                                    banana, and peanut butter. That's about 420
+                                    kcal (14g protein, 62g carbs, 14g fat), so
+                                    you're at 420 of your 2,100 today.
+                                </div>
+
+                                <div class="msg msg-user">
+                                    Show my trends this week
+                                </div>
+
+                                <div class="msg msg-ai">
+                                    You're averaging around 1,980 kcal a day
+                                    this week — about 5% under your goal.
+                                    Protein's up ~12g from last week, and you're
+                                    on a 6-day logging streak. Nice work!
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </section>
 
-                        <div class="tab-panel panel-claude">
-                            <p class="is-size-7 has-text-grey mb-4">
-                                Works with Claude.ai and the Claude desktop app.
-                                After you connect it on desktop it will appear
-                                on your iOS or Android app automatically.
+            <!-- How it works -->
+            <section class="section band" id="how">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">How it works</p>
+                        <h2 class="section-title">
+                            Three steps. No app to learn.
+                        </h2>
+                    </div>
+                    <div class="steps3">
+                        <div class="step3">
+                            <span class="step3-icon"
+                                ><i class="fa-solid fa-plug"></i
+                            ></span>
+                            <h3>1 · Connect once</h3>
+                            <p>
+                                Works with any AI client that supports remote
+                                MCP servers — Claude, ChatGPT, and more. No
+                                install, no API keys.
                             </p>
-                            <ol class="steps">
-                                <li>
-                                    Click <strong>Customize</strong>, then
-                                    <strong>Connectors</strong>
-                                </li>
-                                <li>
-                                    Click the <strong>+</strong> button, then
-                                    <strong>Add custom connector</strong>
-                                </li>
-                                <li>
-                                    Set the name and Remote MCP Server URL to
-                                    <code>https://nutrition-mcp.com/mcp</code>
-                                </li>
-                                <li>
-                                    Click <strong>Connect</strong>, then sign in
-                                    or register
-                                </li>
-                            </ol>
                         </div>
-
-                        <div class="tab-panel panel-other">
-                            <p class="is-size-7 has-text-grey mb-4">
-                                Add to your MCP client configuration:
+                        <div class="step3">
+                            <span class="step3-icon"
+                                ><i class="fa-solid fa-message"></i
+                            ></span>
+                            <h3>2 · Just say what you ate</h3>
+                            <p>
+                                Describe it in plain language — or send a photo
+                                of your meal, a screenshot from a delivery app,
+                                or a barcode (it looks the product up online).
+                                Macros logged automatically.
                             </p>
-                            <!-- prettier-ignore -->
-                            <pre class="code-block mb-4">{
+                        </div>
+                        <div class="step3">
+                            <span class="step3-icon"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>3 · Track &amp; review</h3>
+                            <p>
+                                Ask for daily summaries, weekly trends, goal
+                                progress, or export it all to CSV — completely
+                                free.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick install -->
+            <section class="section" id="install">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Quick install</p>
+                        <h2 class="section-title">Connect in under a minute</h2>
+                        <p class="section-sub">
+                            Works with any MCP client that supports OAuth 2.0
+                            with PKCE. On first connect you create an account;
+                            reconnect with the same details to keep your data.
+                        </p>
+                    </div>
+
+                    <div class="card install-card">
+                        <div class="tabs-wrap">
+                            <input
+                                type="radio"
+                                name="itab"
+                                id="itab-claude"
+                                class="tab-input"
+                                checked
+                            />
+                            <input
+                                type="radio"
+                                name="itab"
+                                id="itab-chatgpt"
+                                class="tab-input"
+                            />
+                            <input
+                                type="radio"
+                                name="itab"
+                                id="itab-other"
+                                class="tab-input"
+                            />
+
+                            <div class="seg">
+                                <label for="itab-claude" class="seg-claude"
+                                    ><i
+                                        class="fa-brands fa-claude"
+                                        aria-hidden="true"
+                                    ></i>
+                                    Claude</label
+                                >
+                                <label for="itab-chatgpt" class="seg-chatgpt"
+                                    ><i
+                                        class="fa-brands fa-openai"
+                                        aria-hidden="true"
+                                    ></i>
+                                    ChatGPT</label
+                                >
+                                <label for="itab-other" class="seg-other"
+                                    ><i
+                                        class="fa-solid fa-terminal"
+                                        aria-hidden="true"
+                                    ></i>
+                                    Other agents</label
+                                >
+                            </div>
+
+                            <div class="tab-panel panel-claude">
+                                <ol class="steps">
+                                    <li>
+                                        Open <strong>Claude</strong> (web or
+                                        desktop) and click
+                                        <strong>Customize</strong> in the
+                                        top-left corner.
+                                    </li>
+                                    <li>Click <strong>Connectors</strong>.</li>
+                                    <li>
+                                        Click <strong>+</strong>, then
+                                        <strong>Add custom connector</strong>.
+                                    </li>
+                                    <li>
+                                        Give it a name, for example
+                                        <strong>Nutrition</strong>.
+                                    </li>
+                                    <li>
+                                        Paste
+                                        <span class="copy-url"
+                                            ><code
+                                                >https://nutrition-mcp.com/mcp</code
+                                            ><button
+                                                class="copy-mini"
+                                                type="button"
+                                                data-copy="https://nutrition-mcp.com/mcp"
+                                                aria-label="Copy server URL"
+                                            >
+                                                <i
+                                                    class="fa-solid fa-copy"
+                                                ></i></button
+                                        ></span>
+                                        into the
+                                        <strong>Remote MCP server URL</strong>
+                                        field.
+                                    </li>
+                                    <li>Click <strong>Add</strong>.</li>
+                                    <li>
+                                        Click <strong>Connect</strong> — the
+                                        login page opens; sign in or sign up
+                                        with an email and password.
+                                    </li>
+                                    <li>
+                                        Done. It works right away and shows up
+                                        in your iOS and Android apps
+                                        automatically.
+                                    </li>
+                                </ol>
+                                <p class="note">
+                                    Works on every Claude plan. The free plan
+                                    allows one connected MCP server at a time.
+                                </p>
+                            </div>
+
+                            <div class="tab-panel panel-chatgpt">
+                                <ol class="steps">
+                                    <li>
+                                        Open
+                                        <strong>ChatGPT on the web</strong> →
+                                        <strong>Settings</strong> →
+                                        <strong>Apps</strong>.
+                                    </li>
+                                    <li>
+                                        Click <strong>Create app</strong> at the
+                                        bottom of the popup. If you don't see
+                                        it, turn on
+                                        <strong>Developer mode</strong> in
+                                        <strong>Advanced settings</strong>.
+                                    </li>
+                                    <li>
+                                        Give it a name, for example
+                                        <strong>Nutrition</strong>.
+                                    </li>
+                                    <li>
+                                        For <strong>Connection</strong>, paste
+                                        <span class="copy-url"
+                                            ><code
+                                                >https://nutrition-mcp.com/mcp</code
+                                            ><button
+                                                class="copy-mini"
+                                                type="button"
+                                                data-copy="https://nutrition-mcp.com/mcp"
+                                                aria-label="Copy server URL"
+                                            >
+                                                <i
+                                                    class="fa-solid fa-copy"
+                                                ></i></button></span
+                                        >.
+                                    </li>
+                                    <li>
+                                        For <strong>Authentication</strong>,
+                                        choose <strong>OAuth</strong> — leave
+                                        everything else as it is.
+                                    </li>
+                                    <li>
+                                        Check
+                                        <strong
+                                            >"I understand and want to
+                                            continue"</strong
+                                        >.
+                                    </li>
+                                    <li>Click <strong>Create</strong>.</li>
+                                    <li>
+                                        Click
+                                        <strong>Sign in with Nutrition</strong>
+                                        — the login page opens; sign in or sign
+                                        up with an email and password.
+                                    </li>
+                                    <li>
+                                        Done. It works right away and shows up
+                                        in your iOS and Android apps
+                                        automatically.
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <div class="tab-panel panel-other">
+                                <!-- prettier-ignore -->
+                                <pre class="code-block">{
   "mcpServers": {
     "nutrition": {
       "url": "https://nutrition-mcp.com/mcp"
     }
   }
 }</pre>
-                            <ol class="steps">
-                                <li>
-                                    Add the JSON config above to your client's
-                                    MCP settings
-                                </li>
-                                <li>
-                                    The server uses
-                                    <strong>OAuth 2.0</strong> — your client
-                                    must support the authorization code flow
-                                    with PKCE
-                                </li>
-                                <li>
-                                    On first connect, sign in or register to
-                                    link your account
-                                </li>
-                            </ol>
+                                <p class="note">
+                                    Add the config above to your client (Cursor,
+                                    VS Code, Claude Code, and more). Windsurf
+                                    uses
+                                    <code>serverUrl</code> instead of
+                                    <code>url</code>. In Claude Code, run
+                                    <code
+                                        >claude mcp add --transport http
+                                        nutrition
+                                        https://nutrition-mcp.com/mcp</code
+                                    >. Your client handles the OAuth login
+                                    automatically.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats + world map -->
+            <section class="section band" id="stats">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Tracked so far, together</p>
+                        <h2 class="section-title">A growing global food log</h2>
+                    </div>
+
+                    <div class="stat-row" id="stat-row">
+                        <div class="stat">
+                            <span class="stat-num" data-stat="food_logs"
+                                >—</span
+                            >
+                            <span class="stat-cap">Food logs</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num" data-stat="total_calories"
+                                >—</span
+                            >
+                            <span class="stat-cap">Calories tracked</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num" data-stat="total_protein_g"
+                                >—</span
+                            >
+                            <span class="stat-cap">Protein</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num" data-stat="total_carbs_g"
+                                >—</span
+                            >
+                            <span class="stat-cap">Carbs</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num" data-stat="total_fat_g"
+                                >—</span
+                            >
+                            <span class="stat-cap">Fat</span>
                         </div>
                     </div>
 
-                    <div class="how-it-works mt-5">
-                        <p
-                            class="is-size-7 has-text-weight-medium has-text-grey-dark mb-3"
-                        >
-                            How registration works
+                    <div class="map-block" id="map-block">
+                        <p class="map-head">
+                            Logged across
+                            <span class="map-count" data-stat="timezones"
+                                >35</span
+                            >
+                            timezones worldwide
                         </p>
-                        <ol class="steps">
-                            <li>
-                                On first connect, a login page will open in your
-                                browser
-                            </li>
-                            <li>
-                                Enter an email and password to
-                                <strong>create an account</strong>
-                            </li>
-                            <li>
-                                Your meals and nutrition data are linked to your
-                                account
-                            </li>
-                            <li>
-                                If you reconnect later, sign in with the
-                                <strong>same email and password</strong> to keep
-                                your data
-                            </li>
-                        </ol>
+                        <div class="world-map">
+                            <svg
+                                id="world-svg"
+                                viewBox="0 0 1000 500"
+                                preserveAspectRatio="xMidYMid meet"
+                                role="img"
+                                aria-label="World map showing timezones where Nutrition MCP is used"
+                            ></svg>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <details class="seo-faq">
-                <summary class="seo-faq-toggle">
-                    Frequently Asked Questions
-                </summary>
-                <div class="seo-faq-content">
-                    <h2>What is Nutrition MCP?</h2>
-                    <p>
-                        Nutrition MCP is a free Model Context Protocol (MCP)
-                        server that lets you track meals, calories, macros, and
-                        nutrition history through natural conversation with
-                        Claude AI. Instead of manually entering data into a
-                        traditional app, you simply tell Claude what you ate and
-                        it logs everything for you.
-                    </p>
+            </section>
 
-                    <h2>How does AI meal tracking work?</h2>
-                    <p>
-                        Once you connect Nutrition MCP to Claude, you can
-                        describe your meals in plain language — for example, "I
-                        had a chicken salad with avocado for lunch." Claude
-                        estimates the calories, protein, carbs, and fat, then
-                        logs the meal to your personal nutrition history. You
-                        can ask for daily or weekly summaries, edit past meals,
-                        or track trends over time.
-                    </p>
-
-                    <h2>Is Nutrition MCP free?</h2>
-                    <p>
-                        Yes, Nutrition MCP is completely free to use. There are
-                        no premium tiers, ads, or hidden costs. You just need a
-                        Claude account to connect.
-                    </p>
-
-                    <h2>Which Claude clients are supported?</h2>
-                    <p>
-                        Nutrition MCP works with Claude.ai, the Claude desktop
-                        app (macOS and Windows), and the Claude mobile apps for
-                        iOS and Android. It also works with any MCP-compatible
-                        client that supports OAuth 2.0 with PKCE, including
-                        Cursor, Windsurf, and Claude Code.
-                    </p>
-
-                    <h2>What is the Model Context Protocol (MCP)?</h2>
-                    <p>
-                        The Model Context Protocol is an open standard that
-                        allows AI assistants like Claude to connect to external
-                        tools and data sources. MCP servers provide specific
-                        capabilities — in this case, nutrition tracking — that
-                        the AI can use during conversation. Think of it as a
-                        plugin system for AI assistants.
-                    </p>
-
-                    <h2>What nutrition data can I track?</h2>
-                    <p>
-                        You can track calories, protein, carbohydrates, fat, and
-                        fiber for every meal. Claude estimates nutritional
-                        values based on your meal descriptions. You can view
-                        daily summaries, query meals by date range, update or
-                        delete past entries, and monitor your intake trends over
-                        time.
-                    </p>
-
-                    <h2>Is my nutrition data private?</h2>
-                    <p>
-                        Your meal data is stored securely and linked to your
-                        personal account. Only you can access your nutrition
-                        history through your authenticated Claude session.
-                        Nutrition MCP does not sell or share your data. You can
-                        delete your account and all associated data at any time.
-                    </p>
+            <!-- Features -->
+            <section class="section" id="features">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Everything, just by chatting</p>
+                        <h2 class="section-title">What you can track</h2>
+                    </div>
+                    <div class="features-grid">
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-utensils"></i
+                            ></span>
+                            <h3>Meals in plain language</h3>
+                            <p>
+                                Describe what you ate — your AI estimates
+                                calories, protein, carbs, and fat and logs it.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-bullseye"></i
+                            ></span>
+                            <h3>Goals &amp; progress</h3>
+                            <p>
+                                Set daily calorie, macro, and water targets and
+                                check live progress toward them.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>Summaries &amp; trends</h3>
+                            <p>
+                                Daily and weekly breakdowns, 7/14/30-day trends,
+                                streaks, and recurring meal patterns.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-glass-water"></i
+                            ></span>
+                            <h3>Water logging</h3>
+                            <p>
+                                Track hydration in milliliters alongside your
+                                meals and review it by day.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-clock-four"></i
+                            ></span>
+                            <h3>Timezone-aware</h3>
+                            <p>
+                                Days roll over in your local time, wherever you
+                                are in the world.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-file-csv"></i
+                            ></span>
+                            <h3>Export &amp; own your data</h3>
+                            <p>
+                                Export everything to CSV anytime, and delete
+                                your account and data whenever you want.
+                            </p>
+                        </article>
+                    </div>
                 </div>
-            </details>
+            </section>
 
-            <div class="footer-links">
-                <a
-                    href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="github-link"
-                    >How I built this</a
+            <!-- Why / comparison -->
+            <section class="section band" id="why">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Why Nutrition MCP</p>
+                        <h2 class="section-title">Talking beats tapping.</h2>
+                        <p class="section-sub">
+                            No barcode scanning, no database digging, no
+                            separate app to open.
+                        </p>
+                    </div>
+                    <div class="compare">
+                        <div class="compare-col">
+                            <h3 class="compare-h compare-h-old">
+                                Traditional apps
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Search a
+                                    database for every item
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Scan
+                                    barcodes and fix wrong entries
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Yet
+                                    another app, account, and paywall
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Tedious
+                                    manual logging
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="compare-col compare-col-new">
+                            <h3 class="compare-h compare-h-new">
+                                Nutrition MCP
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Describe meals in plain language
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Calories &amp; macros estimated for you
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Works inside Claude or ChatGPT, free
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i> Ask
+                                    for trends, summaries, and goals
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Trust -->
+            <section class="section" id="trust">
+                <div class="container trust-grid">
+                    <div class="trust-item">
+                        <i class="fa-solid fa-lock"></i>
+                        <span>Private by default</span>
+                        <small>Only you can see your data.</small>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fa-solid fa-code-branch"></i>
+                        <span>Open source</span>
+                        <small>Audit or self-host it.</small>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fa-solid fa-file-export"></i>
+                        <span>Export anytime</span>
+                        <small>Your full history as CSV.</small>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>Delete instantly</span>
+                        <small>Remove your account &amp; data.</small>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Support -->
+            <section class="section band" id="support">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Support</p>
+                        <h2 class="section-title">Help keep it running.</h2>
+                        <p class="section-sub">
+                            Nutrition MCP is free and ad-free. Patreon covers
+                            the server and database bills.
+                        </p>
+                    </div>
+                    <div class="support-grid">
+                        <div class="card support-card">
+                            <h3 class="support-tier">Free member</h3>
+                            <p class="support-price">$0</p>
+                            <p class="support-desc">
+                                Follow along — get news and updates about the
+                                server, new tools, and what's coming next.
+                            </p>
+                            <a
+                                class="btn btn-secondary"
+                                href="https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                >Follow on Patreon</a
+                            >
+                        </div>
+                        <div class="card support-card support-card-paid">
+                            <h3 class="support-tier">Paid member</h3>
+                            <p class="support-price">Pay what you want</p>
+                            <p class="support-desc">
+                                Chip in for hosting and database costs so the
+                                server stays free and online for everyone.
+                            </p>
+                            <a
+                                class="btn btn-primary"
+                                href="https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                >Become a supporter</a
+                            >
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Closing CTA -->
+            <section class="section cta">
+                <div class="container cta-inner">
+                    <h2 class="cta-title">Start tracking in under a minute.</h2>
+                    <p class="cta-sub">
+                        Free and open source — it works with the AI you already
+                        use.
+                    </p>
+                    <div class="cta-actions">
+                        <a class="btn btn-on-accent" href="#install"
+                            >Quick install</a
+                        >
+                        <a
+                            class="btn btn-ghost-accent"
+                            href="https://github.com/akutishevsky/nutrition-mcp"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <i class="fa-brands fa-github"></i> Star on GitHub
+                            <span class="gh-stars" id="gh-stars"></span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section" id="faq">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">FAQ</p>
+                        <h2 class="section-title">
+                            Frequently asked questions
+                        </h2>
+                    </div>
+                    <div class="faq">
+                        <details>
+                            <summary>What is Nutrition MCP?</summary>
+                            <p>
+                                Nutrition MCP is a free Model Context Protocol
+                                (MCP) server that lets you track meals,
+                                calories, macros, and nutrition history through
+                                natural conversation with Claude or ChatGPT.
+                                Instead of typing into a traditional app, you
+                                tell your AI what you ate and it logs everything
+                                for you.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                What is the Model Context Protocol (MCP)?
+                            </summary>
+                            <p>
+                                The Model Context Protocol is an open standard
+                                that lets AI assistants like Claude and ChatGPT
+                                connect to external tools and data sources. An
+                                MCP server provides specific capabilities —
+                                here, nutrition tracking — that the AI can use
+                                during a conversation. Think of it as a plugin
+                                system for AI assistants.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Does it work with ChatGPT?</summary>
+                            <p>
+                                Yes. In ChatGPT on the web, open Settings →
+                                Apps, create a custom app with the server URL
+                                using OAuth, and sign in. It works on every
+                                ChatGPT plan.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Which other clients are supported?
+                            </summary>
+                            <p>
+                                Any MCP client that supports OAuth 2.0 with PKCE
+                                — including Claude.ai, the Claude desktop and
+                                mobile apps, Claude Code, Cursor, Windsurf, and
+                                VS Code.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Can I self-host it?</summary>
+                            <p>
+                                Yes. Nutrition MCP is open source (MIT). You can
+                                run your own instance with your own Supabase
+                                project — the
+                                <a
+                                    href="https://github.com/akutishevsky/nutrition-mcp"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    >GitHub repository</a
+                                >
+                                includes a full self-hosting guide and a
+                                Dockerfile.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Is Nutrition MCP free?</summary>
+                            <p>
+                                Yes, it is completely free — no premium tiers,
+                                ads, or hidden costs. You just need a Claude or
+                                ChatGPT account to connect. Donations on Patreon
+                                help cover server costs.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>What can I track?</summary>
+                            <p>
+                                Calories, protein, carbohydrates, fat, and water
+                                for every entry. You can view daily summaries,
+                                query meals by date range, update or delete past
+                                entries, set goals, and monitor trends over
+                                time.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Is my data private?</summary>
+                            <p>
+                                Your data is stored securely and linked to your
+                                personal account. Only you can access your
+                                nutrition history through your authenticated
+                                session. Nutrition MCP does not sell or share
+                                your data, and you can delete your account and
+                                all data at any time.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand"
+                    ><i class="fa-solid fa-apple-whole" aria-hidden="true"></i>
+                    Nutrition MCP</span
                 >
-                <span class="separator">|</span>
-                <a
-                    href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="github-link"
-                    >Demo</a
-                >
-                <span class="separator">|</span>
-                <a
-                    href="https://github.com/akutishevsky/nutrition-mcp"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="github-link"
-                >
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 16 16"
-                        fill="currentColor"
+                <nav class="footer-links">
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >How I built this</a
                     >
-                        <path
-                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"
-                        />
-                    </svg>
-                    GitHub
-                </a>
-                <span class="separator">|</span>
-                <a href="/privacy" class="github-link">Privacy & Terms</a>
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Demo</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="/privacy">Privacy &amp; Terms</a>
+                </nav>
             </div>
-        </div>
+        </footer>
+
+        <script>
+            (function () {
+                // ---------- copy-URL buttons in the install guides ----------
+                document.querySelectorAll(".copy-mini").forEach(function (btn) {
+                    var icon = btn.querySelector("i");
+                    btn.addEventListener("click", function () {
+                        var text = btn.getAttribute("data-copy");
+                        function ok() {
+                            btn.classList.add("copied");
+                            if (icon) icon.className = "fa-solid fa-check";
+                            setTimeout(function () {
+                                btn.classList.remove("copied");
+                                if (icon) icon.className = "fa-solid fa-copy";
+                            }, 1500);
+                        }
+                        function fallback() {
+                            try {
+                                var ta = document.createElement("textarea");
+                                ta.value = text;
+                                ta.style.position = "absolute";
+                                ta.style.left = "-9999px";
+                                document.body.appendChild(ta);
+                                ta.select();
+                                document.execCommand("copy");
+                                document.body.removeChild(ta);
+                                ok();
+                            } catch (e) {}
+                        }
+                        if (
+                            navigator.clipboard &&
+                            navigator.clipboard.writeText
+                        ) {
+                            navigator.clipboard
+                                .writeText(text)
+                                .then(ok, fallback);
+                        } else {
+                            fallback();
+                        }
+                    });
+                });
+
+                var reduceMotion = window.matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                ).matches;
+
+                // ---------- animated stat numbers ----------
+                function fmtInt(n) {
+                    return Math.round(n).toLocaleString("en-US");
+                }
+                function fmtCompact(n) {
+                    return new Intl.NumberFormat("en-US", {
+                        notation: "compact",
+                        maximumFractionDigits: 1,
+                    }).format(Math.round(n));
+                }
+                function fmtKg(n) {
+                    return fmtInt(n) + " kg";
+                }
+                var FORMATS = {
+                    food_logs: {
+                        to: function (v) {
+                            return v;
+                        },
+                        fmt: fmtInt,
+                    },
+                    total_calories: {
+                        to: function (v) {
+                            return v;
+                        },
+                        fmt: fmtCompact,
+                    },
+                    timezones: {
+                        to: function (v) {
+                            return v;
+                        },
+                        fmt: fmtInt,
+                    },
+                    total_protein_g: {
+                        to: function (v) {
+                            return v / 1000;
+                        },
+                        fmt: fmtKg,
+                    },
+                    total_carbs_g: {
+                        to: function (v) {
+                            return v / 1000;
+                        },
+                        fmt: fmtKg,
+                    },
+                    total_fat_g: {
+                        to: function (v) {
+                            return v / 1000;
+                        },
+                        fmt: fmtKg,
+                    },
+                };
+                function animate(el, target, fmt) {
+                    if (reduceMotion) {
+                        el.textContent = fmt(target);
+                        return;
+                    }
+                    var dur = 1300,
+                        start = null;
+                    function step(ts) {
+                        if (start === null) start = ts;
+                        var p = Math.min((ts - start) / dur, 1);
+                        el.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));
+                        if (p < 1) requestAnimationFrame(step);
+                    }
+                    requestAnimationFrame(step);
+                }
+                function setStats(stats) {
+                    Object.keys(FORMATS).forEach(function (key) {
+                        if (typeof stats[key] !== "number") return;
+                        document
+                            .querySelectorAll('[data-stat="' + key + '"]')
+                            .forEach(function (el) {
+                                var c = FORMATS[key];
+                                animate(el, c.to(stats[key]), c.fmt);
+                            });
+                    });
+                }
+
+                // ---------- world map ----------
+                var SVGNS = "http://www.w3.org/2000/svg";
+                function buildMap(mapData, activeTzs) {
+                    var svg = document.getElementById("world-svg");
+                    if (!svg || !mapData) return;
+                    var landFrag = document.createDocumentFragment();
+                    mapData.land.forEach(function (p) {
+                        var c = document.createElementNS(SVGNS, "circle");
+                        c.setAttribute("cx", p[0]);
+                        c.setAttribute("cy", p[1]);
+                        c.setAttribute("r", "1.9");
+                        c.setAttribute("class", "land-dot");
+                        landFrag.appendChild(c);
+                    });
+                    svg.appendChild(landFrag);
+                    var seen = {};
+                    (activeTzs || []).forEach(function (tz, i) {
+                        var pt = mapData.tz[tz];
+                        if (!pt) return;
+                        var k = pt[0] + "," + pt[1];
+                        if (seen[k]) return;
+                        seen[k] = true;
+                        var halo = document.createElementNS(SVGNS, "circle");
+                        halo.setAttribute("cx", pt[0]);
+                        halo.setAttribute("cy", pt[1]);
+                        halo.setAttribute("r", "9");
+                        halo.setAttribute("class", "tz-halo");
+                        if (!reduceMotion)
+                            halo.style.animationDelay = (i % 6) * 0.45 + "s";
+                        var core = document.createElementNS(SVGNS, "circle");
+                        core.setAttribute("cx", pt[0]);
+                        core.setAttribute("cy", pt[1]);
+                        core.setAttribute("r", "3.2");
+                        core.setAttribute("class", "tz-core");
+                        svg.appendChild(halo);
+                        svg.appendChild(core);
+                    });
+                }
+
+                // ---------- load data ----------
+                Promise.all([
+                    fetch("/api/stats").then(function (r) {
+                        if (!r.ok) throw new Error("stats");
+                        return r.json();
+                    }),
+                    fetch("/map-data.json").then(function (r) {
+                        return r.ok ? r.json() : null;
+                    }),
+                ])
+                    .then(function (res) {
+                        var stats = res[0];
+                        setStats(stats);
+                        buildMap(res[1], stats.timezone_list);
+                    })
+                    .catch(function () {
+                        var row = document.getElementById("stat-row");
+                        var map = document.getElementById("map-block");
+                        if (row) row.style.display = "none";
+                        if (map) map.style.display = "none";
+                    });
+
+                // ---------- live GitHub star count ----------
+                var ghEl = document.getElementById("gh-stars");
+                if (ghEl) {
+                    fetch(
+                        "https://api.github.com/repos/akutishevsky/nutrition-mcp",
+                    )
+                        .then(function (r) {
+                            return r.ok ? r.json() : null;
+                        })
+                        .then(function (d) {
+                            if (d && typeof d.stargazers_count === "number") {
+                                ghEl.textContent =
+                                    "· ★ " +
+                                    d.stargazers_count.toLocaleString("en-US");
+                            }
+                        })
+                        .catch(function () {});
+                }
+            })();
+        </script>
     </body>
 </html>
