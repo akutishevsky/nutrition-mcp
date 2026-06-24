@@ -1975,3 +1975,58 @@ body.auth .error-banner {
         animation: none;
     }
 }
+
+/* =====================================================================
+   Privacy / legal page — reuses the body.auth foundation (palette, reset,
+   theme toggle, dark variants) with a wider card and document-style
+   content. Rules are scoped under body.auth so they win over the old
+   light-only .legal-* rules higher up in this file.
+   ===================================================================== */
+.auth-wrap.legal {
+    max-width: 560px;
+}
+body.auth .auth-card .legal-section {
+    margin-bottom: 1.5rem;
+}
+body.auth .auth-card .legal-section:last-of-type {
+    margin-bottom: 0;
+}
+body.auth .legal-heading {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+    color: var(--auth-ink);
+    margin: 0 0 0.4rem;
+}
+body.auth .legal-section p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--auth-ink-2);
+    margin: 0;
+}
+body.auth .legal-section strong {
+    color: var(--auth-ink);
+    font-weight: 600;
+}
+body.auth .legal-section a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+body.auth .legal-section a:hover {
+    color: var(--accent-hover);
+}
+.legal-foot {
+    text-align: center;
+    margin-top: 1.75rem;
+}
+.legal-back {
+    font-size: 0.9rem;
+    color: var(--auth-ink-2);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.legal-back:hover {
+    color: var(--auth-ink);
+}
