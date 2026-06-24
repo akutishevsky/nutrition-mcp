@@ -200,30 +200,47 @@
 
                     <!-- Illustrative chat demo (decorative) -->
                     <div class="hero-card" aria-hidden="true">
-                        <div class="card chat-card">
-                            <div class="chat-thread">
-                                <div class="msg msg-user">
-                                    Log oatmeal with banana and peanut butter
-                                    for breakfast
-                                </div>
+                        <div class="chat-window">
+                            <div class="cw-header">
+                                <span class="cw-avatar"
+                                    ><i class="fa-solid fa-apple-whole"></i
+                                ></span>
+                                <span class="cw-title">Nutrition MCP</span>
+                                <span class="cw-status">online</span>
+                            </div>
+                            <div class="cw-body">
+                                <div class="chat-thread">
+                                    <div class="msg msg-user">
+                                        Log oatmeal with banana and peanut
+                                        butter for breakfast
+                                    </div>
 
-                                <div class="msg msg-ai">
-                                    Done — added that to breakfast: oatmeal,
-                                    banana, and peanut butter. That's about 420
-                                    kcal (14g protein, 62g carbs, 14g fat), so
-                                    you're at 420 of your 2,100 today.
-                                </div>
+                                    <div class="msg msg-ai">
+                                        Done — added that to breakfast: oatmeal,
+                                        banana, and peanut butter. That's about
+                                        420 kcal (14g protein, 62g carbs, 14g
+                                        fat), so you're at 420 of your 2,100
+                                        today.
+                                    </div>
 
-                                <div class="msg msg-user">
-                                    Show my trends this week
-                                </div>
+                                    <div class="msg msg-user">
+                                        Show my trends this week
+                                    </div>
 
-                                <div class="msg msg-ai">
-                                    You're averaging around 1,980 kcal a day
-                                    this week — about 5% under your goal.
-                                    Protein's up ~12g from last week, and you're
-                                    on a 6-day logging streak. Nice work!
+                                    <div class="msg msg-ai">
+                                        You're averaging around 1,980 kcal a day
+                                        this week — about 5% under your goal.
+                                        Protein's up ~12g from last week, and
+                                        you're on a 6-day logging streak. Nice
+                                        work!
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="cw-input">
+                                <span class="cw-field">Message Nutrition…</span>
+                                <span class="cw-send"
+                                    ><i class="fa-solid fa-arrow-up"></i
+                                ></span>
                             </div>
                         </div>
                     </div>
@@ -1020,37 +1037,55 @@
                                 ></span>
                             </div>
                         </div>
-                        <div class="carousel-dots">
+                        <div class="carousel-controls">
                             <button
-                                class="dot active"
+                                class="carousel-arrow"
                                 type="button"
-                                aria-label="Example 1"
-                            ></button>
+                                data-dir="prev"
+                                aria-label="Previous example"
+                            >
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <div class="carousel-dots">
+                                <button
+                                    class="dot active"
+                                    type="button"
+                                    aria-label="Example 1"
+                                ></button>
+                                <button
+                                    class="dot"
+                                    type="button"
+                                    aria-label="Example 2"
+                                ></button>
+                                <button
+                                    class="dot"
+                                    type="button"
+                                    aria-label="Example 3"
+                                ></button>
+                                <button
+                                    class="dot"
+                                    type="button"
+                                    aria-label="Example 4"
+                                ></button>
+                                <button
+                                    class="dot"
+                                    type="button"
+                                    aria-label="Example 5"
+                                ></button>
+                                <button
+                                    class="dot"
+                                    type="button"
+                                    aria-label="Example 6"
+                                ></button>
+                            </div>
                             <button
-                                class="dot"
+                                class="carousel-arrow"
                                 type="button"
-                                aria-label="Example 2"
-                            ></button>
-                            <button
-                                class="dot"
-                                type="button"
-                                aria-label="Example 3"
-                            ></button>
-                            <button
-                                class="dot"
-                                type="button"
-                                aria-label="Example 4"
-                            ></button>
-                            <button
-                                class="dot"
-                                type="button"
-                                aria-label="Example 5"
-                            ></button>
-                            <button
-                                class="dot"
-                                type="button"
-                                aria-label="Example 6"
-                            ></button>
+                                data-dir="next"
+                                aria-label="Next example"
+                            >
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1753,6 +1788,20 @@
                             start();
                         });
                     });
+                    carousel
+                        .querySelectorAll(".carousel-arrow")
+                        .forEach(function (arrow) {
+                            arrow.addEventListener("click", function () {
+                                goTo(
+                                    idx +
+                                        (arrow.getAttribute("data-dir") ===
+                                        "next"
+                                            ? 1
+                                            : -1),
+                                );
+                                start();
+                            });
+                        });
                     carousel.addEventListener("mouseenter", stop);
                     carousel.addEventListener("mouseleave", start);
                     carousel.addEventListener("focusin", stop);
