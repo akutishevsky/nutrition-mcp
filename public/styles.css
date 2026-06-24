@@ -477,13 +477,14 @@ html:has(body.landing) {
 .nav-links {
     display: flex;
     align-items: center;
-    gap: clamp(1rem, 3vw, 2rem);
+    gap: clamp(0.9rem, 2vw, 1.6rem);
 }
 .nav-links a {
     font-size: 0.88rem;
     font-weight: 400;
     color: var(--ink-2);
     text-decoration: none;
+    white-space: nowrap;
     transition: color 0.2s ease;
 }
 .nav-links a:hover {
