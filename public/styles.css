@@ -1623,3 +1623,129 @@ html:has(body.landing) {
         animation: none;
     }
 }
+
+/* =====================================================================
+   Dark theme (landing page only)
+   - Follows the OS setting automatically via prefers-color-scheme.
+   - The nav theme toggle sets data-theme="dark"|"light" on <body> to
+     override the OS preference; that override always wins.
+   The dark palette is defined once below and applied through both the
+   media query (auto) and the explicit override selector.
+   ===================================================================== */
+
+/* Theme toggle button */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.9rem, 2vw, 1.6rem);
+}
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--bg-alt);
+    color: var(--ink-2);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s ease;
+}
+.theme-toggle:hover {
+    color: var(--ink);
+    border-color: var(--ink-2);
+    transform: translateY(-1px);
+}
+
+/* Shared dark palette — applied for OS-dark (no manual override) ... */
+@media (prefers-color-scheme: dark) {
+    body.landing:not([data-theme="light"]) {
+        --bg: #161617;
+        --bg-alt: #1f1f21;
+        --ink: #f5f5f7;
+        --ink-2: #a1a1a6;
+        --ink-3: #6e6e73;
+        --line: #38383b;
+        --accent: #5e9b6f;
+        --accent-hover: #74b487;
+        color-scheme: dark;
+    }
+}
+/* ... and for the explicit "dark" override from the toggle. */
+body.landing[data-theme="dark"] {
+    --bg: #161617;
+    --bg-alt: #1f1f21;
+    --ink: #f5f5f7;
+    --ink-2: #a1a1a6;
+    --ink-3: #6e6e73;
+    --line: #38383b;
+    --accent: #5e9b6f;
+    --accent-hover: #74b487;
+    color-scheme: dark;
+}
+
+/* Patches for hardcoded light colors when dark is active (either path). */
+@media (prefers-color-scheme: dark) {
+    body.landing:not([data-theme="light"]) .card {
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+    body.landing:not([data-theme="light"]) .btn-secondary:hover {
+        background: #2a2a2c;
+    }
+    body.landing:not([data-theme="light"])
+        #itab-claude:checked
+        ~ .seg
+        .seg-claude,
+    body.landing:not([data-theme="light"])
+        #itab-chatgpt:checked
+        ~ .seg
+        .seg-chatgpt,
+    body.landing:not([data-theme="light"])
+        #itab-other:checked
+        ~ .seg
+        .seg-other {
+        background: #2f2f31;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    }
+    body.landing:not([data-theme="light"]) .prog-bar {
+        background: rgba(255, 255, 255, 0.12);
+    }
+    body.landing:not([data-theme="light"]) .step3-icon,
+    body.landing:not([data-theme="light"]) .cw-avatar {
+        background: rgba(94, 155, 111, 0.18);
+    }
+    body.landing:not([data-theme="light"]) .section.cta {
+        background: #234a33;
+    }
+}
+body.landing[data-theme="dark"] .card {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+body.landing[data-theme="dark"] .btn-secondary:hover {
+    background: #2a2a2c;
+}
+body.landing[data-theme="dark"] #itab-claude:checked ~ .seg .seg-claude,
+body.landing[data-theme="dark"] #itab-chatgpt:checked ~ .seg .seg-chatgpt,
+body.landing[data-theme="dark"] #itab-other:checked ~ .seg .seg-other {
+    background: #2f2f31;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+body.landing[data-theme="dark"] .prog-bar {
+    background: rgba(255, 255, 255, 0.12);
+}
+body.landing[data-theme="dark"] .step3-icon,
+body.landing[data-theme="dark"] .cw-avatar {
+    background: rgba(94, 155, 111, 0.18);
+}
+body.landing[data-theme="dark"] .section.cta {
+    background: #234a33;
+}
