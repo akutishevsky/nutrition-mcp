@@ -155,6 +155,17 @@
         </script>
     </head>
     <body class="landing">
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            // With no saved preference, the OS setting drives it via CSS.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
         <header class="nav">
             <a class="nav-brand" href="/">
                 <span class="nav-mark" aria-hidden="true"
@@ -162,19 +173,30 @@
                 ></span>
                 <span>Nutrition&nbsp;MCP</span>
             </a>
-            <nav class="nav-links">
-                <a href="#how">How it works</a>
-                <a href="#install">Install</a>
-                <a href="#try">Examples</a>
-                <a href="#support">Support</a>
-                <a href="#faq">FAQ</a>
-                <a
-                    href="https://github.com/akutishevsky/nutrition-mcp"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >GitHub</a
+            <div class="nav-right">
+                <nav class="nav-links">
+                    <a href="#how">How it works</a>
+                    <a href="#install">Install</a>
+                    <a href="#try">Examples</a>
+                    <a href="#support">Support</a>
+                    <a href="#faq">FAQ</a>
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                </nav>
+                <button
+                    class="theme-toggle"
+                    type="button"
+                    id="theme-toggle"
+                    aria-label="Toggle dark mode"
+                    title="Toggle dark mode"
                 >
-            </nav>
+                    <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                </button>
+            </div>
         </header>
 
         <main>
@@ -1636,6 +1658,56 @@
 
         <script>
             (function () {
+                // ---------- theme toggle (dark / light, default = system) ----------
+                var themeBtn = document.getElementById("theme-toggle");
+                if (themeBtn) {
+                    var themeIcon = themeBtn.querySelector("i");
+                    var metaTheme = document.querySelector(
+                        'meta[name="theme-color"]',
+                    );
+                    var darkQuery = window.matchMedia(
+                        "(prefers-color-scheme: dark)",
+                    );
+                    // The effective theme = explicit override, else the OS setting.
+                    function effectiveTheme() {
+                        var override = document.body.getAttribute("data-theme");
+                        if (override) return override;
+                        return darkQuery.matches ? "dark" : "light";
+                    }
+                    // Reflect the current theme in the icon, label, and meta color.
+                    function syncUI() {
+                        var dark = effectiveTheme() === "dark";
+                        if (themeIcon)
+                            themeIcon.className = dark
+                                ? "fa-solid fa-sun"
+                                : "fa-solid fa-moon";
+                        var label = dark
+                            ? "Switch to light mode"
+                            : "Switch to dark mode";
+                        themeBtn.setAttribute("aria-label", label);
+                        themeBtn.setAttribute("title", label);
+                        if (metaTheme)
+                            metaTheme.setAttribute(
+                                "content",
+                                dark ? "#161617" : "#4a7c59",
+                            );
+                    }
+                    themeBtn.addEventListener("click", function () {
+                        var next =
+                            effectiveTheme() === "dark" ? "light" : "dark";
+                        document.body.setAttribute("data-theme", next);
+                        try {
+                            localStorage.setItem("theme", next);
+                        } catch (e) {}
+                        syncUI();
+                    });
+                    // While following the OS (no override), track system changes.
+                    darkQuery.addEventListener("change", function () {
+                        if (!document.body.getAttribute("data-theme")) syncUI();
+                    });
+                    syncUI();
+                }
+
                 // ---------- copy-URL buttons in the install guides ----------
                 document.querySelectorAll(".copy-mini").forEach(function (btn) {
                     var icon = btn.querySelector("i");
