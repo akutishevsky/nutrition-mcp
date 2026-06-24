@@ -700,6 +700,29 @@ export async function consumeRefreshToken(
     return data.user_id as string;
 }
 
+// ---------- Public landing stats ----------
+
+export interface LandingStats {
+    food_logs: number;
+    total_calories: number;
+    total_protein_g: number;
+    total_carbs_g: number;
+    total_fat_g: number;
+    timezones: number;
+    // IANA names of every distinct timezone in use — drives the landing-page
+    // world map. Aggregate-only; no per-user data.
+    timezone_list: string[];
+}
+
+// Aggregate-only totals for the public landing page. Backed by the
+// `public_landing_stats` SQL function so the whole thing is one round trip and
+// the database does the summing. Never returns per-user rows.
+export async function getLandingStats(): Promise<LandingStats> {
+    const { data, error } = await getSupabase().rpc("public_landing_stats");
+    if (error) throw new Error(`Failed to get landing stats: ${error.message}`);
+    return data as LandingStats;
+}
+
 // ---------- Registered clients ----------
 
 export function registerClient(
