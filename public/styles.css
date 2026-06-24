@@ -1101,6 +1101,38 @@ html:has(body.landing) {
     margin: 0 auto;
 }
 
+/* ---------- try-saying prompts ---------- */
+.prompts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    max-width: 820px;
+    margin: 0 auto;
+}
+.prompt {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+}
+.prompt-icon {
+    color: var(--accent);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.prompt-text {
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: var(--ink);
+}
+.prompt .copy-mini {
+    flex-shrink: 0;
+}
+
 /* ---------- comparison ---------- */
 .compare {
     display: grid;
@@ -1310,7 +1342,8 @@ html:has(body.landing) {
     .features-grid,
     .steps3,
     .compare,
-    .support-grid {
+    .support-grid,
+    .prompts {
         grid-template-columns: 1fr;
     }
     .trust-grid {
