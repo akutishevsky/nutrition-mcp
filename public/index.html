@@ -491,56 +491,568 @@
                             A few of the things you can do — just by talking.
                         </p>
                     </div>
-                    <div class="carousel" id="try-carousel" aria-roledescription="carousel" aria-label="Example conversations">
-  <div class="carousel-viewport">
-    <div class="carousel-track">
-<div class="slide" role="group" aria-roledescription="slide">
-  <div class="mini-chat">
-    <div class="msg msg-user">Log a chicken burrito bowl for lunch</div>
-    <div class="msg msg-ai">Got it — added a chicken burrito bowl to lunch, about 650 kcal (42g protein, 68g carbs, 22g fat). You're at 1,090 of 2,100 today.</div>
-  </div>
-</div>
-<div class="slide" role="group" aria-roledescription="slide">
-  <div class="mini-chat">
-    <div class="msg msg-user">Here's a photo of my dinner</div>
-    <div class="msg msg-ai">Looks like grilled salmon with rice and broccoli — logged to dinner, around 540 kcal (38g protein, 45g carbs, 20g fat).</div>
-  </div>
-</div>
-<div class="slide" role="group" aria-roledescription="slide">
-  <div class="mini-chat">
-    <div class="msg msg-user">Log the item from this barcode</div>
-    <div class="msg msg-ai">Found it — Chobani Greek yogurt, 1 cup: 120 kcal, 15g protein. Added to snacks.</div>
-  </div>
-</div>
-<div class="slide" role="group" aria-roledescription="slide">
-  <div class="mini-chat">
-    <div class="msg msg-user">Set my timezone to New York</div>
-    <div class="msg msg-ai">Done — your days now roll over at midnight Eastern, so today's totals stay accurate wherever you are.</div>
-  </div>
-</div>
-<div class="slide" role="group" aria-roledescription="slide">
-  <div class="mini-chat">
-    <div class="msg msg-user">How am I doing on protein today?</div>
-    <div class="msg msg-ai">You're at 118g of your 150g goal — 32g to go. A cup of Greek yogurt or a chicken breast would get you there.</div>
-  </div>
-</div>
-<div class="slide" role="group" aria-roledescription="slide">
-  <div class="mini-chat">
-    <div class="msg msg-user">Show my trends this week</div>
-    <div class="msg msg-ai">You're averaging 1,980 kcal a day — about 5% under goal, protein's up 12g, and you're on a 6-day streak. Want it as a CSV?</div>
-  </div>
-</div>
-    </div>
-  </div>
-  <div class="carousel-dots">
-<button class="dot active" type="button" aria-label="Example 1"></button>
-<button class="dot" type="button" aria-label="Example 2"></button>
-<button class="dot" type="button" aria-label="Example 3"></button>
-<button class="dot" type="button" aria-label="Example 4"></button>
-<button class="dot" type="button" aria-label="Example 5"></button>
-<button class="dot" type="button" aria-label="Example 6"></button>
-  </div>
-</div></div>
+                    <div class="cw-wrap" id="try-carousel">
+                        <div class="chat-window">
+                            <div class="cw-header">
+                                <span class="cw-avatar" aria-hidden="true"
+                                    ><i class="fa-solid fa-apple-whole"></i
+                                ></span>
+                                <span class="cw-title">Nutrition MCP</span>
+                                <span class="cw-status">online</span>
+                            </div>
+                            <div class="carousel-viewport cw-body">
+                                <div class="carousel-track">
+                                    <div
+                                        class="slide"
+                                        role="group"
+                                        aria-roledescription="slide"
+                                    >
+                                        <div class="mini-chat">
+                                            <div class="msg msg-user">
+                                                Log a chicken burrito bowl for
+                                                lunch
+                                            </div>
+                                            <div
+                                                class="typing"
+                                                aria-hidden="true"
+                                            >
+                                                <span></span><span></span
+                                                ><span></span>
+                                            </div>
+                                            <div class="msg msg-ai">
+                                                Got it — added a chicken burrito
+                                                bowl to lunch, about 650 kcal
+                                                (42g protein, 68g carbs, 22g
+                                                fat). You're at 1,090 of 2,100
+                                                today.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="slide"
+                                        role="group"
+                                        aria-roledescription="slide"
+                                    >
+                                        <div class="mini-chat">
+                                            <div
+                                                class="msg-img"
+                                                aria-hidden="true"
+                                            >
+                                                <svg
+                                                    viewBox="0 0 220 150"
+                                                    class="chat-photo"
+                                                    role="img"
+                                                    aria-label="Photo of a dinner plate"
+                                                >
+                                                    <rect
+                                                        width="220"
+                                                        height="150"
+                                                        fill="#efe9df"
+                                                    />
+                                                    <ellipse
+                                                        cx="110"
+                                                        cy="82"
+                                                        rx="72"
+                                                        ry="52"
+                                                        fill="#fbfaf7"
+                                                    />
+                                                    <ellipse
+                                                        cx="110"
+                                                        cy="82"
+                                                        rx="72"
+                                                        ry="52"
+                                                        fill="none"
+                                                        stroke="#e6e0d3"
+                                                        stroke-width="2.5"
+                                                    />
+                                                    <ellipse
+                                                        cx="110"
+                                                        cy="82"
+                                                        rx="58"
+                                                        ry="41"
+                                                        fill="none"
+                                                        stroke="#efe9df"
+                                                        stroke-width="1.5"
+                                                    />
+                                                    <ellipse
+                                                        cx="136"
+                                                        cy="64"
+                                                        rx="28"
+                                                        ry="19"
+                                                        fill="#f3efe6"
+                                                    />
+                                                    <ellipse
+                                                        cx="136"
+                                                        cy="64"
+                                                        rx="28"
+                                                        ry="19"
+                                                        fill="none"
+                                                        stroke="#e7e1d4"
+                                                        stroke-width="1"
+                                                    />
+                                                    <g fill="#ffffff">
+                                                        <circle
+                                                            cx="126"
+                                                            cy="60"
+                                                            r="1.6"
+                                                        />
+                                                        <circle
+                                                            cx="138"
+                                                            cy="58"
+                                                            r="1.6"
+                                                        />
+                                                        <circle
+                                                            cx="146"
+                                                            cy="66"
+                                                            r="1.6"
+                                                        />
+                                                        <circle
+                                                            cx="132"
+                                                            cy="70"
+                                                            r="1.6"
+                                                        />
+                                                        <circle
+                                                            cx="142"
+                                                            cy="68"
+                                                            r="1.6"
+                                                        />
+                                                    </g>
+                                                    <g
+                                                        transform="rotate(-16 86 92)"
+                                                    >
+                                                        <rect
+                                                            x="58"
+                                                            y="80"
+                                                            width="56"
+                                                            height="26"
+                                                            rx="9"
+                                                            fill="#e0916b"
+                                                        />
+                                                        <rect
+                                                            x="64"
+                                                            y="86"
+                                                            width="44"
+                                                            height="3"
+                                                            rx="1.5"
+                                                            fill="#edb293"
+                                                        />
+                                                        <rect
+                                                            x="64"
+                                                            y="92"
+                                                            width="44"
+                                                            height="3"
+                                                            rx="1.5"
+                                                            fill="#edb293"
+                                                        />
+                                                        <rect
+                                                            x="64"
+                                                            y="98"
+                                                            width="44"
+                                                            height="3"
+                                                            rx="1.5"
+                                                            fill="#edb293"
+                                                        />
+                                                    </g>
+                                                    <g>
+                                                        <rect
+                                                            x="128"
+                                                            y="98"
+                                                            width="4"
+                                                            height="12"
+                                                            rx="2"
+                                                            fill="#9ab98a"
+                                                        />
+                                                        <circle
+                                                            cx="124"
+                                                            cy="98"
+                                                            r="10"
+                                                            fill="#5f8f4e"
+                                                        />
+                                                        <circle
+                                                            cx="136"
+                                                            cy="95"
+                                                            r="8.5"
+                                                            fill="#6fa35d"
+                                                        />
+                                                        <circle
+                                                            cx="133"
+                                                            cy="105"
+                                                            r="7.5"
+                                                            fill="#537f44"
+                                                        />
+                                                        <circle
+                                                            cx="121"
+                                                            cy="106"
+                                                            r="6.5"
+                                                            fill="#6a9a58"
+                                                        />
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                            <div class="msg msg-user">
+                                                Here's my dinner — what's in it?
+                                            </div>
+                                            <div
+                                                class="typing"
+                                                aria-hidden="true"
+                                            >
+                                                <span></span><span></span
+                                                ><span></span>
+                                            </div>
+                                            <div class="msg msg-ai">
+                                                Looks like grilled salmon with
+                                                rice and broccoli — logged to
+                                                dinner, around 540 kcal (38g
+                                                protein, 45g carbs, 20g fat).
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="slide"
+                                        role="group"
+                                        aria-roledescription="slide"
+                                    >
+                                        <div class="mini-chat">
+                                            <div
+                                                class="msg-img"
+                                                aria-hidden="true"
+                                            >
+                                                <svg
+                                                    viewBox="0 0 220 150"
+                                                    class="chat-photo"
+                                                    role="img"
+                                                    aria-label="Photo of a product barcode"
+                                                >
+                                                    <rect
+                                                        width="220"
+                                                        height="150"
+                                                        fill="#efe9df"
+                                                    />
+                                                    <rect
+                                                        x="40"
+                                                        y="32"
+                                                        width="140"
+                                                        height="86"
+                                                        rx="12"
+                                                        fill="#ffffff"
+                                                        stroke="#e6e0d3"
+                                                        stroke-width="2"
+                                                    />
+                                                    <g>
+                                                        <rect
+                                                            x="53"
+                                                            y="50"
+                                                            width="3"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="58.6"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="62.2"
+                                                            y="50"
+                                                            width="2"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="66.8"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="70.39999999999999"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="73.99999999999999"
+                                                            y="50"
+                                                            width="3"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="79.59999999999998"
+                                                            y="50"
+                                                            width="2"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="84.19999999999997"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="87.79999999999997"
+                                                            y="50"
+                                                            width="2"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="92.39999999999996"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="95.99999999999996"
+                                                            y="50"
+                                                            width="3"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="101.59999999999995"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="105.19999999999995"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="108.79999999999994"
+                                                            y="50"
+                                                            width="2"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="113.39999999999993"
+                                                            y="50"
+                                                            width="2"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="117.99999999999993"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="121.59999999999992"
+                                                            y="50"
+                                                            width="3"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="127.19999999999992"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="130.79999999999993"
+                                                            y="50"
+                                                            width="2"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="135.39999999999992"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="138.99999999999991"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="142.5999999999999"
+                                                            y="50"
+                                                            width="2"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="147.1999999999999"
+                                                            y="50"
+                                                            width="3"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                        <rect
+                                                            x="152.7999999999999"
+                                                            y="50"
+                                                            width="1"
+                                                            height="44"
+                                                            fill="#2b2b2b"
+                                                        />
+                                                    </g>
+                                                    <text
+                                                        x="110"
+                                                        y="108"
+                                                        text-anchor="middle"
+                                                        font-family="ui-monospace, monospace"
+                                                        font-size="10"
+                                                        letter-spacing="2"
+                                                        fill="#9a9a9f"
+                                                    >
+                                                        0 12345 67890
+                                                    </text>
+                                                </svg>
+                                            </div>
+                                            <div class="msg msg-user">
+                                                Log this
+                                            </div>
+                                            <div
+                                                class="typing"
+                                                aria-hidden="true"
+                                            >
+                                                <span></span><span></span
+                                                ><span></span>
+                                            </div>
+                                            <div class="msg msg-ai">
+                                                Found it — Chobani Greek yogurt,
+                                                1 cup: 120 kcal, 15g protein.
+                                                Added to snacks.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="slide"
+                                        role="group"
+                                        aria-roledescription="slide"
+                                    >
+                                        <div class="mini-chat">
+                                            <div class="msg msg-user">
+                                                Set my timezone to New York
+                                            </div>
+                                            <div
+                                                class="typing"
+                                                aria-hidden="true"
+                                            >
+                                                <span></span><span></span
+                                                ><span></span>
+                                            </div>
+                                            <div class="msg msg-ai">
+                                                Done — your days now roll over
+                                                at midnight Eastern, so today's
+                                                totals stay accurate wherever
+                                                you are.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="slide"
+                                        role="group"
+                                        aria-roledescription="slide"
+                                    >
+                                        <div class="mini-chat">
+                                            <div class="msg msg-user">
+                                                How am I doing on protein today?
+                                            </div>
+                                            <div
+                                                class="typing"
+                                                aria-hidden="true"
+                                            >
+                                                <span></span><span></span
+                                                ><span></span>
+                                            </div>
+                                            <div class="msg msg-ai">
+                                                You're at 118g of your 150g goal
+                                                — 32g to go. A cup of Greek
+                                                yogurt or a chicken breast would
+                                                get you there.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="slide"
+                                        role="group"
+                                        aria-roledescription="slide"
+                                    >
+                                        <div class="mini-chat">
+                                            <div class="msg msg-user">
+                                                Show my trends this week
+                                            </div>
+                                            <div
+                                                class="typing"
+                                                aria-hidden="true"
+                                            >
+                                                <span></span><span></span
+                                                ><span></span>
+                                            </div>
+                                            <div class="msg msg-ai">
+                                                You're averaging 1,980 kcal a
+                                                day — about 5% under goal,
+                                                protein's up 12g, and you're on
+                                                a 6-day streak. Want it as a
+                                                CSV?
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="cw-input" aria-hidden="true">
+                                <span class="cw-field">Message Nutrition…</span>
+                                <span class="cw-send"
+                                    ><i class="fa-solid fa-arrow-up"></i
+                                ></span>
+                            </div>
+                        </div>
+                        <div class="carousel-dots">
+                            <button
+                                class="dot active"
+                                type="button"
+                                aria-label="Example 1"
+                            ></button>
+                            <button
+                                class="dot"
+                                type="button"
+                                aria-label="Example 2"
+                            ></button>
+                            <button
+                                class="dot"
+                                type="button"
+                                aria-label="Example 3"
+                            ></button>
+                            <button
+                                class="dot"
+                                type="button"
+                                aria-label="Example 4"
+                            ></button>
+                            <button
+                                class="dot"
+                                type="button"
+                                aria-label="Example 5"
+                            ></button>
+                            <button
+                                class="dot"
+                                type="button"
+                                aria-label="Example 6"
+                            ></button>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -1185,6 +1697,36 @@
                     var dots = carousel.querySelectorAll(".dot");
                     var idx = 0;
                     var timer = null;
+                    // Play the typing -> reply animation for the active slide.
+                    function play(active) {
+                        slides.forEach(function (s) {
+                            var ai = s.querySelector(".msg-ai");
+                            var tp = s.querySelector(".typing");
+                            clearTimeout(s._t);
+                            if (s !== active) {
+                                if (tp) tp.style.display = "none";
+                                if (ai) {
+                                    ai.style.display = "";
+                                    ai.style.animation = "none";
+                                }
+                                return;
+                            }
+                            if (reduceMotion) {
+                                if (tp) tp.style.display = "none";
+                                if (ai) ai.style.display = "";
+                                return;
+                            }
+                            if (ai) ai.style.display = "none";
+                            if (tp) tp.style.display = "flex";
+                            s._t = setTimeout(function () {
+                                if (tp) tp.style.display = "none";
+                                if (ai) {
+                                    ai.style.display = "";
+                                    ai.style.animation = "msgin 0.4s ease both";
+                                }
+                            }, 1100);
+                        });
+                    }
                     function goTo(n) {
                         idx = (n + slides.length) % slides.length;
                         track.style.transform =
@@ -1192,13 +1734,14 @@
                         dots.forEach(function (d, k) {
                             d.classList.toggle("active", k === idx);
                         });
+                        play(slides[idx]);
                     }
                     function start() {
                         if (reduceMotion) return;
                         stop();
                         timer = setInterval(function () {
                             goTo(idx + 1);
-                        }, 4500);
+                        }, 5200);
                     }
                     function stop() {
                         if (timer) clearInterval(timer);
