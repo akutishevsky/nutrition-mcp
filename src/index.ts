@@ -5,6 +5,7 @@ import { createOAuthRouter } from "./oauth.js";
 import { authenticateBearer, rateLimit } from "./middleware.js";
 import { handleMcp } from "./mcp.js";
 import { startExportCleanup } from "./export.js";
+import { getLandingStats, type LandingStats } from "./supabase.js";
 
 const app = new Hono();
 
@@ -25,7 +26,7 @@ app.use("*", async (c, next) => {
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https://www.googletagmanager.com; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.github.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com; frame-ancestors 'none'",
         );
     }
     c.header("Referrer-Policy", "no-referrer");
@@ -105,6 +106,69 @@ app.route("/", createOAuthRouter());
 
 // MCP endpoint (protected)
 app.all("/mcp", authenticateBearer, rateLimit, handleMcp);
+
+// Aggregate landing-page stats, cached in-memory so page views don't each hit
+// the DB. The numbers move slowly, so a stale value for a few minutes is fine.
+const STATS_TTL_MS = 5 * 60 * 1000;
+let statsCache: { data: LandingStats; expiresAt: number } | null = null;
+
+app.get("/api/stats", async (c) => {
+    try {
+        if (!statsCache || statsCache.expiresAt < Date.now()) {
+            statsCache = {
+                data: await getLandingStats(),
+                expiresAt: Date.now() + STATS_TTL_MS,
+            };
+        }
+        return c.json(statsCache.data, 200, {
+            "Cache-Control": "public, max-age=300",
+        });
+    } catch (err) {
+        console.error("Failed to load landing stats:", err);
+        // Serve the last good value if we have one, even if expired.
+        if (statsCache) return c.json(statsCache.data);
+        return c.json({ error: "stats_unavailable" }, 503);
+    }
+});
+
+// Static world-map data (land dot-matrix + projected timezone coords) for the
+// landing page. Generated offline; safe to cache aggressively.
+app.get("/map-data.json", async (c) => {
+    return c.body(await Bun.file("./public/map-data.json").text(), 200, {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=86400",
+    });
+});
+
+// Static images (social card + touch icon)
+app.get("/og.png", async (c) => {
+    return c.body(await Bun.file("./public/og.png").arrayBuffer(), 200, {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400",
+    });
+});
+app.get("/apple-touch-icon.png", async (c) => {
+    return c.body(
+        await Bun.file("./public/apple-touch-icon.png").arrayBuffer(),
+        200,
+        {
+            "Content-Type": "image/png",
+            "Cache-Control": "public, max-age=86400",
+        },
+    );
+});
+
+// SEO crawl files
+app.get("/robots.txt", async (c) => {
+    return c.body(await Bun.file("./public/robots.txt").text(), 200, {
+        "Content-Type": "text/plain",
+    });
+});
+app.get("/sitemap.xml", async (c) => {
+    return c.body(await Bun.file("./public/sitemap.xml").text(), 200, {
+        "Content-Type": "application/xml",
+    });
+});
 
 // Landing page
 app.get("/", async (c) => {
