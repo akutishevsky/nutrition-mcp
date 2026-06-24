@@ -1233,6 +1233,34 @@ html:has(body.landing) {
     background: var(--accent);
 }
 
+/* meal-type picker chips inside an AI reply */
+.meal-pick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+}
+.meal-chip {
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink-2);
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s ease;
+}
+.meal-chip.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    transform: scale(1.05);
+}
+
 /* typing indicator */
 .typing {
     align-self: flex-start;

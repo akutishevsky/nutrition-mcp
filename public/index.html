@@ -1040,10 +1040,29 @@
                                                 <span></span><span></span
                                                 ><span></span>
                                             </div>
-                                            <div class="msg msg-ai">
+                                            <div class="msg msg-ai step-ask">
                                                 Found it — Chobani Greek yogurt,
                                                 1 cup: 120 kcal, 15g protein.
-                                                Added to snacks.
+                                                Which meal is this?
+                                                <div class="meal-pick">
+                                                    <span class="meal-chip"
+                                                        >Breakfast</span
+                                                    >
+                                                    <span class="meal-chip"
+                                                        >Lunch</span
+                                                    >
+                                                    <span class="meal-chip"
+                                                        >Dinner</span
+                                                    >
+                                                    <span
+                                                        class="meal-chip meal-pick-target"
+                                                        >Snack</span
+                                                    >
+                                                </div>
+                                            </div>
+                                            <div class="msg msg-ai step-done">
+                                                Logged to snacks — 120 kcal, 15g
+                                                protein.
                                             </div>
                                         </div>
                                     </div>
@@ -1827,31 +1846,65 @@
                     // Play the typing -> reply animation for the active slide.
                     function play(active) {
                         slides.forEach(function (s) {
-                            var ai = s.querySelector(".msg-ai");
                             var tp = s.querySelector(".typing");
+                            var aiList = s.querySelectorAll(".msg-ai");
+                            var meal = s.querySelector(".meal-pick");
+                            var target = s.querySelector(".meal-pick-target");
                             clearTimeout(s._t);
-                            if (s !== active) {
+                            clearTimeout(s._t2);
+                            clearTimeout(s._t3);
+                            function complete() {
                                 if (tp) tp.style.display = "none";
-                                if (ai) {
-                                    ai.style.display = "";
-                                    ai.style.animation = "none";
-                                }
+                                aiList.forEach(function (a) {
+                                    a.style.display = "";
+                                    a.style.animation = "none";
+                                });
+                                if (target) target.classList.add("selected");
+                            }
+                            if (s !== active || reduceMotion) {
+                                complete();
                                 return;
                             }
-                            if (reduceMotion) {
-                                if (tp) tp.style.display = "none";
-                                if (ai) ai.style.display = "";
-                                return;
-                            }
-                            if (ai) ai.style.display = "none";
+                            // reset, then play the sequence
+                            aiList.forEach(function (a) {
+                                a.style.display = "none";
+                                a.style.animation = "none";
+                            });
+                            if (target) target.classList.remove("selected");
                             if (tp) tp.style.display = "flex";
-                            s._t = setTimeout(function () {
-                                if (tp) tp.style.display = "none";
-                                if (ai) {
-                                    ai.style.display = "";
-                                    ai.style.animation = "msgin 0.4s ease both";
-                                }
-                            }, 1100);
+                            if (meal) {
+                                var ask = s.querySelector(".step-ask");
+                                var done = s.querySelector(".step-done");
+                                s._t = setTimeout(function () {
+                                    if (tp) tp.style.display = "none";
+                                    if (ask) {
+                                        ask.style.display = "";
+                                        ask.style.animation =
+                                            "msgin 0.4s ease both";
+                                    }
+                                    s._t2 = setTimeout(function () {
+                                        if (target)
+                                            target.classList.add("selected");
+                                        s._t3 = setTimeout(function () {
+                                            if (done) {
+                                                done.style.display = "";
+                                                done.style.animation =
+                                                    "msgin 0.4s ease both";
+                                            }
+                                        }, 750);
+                                    }, 1300);
+                                }, 1000);
+                            } else {
+                                var ai = aiList[0];
+                                s._t = setTimeout(function () {
+                                    if (tp) tp.style.display = "none";
+                                    if (ai) {
+                                        ai.style.display = "";
+                                        ai.style.animation =
+                                            "msgin 0.4s ease both";
+                                    }
+                                }, 1100);
+                            }
                         });
                     }
                     function goTo(n) {
