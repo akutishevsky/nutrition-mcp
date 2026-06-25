@@ -58,6 +58,22 @@ export async function signInUser(
     return data.user.id;
 }
 
+export async function signInWithGoogleIdToken(
+    idToken: string,
+    nonce: string,
+): Promise<string> {
+    // Use a throw-away client so the session never lands on the shared singleton.
+    const { data, error } = await buildClient().auth.signInWithIdToken({
+        provider: "google",
+        token: idToken,
+        nonce,
+    });
+
+    if (error) throw new Error(error.message);
+    if (!data.user) throw new Error("Google sign-in failed");
+    return data.user.id;
+}
+
 // ---------- Idempotency ----------
 
 // Derive a stable idempotency key from the request content so the column is
