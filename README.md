@@ -82,13 +82,15 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 ### 2. Environment variables
 
-| Variable              | Description                                   |
-| --------------------- | --------------------------------------------- |
-| `SUPABASE_URL`        | Your Supabase project URL                     |
-| `SUPABASE_SECRET_KEY` | Supabase service role key (bypasses RLS)      |
-| `OAUTH_CLIENT_ID`     | Random string for OAuth client identification |
-| `OAUTH_CLIENT_SECRET` | Random string for OAuth client authentication |
-| `PORT`                | Server port (default: `8080`)                 |
+| Variable               | Description                                                   |
+| ---------------------- | ------------------------------------------------------------- |
+| `SUPABASE_URL`         | Your Supabase project URL                                     |
+| `SUPABASE_SECRET_KEY`  | Supabase service role key (bypasses RLS)                      |
+| `OAUTH_CLIENT_ID`      | Random string for OAuth client identification                 |
+| `OAUTH_CLIENT_SECRET`  | Random string for OAuth client authentication                 |
+| `GOOGLE_CLIENT_ID`     | _(optional)_ Google OAuth client ID for "Sign in with Google" |
+| `GOOGLE_CLIENT_SECRET` | _(optional)_ Google OAuth client secret                       |
+| `PORT`                 | Server port (default: `8080`)                                 |
 
 > **Note:** The HTML files in `public/` include a Google Analytics tag (`G-1K4HRB2R8X`). If you're self-hosting, remove or replace the gtag snippet in `public/index.html`, `public/login.html`, and `public/privacy.html`.
 
@@ -98,6 +100,13 @@ Generate OAuth credentials:
 openssl rand -hex 16   # use as OAUTH_CLIENT_ID
 openssl rand -hex 32   # use as OAUTH_CLIENT_SECRET
 ```
+
+### 3. Google sign-in (optional)
+
+Email/password works out of the box. To also offer **"Continue with Google"**,
+follow [`docs/google-auth-setup.md`](docs/google-auth-setup.md) to create a
+Google OAuth client, enable the Google provider in Supabase, and set
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
 ## Development
 

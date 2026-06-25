@@ -1915,6 +1915,48 @@ body.auth[data-theme="dark"] {
 .auth-btn:active {
     transform: translateY(0);
 }
+
+/* "or" divider between sign-in methods */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0;
+    color: var(--auth-ink-2);
+    font-size: 0.78rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--auth-line);
+}
+
+/* Google sign-in — primary call to action (inherits the solid accent .auth-btn) */
+.auth-btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 0;
+    text-decoration: none;
+}
+.auth-btn-google-icon {
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+/* Email/password fallback — secondary/outline variant of .auth-btn */
+.auth-btn-secondary {
+    color: var(--accent);
+    background: var(--auth-field-bg);
+    border: 1px solid var(--auth-line);
+}
+.auth-btn-secondary:hover {
+    background: var(--auth-field-bg);
+    border-color: var(--accent);
+}
 .auth-note {
     margin: 0;
     font-size: 0.78rem;

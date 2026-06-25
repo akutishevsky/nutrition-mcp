@@ -12,6 +12,10 @@
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@700;800&display=swap"
             rel="stylesheet"
         />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
         <link rel="stylesheet" href="/styles.css" />
         <script
             async
@@ -57,6 +61,19 @@
 
                 {{ERROR}}
 
+                <a
+                    class="auth-btn auth-btn-google"
+                    href="/authorize/google?session_id={{SESSION_ID}}"
+                >
+                    <i
+                        class="fa-brands fa-google auth-btn-google-icon"
+                        aria-hidden="true"
+                    ></i>
+                    Continue with Google
+                </a>
+
+                <div class="auth-divider"><span>or use email</span></div>
+
                 <form method="POST" action="/approve" class="auth-form">
                     <input
                         type="hidden"
@@ -88,7 +105,7 @@
                         type="submit"
                         name="action"
                         value="login"
-                        class="auth-btn"
+                        class="auth-btn auth-btn-secondary"
                     >
                         Continue
                     </button>
