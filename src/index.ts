@@ -6,17 +6,9 @@ import { authenticateBearer, rateLimit } from "./middleware.js";
 import { handleMcp } from "./mcp.js";
 import { startExportCleanup } from "./export.js";
 import { getLandingStats, type LandingStats } from "./supabase.js";
+import { getBaseUrl } from "./url.js";
 
 const app = new Hono();
-
-function getBaseUrl(c: {
-    req: { header: (name: string) => string | undefined; url: string };
-}): string {
-    const proto = c.req.header("x-forwarded-proto") || "http";
-    const host = c.req.header("x-forwarded-host") || c.req.header("host");
-    if (host) return `${proto}://${host}`;
-    return new URL(c.req.url).origin;
-}
 
 // Security headers
 app.use("*", async (c, next) => {
