@@ -34,28 +34,29 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 ## MCP Tools
 
-| Tool                      | Description                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------- |
-| `log_meal`                | Log a meal with description, type, calories, macros, notes                                        |
-| `get_meals_today`         | Get all meals logged today                                                                        |
-| `get_meals_by_date`       | Get meals for a specific date (YYYY-MM-DD)                                                        |
-| `get_meals_by_date_range` | Get meals between two dates (inclusive)                                                           |
-| `get_nutrition_summary`   | Daily nutrition totals + goal progress for a date range                                           |
-| `update_meal`             | Update any fields of an existing meal                                                             |
-| `delete_meal`             | Delete a meal by ID                                                                               |
-| `set_nutrition_goals`     | Set daily calorie, macro, and water targets                                                       |
-| `get_nutrition_goals`     | Get the current daily targets                                                                     |
-| `get_goal_progress`       | Get intake vs. targets for a given day (default: today)                                           |
-| `log_water`               | Log a hydration entry in milliliters                                                              |
-| `get_water_today`         | Get today's water intake total and entries                                                        |
-| `get_water_by_date`       | Get water intake for a specific date                                                              |
-| `delete_water`            | Delete a water log entry by ID                                                                    |
-| `get_trends`              | 7/14/30-day averages, std dev, streaks, day-of-week, best/worst day                               |
-| `get_meal_patterns`       | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers) |
-| `export_meals`            | Export all meals as a CSV and return a 60-minute download link                                    |
-| `set_timezone`            | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                         |
-| `get_timezone`            | Get the user's configured timezone                                                                |
-| `delete_account`          | Permanently delete account and all associated data                                                |
+| Tool                      | Description                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `log_meal`                | Log a meal with description, type, calories, macros, notes                                               |
+| `lookup_barcode`          | Look up a packaged product's verified macros by barcode via Open Food Facts (read from a photo or typed) |
+| `get_meals_today`         | Get all meals logged today                                                                               |
+| `get_meals_by_date`       | Get meals for a specific date (YYYY-MM-DD)                                                               |
+| `get_meals_by_date_range` | Get meals between two dates (inclusive)                                                                  |
+| `get_nutrition_summary`   | Daily nutrition totals + goal progress for a date range                                                  |
+| `update_meal`             | Update any fields of an existing meal                                                                    |
+| `delete_meal`             | Delete a meal by ID                                                                                      |
+| `set_nutrition_goals`     | Set daily calorie, macro, and water targets                                                              |
+| `get_nutrition_goals`     | Get the current daily targets                                                                            |
+| `get_goal_progress`       | Get intake vs. targets for a given day (default: today)                                                  |
+| `log_water`               | Log a hydration entry in milliliters                                                                     |
+| `get_water_today`         | Get today's water intake total and entries                                                               |
+| `get_water_by_date`       | Get water intake for a specific date                                                                     |
+| `delete_water`            | Delete a water log entry by ID                                                                           |
+| `get_trends`              | 7/14/30-day averages, std dev, streaks, day-of-week, best/worst day                                      |
+| `get_meal_patterns`       | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)        |
+| `export_meals`            | Export all meals as a CSV and return a 60-minute download link                                           |
+| `set_timezone`            | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                |
+| `get_timezone`            | Get the user's configured timezone                                                                       |
+| `delete_account`          | Permanently delete account and all associated data                                                       |
 
 ## MCP Resources
 
@@ -82,15 +83,16 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 ### 2. Environment variables
 
-| Variable               | Description                                                   |
-| ---------------------- | ------------------------------------------------------------- |
-| `SUPABASE_URL`         | Your Supabase project URL                                     |
-| `SUPABASE_SECRET_KEY`  | Supabase service role key (bypasses RLS)                      |
-| `OAUTH_CLIENT_ID`      | Random string for OAuth client identification                 |
-| `OAUTH_CLIENT_SECRET`  | Random string for OAuth client authentication                 |
-| `GOOGLE_CLIENT_ID`     | _(optional)_ Google OAuth client ID for "Sign in with Google" |
-| `GOOGLE_CLIENT_SECRET` | _(optional)_ Google OAuth client secret                       |
-| `PORT`                 | Server port (default: `8080`)                                 |
+| Variable               | Description                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `SUPABASE_URL`         | Your Supabase project URL                                                     |
+| `SUPABASE_SECRET_KEY`  | Supabase service role key (bypasses RLS)                                      |
+| `OAUTH_CLIENT_ID`      | Random string for OAuth client identification                                 |
+| `OAUTH_CLIENT_SECRET`  | Random string for OAuth client authentication                                 |
+| `GOOGLE_CLIENT_ID`     | _(optional)_ Google OAuth client ID for "Sign in with Google"                 |
+| `GOOGLE_CLIENT_SECRET` | _(optional)_ Google OAuth client secret                                       |
+| `OFF_USER_AGENT`       | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)` |
+| `PORT`                 | Server port (default: `8080`)                                                 |
 
 > **Note:** The HTML files in `public/` include a Google Analytics tag (`G-1K4HRB2R8X`). If you're self-hosting, remove or replace the gtag snippet in `public/index.html`, `public/login.html`, and `public/privacy.html`.
 
