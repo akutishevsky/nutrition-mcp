@@ -23,12 +23,7 @@ import {
     type WaterEntry,
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
-import {
-    todayInTz,
-    validateTz,
-    shiftLocalDate,
-    dateInTz,
-} from "./tz.js";
+import { todayInTz, validateTz, shiftLocalDate, dateInTz } from "./tz.js";
 import {
     buildDailyBuckets,
     computeTrends,
@@ -36,6 +31,7 @@ import {
     computeWeeklyDigest,
 } from "./insights.js";
 import { exportMeals } from "./export.js";
+import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 
 const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
@@ -183,7 +179,7 @@ function registerTools(server: McpServer, userId: string) {
         {
             title: "Log Meal",
             description:
-                "Log a meal entry with nutritional information. If the user doesn't specify the quantity or portion size, ask how much they ate before estimating calories and macros. Use web search to look up accurate nutritional data when appropriate, especially for branded products or barcode scans.",
+                "Log a meal entry with nutritional information. If the user doesn't specify the quantity or portion size, ask how much they ate before estimating calories and macros. When the user gives a barcode — typed, or read from a photo of the package (transcribe the digits printed under the barcode) — call lookup_barcode first to get verified nutritional data, then scale it to the amount eaten. Fall back to web search or estimation only when no product is found. Use web search for branded products when no barcode is available.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,
@@ -268,6 +264,81 @@ function registerTools(server: McpServer, userId: string) {
                     };
                 },
                 { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "lookup_barcode",
+        {
+            title: "Look Up Barcode",
+            description:
+                "Look up a packaged product's verified nutrition by barcode via Open Food Facts. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. If no product is found, fall back to web search or estimation.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: true,
+            },
+            inputSchema: {
+                barcode: z
+                    .string()
+                    .describe(
+                        "Product barcode digits (EAN-8/13, UPC-A/E, or GTIN-14). Spaces and separators are ignored.",
+                    ),
+            },
+        },
+        async ({ barcode }) => {
+            return withAnalytics(
+                "lookup_barcode",
+                async () => {
+                    const normalized = normalizeBarcode(barcode);
+                    if (!normalized) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `"${barcode}" is not a valid barcode (expected 8–14 digits). Double-check the number, or estimate the macros from the product description instead.`,
+                                },
+                            ],
+                        };
+                    }
+
+                    let food;
+                    try {
+                        food = await lookupBarcode(normalized);
+                    } catch (err) {
+                        const msg =
+                            err instanceof Error ? err.message : String(err);
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `Couldn't reach Open Food Facts right now (${msg}). Estimate the macros from the product description or ask the user, then log the meal.`,
+                                },
+                            ],
+                        };
+                    }
+
+                    if (!food) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No product found in Open Food Facts for barcode ${normalized}. Ask the user what the product is, or estimate the macros, then log the meal.`,
+                                },
+                            ],
+                        };
+                    }
+
+                    return {
+                        content: [
+                            { type: "text", text: formatFoodResult(food) },
+                        ],
+                    };
+                },
+                { userId },
+                { barcode },
             );
         },
     );
@@ -868,7 +939,8 @@ function registerTools(server: McpServer, userId: string) {
         "get_water_by_date",
         {
             title: "Get Water by Date",
-            description: "Get water intake total and entries for a specific date.",
+            description:
+                "Get water intake total and entries for a specific date.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -982,7 +1054,10 @@ function registerTools(server: McpServer, userId: string) {
                     const tz = await getUserTimezone(userId);
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    const startDate = shiftLocalDate(endDate, -(windowDays - 1));
+                    const startDate = shiftLocalDate(
+                        endDate,
+                        -(windowDays - 1),
+                    );
                     const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, startDate, endDate, tz),
                         getWaterInRange(userId, startDate, endDate, tz),
@@ -997,7 +1072,10 @@ function registerTools(server: McpServer, userId: string) {
                     );
                     return {
                         content: [
-                            { type: "text", text: computeTrends(buckets, goals) },
+                            {
+                                type: "text",
+                                text: computeTrends(buckets, goals),
+                            },
                         ],
                     };
                 },
@@ -1026,7 +1104,9 @@ function registerTools(server: McpServer, userId: string) {
                     .min(7)
                     .max(365)
                     .optional()
-                    .describe("Window size in days (default 30, min 7, max 365)."),
+                    .describe(
+                        "Window size in days (default 30, min 7, max 365).",
+                    ),
                 end_date: z
                     .string()
                     .optional()
@@ -1040,7 +1120,10 @@ function registerTools(server: McpServer, userId: string) {
                     const tz = await getUserTimezone(userId);
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    const startDate = shiftLocalDate(endDate, -(windowDays - 1));
+                    const startDate = shiftLocalDate(
+                        endDate,
+                        -(windowDays - 1),
+                    );
                     const [meals, water] = await Promise.all([
                         getMealsInRange(userId, startDate, endDate, tz),
                         getWaterInRange(userId, startDate, endDate, tz),
@@ -1328,7 +1411,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.12.0",
+            version: "1.13.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
