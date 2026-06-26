@@ -462,10 +462,10 @@ function registerTools(server: McpServer, userId: string) {
                         };
                     }
 
-                    // Group by date for readability
+                    // Group by date for readability (local to user timezone)
                     const byDate = new Map<string, Meal[]>();
                     for (const meal of meals) {
-                        const date = meal.logged_at.slice(0, 10);
+                        const date = dateInTz(meal.logged_at, tz);
                         const existing = byDate.get(date) ?? [];
                         existing.push(meal);
                         byDate.set(date, existing);
