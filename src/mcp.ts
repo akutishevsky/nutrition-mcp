@@ -50,9 +50,24 @@ setInterval(() => {
     for (const [id, session] of sessions) {
         if (now - session.lastActivity > SESSION_TTL_MS) {
             sessions.delete(id);
+            // Close the transport so its open SSE stream is torn down and the
+            // connected McpServer (with all its tool closures) becomes
+            // GC-eligible. Dropping the Map entry alone leaks them, because the
+            // lingering stream keeps the transport reachable. close() is async
+            // and idempotent; we don't need to await it inside the sweep.
+            void session.transport.close();
         }
     }
 }, CLEANUP_INTERVAL_MS);
+
+// Close every live session's transport. Called on shutdown so in-flight SSE
+// streams end cleanly (clients reconnect) instead of being severed when the
+// process is killed.
+export async function closeAllSessions(): Promise<void> {
+    const transports = [...sessions.values()].map((s) => s.transport);
+    sessions.clear();
+    await Promise.allSettled(transports.map((t) => t.close()));
+}
 
 interface DailyTotals {
     calories: number;
@@ -1411,7 +1426,7 @@ export const handleMcp = async (c: Context) => {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.13.1",
+            version: "1.13.2",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
