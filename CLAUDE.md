@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 nutrition-mcp is a Model Context Protocol (MCP) server for nutrition-related functionality, built with Bun and TypeScript. Entry point is `src/index.ts`. Server version must be updated in three places: `package.json`, `src/mcp.ts` (McpServer constructor), and `server.json`. The server icon is at `public/favicon.ico`. Tool call analytics (duration, success/failure, error category) are tracked via `src/analytics.ts` and persisted to a `tool_analytics` Supabase table.
 
+## Releasing
+
+This is a remote MCP server: deploying to DigitalOcean makes code changes live for clients immediately (the MCP Registry is only discovery metadata pointing at `https://nutrition-mcp.com/mcp`, so republishing is not required for a fix to take effect). To refresh the registry listing on a release, bump the version in all three places above, merge to `main`, then push a matching `v*` tag:
+
+```
+git tag v1.13.3 && git push origin v1.13.3
+```
+
+The `.github/workflows/publish-mcp.yml` workflow then runs the tests, verifies the tag matches `server.json`'s version, and publishes via `mcp-publisher` using GitHub OIDC (no secrets). Each published version must be unique and is immutable once published, so always tag a fresh version — never re-tag an already-published one.
+
 ## Commands
 
 - `bun run src/index.ts` - Run the server
