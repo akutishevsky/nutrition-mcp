@@ -10,6 +10,25 @@ import { getBaseUrl } from "./url.js";
 
 const app = new Hono();
 
+// Access log — records every non-health HTTP request (method, path, status,
+// duration, client IP) so traffic that never reaches a tool handler — and is
+// therefore invisible to tool analytics — is still attributable in the runtime
+// logs: unauthenticated /mcp probes (401), rate-limited hits (429), OAuth
+// discovery crawls, vuln scanners. Registered first so it runs outermost and
+// observes the final response status. /health is skipped to keep the platform's
+// frequent health checks from evicting real traffic from the log buffer.
+app.use("*", async (c, next) => {
+    const path = new URL(c.req.url).pathname;
+    if (path === "/health") return next();
+    const start = performance.now();
+    await next();
+    const ms = Math.round(performance.now() - start);
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "-";
+    console.log(
+        `[req] ${c.req.method} ${path} ${c.res.status} ${ms}ms ip=${ip}`,
+    );
+});
+
 // Security headers
 app.use("*", async (c, next) => {
     await next();
@@ -222,5 +241,9 @@ process.on("SIGINT", () => void shutdown("SIGINT"));
 export default {
     port,
     hostname: "0.0.0.0",
+    // Long-lived MCP streams (StreamableHTTP GET/SSE) can idle between events;
+    // Bun's 10s default closes them and logs "request timed out after 10
+    // seconds". Raise it so legitimate streaming connections aren't severed.
+    idleTimeout: 120,
     fetch: app.fetch,
 };
