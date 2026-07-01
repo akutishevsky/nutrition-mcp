@@ -29,6 +29,7 @@
         "start": "bun src/index.ts",
         "dev": "bun --watch src/index.ts",
         "format": "bunx prettier --write .",
+        "depersonalize": "bun run scripts/depersonalize.ts",
         "generate-oauth-creds": "echo \"OAUTH_CLIENT_ID=$(openssl rand -hex 16)\" && echo \"OAUTH_CLIENT_SECRET=$(openssl rand -hex 32)\""
     },
     "dependencies": {

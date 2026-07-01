@@ -94,7 +94,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `OFF_USER_AGENT`       | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)` |
 | `PORT`                 | Server port (default: `8080`)                                                 |
 
-> **Note:** The HTML files in `public/` include a Google Analytics tag (`G-1K4HRB2R8X`). If you're self-hosting, remove or replace the gtag snippet in `public/index.html`, `public/login.html`, and `public/privacy.html`.
+> **Making it yours:** The public site includes the maintainer's personal bits — Google Analytics, Patreon/GitHub/contact links, and the `nutrition-mcp.com` domain. Run `bun run depersonalize` to strip them all in one pass (analytics + CSP, the Support/Contact sections, social links, and the domain → a `your-domain.com` placeholder). Use `bun run depersonalize --dry` to preview without writing. Afterwards, swap in your own `public/og.png`, `favicon.ico`, and `apple-touch-icon.png`, and replace the domain placeholder with your real domain.
 
 Generate OAuth credentials:
 
