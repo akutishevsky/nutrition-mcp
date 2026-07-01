@@ -33,42 +33,6 @@ import {
 import { exportMeals } from "./export.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 
-const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
-
-const sessions = new Map<
-    string,
-    {
-        transport: WebStandardStreamableHTTPServerTransport;
-        mcpToken: string;
-        lastActivity: number;
-    }
->();
-
-setInterval(() => {
-    const now = Date.now();
-    for (const [id, session] of sessions) {
-        if (now - session.lastActivity > SESSION_TTL_MS) {
-            sessions.delete(id);
-            // Close the transport so its open SSE stream is torn down and the
-            // connected McpServer (with all its tool closures) becomes
-            // GC-eligible. Dropping the Map entry alone leaks them, because the
-            // lingering stream keeps the transport reachable. close() is async
-            // and idempotent; we don't need to await it inside the sweep.
-            void session.transport.close();
-        }
-    }
-}, CLEANUP_INTERVAL_MS);
-
-// Close every live session's transport. Called on shutdown so in-flight SSE
-// streams end cleanly (clients reconnect) instead of being severed when the
-// process is killed.
-export async function closeAllSessions(): Promise<void> {
-    const transports = [...sessions.values()].map((s) => s.transport);
-    sessions.clear();
-    await Promise.allSettled(transports.map((t) => t.close()));
-}
-
 interface DailyTotals {
     calories: number;
     protein_g: number;
@@ -1380,44 +1344,8 @@ function registerTools(server: McpServer, userId: string) {
     );
 }
 
-export const handleMcp = async (c: Context) => {
-    const mcpToken = c.get("accessToken") as string;
-    const userId = c.get("userId") as string;
-    const sessionId = c.req.header("mcp-session-id");
-
-    const session = sessionId ? sessions.get(sessionId) : undefined;
-
-    if (sessionId && !session) {
-        return c.json({ error: "invalid_session" }, 404);
-    }
-
-    if (session && session.mcpToken !== mcpToken) {
-        return c.json({ error: "forbidden" }, 403);
-    }
-
-    if (session) {
-        session.lastActivity = Date.now();
-        return session.transport.handleRequest(c.req.raw);
-    }
-
-    if (c.req.method !== "POST") {
-        return c.json({ error: "invalid_request" }, 400);
-    }
-
-    const transport = new WebStandardStreamableHTTPServerTransport({
-        sessionIdGenerator: () => crypto.randomUUID(),
-        onsessioninitialized: (id) => {
-            sessions.set(id, {
-                transport,
-                mcpToken,
-                lastActivity: Date.now(),
-            });
-        },
-        onsessionclosed: (id) => {
-            sessions.delete(id);
-        },
-    });
-
+// Build a fresh McpServer with this user's tools registered.
+function buildMcpServer(c: Context, userId: string): McpServer {
     const proto = c.req.header("x-forwarded-proto") || "http";
     const host =
         c.req.header("x-forwarded-host") || c.req.header("host") || "localhost";
@@ -1438,6 +1366,23 @@ export const handleMcp = async (c: Context) => {
     );
 
     registerTools(server, userId);
+    return server;
+}
+
+// Stateless: /mcp holds no per-session state. Every request builds a brand-new
+// transport + McpServer and tears it down when the response completes (the SDK
+// forbids reusing a stateless transport). Because nothing is kept in-process, a
+// restart/deploy can never strand a connected client — there is no session to
+// lose, and therefore no reconnect step for a client to wedge on. The trade-off
+// is no server-initiated streaming (standalone GET SSE / notifications), which
+// this server does not use.
+export const handleMcp = async (c: Context) => {
+    const userId = c.get("userId") as string;
+
+    const transport = new WebStandardStreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+    });
+    const server = buildMcpServer(c, userId);
     await server.connect(transport);
 
     return transport.handleRequest(c.req.raw);
