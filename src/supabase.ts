@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
+import { isWeightUnit, type WeightUnit } from "./units.js";
 
 let supabase: SupabaseClient;
 
@@ -296,6 +297,7 @@ export async function updateMeal(
 export interface Profile {
     user_id: string;
     timezone: string;
+    preferred_weight_unit: WeightUnit | null;
     created_at: string;
     updated_at: string;
 }
@@ -316,20 +318,35 @@ export async function getUserTimezone(userId: string): Promise<string> {
     return profile?.timezone ?? "UTC";
 }
 
+// Returns the user's saved weight-unit preference, or null if they have never
+// chosen one. Write paths use null to refuse guessing; display paths coalesce
+// to "kg".
+export async function getPreferredWeightUnit(
+    userId: string,
+): Promise<WeightUnit | null> {
+    const profile = await getProfile(userId);
+    const unit = profile?.preferred_weight_unit;
+    return isWeightUnit(unit) ? unit : null;
+}
+
+// Upsert the fields provided in `patch`, leaving other columns untouched. On
+// first insert, omitted columns fall back to their DB defaults (UTC / kg).
 export async function upsertProfile(
     userId: string,
-    timezone: string,
+    patch: { timezone?: string; preferred_weight_unit?: WeightUnit | null },
 ): Promise<Profile> {
+    const payload: Record<string, unknown> = {
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+    };
+    if (patch.timezone !== undefined) payload.timezone = patch.timezone;
+    // null is meaningful here (clears the preference), so only skip `undefined`.
+    if (patch.preferred_weight_unit !== undefined)
+        payload.preferred_weight_unit = patch.preferred_weight_unit;
+
     const { data, error } = await getSupabase()
         .from("profiles")
-        .upsert(
-            {
-                user_id: userId,
-                timezone,
-                updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" },
-        )
+        .upsert(payload, { onConflict: "user_id" })
         .select()
         .single();
 
@@ -346,6 +363,7 @@ export interface NutritionGoals {
     daily_carbs_g: number | null;
     daily_fat_g: number | null;
     daily_water_ml: number | null;
+    target_weight_g: number | null;
     updated_at: string;
 }
 
@@ -355,6 +373,7 @@ export interface NutritionGoalsInput {
     daily_carbs_g?: number | null;
     daily_fat_g?: number | null;
     daily_water_ml?: number | null;
+    target_weight_g?: number | null;
 }
 
 export async function upsertNutritionGoals(
@@ -371,6 +390,7 @@ export async function upsertNutritionGoals(
                 daily_carbs_g: input.daily_carbs_g ?? null,
                 daily_fat_g: input.daily_fat_g ?? null,
                 daily_water_ml: input.daily_water_ml ?? null,
+                target_weight_g: input.target_weight_g ?? null,
                 updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" },
@@ -528,6 +548,187 @@ export async function deleteWater(userId: string, id: string): Promise<void> {
     if (error) throw new Error(`Failed to delete water: ${error.message}`);
 }
 
+// ---------- Weight log ----------
+
+export interface WeightEntry {
+    id: string;
+    user_id: string;
+    weight_g: number;
+    logged_at: string;
+    notes: string | null;
+    created_at: string;
+    idempotency_key: string | null;
+}
+
+export interface WeightInput {
+    weight_g: number;
+    logged_at?: string;
+    notes?: string;
+    idempotency_key?: string;
+}
+
+export interface WeightInsertResult {
+    entry: WeightEntry;
+    deduplicated: boolean;
+}
+
+export async function insertWeight(
+    userId: string,
+    input: WeightInput,
+): Promise<WeightInsertResult> {
+    const sb = getSupabase();
+
+    // Resolve logged_at once so the digest and the persisted row agree.
+    const loggedAt = input.logged_at ?? new Date().toISOString();
+    // Always populate the key: use the client's if given, otherwise derive a
+    // stable one from the request content (see deriveIdempotencyKey).
+    const idempotencyKey =
+        input.idempotency_key ??
+        deriveIdempotencyKey([userId, input.weight_g, input.notes, loggedAt]);
+
+    const { data: existing, error: selErr } = await sb
+        .from("weight_log")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+    if (selErr) throw new Error(`Failed to look up weight: ${selErr.message}`);
+    if (existing) return { entry: existing as WeightEntry, deduplicated: true };
+
+    const { data, error } = await sb
+        .from("weight_log")
+        .insert({
+            user_id: userId,
+            weight_g: input.weight_g,
+            logged_at: loggedAt,
+            notes: input.notes ?? null,
+            idempotency_key: idempotencyKey,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        if (error.code === "23505") {
+            const { data: existing, error: raceErr } = await sb
+                .from("weight_log")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("idempotency_key", idempotencyKey)
+                .maybeSingle();
+            if (raceErr)
+                throw new Error(
+                    `Failed to resolve idempotent weight: ${raceErr.message}`,
+                );
+            if (existing)
+                return {
+                    entry: existing as WeightEntry,
+                    deduplicated: true,
+                };
+        }
+        throw new Error(`Failed to insert weight: ${error.message}`);
+    }
+    return { entry: data as WeightEntry, deduplicated: false };
+}
+
+export async function getWeightByDate(
+    userId: string,
+    date: string,
+    tz: string = "UTC",
+): Promise<WeightEntry[]> {
+    const startUtc = zonedDayStartUtc(date, tz);
+    const endUtc = zonedNextDayStartUtc(date, tz);
+
+    const { data, error } = await getSupabase()
+        .from("weight_log")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("logged_at", startUtc.toISOString())
+        .lt("logged_at", endUtc.toISOString())
+        .order("logged_at", { ascending: true });
+
+    if (error) throw new Error(`Failed to get weight: ${error.message}`);
+    return (data as WeightEntry[]) ?? [];
+}
+
+export async function getWeightInRange(
+    userId: string,
+    startDate: string,
+    endDate: string,
+    tz: string = "UTC",
+): Promise<WeightEntry[]> {
+    const startUtc = zonedDayStartUtc(startDate, tz);
+    const endUtc = zonedNextDayStartUtc(endDate, tz);
+
+    const { data, error } = await getSupabase()
+        .from("weight_log")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("logged_at", startUtc.toISOString())
+        .lt("logged_at", endUtc.toISOString())
+        .order("logged_at", { ascending: true });
+
+    if (error) throw new Error(`Failed to get weight: ${error.message}`);
+    return (data as WeightEntry[]) ?? [];
+}
+
+/** Most recent weight entry overall, or null if none logged. */
+export async function getLatestWeight(
+    userId: string,
+): Promise<WeightEntry | null> {
+    const { data, error } = await getSupabase()
+        .from("weight_log")
+        .select("*")
+        .eq("user_id", userId)
+        .order("logged_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) throw new Error(`Failed to get latest weight: ${error.message}`);
+    return (data as WeightEntry | null) ?? null;
+}
+
+export async function updateWeight(
+    userId: string,
+    id: string,
+    fields: { weight_g?: number; logged_at?: string; notes?: string | null },
+): Promise<WeightEntry> {
+    const update: Record<string, unknown> = {};
+    if (fields.weight_g !== undefined) update.weight_g = fields.weight_g;
+    if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
+    if (fields.notes !== undefined)
+        update.notes =
+            fields.notes != null
+                ? decodeEscapeSequences(fields.notes)
+                : fields.notes;
+
+    const { data, error } = await getSupabase()
+        .from("weight_log")
+        .update(update)
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select()
+        .single();
+
+    if (error) throw new Error(`Failed to update weight: ${error.message}`);
+    return data as WeightEntry;
+}
+
+/** Returns true if an entry was deleted, false if no matching row was found. */
+export async function deleteWeight(
+    userId: string,
+    id: string,
+): Promise<boolean> {
+    const { data, error } = await getSupabase()
+        .from("weight_log")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("id");
+
+    if (error) throw new Error(`Failed to delete weight: ${error.message}`);
+    return (data?.length ?? 0) > 0;
+}
+
 // ---------- Delete all user data ----------
 
 export async function deleteAllUserData(userId: string): Promise<void> {
@@ -546,6 +747,13 @@ export async function deleteAllUserData(userId: string): Promise<void> {
         .eq("user_id", userId);
     if (waterErr)
         throw new Error(`Failed to delete water log: ${waterErr.message}`);
+
+    const { error: weightErr } = await sb
+        .from("weight_log")
+        .delete()
+        .eq("user_id", userId);
+    if (weightErr)
+        throw new Error(`Failed to delete weight log: ${weightErr.message}`);
 
     const { error: goalsErr } = await sb
         .from("nutrition_goals")
