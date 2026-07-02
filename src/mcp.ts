@@ -15,21 +15,45 @@ import {
     getWaterByDate,
     getWaterInRange,
     deleteWater,
+    insertWeight,
+    getWeightByDate,
+    getWeightInRange,
+    getLatestWeight,
+    updateWeight,
+    deleteWeight,
     getUserTimezone,
+    getPreferredWeightUnit,
     upsertProfile,
     getProfile,
     type Meal,
     type NutritionGoals,
     type WaterEntry,
+    type WeightEntry,
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
-import { todayInTz, validateTz, shiftLocalDate, dateInTz } from "./tz.js";
+import {
+    todayInTz,
+    validateTz,
+    shiftLocalDate,
+    dateInTz,
+    validateLoggedAt,
+} from "./tz.js";
 import {
     buildDailyBuckets,
     computeTrends,
     computeMealPatterns,
     computeWeeklyDigest,
+    computeWeightTrend,
 } from "./insights.js";
+import {
+    toGrams,
+    formatWeight,
+    fromGrams,
+    isWeightUnit,
+    pickWriteUnit,
+    isPlausibleWeightGrams,
+    type WeightUnit,
+} from "./units.js";
 import { exportMeals } from "./export.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 
@@ -114,7 +138,10 @@ function formatProgress(
     return lines.join("\n");
 }
 
-function formatGoals(goals: NutritionGoals | null): string {
+function formatGoals(
+    goals: NutritionGoals | null,
+    weightUnit: WeightUnit = "kg",
+): string {
     if (!goals) {
         return "No nutrition goals set. Use set_nutrition_goals to define daily targets.";
     }
@@ -134,7 +161,39 @@ function formatGoals(goals: NutritionGoals | null): string {
     parts.push(
         `- Water: ${goals.daily_water_ml != null ? `${goals.daily_water_ml} ml` : "not set"}`,
     );
+    parts.push(
+        `- Target weight: ${goals.target_weight_g != null ? formatWeight(goals.target_weight_g, weightUnit) : "not set"}`,
+    );
     return parts.join("\n");
+}
+
+function formatWeightEntry(entry: WeightEntry, unit: WeightUnit): string {
+    return `- ${formatWeight(entry.weight_g, unit)} at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""} [id: ${entry.id}]`;
+}
+
+// Resolve the unit to use when WRITING a weight value: an explicit unit wins,
+// otherwise the user's saved preference. If neither exists, refuse rather than
+// guess — silently assuming kg for someone who meant lb is exactly the mis-log
+// this feature exists to prevent.
+async function resolveWriteWeightUnit(
+    userId: string,
+    explicit: WeightUnit | undefined,
+): Promise<WeightUnit> {
+    return pickWriteUnit(explicit, await getPreferredWeightUnit(userId));
+}
+
+// Reject magnitude mistakes (value typed in grams, an extra digit, a sub-unit
+// typo). Suggests the other unit when the same number would be plausible there.
+function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
+    if (isPlausibleWeightGrams(grams)) return;
+    const other: WeightUnit = unit === "kg" ? "lb" : "kg";
+    const asOther = toGrams(fromGrams(grams, unit), other);
+    const hint = isPlausibleWeightGrams(asOther)
+        ? ` If you meant ${fromGrams(grams, unit)} ${other}, pass unit: '${other}'.`
+        : "";
+    throw new Error(
+        `${formatWeight(grams, unit)} is outside the plausible body-weight range (20–500 kg / 44–1102 lb). Double-check the number and unit.${hint}`,
+    );
 }
 
 function formatMeal(meal: Meal): string {
@@ -567,7 +626,7 @@ function registerTools(server: McpServer, userId: string) {
         {
             title: "Set Nutrition Goals",
             description:
-                "Set the user's daily calorie and macro targets. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target.",
+                "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,
@@ -602,13 +661,48 @@ function registerTools(server: McpServer, userId: string) {
                     .describe(
                         "Daily water target (milliliters). Null to clear.",
                     ),
+                target_weight: z.coerce
+                    .number()
+                    .positive()
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Target body weight in `unit` (defaults to the user's preferred weight unit). Null to clear.",
+                    ),
+                unit: z
+                    .enum(["kg", "lb"])
+                    .optional()
+                    .describe(
+                        "Unit for target_weight. Defaults to the user's preferred weight unit.",
+                    ),
             },
         },
         async (args) => {
             return withAnalytics(
                 "set_nutrition_goals",
                 async () => {
-                    const existing = await getNutritionGoals(userId);
+                    const [existing, preferredUnit] = await Promise.all([
+                        getNutritionGoals(userId),
+                        getPreferredWeightUnit(userId),
+                    ]);
+                    // Only demand a unit when actually writing a numeric target.
+                    let target_weight_g: number | null;
+                    if (args.target_weight === undefined) {
+                        target_weight_g = existing?.target_weight_g ?? null;
+                    } else if (args.target_weight === null) {
+                        target_weight_g = null;
+                    } else {
+                        const writeUnit = await resolveWriteWeightUnit(
+                            userId,
+                            args.unit,
+                        );
+                        target_weight_g = toGrams(
+                            args.target_weight,
+                            writeUnit,
+                        );
+                        assertPlausibleWeight(target_weight_g, writeUnit);
+                    }
+                    const displayUnit = args.unit ?? preferredUnit ?? "kg";
                     const merged = {
                         daily_calories:
                             args.daily_calories === undefined
@@ -630,13 +724,14 @@ function registerTools(server: McpServer, userId: string) {
                             args.daily_water_ml === undefined
                                 ? (existing?.daily_water_ml ?? null)
                                 : args.daily_water_ml,
+                        target_weight_g,
                     };
                     const goals = await upsertNutritionGoals(userId, merged);
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Goals updated.\n\n${formatGoals(goals)}`,
+                                text: `Goals updated.\n\n${formatGoals(goals, displayUnit)}`,
                             },
                         ],
                     };
@@ -663,9 +758,17 @@ function registerTools(server: McpServer, userId: string) {
             return withAnalytics(
                 "get_nutrition_goals",
                 async () => {
-                    const goals = await getNutritionGoals(userId);
+                    const [goals, unit] = await Promise.all([
+                        getNutritionGoals(userId),
+                        getPreferredWeightUnit(userId),
+                    ]);
                     return {
-                        content: [{ type: "text", text: formatGoals(goals) }],
+                        content: [
+                            {
+                                type: "text",
+                                text: formatGoals(goals, unit ?? "kg"),
+                            },
+                        ],
                     };
                 },
                 { userId },
@@ -698,15 +801,40 @@ function registerTools(server: McpServer, userId: string) {
                 async () => {
                     const tz = await getUserTimezone(userId);
                     const targetDate = date ?? todayInTz(tz);
-                    const [meals, water, goals] = await Promise.all([
-                        getMealsByDate(userId, targetDate, tz),
-                        getWaterByDate(userId, targetDate, tz),
-                        getNutritionGoals(userId),
-                    ]);
+                    const [meals, water, goals, latestWeight, weightPref] =
+                        await Promise.all([
+                            getMealsByDate(userId, targetDate, tz),
+                            getWaterByDate(userId, targetDate, tz),
+                            getNutritionGoals(userId),
+                            getLatestWeight(userId),
+                            getPreferredWeightUnit(userId),
+                        ]);
+                    const unit = weightPref ?? "kg";
                     const totals = sumMeals(meals);
                     totals.water_ml = sumWater(water);
                     const header = `Progress for ${targetDate} (${meals.length} meal${meals.length === 1 ? "" : "s"}, ${water.length} water entr${water.length === 1 ? "y" : "ies"})`;
                     const body = formatProgress(totals, goals);
+
+                    // Weight is a standing metric (latest overall), not per-date.
+                    let weightLine = "";
+                    if (latestWeight) {
+                        const loggedOn = dateInTz(latestWeight.logged_at, tz);
+                        if (goals?.target_weight_g != null) {
+                            const delta =
+                                latestWeight.weight_g - goals.target_weight_g;
+                            const remaining = fromGrams(Math.abs(delta), unit);
+                            const goalStr =
+                                remaining === 0
+                                    ? "at target"
+                                    : `${remaining} ${unit} ${delta > 0 ? "to lose" : "to gain"}`;
+                            weightLine = `\nWeight: ${formatWeight(latestWeight.weight_g, unit)} / ${formatWeight(goals.target_weight_g, unit)} target (${goalStr}, last logged ${loggedOn})`;
+                        } else {
+                            weightLine = `\nWeight: ${formatWeight(latestWeight.weight_g, unit)} (last logged ${loggedOn})`;
+                        }
+                    } else if (goals?.target_weight_g != null) {
+                        weightLine = `\nWeight: no entries yet (target ${formatWeight(goals.target_weight_g, unit)}). Log one with log_weight.`;
+                    }
+
                     const footer = goals
                         ? ""
                         : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)";
@@ -714,7 +842,7 @@ function registerTools(server: McpServer, userId: string) {
                         content: [
                             {
                                 type: "text",
-                                text: `${header}\n${body}${footer}`,
+                                text: `${header}\n${body}${weightLine}${footer}`,
                             },
                         ],
                     };
@@ -1001,6 +1129,536 @@ function registerTools(server: McpServer, userId: string) {
     );
 
     server.registerTool(
+        "log_weight",
+        {
+            title: "Log Weight",
+            description:
+                "Log a body-weight measurement. Provide the number in `weight` and its `unit` ('kg' or 'lb'); if you omit the unit, the user's saved preference is used, and if they have no preference set yet the call fails asking you to specify one. IMPORTANT: do NOT convert units yourself — pass the value in whatever unit the user stated and set `unit` accordingly. The server stores weight canonically and converts as needed. Multiple weigh-ins per day are allowed.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                weight: z.coerce
+                    .number()
+                    .positive()
+                    .describe("Body weight value, in `unit` (> 0)."),
+                unit: z
+                    .enum(["kg", "lb"])
+                    .optional()
+                    .describe(
+                        "Unit of the weight value. Defaults to the user's preferred weight unit.",
+                    ),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "ISO 8601 timestamp (defaults to now). If you don't know the current date or time, ask the user before calling this tool.",
+                    ),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Optional notes (e.g. 'morning, fasted', 'after workout').",
+                    ),
+                idempotency_key: z
+                    .string()
+                    .min(1)
+                    .max(255)
+                    .optional()
+                    .describe(
+                        "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the entry content (including logged_at), so replaying the identical call returns the original entry instead of duplicating it. Pass a UUID only to force-override that behavior.",
+                    ),
+            },
+        },
+        async (args) => {
+            return withAnalytics(
+                "log_weight",
+                async () => {
+                    if (args.logged_at !== undefined)
+                        validateLoggedAt(args.logged_at, Date.now());
+                    const unit = await resolveWriteWeightUnit(
+                        userId,
+                        args.unit,
+                    );
+                    const weight_g = toGrams(args.weight, unit);
+                    assertPlausibleWeight(weight_g, unit);
+                    const { entry, deduplicated } = await insertWeight(userId, {
+                        weight_g,
+                        logged_at: args.logged_at,
+                        notes: args.notes,
+                        idempotency_key: args.idempotency_key,
+                    });
+                    const prefix = deduplicated
+                        ? "Already logged (idempotent retry)"
+                        : "Weight logged";
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${prefix}: ${formatWeight(entry.weight_g, unit)} at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_weight_today",
+        {
+            title: "Get Today's Weight",
+            description:
+                "Get today's weight entries, shown in the user's preferred unit.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_weight_today",
+                async () => {
+                    const [tz, weightPref] = await Promise.all([
+                        getUserTimezone(userId),
+                        getPreferredWeightUnit(userId),
+                    ]);
+                    const unit = weightPref ?? "kg";
+                    const entries = await getWeightByDate(
+                        userId,
+                        todayInTz(tz),
+                        tz,
+                    );
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "No weight logged today.",
+                                },
+                            ],
+                        };
+                    }
+                    const lines = entries.map((e) =>
+                        formatWeightEntry(e, unit),
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Today (${entries.length} entr${entries.length === 1 ? "y" : "ies"}):\n\n${lines.join("\n")}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_weight_by_date",
+        {
+            title: "Get Weight by Date",
+            description:
+                "Get weight entries for a specific date, in the user's preferred unit.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                date: z.string().describe("Date in YYYY-MM-DD format"),
+            },
+        },
+        async ({ date }) => {
+            return withAnalytics(
+                "get_weight_by_date",
+                async () => {
+                    const [tz, weightPref] = await Promise.all([
+                        getUserTimezone(userId),
+                        getPreferredWeightUnit(userId),
+                    ]);
+                    const unit = weightPref ?? "kg";
+                    const entries = await getWeightByDate(userId, date, tz);
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No weight logged on ${date}.`,
+                                },
+                            ],
+                        };
+                    }
+                    const lines = entries.map((e) =>
+                        formatWeightEntry(e, unit),
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${date} (${entries.length} entr${entries.length === 1 ? "y" : "ies"}):\n\n${lines.join("\n")}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+                { date },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_weight_by_date_range",
+        {
+            title: "Get Weight by Date Range",
+            description:
+                "Get all weight entries between two dates (inclusive), grouped by day with each day's average. Use this instead of multiple get_weight_by_date calls.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                start_date: z.string().describe("Start date (YYYY-MM-DD)"),
+                end_date: z.string().describe("End date (YYYY-MM-DD)"),
+            },
+        },
+        async ({ start_date, end_date }) => {
+            return withAnalytics(
+                "get_weight_by_date_range",
+                async () => {
+                    const [tz, weightPref] = await Promise.all([
+                        getUserTimezone(userId),
+                        getPreferredWeightUnit(userId),
+                    ]);
+                    const unit = weightPref ?? "kg";
+                    const entries = await getWeightInRange(
+                        userId,
+                        start_date,
+                        end_date,
+                        tz,
+                    );
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No weight found between ${start_date} and ${end_date}.`,
+                                },
+                            ],
+                        };
+                    }
+
+                    const byDate = new Map<string, WeightEntry[]>();
+                    for (const e of entries) {
+                        const date = dateInTz(e.logged_at, tz);
+                        const existing = byDate.get(date) ?? [];
+                        existing.push(e);
+                        byDate.set(date, existing);
+                    }
+
+                    const sections: string[] = [];
+                    for (const [date, dayEntries] of [
+                        ...byDate.entries(),
+                    ].sort()) {
+                        const avgG =
+                            dayEntries.reduce((s, e) => s + e.weight_g, 0) /
+                            dayEntries.length;
+                        const header =
+                            dayEntries.length === 1
+                                ? `## ${date}`
+                                : `## ${date} (avg ${formatWeight(avgG, unit)}, ${dayEntries.length} entries)`;
+                        const formatted = dayEntries
+                            .map((e) => formatWeightEntry(e, unit))
+                            .join("\n");
+                        sections.push(`${header}\n${formatted}`);
+                    }
+
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: sections.join("\n\n"),
+                            },
+                        ],
+                    };
+                },
+                { userId },
+                { start_date, end_date },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_weight_trends",
+        {
+            title: "Get Weight Trends",
+            description:
+                "Weight trend over a window: latest reading, overall change, 7/14/30-day moving averages (to smooth day-to-day noise), min/max, and progress toward the target weight if one is set. Aggregates multiple weigh-ins per day by averaging. Defaults to the last 30 days ending today.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                days: z.coerce
+                    .number()
+                    .int()
+                    .min(2)
+                    .max(365)
+                    .optional()
+                    .describe("Window size in days (default 30, max 365)."),
+                end_date: z
+                    .string()
+                    .optional()
+                    .describe("Window end date YYYY-MM-DD (default today)."),
+            },
+        },
+        async ({ days, end_date }) => {
+            return withAnalytics(
+                "get_weight_trends",
+                async () => {
+                    const [tz, weightPref] = await Promise.all([
+                        getUserTimezone(userId),
+                        getPreferredWeightUnit(userId),
+                    ]);
+                    const unit = weightPref ?? "kg";
+                    const endDate = end_date ?? todayInTz(tz);
+                    const windowDays = days ?? 30;
+                    const startDate = shiftLocalDate(
+                        endDate,
+                        -(windowDays - 1),
+                    );
+                    const [entries, goals] = await Promise.all([
+                        getWeightInRange(userId, startDate, endDate, tz),
+                        getNutritionGoals(userId),
+                    ]);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: computeWeightTrend(
+                                    entries,
+                                    startDate,
+                                    endDate,
+                                    tz,
+                                    goals?.target_weight_g ?? null,
+                                    unit,
+                                ),
+                            },
+                        ],
+                    };
+                },
+                { userId },
+                { days: days ?? 30 },
+            );
+        },
+    );
+
+    server.registerTool(
+        "update_weight",
+        {
+            title: "Update Weight Entry",
+            description:
+                "Update fields of an existing weight entry. Provide `unit` alongside `weight` (defaults to the user's preferred unit); do NOT convert units yourself.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                id: z.string().describe("UUID of the weight entry to update"),
+                weight: z.coerce
+                    .number()
+                    .positive()
+                    .optional()
+                    .describe("New weight value, in `unit`."),
+                unit: z
+                    .enum(["kg", "lb"])
+                    .optional()
+                    .describe(
+                        "Unit of the weight value. Defaults to the user's preferred weight unit.",
+                    ),
+                logged_at: z.string().optional().describe("ISO 8601 timestamp"),
+                notes: z.string().optional(),
+            },
+        },
+        async ({ id, weight, unit, logged_at, notes }) => {
+            return withAnalytics(
+                "update_weight",
+                async () => {
+                    if (logged_at !== undefined)
+                        validateLoggedAt(logged_at, Date.now());
+                    const patch: {
+                        weight_g?: number;
+                        logged_at?: string;
+                        notes?: string | null;
+                    } = {};
+                    // Only require a unit when a new weight value is supplied;
+                    // otherwise fall back to kg purely for formatting the result.
+                    let displayUnit: WeightUnit;
+                    if (weight !== undefined) {
+                        displayUnit = await resolveWriteWeightUnit(
+                            userId,
+                            unit,
+                        );
+                        patch.weight_g = toGrams(weight, displayUnit);
+                        assertPlausibleWeight(patch.weight_g, displayUnit);
+                    } else {
+                        displayUnit =
+                            unit ??
+                            (await getPreferredWeightUnit(userId)) ??
+                            "kg";
+                    }
+                    if (logged_at !== undefined) patch.logged_at = logged_at;
+                    if (notes !== undefined) patch.notes = notes;
+                    const entry = await updateWeight(userId, id, patch);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Weight updated:\n${formatWeightEntry(entry, displayUnit)}`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "delete_weight",
+        {
+            title: "Delete Weight Entry",
+            description: "Delete a weight log entry by ID.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                id: z.string().describe("UUID of the weight entry to delete"),
+            },
+        },
+        async ({ id }) => {
+            return withAnalytics(
+                "delete_weight",
+                async () => {
+                    const deleted = await deleteWeight(userId, id);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: deleted
+                                    ? `Weight entry ${id} deleted.`
+                                    : `No weight entry found with id ${id}.`,
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "set_weight_unit",
+        {
+            title: "Set Weight Unit",
+            description:
+                "Set the user's preferred weight unit ('kg' or 'lb'), or pass null to clear it. This controls how weights are shown and how a bare number is interpreted when logging without an explicit unit. Stored weights are unaffected (they are canonical) — only display and default parsing change. While unset, logging requires an explicit unit and weights display in kg.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                unit: z
+                    .enum(["kg", "lb"])
+                    .nullable()
+                    .describe(
+                        "Preferred weight unit: 'kg' or 'lb'. Pass null to clear the preference.",
+                    ),
+            },
+        },
+        async ({ unit }) => {
+            return withAnalytics(
+                "set_weight_unit",
+                async () => {
+                    if (unit !== null && !isWeightUnit(unit)) {
+                        throw new Error(
+                            `Invalid weight unit: ${unit}. Use 'kg', 'lb', or null to clear.`,
+                        );
+                    }
+                    const profile = await upsertProfile(userId, {
+                        preferred_weight_unit: unit,
+                    });
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: profile.preferred_weight_unit
+                                    ? `Preferred weight unit set to ${profile.preferred_weight_unit}.`
+                                    : "Preferred weight unit cleared. Logging will require an explicit unit until you set one, and weights display in kg.",
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_weight_unit",
+        {
+            title: "Get Weight Unit",
+            description:
+                "Get the user's preferred weight unit. Reports if none is set.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_weight_unit",
+                async () => {
+                    const unit = await getPreferredWeightUnit(userId);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: unit
+                                    ? `Preferred weight unit: ${unit}.`
+                                    : "No preferred weight unit set. Weights display in kg by default, and logging requires an explicit unit ('kg' or 'lb').",
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
         "get_trends",
         {
             title: "Get Trends",
@@ -1237,7 +1895,7 @@ function registerTools(server: McpServer, userId: string) {
                             `Invalid timezone: ${timezone}. Use an IANA identifier like 'America/Los_Angeles' or 'Europe/London'.`,
                         );
                     }
-                    const profile = await upsertProfile(userId, timezone);
+                    const profile = await upsertProfile(userId, { timezone });
                     return {
                         content: [
                             {
@@ -1354,7 +2012,7 @@ function buildMcpServer(c: Context, userId: string): McpServer {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.13.3",
+            version: "1.14.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
