@@ -1,5 +1,11 @@
-import type { Meal, NutritionGoals, WaterEntry } from "./supabase.js";
+import type {
+    Meal,
+    NutritionGoals,
+    WaterEntry,
+    WeightEntry,
+} from "./supabase.js";
 import { dateInTz, hourInTz } from "./tz.js";
+import { formatWeight, fromGrams, type WeightUnit } from "./units.js";
 
 export interface DailyBucket {
     date: string; // YYYY-MM-DD
@@ -93,13 +99,20 @@ export function buildDailyBuckets(
     return [...buckets.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function trailingAverage(buckets: DailyBucket[], field: keyof DailyBucket, n: number): number {
+function trailingAverage(
+    buckets: DailyBucket[],
+    field: keyof DailyBucket,
+    n: number,
+): number {
     const slice = buckets.slice(-n);
     const values = slice.map((b) => b[field] as number);
     return mean(values);
 }
 
-function longestStreak(buckets: DailyBucket[], predicate: (b: DailyBucket) => boolean): number {
+function longestStreak(
+    buckets: DailyBucket[],
+    predicate: (b: DailyBucket) => boolean,
+): number {
     let best = 0;
     let cur = 0;
     for (const b of buckets) {
@@ -113,7 +126,10 @@ function longestStreak(buckets: DailyBucket[], predicate: (b: DailyBucket) => bo
     return best;
 }
 
-function currentStreak(buckets: DailyBucket[], predicate: (b: DailyBucket) => boolean): number {
+function currentStreak(
+    buckets: DailyBucket[],
+    predicate: (b: DailyBucket) => boolean,
+): number {
     let count = 0;
     for (let i = buckets.length - 1; i >= 0; i--) {
         if (predicate(buckets[i]!)) count++;
@@ -296,6 +312,106 @@ export function computeTrends(
     return sections.join("\n\n");
 }
 
+/**
+ * Weight is a point measurement (not a daily sum), and multiple weigh-ins per
+ * day are allowed — so we aggregate to one value per day by averaging that day's
+ * entries, then report trailing moving averages to smooth day-to-day noise.
+ * All output is rendered in the user's preferred unit from canonical grams.
+ */
+export function computeWeightTrend(
+    entries: WeightEntry[],
+    startDate: string,
+    endDate: string,
+    tz: string,
+    targetWeightG: number | null,
+    unit: WeightUnit,
+): string {
+    // Daily average (grams) for each day that has at least one weigh-in.
+    const sums = new Map<string, { total: number; count: number }>();
+    for (const e of entries) {
+        const date = dateInTz(e.logged_at, tz);
+        const cur = sums.get(date) ?? { total: 0, count: 0 };
+        cur.total += e.weight_g;
+        cur.count += 1;
+        sums.set(date, cur);
+    }
+    const days = [...sums.entries()]
+        .map(([date, { total, count }]) => ({ date, avg: total / count }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (days.length === 0) {
+        return `No weight logged between ${startDate} and ${endDate}.`;
+    }
+
+    const fmt = (g: number) => formatWeight(g, unit);
+    // Signed delta rendered in display units.
+    const fmtDelta = (g: number) => {
+        const v = fromGrams(Math.abs(g), unit);
+        const sign = g > 0 ? "+" : g < 0 ? "-" : "";
+        return `${sign}${v} ${unit}`;
+    };
+
+    const first = days[0]!;
+    const last = days[days.length - 1]!;
+    // Trailing average over the last n calendar days ending at endDate.
+    const trailing = (n: number): number | null => {
+        const cutoff = addDays(endDate, -(n - 1));
+        const vals = days.filter((d) => d.date >= cutoff).map((d) => d.avg);
+        return vals.length > 0 ? mean(vals) : null;
+    };
+    const avg7 = trailing(7);
+    const avg14 = trailing(14);
+    const avg30 = trailing(30);
+
+    const minDay = days.reduce((a, b) => (a.avg <= b.avg ? a : b));
+    const maxDay = days.reduce((a, b) => (a.avg >= b.avg ? a : b));
+
+    const sections: string[] = [];
+    sections.push(
+        `Weight trend — ${startDate} to ${endDate} (${days.length} logged day${days.length === 1 ? "" : "s"})`,
+    );
+
+    sections.push(
+        [
+            `Latest: ${fmt(last.avg)} (on ${last.date})`,
+            `Change over range: ${fmtDelta(last.avg - first.avg)} (from ${fmt(first.avg)} on ${first.date})`,
+        ].join("\n"),
+    );
+
+    const movingLines = ["Moving averages (smoothed):"];
+    if (avg7 != null) movingLines.push(`  7-day: ${fmt(avg7)}`);
+    if (avg14 != null) movingLines.push(`  14-day: ${fmt(avg14)}`);
+    if (avg30 != null) movingLines.push(`  30-day: ${fmt(avg30)}`);
+    sections.push(movingLines.join("\n"));
+
+    sections.push(
+        [
+            "Range:",
+            `  Min: ${fmt(minDay.avg)} (on ${minDay.date})`,
+            `  Max: ${fmt(maxDay.avg)} (on ${maxDay.date})`,
+        ].join("\n"),
+    );
+
+    if (targetWeightG != null && targetWeightG > 0) {
+        const delta = last.avg - targetWeightG; // positive = above target
+        const remaining = fromGrams(Math.abs(delta), unit);
+        let goalLine: string;
+        if (remaining === 0) {
+            goalLine = `At target (${fmt(targetWeightG)}).`;
+        } else {
+            const direction = delta > 0 ? "to lose" : "to gain";
+            goalLine = `${remaining} ${unit} ${direction} to reach target of ${fmt(targetWeightG)}`;
+        }
+        sections.push(["Goal:", `  ${goalLine}`].join("\n"));
+    } else {
+        sections.push(
+            "(Tip: set a target weight with set_nutrition_goals to track progress toward a goal.)",
+        );
+    }
+
+    return sections.join("\n\n");
+}
+
 export function computeMealPatterns(
     buckets: DailyBucket[],
     tz: string = "UTC",
@@ -317,11 +433,15 @@ export function computeMealPatterns(
             `  ${t}: ${withType.length}/${logged.length} days (${round(rate, 0)}%)`,
         );
     }
-    sections.push(["Meal-type presence (logged days):", ...presenceLines].join("\n"));
+    sections.push(
+        ["Meal-type presence (logged days):", ...presenceLines].join("\n"),
+    );
 
     // Breakfast effect
     const withBreakfast = logged.filter((b) => b.mealTypes.has("breakfast"));
-    const withoutBreakfast = logged.filter((b) => !b.mealTypes.has("breakfast"));
+    const withoutBreakfast = logged.filter(
+        (b) => !b.mealTypes.has("breakfast"),
+    );
     if (withBreakfast.length > 0 && withoutBreakfast.length > 0) {
         const avg = (xs: DailyBucket[], f: keyof DailyBucket) =>
             round(mean(xs.map((b) => b[f] as number)));
@@ -430,16 +550,27 @@ export function computeWeeklyDigest(
         `Weekly digest — ${buckets[0]!.date} to ${buckets[buckets.length - 1]!.date}`,
     );
     lines.push("");
-    lines.push(`Logged ${logged.length}/${buckets.length} days, ${totalMeals} meals total.`);
+    lines.push(
+        `Logged ${logged.length}/${buckets.length} days, ${totalMeals} meals total.`,
+    );
     lines.push("");
     lines.push("Daily averages:");
-    const line = (label: string, val: number, unit: string, target: number | null) => {
+    const line = (
+        label: string,
+        val: number,
+        unit: string,
+        target: number | null,
+    ) => {
         if (target == null || target <= 0) return `  ${label}: ${val}${unit}`;
         const pct = round((val / target) * 100, 0);
         return `  ${label}: ${val}${unit} / ${target}${unit} target (${pct}%)`;
     };
-    lines.push(line("Calories", avgCals, " kcal", goals?.daily_calories ?? null));
-    lines.push(line("Protein", avgProtein, "g", goals?.daily_protein_g ?? null));
+    lines.push(
+        line("Calories", avgCals, " kcal", goals?.daily_calories ?? null),
+    );
+    lines.push(
+        line("Protein", avgProtein, "g", goals?.daily_protein_g ?? null),
+    );
     lines.push(line("Carbs", avgCarbs, "g", goals?.daily_carbs_g ?? null));
     lines.push(line("Fat", avgFat, "g", goals?.daily_fat_g ?? null));
     lines.push(line("Water", avgWater, " ml", goals?.daily_water_ml ?? null));
