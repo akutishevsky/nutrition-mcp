@@ -8,11 +8,11 @@
         <meta charset="utf-8" />
         <meta
             name="description"
-            content="Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, calorie counting, and diet tracking."
+            content="Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, calorie counting, weight tracking, and diet tracking."
         />
         <meta
             name="keywords"
-            content="nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, AI nutrition, Model Context Protocol"
+            content="nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, weight tracker, weight log, AI nutrition, Model Context Protocol"
         />
         <meta
             property="og:title"
@@ -20,7 +20,7 @@
         />
         <meta
             property="og:description"
-            content="Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging and barcode scanning."
+            content="Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, and weight tracking."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://nutrition-mcp.com" />
@@ -35,7 +35,7 @@
         />
         <meta
             name="twitter:description"
-            content="Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging and barcode scanning."
+            content="Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, and weight tracking."
         />
         <link rel="canonical" href="https://nutrition-mcp.com" />
         <link rel="icon" href="/favicon.ico" />
@@ -46,7 +46,7 @@
                 "@context": "https://schema.org",
                 "@type": "SoftwareApplication",
                 "name": "Nutrition MCP",
-                "description": "Track meals, macros, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, calorie counting, and diet tracking.",
+                "description": "Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, calorie counting, weight tracking, and diet tracking.",
                 "url": "https://nutrition-mcp.com",
                 "applicationCategory": "HealthApplication",
                 "operatingSystem": "Any",
@@ -115,7 +115,7 @@
                         "name": "What can I track?",
                         "acceptedAnswer": {
                             "@type": "Answer",
-                            "text": "Calories, protein, carbohydrates, fat, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. You can view daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time."
+                            "text": "Calories, protein, carbohydrates, fat, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. You can also log your body weight in kg or lb and track trends toward a target weight. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time."
                         }
                     },
                     {
@@ -591,8 +591,9 @@
                             </li>
                             <li>
                                 <strong>Set your goals</strong> — daily calorie,
-                                macro, and water targets to track your progress
-                                against.
+                                macro, and water targets, plus an optional target
+                                weight and your preferred weight unit (kg or lb),
+                                to track your progress against.
                             </li>
                             <li>
                                 <strong>Start logging</strong> — just say what
@@ -1210,6 +1211,31 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div
+                                        class="slide"
+                                        role="group"
+                                        aria-roledescription="slide"
+                                    >
+                                        <div class="mini-chat">
+                                            <div class="msg msg-user">
+                                                Log my weight, 74.5 kg
+                                            </div>
+                                            <div
+                                                class="typing"
+                                                aria-hidden="true"
+                                            >
+                                                <span></span><span></span
+                                                ><span></span>
+                                            </div>
+                                            <div class="msg msg-ai">
+                                                Logged — 74.5 kg. You're down
+                                                0.6 kg over the past week and
+                                                1.5 kg from your 73 kg goal —
+                                                your 7-day average is trending
+                                                down nicely.
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="cw-input" aria-hidden="true">
@@ -1258,6 +1284,11 @@
                                     class="dot"
                                     type="button"
                                     aria-label="Example 6"
+                                ></button>
+                                <button
+                                    class="dot"
+                                    type="button"
+                                    aria-label="Example 7"
                                 ></button>
                             </div>
                             <button
@@ -1392,6 +1423,17 @@
                             <p>
                                 Track hydration in milliliters alongside your
                                 meals and review it by day.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-weight-scale"></i
+                            ></span>
+                            <h3>Weight tracking</h3>
+                            <p>
+                                Log your body weight in kg or lb, see 7/14/30-day
+                                trends, and track progress toward a target
+                                weight.
                             </p>
                         </article>
                         <article class="card feature">
@@ -1693,9 +1735,11 @@
                                 Calories, protein, carbohydrates, fat, and water
                                 for every entry — described in plain language or
                                 pulled from a product barcode via Open Food
-                                Facts. You can view daily summaries, query meals
-                                by date range, update or delete past entries,
-                                set goals, and monitor trends over time.
+                                Facts. You can also log your body weight in kg or
+                                lb and track trends toward a target weight. View
+                                daily summaries, query meals by date range,
+                                update or delete past entries, set goals, and
+                                monitor trends over time.
                             </p>
                         </details>
                         <details>
