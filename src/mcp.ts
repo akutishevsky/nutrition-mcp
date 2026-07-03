@@ -2031,10 +2031,34 @@ function buildMcpServer(c: Context, userId: string): McpServer {
 // transport + McpServer and tears it down when the response completes (the SDK
 // forbids reusing a stateless transport). Because nothing is kept in-process, a
 // restart/deploy can never strand a connected client — there is no session to
-// lose, and therefore no reconnect step for a client to wedge on. The trade-off
-// is no server-initiated streaming (standalone GET SSE / notifications), which
-// this server does not use.
+// lose, and therefore no reconnect step for a client to wedge on.
+//
+// Only POST (JSON-RPC request/response) is served. We reject GET and DELETE
+// with 405 instead of delegating to the transport, because a GET would open a
+// long-lived standalone SSE stream — and that stream is the one piece of state
+// a deploy still severs. Since stateless mode never pushes server-initiated
+// messages, that stream carries nothing; the only thing it does is die on every
+// restart and leave some clients (observed: a Claude connector) wedged in a
+// "connected but no tools" state. Refusing the stream (spec-allowed: a server
+// MAY return 405 when it offers no SSE stream at this endpoint) means the client
+// holds nothing that a deploy can break, so updates become truly invisible.
 export const handleMcp = async (c: Context) => {
+    if (c.req.method !== "POST") {
+        return c.json(
+            {
+                jsonrpc: "2.0",
+                id: null,
+                error: {
+                    code: -32000,
+                    message:
+                        "Method Not Allowed: this endpoint serves POST only and offers no SSE stream",
+                },
+            },
+            405,
+            { Allow: "POST" },
+        );
+    }
+
     const userId = c.get("userId") as string;
 
     const transport = new WebStandardStreamableHTTPServerTransport({
