@@ -23,7 +23,7 @@
         "@types/bun": "latest"
     },
     "peerDependencies": {
-        "typescript": "^5"
+        "typescript": "^5.9.3"
     },
     "scripts": {
         "start": "bun src/index.ts",
@@ -33,9 +33,9 @@
         "generate-oauth-creds": "echo \"OAUTH_CLIENT_ID=$(openssl rand -hex 16)\" && echo \"OAUTH_CLIENT_SECRET=$(openssl rand -hex 32)\""
     },
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.27.1",
-        "@supabase/supabase-js": "^2.98.0",
-        "hono": "^4.12.5",
-        "prettier": "^3.8.1"
+        "@modelcontextprotocol/sdk": "^1.29.0",
+        "@supabase/supabase-js": "^2.110.0",
+        "hono": "^4.12.28",
+        "prettier": "^3.9.4"
     }
 }
