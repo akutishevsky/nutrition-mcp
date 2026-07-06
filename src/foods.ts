@@ -113,7 +113,22 @@ export async function fetchProductFromOFF(
         product?: OFFProduct;
     };
     if (!body || body.status === 0 || !body.product) return null;
-    return normalizeOFFProduct(body.product, barcode);
+
+    const food = normalizeOFFProduct(body.product, barcode);
+    // Open Food Facts is full of "stub" products: an entry exists (status 1,
+    // sometimes even a name) but carries no nutriments at all. That is a miss
+    // for our purposes — returning it would report the product as "found" with
+    // every macro n/a (suppressing the caller's estimation fallback) and pin a
+    // useless record in the cache for the full TTL. Treat it as not found.
+    if (
+        food.calories == null &&
+        food.protein_g == null &&
+        food.carbs_g == null &&
+        food.fat_g == null
+    ) {
+        return null;
+    }
+    return food;
 }
 
 // ---------- Cache ----------

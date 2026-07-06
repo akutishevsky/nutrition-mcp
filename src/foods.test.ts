@@ -126,16 +126,32 @@ describe("fetchProductFromOFF", () => {
         );
     });
 
-    test("missing nutriments yield null macros but keep the name", async () => {
+    test("treats a stub product with no macros as not found (no empty cache)", async () => {
+        // OFF returns status 1 for entries that exist but carry no nutriments.
+        // We must report a miss so the caller can fall back to estimation and
+        // no empty record is cached.
         mockFetch(() =>
             jsonResponse({
                 status: 1,
                 product: { product_name: "Mystery Snack" },
             }),
         );
+        expect(await fetchProductFromOFF("737628064502")).toBeNull();
+    });
+
+    test("keeps a product that has at least one macro even if others are null", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Just Calories",
+                    nutriments: { "energy-kcal_100g": 250 },
+                },
+            }),
+        );
         const food = await fetchProductFromOFF("737628064502");
-        expect(food!.name).toBe("Mystery Snack");
-        expect(food!.calories).toBeNull();
+        expect(food!.name).toBe("Just Calories");
+        expect(food!.calories).toBe(250);
         expect(food!.protein_g).toBeNull();
     });
 
