@@ -2012,7 +2012,7 @@ function buildMcpServer(c: Context, userId: string): McpServer {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.14.1",
+            version: "1.14.2",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
