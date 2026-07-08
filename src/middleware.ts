@@ -1,6 +1,20 @@
 import type { Context, Next } from "hono";
 import { getUserIdByToken } from "./supabase.js";
-import { checkRateLimit } from "./rate-limit.js";
+import { checkRateLimit, checkAuthRateLimit } from "./rate-limit.js";
+
+// Best-effort client IP for rate limiting. Behind DigitalOcean's proxy the real
+// IP is the first entry of x-forwarded-for; fall back to x-real-ip. "unknown"
+// only applies when no proxy header is present (e.g. direct local requests), in
+// which case those callers share a single bucket — acceptable since production
+// always sits behind the proxy.
+function getClientIp(c: Context): string {
+    const forwardedFor = c.req.header("x-forwarded-for");
+    if (forwardedFor) {
+        const first = forwardedFor.split(",")[0]?.trim();
+        if (first) return first;
+    }
+    return c.req.header("x-real-ip")?.trim() || "unknown";
+}
 
 function getBaseUrl(c: Context): string {
     const proto = c.req.header("x-forwarded-proto") || "http";
@@ -49,6 +63,25 @@ export const authenticateBearer = async (c: Context, next: Next) => {
 
     c.set("accessToken", token);
     c.set("userId", userId);
+    await next();
+};
+
+// Per-IP rate limiter for the unauthenticated OAuth endpoints, where there is
+// no user id yet. Guards against bulk signups and credential stuffing.
+export const rateLimitAuth = async (c: Context, next: Next) => {
+    const result = checkAuthRateLimit(getClientIp(c));
+    c.header("X-RateLimit-Limit", String(result.limit));
+    c.header("X-RateLimit-Remaining", String(result.remaining));
+    if (!result.allowed) {
+        c.header("Retry-After", String(result.retryAfterSeconds ?? 60));
+        return c.json(
+            {
+                error: "rate_limited",
+                error_description: `Rate limit exceeded (${result.limit} requests per minute). Retry after ${result.retryAfterSeconds}s.`,
+            },
+            429,
+        );
+    }
     await next();
 };
 
