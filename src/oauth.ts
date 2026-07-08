@@ -12,6 +12,7 @@ import {
     registerClient,
 } from "./supabase.js";
 import { getBaseUrl } from "./url.js";
+import { rateLimitAuth } from "./middleware.js";
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
@@ -97,6 +98,11 @@ async function finishAuthorization(
 
 export function createOAuthRouter() {
     const oauth = new Hono();
+
+    // Per-IP rate limit across all OAuth endpoints — these are unauthenticated,
+    // so this is the only throttle standing between the internet and signup /
+    // sign-in / token issuance.
+    oauth.use("*", rateLimitAuth);
 
     const clientId = process.env.OAUTH_CLIENT_ID;
     const clientSecret = process.env.OAUTH_CLIENT_SECRET;
