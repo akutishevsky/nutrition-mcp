@@ -2109,6 +2109,12 @@ body.auth .legal-section a:hover {
 }
 
 /* ---------- SEO comparison / "alternative" landing pages ---------- */
+/* These pages carry longer prose than the landing page, so relax the shared
+   40ch section-head measure to a more comfortable reading width. Scoped to
+   .alt-page so the home page headings stay tight. */
+.alt-page .section-head {
+    max-width: 62ch;
+}
 /* Breadcrumb trail above the hero on comparison pages. */
 .crumb {
     display: flex;

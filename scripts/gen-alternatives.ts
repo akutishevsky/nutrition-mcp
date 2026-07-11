@@ -554,7 +554,7 @@ ${jsonLd(breadcrumb)}
 ${jsonLd(faqSchema)}
 ${HEAD_ASSETS}
     </head>
-    <body class="landing">
+    <body class="landing alt-page">
 ${GENERATED_BANNER}
 ${THEME_PREPAINT}
 ${NAV}
@@ -795,7 +795,7 @@ function renderHub(): string {
 ${jsonLd(breadcrumb)}
 ${HEAD_ASSETS}
     </head>
-    <body class="landing">
+    <body class="landing alt-page">
 ${GENERATED_BANNER}
 ${THEME_PREPAINT}
 ${NAV}
