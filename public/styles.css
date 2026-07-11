@@ -506,7 +506,7 @@ html:has(body.landing) {
 }
 .section-head {
     text-align: center;
-    max-width: 40ch;
+    max-width: 62ch;
     margin: 0 auto clamp(2rem, 5vw, 3.5rem);
 }
 .eyebrow {
@@ -2109,12 +2109,6 @@ body.auth .legal-section a:hover {
 }
 
 /* ---------- SEO comparison / "alternative" landing pages ---------- */
-/* These pages carry longer prose than the landing page, so relax the shared
-   40ch section-head measure to a more comfortable reading width. Scoped to
-   .alt-page so the home page headings stay tight. */
-.alt-page .section-head {
-    max-width: 62ch;
-}
 /* Breadcrumb trail above the hero on comparison pages. */
 .crumb {
     display: flex;
