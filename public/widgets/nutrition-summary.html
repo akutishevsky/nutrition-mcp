@@ -22,78 +22,97 @@
         <title>Nutrition Summary</title>
         <style>
             :root {
-                /* Light theme (default). Dark values overridden below. */
-                --bg: #ffffff;
-                --panel: #f6f7f9;
-                --panel-border: #e6e8ec;
-                --text: #1a1d21;
-                --text-dim: #656c76;
-                --track: #e6e8ec;
+                /* Light glass theme (default). Dark overridden below. */
+                --text: #1b1f27;
+                --text-dim: #5a6472;
+                --glass: rgba(255, 255, 255, 0.45);
+                --glass-border: rgba(255, 255, 255, 0.75);
+                --inset-hi: rgba(255, 255, 255, 0.65);
+                --track: rgba(18, 24, 40, 0.1);
+                --shadow: 0 10px 30px rgba(30, 40, 70, 0.12);
+                --bg-1: #eaf0fb;
+                --bg-2: #f5ecfb;
+                --blob-a: rgba(59, 130, 246, 0.35);
+                --blob-b: rgba(124, 92, 255, 0.28);
+                --blob-c: rgba(232, 131, 58, 0.26);
+                --blob-d: rgba(20, 163, 139, 0.24);
 
-                --calories: #e8833a;
+                --calories: #ef8b3c;
                 --protein: #7c5cff;
-                --carbs: #14a38b;
-                --fat: #e0567a;
+                --carbs: #12b28f;
+                --fat: #ec5d82;
                 --water: #3b82f6;
+                --over: #e23b57;
 
-                --over: #dc3b3b;
-                --radius: 14px;
-                --shadow:
-                    0 1px 2px rgba(0, 0, 0, 0.04),
-                    0 4px 16px rgba(0, 0, 0, 0.05);
+                --radius: 20px;
             }
 
             @media (prefers-color-scheme: dark) {
                 :root {
-                    --bg: #16181c;
-                    --panel: #1f2228;
-                    --panel-border: #2b2f36;
-                    --text: #e8eaed;
-                    --text-dim: #9aa1ac;
-                    --track: #2b2f36;
-
-                    --calories: #f0965a;
-                    --protein: #9d84ff;
-                    --carbs: #2bc5aa;
-                    --fat: #f27a99;
-                    --water: #5b9bff;
-                    --over: #ff6b6b;
-                    --shadow: none;
+                    --text: #eceff5;
+                    --text-dim: #9aa3b2;
+                    --glass: rgba(255, 255, 255, 0.06);
+                    --glass-border: rgba(255, 255, 255, 0.14);
+                    --inset-hi: rgba(255, 255, 255, 0.08);
+                    --track: rgba(255, 255, 255, 0.1);
+                    --shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+                    --bg-1: #0b0d13;
+                    --bg-2: #121019;
+                    --blob-a: rgba(59, 130, 246, 0.3);
+                    --blob-b: rgba(124, 92, 255, 0.28);
+                    --blob-c: rgba(232, 131, 58, 0.22);
+                    --blob-d: rgba(20, 163, 139, 0.22);
+                    --calories: #f6a45f;
+                    --protein: #a488ff;
+                    --carbs: #2fd0ab;
+                    --fat: #f57a9a;
+                    --water: #5f9dff;
+                    --over: #ff6b81;
                 }
             }
 
             /* Explicit host override wins over the media query in both directions. */
             :root[data-theme="light"] {
-                --bg: #ffffff;
-                --panel: #f6f7f9;
-                --panel-border: #e6e8ec;
-                --text: #1a1d21;
-                --text-dim: #656c76;
-                --track: #e6e8ec;
-                --calories: #e8833a;
+                --text: #1b1f27;
+                --text-dim: #5a6472;
+                --glass: rgba(255, 255, 255, 0.45);
+                --glass-border: rgba(255, 255, 255, 0.75);
+                --inset-hi: rgba(255, 255, 255, 0.65);
+                --track: rgba(18, 24, 40, 0.1);
+                --shadow: 0 10px 30px rgba(30, 40, 70, 0.12);
+                --bg-1: #eaf0fb;
+                --bg-2: #f5ecfb;
+                --blob-a: rgba(59, 130, 246, 0.35);
+                --blob-b: rgba(124, 92, 255, 0.28);
+                --blob-c: rgba(232, 131, 58, 0.26);
+                --blob-d: rgba(20, 163, 139, 0.24);
+                --calories: #ef8b3c;
                 --protein: #7c5cff;
-                --carbs: #14a38b;
-                --fat: #e0567a;
+                --carbs: #12b28f;
+                --fat: #ec5d82;
                 --water: #3b82f6;
-                --over: #dc3b3b;
-                --shadow:
-                    0 1px 2px rgba(0, 0, 0, 0.04),
-                    0 4px 16px rgba(0, 0, 0, 0.05);
+                --over: #e23b57;
             }
             :root[data-theme="dark"] {
-                --bg: #16181c;
-                --panel: #1f2228;
-                --panel-border: #2b2f36;
-                --text: #e8eaed;
-                --text-dim: #9aa1ac;
-                --track: #2b2f36;
-                --calories: #f0965a;
-                --protein: #9d84ff;
-                --carbs: #2bc5aa;
-                --fat: #f27a99;
-                --water: #5b9bff;
-                --over: #ff6b6b;
-                --shadow: none;
+                --text: #eceff5;
+                --text-dim: #9aa3b2;
+                --glass: rgba(255, 255, 255, 0.06);
+                --glass-border: rgba(255, 255, 255, 0.14);
+                --inset-hi: rgba(255, 255, 255, 0.08);
+                --track: rgba(255, 255, 255, 0.1);
+                --shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+                --bg-1: #0b0d13;
+                --bg-2: #121019;
+                --blob-a: rgba(59, 130, 246, 0.3);
+                --blob-b: rgba(124, 92, 255, 0.28);
+                --blob-c: rgba(232, 131, 58, 0.22);
+                --blob-d: rgba(20, 163, 139, 0.22);
+                --calories: #f6a45f;
+                --protein: #a488ff;
+                --carbs: #2fd0ab;
+                --fat: #f57a9a;
+                --water: #5f9dff;
+                --over: #ff6b81;
             }
 
             * {
@@ -105,8 +124,9 @@
                 padding: 0;
             }
             body {
-                background: var(--bg);
+                min-height: 100vh;
                 color: var(--text);
+                background: linear-gradient(160deg, var(--bg-1), var(--bg-2));
                 font-family:
                     ui-sans-serif,
                     system-ui,
@@ -119,6 +139,35 @@
                 font-size: 14px;
                 line-height: 1.45;
                 -webkit-font-smoothing: antialiased;
+            }
+            /* Ambient colour blobs — the surface the glass panels frost. */
+            body::before {
+                content: "";
+                position: fixed;
+                inset: -10%;
+                z-index: -1;
+                pointer-events: none;
+                background:
+                    radial-gradient(
+                        38% 40% at 12% 8%,
+                        var(--blob-c),
+                        transparent 70%
+                    ),
+                    radial-gradient(
+                        42% 44% at 88% 6%,
+                        var(--blob-b),
+                        transparent 72%
+                    ),
+                    radial-gradient(
+                        48% 50% at 82% 94%,
+                        var(--blob-a),
+                        transparent 72%
+                    ),
+                    radial-gradient(
+                        40% 42% at 6% 90%,
+                        var(--blob-d),
+                        transparent 72%
+                    );
             }
             .wrap {
                 max-width: 760px;
@@ -150,15 +199,19 @@
             .tiles {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-                gap: 9px;
-                margin-bottom: 18px;
+                gap: 12px;
+                margin-bottom: 20px;
             }
             .tile {
-                background: var(--panel);
-                border: 1px solid var(--panel-border);
+                background: var(--glass);
+                border: 1px solid var(--glass-border);
                 border-radius: var(--radius);
-                padding: 14px 10px 13px;
-                box-shadow: var(--shadow);
+                box-shadow:
+                    var(--shadow),
+                    inset 0 1px 0 var(--inset-hi);
+                backdrop-filter: blur(18px) saturate(160%);
+                -webkit-backdrop-filter: blur(18px) saturate(160%);
+                padding: 16px 12px 15px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -236,12 +289,16 @@
 
             /* Calories trend chart (hand-built SVG area + line) */
             .trend {
-                background: var(--panel);
-                border: 1px solid var(--panel-border);
+                background: var(--glass);
+                border: 1px solid var(--glass-border);
                 border-radius: var(--radius);
-                padding: 12px 14px 10px;
-                box-shadow: var(--shadow);
-                margin-bottom: 18px;
+                box-shadow:
+                    var(--shadow),
+                    inset 0 1px 0 var(--inset-hi);
+                backdrop-filter: blur(18px) saturate(160%);
+                -webkit-backdrop-filter: blur(18px) saturate(160%);
+                padding: 14px 16px 12px;
+                margin-bottom: 20px;
             }
             .trend .thead {
                 display: flex;
@@ -268,7 +325,8 @@
                 display: block;
             }
             .trend .axis {
-                stroke: var(--panel-border);
+                stroke: var(--text-dim);
+                opacity: 0.25;
             }
             .trend .goalline {
                 stroke: var(--text-dim);
@@ -294,9 +352,14 @@
                 text-align: center;
                 color: var(--text-dim);
                 padding: 40px 20px;
-                background: var(--panel);
-                border: 1px solid var(--panel-border);
+                background: var(--glass);
+                border: 1px solid var(--glass-border);
                 border-radius: var(--radius);
+                box-shadow:
+                    var(--shadow),
+                    inset 0 1px 0 var(--inset-hi);
+                backdrop-filter: blur(18px) saturate(160%);
+                -webkit-backdrop-filter: blur(18px) saturate(160%);
             }
             .empty .big {
                 font-size: 26px;
