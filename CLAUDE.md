@@ -68,6 +68,8 @@ In-chat UI uses **MCP Apps** (the official 2026-01-26 MCP extension), which rend
 
 **The widget file is a single self-contained HTML** — inline CSS + JS, zero network requests. The iframe CSP is deny-by-default: **no CDN/external scripts**, and `eval`/`new Function` are blocked. To use a chart library, bundle it inline (a Bun build step); we use hand-built SVG instead (0 KB, follows CSS light/dark vars natively via `currentColor` / `var(--…)`).
 
+**Styling — reuse the shared design language.** All widgets share one look (Apple-like neutral surfaces, brand green accent, theme tokens, donut gauge, SVG trend chart). Because CSP forbids a linkable stylesheet, reuse is copy-paste: the tokens and component CSS live as ready-to-paste blocks in **`public/widgets/STYLE_GUIDE.md`**. Start any new widget from there and keep the shared blocks byte-identical across widgets.
+
 **The iframe→host handshake must be exact.** Strict hosts (MCP Inspector) validate the request shape and silently drop malformed ones — symptom: widget stuck on "Loading…" while the tool succeeds server-side. Sequence over plain `window.postMessage(msg, "*")` to `window.parent`:
 
 1. App → host: `ui/initialize` request. Params use **`appInfo`** and **`appCapabilities`** — NOT the MCP-core `clientInfo` / `capabilities` (this exact mix-up was the original bug): `{ protocolVersion: "2026-01-26", appInfo: {name, version}, appCapabilities: {} }`.
