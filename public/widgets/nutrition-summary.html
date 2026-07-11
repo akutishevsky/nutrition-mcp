@@ -22,20 +22,23 @@
         <title>Nutrition Summary</title>
         <style>
             :root {
-                /* Light glass theme (default). Dark overridden below. */
-                --text: #1b1f27;
-                --text-dim: #5a6472;
-                --glass: rgba(255, 255, 255, 0.45);
-                --glass-border: rgba(255, 255, 255, 0.75);
-                --inset-hi: rgba(255, 255, 255, 0.65);
-                --track: rgba(18, 24, 40, 0.1);
-                --shadow: 0 10px 30px rgba(30, 40, 70, 0.12);
-                --bg-1: #eaf0fb;
-                --bg-2: #f5ecfb;
-                --blob-a: rgba(59, 130, 246, 0.35);
-                --blob-b: rgba(124, 92, 255, 0.28);
-                --blob-c: rgba(232, 131, 58, 0.26);
-                --blob-d: rgba(20, 163, 139, 0.24);
+                /* Light glass theme (default). Dark overridden below.
+                   Palette follows the landing page: warm cream + sage green +
+                   earthy brown, with muted honey/terracotta accents. */
+                --text: #2c2416;
+                --text-dim: #8a7e6b;
+                --glass: rgba(255, 253, 249, 0.5);
+                --glass-border: rgba(255, 255, 255, 0.72);
+                --inset-hi: rgba(255, 255, 255, 0.7);
+                --track: rgba(44, 36, 22, 0.1);
+                --shadow: 0 12px 30px rgba(74, 63, 40, 0.12);
+                --bg-1: #f7f4ed;
+                --bg-2: #edf3e8;
+                --blob-a: rgba(74, 124, 89, 0.24);
+                --blob-b: rgba(200, 168, 96, 0.2);
+                --blob-c: rgba(168, 67, 42, 0.12);
+                --blob-d: rgba(61, 102, 73, 0.2);
+                --blob-e: rgba(122, 158, 110, 0.16);
 
                 --calories: #ef8b3c;
                 --protein: #7c5cff;
@@ -49,22 +52,23 @@
 
             @media (prefers-color-scheme: dark) {
                 :root {
-                    --text: #eceff5;
-                    --text-dim: #9aa3b2;
-                    --glass: rgba(255, 255, 255, 0.06);
-                    --glass-border: rgba(255, 255, 255, 0.14);
+                    --text: #ece6da;
+                    --text-dim: #a89d88;
+                    --glass: rgba(255, 250, 242, 0.06);
+                    --glass-border: rgba(255, 248, 235, 0.13);
                     --inset-hi: rgba(255, 255, 255, 0.08);
-                    --track: rgba(255, 255, 255, 0.1);
-                    --shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
-                    --bg-1: #0b0d13;
-                    --bg-2: #121019;
-                    --blob-a: rgba(59, 130, 246, 0.3);
-                    --blob-b: rgba(124, 92, 255, 0.28);
-                    --blob-c: rgba(232, 131, 58, 0.22);
-                    --blob-d: rgba(20, 163, 139, 0.22);
-                    --calories: #f6a45f;
+                    --track: rgba(255, 250, 240, 0.1);
+                    --shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
+                    --bg-1: #191710;
+                    --bg-2: #13150e;
+                    --blob-a: rgba(74, 124, 89, 0.32);
+                    --blob-b: rgba(200, 168, 96, 0.18);
+                    --blob-c: rgba(168, 67, 42, 0.16);
+                    --blob-d: rgba(61, 102, 73, 0.28);
+                    --blob-e: rgba(96, 132, 92, 0.2);
+                    --calories: #f0a35d;
                     --protein: #a488ff;
-                    --carbs: #2fd0ab;
+                    --carbs: #34c98f;
                     --fat: #f57a9a;
                     --water: #5f9dff;
                     --over: #ff6b81;
@@ -73,19 +77,20 @@
 
             /* Explicit host override wins over the media query in both directions. */
             :root[data-theme="light"] {
-                --text: #1b1f27;
-                --text-dim: #5a6472;
-                --glass: rgba(255, 255, 255, 0.45);
-                --glass-border: rgba(255, 255, 255, 0.75);
-                --inset-hi: rgba(255, 255, 255, 0.65);
-                --track: rgba(18, 24, 40, 0.1);
-                --shadow: 0 10px 30px rgba(30, 40, 70, 0.12);
-                --bg-1: #eaf0fb;
-                --bg-2: #f5ecfb;
-                --blob-a: rgba(59, 130, 246, 0.35);
-                --blob-b: rgba(124, 92, 255, 0.28);
-                --blob-c: rgba(232, 131, 58, 0.26);
-                --blob-d: rgba(20, 163, 139, 0.24);
+                --text: #2c2416;
+                --text-dim: #8a7e6b;
+                --glass: rgba(255, 253, 249, 0.5);
+                --glass-border: rgba(255, 255, 255, 0.72);
+                --inset-hi: rgba(255, 255, 255, 0.7);
+                --track: rgba(44, 36, 22, 0.1);
+                --shadow: 0 12px 30px rgba(74, 63, 40, 0.12);
+                --bg-1: #f7f4ed;
+                --bg-2: #edf3e8;
+                --blob-a: rgba(74, 124, 89, 0.24);
+                --blob-b: rgba(200, 168, 96, 0.2);
+                --blob-c: rgba(168, 67, 42, 0.12);
+                --blob-d: rgba(61, 102, 73, 0.2);
+                --blob-e: rgba(122, 158, 110, 0.16);
                 --calories: #ef8b3c;
                 --protein: #7c5cff;
                 --carbs: #12b28f;
@@ -94,22 +99,23 @@
                 --over: #e23b57;
             }
             :root[data-theme="dark"] {
-                --text: #eceff5;
-                --text-dim: #9aa3b2;
-                --glass: rgba(255, 255, 255, 0.06);
-                --glass-border: rgba(255, 255, 255, 0.14);
+                --text: #ece6da;
+                --text-dim: #a89d88;
+                --glass: rgba(255, 250, 242, 0.06);
+                --glass-border: rgba(255, 248, 235, 0.13);
                 --inset-hi: rgba(255, 255, 255, 0.08);
-                --track: rgba(255, 255, 255, 0.1);
-                --shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
-                --bg-1: #0b0d13;
-                --bg-2: #121019;
-                --blob-a: rgba(59, 130, 246, 0.3);
-                --blob-b: rgba(124, 92, 255, 0.28);
-                --blob-c: rgba(232, 131, 58, 0.22);
-                --blob-d: rgba(20, 163, 139, 0.22);
-                --calories: #f6a45f;
+                --track: rgba(255, 250, 240, 0.1);
+                --shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
+                --bg-1: #191710;
+                --bg-2: #13150e;
+                --blob-a: rgba(74, 124, 89, 0.32);
+                --blob-b: rgba(200, 168, 96, 0.18);
+                --blob-c: rgba(168, 67, 42, 0.16);
+                --blob-d: rgba(61, 102, 73, 0.28);
+                --blob-e: rgba(96, 132, 92, 0.2);
+                --calories: #f0a35d;
                 --protein: #a488ff;
-                --carbs: #2fd0ab;
+                --carbs: #34c98f;
                 --fat: #f57a9a;
                 --water: #5f9dff;
                 --over: #ff6b81;
@@ -140,33 +146,41 @@
                 line-height: 1.45;
                 -webkit-font-smoothing: antialiased;
             }
-            /* Ambient colour blobs — the surface the glass panels frost. */
+            /* Ambient colour wash — the surface the glass panels frost.
+               Soft, overlapping, blurred blobs read as a natural gradient
+               rather than distinct spots. */
             body::before {
                 content: "";
                 position: fixed;
-                inset: -10%;
+                inset: -25%;
                 z-index: -1;
                 pointer-events: none;
+                filter: blur(28px);
                 background:
                     radial-gradient(
-                        38% 40% at 12% 8%,
-                        var(--blob-c),
+                        40% 46% at 6% 2%,
+                        var(--blob-a),
                         transparent 70%
                     ),
                     radial-gradient(
-                        42% 44% at 88% 6%,
+                        44% 48% at 96% -4%,
                         var(--blob-b),
                         transparent 72%
                     ),
                     radial-gradient(
-                        48% 50% at 82% 94%,
-                        var(--blob-a),
+                        50% 54% at 80% 90%,
+                        var(--blob-d),
                         transparent 72%
                     ),
                     radial-gradient(
-                        40% 42% at 6% 90%,
-                        var(--blob-d),
-                        transparent 72%
+                        40% 46% at 16% 98%,
+                        var(--blob-c),
+                        transparent 70%
+                    ),
+                    radial-gradient(
+                        60% 56% at 48% 46%,
+                        var(--blob-e),
+                        transparent 80%
                     );
             }
             .wrap {
