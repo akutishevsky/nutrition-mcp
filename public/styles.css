@@ -2163,3 +2163,16 @@ a.alt-card:hover {
     margin: 1.75rem auto 0;
     text-align: center;
 }
+/* Trademark / non-affiliation notice above the footer. */
+.disclaimer-band {
+    border-top: 1px solid var(--line);
+}
+.page-disclaimer {
+    max-width: 70ch;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 2.25rem) 0;
+    text-align: center;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+}
