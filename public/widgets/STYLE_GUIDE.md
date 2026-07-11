@@ -43,9 +43,7 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
     --panel-border: #e6e6ea;
     --track: #e6e6ea; /* unfilled gauge/axis grey */
     --accent: #4a7c59; /* brand green — section titles, highlights */
-    --shadow:
-        0 1px 2px rgba(0, 0, 0, 0.05),
-        0 8px 22px rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 22px rgba(0, 0, 0, 0.05);
 
     /* Data-series palette (see the table below). */
     --calories: #ff9f0a;
@@ -86,9 +84,7 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
     --panel-border: #e6e6ea;
     --track: #e6e6ea;
     --accent: #4a7c59;
-    --shadow:
-        0 1px 2px rgba(0, 0, 0, 0.05),
-        0 8px 22px rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 22px rgba(0, 0, 0, 0.05);
     --calories: #ff9f0a;
     --protein: #8b5cf6;
     --carbs: #10b981;
@@ -120,14 +116,14 @@ Each series keeps a distinct hue, tuned per theme (dark values are lightened for
 contrast on black). `--over` is a **status flag**, not a series colour — never
 repaint a whole series with it (see the ring convention below).
 
-| Token       | Light     | Dark      |
-| ----------- | --------- | --------- |
-| `--calories`| `#ff9f0a` | `#ffab2e` |
-| `--protein` | `#8b5cf6` | `#a78bfa` |
-| `--carbs`   | `#10b981` | `#34d399` |
-| `--fat`     | `#f43f7e` | `#fb7199` |
-| `--water`   | `#0ea5e9` | `#38bdf8` |
-| `--over`    | `#d0452b` | `#ff6b52` |
+| Token        | Light     | Dark      |
+| ------------ | --------- | --------- |
+| `--calories` | `#ff9f0a` | `#ffab2e` |
+| `--protein`  | `#8b5cf6` | `#a78bfa` |
+| `--carbs`    | `#10b981` | `#34d399` |
+| `--fat`      | `#f43f7e` | `#fb7199` |
+| `--water`    | `#0ea5e9` | `#38bdf8` |
+| `--over`     | `#d0452b` | `#ff6b52` |
 
 ## 2. Base reset, typography, layout
 
@@ -145,8 +141,14 @@ body {
     color: var(--text);
     background: var(--bg);
     font-family:
-        ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-        Arial, sans-serif;
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
     font-size: 14px;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
