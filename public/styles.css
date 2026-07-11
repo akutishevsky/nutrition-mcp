@@ -2163,6 +2163,19 @@ a.alt-card:hover {
     margin: 1.75rem auto 0;
     text-align: center;
 }
+/* Body prose for the per-app "Moving from X" section. */
+.prose {
+    max-width: 62ch;
+    margin: 0 auto;
+}
+.prose p {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--ink-2);
+}
+.prose p + p {
+    margin-top: 1rem;
+}
 /* Trademark / non-affiliation notice above the footer. */
 .disclaimer-band {
     border-top: 1px solid var(--line);

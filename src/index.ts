@@ -209,6 +209,9 @@ for (const [path, file] of Object.entries(ALT_PAGES)) {
     app.get(path, async (c) =>
         c.html(await Bun.file(`./public/${file}`).text()),
     );
+    // Redirect the trailing-slash variant to the canonical no-slash URL so a
+    // stray "/myfitnesspal-mcp/" link doesn't 404.
+    app.get(`${path}/`, (c) => c.redirect(path, 301));
 }
 
 // CSS
