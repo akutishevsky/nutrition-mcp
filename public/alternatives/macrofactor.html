@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>
+            MacroFactor MCP Server? Track Nutrition in Claude &amp; ChatGPT
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="No MCP server for MacroFactor? Nutrition MCP is a free, open-source alternative that logs meals, macros, and weight inside Claude or ChatGPT."
+        />
+        <meta
+            property="og:title"
+            content="MacroFactor MCP Server? Track Nutrition in Claude &amp; ChatGPT"
+        />
+        <meta
+            property="og:description"
+            content="MacroFactor has no MCP server. Nutrition MCP is a free, open-source alternative that logs meals, macros, and weight by talking to Claude or ChatGPT."
+        />
+        <meta property="og:type" content="article" />
+        <meta
+            property="og:url"
+            content="https://nutrition-mcp.com/macrofactor-mcp"
+        />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
+        <meta
+            name="twitter:title"
+            content="MacroFactor MCP Server? Track Nutrition in Claude &amp; ChatGPT"
+        />
+        <meta
+            name="twitter:description"
+            content="MacroFactor has no MCP server. Nutrition MCP is a free, open-source alternative that logs meals, macros, and weight by talking to Claude or ChatGPT."
+        />
+        <link
+            rel="canonical"
+            href="https://nutrition-mcp.com/macrofactor-mcp"
+        />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#4a7c59" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Nutrition MCP",
+                        "item": "https://nutrition-mcp.com"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Alternatives",
+                        "item": "https://nutrition-mcp.com/alternatives"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "MacroFactor MCP",
+                        "item": "https://nutrition-mcp.com/macrofactor-mcp"
+                    }
+                ]
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "Does MacroFactor have an MCP server?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "No. MacroFactor does not offer a Model Context Protocol (MCP) server, so there is no official way to connect it to Claude, ChatGPT, or other AI assistants. Nutrition MCP is a free, open-source alternative built as an MCP server from the ground up, so you can log meals and macros directly inside your AI."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "How do I connect MacroFactor to Claude?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "There is no official MacroFactor connector for Claude, because MacroFactor has no MCP server or public MCP integration. The closest option is Nutrition MCP, a free MCP server: add https://nutrition-mcp.com/mcp as a custom connector in Claude, sign in, and start logging by conversation."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is Nutrition MCP a good MacroFactor alternative?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "If you want to track calories, macros, water, and weight without opening a separate app or searching a food database, yes. Instead of tapping through a database, you describe what you ate in plain language, send a photo, or scan a barcode, and your AI logs it — completely free and open source."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Can I import my MacroFactor data?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "There is no automatic MacroFactor import yet. Because logging is conversational it is quick to start fresh, and you fully own your Nutrition MCP data — export everything to CSV or delete your account at any time."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is Nutrition MCP free?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes. Nutrition MCP is completely free and open source, with no subscription — whereas MacroFactor requires a paid subscription after its free trial. You just need a Claude or ChatGPT account to connect."
+                        }
+                    }
+                ]
+            }
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+        <header class="nav">
+            <a class="nav-brand" href="/">
+                <span class="nav-mark" aria-hidden="true"
+                    ><i class="fa-solid fa-apple-whole"></i
+                ></span>
+                <span>Nutrition&nbsp;MCP</span>
+            </a>
+            <div class="nav-right">
+                <nav class="nav-links">
+                    <a href="/#how">How it works</a>
+                    <a href="/#install">Install</a>
+                    <a href="/#try">Examples</a>
+                    <a href="/alternatives">Alternatives</a>
+                    <a href="/#faq">FAQ</a>
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                </nav>
+                <button
+                    class="theme-toggle"
+                    type="button"
+                    id="theme-toggle"
+                    aria-label="Toggle dark mode"
+                    title="Toggle dark mode"
+                >
+                    <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Hero -->
+            <section class="hero">
+                <div class="container">
+                    <nav class="crumb" aria-label="Breadcrumb">
+                        <a href="/">Home</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <a href="/alternatives">Alternatives</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <span>MacroFactor</span>
+                    </nav>
+                    <div class="hero-copy hero-copy-wide">
+                        <p class="eyebrow">MacroFactor alternative</p>
+                        <h1 class="hero-title">
+                            Looking for a <em>MacroFactor MCP</em> server?
+                        </h1>
+                        <p class="lead">
+                            MacroFactor doesn't have one — so you can't use it
+                            inside Claude or ChatGPT. Nutrition MCP does the
+                            same job by conversation, and it's free and open
+                            source.
+                        </p>
+                        <div class="hero-actions">
+                            <a class="btn btn-primary" href="#switch"
+                                >Connect in under a minute</a
+                            >
+                            <a class="btn btn-secondary" href="#compare"
+                                >See the comparison</a
+                            >
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- The honest answer -->
+            <section class="section band" id="answer">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">The short answer</p>
+                        <h2 class="section-title">
+                            No, MacroFactor has no MCP server.
+                        </h2>
+                        <p class="section-sub">
+                            The Model Context Protocol (MCP) is the open
+                            standard that lets AI assistants like Claude and
+                            ChatGPT connect to outside tools. MacroFactor
+                            doesn't publish an MCP server, so there's no
+                            official way to log food to it from your AI. If you
+                            searched for &ldquo;MacroFactor MCP&rdquo; or
+                            &ldquo;connect MacroFactor to Claude,&rdquo; what
+                            you're really after is a nutrition tracker that
+                            lives
+                            <em>inside</em> your AI — that's exactly what
+                            Nutrition MCP is.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- What you get instead -->
+            <section class="section" id="instead">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">What you get instead</p>
+                        <h2 class="section-title">
+                            The same tracking, just by talking
+                        </h2>
+                    </div>
+                    <div class="features-grid">
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-utensils"></i
+                            ></span>
+                            <h3>Meals in plain language</h3>
+                            <p>
+                                Say &ldquo;oatmeal with banana and peanut
+                                butter&rdquo; — your AI estimates calories and
+                                macros and logs it. No database search.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-barcode"></i
+                            ></span>
+                            <h3>Barcode scanning — free</h3>
+                            <p>
+                                Send a product barcode and pull verified macros
+                                from Open Food Facts. No Premium subscription to
+                                unlock it.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-weight-scale"></i
+                            ></span>
+                            <h3>Weight &amp; goals</h3>
+                            <p>
+                                Log body weight in kg or lb, set calorie, macro,
+                                and water targets, and track trends toward a
+                                goal weight.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>Summaries &amp; trends</h3>
+                            <p>
+                                Ask for daily totals, weekly trends, streaks,
+                                and recurring meal patterns — right in the chat.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-file-csv"></i
+                            ></span>
+                            <h3>Export &amp; own your data</h3>
+                            <p>
+                                Export everything to CSV anytime and delete your
+                                account and data whenever you want.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-code-branch"></i
+                            ></span>
+                            <h3>Open source &amp; free</h3>
+                            <p>
+                                MIT-licensed and self-hostable — no ads, no
+                                paywall, no upsell. Audit the code or run your
+                                own instance.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison -->
+            <section class="section band" id="compare">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">MacroFactor vs. Nutrition MCP</p>
+                        <h2 class="section-title">How they stack up</h2>
+                    </div>
+                    <div class="compare">
+                        <div class="compare-col">
+                            <h3 class="compare-h compare-h-old">MacroFactor</h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> No MCP
+                                    server — can't run inside Claude or ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> A paid
+                                    subscription after the free trial (no free
+                                    tier)
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> You still
+                                    open a separate app to log every meal
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Its
+                                    adaptive coaching is the product, not
+                                    effortless logging
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="compare-col compare-col-new">
+                            <h3 class="compare-h compare-h-new">
+                                Nutrition MCP
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Built as an MCP server — lives inside Claude
+                                    &amp; ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Describe meals in plain language; macros
+                                    estimated for you
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Barcode scanning, trends, and exports — all
+                                    free
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    No separate app, no ads, open source
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="note compare-note">
+                        MacroFactor's adaptive TDEE coaching is genuinely good.
+                        If you mainly want fast, free macro logging inside your
+                        AI, Nutrition MCP is a simpler, no-cost fit.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Moving from X (per-app, unique content) -->
+            <section class="section" id="moving">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Moving from MacroFactor</p>
+                        <h2 class="section-title">Coaching versus logging</h2>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            MacroFactor's pitch is its algorithm: it watches
+                            your logged intake and weight and quietly
+                            recalculates your calorie and macro targets each
+                            week — genuinely clever, adaptive coaching from the
+                            Stronger By Science team. That coaching is the
+                            product, which is why it's subscription-only.
+                        </p>
+                        <p>
+                            Nutrition MCP doesn't run a coaching algorithm — but
+                            because you're already inside an AI assistant, you
+                            can just ask. “Given my last three weeks, should I
+                            adjust my calories?” gets you a reasoned answer on
+                            demand. It's a different model: analysis when you
+                            want it, conversationally, instead of a fixed weekly
+                            recalculation — and it's free.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How to switch -->
+            <section class="section band" id="switch">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">How to switch</p>
+                        <h2 class="section-title">Connect in under a minute</h2>
+                        <p class="section-sub">
+                            Works with any MCP client that supports OAuth 2.0
+                            with PKCE. On first connect you create an account
+                            with Google or an email and password.
+                        </p>
+                    </div>
+                    <div class="card install-card">
+                        <ol class="steps">
+                            <li>
+                                Open <strong>Claude</strong> (web or desktop)
+                                and click <strong>Customize</strong> →
+                                <strong>Connectors</strong>.
+                            </li>
+                            <li>
+                                Click <strong>+</strong>, then
+                                <strong>Add custom connector</strong>, and give
+                                it a name like <strong>Nutrition</strong>.
+                            </li>
+                            <li>
+                                Paste
+                                <span class="copy-url"
+                                    ><code>https://nutrition-mcp.com/mcp</code
+                                    ><button
+                                        class="copy-mini"
+                                        type="button"
+                                        data-copy="https://nutrition-mcp.com/mcp"
+                                        aria-label="Copy server URL"
+                                    >
+                                        <i class="fa-solid fa-copy"></i></button
+                                ></span>
+                                into the
+                                <strong>Remote MCP server URL</strong> field and
+                                click <strong>Add</strong>.
+                            </li>
+                            <li>
+                                Click <strong>Connect</strong>, sign in, and
+                                start logging by saying what you ate.
+                            </li>
+                        </ol>
+                        <p class="note">
+                            Using ChatGPT or another client instead? The
+                            <a href="/#install">full install guide</a> covers
+                            ChatGPT, Cursor, VS Code, Claude Code, and more.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section" id="faq">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">FAQ</p>
+                        <h2 class="section-title">
+                            MacroFactor &amp; MCP questions
+                        </h2>
+                    </div>
+                    <div class="faq">
+                        <details>
+                            <summary>
+                                Does MacroFactor have an MCP server?
+                            </summary>
+                            <p>
+                                No. MacroFactor does not offer a Model Context
+                                Protocol (MCP) server, so there is no official
+                                way to connect it to Claude, ChatGPT, or other
+                                AI assistants. Nutrition MCP is a free,
+                                open-source alternative built as an MCP server
+                                from the ground up, so you can log meals and
+                                macros directly inside your AI.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                How do I connect MacroFactor to Claude?
+                            </summary>
+                            <p>
+                                There is no official MacroFactor connector for
+                                Claude, because MacroFactor has no MCP server or
+                                public MCP integration. The closest option is
+                                Nutrition MCP, a free MCP server: add
+                                https://nutrition-mcp.com/mcp as a custom
+                                connector in Claude, sign in, and start logging
+                                by conversation.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Is Nutrition MCP a good MacroFactor alternative?
+                            </summary>
+                            <p>
+                                If you want to track calories, macros, water,
+                                and weight without opening a separate app or
+                                searching a food database, yes. Instead of
+                                tapping through a database, you describe what
+                                you ate in plain language, send a photo, or scan
+                                a barcode, and your AI logs it — completely free
+                                and open source.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Can I import my MacroFactor data?</summary>
+                            <p>
+                                There is no automatic MacroFactor import yet.
+                                Because logging is conversational it is quick to
+                                start fresh, and you fully own your Nutrition
+                                MCP data — export everything to CSV or delete
+                                your account at any time.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Is Nutrition MCP free?</summary>
+                            <p>
+                                Yes. Nutrition MCP is completely free and open
+                                source, with no subscription — whereas
+                                MacroFactor requires a paid subscription after
+                                its free trial. You just need a Claude or
+                                ChatGPT account to connect.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Closing CTA -->
+            <section class="section cta">
+                <div class="container cta-inner">
+                    <h2 class="cta-title">
+                        Track nutrition inside the AI you already use.
+                    </h2>
+                    <p class="cta-sub">
+                        Free and open source — no MacroFactor account, no app to
+                        open.
+                    </p>
+                    <div class="cta-actions">
+                        <a class="btn btn-on-accent" href="#switch"
+                            >Quick install</a
+                        >
+                        <a class="btn btn-ghost-accent" href="/alternatives"
+                            >Other alternatives</a
+                        >
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="disclaimer-band">
+            <div class="container">
+                <p class="page-disclaimer">
+                    MacroFactor is a trademark of its respective owner.
+                    Nutrition MCP is an independent, open-source project and is
+                    not affiliated with, endorsed by, or sponsored by
+                    MacroFactor. Comparisons reflect publicly available
+                    information at the time of writing and may change.
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand"
+                    ><i class="fa-solid fa-apple-whole" aria-hidden="true"></i>
+                    Nutrition MCP</span
+                >
+                <nav class="footer-links">
+                    <a href="/">Home</a>
+                    <a href="/alternatives">Alternatives</a>
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">Contact</a>
+                    <a href="/privacy">Privacy &amp; Terms</a>
+                </nav>
+            </div>
+        </footer>
+
+        <script>
+            (function () {
+                // ---------- theme toggle (dark / light, default = system) ----------
+                var themeBtn = document.getElementById("theme-toggle");
+                if (themeBtn) {
+                    var themeIcon = themeBtn.querySelector("i");
+                    var metaTheme = document.querySelector(
+                        'meta[name="theme-color"]',
+                    );
+                    var darkQuery = window.matchMedia(
+                        "(prefers-color-scheme: dark)",
+                    );
+                    function effectiveTheme() {
+                        var override = document.body.getAttribute("data-theme");
+                        if (override) return override;
+                        return darkQuery.matches ? "dark" : "light";
+                    }
+                    function syncUI() {
+                        var dark = effectiveTheme() === "dark";
+                        if (themeIcon)
+                            themeIcon.className = dark
+                                ? "fa-solid fa-sun"
+                                : "fa-solid fa-moon";
+                        var label = dark
+                            ? "Switch to light mode"
+                            : "Switch to dark mode";
+                        themeBtn.setAttribute("aria-label", label);
+                        themeBtn.setAttribute("title", label);
+                        if (metaTheme)
+                            metaTheme.setAttribute(
+                                "content",
+                                dark ? "#161617" : "#4a7c59",
+                            );
+                    }
+                    themeBtn.addEventListener("click", function () {
+                        var next =
+                            effectiveTheme() === "dark" ? "light" : "dark";
+                        document.body.setAttribute("data-theme", next);
+                        try {
+                            localStorage.setItem("theme", next);
+                        } catch (e) {}
+                        syncUI();
+                    });
+                    darkQuery.addEventListener("change", function () {
+                        if (!document.body.getAttribute("data-theme")) syncUI();
+                    });
+                    syncUI();
+                }
+
+                // ---------- copy-URL buttons ----------
+                document.querySelectorAll(".copy-mini").forEach(function (btn) {
+                    var icon = btn.querySelector("i");
+                    btn.addEventListener("click", function () {
+                        var text = btn.getAttribute("data-copy");
+                        function ok() {
+                            btn.classList.add("copied");
+                            if (icon) icon.className = "fa-solid fa-check";
+                            setTimeout(function () {
+                                btn.classList.remove("copied");
+                                if (icon) icon.className = "fa-solid fa-copy";
+                            }, 1500);
+                        }
+                        function fallback() {
+                            try {
+                                var ta = document.createElement("textarea");
+                                ta.value = text;
+                                ta.style.position = "absolute";
+                                ta.style.left = "-9999px";
+                                document.body.appendChild(ta);
+                                ta.select();
+                                document.execCommand("copy");
+                                document.body.removeChild(ta);
+                                ok();
+                            } catch (e) {}
+                        }
+                        if (
+                            navigator.clipboard &&
+                            navigator.clipboard.writeText
+                        ) {
+                            navigator.clipboard
+                                .writeText(text)
+                                .then(ok, fallback);
+                        } else {
+                            fallback();
+                        }
+                    });
+                });
+            })();
+        </script>
+    </body>
+</html>

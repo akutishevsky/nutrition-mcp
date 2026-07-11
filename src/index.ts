@@ -192,6 +192,28 @@ app.get("/privacy", async (c) => {
     return c.html(await Bun.file("./public/privacy.html").text());
 });
 
+// SEO comparison / "alternative to X" landing pages. Each targets long-tail
+// queries like "myfitnesspal mcp" or "connect myfitnesspal to claude" and is a
+// static HTML file under public/alternatives. Kept data-driven so adding a page
+// is one entry here plus the file and a sitemap.xml line.
+const ALT_PAGES: Record<string, string> = {
+    "/alternatives": "alternatives/index.html",
+    "/myfitnesspal-mcp": "alternatives/myfitnesspal.html",
+    "/cronometer-mcp": "alternatives/cronometer.html",
+    "/lose-it-mcp": "alternatives/lose-it.html",
+    "/macrofactor-mcp": "alternatives/macrofactor.html",
+    "/yazio-mcp": "alternatives/yazio.html",
+    "/lifesum-mcp": "alternatives/lifesum.html",
+};
+for (const [path, file] of Object.entries(ALT_PAGES)) {
+    app.get(path, async (c) =>
+        c.html(await Bun.file(`./public/${file}`).text()),
+    );
+    // Redirect the trailing-slash variant to the canonical no-slash URL so a
+    // stray "/myfitnesspal-mcp/" link doesn't 404.
+    app.get(`${path}/`, (c) => c.redirect(path, 301));
+}
+
 // CSS
 app.get("/styles.css", async (c) => {
     const file = Bun.file("./public/styles.css");
