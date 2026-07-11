@@ -281,7 +281,6 @@
                 font-variant-numeric: tabular-nums;
             }
 
-            /* Per-day breakdown */
             .section-title {
                 font-size: 12px;
                 font-weight: 650;
@@ -289,60 +288,6 @@
                 letter-spacing: 0.05em;
                 color: var(--text-dim);
                 margin: 0 2px 9px;
-            }
-            .days {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            .day {
-                background: var(--panel);
-                border: 1px solid var(--panel-border);
-                border-radius: 12px;
-                padding: 11px 13px;
-                box-shadow: var(--shadow);
-            }
-            .day .top {
-                display: flex;
-                align-items: baseline;
-                justify-content: space-between;
-                gap: 10px;
-            }
-            .day .date {
-                font-weight: 600;
-                font-variant-numeric: tabular-nums;
-            }
-            .day .meals {
-                font-size: 11.5px;
-                color: var(--text-dim);
-            }
-            .day .kcal {
-                font-variant-numeric: tabular-nums;
-                font-weight: 620;
-            }
-            .macros {
-                display: flex;
-                gap: 14px;
-                margin-top: 7px;
-                flex-wrap: wrap;
-                font-size: 12px;
-                color: var(--text-dim);
-                font-variant-numeric: tabular-nums;
-            }
-            .macros b {
-                color: var(--text);
-                font-weight: 600;
-            }
-            .seg {
-                display: flex;
-                height: 6px;
-                border-radius: 6px;
-                overflow: hidden;
-                margin-top: 8px;
-                background: var(--track);
-            }
-            .seg > span {
-                height: 100%;
             }
 
             .empty {
@@ -619,36 +564,6 @@
           </div>`;
             }
 
-            // Stacked macro-calorie segment bar for a day: protein 4kcal/g,
-            // carbs 4kcal/g, fat 9kcal/g. Purely visual proportion of the day.
-            function segBar(day) {
-                const p = (day.protein_g || 0) * 4;
-                const c = (day.carbs_g || 0) * 4;
-                const f = (day.fat_g || 0) * 9;
-                const tot = p + c + f;
-                if (tot <= 0) return "";
-                const seg = (v, color) =>
-                    `<span style="width:${(v / tot) * 100}%;background:${color}"></span>`;
-                return `<div class="seg">${seg(p, "var(--protein)")}${seg(c, "var(--carbs)")}${seg(f, "var(--fat)")}</div>`;
-            }
-
-            function dayCard(day) {
-                return `
-          <div class="day">
-            <div class="top">
-              <span class="date">${esc(day.date)} <span class="meals">· ${day.meal_count} meal${day.meal_count === 1 ? "" : "s"}</span></span>
-              <span class="kcal">${fmt(day.calories, 0)} kcal</span>
-            </div>
-            <div class="macros">
-              <span><b>${fmt(day.protein_g, 0)}</b>g protein</span>
-              <span><b>${fmt(day.carbs_g, 0)}</b>g carbs</span>
-              <span><b>${fmt(day.fat_g, 0)}</b>g fat</span>
-              <span><b>${fmt(day.water_ml, 0)}</b>ml water</span>
-            </div>
-            ${segBar(day)}
-          </div>`;
-            }
-
             function render(data) {
                 const root = document.getElementById("root");
                 if (
@@ -679,7 +594,6 @@
                     multi && days.length >= 2
                         ? trendChart(days, data.goals?.calories ?? null)
                         : "";
-                const dayCards = multi ? days.map(dayCard).join("") : "";
 
                 root.innerHTML = `
           <header class="head">
@@ -689,7 +603,6 @@
           ${trend}
           <div class="section-title" style="margin-bottom:9px">${heroLabel} vs goal</div>
           <div class="tiles">${rings}</div>
-          ${multi ? `<div class="section-title">Per day</div><div class="days">${dayCards}</div>` : ""}
           <div class="foot">nutrition-mcp</div>`;
             }
 
