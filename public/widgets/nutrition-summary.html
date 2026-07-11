@@ -1,0 +1,834 @@
+<!doctype html>
+<!--
+  Nutrition summary dashboard widget (MCP Apps).
+
+  Rendered inside a sandboxed iframe by MCP Apps hosts (Claude, ChatGPT, VS Code,
+  Goose). It is fully self-contained — inline CSS + JS, zero network requests —
+  because the sandbox blocks external hosts.
+
+  Data arrives as the `structuredContent` of the get_nutrition_summary tool
+  result. We read it defensively across the conventions different hosts use:
+    - MCP Apps bridge: postMessage with a tool-result notification
+    - ChatGPT Apps SDK: window.openai.toolOutput
+    - Standalone preview: window.__NUTRITION_DATA__ (the sample below)
+
+  Theme: follows the OS via prefers-color-scheme by default, and lets a host
+  override it (data-theme on <html>, or a `theme` field pushed by the host).
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Nutrition Summary</title>
+        <style>
+            :root {
+                /* Light theme (default). Dark values overridden below. */
+                --bg: #ffffff;
+                --panel: #f6f7f9;
+                --panel-border: #e6e8ec;
+                --text: #1a1d21;
+                --text-dim: #656c76;
+                --track: #e6e8ec;
+
+                --calories: #e8833a;
+                --protein: #7c5cff;
+                --carbs: #14a38b;
+                --fat: #e0567a;
+                --water: #3b82f6;
+
+                --over: #dc3b3b;
+                --radius: 14px;
+                --shadow:
+                    0 1px 2px rgba(0, 0, 0, 0.04),
+                    0 4px 16px rgba(0, 0, 0, 0.05);
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #16181c;
+                    --panel: #1f2228;
+                    --panel-border: #2b2f36;
+                    --text: #e8eaed;
+                    --text-dim: #9aa1ac;
+                    --track: #2b2f36;
+
+                    --calories: #f0965a;
+                    --protein: #9d84ff;
+                    --carbs: #2bc5aa;
+                    --fat: #f27a99;
+                    --water: #5b9bff;
+                    --over: #ff6b6b;
+                    --shadow: none;
+                }
+            }
+
+            /* Explicit host override wins over the media query in both directions. */
+            :root[data-theme="light"] {
+                --bg: #ffffff;
+                --panel: #f6f7f9;
+                --panel-border: #e6e8ec;
+                --text: #1a1d21;
+                --text-dim: #656c76;
+                --track: #e6e8ec;
+                --calories: #e8833a;
+                --protein: #7c5cff;
+                --carbs: #14a38b;
+                --fat: #e0567a;
+                --water: #3b82f6;
+                --over: #dc3b3b;
+                --shadow:
+                    0 1px 2px rgba(0, 0, 0, 0.04),
+                    0 4px 16px rgba(0, 0, 0, 0.05);
+            }
+            :root[data-theme="dark"] {
+                --bg: #16181c;
+                --panel: #1f2228;
+                --panel-border: #2b2f36;
+                --text: #e8eaed;
+                --text-dim: #9aa1ac;
+                --track: #2b2f36;
+                --calories: #f0965a;
+                --protein: #9d84ff;
+                --carbs: #2bc5aa;
+                --fat: #f27a99;
+                --water: #5b9bff;
+                --over: #ff6b6b;
+                --shadow: none;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family:
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                font-size: 14px;
+                line-height: 1.45;
+                -webkit-font-smoothing: antialiased;
+            }
+            .wrap {
+                max-width: 760px;
+                margin: 0 auto;
+                padding: 18px 16px 22px;
+            }
+
+            header.head {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 14px;
+            }
+            .head h1 {
+                font-size: 16px;
+                font-weight: 650;
+                margin: 0;
+                letter-spacing: -0.01em;
+            }
+            .head .range {
+                color: var(--text-dim);
+                font-size: 12.5px;
+                font-variant-numeric: tabular-nums;
+            }
+
+            /* Stat tiles */
+            .tiles {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+                gap: 9px;
+                margin-bottom: 18px;
+            }
+            .tile {
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+                padding: 14px 10px 13px;
+                box-shadow: var(--shadow);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            /* Donut ring gauge (hand-built SVG) */
+            .ring {
+                position: relative;
+                width: 88px;
+                height: 88px;
+            }
+            .ring svg {
+                width: 88px;
+                height: 88px;
+                display: block;
+            }
+            .ring .track {
+                stroke: var(--track);
+            }
+            .ring .arc {
+                transition: stroke-dasharray 0.55s ease;
+            }
+            .ring-center {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                line-height: 1.05;
+            }
+            .ring-center .rv {
+                font-size: 18px;
+                font-weight: 680;
+                font-variant-numeric: tabular-nums;
+                letter-spacing: -0.02em;
+            }
+            .ring-center .ru {
+                font-size: 10px;
+                font-weight: 500;
+                color: var(--text-dim);
+                margin-top: 1px;
+            }
+            .ring-center .rp {
+                font-size: 10.5px;
+                font-weight: 600;
+                margin-top: 2px;
+                font-variant-numeric: tabular-nums;
+            }
+            .tile .label {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-top: 10px;
+                font-size: 11.5px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--text-dim);
+            }
+            .tile .dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                flex: none;
+            }
+            .tile .goal {
+                margin-top: 3px;
+                font-size: 11px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+                min-height: 14px;
+            }
+
+            /* Calories trend chart (hand-built SVG area + line) */
+            .trend {
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+                padding: 12px 14px 10px;
+                box-shadow: var(--shadow);
+                margin-bottom: 18px;
+            }
+            .trend .thead {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 8px;
+            }
+            .trend .ttitle {
+                font-size: 11.5px;
+                font-weight: 650;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--text-dim);
+            }
+            .trend .tmeta {
+                font-size: 11px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+            }
+            .trend svg {
+                width: 100%;
+                height: auto;
+                display: block;
+            }
+            .trend .axis {
+                stroke: var(--panel-border);
+            }
+            .trend .goalline {
+                stroke: var(--text-dim);
+                stroke-dasharray: 3 3;
+                opacity: 0.5;
+            }
+            .trend .tlabel {
+                fill: var(--text-dim);
+                font-size: 7px;
+                font-variant-numeric: tabular-nums;
+            }
+
+            /* Per-day breakdown */
+            .section-title {
+                font-size: 12px;
+                font-weight: 650;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-dim);
+                margin: 0 2px 9px;
+            }
+            .days {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .day {
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: 12px;
+                padding: 11px 13px;
+                box-shadow: var(--shadow);
+            }
+            .day .top {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 10px;
+            }
+            .day .date {
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .day .meals {
+                font-size: 11.5px;
+                color: var(--text-dim);
+            }
+            .day .kcal {
+                font-variant-numeric: tabular-nums;
+                font-weight: 620;
+            }
+            .macros {
+                display: flex;
+                gap: 14px;
+                margin-top: 7px;
+                flex-wrap: wrap;
+                font-size: 12px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+            }
+            .macros b {
+                color: var(--text);
+                font-weight: 600;
+            }
+            .seg {
+                display: flex;
+                height: 6px;
+                border-radius: 6px;
+                overflow: hidden;
+                margin-top: 8px;
+                background: var(--track);
+            }
+            .seg > span {
+                height: 100%;
+            }
+
+            .empty {
+                text-align: center;
+                color: var(--text-dim);
+                padding: 40px 20px;
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+            }
+            .empty .big {
+                font-size: 26px;
+                margin-bottom: 6px;
+            }
+            .foot {
+                margin-top: 14px;
+                font-size: 11px;
+                color: var(--text-dim);
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+
+        <script>
+            "use strict";
+
+            // ---- Sample data so the file renders on its own (browser preview) ----
+            const SAMPLE = {
+                start_date: "2026-07-05",
+                end_date: "2026-07-07",
+                logged_days: 3,
+                goals: {
+                    calories: 2200,
+                    protein_g: 160,
+                    carbs_g: 220,
+                    fat_g: 70,
+                    water_ml: 2500,
+                },
+                averages: {
+                    calories: 2035,
+                    protein_g: 148,
+                    carbs_g: 205,
+                    fat_g: 74,
+                    water_ml: 2100,
+                },
+                days: [
+                    {
+                        date: "2026-07-05",
+                        meal_count: 4,
+                        calories: 2180,
+                        protein_g: 155,
+                        carbs_g: 230,
+                        fat_g: 72,
+                        water_ml: 2400,
+                    },
+                    {
+                        date: "2026-07-06",
+                        meal_count: 3,
+                        calories: 1890,
+                        protein_g: 138,
+                        carbs_g: 188,
+                        fat_g: 68,
+                        water_ml: 1800,
+                    },
+                    {
+                        date: "2026-07-07",
+                        meal_count: 4,
+                        calories: 2035,
+                        protein_g: 151,
+                        carbs_g: 197,
+                        fat_g: 82,
+                        water_ml: 2100,
+                    },
+                ],
+            };
+
+            const MACROS = [
+                {
+                    key: "calories",
+                    label: "Calories",
+                    unit: "kcal",
+                    color: "var(--calories)",
+                    decimals: 0,
+                },
+                {
+                    key: "protein_g",
+                    label: "Protein",
+                    unit: "g",
+                    color: "var(--protein)",
+                    decimals: 0,
+                },
+                {
+                    key: "carbs_g",
+                    label: "Carbs",
+                    unit: "g",
+                    color: "var(--carbs)",
+                    decimals: 0,
+                },
+                {
+                    key: "fat_g",
+                    label: "Fat",
+                    unit: "g",
+                    color: "var(--fat)",
+                    decimals: 0,
+                },
+                {
+                    key: "water_ml",
+                    label: "Water",
+                    unit: "ml",
+                    color: "var(--water)",
+                    decimals: 0,
+                },
+            ];
+            const GOAL_KEY = {
+                calories: "calories",
+                protein_g: "protein_g",
+                carbs_g: "carbs_g",
+                fat_g: "fat_g",
+                water_ml: "water_ml",
+            };
+
+            function fmt(n, decimals) {
+                if (n == null || isNaN(n)) return "0";
+                const r = decimals ? n.toFixed(decimals) : Math.round(n);
+                return Number(r).toLocaleString();
+            }
+            function esc(s) {
+                return String(s).replace(
+                    /[&<>"]/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                        })[c],
+                );
+            }
+
+            // A donut ring gauge for one macro: arc = share of the daily goal,
+            // centered value, and an under/over caption. Turns red past 100%.
+            function ring(m, avg, goal) {
+                const val = avg?.[m.key] ?? 0;
+                const target = goal?.[GOAL_KEY[m.key]] ?? null;
+                const size = 88,
+                    stroke = 9,
+                    cx = size / 2,
+                    r = (size - stroke) / 2,
+                    C = 2 * Math.PI * r;
+
+                let pct = null;
+                let over = false;
+                if (target != null && target > 0) {
+                    pct = (val / target) * 100;
+                    over = pct > 100;
+                }
+                const shown = pct == null ? 0 : Math.max(0, Math.min(pct, 100));
+                const dash = (C * shown) / 100;
+                const color = over ? "var(--over)" : m.color;
+
+                const arc =
+                    pct == null
+                        ? ""
+                        : `<circle class="arc" cx="${cx}" cy="${cx}" r="${r.toFixed(2)}" fill="none"
+                     stroke="${color}" stroke-width="${stroke}" stroke-linecap="round"
+                     stroke-dasharray="${dash.toFixed(2)} ${(C - dash).toFixed(2)}"
+                     transform="rotate(-90 ${cx} ${cx})"/>`;
+
+                let goalLine, center2;
+                if (pct == null) {
+                    goalLine = "no goal set";
+                    center2 = `<div class="ru">${m.unit}</div>`;
+                } else {
+                    const delta = target - val;
+                    const deltaStr =
+                        delta >= 0
+                            ? `${fmt(delta, m.decimals)} ${m.unit} left`
+                            : `${fmt(-delta, m.decimals)} ${m.unit} over`;
+                    goalLine = `of ${fmt(target, m.decimals)} ${m.unit} · ${deltaStr}`;
+                    center2 = `<div class="rp" style="color:${color}">${Math.round(pct)}%</div>`;
+                }
+
+                return `
+          <div class="tile">
+            <div class="ring">
+              <svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(m.label)} ${fmt(val, m.decimals)} ${m.unit}">
+                <circle class="track" cx="${cx}" cy="${cx}" r="${r.toFixed(2)}" fill="none" stroke-width="${stroke}"/>
+                ${arc}
+              </svg>
+              <div class="ring-center">
+                <div class="rv">${fmt(val, m.decimals)}</div>
+                ${center2}
+              </div>
+            </div>
+            <div class="label"><span class="dot" style="background:${m.color}"></span>${m.label}</div>
+            <div class="goal">${esc(goalLine)}</div>
+          </div>`;
+            }
+
+            // Calories-per-day trend: SVG area + line that scales to any range
+            // (3 days to a year). Uniform scaling — no preserveAspectRatio
+            // distortion — so it keeps its aspect ratio at any container width.
+            function trendChart(days, goal) {
+                const W = 480,
+                    H = 104,
+                    padL = 8,
+                    padR = 8,
+                    padT = 10,
+                    padB = 18;
+                const n = days.length;
+                const vals = days.map((d) => d.calories || 0);
+                const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
+                const plotW = W - padL - padR;
+                const plotH = H - padT - padB;
+                const base = padT + plotH;
+                const x = (i) =>
+                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
+                const y = (v) => padT + plotH - (v / maxV) * plotH;
+                const pts = vals.map((v, i) => [x(i), y(v)]);
+
+                const line = pts
+                    .map(
+                        (p, i) =>
+                            `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
+                    )
+                    .join(" ");
+                const area =
+                    `M${pts[0][0].toFixed(1)} ${base} ` +
+                    pts
+                        .map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
+                        .join(" ") +
+                    ` L${pts[n - 1][0].toFixed(1)} ${base} Z`;
+
+                const goalLine =
+                    goal && goal > 0
+                        ? `<line class="goalline" x1="${padL}" y1="${y(goal).toFixed(1)}" x2="${W - padR}" y2="${y(goal).toFixed(1)}"/>`
+                        : "";
+                // Only draw point markers on short ranges to avoid clutter.
+                const dots =
+                    n <= 12
+                        ? pts
+                              .map(
+                                  (p) =>
+                                      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.4" fill="var(--calories)"/>`,
+                              )
+                              .join("")
+                        : "";
+                const md = (d) => esc(d.date.slice(5)); // MM-DD
+                const avg = Math.round(vals.reduce((a, b) => a + b, 0) / n);
+
+                return `
+          <div class="trend">
+            <div class="thead">
+              <span class="ttitle">Calories / day</span>
+              <span class="tmeta">avg ${fmt(avg, 0)}${goal && goal > 0 ? ` · goal ${fmt(goal, 0)}` : ""}</span>
+            </div>
+            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calories per day over the selected range">
+              <defs>
+                <linearGradient id="calfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--calories)" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="var(--calories)" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+              <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
+              ${goalLine}
+              <path d="${area}" fill="url(#calfill)"/>
+              <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              ${dots}
+              <text class="tlabel" x="${padL}" y="${H - 4}" text-anchor="start">${md(days[0])}</text>
+              <text class="tlabel" x="${W - padR}" y="${H - 4}" text-anchor="end">${md(days[n - 1])}</text>
+            </svg>
+          </div>`;
+            }
+
+            // Stacked macro-calorie segment bar for a day: protein 4kcal/g,
+            // carbs 4kcal/g, fat 9kcal/g. Purely visual proportion of the day.
+            function segBar(day) {
+                const p = (day.protein_g || 0) * 4;
+                const c = (day.carbs_g || 0) * 4;
+                const f = (day.fat_g || 0) * 9;
+                const tot = p + c + f;
+                if (tot <= 0) return "";
+                const seg = (v, color) =>
+                    `<span style="width:${(v / tot) * 100}%;background:${color}"></span>`;
+                return `<div class="seg">${seg(p, "var(--protein)")}${seg(c, "var(--carbs)")}${seg(f, "var(--fat)")}</div>`;
+            }
+
+            function dayCard(day) {
+                return `
+          <div class="day">
+            <div class="top">
+              <span class="date">${esc(day.date)} <span class="meals">· ${day.meal_count} meal${day.meal_count === 1 ? "" : "s"}</span></span>
+              <span class="kcal">${fmt(day.calories, 0)} kcal</span>
+            </div>
+            <div class="macros">
+              <span><b>${fmt(day.protein_g, 0)}</b>g protein</span>
+              <span><b>${fmt(day.carbs_g, 0)}</b>g carbs</span>
+              <span><b>${fmt(day.fat_g, 0)}</b>g fat</span>
+              <span><b>${fmt(day.water_ml, 0)}</b>ml water</span>
+            </div>
+            ${segBar(day)}
+          </div>`;
+            }
+
+            function render(data) {
+                const root = document.getElementById("root");
+                if (
+                    !data ||
+                    !Array.isArray(data.days) ||
+                    data.days.length === 0
+                ) {
+                    root.innerHTML = `
+            <div class="empty">
+              <div class="big">🍽️</div>
+              <div>No meals or water logged in this range.</div>
+            </div>`;
+                    return;
+                }
+                const days = data.days
+                    .slice()
+                    .sort((a, b) => (a.date < b.date ? -1 : 1));
+                const multi = days.length > 1;
+                const heroLabel = multi ? "Daily average" : "Total";
+                const range = multi
+                    ? `${data.start_date} → ${data.end_date} · ${data.logged_days} day${data.logged_days === 1 ? "" : "s"} logged`
+                    : days[0].date;
+
+                const rings = MACROS.map((m) =>
+                    ring(m, data.averages, data.goals),
+                ).join("");
+                const trend =
+                    multi && days.length >= 2
+                        ? trendChart(days, data.goals?.calories ?? null)
+                        : "";
+                const dayCards = multi ? days.map(dayCard).join("") : "";
+
+                root.innerHTML = `
+          <header class="head">
+            <h1>Nutrition Summary</h1>
+            <span class="range">${esc(range)}</span>
+          </header>
+          ${trend}
+          <div class="section-title" style="margin-bottom:9px">${heroLabel} vs goal</div>
+          <div class="tiles">${rings}</div>
+          ${multi ? `<div class="section-title">Per day</div><div class="days">${dayCards}</div>` : ""}
+          <div class="foot">nutrition-mcp</div>`;
+            }
+
+            // ---- Theme handling ------------------------------------------------
+            function applyTheme(theme) {
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                }
+            }
+            // Pull a theme hint out of whatever shape the host used.
+            function themeFrom(obj) {
+                if (!obj || typeof obj !== "object") return null;
+                return (
+                    obj.theme ||
+                    obj.colorScheme ||
+                    obj.hostContext?.theme ||
+                    obj.styles?.theme ||
+                    obj.globals?.theme ||
+                    null
+                );
+            }
+
+            // ---- Rendering intake ----------------------------------------------
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                // The structuredContent object itself, or a wrapper around it.
+                if (Array.isArray(payload.days) || payload.averages)
+                    return payload;
+                if (payload.structuredContent) return payload.structuredContent;
+                return null;
+            }
+            function show(payload) {
+                const data = coerce(payload);
+                if (!data) return false;
+                render(data);
+                return true;
+            }
+
+            // ---- MCP Apps host bridge (JSON-RPC over postMessage) --------------
+            // Critical: the host does NOT push tool data until the app announces
+            // itself with a `ui/initialize` request and the handshake completes.
+            // Without this, only the fallback sample below ever renders. The host
+            // then sends `ui/notifications/tool-result` carrying structuredContent.
+            // Spec: MCP Apps 2026-01-26.
+            const host =
+                window.parent && window.parent !== window
+                    ? window.parent
+                    : null;
+            let initId = 0;
+            function post(msg) {
+                try {
+                    if (host) host.postMessage(msg, "*");
+                } catch (_) {}
+            }
+
+            window.addEventListener("message", (event) => {
+                const d = event.data;
+                if (!d || typeof d !== "object") return;
+
+                // JSON-RPC response to our ui/initialize: carries host context
+                // (theme, container info, capabilities). Per the MCP Apps
+                // handshake we MUST answer with ui/notifications/initialized —
+                // strict hosts (e.g. MCP Inspector) withhold the tool result
+                // until they receive it.
+                if (d.id != null && d.id === initId && d.result) {
+                    const t =
+                        themeFrom(d.result) || themeFrom(d.result.hostContext);
+                    if (t) applyTheme(t);
+                    post({
+                        jsonrpc: "2.0",
+                        method: "ui/notifications/initialized",
+                    });
+                    return;
+                }
+
+                // Host notifications (tool-input, tool-result, ...).
+                if (typeof d.method === "string") {
+                    const p = d.params || {};
+                    const t = themeFrom(d) || themeFrom(p);
+                    if (t) applyTheme(t);
+                    if (d.method.endsWith("tool-result")) {
+                        show(p.structuredContent || p);
+                    }
+                    return;
+                }
+
+                // Lenient fallback: a host/tool that posts the payload bare.
+                const t = themeFrom(d);
+                if (t) applyTheme(t);
+                show(d.structuredContent || d);
+            });
+
+            if (host) {
+                // Brief loading state until the host delivers the tool result.
+                document.getElementById("root").innerHTML =
+                    '<div class="empty"><div class="big">🍽️</div><div>Loading your nutrition summary…</div></div>';
+
+                // Announce the app so the host starts delivering tool data.
+                // Field names MUST match the McpUiInitializeRequest schema
+                // exactly (appInfo / appCapabilities — NOT the MCP-core
+                // clientInfo / capabilities); strict hosts validate this request
+                // and silently drop it if the shape is wrong, which leaves the
+                // iframe stuck on "Loading…".
+                initId = 1;
+                post({
+                    jsonrpc: "2.0",
+                    id: initId,
+                    method: "ui/initialize",
+                    params: {
+                        protocolVersion: "2026-01-26",
+                        appInfo: {
+                            name: "nutrition-summary-widget",
+                            version: "1.0.0",
+                        },
+                        appCapabilities: {},
+                    },
+                });
+
+                // ChatGPT Apps SDK compatibility: data/theme may be exposed on a
+                // global and refreshed via a custom event instead of postMessage.
+                try {
+                    if (window.openai) {
+                        if (window.openai.theme)
+                            applyTheme(window.openai.theme);
+                        if (window.openai.toolOutput)
+                            show(window.openai.toolOutput);
+                    }
+                    window.addEventListener("openai:set_globals", (e) => {
+                        const g = e.detail?.globals || e.detail || {};
+                        const t = themeFrom(g);
+                        if (t) applyTheme(t);
+                        if (g.toolOutput) show(g.toolOutput);
+                    });
+                } catch (_) {}
+            } else {
+                // Opened directly in a browser (no host) — render the sample so
+                // the file is previewable on its own.
+                render(window.__NUTRITION_DATA__ || SAMPLE);
+            }
+        </script>
+    </body>
+</html>
