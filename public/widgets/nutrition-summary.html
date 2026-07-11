@@ -203,10 +203,29 @@
             .ring-arc {
                 background: conic-gradient(
                     from -90deg,
-                    var(--panel) 0deg,
+                    var(--track) 0deg,
                     var(--c) calc(var(--p) * 360deg),
                     transparent calc(var(--p) * 360deg)
                 );
+            }
+            /* Rounded cap on the leading (coloured) end, Activity-ring style.
+               The layer fills the ring and rotates to the arc's end angle;
+               its dot sits at 12 o'clock in the middle of the 10px band. */
+            .ring-cap {
+                position: absolute;
+                inset: 0;
+                transform: rotate(calc(var(--p) * 360deg));
+            }
+            .ring-cap::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 10px;
+                height: 10px;
+                margin-left: -5px;
+                border-radius: 50%;
+                background: var(--c);
             }
             .ring-center {
                 position: absolute;
@@ -487,11 +506,17 @@
                     center2 = `<div class="rp" style="color:${color}">${Math.round(pct)}%</div>`;
                 }
 
+                const cap =
+                    pct != null && frac > 0.005
+                        ? `<div class="ring-cap"></div>`
+                        : "";
+
                 return `
           <div class="tile">
             <div class="ring" style="--c:${color};--p:${frac.toFixed(4)}" role="img" aria-label="${esc(m.label)} ${fmt(val, m.decimals)} ${m.unit}">
               <div class="ring-track"></div>
               <div class="ring-arc"></div>
+              ${cap}
               <div class="ring-center">
                 <div class="rv">${fmt(val, m.decimals)}</div>
                 ${center2}
