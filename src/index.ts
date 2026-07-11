@@ -199,6 +199,11 @@ app.get("/privacy", async (c) => {
 const ALT_PAGES: Record<string, string> = {
     "/alternatives": "alternatives/index.html",
     "/myfitnesspal-mcp": "alternatives/myfitnesspal.html",
+    "/cronometer-mcp": "alternatives/cronometer.html",
+    "/lose-it-mcp": "alternatives/lose-it.html",
+    "/macrofactor-mcp": "alternatives/macrofactor.html",
+    "/yazio-mcp": "alternatives/yazio.html",
+    "/lifesum-mcp": "alternatives/lifesum.html",
 };
 for (const [path, file] of Object.entries(ALT_PAGES)) {
     app.get(path, async (c) =>
