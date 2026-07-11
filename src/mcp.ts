@@ -57,6 +57,15 @@ import {
 import { exportMeals } from "./export.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 
+// MCP Apps UI (https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/):
+// the get_nutrition_summary tool links to an HTML dashboard served as a ui://
+// resource. Hosts (Claude, ChatGPT, VS Code, Goose) render it in a sandboxed
+// iframe and hand it the tool's structuredContent. One MIME type / one resource
+// works across all MCP Apps-capable clients.
+const SUMMARY_WIDGET_URI = "ui://widget/nutrition-summary.html";
+const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
+const SUMMARY_WIDGET_FILE = "./public/widgets/nutrition-summary.html";
+
 interface DailyTotals {
     calories: number;
     protein_g: number;
@@ -535,11 +544,40 @@ function registerTools(server: McpServer, userId: string) {
         },
     );
 
+    // UI resource for the get_nutrition_summary dashboard widget. Served as an
+    // MCP Apps resource; the host fetches it and renders it in a sandboxed
+    // iframe. Self-contained HTML (inline CSS/JS) — the sandbox blocks external
+    // hosts, so nothing may be loaded over the network.
+    server.registerResource(
+        "nutrition-summary-widget",
+        SUMMARY_WIDGET_URI,
+        {
+            title: "Nutrition Summary Dashboard",
+            description:
+                "Interactive dashboard UI for get_nutrition_summary: macro tiles vs goals and a per-day breakdown, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(SUMMARY_WIDGET_FILE).text(),
+                        // Prefer a bordered container in hosts that honor it.
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
     server.registerTool(
         "get_nutrition_summary",
         {
             title: "Get Nutrition Summary",
-            description: "Get daily nutrition totals for a date range",
+            description:
+                "Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -550,6 +588,40 @@ function registerTools(server: McpServer, userId: string) {
                 start_date: z.string().describe("Start date (YYYY-MM-DD)"),
                 end_date: z.string().describe("End date (YYYY-MM-DD)"),
             },
+            outputSchema: {
+                start_date: z.string(),
+                end_date: z.string(),
+                logged_days: z.number(),
+                goals: z
+                    .object({
+                        calories: z.number().nullable(),
+                        protein_g: z.number().nullable(),
+                        carbs_g: z.number().nullable(),
+                        fat_g: z.number().nullable(),
+                        water_ml: z.number().nullable(),
+                    })
+                    .nullable(),
+                averages: z.object({
+                    calories: z.number(),
+                    protein_g: z.number(),
+                    carbs_g: z.number(),
+                    fat_g: z.number(),
+                    water_ml: z.number(),
+                }),
+                days: z.array(
+                    z.object({
+                        date: z.string(),
+                        meal_count: z.number(),
+                        calories: z.number(),
+                        protein_g: z.number(),
+                        carbs_g: z.number(),
+                        fat_g: z.number(),
+                        water_ml: z.number(),
+                    }),
+                ),
+            },
+            // Link the tool to its dashboard UI (MCP Apps).
+            _meta: { ui: { resourceUri: SUMMARY_WIDGET_URI } },
         },
         async ({ start_date, end_date }) => {
             return withAnalytics(
@@ -561,6 +633,17 @@ function registerTools(server: McpServer, userId: string) {
                         getWaterInRange(userId, start_date, end_date, tz),
                         getNutritionGoals(userId),
                     ]);
+
+                    const goalsPayload = goals
+                        ? {
+                              calories: goals.daily_calories ?? null,
+                              protein_g: goals.daily_protein_g ?? null,
+                              carbs_g: goals.daily_carbs_g ?? null,
+                              fat_g: goals.daily_fat_g ?? null,
+                              water_ml: goals.daily_water_ml ?? null,
+                          }
+                        : null;
+
                     if (meals.length === 0 && water.length === 0) {
                         return {
                             content: [
@@ -569,6 +652,20 @@ function registerTools(server: McpServer, userId: string) {
                                     text: `No meals or water logged between ${start_date} and ${end_date}.`,
                                 },
                             ],
+                            structuredContent: {
+                                start_date,
+                                end_date,
+                                logged_days: 0,
+                                goals: goalsPayload,
+                                averages: {
+                                    calories: 0,
+                                    protein_g: 0,
+                                    carbs_g: 0,
+                                    fat_g: 0,
+                                    water_ml: 0,
+                                },
+                                days: [],
+                            },
                         };
                     }
 
@@ -591,6 +688,22 @@ function registerTools(server: McpServer, userId: string) {
                     }
 
                     const sections: string[] = [];
+                    const days: Array<{
+                        date: string;
+                        meal_count: number;
+                        calories: number;
+                        protein_g: number;
+                        carbs_g: number;
+                        fat_g: number;
+                        water_ml: number;
+                    }> = [];
+                    const sum: DailyTotals = {
+                        calories: 0,
+                        protein_g: 0,
+                        carbs_g: 0,
+                        fat_g: 0,
+                        water_ml: 0,
+                    };
                     for (const [date, dateMeals] of [
                         ...byDate.entries(),
                     ].sort()) {
@@ -600,7 +713,30 @@ function registerTools(server: McpServer, userId: string) {
                         sections.push(
                             `${header}\n${formatProgress(totals, goals)}`,
                         );
+                        days.push({
+                            date,
+                            meal_count: dateMeals.length,
+                            calories: Math.round(totals.calories),
+                            protein_g: Math.round(totals.protein_g * 10) / 10,
+                            carbs_g: Math.round(totals.carbs_g * 10) / 10,
+                            fat_g: Math.round(totals.fat_g * 10) / 10,
+                            water_ml: totals.water_ml,
+                        });
+                        sum.calories += totals.calories;
+                        sum.protein_g += totals.protein_g;
+                        sum.carbs_g += totals.carbs_g;
+                        sum.fat_g += totals.fat_g;
+                        sum.water_ml += totals.water_ml;
                     }
+
+                    const n = days.length || 1;
+                    const averages = {
+                        calories: Math.round(sum.calories / n),
+                        protein_g: Math.round((sum.protein_g / n) * 10) / 10,
+                        carbs_g: Math.round((sum.carbs_g / n) * 10) / 10,
+                        fat_g: Math.round((sum.fat_g / n) * 10) / 10,
+                        water_ml: Math.round(sum.water_ml / n),
+                    };
 
                     const footer = goals
                         ? ""
@@ -613,6 +749,14 @@ function registerTools(server: McpServer, userId: string) {
                                 text: sections.join("\n\n") + footer,
                             },
                         ],
+                        structuredContent: {
+                            start_date,
+                            end_date,
+                            logged_days: days.length,
+                            goals: goalsPayload,
+                            averages,
+                            days,
+                        },
                     };
                 },
                 { userId },
