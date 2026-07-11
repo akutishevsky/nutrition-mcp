@@ -10,6 +10,10 @@
  * Edit the APPS data (or the shared template) here and re-run:
  *   bun run scripts/gen-alternatives.ts
  * The generated .html files are the served artifacts — don't hand-edit them.
+ *
+ * Self-hosting: scripts/depersonalize.ts cleans the generated .html files but
+ * NOT this generator. If you regenerate, update SITE below and the GA tag,
+ * GitHub links, and contact email in the shared fragments first.
  */
 
 const SITE = "https://nutrition-mcp.com";
