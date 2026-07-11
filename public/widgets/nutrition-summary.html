@@ -296,14 +296,15 @@
                 margin-bottom: 8px;
             }
             .trend .ttitle {
-                font-size: 11.5px;
-                font-weight: 650;
+                font-size: 12px;
+                font-weight: 700;
                 text-transform: uppercase;
-                letter-spacing: 0.04em;
+                letter-spacing: 0.05em;
                 color: var(--text-dim);
             }
             .trend .tmeta {
-                font-size: 11px;
+                font-size: 12px;
+                font-weight: 500;
                 color: var(--text-dim);
                 font-variant-numeric: tabular-nums;
             }
@@ -320,9 +321,14 @@
                 stroke-dasharray: 3 3;
                 opacity: 0.5;
             }
-            .trend .tlabel {
-                fill: var(--text-dim);
-                font-size: 7px;
+            .trend .tdates {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 5px;
+                padding: 0 2px;
+                font-size: 11px;
+                font-weight: 500;
+                color: var(--text-dim);
                 font-variant-numeric: tabular-nums;
             }
 
@@ -532,11 +538,11 @@
             // distortion — so it keeps its aspect ratio at any container width.
             function trendChart(days, goal) {
                 const W = 480,
-                    H = 104,
+                    H = 88,
                     padL = 8,
                     padR = 8,
                     padT = 10,
-                    padB = 18;
+                    padB = 6;
                 const n = days.length;
                 const vals = days.map((d) => d.calories || 0);
                 const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
@@ -596,9 +602,11 @@
               <path d="${area}" fill="url(#calfill)"/>
               <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
               ${dots}
-              <text class="tlabel" x="${padL}" y="${H - 4}" text-anchor="start">${md(days[0])}</text>
-              <text class="tlabel" x="${W - padR}" y="${H - 4}" text-anchor="end">${md(days[n - 1])}</text>
             </svg>
+            <div class="tdates">
+              <span>${md(days[0])}</span>
+              <span>${md(days[n - 1])}</span>
+            </div>
           </div>`;
             }
 
