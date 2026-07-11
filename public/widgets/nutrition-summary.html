@@ -22,56 +22,44 @@
         <title>Nutrition Summary</title>
         <style>
             :root {
-                /* Light glass theme (default). Dark overridden below.
-                   Palette follows the landing page: warm cream + sage green +
-                   earthy brown, with muted honey/terracotta accents. */
+                /* Light theme (default). Dark overridden below.
+                   Clean flat surfaces in the landing-page palette:
+                   warm cream + sage green accents + earthy brown. */
                 --text: #2c2416;
                 --text-dim: #8a7e6b;
-                --glass: rgba(255, 253, 249, 0.5);
-                --glass-border: rgba(255, 255, 255, 0.72);
-                --inset-hi: rgba(255, 255, 255, 0.7);
-                --track: rgba(44, 36, 22, 0.1);
-                --shadow: 0 12px 30px rgba(74, 63, 40, 0.12);
-                --bg-1: #f7f4ed;
-                --bg-2: #edf3e8;
-                --blob-a: rgba(74, 124, 89, 0.24);
-                --blob-b: rgba(200, 168, 96, 0.2);
-                --blob-c: rgba(168, 67, 42, 0.12);
-                --blob-d: rgba(61, 102, 73, 0.2);
-                --blob-e: rgba(122, 158, 110, 0.16);
+                --bg: #f8f5f0;
+                --panel: #ffffff;
+                --panel-border: #e8e2d8;
+                --track: #ece7dd;
+                --shadow:
+                    0 1px 2px rgba(44, 36, 22, 0.04),
+                    0 6px 16px rgba(44, 36, 22, 0.06);
 
-                --calories: #ef8b3c;
+                --calories: #e07b3a;
                 --protein: #7c5cff;
-                --carbs: #12b28f;
-                --fat: #ec5d82;
+                --carbs: #4a9c6b;
+                --fat: #d8567a;
                 --water: #3b82f6;
-                --over: #e23b57;
+                --over: #b8442a;
 
-                --radius: 20px;
+                --radius: 16px;
             }
 
             @media (prefers-color-scheme: dark) {
                 :root {
                     --text: #ece6da;
-                    --text-dim: #a89d88;
-                    --glass: rgba(255, 250, 242, 0.06);
-                    --glass-border: rgba(255, 248, 235, 0.13);
-                    --inset-hi: rgba(255, 255, 255, 0.08);
-                    --track: rgba(255, 250, 240, 0.1);
-                    --shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
-                    --bg-1: #191710;
-                    --bg-2: #13150e;
-                    --blob-a: rgba(74, 124, 89, 0.32);
-                    --blob-b: rgba(200, 168, 96, 0.18);
-                    --blob-c: rgba(168, 67, 42, 0.16);
-                    --blob-d: rgba(61, 102, 73, 0.28);
-                    --blob-e: rgba(96, 132, 92, 0.2);
-                    --calories: #f0a35d;
+                    --text-dim: #a29885;
+                    --bg: #16150f;
+                    --panel: #201e17;
+                    --panel-border: #322e24;
+                    --track: #322e24;
+                    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+                    --calories: #ef9a54;
                     --protein: #a488ff;
-                    --carbs: #34c98f;
-                    --fat: #f57a9a;
+                    --carbs: #5fb585;
+                    --fat: #e97a9a;
                     --water: #5f9dff;
-                    --over: #ff6b81;
+                    --over: #dd6a4a;
                 }
             }
 
@@ -79,46 +67,34 @@
             :root[data-theme="light"] {
                 --text: #2c2416;
                 --text-dim: #8a7e6b;
-                --glass: rgba(255, 253, 249, 0.5);
-                --glass-border: rgba(255, 255, 255, 0.72);
-                --inset-hi: rgba(255, 255, 255, 0.7);
-                --track: rgba(44, 36, 22, 0.1);
-                --shadow: 0 12px 30px rgba(74, 63, 40, 0.12);
-                --bg-1: #f7f4ed;
-                --bg-2: #edf3e8;
-                --blob-a: rgba(74, 124, 89, 0.24);
-                --blob-b: rgba(200, 168, 96, 0.2);
-                --blob-c: rgba(168, 67, 42, 0.12);
-                --blob-d: rgba(61, 102, 73, 0.2);
-                --blob-e: rgba(122, 158, 110, 0.16);
-                --calories: #ef8b3c;
+                --bg: #f8f5f0;
+                --panel: #ffffff;
+                --panel-border: #e8e2d8;
+                --track: #ece7dd;
+                --shadow:
+                    0 1px 2px rgba(44, 36, 22, 0.04),
+                    0 6px 16px rgba(44, 36, 22, 0.06);
+                --calories: #e07b3a;
                 --protein: #7c5cff;
-                --carbs: #12b28f;
-                --fat: #ec5d82;
+                --carbs: #4a9c6b;
+                --fat: #d8567a;
                 --water: #3b82f6;
-                --over: #e23b57;
+                --over: #b8442a;
             }
             :root[data-theme="dark"] {
                 --text: #ece6da;
-                --text-dim: #a89d88;
-                --glass: rgba(255, 250, 242, 0.06);
-                --glass-border: rgba(255, 248, 235, 0.13);
-                --inset-hi: rgba(255, 255, 255, 0.08);
-                --track: rgba(255, 250, 240, 0.1);
-                --shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
-                --bg-1: #191710;
-                --bg-2: #13150e;
-                --blob-a: rgba(74, 124, 89, 0.32);
-                --blob-b: rgba(200, 168, 96, 0.18);
-                --blob-c: rgba(168, 67, 42, 0.16);
-                --blob-d: rgba(61, 102, 73, 0.28);
-                --blob-e: rgba(96, 132, 92, 0.2);
-                --calories: #f0a35d;
+                --text-dim: #a29885;
+                --bg: #16150f;
+                --panel: #201e17;
+                --panel-border: #322e24;
+                --track: #322e24;
+                --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+                --calories: #ef9a54;
                 --protein: #a488ff;
-                --carbs: #34c98f;
-                --fat: #f57a9a;
+                --carbs: #5fb585;
+                --fat: #e97a9a;
                 --water: #5f9dff;
-                --over: #ff6b81;
+                --over: #dd6a4a;
             }
 
             * {
@@ -132,7 +108,7 @@
             body {
                 min-height: 100vh;
                 color: var(--text);
-                background: linear-gradient(160deg, var(--bg-1), var(--bg-2));
+                background: var(--bg);
                 font-family:
                     ui-sans-serif,
                     system-ui,
@@ -145,43 +121,6 @@
                 font-size: 14px;
                 line-height: 1.45;
                 -webkit-font-smoothing: antialiased;
-            }
-            /* Ambient colour wash — the surface the glass panels frost.
-               Soft, overlapping, blurred blobs read as a natural gradient
-               rather than distinct spots. */
-            body::before {
-                content: "";
-                position: fixed;
-                inset: -25%;
-                z-index: -1;
-                pointer-events: none;
-                filter: blur(28px);
-                background:
-                    radial-gradient(
-                        40% 46% at 6% 2%,
-                        var(--blob-a),
-                        transparent 70%
-                    ),
-                    radial-gradient(
-                        44% 48% at 96% -4%,
-                        var(--blob-b),
-                        transparent 72%
-                    ),
-                    radial-gradient(
-                        50% 54% at 80% 90%,
-                        var(--blob-d),
-                        transparent 72%
-                    ),
-                    radial-gradient(
-                        40% 46% at 16% 98%,
-                        var(--blob-c),
-                        transparent 70%
-                    ),
-                    radial-gradient(
-                        60% 56% at 48% 46%,
-                        var(--blob-e),
-                        transparent 80%
-                    );
             }
             .wrap {
                 max-width: 760px;
@@ -217,14 +156,10 @@
                 margin-bottom: 20px;
             }
             .tile {
-                background: var(--glass);
-                border: 1px solid var(--glass-border);
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
                 border-radius: var(--radius);
-                box-shadow:
-                    var(--shadow),
-                    inset 0 1px 0 var(--inset-hi);
-                backdrop-filter: blur(18px) saturate(160%);
-                -webkit-backdrop-filter: blur(18px) saturate(160%);
+                box-shadow: var(--shadow);
                 padding: 16px 12px 15px;
                 display: flex;
                 flex-direction: column;
@@ -303,14 +238,10 @@
 
             /* Calories trend chart (hand-built SVG area + line) */
             .trend {
-                background: var(--glass);
-                border: 1px solid var(--glass-border);
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
                 border-radius: var(--radius);
-                box-shadow:
-                    var(--shadow),
-                    inset 0 1px 0 var(--inset-hi);
-                backdrop-filter: blur(18px) saturate(160%);
-                -webkit-backdrop-filter: blur(18px) saturate(160%);
+                box-shadow: var(--shadow);
                 padding: 14px 16px 12px;
                 margin-bottom: 20px;
             }
@@ -339,8 +270,7 @@
                 display: block;
             }
             .trend .axis {
-                stroke: var(--text-dim);
-                opacity: 0.25;
+                stroke: var(--panel-border);
             }
             .trend .goalline {
                 stroke: var(--text-dim);
@@ -366,14 +296,10 @@
                 text-align: center;
                 color: var(--text-dim);
                 padding: 40px 20px;
-                background: var(--glass);
-                border: 1px solid var(--glass-border);
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
                 border-radius: var(--radius);
-                box-shadow:
-                    var(--shadow),
-                    inset 0 1px 0 var(--inset-hi);
-                backdrop-filter: blur(18px) saturate(160%);
-                -webkit-backdrop-filter: blur(18px) saturate(160%);
+                box-shadow: var(--shadow);
             }
             .empty .big {
                 font-size: 26px;
