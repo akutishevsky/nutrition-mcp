@@ -2107,3 +2107,59 @@ body.auth .legal-section a:hover {
 .legal-back:hover {
     color: var(--auth-ink);
 }
+
+/* ---------- SEO comparison / "alternative" landing pages ---------- */
+/* Breadcrumb trail above the hero on comparison pages. */
+.crumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--ink-2);
+    margin-bottom: 1.25rem;
+}
+.crumb a {
+    color: var(--ink-2);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.crumb a:hover {
+    color: var(--accent-hover);
+}
+.crumb i {
+    font-size: 0.6rem;
+    opacity: 0.6;
+}
+/* Single-column hero (no chat card), so cap the measure for readability. */
+.hero-copy-wide {
+    max-width: 42rem;
+}
+/* Feature cards that link to a comparison page. */
+.alt-card {
+    display: block;
+    text-decoration: none;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+a.alt-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+.alt-card h3 {
+    color: var(--accent);
+}
+/* Not-yet-written comparisons: visibly de-emphasised, not clickable. */
+.alt-card-soon {
+    opacity: 0.62;
+}
+.alt-card-soon h3 {
+    color: var(--ink);
+}
+/* Centered explanatory note under the comparison table / app grid. */
+.compare-note {
+    max-width: 58ch;
+    margin: 1.75rem auto 0;
+    text-align: center;
+}
