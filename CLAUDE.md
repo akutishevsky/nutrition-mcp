@@ -56,6 +56,29 @@ Use HTML imports with `Bun.serve()` — not Vite. HTML files can directly import
 
 ---
 
+## Custom UI Widgets (MCP Apps)
+
+In-chat UI uses **MCP Apps** (the official 2026-01-26 MCP extension), which renders across Claude, ChatGPT, VS Code, Goose, and MCP Inspector from one implementation. First widget: the `get_nutrition_summary` dashboard at `public/widgets/nutrition-summary.html`, wired in `src/mcp.ts`.
+
+**Server wiring (`src/mcp.ts`):**
+
+- Register the widget HTML as a resource with a `ui://` URI and mimeType **`text/html;profile=mcp-app`** (see the `SUMMARY_WIDGET_URI` / `APP_UI_MIME_TYPE` constants). Serve it via `Bun.file(...).text()`.
+- Link it on the tool config: `_meta: { ui: { resourceUri: "ui://..." } }`. The SDK supports `_meta` and `outputSchema` on `registerTool`.
+- The tool must return `structuredContent` (declare an `outputSchema` and return it on **every** path — this then emits structuredContent for all clients, not just UI ones). The widget renders from `structuredContent`; `content` remains the model-facing text.
+
+**The widget file is a single self-contained HTML** — inline CSS + JS, zero network requests. The iframe CSP is deny-by-default: **no CDN/external scripts**, and `eval`/`new Function` are blocked. To use a chart library, bundle it inline (a Bun build step); we use hand-built SVG instead (0 KB, follows CSS light/dark vars natively via `currentColor` / `var(--…)`).
+
+**The iframe→host handshake must be exact.** Strict hosts (MCP Inspector) validate the request shape and silently drop malformed ones — symptom: widget stuck on "Loading…" while the tool succeeds server-side. Sequence over plain `window.postMessage(msg, "*")` to `window.parent`:
+
+1. App → host: `ui/initialize` request. Params use **`appInfo`** and **`appCapabilities`** — NOT the MCP-core `clientInfo` / `capabilities` (this exact mix-up was the original bug): `{ protocolVersion: "2026-01-26", appInfo: {name, version}, appCapabilities: {} }`.
+2. host → app: JSON-RPC response (host context incl. theme at `result.hostContext.theme`).
+3. App → host: `ui/notifications/initialized` notification (no params). Required — without it strict hosts never send the result.
+4. host → app: `ui/notifications/tool-result` notification with `params.structuredContent` → render. Only show the built-in sample fallback when there is no host (`window.parent === window`), never inside one.
+
+**Ground truth when in doubt:** the reference SDK `@modelcontextprotocol/ext-apps` — `src/app.ts` `connect()` shows the exact initialize request; `dist/src/generated/schema.json` lists all `ui/*` method names. Spec: <https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/>, repo: <https://github.com/modelcontextprotocol/ext-apps>. Alternative to hand-rolling: bundle that package's `App` class inline (~100 KB, but tracks the spec). Verify without a real client using a local host-harness HTML that embeds the widget in a `sandbox="allow-scripts"` iframe, mimics the strict host, and pushes distinct data via `postMessage`.
+
+---
+
 # Claude Code Operating Instructions
 
 ## Core Philosophy
