@@ -65,6 +65,8 @@ import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 const SUMMARY_WIDGET_URI = "ui://widget/nutrition-summary.html";
 const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
 const SUMMARY_WIDGET_FILE = "./public/widgets/nutrition-summary.html";
+const GOAL_PROGRESS_WIDGET_URI = "ui://widget/goal-progress.html";
+const GOAL_PROGRESS_WIDGET_FILE = "./public/widgets/goal-progress.html";
 
 interface DailyTotals {
     calories: number;
@@ -572,6 +574,31 @@ function registerTools(server: McpServer, userId: string) {
         },
     );
 
+    // UI resource for the get_goal_progress widget (single-day intake vs goal
+    // rings + a weight card). Same self-contained-HTML contract as above.
+    server.registerResource(
+        "goal-progress-widget",
+        GOAL_PROGRESS_WIDGET_URI,
+        {
+            title: "Goal Progress",
+            description:
+                "Interactive UI for get_goal_progress: intake-vs-goal rings for a single day plus body-weight progress, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(GOAL_PROGRESS_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
     server.registerTool(
         "get_nutrition_summary",
         {
@@ -925,7 +952,7 @@ function registerTools(server: McpServer, userId: string) {
         {
             title: "Get Goal Progress",
             description:
-                "Get progress against daily nutrition goals for a specific date (defaults to today). Returns intake vs. target with remaining amounts for each macro.",
+                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -938,6 +965,37 @@ function registerTools(server: McpServer, userId: string) {
                     .optional()
                     .describe("Date in YYYY-MM-DD format. Defaults to today."),
             },
+            outputSchema: {
+                date: z.string(),
+                meal_count: z.number(),
+                water_entries: z.number(),
+                goals: z
+                    .object({
+                        calories: z.number().nullable(),
+                        protein_g: z.number().nullable(),
+                        carbs_g: z.number().nullable(),
+                        fat_g: z.number().nullable(),
+                        water_ml: z.number().nullable(),
+                    })
+                    .nullable(),
+                totals: z.object({
+                    calories: z.number(),
+                    protein_g: z.number(),
+                    carbs_g: z.number(),
+                    fat_g: z.number(),
+                    water_ml: z.number(),
+                }),
+                weight: z
+                    .object({
+                        current: z.number().nullable(),
+                        target: z.number().nullable(),
+                        unit: z.string(),
+                        logged_on: z.string().nullable(),
+                    })
+                    .nullable(),
+            },
+            // Link the tool to its progress UI (MCP Apps).
+            _meta: { ui: { resourceUri: GOAL_PROGRESS_WIDGET_URI } },
         },
         async ({ date }) => {
             return withAnalytics(
@@ -982,6 +1040,46 @@ function registerTools(server: McpServer, userId: string) {
                     const footer = goals
                         ? ""
                         : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)";
+
+                    // Payload for the goal-progress widget (MCP Apps). Mirrors
+                    // the text above: per-macro intake vs goal for the day, plus
+                    // the standing weight metric converted to display units.
+                    const goalsPayload = goals
+                        ? {
+                              calories: goals.daily_calories ?? null,
+                              protein_g: goals.daily_protein_g ?? null,
+                              carbs_g: goals.daily_carbs_g ?? null,
+                              fat_g: goals.daily_fat_g ?? null,
+                              water_ml: goals.daily_water_ml ?? null,
+                          }
+                        : null;
+                    const totalsPayload = {
+                        calories: Math.round(totals.calories),
+                        protein_g: Math.round(totals.protein_g * 10) / 10,
+                        carbs_g: Math.round(totals.carbs_g * 10) / 10,
+                        fat_g: Math.round(totals.fat_g * 10) / 10,
+                        water_ml: totals.water_ml,
+                    };
+                    const weightPayload =
+                        latestWeight || goals?.target_weight_g != null
+                            ? {
+                                  current: latestWeight
+                                      ? fromGrams(latestWeight.weight_g, unit)
+                                      : null,
+                                  target:
+                                      goals?.target_weight_g != null
+                                          ? fromGrams(
+                                                goals.target_weight_g,
+                                                unit,
+                                            )
+                                          : null,
+                                  unit,
+                                  logged_on: latestWeight
+                                      ? dateInTz(latestWeight.logged_at, tz)
+                                      : null,
+                              }
+                            : null;
+
                     return {
                         content: [
                             {
@@ -989,6 +1087,14 @@ function registerTools(server: McpServer, userId: string) {
                                 text: `${header}\n${body}${weightLine}${footer}`,
                             },
                         ],
+                        structuredContent: {
+                            date: targetDate,
+                            meal_count: meals.length,
+                            water_entries: water.length,
+                            goals: goalsPayload,
+                            totals: totalsPayload,
+                            weight: weightPayload,
+                        },
                     };
                 },
                 { userId },
