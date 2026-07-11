@@ -36,11 +36,11 @@
                     0 1px 2px rgba(0, 0, 0, 0.05),
                     0 8px 22px rgba(0, 0, 0, 0.05);
 
-                --calories: #e07b3a;
-                --protein: #7c5cff;
-                --carbs: #4a9c6b;
-                --fat: #d8567a;
-                --water: #3b82f6;
+                --calories: #ff9f0a;
+                --protein: #8b5cf6;
+                --carbs: #10b981;
+                --fat: #f43f7e;
+                --water: #0ea5e9;
                 --over: #d0452b;
 
                 --radius: 18px;
@@ -56,12 +56,12 @@
                     --track: #2c2c2e;
                     --accent: #6ab98a;
                     --shadow: none;
-                    --calories: #f0954f;
-                    --protein: #a488ff;
-                    --carbs: #5fc088;
-                    --fat: #e97a9a;
-                    --water: #5f9dff;
-                    --over: #e8674a;
+                    --calories: #ffab2e;
+                    --protein: #a78bfa;
+                    --carbs: #34d399;
+                    --fat: #fb7199;
+                    --water: #38bdf8;
+                    --over: #ff6b52;
                 }
             }
 
@@ -77,11 +77,11 @@
                 --shadow:
                     0 1px 2px rgba(0, 0, 0, 0.05),
                     0 8px 22px rgba(0, 0, 0, 0.05);
-                --calories: #e07b3a;
-                --protein: #7c5cff;
-                --carbs: #4a9c6b;
-                --fat: #d8567a;
-                --water: #3b82f6;
+                --calories: #ff9f0a;
+                --protein: #8b5cf6;
+                --carbs: #10b981;
+                --fat: #f43f7e;
+                --water: #0ea5e9;
                 --over: #d0452b;
             }
             :root[data-theme="dark"] {
@@ -93,12 +93,12 @@
                 --track: #2c2c2e;
                 --accent: #6ab98a;
                 --shadow: none;
-                --calories: #f0954f;
-                --protein: #a488ff;
-                --carbs: #5fc088;
-                --fat: #e97a9a;
-                --water: #5f9dff;
-                --over: #e8674a;
+                --calories: #ffab2e;
+                --protein: #a78bfa;
+                --carbs: #34d399;
+                --fat: #fb7199;
+                --water: #38bdf8;
+                --over: #ff6b52;
             }
 
             * {
@@ -490,7 +490,10 @@
                 }
                 const frac =
                     pct == null ? 0 : Math.max(0, Math.min(pct, 100)) / 100;
-                const color = over ? "var(--over)" : m.color;
+                // The ring keeps its own macro colour even past 100% so the
+                // five gauges stay visually distinct; only the % caption turns
+                // red to flag going over goal.
+                const pctColor = over ? "var(--over)" : m.color;
 
                 let goalLine, center2;
                 if (pct == null) {
@@ -503,7 +506,7 @@
                             ? `${fmt(delta, m.decimals)} ${m.unit} left`
                             : `${fmt(-delta, m.decimals)} ${m.unit} over`;
                     goalLine = `of ${fmt(target, m.decimals)} ${m.unit} · ${deltaStr}`;
-                    center2 = `<div class="rp" style="color:${color}">${Math.round(pct)}%</div>`;
+                    center2 = `<div class="rp" style="color:${pctColor}">${Math.round(pct)}%</div>`;
                 }
 
                 const cap =
@@ -513,7 +516,7 @@
 
                 return `
           <div class="tile">
-            <div class="ring" style="--c:${color};--p:${frac.toFixed(4)}" role="img" aria-label="${esc(m.label)} ${fmt(val, m.decimals)} ${m.unit}">
+            <div class="ring" style="--c:${m.color};--p:${frac.toFixed(4)}" role="img" aria-label="${esc(m.label)} ${fmt(val, m.decimals)} ${m.unit}">
               <div class="ring-track"></div>
               <div class="ring-arc"></div>
               ${cap}
