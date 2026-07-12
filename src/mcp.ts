@@ -67,6 +67,8 @@ const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
 const SUMMARY_WIDGET_FILE = "./public/widgets/nutrition-summary.html";
 const GOAL_PROGRESS_WIDGET_URI = "ui://widget/goal-progress.html";
 const GOAL_PROGRESS_WIDGET_FILE = "./public/widgets/goal-progress.html";
+const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
+const MEAL_LOGGED_WIDGET_FILE = "./public/widgets/meal-logged.html";
 
 interface DailyTotals {
     calories: number;
@@ -271,6 +273,37 @@ function registerTools(server: McpServer, userId: string) {
                         "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the meal content (including logged_at), so replaying the identical call returns the original meal instead of duplicating it. Pass a UUID only to force-override that behavior. Do NOT reuse a key for genuinely different meals.",
                     ),
             },
+            outputSchema: {
+                date: z.string(),
+                logged_meal: z.object({
+                    description: z.string(),
+                    meal_type: z.string().nullable(),
+                    calories: z.number().nullable(),
+                    protein_g: z.number().nullable(),
+                    carbs_g: z.number().nullable(),
+                    fat_g: z.number().nullable(),
+                }),
+                has_goals: z.boolean(),
+                goals: z
+                    .object({
+                        calories: z.number().nullable(),
+                        protein_g: z.number().nullable(),
+                        carbs_g: z.number().nullable(),
+                        fat_g: z.number().nullable(),
+                        water_ml: z.number().nullable(),
+                    })
+                    .nullable(),
+                totals: z.object({
+                    calories: z.number(),
+                    protein_g: z.number(),
+                    carbs_g: z.number(),
+                    fat_g: z.number(),
+                    water_ml: z.number(),
+                }),
+            },
+            // Link the tool to its progress UI (MCP Apps). The widget itself
+            // renders nothing when no goals are set.
+            _meta: { ui: { resourceUri: MEAL_LOGGED_WIDGET_URI } },
         },
         async (args) => {
             return withAnalytics(
@@ -303,6 +336,19 @@ function registerTools(server: McpServer, userId: string) {
                             "\n\nNo nutrition goals set — use the set_nutrition_goals tool to track progress against daily targets.";
                     }
 
+                    // Payload for the meal-logged widget: the day's running
+                    // totals vs goals as rings. The widget shows nothing when
+                    // has_goals is false (no target to plot against).
+                    const goalsPayload = goals
+                        ? {
+                              calories: goals.daily_calories ?? null,
+                              protein_g: goals.daily_protein_g ?? null,
+                              carbs_g: goals.daily_carbs_g ?? null,
+                              fat_g: goals.daily_fat_g ?? null,
+                              water_ml: goals.daily_water_ml ?? null,
+                          }
+                        : null;
+
                     return {
                         content: [
                             {
@@ -310,6 +356,27 @@ function registerTools(server: McpServer, userId: string) {
                                 text: `${header}\n${formatMeal(meal)}${progressSection}`,
                             },
                         ],
+                        structuredContent: {
+                            date: mealDate,
+                            logged_meal: {
+                                description: meal.description,
+                                meal_type: meal.meal_type ?? null,
+                                calories: meal.calories ?? null,
+                                protein_g: meal.protein_g ?? null,
+                                carbs_g: meal.carbs_g ?? null,
+                                fat_g: meal.fat_g ?? null,
+                            },
+                            has_goals: goals != null,
+                            goals: goalsPayload,
+                            totals: {
+                                calories: Math.round(totals.calories),
+                                protein_g:
+                                    Math.round(totals.protein_g * 10) / 10,
+                                carbs_g: Math.round(totals.carbs_g * 10) / 10,
+                                fat_g: Math.round(totals.fat_g * 10) / 10,
+                                water_ml: totals.water_ml,
+                            },
+                        },
                     };
                 },
                 { userId },
@@ -592,6 +659,31 @@ function registerTools(server: McpServer, userId: string) {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
                         text: await Bun.file(GOAL_PROGRESS_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the log_meal widget (day's running totals vs goals as
+    // rings; renders nothing when no goals are set). Same contract as above.
+    server.registerResource(
+        "meal-logged-widget",
+        MEAL_LOGGED_WIDGET_URI,
+        {
+            title: "Meal Logged",
+            description:
+                "Interactive UI shown after log_meal: the day's running intake-vs-goal rings, with automatic light/dark theming. Shows nothing when no nutrition goals are set.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(MEAL_LOGGED_WIDGET_FILE).text(),
                         _meta: { ui: { prefersBorder: true } },
                     },
                 ],

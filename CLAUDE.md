@@ -58,7 +58,7 @@ Use HTML imports with `Bun.serve()` — not Vite. HTML files can directly import
 
 ## Custom UI Widgets (MCP Apps)
 
-In-chat UI uses **MCP Apps** (the official 2026-01-26 MCP extension), which renders across Claude, ChatGPT, VS Code, Goose, and MCP Inspector from one implementation. Widgets live in `public/widgets/` and are wired in `src/mcp.ts`: the `get_nutrition_summary` dashboard (`nutrition-summary.html`) and the `get_goal_progress` view (`goal-progress.html`). Both share one design language — see `public/widgets/STYLE_GUIDE.md`.
+In-chat UI uses **MCP Apps** (the official 2026-01-26 MCP extension), which renders across Claude, ChatGPT, VS Code, Goose, and MCP Inspector from one implementation. Widgets live in `public/widgets/` and are wired in `src/mcp.ts`: the `get_nutrition_summary` dashboard (`nutrition-summary.html`), the `get_goal_progress` view (`goal-progress.html`), and the `log_meal` progress rings (`meal-logged.html`, which renders nothing when no goals are set). They share one design language — see `public/widgets/STYLE_GUIDE.md`.
 
 **Server wiring (`src/mcp.ts`):**
 
