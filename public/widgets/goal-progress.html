@@ -410,6 +410,11 @@
                 color: var(--accent);
                 font-weight: 700;
             }
+            .weight .wempty {
+                font-size: 13px;
+                color: var(--text-dim);
+                margin-top: 12px;
+            }
 
             .empty {
                 text-align: center;
@@ -578,29 +583,54 @@
             // direction chip, and a horizontal number-line graph plotting the
             // current and target weights with the gap between them highlighted.
             function weightCard(w) {
-                if (!w || (w.current == null && w.target == null)) return "";
-                const unit = esc(w.unit || "kg");
-                const cur = w.current;
-                const tgt = w.target;
+                const cur = w?.current;
+                const tgt = w?.target;
+                const unit = esc(w?.unit || "kg");
+                const hasCur = cur != null;
+                const hasTgt = tgt != null;
+                const label = `<div class="wlabel"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Body weight</div>`;
 
-                let curHtml, meta;
-                if (cur != null) {
-                    curHtml = `${fmt(cur, 1)}<span class="wunit">${unit}</span>`;
-                    meta = w.logged_on ? `last logged ${esc(w.logged_on)}` : "";
-                } else {
-                    curHtml = `—<span class="wunit">${unit}</span>`;
-                    meta = "no weight logged yet";
+                // Nothing to plot without a current weight — explain which piece
+                // is missing rather than dropping the card silently.
+                if (!hasCur) {
+                    const msg = hasTgt
+                        ? `No weight logged yet. Log one with log_weight to track progress toward your ${fmt(tgt, 1)} ${unit} target.`
+                        : `No weight logged yet. Log one with log_weight to track progress.`;
+                    return `
+          <div class="section-title">Weight</div>
+          <div class="weight">
+            <div class="wtop">${label}</div>
+            <div class="wempty">${msg}</div>
+          </div>`;
                 }
 
-                const atTarget =
-                    cur != null && tgt != null && Math.abs(cur - tgt) < 0.05;
+                const curHtml = `${fmt(cur, 1)}<span class="wunit">${unit}</span>`;
+                const meta = w.logged_on
+                    ? `last logged ${esc(w.logged_on)}`
+                    : "";
+
+                // Have a weight but no target: show it, but the graph needs a
+                // goal, so prompt to set one.
+                if (!hasTgt) {
+                    return `
+          <div class="section-title">Weight</div>
+          <div class="weight">
+            <div class="wtop">
+              <div class="wlead">
+                ${label}
+                <div class="wcur">${curHtml}</div>
+              </div>
+            </div>
+            <div class="wempty">No weight goal set. Set one with set_nutrition_goals to see progress here.</div>
+            ${meta ? `<div class="wmeta">${meta}</div>` : ""}
+          </div>`;
+                }
+
+                // Both present: the number-line graph.
+                const atTarget = Math.abs(cur - tgt) < 0.05;
 
                 let chip;
-                if (tgt == null) {
-                    chip = "";
-                } else if (cur == null) {
-                    chip = `<div class="chip">target ${fmt(tgt, 1)} ${unit}</div>`;
-                } else if (atTarget) {
+                if (atTarget) {
                     chip = `<div class="chip ok">at target</div>`;
                 } else {
                     const delta = Math.round((cur - tgt) * 10) / 10;
@@ -608,11 +638,9 @@
                     chip = `<div class="chip">${fmt(Math.abs(delta), 1)} ${unit} ${dir}</div>`;
                 }
 
-                // The number-line graph needs both endpoints to be meaningful.
-                let graph = "";
-                if (cur != null && tgt != null) {
-                    if (atTarget) {
-                        graph = `
+                let graph;
+                if (atTarget) {
+                    graph = `
           <div class="wgraph">
             <div class="wtrack">
               <div class="wmark tgt" style="left:50%"></div>
@@ -622,21 +650,21 @@
               <span class="wcap curcap" style="left:50%">${fmt(cur, 1)} ${unit} · at target</span>
             </div>
           </div>`;
-                    } else {
-                        // Pad the scale beyond the two points so the markers sit
-                        // inboard (~22%/78%) and their centred captions don't
-                        // clip at the card edges.
-                        const lo = Math.min(cur, tgt);
-                        const hi = Math.max(cur, tgt);
-                        const pad = (hi - lo) * 0.4;
-                        const smin = lo - pad;
-                        const span = hi - lo + pad * 2;
-                        const pos = (v) => ((v - smin) / span) * 100;
-                        const pc = pos(cur);
-                        const pt = pos(tgt);
-                        const segL = Math.min(pc, pt);
-                        const segW = Math.abs(pc - pt);
-                        graph = `
+                } else {
+                    // Pad the scale beyond the two points so the markers sit
+                    // inboard (~22%/78%) and their centred captions don't clip
+                    // at the card edges.
+                    const lo = Math.min(cur, tgt);
+                    const hi = Math.max(cur, tgt);
+                    const pad = (hi - lo) * 0.4;
+                    const smin = lo - pad;
+                    const span = hi - lo + pad * 2;
+                    const pos = (v) => ((v - smin) / span) * 100;
+                    const pc = pos(cur);
+                    const pt = pos(tgt);
+                    const segL = Math.min(pc, pt);
+                    const segW = Math.abs(pc - pt);
+                    graph = `
           <div class="wgraph">
             <div class="wtrack">
               <div class="wseg" style="left:${segL.toFixed(1)}%;width:${segW.toFixed(1)}%"></div>
@@ -648,7 +676,6 @@
               <span class="wcap" style="left:${pt.toFixed(1)}%">${fmt(tgt, 1)} goal</span>
             </div>
           </div>`;
-                    }
                 }
 
                 return `
@@ -656,7 +683,7 @@
           <div class="weight">
             <div class="wtop">
               <div class="wlead">
-                <div class="wlabel"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Body weight</div>
+                ${label}
                 <div class="wcur">${curHtml}</div>
               </div>
               ${chip}
