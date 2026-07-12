@@ -101,6 +101,96 @@ function sumWater(entries: WaterEntry[]): number {
     return total;
 }
 
+// log_meal and update_meal share the same MCP Apps widget
+// (public/widgets/meal-logged.html). Both declare this identical output shape
+// and both build their payload via buildMealProgress() below, so the widget can
+// render either result; `action` only changes the header wording.
+const MEAL_PROGRESS_OUTPUT_SCHEMA = {
+    action: z.enum(["logged", "updated"]),
+    date: z.string(),
+    logged_meal: z.object({
+        description: z.string(),
+        meal_type: z.string().nullable(),
+        calories: z.number().nullable(),
+        protein_g: z.number().nullable(),
+        carbs_g: z.number().nullable(),
+        fat_g: z.number().nullable(),
+    }),
+    has_goals: z.boolean(),
+    goals: z
+        .object({
+            calories: z.number().nullable(),
+            protein_g: z.number().nullable(),
+            carbs_g: z.number().nullable(),
+            fat_g: z.number().nullable(),
+            water_ml: z.number().nullable(),
+        })
+        .nullable(),
+    totals: z.object({
+        calories: z.number(),
+        protein_g: z.number(),
+        carbs_g: z.number(),
+        fat_g: z.number(),
+        water_ml: z.number(),
+    }),
+};
+
+// Compute the day's running totals vs goals for a meal that was just logged or
+// updated, packaging both the model-facing progress text and the meal-logged
+// widget's structuredContent. Shared by log_meal and update_meal so the two
+// tools stay in lockstep.
+async function buildMealProgress(
+    userId: string,
+    meal: Meal,
+    action: "logged" | "updated",
+) {
+    const tz = await getUserTimezone(userId);
+    const mealDate = dateInTz(meal.logged_at, tz);
+    const [meals, waterEntries, goals] = await Promise.all([
+        getMealsByDate(userId, mealDate, tz),
+        getWaterByDate(userId, mealDate, tz),
+        getNutritionGoals(userId),
+    ]);
+    const totals = sumMeals(meals);
+    totals.water_ml = sumWater(waterEntries);
+
+    const progressSection = goals
+        ? `\n\nDaily progress (${mealDate}):\n${formatProgress(totals, goals)}`
+        : "\n\nNo nutrition goals set — use the set_nutrition_goals tool to track progress against daily targets.";
+
+    const structuredContent = {
+        action,
+        date: mealDate,
+        logged_meal: {
+            description: meal.description,
+            meal_type: meal.meal_type ?? null,
+            calories: meal.calories ?? null,
+            protein_g: meal.protein_g ?? null,
+            carbs_g: meal.carbs_g ?? null,
+            fat_g: meal.fat_g ?? null,
+        },
+        has_goals: goals != null,
+        goals: goals
+            ? {
+                  calories: goals.daily_calories ?? null,
+                  protein_g: goals.daily_protein_g ?? null,
+                  carbs_g: goals.daily_carbs_g ?? null,
+                  fat_g: goals.daily_fat_g ?? null,
+                  water_ml: goals.daily_water_ml ?? null,
+              }
+            : null,
+        totals: {
+            calories: Math.round(totals.calories),
+            protein_g: Math.round(totals.protein_g * 10) / 10,
+            carbs_g: Math.round(totals.carbs_g * 10) / 10,
+            fat_g: Math.round(totals.fat_g * 10) / 10,
+            water_ml: totals.water_ml,
+        },
+    };
+
+    return { progressSection, structuredContent };
+}
+
 function formatGoalLine(
     label: string,
     unit: string,
@@ -273,36 +363,10 @@ function registerTools(server: McpServer, userId: string) {
                         "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the meal content (including logged_at), so replaying the identical call returns the original meal instead of duplicating it. Pass a UUID only to force-override that behavior. Do NOT reuse a key for genuinely different meals.",
                     ),
             },
-            outputSchema: {
-                date: z.string(),
-                logged_meal: z.object({
-                    description: z.string(),
-                    meal_type: z.string().nullable(),
-                    calories: z.number().nullable(),
-                    protein_g: z.number().nullable(),
-                    carbs_g: z.number().nullable(),
-                    fat_g: z.number().nullable(),
-                }),
-                has_goals: z.boolean(),
-                goals: z
-                    .object({
-                        calories: z.number().nullable(),
-                        protein_g: z.number().nullable(),
-                        carbs_g: z.number().nullable(),
-                        fat_g: z.number().nullable(),
-                        water_ml: z.number().nullable(),
-                    })
-                    .nullable(),
-                totals: z.object({
-                    calories: z.number(),
-                    protein_g: z.number(),
-                    carbs_g: z.number(),
-                    fat_g: z.number(),
-                    water_ml: z.number(),
-                }),
-            },
-            // Link the tool to its progress UI (MCP Apps). The widget itself
-            // renders nothing when no goals are set.
+            outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
+            // Link the tool to its progress UI (MCP Apps). update_meal reuses
+            // the SAME widget; see buildMealProgress / meal-logged.html. The
+            // widget renders nothing when no goals are set.
             _meta: { ui: { resourceUri: MEAL_LOGGED_WIDGET_URI } },
         },
         async (args) => {
@@ -317,37 +381,8 @@ function registerTools(server: McpServer, userId: string) {
                         ? "Meal already logged (idempotent retry):"
                         : "Meal logged:";
 
-                    const tz = await getUserTimezone(userId);
-                    const mealDate = dateInTz(meal.logged_at, tz);
-                    const [meals, waterEntries, goals] = await Promise.all([
-                        getMealsByDate(userId, mealDate, tz),
-                        getWaterByDate(userId, mealDate, tz),
-                        getNutritionGoals(userId),
-                    ]);
-
-                    const totals = sumMeals(meals);
-                    totals.water_ml = sumWater(waterEntries);
-
-                    let progressSection: string;
-                    if (goals) {
-                        progressSection = `\n\nDaily progress (${mealDate}):\n${formatProgress(totals, goals)}`;
-                    } else {
-                        progressSection =
-                            "\n\nNo nutrition goals set — use the set_nutrition_goals tool to track progress against daily targets.";
-                    }
-
-                    // Payload for the meal-logged widget: the day's running
-                    // totals vs goals as rings. The widget shows nothing when
-                    // has_goals is false (no target to plot against).
-                    const goalsPayload = goals
-                        ? {
-                              calories: goals.daily_calories ?? null,
-                              protein_g: goals.daily_protein_g ?? null,
-                              carbs_g: goals.daily_carbs_g ?? null,
-                              fat_g: goals.daily_fat_g ?? null,
-                              water_ml: goals.daily_water_ml ?? null,
-                          }
-                        : null;
+                    const { progressSection, structuredContent } =
+                        await buildMealProgress(userId, meal, "logged");
 
                     return {
                         content: [
@@ -356,27 +391,7 @@ function registerTools(server: McpServer, userId: string) {
                                 text: `${header}\n${formatMeal(meal)}${progressSection}`,
                             },
                         ],
-                        structuredContent: {
-                            date: mealDate,
-                            logged_meal: {
-                                description: meal.description,
-                                meal_type: meal.meal_type ?? null,
-                                calories: meal.calories ?? null,
-                                protein_g: meal.protein_g ?? null,
-                                carbs_g: meal.carbs_g ?? null,
-                                fat_g: meal.fat_g ?? null,
-                            },
-                            has_goals: goals != null,
-                            goals: goalsPayload,
-                            totals: {
-                                calories: Math.round(totals.calories),
-                                protein_g:
-                                    Math.round(totals.protein_g * 10) / 10,
-                                carbs_g: Math.round(totals.carbs_g * 10) / 10,
-                                fat_g: Math.round(totals.fat_g * 10) / 10,
-                                water_ml: totals.water_ml,
-                            },
-                        },
+                        structuredContent,
                     };
                 },
                 { userId },
@@ -1250,19 +1265,27 @@ function registerTools(server: McpServer, userId: string) {
                 logged_at: z.string().optional(),
                 notes: z.string().optional(),
             },
+            outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
+            // Reuses the SAME meal-logged widget as log_meal (see
+            // buildMealProgress / meal-logged.html); `action: "updated"` just
+            // changes its header. Renders nothing when no goals are set.
+            _meta: { ui: { resourceUri: MEAL_LOGGED_WIDGET_URI } },
         },
         async ({ id, ...fields }) => {
             return withAnalytics(
                 "update_meal",
                 async () => {
                     const meal = await updateMeal(userId, id, fields);
+                    const { progressSection, structuredContent } =
+                        await buildMealProgress(userId, meal, "updated");
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Meal updated:\n${formatMeal(meal)}`,
+                                text: `Meal updated:\n${formatMeal(meal)}${progressSection}`,
                             },
                         ],
+                        structuredContent,
                     };
                 },
                 { userId },

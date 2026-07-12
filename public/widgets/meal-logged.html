@@ -7,12 +7,15 @@
   the sandbox blocks external hosts. Styling follows public/widgets/STYLE_GUIDE.md
   (theme tokens, panel surface, donut gauge) so it matches the other widgets.
 
-  Shown after log_meal: the day's running totals vs the user's goals as donut
-  rings. Per product decision, it renders NOTHING when no nutrition goals are set
-  (there is no target to show progress against).
+  Shown after log_meal AND update_meal (both tools link this same widget and emit
+  the same structuredContent shape via buildMealProgress in src/mcp.ts): the day's
+  running totals vs the user's goals as donut rings. The `action` field ("logged"
+  or "updated") only changes the header wording. Per product decision, it renders
+  NOTHING when no nutrition goals are set (there is no target to show progress
+  against).
 
-  Data arrives as the `structuredContent` of the log_meal tool result. We read it
-  defensively across host conventions:
+  Data arrives as the `structuredContent` of the log_meal / update_meal tool
+  result. We read it defensively across host conventions:
     - MCP Apps bridge: postMessage with a tool-result notification
     - ChatGPT Apps SDK: window.openai.toolOutput
     - Standalone preview: window.__NUTRITION_DATA__ (the sample below)
@@ -470,9 +473,14 @@
                     sub = bits.join(" · ");
                 }
 
+                // Same widget for log_meal and update_meal — the action only
+                // changes the header wording.
+                const title =
+                    data.action === "updated" ? "Meal updated" : "Meal logged";
+
                 root.innerHTML = `
           <header class="head">
-            <h1>Meal logged</h1>
+            <h1>${title}</h1>
             ${sub ? `<span class="range">${sub}</span>` : ""}
           </header>
           <div class="section-title">Today vs goal</div>
