@@ -71,6 +71,8 @@ const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const MEAL_LOGGED_WIDGET_FILE = "./public/widgets/meal-logged.html";
 const TRENDS_WIDGET_URI = "ui://widget/trends.html";
 const TRENDS_WIDGET_FILE = "./public/widgets/trends.html";
+const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
+const WEIGHT_TRENDS_WIDGET_FILE = "./public/widgets/weight-trends.html";
 
 interface DailyTotals {
     calories: number;
@@ -726,6 +728,31 @@ function registerTools(server: McpServer, userId: string) {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
                         text: await Bun.file(TRENDS_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the get_weight_trends widget (weight-over-time line chart
+    // with a 7/14/30-day toggle and target line). Same contract as above.
+    server.registerResource(
+        "weight-trends-widget",
+        WEIGHT_TRENDS_WIDGET_URI,
+        {
+            title: "Weight Trends",
+            description:
+                "Interactive UI for get_weight_trends: a 7/14/30-day toggle over a weight-over-time chart (data-scaled axis, target line) plus latest/change/target stats, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(WEIGHT_TRENDS_WIDGET_FILE).text(),
                         _meta: { ui: { prefersBorder: true } },
                     },
                 ],
@@ -1816,6 +1843,22 @@ function registerTools(server: McpServer, userId: string) {
                     .optional()
                     .describe("Window end date YYYY-MM-DD (default today)."),
             },
+            outputSchema: {
+                end_date: z.string(),
+                unit: z.string(),
+                target: z.number().nullable(),
+                default_range: z.number(),
+                // Per-day weight (same-day weigh-ins averaged) in display units,
+                // for logged days within the last 30 days; widget slices 7/14/30.
+                days: z.array(
+                    z.object({
+                        date: z.string(),
+                        weight: z.number(),
+                    }),
+                ),
+            },
+            // Link the tool to its interactive weight-trends UI (MCP Apps).
+            _meta: { ui: { resourceUri: WEIGHT_TRENDS_WIDGET_URI } },
         },
         async ({ days, end_date }) => {
             return withAnalytics(
@@ -1828,28 +1871,81 @@ function registerTools(server: McpServer, userId: string) {
                     const unit = weightPref ?? "kg";
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    const startDate = shiftLocalDate(
+                    // The widget's toggle offers up to 30 days, so fetch at
+                    // least 30 regardless of the requested text window.
+                    const seriesDays = Math.max(windowDays, 30);
+                    const fetchStart = shiftLocalDate(
+                        endDate,
+                        -(seriesDays - 1),
+                    );
+                    const requestedStart = shiftLocalDate(
                         endDate,
                         -(windowDays - 1),
                     );
                     const [entries, goals] = await Promise.all([
-                        getWeightInRange(userId, startDate, endDate, tz),
+                        getWeightInRange(userId, fetchStart, endDate, tz),
                         getNutritionGoals(userId),
                     ]);
+                    const targetG = goals?.target_weight_g ?? null;
+
+                    // Text summary respects the requested window.
+                    const textEntries =
+                        windowDays >= 30
+                            ? entries
+                            : entries.filter(
+                                  (e) =>
+                                      dateInTz(e.logged_at, tz) >=
+                                      requestedStart,
+                              );
+
+                    // Widget series: one value per logged day (same-day
+                    // weigh-ins averaged), in display units, within 30 days.
+                    const seriesCutoff = shiftLocalDate(endDate, -29);
+                    const dailyG = new Map<
+                        string,
+                        { total: number; count: number }
+                    >();
+                    for (const e of entries) {
+                        const date = dateInTz(e.logged_at, tz);
+                        const cur = dailyG.get(date) ?? { total: 0, count: 0 };
+                        cur.total += e.weight_g;
+                        cur.count += 1;
+                        dailyG.set(date, cur);
+                    }
+                    const widgetDays = [...dailyG.entries()]
+                        .filter(([date]) => date >= seriesCutoff)
+                        .map(([date, { total, count }]) => ({
+                            date,
+                            weight: fromGrams(total / count, unit),
+                        }))
+                        .sort((a, b) => (a.date < b.date ? -1 : 1));
+
                     return {
                         content: [
                             {
                                 type: "text",
                                 text: computeWeightTrend(
-                                    entries,
-                                    startDate,
+                                    textEntries,
+                                    requestedStart,
                                     endDate,
                                     tz,
-                                    goals?.target_weight_g ?? null,
+                                    targetG,
                                     unit,
                                 ),
                             },
                         ],
+                        structuredContent: {
+                            end_date: endDate,
+                            unit,
+                            target:
+                                targetG != null
+                                    ? fromGrams(targetG, unit)
+                                    : null,
+                            default_range: [7, 14, 30].includes(windowDays)
+                                ? windowDays
+                                : 30,
+                            days: widgetDays,
+                        },
                     };
                 },
                 { userId },

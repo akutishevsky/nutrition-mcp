@@ -356,6 +356,10 @@ and legible:
 - Strokes use theme tokens: `.axis { stroke: var(--panel-border) }`, the dashed
   goal line uses `var(--text-dim)` at `opacity: 0.5`, the series line/area use the
   series colour.
+- **Zero-based vs data-scaled Y.** Quantities that start at 0 (calories, macros)
+  use a zero-based axis. Metrics that hover in a narrow band (body weight) must
+  scale the axis to `[min, max] ± ~18%` of the data instead — a zero-based weight
+  chart flattens the trend into a straight line. See `weight-trends.html`.
 
 ```css
 .trend {

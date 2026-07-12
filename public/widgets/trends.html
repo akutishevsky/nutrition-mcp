@@ -639,15 +639,25 @@
             function render(data) {
                 STATE.data = data;
                 const root = document.getElementById("root");
-                if (
-                    !data ||
-                    !Array.isArray(data.days) ||
-                    data.days.length === 0
-                ) {
+                // The tool sends a bucket for every calendar day (zeros for
+                // unlogged days), so the array is basically never empty — treat
+                // an all-zero series (nothing logged) as empty too.
+                const anyLogged =
+                    data &&
+                    Array.isArray(data.days) &&
+                    data.days.some(
+                        (d) =>
+                            (d.calories || 0) > 0 ||
+                            (d.protein_g || 0) > 0 ||
+                            (d.carbs_g || 0) > 0 ||
+                            (d.fat_g || 0) > 0 ||
+                            (d.water_ml || 0) > 0,
+                    );
+                if (!anyLogged) {
                     root.innerHTML = `
             <div class="empty">
               <div class="big">📈</div>
-              <div>No trend data in this range yet.</div>
+              <div>No meals or water logged in this range yet.</div>
             </div>`;
                     return;
                 }
