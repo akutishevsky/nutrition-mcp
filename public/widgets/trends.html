@@ -117,7 +117,6 @@
                 padding: 0;
             }
             body {
-                min-height: 100vh;
                 color: var(--text);
                 background: var(--bg);
                 font-family:
@@ -769,6 +768,37 @@
                 try {
                     if (host) host.postMessage(msg, "*");
                 } catch (_) {}
+            }
+
+            // Report our content height so the host sizes the iframe to fit
+            // (MCP Apps ui/notifications/size-changed). Without this the host
+            // uses a default height and clips the widget. Measure the
+            // document's natural (max-content) height, then restore.
+            function sendSize() {
+                if (!host) return;
+                const el = document.documentElement;
+                const prev = el.style.height;
+                el.style.height = "max-content";
+                const height = Math.ceil(el.getBoundingClientRect().height);
+                el.style.height = prev;
+                post({
+                    jsonrpc: "2.0",
+                    method: "ui/notifications/size-changed",
+                    params: { width: Math.ceil(window.innerWidth), height },
+                });
+            }
+            if (host && typeof ResizeObserver !== "undefined") {
+                let scheduled = false;
+                const ro = new ResizeObserver(() => {
+                    if (scheduled) return;
+                    scheduled = true;
+                    requestAnimationFrame(() => {
+                        scheduled = false;
+                        sendSize();
+                    });
+                });
+                ro.observe(document.documentElement);
+                ro.observe(document.body);
             }
 
             window.addEventListener("message", (event) => {
