@@ -521,3 +521,9 @@ without a real client, and screenshot at light/dark and at a narrow (~400px) wid
 before shipping — the mobile check is what catches shrinking SVG text and cramped
 grids. For interactive widgets, also exercise each control and confirm it
 re-renders.
+
+**Start the harness iframe SHORT (~130px) and grow it on `ui/notifications/size-changed`.**
+The real host gives the widget a small default height and only expands it when the
+widget reports its own height (see CLAUDE.md → handshake). A fixed-tall test iframe
+hides clipping entirely — that is exactly how a clipped widget shipped once. Every
+widget must send `size-changed` and re-send it via a `ResizeObserver`.
