@@ -1,0 +1,709 @@
+<!doctype html>
+<!--
+  Weight-trends widget (MCP Apps).
+
+  Rendered inside a sandboxed iframe by MCP Apps hosts (Claude, ChatGPT, VS Code,
+  Goose). Fully self-contained — inline CSS + JS, zero network requests — because
+  the sandbox blocks external hosts. Styling follows public/widgets/STYLE_GUIDE.md
+  (theme tokens, panel surface, SVG chart, segmented control).
+
+  Shown after get_weight_trends. The tool sends up to 30 days of per-day weight
+  (same-day weigh-ins averaged), and the 7 / 14 / 30-day toggle filters it
+  CLIENT-SIDE and re-renders — no host round-trip. Unlike the calorie chart, the
+  weight axis is scaled to the data range (NOT zero-based) so small changes stay
+  visible, with a dashed target line.
+
+  Data arrives as the `structuredContent` of the get_weight_trends tool result.
+  We read it defensively across host conventions:
+    - MCP Apps bridge: postMessage with a tool-result notification
+    - ChatGPT Apps SDK: window.openai.toolOutput
+    - Standalone preview: window.__NUTRITION_DATA__ (the sample below)
+
+  Theme: follows the OS via prefers-color-scheme by default, and lets a host
+  override it (data-theme on <html>, or a `theme` field pushed by the host).
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Weight Trends</title>
+        <style>
+            :root {
+                /* Light theme (default). Dark overridden below. */
+                --text: #1d1d1f;
+                --text-dim: #6e6e73;
+                --bg: #f5f5f7;
+                --panel: #ffffff;
+                --panel-border: #e6e6ea;
+                --track: #e6e6ea;
+                --accent: #4a7c59;
+                --shadow:
+                    0 1px 2px rgba(0, 0, 0, 0.05),
+                    0 8px 22px rgba(0, 0, 0, 0.05);
+                --over: #d0452b;
+                --radius: 18px;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --text: #f5f5f7;
+                    --text-dim: #98989d;
+                    --bg: #000000;
+                    --panel: #1c1c1e;
+                    --panel-border: #2c2c2e;
+                    --track: #2c2c2e;
+                    --accent: #6ab98a;
+                    --shadow: none;
+                    --over: #ff6b52;
+                }
+            }
+
+            /* Explicit host override wins over the media query in both directions. */
+            :root[data-theme="light"] {
+                --text: #1d1d1f;
+                --text-dim: #6e6e73;
+                --bg: #f5f5f7;
+                --panel: #ffffff;
+                --panel-border: #e6e6ea;
+                --track: #e6e6ea;
+                --accent: #4a7c59;
+                --shadow:
+                    0 1px 2px rgba(0, 0, 0, 0.05),
+                    0 8px 22px rgba(0, 0, 0, 0.05);
+                --over: #d0452b;
+            }
+            :root[data-theme="dark"] {
+                --text: #f5f5f7;
+                --text-dim: #98989d;
+                --bg: #000000;
+                --panel: #1c1c1e;
+                --panel-border: #2c2c2e;
+                --track: #2c2c2e;
+                --accent: #6ab98a;
+                --shadow: none;
+                --over: #ff6b52;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                min-height: 100vh;
+                color: var(--text);
+                background: var(--bg);
+                font-family:
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                font-size: 14px;
+                line-height: 1.45;
+                -webkit-font-smoothing: antialiased;
+            }
+            .wrap {
+                max-width: 760px;
+                margin: 0 auto;
+                padding: 18px 16px 22px;
+            }
+
+            header.head {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 12px;
+            }
+            .head h1 {
+                font-size: 21px;
+                font-weight: 800;
+                margin: 0;
+                letter-spacing: -0.03em;
+            }
+            .head .range {
+                color: var(--text-dim);
+                font-size: 13px;
+                font-weight: 500;
+                font-variant-numeric: tabular-nums;
+            }
+
+            /* Segmented control (7 / 14 / 30-day toggle). Active label uses
+               var(--bg) on the accent fill for contrast in both themes. */
+            .seg {
+                display: inline-flex;
+                gap: 2px;
+                padding: 3px;
+                background: var(--track);
+                border-radius: 999px;
+                margin-bottom: 16px;
+            }
+            .seg-btn {
+                appearance: none;
+                -webkit-appearance: none;
+                border: 0;
+                background: transparent;
+                color: var(--text-dim);
+                font: inherit;
+                font-size: 13px;
+                font-weight: 600;
+                padding: 6px 15px;
+                border-radius: 999px;
+                cursor: pointer;
+                font-variant-numeric: tabular-nums;
+                -webkit-tap-highlight-color: transparent;
+                transition:
+                    background 0.12s ease,
+                    color 0.12s ease;
+            }
+            .seg-btn:hover {
+                color: var(--text);
+            }
+            .seg-btn.active {
+                background: var(--accent);
+                color: var(--bg);
+            }
+
+            /* Chart card */
+            .trend {
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                padding: 14px 16px 12px;
+                margin-bottom: 20px;
+            }
+            .trend .thead {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 8px;
+            }
+            .trend .ttitle {
+                font-size: 12px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-dim);
+            }
+            .trend .tmeta {
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+            }
+            .trend svg {
+                width: 100%;
+                height: auto;
+                display: block;
+            }
+            .trend .axis {
+                stroke: var(--panel-border);
+            }
+            .trend .goalline {
+                stroke: var(--text-dim);
+                stroke-dasharray: 3 3;
+                opacity: 0.55;
+            }
+            .trend .tdates {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 5px;
+                padding: 0 2px;
+                font-size: 11px;
+                font-weight: 500;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+            }
+            .trend .cempty {
+                padding: 26px 0 22px;
+                text-align: center;
+                color: var(--text-dim);
+                font-size: 13px;
+            }
+
+            /* Stat cards */
+            .stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 12px;
+            }
+            .stat {
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                padding: 14px 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .stat .slabel {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--text-dim);
+            }
+            .stat .sval {
+                font-size: 22px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                font-variant-numeric: tabular-nums;
+            }
+            .stat .sval .sunit {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text-dim);
+                margin-left: 2px;
+            }
+            .stat .scap {
+                font-size: 11.5px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+            }
+
+            .empty {
+                text-align: center;
+                color: var(--text-dim);
+                padding: 40px 20px;
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+            }
+            .empty .big {
+                font-size: 26px;
+                margin-bottom: 6px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+
+        <script>
+            "use strict";
+
+            const RANGES = [7, 14, 30];
+
+            function shiftDate(date, delta) {
+                const d = new Date(date + "T00:00:00Z");
+                d.setUTCDate(d.getUTCDate() + delta);
+                return d.toISOString().slice(0, 10);
+            }
+
+            // ---- Sample data so the file renders on its own (browser preview) ----
+            function buildSample() {
+                const days = [];
+                const end = new Date("2026-07-11T00:00:00Z");
+                for (let i = 30; i >= 0; i -= 2) {
+                    const d = new Date(end);
+                    d.setUTCDate(d.getUTCDate() - i);
+                    const date = d.toISOString().slice(0, 10);
+                    const t = (30 - i) / 30;
+                    const w = 80 - t * 3 + Math.sin(i) * 0.25;
+                    days.push({ date, weight: Math.round(w * 10) / 10 });
+                }
+                return {
+                    end_date: "2026-07-11",
+                    unit: "kg",
+                    target: 75,
+                    default_range: 30,
+                    days,
+                };
+            }
+            const SAMPLE = buildSample();
+
+            function fmt(n, decimals) {
+                if (n == null || isNaN(n)) return "0";
+                const r = decimals ? n.toFixed(decimals) : Math.round(n);
+                return Number(r).toLocaleString();
+            }
+            function esc(s) {
+                return String(s).replace(
+                    /[&<>"]/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                        })[c],
+                );
+            }
+            function signed(n, decimals) {
+                const s = n > 0 ? "+" : n < 0 ? "−" : "";
+                return `${s}${fmt(Math.abs(n), decimals)}`;
+            }
+
+            // Weight-over-time line chart. Y is scaled to the data range (plus
+            // the target) — NOT zero-based — so small changes stay visible.
+            function weightChart(days, target, unit) {
+                const W = 480,
+                    H = 104,
+                    padL = 8,
+                    padR = 8,
+                    padT = 12,
+                    padB = 8;
+                const n = days.length;
+                const weights = days.map((d) => d.weight);
+                let lo = Math.min(...weights);
+                let hi = Math.max(...weights);
+                if (target != null) {
+                    lo = Math.min(lo, target);
+                    hi = Math.max(hi, target);
+                }
+                if (hi === lo) {
+                    hi = lo + 1;
+                    lo = lo - 1;
+                }
+                const pad = (hi - lo) * 0.18;
+                const yMin = lo - pad;
+                const yMax = hi + pad;
+                const plotW = W - padL - padR;
+                const plotH = H - padT - padB;
+                const base = padT + plotH;
+                const x = (i) =>
+                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
+                const y = (v) =>
+                    padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+                const pts = weights.map((v, i) => [x(i), y(v)]);
+
+                const line =
+                    n >= 2
+                        ? pts
+                              .map(
+                                  (p, i) =>
+                                      `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
+                              )
+                              .join(" ")
+                        : "";
+                const area =
+                    n >= 2
+                        ? `M${pts[0][0].toFixed(1)} ${base} ` +
+                          pts
+                              .map(
+                                  (p) =>
+                                      `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
+                              )
+                              .join(" ") +
+                          ` L${pts[n - 1][0].toFixed(1)} ${base} Z`
+                        : "";
+                const targetLine =
+                    target != null
+                        ? `<line class="goalline" x1="${padL}" y1="${y(target).toFixed(1)}" x2="${W - padR}" y2="${y(target).toFixed(1)}"/>`
+                        : "";
+                const dots = pts
+                    .map(
+                        (p) =>
+                            `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--accent)"/>`,
+                    )
+                    .join("");
+
+                const latest = weights[n - 1];
+                const meta = `latest ${fmt(latest, 1)} ${esc(unit)}${target != null ? ` · target ${fmt(target, 1)} ${esc(unit)}` : ""}`;
+
+                return `
+          <div class="trend">
+            <div class="thead">
+              <span class="ttitle">Weight</span>
+              <span class="tmeta">${meta}</span>
+            </div>
+            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight over the selected range">
+              <defs>
+                <linearGradient id="wfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.20"/>
+                  <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+              ${targetLine}
+              ${area ? `<path d="${area}" fill="url(#wfill)"/>` : ""}
+              ${line ? `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
+              ${dots}
+            </svg>
+            <div class="tdates">
+              <span>${esc(days[0].date.slice(5))}</span>
+              <span>${esc(days[n - 1].date.slice(5))}</span>
+            </div>
+          </div>`;
+            }
+
+            function statCards(slice, target, unit) {
+                const n = slice.length;
+                const first = slice[0].weight;
+                const last = slice[n - 1].weight;
+                const change = Math.round((last - first) * 10) / 10;
+
+                // Change is "good" (accent) when it shrinks the gap to target.
+                let changeColor = "";
+                if (target != null && n >= 2) {
+                    const closer =
+                        Math.abs(last - target) < Math.abs(first - target);
+                    changeColor = closer ? "var(--accent)" : "var(--over)";
+                }
+                const changeVal =
+                    n >= 2
+                        ? `<div class="sval" style="${changeColor ? `color:${changeColor}` : ""}">${signed(change, 1)}<span class="sunit">${esc(unit)}</span></div>`
+                        : `<div class="sval">—</div>`;
+                const changeCap =
+                    n >= 2
+                        ? `since ${esc(slice[0].date.slice(5))}`
+                        : "need 2+ weigh-ins";
+
+                let targetCard = "";
+                if (target != null) {
+                    const delta = Math.round((last - target) * 10) / 10;
+                    const cap =
+                        Math.abs(delta) < 0.05
+                            ? "at target"
+                            : `${fmt(Math.abs(delta), 1)} ${esc(unit)} ${delta > 0 ? "to lose" : "to gain"}`;
+                    targetCard = `
+            <div class="stat">
+              <div class="slabel">Target</div>
+              <div class="sval">${fmt(target, 1)}<span class="sunit">${esc(unit)}</span></div>
+              <div class="scap">${cap}</div>
+            </div>`;
+                } else {
+                    targetCard = `
+            <div class="stat">
+              <div class="slabel">Target</div>
+              <div class="sval">—</div>
+              <div class="scap">no target set</div>
+            </div>`;
+                }
+
+                return `
+          <div class="stats">
+            <div class="stat">
+              <div class="slabel"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block"></span>Latest</div>
+              <div class="sval">${fmt(last, 1)}<span class="sunit">${esc(unit)}</span></div>
+              <div class="scap">on ${esc(slice[n - 1].date)}</div>
+            </div>
+            <div class="stat">
+              <div class="slabel">Change</div>
+              ${changeVal}
+              <div class="scap">${changeCap}</div>
+            </div>
+            ${targetCard}
+          </div>`;
+            }
+
+            // ---- State + rendering ---------------------------------------------
+            const STATE = { data: null, range: 30 };
+
+            function render(data) {
+                STATE.data = data;
+                const root = document.getElementById("root");
+                if (
+                    !data ||
+                    !Array.isArray(data.days) ||
+                    data.days.length === 0
+                ) {
+                    root.innerHTML = `
+            <div class="empty">
+              <div class="big">⚖️</div>
+              <div>No weight logged in this range yet.</div>
+            </div>`;
+                    return;
+                }
+                STATE.range = RANGES.includes(data.default_range)
+                    ? data.default_range
+                    : 30;
+                paint();
+            }
+
+            function paint() {
+                const root = document.getElementById("root");
+                const data = STATE.data;
+                const unit = data.unit || "kg";
+                const target = data.target ?? null;
+                const all = data.days
+                    .slice()
+                    .sort((a, b) => (a.date < b.date ? -1 : 1));
+                const range = STATE.range;
+                const cutoff = shiftDate(
+                    data.end_date || all[all.length - 1].date,
+                    -(range - 1),
+                );
+                const slice = all.filter((d) => d.date >= cutoff);
+                const n = slice.length;
+
+                const seg = RANGES.map(
+                    (r) =>
+                        `<button class="seg-btn${r === range ? " active" : ""}" data-n="${r}" role="tab" aria-selected="${r === range}">${r} days</button>`,
+                ).join("");
+
+                const sub = n
+                    ? `${esc(slice[0].date)} → ${esc(slice[n - 1].date)} · ${n} weigh-in${n === 1 ? "" : "s"}`
+                    : `last ${range} days`;
+
+                let body;
+                if (n === 0) {
+                    body = `
+            <div class="trend">
+              <div class="thead"><span class="ttitle">Weight</span></div>
+              <div class="cempty">No weigh-ins in the last ${range} days. Try a wider range.</div>
+            </div>`;
+                } else {
+                    body = `
+          ${weightChart(slice, target, unit)}
+          ${statCards(slice, target, unit)}`;
+                }
+
+                root.innerHTML = `
+          <header class="head">
+            <h1>Weight Trends</h1>
+            <span class="range">${sub}</span>
+          </header>
+          <div class="seg" role="tablist" aria-label="Trend window">${seg}</div>
+          ${body}`;
+            }
+
+            // Delegated on #root, which survives paint()'s innerHTML rewrites.
+            document.getElementById("root").addEventListener("click", (e) => {
+                const btn = e.target.closest(".seg-btn");
+                if (!btn) return;
+                const n = Number(btn.dataset.n);
+                if (n && n !== STATE.range && STATE.data) {
+                    STATE.range = n;
+                    paint();
+                }
+            });
+
+            // ---- Theme handling ------------------------------------------------
+            function applyTheme(theme) {
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                }
+            }
+            function themeFrom(obj) {
+                if (!obj || typeof obj !== "object") return null;
+                return (
+                    obj.theme ||
+                    obj.colorScheme ||
+                    obj.hostContext?.theme ||
+                    obj.styles?.theme ||
+                    obj.globals?.theme ||
+                    null
+                );
+            }
+
+            // ---- Rendering intake ----------------------------------------------
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                if (Array.isArray(payload.days)) return payload;
+                if (payload.structuredContent) return payload.structuredContent;
+                return null;
+            }
+            function show(payload) {
+                const data = coerce(payload);
+                if (!data) return false;
+                render(data);
+                return true;
+            }
+
+            // ---- MCP Apps host bridge (JSON-RPC over postMessage) --------------
+            // Critical: the host does NOT push tool data until the app announces
+            // itself with a `ui/initialize` request and the handshake completes.
+            // The host then sends `ui/notifications/tool-result` carrying
+            // structuredContent. Spec: MCP Apps 2026-01-26.
+            const host =
+                window.parent && window.parent !== window
+                    ? window.parent
+                    : null;
+            let initId = 0;
+            function post(msg) {
+                try {
+                    if (host) host.postMessage(msg, "*");
+                } catch (_) {}
+            }
+
+            window.addEventListener("message", (event) => {
+                const d = event.data;
+                if (!d || typeof d !== "object") return;
+
+                // JSON-RPC response to our ui/initialize: we MUST answer with
+                // ui/notifications/initialized — strict hosts (MCP Inspector)
+                // withhold the tool result until they receive it.
+                if (d.id != null && d.id === initId && d.result) {
+                    const t =
+                        themeFrom(d.result) || themeFrom(d.result.hostContext);
+                    if (t) applyTheme(t);
+                    post({
+                        jsonrpc: "2.0",
+                        method: "ui/notifications/initialized",
+                    });
+                    return;
+                }
+
+                if (typeof d.method === "string") {
+                    const p = d.params || {};
+                    const t = themeFrom(d) || themeFrom(p);
+                    if (t) applyTheme(t);
+                    if (d.method.endsWith("tool-result")) {
+                        show(p.structuredContent || p);
+                    }
+                    return;
+                }
+
+                const t = themeFrom(d);
+                if (t) applyTheme(t);
+                show(d.structuredContent || d);
+            });
+
+            if (host) {
+                document.getElementById("root").innerHTML =
+                    '<div class="empty"><div class="big">⚖️</div><div>Loading your weight trends…</div></div>';
+
+                // Announce the app. Field names MUST match the
+                // McpUiInitializeRequest schema exactly (appInfo /
+                // appCapabilities — NOT clientInfo / capabilities); strict hosts
+                // silently drop a malformed request.
+                initId = 1;
+                post({
+                    jsonrpc: "2.0",
+                    id: initId,
+                    method: "ui/initialize",
+                    params: {
+                        protocolVersion: "2026-01-26",
+                        appInfo: {
+                            name: "weight-trends-widget",
+                            version: "1.0.0",
+                        },
+                        appCapabilities: {},
+                    },
+                });
+
+                // ChatGPT Apps SDK compatibility.
+                try {
+                    if (window.openai) {
+                        if (window.openai.theme)
+                            applyTheme(window.openai.theme);
+                        if (window.openai.toolOutput)
+                            show(window.openai.toolOutput);
+                    }
+                    window.addEventListener("openai:set_globals", (e) => {
+                        const g = e.detail?.globals || e.detail || {};
+                        const t = themeFrom(g);
+                        if (t) applyTheme(t);
+                        if (g.toolOutput) show(g.toolOutput);
+                    });
+                } catch (_) {}
+            } else {
+                render(window.__NUTRITION_DATA__ || SAMPLE);
+            }
+        </script>
+    </body>
+</html>

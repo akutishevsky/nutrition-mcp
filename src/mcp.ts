@@ -57,6 +57,23 @@ import {
 import { exportMeals } from "./export.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 
+// MCP Apps UI (https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/):
+// the get_nutrition_summary tool links to an HTML dashboard served as a ui://
+// resource. Hosts (Claude, ChatGPT, VS Code, Goose) render it in a sandboxed
+// iframe and hand it the tool's structuredContent. One MIME type / one resource
+// works across all MCP Apps-capable clients.
+const SUMMARY_WIDGET_URI = "ui://widget/nutrition-summary.html";
+const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
+const SUMMARY_WIDGET_FILE = "./public/widgets/nutrition-summary.html";
+const GOAL_PROGRESS_WIDGET_URI = "ui://widget/goal-progress.html";
+const GOAL_PROGRESS_WIDGET_FILE = "./public/widgets/goal-progress.html";
+const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
+const MEAL_LOGGED_WIDGET_FILE = "./public/widgets/meal-logged.html";
+const TRENDS_WIDGET_URI = "ui://widget/trends.html";
+const TRENDS_WIDGET_FILE = "./public/widgets/trends.html";
+const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
+const WEIGHT_TRENDS_WIDGET_FILE = "./public/widgets/weight-trends.html";
+
 interface DailyTotals {
     calories: number;
     protein_g: number;
@@ -86,6 +103,96 @@ function sumWater(entries: WaterEntry[]): number {
     let total = 0;
     for (const e of entries) total += e.amount_ml;
     return total;
+}
+
+// log_meal and update_meal share the same MCP Apps widget
+// (public/widgets/meal-logged.html). Both declare this identical output shape
+// and both build their payload via buildMealProgress() below, so the widget can
+// render either result; `action` only changes the header wording.
+const MEAL_PROGRESS_OUTPUT_SCHEMA = {
+    action: z.enum(["logged", "updated"]),
+    date: z.string(),
+    logged_meal: z.object({
+        description: z.string(),
+        meal_type: z.string().nullable(),
+        calories: z.number().nullable(),
+        protein_g: z.number().nullable(),
+        carbs_g: z.number().nullable(),
+        fat_g: z.number().nullable(),
+    }),
+    has_goals: z.boolean(),
+    goals: z
+        .object({
+            calories: z.number().nullable(),
+            protein_g: z.number().nullable(),
+            carbs_g: z.number().nullable(),
+            fat_g: z.number().nullable(),
+            water_ml: z.number().nullable(),
+        })
+        .nullable(),
+    totals: z.object({
+        calories: z.number(),
+        protein_g: z.number(),
+        carbs_g: z.number(),
+        fat_g: z.number(),
+        water_ml: z.number(),
+    }),
+};
+
+// Compute the day's running totals vs goals for a meal that was just logged or
+// updated, packaging both the model-facing progress text and the meal-logged
+// widget's structuredContent. Shared by log_meal and update_meal so the two
+// tools stay in lockstep.
+async function buildMealProgress(
+    userId: string,
+    meal: Meal,
+    action: "logged" | "updated",
+) {
+    const tz = await getUserTimezone(userId);
+    const mealDate = dateInTz(meal.logged_at, tz);
+    const [meals, waterEntries, goals] = await Promise.all([
+        getMealsByDate(userId, mealDate, tz),
+        getWaterByDate(userId, mealDate, tz),
+        getNutritionGoals(userId),
+    ]);
+    const totals = sumMeals(meals);
+    totals.water_ml = sumWater(waterEntries);
+
+    const progressSection = goals
+        ? `\n\nDaily progress (${mealDate}):\n${formatProgress(totals, goals)}`
+        : "\n\nNo nutrition goals set — use the set_nutrition_goals tool to track progress against daily targets.";
+
+    const structuredContent = {
+        action,
+        date: mealDate,
+        logged_meal: {
+            description: meal.description,
+            meal_type: meal.meal_type ?? null,
+            calories: meal.calories ?? null,
+            protein_g: meal.protein_g ?? null,
+            carbs_g: meal.carbs_g ?? null,
+            fat_g: meal.fat_g ?? null,
+        },
+        has_goals: goals != null,
+        goals: goals
+            ? {
+                  calories: goals.daily_calories ?? null,
+                  protein_g: goals.daily_protein_g ?? null,
+                  carbs_g: goals.daily_carbs_g ?? null,
+                  fat_g: goals.daily_fat_g ?? null,
+                  water_ml: goals.daily_water_ml ?? null,
+              }
+            : null,
+        totals: {
+            calories: Math.round(totals.calories),
+            protein_g: Math.round(totals.protein_g * 10) / 10,
+            carbs_g: Math.round(totals.carbs_g * 10) / 10,
+            fat_g: Math.round(totals.fat_g * 10) / 10,
+            water_ml: totals.water_ml,
+        },
+    };
+
+    return { progressSection, structuredContent };
 }
 
 function formatGoalLine(
@@ -260,6 +367,11 @@ function registerTools(server: McpServer, userId: string) {
                         "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the meal content (including logged_at), so replaying the identical call returns the original meal instead of duplicating it. Pass a UUID only to force-override that behavior. Do NOT reuse a key for genuinely different meals.",
                     ),
             },
+            outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
+            // Link the tool to its progress UI (MCP Apps). update_meal reuses
+            // the SAME widget; see buildMealProgress / meal-logged.html. The
+            // widget renders nothing when no goals are set.
+            _meta: { ui: { resourceUri: MEAL_LOGGED_WIDGET_URI } },
         },
         async (args) => {
             return withAnalytics(
@@ -273,24 +385,8 @@ function registerTools(server: McpServer, userId: string) {
                         ? "Meal already logged (idempotent retry):"
                         : "Meal logged:";
 
-                    const tz = await getUserTimezone(userId);
-                    const mealDate = dateInTz(meal.logged_at, tz);
-                    const [meals, waterEntries, goals] = await Promise.all([
-                        getMealsByDate(userId, mealDate, tz),
-                        getWaterByDate(userId, mealDate, tz),
-                        getNutritionGoals(userId),
-                    ]);
-
-                    const totals = sumMeals(meals);
-                    totals.water_ml = sumWater(waterEntries);
-
-                    let progressSection: string;
-                    if (goals) {
-                        progressSection = `\n\nDaily progress (${mealDate}):\n${formatProgress(totals, goals)}`;
-                    } else {
-                        progressSection =
-                            "\n\nNo nutrition goals set — use the set_nutrition_goals tool to track progress against daily targets.";
-                    }
+                    const { progressSection, structuredContent } =
+                        await buildMealProgress(userId, meal, "logged");
 
                     return {
                         content: [
@@ -299,6 +395,7 @@ function registerTools(server: McpServer, userId: string) {
                                 text: `${header}\n${formatMeal(meal)}${progressSection}`,
                             },
                         ],
+                        structuredContent,
                     };
                 },
                 { userId },
@@ -535,11 +632,140 @@ function registerTools(server: McpServer, userId: string) {
         },
     );
 
+    // UI resource for the get_nutrition_summary dashboard widget. Served as an
+    // MCP Apps resource; the host fetches it and renders it in a sandboxed
+    // iframe. Self-contained HTML (inline CSS/JS) — the sandbox blocks external
+    // hosts, so nothing may be loaded over the network.
+    server.registerResource(
+        "nutrition-summary-widget",
+        SUMMARY_WIDGET_URI,
+        {
+            title: "Nutrition Summary Dashboard",
+            description:
+                "Interactive dashboard UI for get_nutrition_summary: macro tiles vs goals and a per-day breakdown, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(SUMMARY_WIDGET_FILE).text(),
+                        // Prefer a bordered container in hosts that honor it.
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the get_goal_progress widget (single-day intake vs goal
+    // rings + a weight card). Same self-contained-HTML contract as above.
+    server.registerResource(
+        "goal-progress-widget",
+        GOAL_PROGRESS_WIDGET_URI,
+        {
+            title: "Goal Progress",
+            description:
+                "Interactive UI for get_goal_progress: intake-vs-goal rings for a single day plus body-weight progress, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(GOAL_PROGRESS_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the log_meal widget (day's running totals vs goals as
+    // rings; renders nothing when no goals are set). Same contract as above.
+    server.registerResource(
+        "meal-logged-widget",
+        MEAL_LOGGED_WIDGET_URI,
+        {
+            title: "Meal Logged",
+            description:
+                "Interactive UI shown after log_meal: the day's running intake-vs-goal rings, with automatic light/dark theming. Shows nothing when no nutrition goals are set.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(MEAL_LOGGED_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the get_trends widget (interactive 7/14/30-day toggle over
+    // a daily calories chart + trailing-average rings). Same contract as above.
+    server.registerResource(
+        "trends-widget",
+        TRENDS_WIDGET_URI,
+        {
+            title: "Trends",
+            description:
+                "Interactive UI for get_trends: a 7/14/30-day toggle over a daily calories chart and trailing-average-vs-goal rings, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(TRENDS_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the get_weight_trends widget (weight-over-time line chart
+    // with a 7/14/30-day toggle and target line). Same contract as above.
+    server.registerResource(
+        "weight-trends-widget",
+        WEIGHT_TRENDS_WIDGET_URI,
+        {
+            title: "Weight Trends",
+            description:
+                "Interactive UI for get_weight_trends: a 7/14/30-day toggle over a weight-over-time chart (data-scaled axis, target line) plus latest/change/target stats, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(WEIGHT_TRENDS_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
     server.registerTool(
         "get_nutrition_summary",
         {
             title: "Get Nutrition Summary",
-            description: "Get daily nutrition totals for a date range",
+            description:
+                "Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -550,6 +776,40 @@ function registerTools(server: McpServer, userId: string) {
                 start_date: z.string().describe("Start date (YYYY-MM-DD)"),
                 end_date: z.string().describe("End date (YYYY-MM-DD)"),
             },
+            outputSchema: {
+                start_date: z.string(),
+                end_date: z.string(),
+                logged_days: z.number(),
+                goals: z
+                    .object({
+                        calories: z.number().nullable(),
+                        protein_g: z.number().nullable(),
+                        carbs_g: z.number().nullable(),
+                        fat_g: z.number().nullable(),
+                        water_ml: z.number().nullable(),
+                    })
+                    .nullable(),
+                averages: z.object({
+                    calories: z.number(),
+                    protein_g: z.number(),
+                    carbs_g: z.number(),
+                    fat_g: z.number(),
+                    water_ml: z.number(),
+                }),
+                days: z.array(
+                    z.object({
+                        date: z.string(),
+                        meal_count: z.number(),
+                        calories: z.number(),
+                        protein_g: z.number(),
+                        carbs_g: z.number(),
+                        fat_g: z.number(),
+                        water_ml: z.number(),
+                    }),
+                ),
+            },
+            // Link the tool to its dashboard UI (MCP Apps).
+            _meta: { ui: { resourceUri: SUMMARY_WIDGET_URI } },
         },
         async ({ start_date, end_date }) => {
             return withAnalytics(
@@ -561,6 +821,17 @@ function registerTools(server: McpServer, userId: string) {
                         getWaterInRange(userId, start_date, end_date, tz),
                         getNutritionGoals(userId),
                     ]);
+
+                    const goalsPayload = goals
+                        ? {
+                              calories: goals.daily_calories ?? null,
+                              protein_g: goals.daily_protein_g ?? null,
+                              carbs_g: goals.daily_carbs_g ?? null,
+                              fat_g: goals.daily_fat_g ?? null,
+                              water_ml: goals.daily_water_ml ?? null,
+                          }
+                        : null;
+
                     if (meals.length === 0 && water.length === 0) {
                         return {
                             content: [
@@ -569,6 +840,20 @@ function registerTools(server: McpServer, userId: string) {
                                     text: `No meals or water logged between ${start_date} and ${end_date}.`,
                                 },
                             ],
+                            structuredContent: {
+                                start_date,
+                                end_date,
+                                logged_days: 0,
+                                goals: goalsPayload,
+                                averages: {
+                                    calories: 0,
+                                    protein_g: 0,
+                                    carbs_g: 0,
+                                    fat_g: 0,
+                                    water_ml: 0,
+                                },
+                                days: [],
+                            },
                         };
                     }
 
@@ -591,6 +876,22 @@ function registerTools(server: McpServer, userId: string) {
                     }
 
                     const sections: string[] = [];
+                    const days: Array<{
+                        date: string;
+                        meal_count: number;
+                        calories: number;
+                        protein_g: number;
+                        carbs_g: number;
+                        fat_g: number;
+                        water_ml: number;
+                    }> = [];
+                    const sum: DailyTotals = {
+                        calories: 0,
+                        protein_g: 0,
+                        carbs_g: 0,
+                        fat_g: 0,
+                        water_ml: 0,
+                    };
                     for (const [date, dateMeals] of [
                         ...byDate.entries(),
                     ].sort()) {
@@ -600,7 +901,30 @@ function registerTools(server: McpServer, userId: string) {
                         sections.push(
                             `${header}\n${formatProgress(totals, goals)}`,
                         );
+                        days.push({
+                            date,
+                            meal_count: dateMeals.length,
+                            calories: Math.round(totals.calories),
+                            protein_g: Math.round(totals.protein_g * 10) / 10,
+                            carbs_g: Math.round(totals.carbs_g * 10) / 10,
+                            fat_g: Math.round(totals.fat_g * 10) / 10,
+                            water_ml: totals.water_ml,
+                        });
+                        sum.calories += totals.calories;
+                        sum.protein_g += totals.protein_g;
+                        sum.carbs_g += totals.carbs_g;
+                        sum.fat_g += totals.fat_g;
+                        sum.water_ml += totals.water_ml;
                     }
+
+                    const n = days.length || 1;
+                    const averages = {
+                        calories: Math.round(sum.calories / n),
+                        protein_g: Math.round((sum.protein_g / n) * 10) / 10,
+                        carbs_g: Math.round((sum.carbs_g / n) * 10) / 10,
+                        fat_g: Math.round((sum.fat_g / n) * 10) / 10,
+                        water_ml: Math.round(sum.water_ml / n),
+                    };
 
                     const footer = goals
                         ? ""
@@ -613,6 +937,14 @@ function registerTools(server: McpServer, userId: string) {
                                 text: sections.join("\n\n") + footer,
                             },
                         ],
+                        structuredContent: {
+                            start_date,
+                            end_date,
+                            logged_days: days.length,
+                            goals: goalsPayload,
+                            averages,
+                            days,
+                        },
                     };
                 },
                 { userId },
@@ -781,7 +1113,7 @@ function registerTools(server: McpServer, userId: string) {
         {
             title: "Get Goal Progress",
             description:
-                "Get progress against daily nutrition goals for a specific date (defaults to today). Returns intake vs. target with remaining amounts for each macro.",
+                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -794,6 +1126,37 @@ function registerTools(server: McpServer, userId: string) {
                     .optional()
                     .describe("Date in YYYY-MM-DD format. Defaults to today."),
             },
+            outputSchema: {
+                date: z.string(),
+                meal_count: z.number(),
+                water_entries: z.number(),
+                goals: z
+                    .object({
+                        calories: z.number().nullable(),
+                        protein_g: z.number().nullable(),
+                        carbs_g: z.number().nullable(),
+                        fat_g: z.number().nullable(),
+                        water_ml: z.number().nullable(),
+                    })
+                    .nullable(),
+                totals: z.object({
+                    calories: z.number(),
+                    protein_g: z.number(),
+                    carbs_g: z.number(),
+                    fat_g: z.number(),
+                    water_ml: z.number(),
+                }),
+                weight: z
+                    .object({
+                        current: z.number().nullable(),
+                        target: z.number().nullable(),
+                        unit: z.string(),
+                        logged_on: z.string().nullable(),
+                    })
+                    .nullable(),
+            },
+            // Link the tool to its progress UI (MCP Apps).
+            _meta: { ui: { resourceUri: GOAL_PROGRESS_WIDGET_URI } },
         },
         async ({ date }) => {
             return withAnalytics(
@@ -838,6 +1201,46 @@ function registerTools(server: McpServer, userId: string) {
                     const footer = goals
                         ? ""
                         : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)";
+
+                    // Payload for the goal-progress widget (MCP Apps). Mirrors
+                    // the text above: per-macro intake vs goal for the day, plus
+                    // the standing weight metric converted to display units.
+                    const goalsPayload = goals
+                        ? {
+                              calories: goals.daily_calories ?? null,
+                              protein_g: goals.daily_protein_g ?? null,
+                              carbs_g: goals.daily_carbs_g ?? null,
+                              fat_g: goals.daily_fat_g ?? null,
+                              water_ml: goals.daily_water_ml ?? null,
+                          }
+                        : null;
+                    const totalsPayload = {
+                        calories: Math.round(totals.calories),
+                        protein_g: Math.round(totals.protein_g * 10) / 10,
+                        carbs_g: Math.round(totals.carbs_g * 10) / 10,
+                        fat_g: Math.round(totals.fat_g * 10) / 10,
+                        water_ml: totals.water_ml,
+                    };
+                    const weightPayload =
+                        latestWeight || goals?.target_weight_g != null
+                            ? {
+                                  current: latestWeight
+                                      ? fromGrams(latestWeight.weight_g, unit)
+                                      : null,
+                                  target:
+                                      goals?.target_weight_g != null
+                                          ? fromGrams(
+                                                goals.target_weight_g,
+                                                unit,
+                                            )
+                                          : null,
+                                  unit,
+                                  logged_on: latestWeight
+                                      ? dateInTz(latestWeight.logged_at, tz)
+                                      : null,
+                              }
+                            : null;
+
                     return {
                         content: [
                             {
@@ -845,6 +1248,14 @@ function registerTools(server: McpServer, userId: string) {
                                 text: `${header}\n${body}${weightLine}${footer}`,
                             },
                         ],
+                        structuredContent: {
+                            date: targetDate,
+                            meal_count: meals.length,
+                            water_entries: water.length,
+                            goals: goalsPayload,
+                            totals: totalsPayload,
+                            weight: weightPayload,
+                        },
                     };
                 },
                 { userId },
@@ -908,19 +1319,27 @@ function registerTools(server: McpServer, userId: string) {
                 logged_at: z.string().optional(),
                 notes: z.string().optional(),
             },
+            outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
+            // Reuses the SAME meal-logged widget as log_meal (see
+            // buildMealProgress / meal-logged.html); `action: "updated"` just
+            // changes its header. Renders nothing when no goals are set.
+            _meta: { ui: { resourceUri: MEAL_LOGGED_WIDGET_URI } },
         },
         async ({ id, ...fields }) => {
             return withAnalytics(
                 "update_meal",
                 async () => {
                     const meal = await updateMeal(userId, id, fields);
+                    const { progressSection, structuredContent } =
+                        await buildMealProgress(userId, meal, "updated");
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Meal updated:\n${formatMeal(meal)}`,
+                                text: `Meal updated:\n${formatMeal(meal)}${progressSection}`,
                             },
                         ],
+                        structuredContent,
                     };
                 },
                 { userId },
@@ -1424,6 +1843,22 @@ function registerTools(server: McpServer, userId: string) {
                     .optional()
                     .describe("Window end date YYYY-MM-DD (default today)."),
             },
+            outputSchema: {
+                end_date: z.string(),
+                unit: z.string(),
+                target: z.number().nullable(),
+                default_range: z.number(),
+                // Per-day weight (same-day weigh-ins averaged) in display units,
+                // for logged days within the last 30 days; widget slices 7/14/30.
+                days: z.array(
+                    z.object({
+                        date: z.string(),
+                        weight: z.number(),
+                    }),
+                ),
+            },
+            // Link the tool to its interactive weight-trends UI (MCP Apps).
+            _meta: { ui: { resourceUri: WEIGHT_TRENDS_WIDGET_URI } },
         },
         async ({ days, end_date }) => {
             return withAnalytics(
@@ -1436,28 +1871,81 @@ function registerTools(server: McpServer, userId: string) {
                     const unit = weightPref ?? "kg";
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    const startDate = shiftLocalDate(
+                    // The widget's toggle offers up to 30 days, so fetch at
+                    // least 30 regardless of the requested text window.
+                    const seriesDays = Math.max(windowDays, 30);
+                    const fetchStart = shiftLocalDate(
+                        endDate,
+                        -(seriesDays - 1),
+                    );
+                    const requestedStart = shiftLocalDate(
                         endDate,
                         -(windowDays - 1),
                     );
                     const [entries, goals] = await Promise.all([
-                        getWeightInRange(userId, startDate, endDate, tz),
+                        getWeightInRange(userId, fetchStart, endDate, tz),
                         getNutritionGoals(userId),
                     ]);
+                    const targetG = goals?.target_weight_g ?? null;
+
+                    // Text summary respects the requested window.
+                    const textEntries =
+                        windowDays >= 30
+                            ? entries
+                            : entries.filter(
+                                  (e) =>
+                                      dateInTz(e.logged_at, tz) >=
+                                      requestedStart,
+                              );
+
+                    // Widget series: one value per logged day (same-day
+                    // weigh-ins averaged), in display units, within 30 days.
+                    const seriesCutoff = shiftLocalDate(endDate, -29);
+                    const dailyG = new Map<
+                        string,
+                        { total: number; count: number }
+                    >();
+                    for (const e of entries) {
+                        const date = dateInTz(e.logged_at, tz);
+                        const cur = dailyG.get(date) ?? { total: 0, count: 0 };
+                        cur.total += e.weight_g;
+                        cur.count += 1;
+                        dailyG.set(date, cur);
+                    }
+                    const widgetDays = [...dailyG.entries()]
+                        .filter(([date]) => date >= seriesCutoff)
+                        .map(([date, { total, count }]) => ({
+                            date,
+                            weight: fromGrams(total / count, unit),
+                        }))
+                        .sort((a, b) => (a.date < b.date ? -1 : 1));
+
                     return {
                         content: [
                             {
                                 type: "text",
                                 text: computeWeightTrend(
-                                    entries,
-                                    startDate,
+                                    textEntries,
+                                    requestedStart,
                                     endDate,
                                     tz,
-                                    goals?.target_weight_g ?? null,
+                                    targetG,
                                     unit,
                                 ),
                             },
                         ],
+                        structuredContent: {
+                            end_date: endDate,
+                            unit,
+                            target:
+                                targetG != null
+                                    ? fromGrams(targetG, unit)
+                                    : null,
+                            default_range: [7, 14, 30].includes(windowDays)
+                                ? windowDays
+                                : 30,
+                            days: widgetDays,
+                        },
                     };
                 },
                 { userId },
@@ -1683,6 +2171,33 @@ function registerTools(server: McpServer, userId: string) {
                     .optional()
                     .describe("Window end date YYYY-MM-DD (default today)."),
             },
+            outputSchema: {
+                end_date: z.string(),
+                // Which toggle the widget opens on (nearest of 7/14/30).
+                default_range: z.number(),
+                goals: z
+                    .object({
+                        calories: z.number().nullable(),
+                        protein_g: z.number().nullable(),
+                        carbs_g: z.number().nullable(),
+                        fat_g: z.number().nullable(),
+                        water_ml: z.number().nullable(),
+                    })
+                    .nullable(),
+                // Up to 30 days of daily series; the widget slices to 7/14/30.
+                days: z.array(
+                    z.object({
+                        date: z.string(),
+                        calories: z.number(),
+                        protein_g: z.number(),
+                        carbs_g: z.number(),
+                        fat_g: z.number(),
+                        water_ml: z.number(),
+                    }),
+                ),
+            },
+            // Link the tool to its interactive trends UI (MCP Apps).
+            _meta: { ui: { resourceUri: TRENDS_WIDGET_URI } },
         },
         async ({ days, end_date }) => {
             return withAnalytics(
@@ -1691,29 +2206,62 @@ function registerTools(server: McpServer, userId: string) {
                     const tz = await getUserTimezone(userId);
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
+                    // The widget's toggle always offers up to 30 days, so build
+                    // at least 30 days of series regardless of the text window.
+                    const seriesDays = Math.max(windowDays, 30);
                     const startDate = shiftLocalDate(
                         endDate,
-                        -(windowDays - 1),
+                        -(seriesDays - 1),
                     );
                     const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, startDate, endDate, tz),
                         getWaterInRange(userId, startDate, endDate, tz),
                         getNutritionGoals(userId),
                     ]);
-                    const buckets = buildDailyBuckets(
+                    const allBuckets = buildDailyBuckets(
                         meals,
                         water,
                         startDate,
                         endDate,
                         tz,
                     );
+                    // Text summary respects the requested window; the widget
+                    // gets the last 30 days for its 7/14/30 toggle.
+                    const textBuckets = allBuckets.slice(-windowDays);
+                    const seriesBuckets = allBuckets.slice(-30);
+
+                    const goalsPayload = goals
+                        ? {
+                              calories: goals.daily_calories ?? null,
+                              protein_g: goals.daily_protein_g ?? null,
+                              carbs_g: goals.daily_carbs_g ?? null,
+                              fat_g: goals.daily_fat_g ?? null,
+                              water_ml: goals.daily_water_ml ?? null,
+                          }
+                        : null;
+
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: computeTrends(buckets, goals),
+                                text: computeTrends(textBuckets, goals),
                             },
                         ],
+                        structuredContent: {
+                            end_date: endDate,
+                            default_range: [7, 14, 30].includes(windowDays)
+                                ? windowDays
+                                : 30,
+                            goals: goalsPayload,
+                            days: seriesBuckets.map((b) => ({
+                                date: b.date,
+                                calories: Math.round(b.calories),
+                                protein_g: Math.round(b.protein_g * 10) / 10,
+                                carbs_g: Math.round(b.carbs_g * 10) / 10,
+                                fat_g: Math.round(b.fat_g * 10) / 10,
+                                water_ml: b.waterMl,
+                            })),
+                        },
                     };
                 },
                 { userId },
@@ -2012,7 +2560,7 @@ function buildMcpServer(c: Context, userId: string): McpServer {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.15.0",
+            version: "1.16.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
