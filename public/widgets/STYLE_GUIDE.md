@@ -463,9 +463,57 @@ exist; special-case equal values (both markers at 50%, one "at target" caption).
 }
 ```
 
+## 7. Component: segmented control (`.seg`)
+
+A pill toggle for switching a view's mode/range (used for the trends widget's
+7/14/30-day toggle). The **active** label uses `var(--bg)` on the accent fill so
+it stays high-contrast in both themes — off-white on dark-green in light, black
+on light-green in dark — without theme-specific overrides.
+
+**Interactivity:** buttons carry a `data-*` value; delegate the click on a
+container that survives re-renders (e.g. `#root`), read the value, update state,
+and re-`paint()`. For a range/filter toggle, prefer sending a superset of data
+and slicing client-side over re-calling the tool — instant, no host round-trip.
+
+```css
+.seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--track);
+    border-radius: 999px;
+}
+.seg-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 15px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background 0.12s ease,
+        color 0.12s ease;
+}
+.seg-btn:hover {
+    color: var(--text);
+}
+.seg-btn.active {
+    background: var(--accent);
+    color: var(--bg); /* inverted label → high contrast in both themes */
+}
+```
+
 ## Verifying a new widget
 
 Use the local host-harness (see `mcp-apps-widgets` memory) to drive the widget
 without a real client, and screenshot at light/dark and at a narrow (~400px) width
 before shipping — the mobile check is what catches shrinking SVG text and cramped
-grids.
+grids. For interactive widgets, also exercise each control and confirm it
+re-renders.

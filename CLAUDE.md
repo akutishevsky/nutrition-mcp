@@ -58,7 +58,9 @@ Use HTML imports with `Bun.serve()` — not Vite. HTML files can directly import
 
 ## Custom UI Widgets (MCP Apps)
 
-In-chat UI uses **MCP Apps** (the official 2026-01-26 MCP extension), which renders across Claude, ChatGPT, VS Code, Goose, and MCP Inspector from one implementation. Widgets live in `public/widgets/` and are wired in `src/mcp.ts`: the `get_nutrition_summary` dashboard (`nutrition-summary.html`), the `get_goal_progress` view (`goal-progress.html`), and the meal-progress rings (`meal-logged.html`, which renders nothing when no goals are set). They share one design language — see `public/widgets/STYLE_GUIDE.md`.
+In-chat UI uses **MCP Apps** (the official 2026-01-26 MCP extension), which renders across Claude, ChatGPT, VS Code, Goose, and MCP Inspector from one implementation. Widgets live in `public/widgets/` and are wired in `src/mcp.ts`: the `get_nutrition_summary` dashboard (`nutrition-summary.html`), the `get_goal_progress` view (`goal-progress.html`), the meal-progress rings (`meal-logged.html`, which renders nothing when no goals are set), and the `get_trends` view (`trends.html`, an interactive 7/14/30-day toggle). They share one design language — see `public/widgets/STYLE_GUIDE.md`.
+
+**Interactive widgets slice client-side.** `trends.html` has a 7/14/30-day toggle: rather than round-trip to re-call the tool, `get_trends` sends up to 30 days of daily series and the widget slices/re-averages/re-renders locally, so switching ranges is instant and needs no host tool-call support. Prefer this pattern (send a superset, filter in the widget) for range/filter toggles.
 
 **One widget can back several tools.** `meal-logged.html` is linked by **both** `log_meal` and `update_meal`: both declare `outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA` and build their `structuredContent` through the shared `buildMealProgress()` helper, so the payload shape is identical; the `action` field (`"logged"` / `"updated"`) only changes the widget's header. To reuse a widget across tools, point each tool's `_meta.ui.resourceUri` at the same `ui://` URI and keep their structuredContent shapes identical.
 

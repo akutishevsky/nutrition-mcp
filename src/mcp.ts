@@ -69,6 +69,8 @@ const GOAL_PROGRESS_WIDGET_URI = "ui://widget/goal-progress.html";
 const GOAL_PROGRESS_WIDGET_FILE = "./public/widgets/goal-progress.html";
 const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const MEAL_LOGGED_WIDGET_FILE = "./public/widgets/meal-logged.html";
+const TRENDS_WIDGET_URI = "ui://widget/trends.html";
+const TRENDS_WIDGET_FILE = "./public/widgets/trends.html";
 
 interface DailyTotals {
     calories: number;
@@ -699,6 +701,31 @@ function registerTools(server: McpServer, userId: string) {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
                         text: await Bun.file(MEAL_LOGGED_WIDGET_FILE).text(),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the get_trends widget (interactive 7/14/30-day toggle over
+    // a daily calories chart + trailing-average rings). Same contract as above.
+    server.registerResource(
+        "trends-widget",
+        TRENDS_WIDGET_URI,
+        {
+            title: "Trends",
+            description:
+                "Interactive UI for get_trends: a 7/14/30-day toggle over a daily calories chart and trailing-average-vs-goal rings, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await Bun.file(TRENDS_WIDGET_FILE).text(),
                         _meta: { ui: { prefersBorder: true } },
                     },
                 ],
@@ -2048,6 +2075,33 @@ function registerTools(server: McpServer, userId: string) {
                     .optional()
                     .describe("Window end date YYYY-MM-DD (default today)."),
             },
+            outputSchema: {
+                end_date: z.string(),
+                // Which toggle the widget opens on (nearest of 7/14/30).
+                default_range: z.number(),
+                goals: z
+                    .object({
+                        calories: z.number().nullable(),
+                        protein_g: z.number().nullable(),
+                        carbs_g: z.number().nullable(),
+                        fat_g: z.number().nullable(),
+                        water_ml: z.number().nullable(),
+                    })
+                    .nullable(),
+                // Up to 30 days of daily series; the widget slices to 7/14/30.
+                days: z.array(
+                    z.object({
+                        date: z.string(),
+                        calories: z.number(),
+                        protein_g: z.number(),
+                        carbs_g: z.number(),
+                        fat_g: z.number(),
+                        water_ml: z.number(),
+                    }),
+                ),
+            },
+            // Link the tool to its interactive trends UI (MCP Apps).
+            _meta: { ui: { resourceUri: TRENDS_WIDGET_URI } },
         },
         async ({ days, end_date }) => {
             return withAnalytics(
@@ -2056,29 +2110,62 @@ function registerTools(server: McpServer, userId: string) {
                     const tz = await getUserTimezone(userId);
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
+                    // The widget's toggle always offers up to 30 days, so build
+                    // at least 30 days of series regardless of the text window.
+                    const seriesDays = Math.max(windowDays, 30);
                     const startDate = shiftLocalDate(
                         endDate,
-                        -(windowDays - 1),
+                        -(seriesDays - 1),
                     );
                     const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, startDate, endDate, tz),
                         getWaterInRange(userId, startDate, endDate, tz),
                         getNutritionGoals(userId),
                     ]);
-                    const buckets = buildDailyBuckets(
+                    const allBuckets = buildDailyBuckets(
                         meals,
                         water,
                         startDate,
                         endDate,
                         tz,
                     );
+                    // Text summary respects the requested window; the widget
+                    // gets the last 30 days for its 7/14/30 toggle.
+                    const textBuckets = allBuckets.slice(-windowDays);
+                    const seriesBuckets = allBuckets.slice(-30);
+
+                    const goalsPayload = goals
+                        ? {
+                              calories: goals.daily_calories ?? null,
+                              protein_g: goals.daily_protein_g ?? null,
+                              carbs_g: goals.daily_carbs_g ?? null,
+                              fat_g: goals.daily_fat_g ?? null,
+                              water_ml: goals.daily_water_ml ?? null,
+                          }
+                        : null;
+
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: computeTrends(buckets, goals),
+                                text: computeTrends(textBuckets, goals),
                             },
                         ],
+                        structuredContent: {
+                            end_date: endDate,
+                            default_range: [7, 14, 30].includes(windowDays)
+                                ? windowDays
+                                : 30,
+                            goals: goalsPayload,
+                            days: seriesBuckets.map((b) => ({
+                                date: b.date,
+                                calories: Math.round(b.calories),
+                                protein_g: Math.round(b.protein_g * 10) / 10,
+                                carbs_g: Math.round(b.carbs_g * 10) / 10,
+                                fat_g: Math.round(b.fat_g * 10) / 10,
+                                water_ml: b.waterMl,
+                            })),
+                        },
                     };
                 },
                 { userId },
