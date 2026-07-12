@@ -393,6 +393,76 @@ and legible:
 }
 ```
 
+## 6. Component: horizontal number-line (`.wgraph`)
+
+A one-dimensional plot of two values on a shared scale — used for the
+goal-progress weight card (current vs target), reusable for any current-vs-goal
+metric. A rounded track, a highlighted segment for the gap, a filled **current**
+marker (accent) and a hollow **target** marker, with a caption centred under each.
+
+**JS contract:** pad the scale beyond the two points so the markers sit inboard
+(~22% / 78%) and their centred captions don't clip at the card edges:
+`smin = lo - (hi-lo)*0.4`, `span = (hi-lo)*1.8`, `pos(v) = (v-smin)/span*100`.
+Set each marker/caption's `left:%` inline. Only render it when **both** endpoints
+exist; special-case equal values (both markers at 50%, one "at target" caption).
+
+```css
+.wgraph {
+    margin-top: 18px;
+}
+.wtrack {
+    position: relative;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--track);
+}
+.wseg {
+    /* the gap between the two points */
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+    opacity: 0.4;
+}
+.wmark {
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+.wmark.tgt {
+    background: var(--panel);
+    border: 2px solid var(--text-dim);
+    z-index: 1;
+}
+.wmark.cur {
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+    z-index: 2;
+}
+.wcaps {
+    position: relative;
+    height: 15px;
+    margin-top: 9px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+.wcap {
+    /* centred under its marker */
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+.wcap.curcap {
+    color: var(--accent);
+    font-weight: 700;
+}
+```
+
 ## Verifying a new widget
 
 Use the local host-harness (see `mcp-apps-widgets` memory) to drive the widget

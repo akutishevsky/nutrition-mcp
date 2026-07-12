@@ -296,13 +296,15 @@
                 border: 1px solid var(--panel-border);
                 border-radius: var(--radius);
                 box-shadow: var(--shadow);
-                padding: 16px 18px;
+                padding: 16px 18px 18px;
+                margin-bottom: 20px;
+            }
+            .weight .wtop {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 gap: 16px;
                 flex-wrap: wrap;
-                margin-bottom: 20px;
             }
             .weight .wlead {
                 display: flex;
@@ -335,7 +337,7 @@
                 font-size: 12px;
                 color: var(--text-dim);
                 font-variant-numeric: tabular-nums;
-                margin-top: 1px;
+                margin-top: 12px;
             }
             .weight .chip {
                 font-size: 12.5px;
@@ -350,6 +352,63 @@
             .weight .chip.ok {
                 background: color-mix(in srgb, var(--accent) 18%, transparent);
                 color: var(--accent);
+            }
+
+            /* Horizontal weight graph: a number line with a current marker and
+               a target marker; the gap between them is highlighted. Marker
+               positions (left %) are set inline from the data. */
+            .weight .wgraph {
+                margin-top: 18px;
+            }
+            .weight .wtrack {
+                position: relative;
+                height: 8px;
+                border-radius: 999px;
+                background: var(--track);
+            }
+            .weight .wseg {
+                position: absolute;
+                top: 0;
+                height: 100%;
+                border-radius: 999px;
+                background: var(--accent);
+                opacity: 0.4;
+            }
+            .weight .wmark {
+                position: absolute;
+                top: 50%;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+            }
+            .weight .wmark.tgt {
+                background: var(--panel);
+                border: 2px solid var(--text-dim);
+                z-index: 1;
+            }
+            .weight .wmark.cur {
+                background: var(--accent);
+                box-shadow: 0 0 0 3px
+                    color-mix(in srgb, var(--accent) 22%, transparent);
+                z-index: 2;
+            }
+            .weight .wcaps {
+                position: relative;
+                height: 15px;
+                margin-top: 9px;
+                font-size: 11px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+            }
+            .weight .wcap {
+                position: absolute;
+                transform: translateX(-50%);
+                white-space: nowrap;
+            }
+            .weight .wcap.curcap {
+                color: var(--accent);
+                font-weight: 700;
             }
 
             .empty {
@@ -515,44 +574,95 @@
             }
 
             // Weight is a standing metric (latest overall vs target), not a
-            // per-date total, so it gets its own card. Direction ("to lose" /
-            // "to gain") comes from the sign of current − target.
+            // per-date total, so it gets its own card: the current value, a
+            // direction chip, and a horizontal number-line graph plotting the
+            // current and target weights with the gap between them highlighted.
             function weightCard(w) {
                 if (!w || (w.current == null && w.target == null)) return "";
                 const unit = esc(w.unit || "kg");
+                const cur = w.current;
+                const tgt = w.target;
 
-                let curHtml, meta, chip;
-                if (w.current != null) {
-                    curHtml = `${fmt(w.current, 1)}<span class="wunit">${unit}</span>`;
+                let curHtml, meta;
+                if (cur != null) {
+                    curHtml = `${fmt(cur, 1)}<span class="wunit">${unit}</span>`;
                     meta = w.logged_on ? `last logged ${esc(w.logged_on)}` : "";
                 } else {
                     curHtml = `—<span class="wunit">${unit}</span>`;
                     meta = "no weight logged yet";
                 }
 
-                if (w.target == null) {
+                const atTarget =
+                    cur != null && tgt != null && Math.abs(cur - tgt) < 0.05;
+
+                let chip;
+                if (tgt == null) {
                     chip = "";
-                } else if (w.current == null) {
-                    chip = `<div class="chip">target ${fmt(w.target, 1)} ${unit}</div>`;
+                } else if (cur == null) {
+                    chip = `<div class="chip">target ${fmt(tgt, 1)} ${unit}</div>`;
+                } else if (atTarget) {
+                    chip = `<div class="chip ok">at target</div>`;
                 } else {
-                    const delta = Math.round((w.current - w.target) * 10) / 10;
-                    if (Math.abs(delta) < 0.05) {
-                        chip = `<div class="chip ok">at target · ${fmt(w.target, 1)} ${unit}</div>`;
+                    const delta = Math.round((cur - tgt) * 10) / 10;
+                    const dir = delta > 0 ? "to lose" : "to gain";
+                    chip = `<div class="chip">${fmt(Math.abs(delta), 1)} ${unit} ${dir}</div>`;
+                }
+
+                // The number-line graph needs both endpoints to be meaningful.
+                let graph = "";
+                if (cur != null && tgt != null) {
+                    if (atTarget) {
+                        graph = `
+          <div class="wgraph">
+            <div class="wtrack">
+              <div class="wmark tgt" style="left:50%"></div>
+              <div class="wmark cur" style="left:50%"></div>
+            </div>
+            <div class="wcaps">
+              <span class="wcap curcap" style="left:50%">${fmt(cur, 1)} ${unit} · at target</span>
+            </div>
+          </div>`;
                     } else {
-                        const dir = delta > 0 ? "to lose" : "to gain";
-                        chip = `<div class="chip">${fmt(Math.abs(delta), 1)} ${unit} ${dir} · target ${fmt(w.target, 1)} ${unit}</div>`;
+                        // Pad the scale beyond the two points so the markers sit
+                        // inboard (~22%/78%) and their centred captions don't
+                        // clip at the card edges.
+                        const lo = Math.min(cur, tgt);
+                        const hi = Math.max(cur, tgt);
+                        const pad = (hi - lo) * 0.4;
+                        const smin = lo - pad;
+                        const span = hi - lo + pad * 2;
+                        const pos = (v) => ((v - smin) / span) * 100;
+                        const pc = pos(cur);
+                        const pt = pos(tgt);
+                        const segL = Math.min(pc, pt);
+                        const segW = Math.abs(pc - pt);
+                        graph = `
+          <div class="wgraph">
+            <div class="wtrack">
+              <div class="wseg" style="left:${segL.toFixed(1)}%;width:${segW.toFixed(1)}%"></div>
+              <div class="wmark tgt" style="left:${pt.toFixed(1)}%" role="img" aria-label="target ${fmt(tgt, 1)} ${unit}"></div>
+              <div class="wmark cur" style="left:${pc.toFixed(1)}%" role="img" aria-label="current ${fmt(cur, 1)} ${unit}"></div>
+            </div>
+            <div class="wcaps">
+              <span class="wcap curcap" style="left:${pc.toFixed(1)}%">${fmt(cur, 1)} now</span>
+              <span class="wcap" style="left:${pt.toFixed(1)}%">${fmt(tgt, 1)} goal</span>
+            </div>
+          </div>`;
                     }
                 }
 
                 return `
           <div class="section-title">Weight</div>
           <div class="weight">
-            <div class="wlead">
-              <div class="wlabel"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Body weight</div>
-              <div class="wcur">${curHtml}</div>
-              ${meta ? `<div class="wmeta">${meta}</div>` : ""}
+            <div class="wtop">
+              <div class="wlead">
+                <div class="wlabel"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Body weight</div>
+                <div class="wcur">${curHtml}</div>
+              </div>
+              ${chip}
             </div>
-            ${chip}
+            ${graph}
+            ${meta ? `<div class="wmeta">${meta}</div>` : ""}
           </div>`;
             }
 
