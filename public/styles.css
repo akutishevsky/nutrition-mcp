@@ -1185,14 +1185,36 @@ html:has(body.landing) {
     overflow: hidden;
     background: var(--bg);
 }
+/* Fixed-height carousel body so switching slides never changes the card's
+   height (no page jump). Taller slides scroll their own content vertically. */
+#try-carousel .carousel-viewport {
+    height: 480px;
+}
 .carousel-track {
     display: flex;
     align-items: stretch;
+    height: 100%;
     transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .slide {
     min-width: 100%;
     display: flex;
+}
+#try-carousel .slide {
+    overflow-y: auto;
+    /* Don't stretch .mini-chat to the fixed slide height — let it grow past it
+       for tall content so the slide scrolls instead of clipping. */
+    align-items: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+}
+#try-carousel .slide::-webkit-scrollbar {
+    width: 8px;
+}
+#try-carousel .slide::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 999px;
+    border: 2px solid var(--bg);
 }
 .mini-chat {
     flex: 1;
@@ -1200,7 +1222,7 @@ html:has(body.landing) {
     flex-direction: column;
     justify-content: flex-end;
     gap: 0.55rem;
-    min-height: 250px;
+    min-height: 100%;
     padding: 1.1rem 1.1rem 1.2rem;
 }
 .mini-chat .msg {
