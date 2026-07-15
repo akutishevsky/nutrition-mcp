@@ -17,7 +17,7 @@ warmed in `src/index.ts`). Nothing generated is committed.
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/`
   (`tokens.css`, `base.css`, `ring.css`, `trend.css`, `seg.css`, `bridge.js`) and
   one template per widget in `templates/`.
-- **Include marker** — a partial is inlined with a comment that is valid CSS *and*
+- **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
   `/*@include shared/tokens.css@*/`, `/*@include shared/bridge.js@*/`.
 - **The host bridge is shared JS.** `shared/bridge.js` exposes one global,
@@ -359,6 +359,32 @@ Markup:
     </div>
 </div>
 ```
+
+## 4a. Component: macro panel (`macroPanel` — `shared/macros.*`)
+
+The intake-vs-goal view shared by `nutrition-summary`, `goal-progress`,
+`meal-logged`, and `trends`. Instead of a uniform grid of five equal rings, it lays
+the macros out by importance: **calories** as a full-width hero ring
+(`.macro-hero`), **protein / carbs / fat** as three smaller rings in one row card
+(`.macro-row` → `.macro-cell`), and **water** as a full-width horizontal progress
+bar (`.macro-water`). All of it — CSS and markup — lives in `shared/macros.css` +
+`shared/macros.js`; include both (plus `shared/ring.css`, which the rings depend
+on) and call one function:
+
+```js
+// vals / goal: objects keyed by calories, protein_g, carbs_g, fat_g, water_ml
+//   (a day's totals, a range's averages, a computed slice…)
+// wording: { under: "left" | "under", over: "over" } — default "left" / "over".
+//          trends uses { under: "under" } ("421 kcal under").
+// Requires fmt(n, decimals) and esc(s) in scope.
+root.innerHTML = `… ${macroPanel(vals, goal, wording)} …`;
+```
+
+The gauge keeps the over-goal convention from §4 (ring stays its macro colour; the
+% caption / water value turns `var(--over)` past 100%). Ring sizes come from the
+CSS context (`.macro-hero .ring` is 132px, `.macro-row .ring` is 78px), so the same
+`ring.css` gauge serves both the hero and the small cells. To restyle any of this,
+edit the shared partials once — every widget picks it up on next assembly.
 
 ## 5. Component: hand-built SVG trend chart (`.trend`)
 

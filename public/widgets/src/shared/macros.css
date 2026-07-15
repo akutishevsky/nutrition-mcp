@@ -1,0 +1,135 @@
+/* Macro panel — calories hero, protein/carbs/fat row, water bar.
+   Pairs with shared/ring.css (the gauge) and shared/macros.js (the markup).
+   Include ring.css as well as this file. */
+
+.mcard {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+.mlabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+}
+.mlabel .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+}
+.mgoal {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Calories hero — full-width card, large centred ring. */
+.macro-hero {
+    padding: 22px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 12px;
+}
+.macro-hero .ring {
+    width: 132px;
+    height: 132px;
+}
+.macro-hero .ring-center .rv {
+    font-size: 30px;
+}
+.macro-hero .ring-center .rp {
+    font-size: 12.5px;
+}
+.macro-hero .mlabel {
+    margin-top: 12px;
+}
+.macro-hero .mgoal {
+    margin-top: 3px;
+}
+
+/* Protein / carbs / fat — one card, three smaller rings. */
+.macro-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 16px 6px 15px;
+    margin-bottom: 12px;
+}
+.macro-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.macro-row .ring {
+    width: 78px;
+    height: 78px;
+}
+.macro-row .ring-center .rv {
+    font-size: 16px;
+}
+.macro-row .ring-center .rp {
+    font-size: 9.5px;
+    margin-top: 1px;
+}
+.macro-cell .mlabel {
+    margin-top: 9px;
+    font-size: 10.5px;
+}
+.macro-cell .mgoal {
+    margin-top: 2px;
+    font-size: 10px;
+    min-height: 13px;
+}
+
+/* Water — full-width horizontal progress bar. */
+.macro-water {
+    padding: 15px 18px 16px;
+    margin-bottom: 20px;
+}
+.macro-water .wtop {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 11px;
+}
+.macro-water .wval {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.macro-water .wval .wsub {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-left: 3px;
+}
+.macro-water .wbar {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--track);
+    overflow: hidden;
+}
+.macro-water .wfill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 999px;
+}
+.macro-water .wgoal {
+    margin-top: 8px;
+}

@@ -36,127 +36,11 @@
             /* Calories trend chart (hand-built SVG area + line) */
             /*@include shared/trend.css@*/
 
-            /* Stat tiles */
-            .tiles {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-                gap: 12px;
-            }
-            .tile {
-                background: var(--panel);
-                border: 1px solid var(--panel-border);
-                border-radius: var(--radius);
-                box-shadow: var(--shadow);
-                padding: 16px 12px 15px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
+            /* Ring gauge + macro panel (calories hero, protein/carbs/fat row,
+               water bar) — shared across widgets. */
+            /*@include shared/ring.css@*/
 
-            /* Activity-style ring: a conic gradient that fades from the card
-               colour (reads as transparent) into full colour at the arc's
-               end, over a grey track. --p is the filled fraction (0–1),
-               --c the macro colour; both set inline per ring. */
-            .ring {
-                position: relative;
-                width: 92px;
-                height: 92px;
-            }
-            .ring-track,
-            .ring-arc {
-                position: absolute;
-                inset: 0;
-                border-radius: 50%;
-                -webkit-mask: radial-gradient(
-                    farthest-side,
-                    transparent calc(100% - 10px),
-                    #000 calc(100% - 10px)
-                );
-                mask: radial-gradient(
-                    farthest-side,
-                    transparent calc(100% - 10px),
-                    #000 calc(100% - 10px)
-                );
-            }
-            .ring-track {
-                background: var(--track);
-            }
-            .ring-arc {
-                background: conic-gradient(
-                    from 0deg,
-                    var(--track) 0deg,
-                    var(--c) calc(var(--p) * 360deg),
-                    transparent calc(var(--p) * 360deg)
-                );
-            }
-            .ring-cap {
-                position: absolute;
-                inset: 0;
-                transform: rotate(calc(var(--p) * 360deg));
-            }
-            .ring-cap::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 50%;
-                width: 10px;
-                height: 10px;
-                margin-left: -5px;
-                border-radius: 50%;
-                background: var(--c);
-            }
-            .ring-center {
-                position: absolute;
-                inset: 0;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                line-height: 1.05;
-            }
-            .ring-center .rv {
-                font-size: 19px;
-                font-weight: 800;
-                font-variant-numeric: tabular-nums;
-                letter-spacing: -0.03em;
-            }
-            .ring-center .ru {
-                font-size: 10px;
-                font-weight: 500;
-                color: var(--text-dim);
-                margin-top: 1px;
-            }
-            .ring-center .rp {
-                font-size: 10.5px;
-                font-weight: 700;
-                margin-top: 2px;
-                font-variant-numeric: tabular-nums;
-            }
-            .tile .label {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                margin-top: 10px;
-                font-size: 11.5px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.04em;
-                color: var(--text-dim);
-            }
-            .tile .dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                flex: none;
-            }
-            .tile .goal {
-                margin-top: 3px;
-                font-size: 11px;
-                color: var(--text-dim);
-                font-variant-numeric: tabular-nums;
-                min-height: 14px;
-            }
+            /*@include shared/macros.css@*/
         </style>
     </head>
     <body>
@@ -204,44 +88,6 @@
             }
             const SAMPLE = buildSample();
 
-            const MACROS = [
-                {
-                    key: "calories",
-                    label: "Calories",
-                    unit: "kcal",
-                    color: "var(--calories)",
-                    decimals: 0,
-                },
-                {
-                    key: "protein_g",
-                    label: "Protein",
-                    unit: "g",
-                    color: "var(--protein)",
-                    decimals: 0,
-                },
-                {
-                    key: "carbs_g",
-                    label: "Carbs",
-                    unit: "g",
-                    color: "var(--carbs)",
-                    decimals: 0,
-                },
-                {
-                    key: "fat_g",
-                    label: "Fat",
-                    unit: "g",
-                    color: "var(--fat)",
-                    decimals: 0,
-                },
-                {
-                    key: "water_ml",
-                    label: "Water",
-                    unit: "ml",
-                    color: "var(--water)",
-                    decimals: 0,
-                },
-            ];
-
             function fmt(n, decimals) {
                 if (n == null || isNaN(n)) return "0";
                 const r = decimals ? n.toFixed(decimals) : Math.round(n);
@@ -268,57 +114,10 @@
                 return sum / days.length;
             }
 
-            // A ring gauge for one macro (see STYLE_GUIDE.md): the % caption
-            // turns red past 100%; the ring keeps its macro colour. Without a
-            // goal it just shows the average value.
-            function ring(m, avg, goal) {
-                const val = avg?.[m.key] ?? 0;
-                const target = goal?.[m.key] ?? null;
-
-                let pct = null;
-                let over = false;
-                if (target != null && target > 0) {
-                    pct = (val / target) * 100;
-                    over = pct > 100;
-                }
-                const frac =
-                    pct == null ? 0 : Math.max(0, Math.min(pct, 100)) / 100;
-                const pctColor = over ? "var(--over)" : m.color;
-
-                let goalLine, center2;
-                if (pct == null) {
-                    goalLine = "no goal set";
-                    center2 = `<div class="ru">${m.unit}</div>`;
-                } else {
-                    const delta = target - val;
-                    const deltaStr =
-                        delta >= 0
-                            ? `${fmt(delta, m.decimals)} ${m.unit} under`
-                            : `${fmt(-delta, m.decimals)} ${m.unit} over`;
-                    goalLine = `of ${fmt(target, m.decimals)} ${m.unit} · ${deltaStr}`;
-                    center2 = `<div class="rp" style="color:${pctColor}">${Math.round(pct)}%</div>`;
-                }
-
-                const cap =
-                    pct != null && frac > 0.005
-                        ? `<div class="ring-cap"></div>`
-                        : "";
-
-                return `
-          <div class="tile">
-            <div class="ring" style="--c:${m.color};--p:${frac.toFixed(4)}" role="img" aria-label="${esc(m.label)} average ${fmt(val, m.decimals)} ${m.unit}">
-              <div class="ring-track"></div>
-              <div class="ring-arc"></div>
-              ${cap}
-              <div class="ring-center">
-                <div class="rv">${fmt(val, m.decimals)}</div>
-                ${center2}
-              </div>
-            </div>
-            <div class="label"><span class="dot" style="background:${m.color}"></span>${m.label}</div>
-            <div class="goal">${esc(goalLine)}</div>
-          </div>`;
-            }
+            // MACROS + the macro panel builder (calories hero, protein/carbs/fat
+            // row, water bar). Defines the shared MACROS array the paint() loop
+            // reads. Requires fmt + esc above.
+            /*@include shared/macros.js@*/
 
             // Calories-per-day trend: SVG area + line that scales to any range
             // (7 to 30 days). Uniform scaling — no preserveAspectRatio
@@ -458,9 +257,7 @@
                         `<button class="seg-btn${r === range ? " active" : ""}" data-n="${r}" role="tab" aria-selected="${r === range}">${r} days</button>`,
                 ).join("");
 
-                const rings = MACROS.map((m) => ring(m, avg, data.goals)).join(
-                    "",
-                );
+                const panel = macroPanel(avg, data.goals, { under: "under" });
                 const chart = trendChart(slice, data.goals?.calories ?? null);
 
                 root.innerHTML = `
@@ -471,7 +268,7 @@
           <div class="seg" role="tablist" aria-label="Trend window">${seg}</div>
           ${chart}
           <div class="section-title">${range}-day average vs goal</div>
-          <div class="tiles">${rings}</div>`;
+          ${panel}`;
             }
 
             // Delegated on #root, which persists across paint()'s innerHTML
