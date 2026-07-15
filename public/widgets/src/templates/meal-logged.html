@@ -1,0 +1,208 @@
+<!doctype html>
+<!--
+  Meal-logged widget (MCP Apps).
+
+  Assembled from shared partials at server startup (see src/widgets.ts); the
+  @include markers below inline the shared design tokens, components, and host
+  bridge. The result is fully self-contained — inline CSS + JS, zero network
+  requests — because the MCP Apps sandbox blocks external hosts. Styling follows
+  public/widgets/STYLE_GUIDE.md so it matches the other widgets.
+
+  Shown after log_meal AND update_meal (both tools link this same widget and emit
+  the same structuredContent shape via buildMealProgress in src/mcp.ts): the day's
+  running totals vs the user's goals as donut rings. The `action` field ("logged"
+  or "updated") only changes the header wording. Per product decision, it renders
+  NOTHING when no nutrition goals are set (there is no target to show progress
+  against).
+
+  Data arrives as the `structuredContent` of the log_meal / update_meal tool
+  result; the shared bridge (shared/bridge.js) reads it across host conventions
+  and calls render(). Standalone preview uses the SAMPLE below.
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Meal Logged</title>
+        <style>
+            /*@include shared/tokens.css@*/
+
+            /*@include shared/base.css@*/
+
+            /* No goals → nothing to show. Collapse padding and drop the
+               full-height fill so an empty widget takes up as little of the
+               host frame as possible. */
+            .wrap:empty {
+                padding: 0;
+            }
+            body:has(.wrap:empty) {
+                min-height: 0;
+            }
+
+            /*@include shared/ring.css@*/
+
+            /*@include shared/macros.css@*/
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+
+        <script>
+            "use strict";
+
+            /*@include shared/bridge.js@*/
+
+            // ---- Sample data so the file renders on its own (browser preview) ----
+            const SAMPLE = {
+                date: "2026-07-11",
+                logged_meal: {
+                    description: "Grilled chicken salad",
+                    meal_type: "lunch",
+                    calories: 520,
+                    protein_g: 42,
+                    carbs_g: 28,
+                    fat_g: 22,
+                },
+                has_goals: true,
+                goals: {
+                    calories: 2200,
+                    protein_g: 160,
+                    carbs_g: 220,
+                    fat_g: 70,
+                    water_ml: 2500,
+                },
+                totals: {
+                    calories: 1480,
+                    protein_g: 118,
+                    carbs_g: 165,
+                    fat_g: 52,
+                    water_ml: 1600,
+                },
+                meals: [
+                    {
+                        description: "Overnight oats with berries",
+                        meal_type: "breakfast",
+                        date: null,
+                        calories: 420,
+                        protein_g: 18,
+                        carbs_g: 62,
+                        fat_g: 12,
+                    },
+                    {
+                        description: "Greek yogurt & almonds",
+                        meal_type: "snack",
+                        date: null,
+                        calories: 260,
+                        protein_g: 22,
+                        carbs_g: 14,
+                        fat_g: 14,
+                    },
+                    {
+                        description: "Turkey sandwich",
+                        meal_type: "lunch",
+                        date: null,
+                        calories: 280,
+                        protein_g: 36,
+                        carbs_g: 61,
+                        fat_g: 4,
+                    },
+                    {
+                        description: "Grilled chicken salad",
+                        meal_type: "lunch",
+                        date: null,
+                        calories: 520,
+                        protein_g: 42,
+                        carbs_g: 28,
+                        fat_g: 22,
+                    },
+                ],
+            };
+
+            function fmt(n, decimals) {
+                if (n == null || isNaN(n)) return "0";
+                const r = decimals ? n.toFixed(decimals) : Math.round(n);
+                return Number(r).toLocaleString();
+            }
+            function esc(s) {
+                return String(s).replace(
+                    /[&<>"]/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                        })[c],
+                );
+            }
+
+            /*@include shared/macros.js@*/
+
+            function render(data) {
+                const root = document.getElementById("root");
+
+                // Per product decision: with no goals there is no target to show
+                // progress against, so the widget shows nothing at all.
+                if (!data || !data.has_goals || !data.goals) {
+                    root.innerHTML = "";
+                    return;
+                }
+
+                const totals = data.totals || {};
+                const panel = macroPanel(
+                    totals,
+                    data.goals,
+                    undefined,
+                    data.meals,
+                );
+
+                const meal = data.logged_meal;
+                let sub = "";
+                if (meal && meal.description) {
+                    const bits = [esc(meal.description)];
+                    if (meal.meal_type) bits.push(esc(meal.meal_type));
+                    if (meal.calories != null)
+                        bits.push(`${fmt(meal.calories, 0)} kcal`);
+                    sub = bits.join(" · ");
+                }
+
+                // Same widget for log_meal and update_meal — the action only
+                // changes the header wording.
+                const title =
+                    data.action === "updated" ? "Meal updated" : "Meal logged";
+
+                root.innerHTML = `
+          <header class="head">
+            <h1>${title}</h1>
+            ${sub ? `<span class="range">${sub}</span>` : ""}
+          </header>
+          <div class="section-title">Today vs goal</div>
+          ${panel}`;
+            }
+
+            // Pull the meal progress out of whatever wrapper the host used.
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                // The structuredContent object itself, or a wrapper around it.
+                if (
+                    payload.totals ||
+                    payload.logged_meal ||
+                    "has_goals" in payload
+                )
+                    return payload;
+                if (payload.structuredContent) return payload.structuredContent;
+                return null;
+            }
+
+            initWidget({
+                name: "meal-logged-widget",
+                // No loading state: the widget may legitimately end up empty
+                // (no goals), so we start blank and only fill in on data.
+                loading: "",
+                coerce,
+                render,
+                sample: SAMPLE,
+            });
+        </script>
+    </body>
+</html>

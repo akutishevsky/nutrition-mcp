@@ -237,68 +237,316 @@
                             <div class="cw-body">
                                 <div class="chat-thread">
                                     <div class="msg msg-user">
-                                        Log oatmeal with banana and peanut
-                                        butter for breakfast
+                                        Two eggs, whole-wheat toast, and a
+                                        coffee for breakfast
                                     </div>
 
                                     <div class="msg msg-ai">
-                                        Done — added that to breakfast: oatmeal,
-                                        banana, and peanut butter. That's about
-                                        420 kcal (14g protein, 62g carbs, 14g
-                                        fat). Here's where you are today:
-                                        <div class="prog">
-                                            <div class="prog-item">
-                                                <div class="prog-top">
-                                                    <span>Calories</span>
-                                                    <span>420 / 2,100</span>
-                                                </div>
-                                                <div class="prog-bar">
-                                                    <span
-                                                        style="--w: 20%"
-                                                    ></span>
-                                                </div>
-                                            </div>
-                                            <div class="prog-item">
-                                                <div class="prog-top">
-                                                    <span>Protein</span>
-                                                    <span>14 / 150 g</span>
-                                                </div>
-                                                <div class="prog-bar">
-                                                    <span
+                                        <div class="wdg">
+                                            <div class="wdg-hero">
+                                                <div class="wdg-gauge">
+                                                    <div
+                                                        class="wdg-ring"
                                                         style="
-                                                            --w: 9%;
-                                                            background: #c98a3c;
+                                                            --c: var(--cal);
+                                                            --p: 16;
                                                         "
-                                                    ></span>
+                                                    ></div>
+                                                    <div class="wdg-center">
+                                                        <span class="wdg-cval"
+                                                            >340</span
+                                                        >
+                                                        <span
+                                                            class="wdg-cpct"
+                                                            style="
+                                                                color: var(
+                                                                    --cal
+                                                                );
+                                                            "
+                                                            >16%</span
+                                                        >
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="prog-item">
-                                                <div class="prog-top">
-                                                    <span>Carbs</span>
-                                                    <span>62 / 220 g</span>
-                                                </div>
-                                                <div class="prog-bar">
-                                                    <span
+                                                <span class="wdg-label"
+                                                    ><span
+                                                        class="wdg-dot"
                                                         style="
-                                                            --w: 28%;
-                                                            background: #5b8fb0;
+                                                            background: var(
+                                                                --cal
+                                                            );
                                                         "
-                                                    ></span>
+                                                    ></span
+                                                    >Calories</span
+                                                >
+                                                <span class="wdg-cap"
+                                                    >of 2,100 kcal · 1,760
+                                                    left</span
+                                                >
+                                            </div>
+                                            <div class="wdg-row">
+                                                <div class="wdg-cell">
+                                                    <div class="wdg-gauge">
+                                                        <div
+                                                            class="wdg-ring"
+                                                            style="
+                                                                --c: var(--pro);
+                                                                --p: 13;
+                                                            "
+                                                        ></div>
+                                                        <div class="wdg-center">
+                                                            <span
+                                                                class="wdg-cval"
+                                                                >20</span
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                    <span class="wdg-label"
+                                                        ><span
+                                                            class="wdg-dot"
+                                                            style="
+                                                                background: var(
+                                                                    --pro
+                                                                );
+                                                            "
+                                                        ></span
+                                                        >Protein</span
+                                                    >
+                                                </div>
+                                                <div class="wdg-cell">
+                                                    <div class="wdg-gauge">
+                                                        <div
+                                                            class="wdg-ring"
+                                                            style="
+                                                                --c: var(--car);
+                                                                --p: 14;
+                                                            "
+                                                        ></div>
+                                                        <div class="wdg-center">
+                                                            <span
+                                                                class="wdg-cval"
+                                                                >30</span
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                    <span class="wdg-label"
+                                                        ><span
+                                                            class="wdg-dot"
+                                                            style="
+                                                                background: var(
+                                                                    --car
+                                                                );
+                                                            "
+                                                        ></span
+                                                        >Carbs</span
+                                                    >
+                                                </div>
+                                                <div class="wdg-cell">
+                                                    <div class="wdg-gauge">
+                                                        <div
+                                                            class="wdg-ring"
+                                                            style="
+                                                                --c: var(--fat);
+                                                                --p: 21;
+                                                            "
+                                                        ></div>
+                                                        <div class="wdg-center">
+                                                            <span
+                                                                class="wdg-cval"
+                                                                >15</span
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                    <span class="wdg-label"
+                                                        ><span
+                                                            class="wdg-dot"
+                                                            style="
+                                                                background: var(
+                                                                    --fat
+                                                                );
+                                                            "
+                                                        ></span
+                                                        >Fat</span
+                                                    >
                                                 </div>
                                             </div>
                                         </div>
+                                        Done — added that to breakfast: two
+                                        eggs, toast, and a coffee. That's about
+                                        340 kcal (20g protein, 30g carbs, 15g
+                                        fat).
                                     </div>
 
                                     <div class="msg msg-user">
-                                        Show my trends this week
+                                        How's my weight trending?
                                     </div>
 
                                     <div class="msg msg-ai">
-                                        You're averaging around 1,980 kcal a day
-                                        this week — about 5% under your goal.
-                                        Protein's up ~12g from last week, and
-                                        you're on a 6-day logging streak. Nice
-                                        work!
+                                        <div class="wdg">
+                                            <div class="wdg-weight">
+                                                <div class="wdg-thead">
+                                                    <span class="wdg-ttitle"
+                                                        >Weight</span
+                                                    >
+                                                    <span class="wdg-tmeta"
+                                                        >latest 74.5 kg · target
+                                                        73.0 kg</span
+                                                    >
+                                                </div>
+                                                <svg
+                                                    viewBox="0 0 480 104"
+                                                    role="img"
+                                                    aria-label="Weight over the past week, trending toward the 73 kg target"
+                                                >
+                                                    <defs>
+                                                        <linearGradient
+                                                            id="wdgwfill-hero"
+                                                            x1="0"
+                                                            y1="0"
+                                                            x2="0"
+                                                            y2="1"
+                                                        >
+                                                            <stop
+                                                                offset="0%"
+                                                                stop-color="var(--accent)"
+                                                                stop-opacity="0.20"
+                                                            />
+                                                            <stop
+                                                                offset="100%"
+                                                                stop-color="var(--accent)"
+                                                                stop-opacity="0.02"
+                                                            />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <line
+                                                        class="wdg-goalline"
+                                                        x1="8"
+                                                        y1="84.9"
+                                                        x2="472"
+                                                        y2="84.9"
+                                                    />
+                                                    <path
+                                                        d="M8 96 L8 23.1 L85.3 26.1 L162.7 31.9 L240 29.0 L317.3 37.8 L394.7 34.9 L472 40.8 L472 96 Z"
+                                                        fill="url(#wdgwfill-hero)"
+                                                    />
+                                                    <path
+                                                        d="M8 23.1 L85.3 26.1 L162.7 31.9 L240 29.0 L317.3 37.8 L394.7 34.9 L472 40.8"
+                                                        fill="none"
+                                                        stroke="var(--accent)"
+                                                        stroke-width="2"
+                                                        stroke-linejoin="round"
+                                                        stroke-linecap="round"
+                                                    />
+                                                    <circle
+                                                        cx="8"
+                                                        cy="23.1"
+                                                        r="2.6"
+                                                        fill="var(--accent)"
+                                                    />
+                                                    <circle
+                                                        cx="85.3"
+                                                        cy="26.1"
+                                                        r="2.6"
+                                                        fill="var(--accent)"
+                                                    />
+                                                    <circle
+                                                        cx="162.7"
+                                                        cy="31.9"
+                                                        r="2.6"
+                                                        fill="var(--accent)"
+                                                    />
+                                                    <circle
+                                                        cx="240"
+                                                        cy="29.0"
+                                                        r="2.6"
+                                                        fill="var(--accent)"
+                                                    />
+                                                    <circle
+                                                        cx="317.3"
+                                                        cy="37.8"
+                                                        r="2.6"
+                                                        fill="var(--accent)"
+                                                    />
+                                                    <circle
+                                                        cx="394.7"
+                                                        cy="34.9"
+                                                        r="2.6"
+                                                        fill="var(--accent)"
+                                                    />
+                                                    <circle
+                                                        cx="472"
+                                                        cy="40.8"
+                                                        r="2.6"
+                                                        fill="var(--accent)"
+                                                    />
+                                                </svg>
+                                                <div class="wdg-tdates">
+                                                    <span>07-05</span>
+                                                    <span>07-11</span>
+                                                </div>
+                                                <div class="wdg-stats">
+                                                    <div class="wdg-stat">
+                                                        <span class="wdg-slabel"
+                                                            ><span
+                                                                class="wdg-dot"
+                                                                style="
+                                                                    background: var(
+                                                                        --accent
+                                                                    );
+                                                                "
+                                                            ></span
+                                                            >Latest</span
+                                                        >
+                                                        <span class="wdg-sval"
+                                                            >74.5<span
+                                                                class="wdg-sunit"
+                                                                >kg</span
+                                                            ></span
+                                                        >
+                                                        <span class="wdg-scap"
+                                                            >on 07-11</span
+                                                        >
+                                                    </div>
+                                                    <div class="wdg-stat">
+                                                        <span class="wdg-slabel"
+                                                            >Change</span
+                                                        >
+                                                        <span
+                                                            class="wdg-sval"
+                                                            style="
+                                                                color: var(
+                                                                    --accent
+                                                                );
+                                                            "
+                                                            >−0.6<span
+                                                                class="wdg-sunit"
+                                                                >kg</span
+                                                            ></span
+                                                        >
+                                                        <span class="wdg-scap"
+                                                            >since 07-05</span
+                                                        >
+                                                    </div>
+                                                    <div class="wdg-stat">
+                                                        <span class="wdg-slabel"
+                                                            >Target</span
+                                                        >
+                                                        <span class="wdg-sval"
+                                                            >73.0<span
+                                                                class="wdg-sunit"
+                                                                >kg</span
+                                                            ></span
+                                                        >
+                                                        <span class="wdg-scap"
+                                                            >1.5 kg to
+                                                            lose</span
+                                                        >
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        You're down 0.6 kg this week and 1.5 kg
+                                        from your 73 kg goal — your 7-day
+                                        average is trending down nicely.
                                     </div>
                                 </div>
                             </div>
@@ -649,63 +897,193 @@
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                Got it — added a chicken burrito
-                                                bowl to lunch, about 650 kcal
-                                                (42g protein, 68g carbs, 22g
-                                                fat). Here's where you are
-                                                today:
-                                                <div class="prog">
-                                                    <div class="prog-item">
-                                                        <div class="prog-top">
-                                                            <span
-                                                                >Calories</span
+                                                <div class="wdg">
+                                                    <div class="wdg-hero">
+                                                        <div class="wdg-gauge">
+                                                            <div
+                                                                class="wdg-ring"
+                                                                style="
+                                                                    --c: var(
+                                                                        --cal
+                                                                    );
+                                                                    --p: 52;
+                                                                "
+                                                            ></div>
+                                                            <div
+                                                                class="wdg-center"
                                                             >
+                                                                <span
+                                                                    class="wdg-cval"
+                                                                    >1,090</span
+                                                                >
+                                                                <span
+                                                                    class="wdg-cpct"
+                                                                    style="
+                                                                        color: var(
+                                                                            --cal
+                                                                        );
+                                                                    "
+                                                                    >52%</span
+                                                                >
+                                                            </div>
+                                                        </div>
+                                                        <span class="wdg-label"
+                                                            ><span
+                                                                class="wdg-dot"
+                                                                style="
+                                                                    background: var(
+                                                                        --cal
+                                                                    );
+                                                                "
+                                                            ></span
+                                                            >Calories</span
+                                                        >
+                                                        <span class="wdg-cap"
+                                                            >of 2,100 kcal ·
+                                                            1,010 left</span
+                                                        >
+                                                    </div>
+                                                    <div class="wdg-row">
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --pro
+                                                                        );
+                                                                        --p: 68;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >102</span
+                                                                    >
+                                                                </div>
+                                                            </div>
                                                             <span
-                                                                >1,090 /
-                                                                2,100</span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --pro
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Protein</span
                                                             >
                                                         </div>
-                                                        <div class="prog-bar">
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --car
+                                                                        );
+                                                                        --p: 58;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >128</span
+                                                                    >
+                                                                </div>
+                                                            </div>
                                                             <span
-                                                                style="--w: 52%"
-                                                            ></span>
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --car
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Carbs</span
+                                                            >
+                                                        </div>
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --fat
+                                                                        );
+                                                                        --p: 69;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >48</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --fat
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Fat</span
+                                                            >
                                                         </div>
                                                     </div>
-                                                    <div class="prog-item">
-                                                        <div class="prog-top">
-                                                            <span>Protein</span>
+                                                    <div class="wdg-water">
+                                                        <div class="wdg-wtop">
                                                             <span
-                                                                >102 / 150
-                                                                g</span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --wat
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Water</span
+                                                            >
+                                                            <span
+                                                                class="wdg-wval"
+                                                                >1,200<span
+                                                                    >/ 2,500
+                                                                    ml</span
+                                                                ></span
                                                             >
                                                         </div>
-                                                        <div class="prog-bar">
-                                                            <span
-                                                                style="
-                                                                    --w: 68%;
-                                                                    background: #c98a3c;
-                                                                "
-                                                            ></span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="prog-item">
-                                                        <div class="prog-top">
-                                                            <span>Carbs</span>
-                                                            <span
-                                                                >128 / 220
-                                                                g</span
-                                                            >
-                                                        </div>
-                                                        <div class="prog-bar">
-                                                            <span
-                                                                style="
-                                                                    --w: 58%;
-                                                                    background: #5b8fb0;
-                                                                "
-                                                            ></span>
+                                                        <div class="wdg-wbar">
+                                                            <div
+                                                                class="wdg-wfill"
+                                                                style="--w: 48%"
+                                                            ></div>
                                                         </div>
                                                     </div>
                                                 </div>
+                                                Got it — added a chicken burrito
+                                                bowl to lunch, about 650 kcal
+                                                (42g protein, 68g carbs, 22g
+                                                fat).
                                             </div>
                                         </div>
                                     </div>
@@ -1133,6 +1511,160 @@
                                                 </div>
                                             </div>
                                             <div class="msg msg-ai step-done">
+                                                <div class="wdg">
+                                                    <div class="wdg-hero">
+                                                        <div class="wdg-gauge">
+                                                            <div
+                                                                class="wdg-ring"
+                                                                style="
+                                                                    --c: var(
+                                                                        --cal
+                                                                    );
+                                                                    --p: 73;
+                                                                "
+                                                            ></div>
+                                                            <div
+                                                                class="wdg-center"
+                                                            >
+                                                                <span
+                                                                    class="wdg-cval"
+                                                                    >1,540</span
+                                                                >
+                                                                <span
+                                                                    class="wdg-cpct"
+                                                                    style="
+                                                                        color: var(
+                                                                            --cal
+                                                                        );
+                                                                    "
+                                                                    >73%</span
+                                                                >
+                                                            </div>
+                                                        </div>
+                                                        <span class="wdg-label"
+                                                            ><span
+                                                                class="wdg-dot"
+                                                                style="
+                                                                    background: var(
+                                                                        --cal
+                                                                    );
+                                                                "
+                                                            ></span
+                                                            >Calories</span
+                                                        >
+                                                        <span class="wdg-cap"
+                                                            >of 2,100 kcal · 560
+                                                            left</span
+                                                        >
+                                                    </div>
+                                                    <div class="wdg-row">
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --pro
+                                                                        );
+                                                                        --p: 65;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >98</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --pro
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Protein</span
+                                                            >
+                                                        </div>
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --car
+                                                                        );
+                                                                        --p: 68;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >150</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --car
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Carbs</span
+                                                            >
+                                                        </div>
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --fat
+                                                                        );
+                                                                        --p: 74;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >52</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --fat
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Fat</span
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 Logged to snacks — 120 kcal, 15g
                                                 protein.
                                             </div>
@@ -1203,11 +1735,307 @@
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
+                                                <div class="wdg">
+                                                    <div class="wdg-trend">
+                                                        <div class="wdg-thead">
+                                                            <span
+                                                                class="wdg-ttitle"
+                                                                >Calories /
+                                                                day</span
+                                                            >
+                                                            <span
+                                                                class="wdg-tmeta"
+                                                                >avg 1,980 ·
+                                                                goal 2,100</span
+                                                            >
+                                                        </div>
+                                                        <svg
+                                                            viewBox="0 0 480 88"
+                                                            role="img"
+                                                            aria-label="Calories per day this week"
+                                                        >
+                                                            <defs>
+                                                                <linearGradient
+                                                                    id="wdgcalfill"
+                                                                    x1="0"
+                                                                    y1="0"
+                                                                    x2="0"
+                                                                    y2="1"
+                                                                >
+                                                                    <stop
+                                                                        offset="0%"
+                                                                        stop-color="var(--cal)"
+                                                                        stop-opacity="0.28"
+                                                                    />
+                                                                    <stop
+                                                                        offset="100%"
+                                                                        stop-color="var(--cal)"
+                                                                        stop-opacity="0.02"
+                                                                    />
+                                                                </linearGradient>
+                                                            </defs>
+                                                            <line
+                                                                class="wdg-axis"
+                                                                x1="8"
+                                                                y1="82"
+                                                                x2="472"
+                                                                y2="82"
+                                                            />
+                                                            <line
+                                                                class="wdg-goalline"
+                                                                x1="8"
+                                                                y1="20.6"
+                                                                x2="472"
+                                                                y2="20.6"
+                                                            />
+                                                            <path
+                                                                d="M8 82 L8 22.3 L85.3 26.7 L162.7 20.3 L240 27.9 L317.3 23.5 L394.7 28.5 L472 19.4 L472 82 Z"
+                                                                fill="url(#wdgcalfill)"
+                                                            />
+                                                            <path
+                                                                d="M8 22.3 L85.3 26.7 L162.7 20.3 L240 27.9 L317.3 23.5 L394.7 28.5 L472 19.4"
+                                                                fill="none"
+                                                                stroke="var(--cal)"
+                                                                stroke-width="2"
+                                                                stroke-linejoin="round"
+                                                                stroke-linecap="round"
+                                                            />
+                                                            <circle
+                                                                cx="8"
+                                                                cy="22.3"
+                                                                r="2.4"
+                                                                fill="var(--cal)"
+                                                            />
+                                                            <circle
+                                                                cx="85.3"
+                                                                cy="26.7"
+                                                                r="2.4"
+                                                                fill="var(--cal)"
+                                                            />
+                                                            <circle
+                                                                cx="162.7"
+                                                                cy="20.3"
+                                                                r="2.4"
+                                                                fill="var(--cal)"
+                                                            />
+                                                            <circle
+                                                                cx="240"
+                                                                cy="27.9"
+                                                                r="2.4"
+                                                                fill="var(--cal)"
+                                                            />
+                                                            <circle
+                                                                cx="317.3"
+                                                                cy="23.5"
+                                                                r="2.4"
+                                                                fill="var(--cal)"
+                                                            />
+                                                            <circle
+                                                                cx="394.7"
+                                                                cy="28.5"
+                                                                r="2.4"
+                                                                fill="var(--cal)"
+                                                            />
+                                                            <circle
+                                                                cx="472"
+                                                                cy="19.4"
+                                                                r="2.4"
+                                                                fill="var(--cal)"
+                                                            />
+                                                        </svg>
+                                                        <div class="wdg-tdates">
+                                                            <span>07-05</span>
+                                                            <span>07-11</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="wdg-section">
+                                                        7-day average vs goal
+                                                    </div>
+                                                    <div class="wdg-hero">
+                                                        <div class="wdg-gauge">
+                                                            <div
+                                                                class="wdg-ring"
+                                                                style="
+                                                                    --c: var(
+                                                                        --cal
+                                                                    );
+                                                                    --p: 94;
+                                                                "
+                                                            ></div>
+                                                            <div
+                                                                class="wdg-center"
+                                                            >
+                                                                <span
+                                                                    class="wdg-cval"
+                                                                    >1,980</span
+                                                                >
+                                                                <span
+                                                                    class="wdg-cpct"
+                                                                    style="
+                                                                        color: var(
+                                                                            --cal
+                                                                        );
+                                                                    "
+                                                                    >94%</span
+                                                                >
+                                                            </div>
+                                                        </div>
+                                                        <span class="wdg-label"
+                                                            ><span
+                                                                class="wdg-dot"
+                                                                style="
+                                                                    background: var(
+                                                                        --cal
+                                                                    );
+                                                                "
+                                                            ></span
+                                                            >Calories</span
+                                                        >
+                                                        <span class="wdg-cap"
+                                                            >of 2,100 kcal · 120
+                                                            under</span
+                                                        >
+                                                    </div>
+                                                    <div class="wdg-row">
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --pro
+                                                                        );
+                                                                        --p: 93;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >148</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --pro
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Protein</span
+                                                            >
+                                                        </div>
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --car
+                                                                        );
+                                                                        --p: 93;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >205</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --car
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Carbs</span
+                                                            >
+                                                        </div>
+                                                        <div class="wdg-cell">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --fat
+                                                                        );
+                                                                        --p: 94;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-center"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-cval"
+                                                                        >66</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --fat
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Fat</span
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                    <div class="wdg-water">
+                                                        <div class="wdg-wtop">
+                                                            <span
+                                                                class="wdg-label"
+                                                                ><span
+                                                                    class="wdg-dot"
+                                                                    style="
+                                                                        background: var(
+                                                                            --wat
+                                                                        );
+                                                                    "
+                                                                ></span
+                                                                >Water</span
+                                                            >
+                                                            <span
+                                                                class="wdg-wval"
+                                                                >2,100<span
+                                                                    >/ 2,500
+                                                                    ml</span
+                                                                ></span
+                                                            >
+                                                        </div>
+                                                        <div class="wdg-wbar">
+                                                            <div
+                                                                class="wdg-wfill"
+                                                                style="--w: 84%"
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 You're averaging 1,980 kcal a
-                                                day — about 5% under goal,
-                                                protein's up 12g, and you're on
-                                                a 6-day streak. Want it as a
-                                                CSV?
+                                                day — about 5% under goal, and
+                                                on a 6-day streak.
                                             </div>
                                         </div>
                                     </div>
@@ -1228,11 +2056,190 @@
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                Logged — 74.5 kg. You're down
-                                                0.6 kg over the past week and
-                                                1.5 kg from your 73 kg goal —
-                                                your 7-day average is trending
-                                                down nicely.
+                                                <div class="wdg">
+                                                    <div class="wdg-weight">
+                                                        <div class="wdg-thead">
+                                                            <span
+                                                                class="wdg-ttitle"
+                                                                >Weight</span
+                                                            >
+                                                            <span
+                                                                class="wdg-tmeta"
+                                                                >latest 74.5 kg
+                                                                · target 73.0
+                                                                kg</span
+                                                            >
+                                                        </div>
+                                                        <svg
+                                                            viewBox="0 0 480 104"
+                                                            role="img"
+                                                            aria-label="Weight over the past week, trending toward the 73 kg target"
+                                                        >
+                                                            <defs>
+                                                                <linearGradient
+                                                                    id="wdgwfill"
+                                                                    x1="0"
+                                                                    y1="0"
+                                                                    x2="0"
+                                                                    y2="1"
+                                                                >
+                                                                    <stop
+                                                                        offset="0%"
+                                                                        stop-color="var(--accent)"
+                                                                        stop-opacity="0.20"
+                                                                    />
+                                                                    <stop
+                                                                        offset="100%"
+                                                                        stop-color="var(--accent)"
+                                                                        stop-opacity="0.02"
+                                                                    />
+                                                                </linearGradient>
+                                                            </defs>
+                                                            <line
+                                                                class="wdg-goalline"
+                                                                x1="8"
+                                                                y1="84.9"
+                                                                x2="472"
+                                                                y2="84.9"
+                                                            />
+                                                            <path
+                                                                d="M8 96 L8 23.1 L85.3 26.1 L162.7 31.9 L240 29.0 L317.3 37.8 L394.7 34.9 L472 40.8 L472 96 Z"
+                                                                fill="url(#wdgwfill)"
+                                                            />
+                                                            <path
+                                                                d="M8 23.1 L85.3 26.1 L162.7 31.9 L240 29.0 L317.3 37.8 L394.7 34.9 L472 40.8"
+                                                                fill="none"
+                                                                stroke="var(--accent)"
+                                                                stroke-width="2"
+                                                                stroke-linejoin="round"
+                                                                stroke-linecap="round"
+                                                            />
+                                                            <circle
+                                                                cx="8"
+                                                                cy="23.1"
+                                                                r="2.6"
+                                                                fill="var(--accent)"
+                                                            />
+                                                            <circle
+                                                                cx="85.3"
+                                                                cy="26.1"
+                                                                r="2.6"
+                                                                fill="var(--accent)"
+                                                            />
+                                                            <circle
+                                                                cx="162.7"
+                                                                cy="31.9"
+                                                                r="2.6"
+                                                                fill="var(--accent)"
+                                                            />
+                                                            <circle
+                                                                cx="240"
+                                                                cy="29.0"
+                                                                r="2.6"
+                                                                fill="var(--accent)"
+                                                            />
+                                                            <circle
+                                                                cx="317.3"
+                                                                cy="37.8"
+                                                                r="2.6"
+                                                                fill="var(--accent)"
+                                                            />
+                                                            <circle
+                                                                cx="394.7"
+                                                                cy="34.9"
+                                                                r="2.6"
+                                                                fill="var(--accent)"
+                                                            />
+                                                            <circle
+                                                                cx="472"
+                                                                cy="40.8"
+                                                                r="2.6"
+                                                                fill="var(--accent)"
+                                                            />
+                                                        </svg>
+                                                        <div class="wdg-tdates">
+                                                            <span>07-05</span>
+                                                            <span>07-11</span>
+                                                        </div>
+                                                        <div class="wdg-stats">
+                                                            <div
+                                                                class="wdg-stat"
+                                                            >
+                                                                <span
+                                                                    class="wdg-slabel"
+                                                                    ><span
+                                                                        class="wdg-dot"
+                                                                        style="
+                                                                            background: var(
+                                                                                --accent
+                                                                            );
+                                                                        "
+                                                                    ></span
+                                                                    >Latest</span
+                                                                >
+                                                                <span
+                                                                    class="wdg-sval"
+                                                                    >74.5<span
+                                                                        class="wdg-sunit"
+                                                                        >kg</span
+                                                                    ></span
+                                                                >
+                                                                <span
+                                                                    class="wdg-scap"
+                                                                    >on
+                                                                    07-11</span
+                                                                >
+                                                            </div>
+                                                            <div
+                                                                class="wdg-stat"
+                                                            >
+                                                                <span
+                                                                    class="wdg-slabel"
+                                                                    >Change</span
+                                                                >
+                                                                <span
+                                                                    class="wdg-sval"
+                                                                    style="
+                                                                        color: var(
+                                                                            --accent
+                                                                        );
+                                                                    "
+                                                                    >−0.6<span
+                                                                        class="wdg-sunit"
+                                                                        >kg</span
+                                                                    ></span
+                                                                >
+                                                                <span
+                                                                    class="wdg-scap"
+                                                                    >since
+                                                                    07-05</span
+                                                                >
+                                                            </div>
+                                                            <div
+                                                                class="wdg-stat"
+                                                            >
+                                                                <span
+                                                                    class="wdg-slabel"
+                                                                    >Target</span
+                                                                >
+                                                                <span
+                                                                    class="wdg-sval"
+                                                                    >73.0<span
+                                                                        class="wdg-sunit"
+                                                                        >kg</span
+                                                                    ></span
+                                                                >
+                                                                <span
+                                                                    class="wdg-scap"
+                                                                    >1.5 kg to
+                                                                    lose</span
+                                                                >
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                Logged — you're trending toward
+                                                your goal.
                                             </div>
                                         </div>
                                     </div>

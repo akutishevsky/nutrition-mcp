@@ -1,0 +1,325 @@
+<!doctype html>
+<!--
+  Nutrition summary dashboard widget (MCP Apps).
+
+  Assembled from shared partials at server startup (see src/widgets.ts); the
+  @include markers below inline the shared design tokens, components, and host
+  bridge. The result is fully self-contained — inline CSS + JS, zero network
+  requests — because the MCP Apps sandbox blocks external hosts.
+
+  Data arrives as the `structuredContent` of the get_nutrition_summary tool
+  result; the shared bridge (shared/bridge.js) reads it across host conventions
+  and calls render(). Standalone preview uses the SAMPLE below.
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Nutrition Summary</title>
+        <style>
+            /*@include shared/tokens.css@*/
+
+            /*@include shared/base.css@*/
+
+            /*@include shared/ring.css@*/
+
+            /*@include shared/macros.css@*/
+
+            /*@include shared/trend.css@*/
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+
+        <script>
+            "use strict";
+
+            /*@include shared/bridge.js@*/
+
+            // ---- Sample data so the file renders on its own (browser preview) ----
+            const SAMPLE = {
+                start_date: "2026-07-05",
+                end_date: "2026-07-07",
+                logged_days: 3,
+                goals: {
+                    calories: 2200,
+                    protein_g: 160,
+                    carbs_g: 220,
+                    fat_g: 70,
+                    water_ml: 2500,
+                },
+                averages: {
+                    calories: 2035,
+                    protein_g: 148,
+                    carbs_g: 205,
+                    fat_g: 74,
+                    water_ml: 2100,
+                },
+                days: [
+                    {
+                        date: "2026-07-05",
+                        meal_count: 4,
+                        calories: 2180,
+                        protein_g: 155,
+                        carbs_g: 230,
+                        fat_g: 72,
+                        water_ml: 2400,
+                    },
+                    {
+                        date: "2026-07-06",
+                        meal_count: 3,
+                        calories: 1890,
+                        protein_g: 138,
+                        carbs_g: 188,
+                        fat_g: 68,
+                        water_ml: 1800,
+                    },
+                    {
+                        date: "2026-07-07",
+                        meal_count: 4,
+                        calories: 2035,
+                        protein_g: 151,
+                        carbs_g: 197,
+                        fat_g: 82,
+                        water_ml: 2100,
+                    },
+                ],
+                meals: [
+                    {
+                        description: "Grilled chicken & rice bowl",
+                        meal_type: "lunch",
+                        date: "2026-07-05",
+                        calories: 650,
+                        protein_g: 52,
+                        carbs_g: 78,
+                        fat_g: 16,
+                    },
+                    {
+                        description: "Salmon with quinoa & veg",
+                        meal_type: "dinner",
+                        date: "2026-07-05",
+                        calories: 640,
+                        protein_g: 55,
+                        carbs_g: 74,
+                        fat_g: 30,
+                    },
+                    {
+                        description: "Overnight oats with berries",
+                        meal_type: "breakfast",
+                        date: "2026-07-06",
+                        calories: 430,
+                        protein_g: 19,
+                        carbs_g: 63,
+                        fat_g: 12,
+                    },
+                    {
+                        description: "Steak burrito",
+                        meal_type: "dinner",
+                        date: "2026-07-06",
+                        calories: 720,
+                        protein_g: 48,
+                        carbs_g: 66,
+                        fat_g: 30,
+                    },
+                    {
+                        description: "Protein shake",
+                        meal_type: "snack",
+                        date: "2026-07-06",
+                        calories: 210,
+                        protein_g: 40,
+                        carbs_g: 8,
+                        fat_g: 3,
+                    },
+                    {
+                        description: "Egg & avocado toast",
+                        meal_type: "breakfast",
+                        date: "2026-07-07",
+                        calories: 480,
+                        protein_g: 24,
+                        carbs_g: 42,
+                        fat_g: 26,
+                    },
+                    {
+                        description: "Turkey & hummus wrap",
+                        meal_type: "lunch",
+                        date: "2026-07-07",
+                        calories: 560,
+                        protein_g: 44,
+                        carbs_g: 58,
+                        fat_g: 18,
+                    },
+                    {
+                        description: "Greek yogurt & almonds",
+                        meal_type: "snack",
+                        date: "2026-07-07",
+                        calories: 260,
+                        protein_g: 22,
+                        carbs_g: 14,
+                        fat_g: 14,
+                    },
+                ],
+            };
+
+            function fmt(n, decimals) {
+                if (n == null || isNaN(n)) return "0";
+                const r = decimals ? n.toFixed(decimals) : Math.round(n);
+                return Number(r).toLocaleString();
+            }
+            function esc(s) {
+                return String(s).replace(
+                    /[&<>"]/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                        })[c],
+                );
+            }
+
+            /*@include shared/macros.js@*/
+
+            // Calories-per-day trend: SVG area + line that scales to any range
+            // (3 days to a year). Uniform scaling — no preserveAspectRatio
+            // distortion — so it keeps its aspect ratio at any container width.
+            function trendChart(days, goal) {
+                const W = 480,
+                    H = 88,
+                    padL = 8,
+                    padR = 8,
+                    padT = 10,
+                    padB = 6;
+                const n = days.length;
+                const vals = days.map((d) => d.calories || 0);
+                const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
+                const plotW = W - padL - padR;
+                const plotH = H - padT - padB;
+                const base = padT + plotH;
+                const x = (i) =>
+                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
+                const y = (v) => padT + plotH - (v / maxV) * plotH;
+                const pts = vals.map((v, i) => [x(i), y(v)]);
+
+                const line = pts
+                    .map(
+                        (p, i) =>
+                            `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
+                    )
+                    .join(" ");
+                const area =
+                    `M${pts[0][0].toFixed(1)} ${base} ` +
+                    pts
+                        .map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
+                        .join(" ") +
+                    ` L${pts[n - 1][0].toFixed(1)} ${base} Z`;
+
+                const goalLine =
+                    goal && goal > 0
+                        ? `<line class="goalline" x1="${padL}" y1="${y(goal).toFixed(1)}" x2="${W - padR}" y2="${y(goal).toFixed(1)}"/>`
+                        : "";
+                // Only draw point markers on short ranges to avoid clutter.
+                const dots =
+                    n <= 12
+                        ? pts
+                              .map(
+                                  (p) =>
+                                      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.4" fill="var(--calories)"/>`,
+                              )
+                              .join("")
+                        : "";
+                const md = (d) => esc(d.date.slice(5)); // MM-DD
+                const avg = Math.round(vals.reduce((a, b) => a + b, 0) / n);
+
+                return `
+          <div class="trend">
+            <div class="thead">
+              <span class="ttitle">Calories / day</span>
+              <span class="tmeta">avg ${fmt(avg, 0)}${goal && goal > 0 ? ` · goal ${fmt(goal, 0)}` : ""}</span>
+            </div>
+            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calories per day over the selected range">
+              <defs>
+                <linearGradient id="calfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--calories)" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="var(--calories)" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+              <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
+              ${goalLine}
+              <path d="${area}" fill="url(#calfill)"/>
+              <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              ${dots}
+            </svg>
+            <div class="tdates">
+              <span>${md(days[0])}</span>
+              <span>${md(days[n - 1])}</span>
+            </div>
+          </div>`;
+            }
+
+            function render(data) {
+                const root = document.getElementById("root");
+                if (
+                    !data ||
+                    !Array.isArray(data.days) ||
+                    data.days.length === 0
+                ) {
+                    root.innerHTML = `
+            <div class="empty">
+              <div class="big">🍽️</div>
+              <div>No meals or water logged in this range.</div>
+            </div>`;
+                    return;
+                }
+                const days = data.days
+                    .slice()
+                    .sort((a, b) => (a.date < b.date ? -1 : 1));
+                const multi = days.length > 1;
+                const heroLabel = multi ? "Daily average" : "Total";
+                const range = multi
+                    ? `${data.start_date} → ${data.end_date} · ${data.logged_days} day${data.logged_days === 1 ? "" : "s"} logged`
+                    : days[0].date;
+
+                // Calories hero + protein/carbs/fat row + water bar.
+                const panel = macroPanel(
+                    data.averages,
+                    data.goals,
+                    undefined,
+                    data.meals,
+                );
+                const trend =
+                    multi && days.length >= 2
+                        ? trendChart(days, data.goals?.calories ?? null)
+                        : "";
+
+                root.innerHTML = `
+          <header class="head">
+            <h1>Nutrition Summary</h1>
+            <span class="range">${esc(range)}</span>
+          </header>
+          ${trend}
+          <div class="section-title" style="margin-bottom:9px">${heroLabel} vs goal</div>
+          ${panel}`;
+            }
+
+            // Pull the summary out of whatever wrapper the host used.
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                // The structuredContent object itself, or a wrapper around it.
+                if (Array.isArray(payload.days) || payload.averages)
+                    return payload;
+                if (payload.structuredContent) return payload.structuredContent;
+                return null;
+            }
+
+            initWidget({
+                name: "nutrition-summary-widget",
+                loading:
+                    '<div class="empty"><div class="big">🍽️</div><div>Loading your nutrition summary…</div></div>',
+                coerce,
+                render,
+                sample: SAMPLE,
+            });
+        </script>
+    </body>
+</html>

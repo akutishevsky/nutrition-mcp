@@ -1,21 +1,37 @@
 # Widget Style Guide
 
-Shared design language for the in-chat MCP Apps widgets in this folder. First
-implemented in `nutrition-summary.html`; copy the blocks below into any new
-widget so they all look like one product.
+Shared design language for the in-chat MCP Apps widgets. The shared CSS blocks
+below are **not** copy-pasted anymore — they live as source partials under
+`src/shared/` and are inlined into each widget at build time (see below). This
+document is the human-readable spec for those partials: what each block is for and
+how to use its classes.
 
-## Hard constraints (why this is copy-paste, not a shared stylesheet)
+## Build system (how the shared code is reused)
 
-Each widget is a **single self-contained HTML file** — inline `<style>` + inline
-`<script>`, zero network requests. The iframe CSP is deny-by-default: no external
-CSS, no CDN, no fonts, no `<link>`. So there is **no shared stylesheet to import** —
-reuse means pasting these blocks into the new widget's `<style>`. Keep them
-byte-identical across widgets; when the design changes, update this file and every
-widget together.
+Each widget is still a **single self-contained HTML file** — inline `<style>` +
+inline `<script>`, zero network requests — because the iframe CSP is deny-by-default
+(no external CSS/JS, no CDN, no fonts, no `<link>`). But the source is no longer
+duplicated: it is assembled from partials at server startup (`src/widgets.ts`,
+warmed in `src/index.ts`). Nothing generated is committed.
 
-Theme + data delivery (the iframe↔host handshake, the `appInfo`/`appCapabilities`
-gotcha, and how `data-theme` gets set) are documented in **`CLAUDE.md` → Custom UI
-Widgets (MCP Apps)** and the `mcp-apps-widgets` memory. This file is styling only.
+- **Sources** live in `public/widgets/src/`: shared partials in `shared/`
+  (`tokens.css`, `base.css`, `ring.css`, `trend.css`, `seg.css`, `bridge.js`) and
+  one template per widget in `templates/`.
+- **Include marker** — a partial is inlined with a comment that is valid CSS _and_
+  JS, so a template still parses on its own:
+  `/*@include shared/tokens.css@*/`, `/*@include shared/bridge.js@*/`.
+- **The host bridge is shared JS.** `shared/bridge.js` exposes one global,
+  `initWidget(config)`, that runs the entire iframe↔host handshake, theme handling,
+  height reporting, and the standalone preview fallback. A template supplies only
+  `{ name, loading, coerce, render, sample }`. Handshake details (the
+  `appInfo`/`appCapabilities` gotcha, `data-theme`, `size-changed`) live in
+  **`CLAUDE.md` → Custom UI Widgets (MCP Apps)** and the `mcp-apps-widgets` memory.
+- `bun test src/widgets.test.ts` asserts every widget assembles with no unresolved
+  markers, valid inline JS, and each partial inlined in full.
+
+When the design changes, edit the partial in `src/shared/` once — every widget
+picks it up on next assembly. The blocks below document those partials; keep this
+spec in sync when you change them.
 
 ## Design language
 
@@ -343,6 +359,32 @@ Markup:
     </div>
 </div>
 ```
+
+## 4a. Component: macro panel (`macroPanel` — `shared/macros.*`)
+
+The intake-vs-goal view shared by `nutrition-summary`, `goal-progress`,
+`meal-logged`, and `trends`. Instead of a uniform grid of five equal rings, it lays
+the macros out by importance: **calories** as a full-width hero ring
+(`.macro-hero`), **protein / carbs / fat** as three smaller rings in one row card
+(`.macro-row` → `.macro-cell`), and **water** as a full-width horizontal progress
+bar (`.macro-water`). All of it — CSS and markup — lives in `shared/macros.css` +
+`shared/macros.js`; include both (plus `shared/ring.css`, which the rings depend
+on) and call one function:
+
+```js
+// vals / goal: objects keyed by calories, protein_g, carbs_g, fat_g, water_ml
+//   (a day's totals, a range's averages, a computed slice…)
+// wording: { under: "left" | "under", over: "over" } — default "left" / "over".
+//          trends uses { under: "under" } ("421 kcal under").
+// Requires fmt(n, decimals) and esc(s) in scope.
+root.innerHTML = `… ${macroPanel(vals, goal, wording)} …`;
+```
+
+The gauge keeps the over-goal convention from §4 (ring stays its macro colour; the
+% caption / water value turns `var(--over)` past 100%). Ring sizes come from the
+CSS context (`.macro-hero .ring` is 132px, `.macro-row .ring` is 78px), so the same
+`ring.css` gauge serves both the hero and the small cells. To restyle any of this,
+edit the shared partials once — every widget picks it up on next assembly.
 
 ## 5. Component: hand-built SVG trend chart (`.trend`)
 

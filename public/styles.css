@@ -592,6 +592,23 @@ html:has(body.landing) {
     width: 100%;
     max-width: 420px;
 }
+/* The hero chat runs several exchanges — cap the body height and let it scroll
+   internally so the card stays compact. Scoped to .hero-card so the carousel's
+   own .cw-body (which slides horizontally) is untouched. */
+.hero-card .cw-body {
+    max-height: 440px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+}
+.hero-card .cw-body::-webkit-scrollbar {
+    width: 8px;
+}
+.hero-card .cw-body::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 999px;
+    border: 2px solid var(--bg);
+}
 .chat-thread {
     display: flex;
     flex-direction: column;
@@ -1168,14 +1185,36 @@ html:has(body.landing) {
     overflow: hidden;
     background: var(--bg);
 }
+/* Fixed-height carousel body so switching slides never changes the card's
+   height (no page jump). Taller slides scroll their own content vertically. */
+#try-carousel .carousel-viewport {
+    height: 480px;
+}
 .carousel-track {
     display: flex;
     align-items: stretch;
+    height: 100%;
     transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .slide {
     min-width: 100%;
     display: flex;
+}
+#try-carousel .slide {
+    overflow-y: auto;
+    /* Don't stretch .mini-chat to the fixed slide height — let it grow past it
+       for tall content so the slide scrolls instead of clipping. */
+    align-items: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+}
+#try-carousel .slide::-webkit-scrollbar {
+    width: 8px;
+}
+#try-carousel .slide::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 999px;
+    border: 2px solid var(--bg);
 }
 .mini-chat {
     flex: 1;
@@ -1183,7 +1222,7 @@ html:has(body.landing) {
     flex-direction: column;
     justify-content: flex-end;
     gap: 0.55rem;
-    min-height: 250px;
+    min-height: 100%;
     padding: 1.1rem 1.1rem 1.2rem;
 }
 .mini-chat .msg {
@@ -1232,6 +1271,285 @@ html:has(body.landing) {
     width: var(--w);
     border-radius: 999px;
     background: var(--accent);
+}
+
+/* ---------- inline widget preview ----------
+   A decorative miniature of the real in-chat nutrition widget (calorie hero
+   ring, protein/carbs/fat ring row, water bar). Rendered inside an AI reply so
+   the demos show what the connected widget actually looks like. */
+.wdg {
+    margin: 0.15rem 0 0.6rem;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 0.9rem 1rem 1rem;
+    /* series palette — matches the widget tokens */
+    --cal: #ff9f0a;
+    --pro: #8b5cf6;
+    --car: #10b981;
+    --fat: #f43f7e;
+    --wat: #0ea5e9;
+    --wtrack: #e6e6ea;
+}
+.wdg-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+.wdg-gauge {
+    display: grid;
+    place-items: center;
+}
+.wdg-ring {
+    grid-area: 1 / 1;
+    position: relative;
+    border-radius: 50%;
+    /* Track-to-colour gradient arc (Activity-ring style), matching the real
+       widget: the arc fades from the track colour into the macro colour, with
+       the plain track filling the rest of the circle. */
+    background: conic-gradient(
+        from 0deg,
+        var(--wtrack) 0deg,
+        var(--c) calc(var(--p) * 3.6deg),
+        var(--wtrack) calc(var(--p) * 3.6deg)
+    );
+    -webkit-mask: radial-gradient(
+        farthest-side,
+        #0000 calc(100% - var(--band, 8px)),
+        #000 calc(100% - var(--band, 8px))
+    );
+    mask: radial-gradient(
+        farthest-side,
+        #0000 calc(100% - var(--band, 8px)),
+        #000 calc(100% - var(--band, 8px))
+    );
+}
+/* Rounded cap on the leading (coloured) end of the arc: a dot the width of the
+   band, sat at 12 o'clock and rotated to the arc's end angle. */
+.wdg-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: rotate(calc(var(--p) * 3.6deg));
+    background: radial-gradient(
+        circle at 50% calc(var(--band, 8px) / 2),
+        var(--c) 0 calc(var(--band, 8px) / 2),
+        #0000 calc(var(--band, 8px) / 2)
+    );
+}
+.wdg-center {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.02;
+}
+.wdg-cval {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.wdg-cpct {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.wdg-hero .wdg-ring {
+    width: 82px;
+    height: 82px;
+    --band: 9px;
+}
+.wdg-hero .wdg-cval {
+    font-size: 1.3rem;
+}
+.wdg-hero .wdg-cpct {
+    font-size: 0.62rem;
+    margin-top: 1px;
+}
+.wdg-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.wdg-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: none;
+}
+.wdg-cap {
+    font-size: 0.6rem;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+}
+.wdg-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+}
+.wdg-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.32rem;
+}
+.wdg-row .wdg-ring {
+    width: 48px;
+    height: 48px;
+    --band: 6px;
+}
+.wdg-row .wdg-cval {
+    font-size: 0.74rem;
+}
+.wdg-row .wdg-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
+}
+.wdg-water {
+    margin-top: 0.85rem;
+}
+.wdg-wtop {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+.wdg-wval {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.wdg-wval span {
+    font-weight: 500;
+    color: var(--ink-2);
+    margin-left: 3px;
+}
+.wdg-wbar {
+    height: 7px;
+    border-radius: 999px;
+    background: var(--wtrack);
+    overflow: hidden;
+}
+.wdg-wfill {
+    height: 100%;
+    width: var(--w);
+    border-radius: 999px;
+    background: var(--wat);
+}
+
+/* Section label inside a widget (e.g. "7-day average vs goal"), echoing the
+   widget's own .section-title. */
+.wdg-section {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0.9rem 2px 0.7rem;
+}
+
+/* Mini calorie-trend card — a compact echo of the get_trends / summary chart. */
+.wdg-thead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 0.5rem;
+}
+.wdg-ttitle {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+}
+.wdg-tmeta {
+    font-size: 0.6rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+}
+.wdg-trend svg,
+.wdg-weight svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.wdg-trend .wdg-axis {
+    stroke: var(--line);
+}
+.wdg-trend .wdg-goalline,
+.wdg-weight .wdg-goalline {
+    stroke: var(--ink-2);
+    stroke-dasharray: 3 3;
+    opacity: 0.5;
+}
+.wdg-tdates {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    padding: 0 2px;
+    font-size: 0.55rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Mini weight card — a weight-over-time chart plus Latest / Change / Target
+   stat cards, mirroring the get_weight_trends widget. */
+.wdg-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+.wdg-stat {
+    background: var(--bg-alt);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.5rem 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.wdg-slabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+}
+.wdg-sval {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.wdg-sunit {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-left: 2px;
+}
+.wdg-scap {
+    font-size: 0.52rem;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
 }
 
 /* meal-type picker chips inside an AI reply */
@@ -1776,6 +2094,9 @@ body.landing[data-theme="dark"] #itab-other:checked ~ .seg .seg-other {
 }
 body.landing[data-theme="dark"] .prog-bar {
     background: rgba(255, 255, 255, 0.12);
+}
+body.landing[data-theme="dark"] .wdg {
+    --wtrack: #2c2c2e;
 }
 body.landing[data-theme="dark"] .step3-icon,
 body.landing[data-theme="dark"] .cw-avatar {

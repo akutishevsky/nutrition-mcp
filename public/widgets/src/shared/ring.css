@@ -1,0 +1,78 @@
+.ring {
+    position: relative;
+    width: 92px;
+    height: 92px;
+}
+.ring-track,
+.ring-arc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    -webkit-mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - 10px),
+        #000 calc(100% - 10px)
+    );
+    mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - 10px),
+        #000 calc(100% - 10px)
+    );
+}
+.ring-track {
+    background: var(--track);
+}
+.ring-arc {
+    background: conic-gradient(
+        from 0deg,
+        var(--track) 0deg,
+        var(--c) calc(var(--p) * 360deg),
+        transparent calc(var(--p) * 360deg)
+    );
+}
+/* Rounded cap on the leading (coloured) end, Activity-ring style.
+               The layer fills the ring and rotates to the arc's end angle;
+               its dot sits at 12 o'clock in the middle of the 10px band. */
+.ring-cap {
+    position: absolute;
+    inset: 0;
+    transform: rotate(calc(var(--p) * 360deg));
+}
+.ring-cap::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: var(--c);
+}
+.ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.05;
+}
+.ring-center .rv {
+    font-size: 19px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+}
+.ring-center .ru {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-top: 1px;
+}
+.ring-center .rp {
+    font-size: 10.5px;
+    font-weight: 700;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}

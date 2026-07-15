@@ -1,0 +1,445 @@
+<!doctype html>
+<!--
+  Goal progress widget (MCP Apps).
+
+  Assembled from shared partials at server startup (see src/widgets.ts); the
+  @include markers below inline the shared design tokens, components, and host
+  bridge. The result is fully self-contained — inline CSS + JS, zero network
+  requests — because the MCP Apps sandbox blocks external hosts.
+
+  Data arrives as the `structuredContent` of the get_goal_progress tool result;
+  the shared bridge (shared/bridge.js) reads it across host conventions and
+  calls render(). Standalone preview uses the SAMPLE below.
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Goal Progress</title>
+        <style>
+            /*@include shared/tokens.css@*/
+
+            /*@include shared/base.css@*/
+
+            /*@include shared/ring.css@*/
+
+            /*@include shared/macros.css@*/
+
+            /* Weight card — a standing metric (latest overall vs target), so it
+               gets its own row rather than a per-day ring. */
+            .weight {
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                padding: 16px 18px 18px;
+                margin-bottom: 20px;
+            }
+            .weight .wtop {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .weight .wlead {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .weight .wlabel {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 11.5px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--text-dim);
+            }
+            .weight .wcur {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                font-variant-numeric: tabular-nums;
+            }
+            .weight .wcur .wunit {
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--text-dim);
+                margin-left: 3px;
+            }
+            .weight .wmeta {
+                font-size: 12px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+                margin-top: 12px;
+            }
+            .weight .chip {
+                font-size: 12.5px;
+                font-weight: 700;
+                padding: 6px 12px;
+                border-radius: 999px;
+                background: var(--track);
+                color: var(--text);
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .weight .chip.ok {
+                background: color-mix(in srgb, var(--accent) 18%, transparent);
+                color: var(--accent);
+            }
+
+            /* Horizontal weight graph: a number line with a current marker and
+               a target marker; the gap between them is highlighted. Marker
+               positions (left %) are set inline from the data. */
+            .weight .wgraph {
+                margin-top: 18px;
+            }
+            .weight .wtrack {
+                position: relative;
+                height: 8px;
+                border-radius: 999px;
+                background: var(--track);
+            }
+            .weight .wseg {
+                position: absolute;
+                top: 0;
+                height: 100%;
+                border-radius: 999px;
+                background: var(--accent);
+                opacity: 0.4;
+            }
+            .weight .wmark {
+                position: absolute;
+                top: 50%;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+            }
+            .weight .wmark.tgt {
+                background: var(--panel);
+                border: 2px solid var(--text-dim);
+                z-index: 1;
+            }
+            .weight .wmark.cur {
+                background: var(--accent);
+                box-shadow: 0 0 0 3px
+                    color-mix(in srgb, var(--accent) 22%, transparent);
+                z-index: 2;
+            }
+            .weight .wcaps {
+                position: relative;
+                height: 15px;
+                margin-top: 9px;
+                font-size: 11px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+            }
+            .weight .wcap {
+                position: absolute;
+                transform: translateX(-50%);
+                white-space: nowrap;
+            }
+            .weight .wcap.curcap {
+                color: var(--accent);
+                font-weight: 700;
+            }
+            .weight .wempty {
+                font-size: 13px;
+                color: var(--text-dim);
+                margin-top: 12px;
+            }
+
+            .note {
+                font-size: 12px;
+                color: var(--text-dim);
+                margin: -8px 2px 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+
+        <script>
+            "use strict";
+
+            /*@include shared/bridge.js@*/
+
+            // ---- Sample data so the file renders on its own (browser preview) ----
+            const SAMPLE = {
+                date: "2026-07-10",
+                meal_count: 4,
+                water_entries: 6,
+                goals: {
+                    calories: 2200,
+                    protein_g: 160,
+                    carbs_g: 220,
+                    fat_g: 70,
+                    water_ml: 2500,
+                },
+                totals: {
+                    calories: 1980,
+                    protein_g: 148,
+                    carbs_g: 231,
+                    fat_g: 74,
+                    water_ml: 2100,
+                },
+                weight: {
+                    current: 78.4,
+                    target: 75,
+                    unit: "kg",
+                    logged_on: "2026-07-09",
+                },
+                meals: [
+                    {
+                        description: "Overnight oats with berries",
+                        meal_type: "breakfast",
+                        date: null,
+                        calories: 420,
+                        protein_g: 18,
+                        carbs_g: 62,
+                        fat_g: 12,
+                    },
+                    {
+                        description: "Grilled chicken & rice bowl",
+                        meal_type: "lunch",
+                        date: null,
+                        calories: 650,
+                        protein_g: 52,
+                        carbs_g: 78,
+                        fat_g: 16,
+                    },
+                    {
+                        description: "Greek yogurt & almonds",
+                        meal_type: "snack",
+                        date: null,
+                        calories: 260,
+                        protein_g: 22,
+                        carbs_g: 14,
+                        fat_g: 14,
+                    },
+                    {
+                        description: "Salmon with quinoa & veg",
+                        meal_type: "dinner",
+                        date: null,
+                        calories: 650,
+                        protein_g: 56,
+                        carbs_g: 77,
+                        fat_g: 32,
+                    },
+                ],
+            };
+
+            function fmt(n, decimals) {
+                if (n == null || isNaN(n)) return "0";
+                const r = decimals ? n.toFixed(decimals) : Math.round(n);
+                return Number(r).toLocaleString();
+            }
+            function esc(s) {
+                return String(s).replace(
+                    /[&<>"]/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                        })[c],
+                );
+            }
+
+            /*@include shared/macros.js@*/
+
+            // Weight is a standing metric (latest overall vs target), not a
+            // per-date total, so it gets its own card: the current value, a
+            // direction chip, and a horizontal number-line graph plotting the
+            // current and target weights with the gap between them highlighted.
+            function weightCard(w) {
+                const cur = w?.current;
+                const tgt = w?.target;
+                const unit = esc(w?.unit || "kg");
+                const hasCur = cur != null;
+                const hasTgt = tgt != null;
+                const label = `<div class="wlabel"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Body weight</div>`;
+
+                // Nothing to plot without a current weight — explain which piece
+                // is missing rather than dropping the card silently.
+                if (!hasCur) {
+                    const msg = hasTgt
+                        ? `No weight logged yet. Log one with log_weight to track progress toward your ${fmt(tgt, 1)} ${unit} target.`
+                        : `No weight logged yet. Log one with log_weight to track progress.`;
+                    return `
+          <div class="section-title">Weight</div>
+          <div class="weight">
+            <div class="wtop">${label}</div>
+            <div class="wempty">${msg}</div>
+          </div>`;
+                }
+
+                const curHtml = `${fmt(cur, 1)}<span class="wunit">${unit}</span>`;
+                const meta = w.logged_on
+                    ? `last logged ${esc(w.logged_on)}`
+                    : "";
+
+                // Have a weight but no target: show it, but the graph needs a
+                // goal, so prompt to set one.
+                if (!hasTgt) {
+                    return `
+          <div class="section-title">Weight</div>
+          <div class="weight">
+            <div class="wtop">
+              <div class="wlead">
+                ${label}
+                <div class="wcur">${curHtml}</div>
+              </div>
+            </div>
+            <div class="wempty">No weight goal set. Set one with set_nutrition_goals to see progress here.</div>
+            ${meta ? `<div class="wmeta">${meta}</div>` : ""}
+          </div>`;
+                }
+
+                // Both present: the number-line graph.
+                const atTarget = Math.abs(cur - tgt) < 0.05;
+
+                let chip;
+                if (atTarget) {
+                    chip = `<div class="chip ok">at target</div>`;
+                } else {
+                    const delta = Math.round((cur - tgt) * 10) / 10;
+                    const dir = delta > 0 ? "to lose" : "to gain";
+                    chip = `<div class="chip">${fmt(Math.abs(delta), 1)} ${unit} ${dir}</div>`;
+                }
+
+                let graph;
+                if (atTarget) {
+                    graph = `
+          <div class="wgraph">
+            <div class="wtrack">
+              <div class="wmark tgt" style="left:50%"></div>
+              <div class="wmark cur" style="left:50%"></div>
+            </div>
+            <div class="wcaps">
+              <span class="wcap curcap" style="left:50%">${fmt(cur, 1)} ${unit} · at target</span>
+            </div>
+          </div>`;
+                } else {
+                    // Pad the scale beyond the two points so the markers sit
+                    // inboard (~22%/78%) and their centred captions don't clip
+                    // at the card edges.
+                    const lo = Math.min(cur, tgt);
+                    const hi = Math.max(cur, tgt);
+                    const pad = (hi - lo) * 0.4;
+                    const smin = lo - pad;
+                    const span = hi - lo + pad * 2;
+                    const pos = (v) => ((v - smin) / span) * 100;
+                    const pc = pos(cur);
+                    const pt = pos(tgt);
+                    const segL = Math.min(pc, pt);
+                    const segW = Math.abs(pc - pt);
+                    graph = `
+          <div class="wgraph">
+            <div class="wtrack">
+              <div class="wseg" style="left:${segL.toFixed(1)}%;width:${segW.toFixed(1)}%"></div>
+              <div class="wmark tgt" style="left:${pt.toFixed(1)}%" role="img" aria-label="target ${fmt(tgt, 1)} ${unit}"></div>
+              <div class="wmark cur" style="left:${pc.toFixed(1)}%" role="img" aria-label="current ${fmt(cur, 1)} ${unit}"></div>
+            </div>
+            <div class="wcaps">
+              <span class="wcap curcap" style="left:${pc.toFixed(1)}%">${fmt(cur, 1)} now</span>
+              <span class="wcap" style="left:${pt.toFixed(1)}%">${fmt(tgt, 1)} goal</span>
+            </div>
+          </div>`;
+                }
+
+                return `
+          <div class="section-title">Weight</div>
+          <div class="weight">
+            <div class="wtop">
+              <div class="wlead">
+                ${label}
+                <div class="wcur">${curHtml}</div>
+              </div>
+              ${chip}
+            </div>
+            ${graph}
+            ${meta ? `<div class="wmeta">${meta}</div>` : ""}
+          </div>`;
+            }
+
+            function render(data) {
+                const root = document.getElementById("root");
+                if (!data || typeof data !== "object") {
+                    root.innerHTML = `
+            <div class="empty">
+              <div class="big">🎯</div>
+              <div>No goal progress to show.</div>
+            </div>`;
+                    return;
+                }
+
+                const totals = data.totals || {};
+                const meals = data.meal_count || 0;
+                const water = data.water_entries || 0;
+                const w = data.weight;
+                const nothingLogged =
+                    meals === 0 &&
+                    water === 0 &&
+                    !(w && (w.current != null || w.target != null));
+
+                if (nothingLogged) {
+                    root.innerHTML = `
+            <header class="head">
+              <h1>Goal Progress</h1>
+              <span class="range">${esc(data.date || "")}</span>
+            </header>
+            <div class="empty">
+              <div class="big">🎯</div>
+              <div>Nothing logged yet for ${esc(data.date || "this day")}.</div>
+            </div>`;
+                    return;
+                }
+
+                const entries = `${meals} meal${meals === 1 ? "" : "s"} · ${water} water entr${water === 1 ? "y" : "ies"}`;
+                const panel = macroPanel(
+                    totals,
+                    data.goals,
+                    undefined,
+                    data.meals,
+                );
+                const dayEmpty =
+                    meals === 0 && water === 0
+                        ? `<div class="note">Nothing logged yet for ${esc(data.date || "this day")}.</div>`
+                        : "";
+
+                root.innerHTML = `
+          <header class="head">
+            <h1>Goal Progress</h1>
+            <span class="range">${esc(data.date || "")} · ${entries}</span>
+          </header>
+          <div class="section-title">Today vs goal</div>
+          ${dayEmpty}
+          ${panel}
+          ${weightCard(w)}`;
+            }
+
+            // ---- Rendering intake ----------------------------------------------
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                // The structuredContent object itself, or a wrapper around it.
+                if (payload.totals || payload.date) return payload;
+                if (payload.structuredContent) return payload.structuredContent;
+                return null;
+            }
+
+            initWidget({
+                name: "goal-progress-widget",
+                loading:
+                    '<div class="empty"><div class="big">🎯</div><div>Loading your goal progress…</div></div>',
+                coerce,
+                render,
+                sample: SAMPLE,
+            });
+        </script>
+    </body>
+</html>

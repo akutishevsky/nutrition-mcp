@@ -1,0 +1,33 @@
+.seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--track);
+    border-radius: 999px;
+    margin-bottom: 16px;
+}
+.seg-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 15px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background 0.12s ease,
+        color 0.12s ease;
+}
+.seg-btn:hover {
+    color: var(--text);
+}
+.seg-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+}

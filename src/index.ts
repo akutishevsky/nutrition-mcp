@@ -8,6 +8,7 @@ import { startExportCleanup } from "./export.js";
 import { getLandingStats, type LandingStats } from "./supabase.js";
 import { getBaseUrl } from "./url.js";
 import { maskIp } from "./net.js";
+import { warmWidgets } from "./widgets.js";
 
 const app = new Hono();
 
@@ -244,6 +245,10 @@ app.onError((_err, c) => {
 const port = parseInt(process.env.PORT || "8080");
 
 console.log(`Nutrition MCP server listening on 0.0.0.0:${port}`);
+
+// Assemble every MCP Apps widget from its source partials up front, so a broken
+// @include/partial fails fast at boot rather than on a client's first tool call.
+await warmWidgets();
 
 // Periodically delete expired meal-export files from the storage bucket.
 startExportCleanup();

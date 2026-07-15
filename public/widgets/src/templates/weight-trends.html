@@ -2,10 +2,11 @@
 <!--
   Weight-trends widget (MCP Apps).
 
-  Rendered inside a sandboxed iframe by MCP Apps hosts (Claude, ChatGPT, VS Code,
-  Goose). Fully self-contained — inline CSS + JS, zero network requests — because
-  the sandbox blocks external hosts. Styling follows public/widgets/STYLE_GUIDE.md
-  (theme tokens, panel surface, SVG chart, segmented control).
+  Assembled from shared partials at server startup (see src/widgets.ts); the
+  @include markers below inline the shared design tokens, base layout, segmented
+  control, trend card, and host bridge. The result is fully self-contained —
+  inline CSS + JS, zero network requests — because the MCP Apps sandbox blocks
+  external hosts.
 
   Shown after get_weight_trends. The tool sends up to 30 days of per-day weight
   (same-day weigh-ins averaged), and the 7 / 14 / 30-day toggle filters it
@@ -13,14 +14,9 @@
   weight axis is scaled to the data range (NOT zero-based) so small changes stay
   visible, with a dashed target line.
 
-  Data arrives as the `structuredContent` of the get_weight_trends tool result.
-  We read it defensively across host conventions:
-    - MCP Apps bridge: postMessage with a tool-result notification
-    - ChatGPT Apps SDK: window.openai.toolOutput
-    - Standalone preview: window.__NUTRITION_DATA__ (the sample below)
-
-  Theme: follows the OS via prefers-color-scheme by default, and lets a host
-  override it (data-theme on <html>, or a `theme` field pushed by the host).
+  Data arrives as the `structuredContent` of the get_weight_trends tool result;
+  the shared bridge (shared/bridge.js) reads it across host conventions and calls
+  render(). Standalone preview uses the SAMPLE below.
 -->
 <html lang="en">
     <head>
@@ -28,200 +24,22 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Weight Trends</title>
         <style>
-            :root {
-                /* Light theme (default). Dark overridden below. */
-                --text: #1d1d1f;
-                --text-dim: #6e6e73;
-                --bg: #f5f5f7;
-                --panel: #ffffff;
-                --panel-border: #e6e6ea;
-                --track: #e6e6ea;
-                --accent: #4a7c59;
-                --shadow:
-                    0 1px 2px rgba(0, 0, 0, 0.05),
-                    0 8px 22px rgba(0, 0, 0, 0.05);
-                --over: #d0452b;
-                --radius: 18px;
-            }
+            /*@include shared/tokens.css@*/
 
-            @media (prefers-color-scheme: dark) {
-                :root {
-                    --text: #f5f5f7;
-                    --text-dim: #98989d;
-                    --bg: #000000;
-                    --panel: #1c1c1e;
-                    --panel-border: #2c2c2e;
-                    --track: #2c2c2e;
-                    --accent: #6ab98a;
-                    --shadow: none;
-                    --over: #ff6b52;
-                }
-            }
+            /*@include shared/base.css@*/
 
-            /* Explicit host override wins over the media query in both directions. */
-            :root[data-theme="light"] {
-                --text: #1d1d1f;
-                --text-dim: #6e6e73;
-                --bg: #f5f5f7;
-                --panel: #ffffff;
-                --panel-border: #e6e6ea;
-                --track: #e6e6ea;
-                --accent: #4a7c59;
-                --shadow:
-                    0 1px 2px rgba(0, 0, 0, 0.05),
-                    0 8px 22px rgba(0, 0, 0, 0.05);
-                --over: #d0452b;
-            }
-            :root[data-theme="dark"] {
-                --text: #f5f5f7;
-                --text-dim: #98989d;
-                --bg: #000000;
-                --panel: #1c1c1e;
-                --panel-border: #2c2c2e;
-                --track: #2c2c2e;
-                --accent: #6ab98a;
-                --shadow: none;
-                --over: #ff6b52;
-            }
+            /*@include shared/seg.css@*/
 
-            * {
-                box-sizing: border-box;
-            }
-            html,
-            body {
-                margin: 0;
-                padding: 0;
-            }
-            body {
-                color: var(--text);
-                background: var(--bg);
-                font-family:
-                    ui-sans-serif,
-                    system-ui,
-                    -apple-system,
-                    "Segoe UI",
-                    Roboto,
-                    Helvetica,
-                    Arial,
-                    sans-serif;
-                font-size: 14px;
-                line-height: 1.45;
-                -webkit-font-smoothing: antialiased;
-            }
-            .wrap {
-                max-width: 760px;
-                margin: 0 auto;
-                padding: 18px 16px 22px;
-            }
+            /*@include shared/trend.css@*/
 
-            header.head {
-                display: flex;
-                align-items: baseline;
-                justify-content: space-between;
-                gap: 12px;
-                flex-wrap: wrap;
-                margin-bottom: 12px;
-            }
-            .head h1 {
-                font-size: 21px;
-                font-weight: 800;
-                margin: 0;
-                letter-spacing: -0.03em;
-            }
-            .head .range {
-                color: var(--text-dim);
-                font-size: 13px;
-                font-weight: 500;
-                font-variant-numeric: tabular-nums;
-            }
-
-            /* Segmented control (7 / 14 / 30-day toggle). Active label uses
-               var(--bg) on the accent fill for contrast in both themes. */
-            .seg {
-                display: inline-flex;
-                gap: 2px;
-                padding: 3px;
-                background: var(--track);
-                border-radius: 999px;
-                margin-bottom: 16px;
-            }
-            .seg-btn {
-                appearance: none;
-                -webkit-appearance: none;
-                border: 0;
-                background: transparent;
-                color: var(--text-dim);
-                font: inherit;
-                font-size: 13px;
-                font-weight: 600;
-                padding: 6px 15px;
-                border-radius: 999px;
-                cursor: pointer;
-                font-variant-numeric: tabular-nums;
-                -webkit-tap-highlight-color: transparent;
-                transition:
-                    background 0.12s ease,
-                    color 0.12s ease;
-            }
-            .seg-btn:hover {
-                color: var(--text);
-            }
-            .seg-btn.active {
-                background: var(--accent);
-                color: var(--bg);
-            }
-
-            /* Chart card */
-            .trend {
-                background: var(--panel);
-                border: 1px solid var(--panel-border);
-                border-radius: var(--radius);
-                box-shadow: var(--shadow);
-                padding: 14px 16px 12px;
-                margin-bottom: 20px;
-            }
-            .trend .thead {
-                display: flex;
-                align-items: baseline;
-                justify-content: space-between;
-                gap: 10px;
-                margin-bottom: 8px;
-            }
-            .trend .ttitle {
-                font-size: 12px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                color: var(--text-dim);
-            }
-            .trend .tmeta {
-                font-size: 12px;
-                font-weight: 500;
-                color: var(--text-dim);
-                font-variant-numeric: tabular-nums;
-            }
-            .trend svg {
-                width: 100%;
-                height: auto;
-                display: block;
-            }
-            .trend .axis {
-                stroke: var(--panel-border);
-            }
+            /* Weight-specific trend rules that differ from / extend the shared
+               partial. The dashed target line is a touch stronger (opacity .55
+               vs .5), and .cempty is a weight-only empty state for a range with
+               no weigh-ins. */
             .trend .goalline {
                 stroke: var(--text-dim);
                 stroke-dasharray: 3 3;
                 opacity: 0.55;
-            }
-            .trend .tdates {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 5px;
-                padding: 0 2px;
-                font-size: 11px;
-                font-weight: 500;
-                color: var(--text-dim);
-                font-variant-numeric: tabular-nums;
             }
             .trend .cempty {
                 padding: 26px 0 22px;
@@ -273,20 +91,6 @@
                 color: var(--text-dim);
                 font-variant-numeric: tabular-nums;
             }
-
-            .empty {
-                text-align: center;
-                color: var(--text-dim);
-                padding: 40px 20px;
-                background: var(--panel);
-                border: 1px solid var(--panel-border);
-                border-radius: var(--radius);
-                box-shadow: var(--shadow);
-            }
-            .empty .big {
-                font-size: 26px;
-                margin-bottom: 6px;
-            }
         </style>
     </head>
     <body>
@@ -294,6 +98,8 @@
 
         <script>
             "use strict";
+
+            /*@include shared/bridge.js@*/
 
             const RANGES = [7, 14, 30];
 
@@ -581,24 +387,6 @@
                 }
             });
 
-            // ---- Theme handling ------------------------------------------------
-            function applyTheme(theme) {
-                if (theme === "light" || theme === "dark") {
-                    document.documentElement.setAttribute("data-theme", theme);
-                }
-            }
-            function themeFrom(obj) {
-                if (!obj || typeof obj !== "object") return null;
-                return (
-                    obj.theme ||
-                    obj.colorScheme ||
-                    obj.hostContext?.theme ||
-                    obj.styles?.theme ||
-                    obj.globals?.theme ||
-                    null
-                );
-            }
-
             // ---- Rendering intake ----------------------------------------------
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
@@ -606,134 +394,15 @@
                 if (payload.structuredContent) return payload.structuredContent;
                 return null;
             }
-            function show(payload) {
-                const data = coerce(payload);
-                if (!data) return false;
-                render(data);
-                return true;
-            }
 
-            // ---- MCP Apps host bridge (JSON-RPC over postMessage) --------------
-            // Critical: the host does NOT push tool data until the app announces
-            // itself with a `ui/initialize` request and the handshake completes.
-            // The host then sends `ui/notifications/tool-result` carrying
-            // structuredContent. Spec: MCP Apps 2026-01-26.
-            const host =
-                window.parent && window.parent !== window
-                    ? window.parent
-                    : null;
-            let initId = 0;
-            function post(msg) {
-                try {
-                    if (host) host.postMessage(msg, "*");
-                } catch (_) {}
-            }
-
-            // Report our content height so the host sizes the iframe to fit
-            // (MCP Apps ui/notifications/size-changed). Without this the host
-            // uses a default height and clips the widget. Measure the
-            // document's natural (max-content) height, then restore.
-            function sendSize() {
-                if (!host) return;
-                const el = document.documentElement;
-                const prev = el.style.height;
-                el.style.height = "max-content";
-                const height = Math.ceil(el.getBoundingClientRect().height);
-                el.style.height = prev;
-                post({
-                    jsonrpc: "2.0",
-                    method: "ui/notifications/size-changed",
-                    params: { width: Math.ceil(window.innerWidth), height },
-                });
-            }
-            if (host && typeof ResizeObserver !== "undefined") {
-                let scheduled = false;
-                const ro = new ResizeObserver(() => {
-                    if (scheduled) return;
-                    scheduled = true;
-                    requestAnimationFrame(() => {
-                        scheduled = false;
-                        sendSize();
-                    });
-                });
-                ro.observe(document.documentElement);
-                ro.observe(document.body);
-            }
-
-            window.addEventListener("message", (event) => {
-                const d = event.data;
-                if (!d || typeof d !== "object") return;
-
-                // JSON-RPC response to our ui/initialize: we MUST answer with
-                // ui/notifications/initialized — strict hosts (MCP Inspector)
-                // withhold the tool result until they receive it.
-                if (d.id != null && d.id === initId && d.result) {
-                    const t =
-                        themeFrom(d.result) || themeFrom(d.result.hostContext);
-                    if (t) applyTheme(t);
-                    post({
-                        jsonrpc: "2.0",
-                        method: "ui/notifications/initialized",
-                    });
-                    return;
-                }
-
-                if (typeof d.method === "string") {
-                    const p = d.params || {};
-                    const t = themeFrom(d) || themeFrom(p);
-                    if (t) applyTheme(t);
-                    if (d.method.endsWith("tool-result")) {
-                        show(p.structuredContent || p);
-                    }
-                    return;
-                }
-
-                const t = themeFrom(d);
-                if (t) applyTheme(t);
-                show(d.structuredContent || d);
+            initWidget({
+                name: "weight-trends-widget",
+                loading:
+                    '<div class="empty"><div class="big">⚖️</div><div>Loading your weight trends…</div></div>',
+                coerce,
+                render,
+                sample: SAMPLE,
             });
-
-            if (host) {
-                document.getElementById("root").innerHTML =
-                    '<div class="empty"><div class="big">⚖️</div><div>Loading your weight trends…</div></div>';
-
-                // Announce the app. Field names MUST match the
-                // McpUiInitializeRequest schema exactly (appInfo /
-                // appCapabilities — NOT clientInfo / capabilities); strict hosts
-                // silently drop a malformed request.
-                initId = 1;
-                post({
-                    jsonrpc: "2.0",
-                    id: initId,
-                    method: "ui/initialize",
-                    params: {
-                        protocolVersion: "2026-01-26",
-                        appInfo: {
-                            name: "weight-trends-widget",
-                            version: "1.0.0",
-                        },
-                        appCapabilities: {},
-                    },
-                });
-
-                // ChatGPT Apps SDK compatibility.
-                try {
-                    if (window.openai) {
-                        if (window.openai.theme)
-                            applyTheme(window.openai.theme);
-                        if (window.openai.toolOutput)
-                            show(window.openai.toolOutput);
-                    }
-                    window.addEventListener("openai:set_globals", (e) => {
-                        const g = e.detail?.globals || e.detail || {};
-                        const t = themeFrom(g);
-                        if (t) applyTheme(t);
-                        if (g.toolOutput) show(g.toolOutput);
-                    });
-                } catch (_) {}
-            } else {
-                render(window.__NUTRITION_DATA__ || SAMPLE);
-            }
         </script>
     </body>
 </html>
