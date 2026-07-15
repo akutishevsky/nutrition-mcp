@@ -1,0 +1,51 @@
+.trend {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 16px 12px;
+    margin-bottom: 20px;
+}
+.trend .thead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.trend .ttitle {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+}
+.trend .tmeta {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+.trend svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.trend .axis {
+    stroke: var(--panel-border);
+}
+.trend .goalline {
+    stroke: var(--text-dim);
+    stroke-dasharray: 3 3;
+    opacity: 0.5;
+}
+.trend .tdates {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    padding: 0 2px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}

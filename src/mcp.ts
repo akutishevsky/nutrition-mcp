@@ -56,23 +56,22 @@ import {
 } from "./units.js";
 import { exportMeals } from "./export.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
+import { getWidgetHtml } from "./widgets.js";
 
 // MCP Apps UI (https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/):
 // the get_nutrition_summary tool links to an HTML dashboard served as a ui://
 // resource. Hosts (Claude, ChatGPT, VS Code, Goose) render it in a sandboxed
 // iframe and hand it the tool's structuredContent. One MIME type / one resource
 // works across all MCP Apps-capable clients.
+// The widget HTML is assembled from shared source partials at startup (see
+// widgets.ts / public/widgets/src). getWidgetHtml(key) returns the fully-inlined,
+// self-contained document for each ui:// resource below.
 const SUMMARY_WIDGET_URI = "ui://widget/nutrition-summary.html";
 const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
-const SUMMARY_WIDGET_FILE = "./public/widgets/nutrition-summary.html";
 const GOAL_PROGRESS_WIDGET_URI = "ui://widget/goal-progress.html";
-const GOAL_PROGRESS_WIDGET_FILE = "./public/widgets/goal-progress.html";
 const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
-const MEAL_LOGGED_WIDGET_FILE = "./public/widgets/meal-logged.html";
 const TRENDS_WIDGET_URI = "ui://widget/trends.html";
-const TRENDS_WIDGET_FILE = "./public/widgets/trends.html";
 const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
-const WEIGHT_TRENDS_WIDGET_FILE = "./public/widgets/weight-trends.html";
 
 interface DailyTotals {
     calories: number;
@@ -651,7 +650,7 @@ function registerTools(server: McpServer, userId: string) {
                     {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
-                        text: await Bun.file(SUMMARY_WIDGET_FILE).text(),
+                        text: await getWidgetHtml("nutrition-summary"),
                         // Prefer a bordered container in hosts that honor it.
                         _meta: { ui: { prefersBorder: true } },
                     },
@@ -677,7 +676,7 @@ function registerTools(server: McpServer, userId: string) {
                     {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
-                        text: await Bun.file(GOAL_PROGRESS_WIDGET_FILE).text(),
+                        text: await getWidgetHtml("goal-progress"),
                         _meta: { ui: { prefersBorder: true } },
                     },
                 ],
@@ -702,7 +701,7 @@ function registerTools(server: McpServer, userId: string) {
                     {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
-                        text: await Bun.file(MEAL_LOGGED_WIDGET_FILE).text(),
+                        text: await getWidgetHtml("meal-logged"),
                         _meta: { ui: { prefersBorder: true } },
                     },
                 ],
@@ -727,7 +726,7 @@ function registerTools(server: McpServer, userId: string) {
                     {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
-                        text: await Bun.file(TRENDS_WIDGET_FILE).text(),
+                        text: await getWidgetHtml("trends"),
                         _meta: { ui: { prefersBorder: true } },
                     },
                 ],
@@ -752,7 +751,7 @@ function registerTools(server: McpServer, userId: string) {
                     {
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
-                        text: await Bun.file(WEIGHT_TRENDS_WIDGET_FILE).text(),
+                        text: await getWidgetHtml("weight-trends"),
                         _meta: { ui: { prefersBorder: true } },
                     },
                 ],

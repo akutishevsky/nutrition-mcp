@@ -1,21 +1,37 @@
 # Widget Style Guide
 
-Shared design language for the in-chat MCP Apps widgets in this folder. First
-implemented in `nutrition-summary.html`; copy the blocks below into any new
-widget so they all look like one product.
+Shared design language for the in-chat MCP Apps widgets. The shared CSS blocks
+below are **not** copy-pasted anymore — they live as source partials under
+`src/shared/` and are inlined into each widget at build time (see below). This
+document is the human-readable spec for those partials: what each block is for and
+how to use its classes.
 
-## Hard constraints (why this is copy-paste, not a shared stylesheet)
+## Build system (how the shared code is reused)
 
-Each widget is a **single self-contained HTML file** — inline `<style>` + inline
-`<script>`, zero network requests. The iframe CSP is deny-by-default: no external
-CSS, no CDN, no fonts, no `<link>`. So there is **no shared stylesheet to import** —
-reuse means pasting these blocks into the new widget's `<style>`. Keep them
-byte-identical across widgets; when the design changes, update this file and every
-widget together.
+Each widget is still a **single self-contained HTML file** — inline `<style>` +
+inline `<script>`, zero network requests — because the iframe CSP is deny-by-default
+(no external CSS/JS, no CDN, no fonts, no `<link>`). But the source is no longer
+duplicated: it is assembled from partials at server startup (`src/widgets.ts`,
+warmed in `src/index.ts`). Nothing generated is committed.
 
-Theme + data delivery (the iframe↔host handshake, the `appInfo`/`appCapabilities`
-gotcha, and how `data-theme` gets set) are documented in **`CLAUDE.md` → Custom UI
-Widgets (MCP Apps)** and the `mcp-apps-widgets` memory. This file is styling only.
+- **Sources** live in `public/widgets/src/`: shared partials in `shared/`
+  (`tokens.css`, `base.css`, `ring.css`, `trend.css`, `seg.css`, `bridge.js`) and
+  one template per widget in `templates/`.
+- **Include marker** — a partial is inlined with a comment that is valid CSS *and*
+  JS, so a template still parses on its own:
+  `/*@include shared/tokens.css@*/`, `/*@include shared/bridge.js@*/`.
+- **The host bridge is shared JS.** `shared/bridge.js` exposes one global,
+  `initWidget(config)`, that runs the entire iframe↔host handshake, theme handling,
+  height reporting, and the standalone preview fallback. A template supplies only
+  `{ name, loading, coerce, render, sample }`. Handshake details (the
+  `appInfo`/`appCapabilities` gotcha, `data-theme`, `size-changed`) live in
+  **`CLAUDE.md` → Custom UI Widgets (MCP Apps)** and the `mcp-apps-widgets` memory.
+- `bun test src/widgets.test.ts` asserts every widget assembles with no unresolved
+  markers, valid inline JS, and each partial inlined in full.
+
+When the design changes, edit the partial in `src/shared/` once — every widget
+picks it up on next assembly. The blocks below document those partials; keep this
+spec in sync when you change them.
 
 ## Design language
 

@@ -1,0 +1,387 @@
+<!doctype html>
+<!--
+  Nutrition summary dashboard widget (MCP Apps).
+
+  Assembled from shared partials at server startup (see src/widgets.ts); the
+  @include markers below inline the shared design tokens, components, and host
+  bridge. The result is fully self-contained — inline CSS + JS, zero network
+  requests — because the MCP Apps sandbox blocks external hosts.
+
+  Data arrives as the `structuredContent` of the get_nutrition_summary tool
+  result; the shared bridge (shared/bridge.js) reads it across host conventions
+  and calls render(). Standalone preview uses the SAMPLE below.
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Nutrition Summary</title>
+        <style>
+            /*@include shared/tokens.css@*/
+
+            /*@include shared/base.css@*/
+
+            /* Stat tiles */
+            .tiles {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+            .tile {
+                background: var(--panel);
+                border: 1px solid var(--panel-border);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                padding: 16px 12px 15px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            /*@include shared/ring.css@*/
+
+            .tile .label {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-top: 10px;
+                font-size: 11.5px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--text-dim);
+            }
+            .tile .dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                flex: none;
+            }
+            .tile .goal {
+                margin-top: 3px;
+                font-size: 11px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+                min-height: 14px;
+            }
+
+            /*@include shared/trend.css@*/
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+
+        <script>
+            "use strict";
+
+            /*@include shared/bridge.js@*/
+
+            // ---- Sample data so the file renders on its own (browser preview) ----
+            const SAMPLE = {
+                start_date: "2026-07-05",
+                end_date: "2026-07-07",
+                logged_days: 3,
+                goals: {
+                    calories: 2200,
+                    protein_g: 160,
+                    carbs_g: 220,
+                    fat_g: 70,
+                    water_ml: 2500,
+                },
+                averages: {
+                    calories: 2035,
+                    protein_g: 148,
+                    carbs_g: 205,
+                    fat_g: 74,
+                    water_ml: 2100,
+                },
+                days: [
+                    {
+                        date: "2026-07-05",
+                        meal_count: 4,
+                        calories: 2180,
+                        protein_g: 155,
+                        carbs_g: 230,
+                        fat_g: 72,
+                        water_ml: 2400,
+                    },
+                    {
+                        date: "2026-07-06",
+                        meal_count: 3,
+                        calories: 1890,
+                        protein_g: 138,
+                        carbs_g: 188,
+                        fat_g: 68,
+                        water_ml: 1800,
+                    },
+                    {
+                        date: "2026-07-07",
+                        meal_count: 4,
+                        calories: 2035,
+                        protein_g: 151,
+                        carbs_g: 197,
+                        fat_g: 82,
+                        water_ml: 2100,
+                    },
+                ],
+            };
+
+            const MACROS = [
+                {
+                    key: "calories",
+                    label: "Calories",
+                    unit: "kcal",
+                    color: "var(--calories)",
+                    decimals: 0,
+                },
+                {
+                    key: "protein_g",
+                    label: "Protein",
+                    unit: "g",
+                    color: "var(--protein)",
+                    decimals: 0,
+                },
+                {
+                    key: "carbs_g",
+                    label: "Carbs",
+                    unit: "g",
+                    color: "var(--carbs)",
+                    decimals: 0,
+                },
+                {
+                    key: "fat_g",
+                    label: "Fat",
+                    unit: "g",
+                    color: "var(--fat)",
+                    decimals: 0,
+                },
+                {
+                    key: "water_ml",
+                    label: "Water",
+                    unit: "ml",
+                    color: "var(--water)",
+                    decimals: 0,
+                },
+            ];
+            const GOAL_KEY = {
+                calories: "calories",
+                protein_g: "protein_g",
+                carbs_g: "carbs_g",
+                fat_g: "fat_g",
+                water_ml: "water_ml",
+            };
+
+            function fmt(n, decimals) {
+                if (n == null || isNaN(n)) return "0";
+                const r = decimals ? n.toFixed(decimals) : Math.round(n);
+                return Number(r).toLocaleString();
+            }
+            function esc(s) {
+                return String(s).replace(
+                    /[&<>"]/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                        })[c],
+                );
+            }
+
+            // A ring gauge for one macro: a conic gradient fading from
+            // transparent into full colour over the filled fraction of the
+            // goal, above a grey track. Turns red past 100%.
+            function ring(m, avg, goal) {
+                const val = avg?.[m.key] ?? 0;
+                const target = goal?.[GOAL_KEY[m.key]] ?? null;
+
+                let pct = null;
+                let over = false;
+                if (target != null && target > 0) {
+                    pct = (val / target) * 100;
+                    over = pct > 100;
+                }
+                const frac =
+                    pct == null ? 0 : Math.max(0, Math.min(pct, 100)) / 100;
+                // The ring keeps its own macro colour even past 100% so the
+                // five gauges stay visually distinct; only the % caption turns
+                // red to flag going over goal.
+                const pctColor = over ? "var(--over)" : m.color;
+
+                let goalLine, center2;
+                if (pct == null) {
+                    goalLine = "no goal set";
+                    center2 = `<div class="ru">${m.unit}</div>`;
+                } else {
+                    const delta = target - val;
+                    const deltaStr =
+                        delta >= 0
+                            ? `${fmt(delta, m.decimals)} ${m.unit} left`
+                            : `${fmt(-delta, m.decimals)} ${m.unit} over`;
+                    goalLine = `of ${fmt(target, m.decimals)} ${m.unit} · ${deltaStr}`;
+                    center2 = `<div class="rp" style="color:${pctColor}">${Math.round(pct)}%</div>`;
+                }
+
+                const cap =
+                    pct != null && frac > 0.005
+                        ? `<div class="ring-cap"></div>`
+                        : "";
+
+                return `
+          <div class="tile">
+            <div class="ring" style="--c:${m.color};--p:${frac.toFixed(4)}" role="img" aria-label="${esc(m.label)} ${fmt(val, m.decimals)} ${m.unit}">
+              <div class="ring-track"></div>
+              <div class="ring-arc"></div>
+              ${cap}
+              <div class="ring-center">
+                <div class="rv">${fmt(val, m.decimals)}</div>
+                ${center2}
+              </div>
+            </div>
+            <div class="label"><span class="dot" style="background:${m.color}"></span>${m.label}</div>
+            <div class="goal">${esc(goalLine)}</div>
+          </div>`;
+            }
+
+            // Calories-per-day trend: SVG area + line that scales to any range
+            // (3 days to a year). Uniform scaling — no preserveAspectRatio
+            // distortion — so it keeps its aspect ratio at any container width.
+            function trendChart(days, goal) {
+                const W = 480,
+                    H = 88,
+                    padL = 8,
+                    padR = 8,
+                    padT = 10,
+                    padB = 6;
+                const n = days.length;
+                const vals = days.map((d) => d.calories || 0);
+                const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
+                const plotW = W - padL - padR;
+                const plotH = H - padT - padB;
+                const base = padT + plotH;
+                const x = (i) =>
+                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
+                const y = (v) => padT + plotH - (v / maxV) * plotH;
+                const pts = vals.map((v, i) => [x(i), y(v)]);
+
+                const line = pts
+                    .map(
+                        (p, i) =>
+                            `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
+                    )
+                    .join(" ");
+                const area =
+                    `M${pts[0][0].toFixed(1)} ${base} ` +
+                    pts
+                        .map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
+                        .join(" ") +
+                    ` L${pts[n - 1][0].toFixed(1)} ${base} Z`;
+
+                const goalLine =
+                    goal && goal > 0
+                        ? `<line class="goalline" x1="${padL}" y1="${y(goal).toFixed(1)}" x2="${W - padR}" y2="${y(goal).toFixed(1)}"/>`
+                        : "";
+                // Only draw point markers on short ranges to avoid clutter.
+                const dots =
+                    n <= 12
+                        ? pts
+                              .map(
+                                  (p) =>
+                                      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.4" fill="var(--calories)"/>`,
+                              )
+                              .join("")
+                        : "";
+                const md = (d) => esc(d.date.slice(5)); // MM-DD
+                const avg = Math.round(vals.reduce((a, b) => a + b, 0) / n);
+
+                return `
+          <div class="trend">
+            <div class="thead">
+              <span class="ttitle">Calories / day</span>
+              <span class="tmeta">avg ${fmt(avg, 0)}${goal && goal > 0 ? ` · goal ${fmt(goal, 0)}` : ""}</span>
+            </div>
+            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calories per day over the selected range">
+              <defs>
+                <linearGradient id="calfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--calories)" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="var(--calories)" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+              <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
+              ${goalLine}
+              <path d="${area}" fill="url(#calfill)"/>
+              <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              ${dots}
+            </svg>
+            <div class="tdates">
+              <span>${md(days[0])}</span>
+              <span>${md(days[n - 1])}</span>
+            </div>
+          </div>`;
+            }
+
+            function render(data) {
+                const root = document.getElementById("root");
+                if (
+                    !data ||
+                    !Array.isArray(data.days) ||
+                    data.days.length === 0
+                ) {
+                    root.innerHTML = `
+            <div class="empty">
+              <div class="big">🍽️</div>
+              <div>No meals or water logged in this range.</div>
+            </div>`;
+                    return;
+                }
+                const days = data.days
+                    .slice()
+                    .sort((a, b) => (a.date < b.date ? -1 : 1));
+                const multi = days.length > 1;
+                const heroLabel = multi ? "Daily average" : "Total";
+                const range = multi
+                    ? `${data.start_date} → ${data.end_date} · ${data.logged_days} day${data.logged_days === 1 ? "" : "s"} logged`
+                    : days[0].date;
+
+                const rings = MACROS.map((m) =>
+                    ring(m, data.averages, data.goals),
+                ).join("");
+                const trend =
+                    multi && days.length >= 2
+                        ? trendChart(days, data.goals?.calories ?? null)
+                        : "";
+
+                root.innerHTML = `
+          <header class="head">
+            <h1>Nutrition Summary</h1>
+            <span class="range">${esc(range)}</span>
+          </header>
+          ${trend}
+          <div class="section-title" style="margin-bottom:9px">${heroLabel} vs goal</div>
+          <div class="tiles">${rings}</div>`;
+            }
+
+            // Pull the summary out of whatever wrapper the host used.
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                // The structuredContent object itself, or a wrapper around it.
+                if (Array.isArray(payload.days) || payload.averages)
+                    return payload;
+                if (payload.structuredContent) return payload.structuredContent;
+                return null;
+            }
+
+            initWidget({
+                name: "nutrition-summary-widget",
+                loading:
+                    '<div class="empty"><div class="big">🍽️</div><div>Loading your nutrition summary…</div></div>',
+                coerce,
+                render,
+                sample: SAMPLE,
+            });
+        </script>
+    </body>
+</html>
