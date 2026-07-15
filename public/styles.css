@@ -1303,10 +1303,16 @@ html:has(body.landing) {
 }
 .wdg-ring {
     grid-area: 1 / 1;
+    position: relative;
     border-radius: 50%;
+    /* Track-to-colour gradient arc (Activity-ring style), matching the real
+       widget: the arc fades from the track colour into the macro colour, with
+       the plain track filling the rest of the circle. */
     background: conic-gradient(
+        from 0deg,
+        var(--wtrack) 0deg,
         var(--c) calc(var(--p) * 3.6deg),
-        var(--wtrack) 0
+        var(--wtrack) calc(var(--p) * 3.6deg)
     );
     -webkit-mask: radial-gradient(
         farthest-side,
@@ -1317,6 +1323,20 @@ html:has(body.landing) {
         farthest-side,
         #0000 calc(100% - var(--band, 8px)),
         #000 calc(100% - var(--band, 8px))
+    );
+}
+/* Rounded cap on the leading (coloured) end of the arc: a dot the width of the
+   band, sat at 12 o'clock and rotated to the arc's end angle. */
+.wdg-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: rotate(calc(var(--p) * 3.6deg));
+    background: radial-gradient(
+        circle at 50% calc(var(--band, 8px) / 2),
+        var(--c) 0 calc(var(--band, 8px) / 2),
+        #0000 calc(var(--band, 8px) / 2)
     );
 }
 .wdg-center {
