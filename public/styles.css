@@ -592,6 +592,23 @@ html:has(body.landing) {
     width: 100%;
     max-width: 420px;
 }
+/* The hero chat runs several exchanges — cap the body height and let it scroll
+   internally so the card stays compact. Scoped to .hero-card so the carousel's
+   own .cw-body (which slides horizontally) is untouched. */
+.hero-card .cw-body {
+    max-height: 440px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+}
+.hero-card .cw-body::-webkit-scrollbar {
+    width: 8px;
+}
+.hero-card .cw-body::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 999px;
+    border: 2px solid var(--bg);
+}
 .chat-thread {
     display: flex;
     flex-direction: column;
