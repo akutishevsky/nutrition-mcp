@@ -848,6 +848,80 @@ html:has(body.landing) {
     line-height: 1.5;
     color: var(--ink-2);
 }
+
+/* Highlighted callout under the onboarding card pointing at the full tools
+   reference page (/tools). Accent-tinted so it stands apart from the card. */
+.tools-cta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding: 1.15rem 1.35rem;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+    border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    text-decoration: none;
+    color: var(--ink);
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+.tools-cta:hover {
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg));
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.tools-cta-icon {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1.15rem;
+}
+.tools-cta-text {
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+}
+.tools-cta-text strong {
+    display: block;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.2rem;
+}
+.tools-cta-arrow {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--accent);
+    white-space: nowrap;
+}
+.tools-cta-arrow i {
+    transition: transform 0.15s ease;
+}
+.tools-cta:hover .tools-cta-arrow i {
+    transform: translateX(3px);
+}
+@media (max-width: 640px) {
+    .tools-cta {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+}
 .landing code {
     font-family: var(--font-mono) !important;
     font-size: 0.88em;
