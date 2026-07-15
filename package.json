@@ -34,8 +34,8 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
-        "@supabase/supabase-js": "^2.110.0",
-        "hono": "^4.12.28",
-        "prettier": "^3.9.4"
+        "@supabase/supabase-js": "^2.110.5",
+        "hono": "^4.12.30",
+        "prettier": "^3.9.5"
     }
 }
