@@ -148,11 +148,17 @@ function macroPanel(vals, goal, wording) {
         ["protein_g", "carbs_g", "fat_g"].includes(m.key),
     );
     const water = MACROS.find((m) => m.key === "water_ml");
+    // Only show the water bar when water was actually tracked — an empty bar for
+    // an untouched metric is noise.
+    const waterBar =
+        (vals?.[water.key] ?? 0) > 0
+            ? macroWater(water, vals, goal, wording)
+            : "";
     return `
       ${macroHero(cal, vals, goal, wording)}
       <div class="mcard macro-row">${trio
           .map((m) => macroCell(m, vals, goal, wording))
           .join("")}
       </div>
-      ${macroWater(water, vals, goal, wording)}`;
+      ${waterBar}`;
 }
