@@ -1972,6 +1972,10 @@
 
                 // ---------- world map ----------
                 var SVGNS = "http://www.w3.org/2000/svg";
+                // UTC-equivalent zones all resolve to the map center [500,250]
+                // (lon 0, lat 0 — open ocean), so plotting them drops a bogus
+                // dot in the middle of the map. Skip them.
+                var UTC_TZS = { UTC: 1, "Etc/UTC": 1, "Etc/GMT": 1 };
                 function buildMap(mapData, activeTzs) {
                     var svg = document.getElementById("world-svg");
                     if (!svg || !mapData) return;
@@ -1987,6 +1991,7 @@
                     svg.appendChild(landFrag);
                     var seen = {};
                     (activeTzs || []).forEach(function (tz, i) {
+                        if (UTC_TZS[tz]) return;
                         var pt = mapData.tz[tz];
                         if (!pt) return;
                         var k = pt[0] + "," + pt[1];
