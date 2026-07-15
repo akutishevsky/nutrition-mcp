@@ -186,6 +186,17 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     },
     { path: "public/login.html", rules: [...ANALYTICS_RULES, DOMAIN_RULE] },
     { path: "public/privacy.html", rules: [...ANALYTICS_RULES, DOMAIN_RULE] },
+    // Tools reference page: GA + the nav/footer GitHub link, the footer contact
+    // mailto, and the canonical/OG domain.
+    {
+        path: "public/tools.html",
+        rules: [
+            ...ANALYTICS_RULES,
+            GITHUB_LINKS_RULE,
+            MAILTO_RULE,
+            DOMAIN_RULE,
+        ],
+    },
     ...altPageJobs,
     // NB: the generator scripts/gen-alternatives.ts is intentionally NOT
     // rewritten here — these HTML-tuned patterns are unreliable against its TS

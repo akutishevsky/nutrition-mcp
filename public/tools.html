@@ -32,6 +32,18 @@
             href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
         />
         <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
         <style>
             /* Tools reference — page-specific layout on top of the shared
                landing tokens (see styles.css body.landing). */
@@ -270,7 +282,7 @@
                 margin-top: auto;
                 padding-top: 14px;
             }
-            .tool-ex > p {
+            .tool-ex > p:not(.tool-ex-photo) {
                 margin: 0;
                 position: relative;
                 padding: 10px 12px 10px 34px;
@@ -281,7 +293,7 @@
                 font-size: 0.9rem;
                 line-height: 1.5;
             }
-            .tool-ex > p::before {
+            .tool-ex > p:not(.tool-ex-photo)::before {
                 content: "\201C";
                 position: absolute;
                 left: 11px;
@@ -290,6 +302,23 @@
                 font-size: 1.3rem;
                 line-height: 1;
                 color: var(--accent);
+            }
+            /* Alternate input hint: this tool also accepts a photo, not just a
+               typed phrase. */
+            .tool-ex-photo {
+                margin: 9px 2px 0;
+                display: flex;
+                align-items: baseline;
+                gap: 7px;
+                font-size: 0.85rem;
+                line-height: 1.45;
+                color: var(--ink-2);
+            }
+            .tool-ex-photo i {
+                color: var(--accent);
+                font-size: 0.9em;
+                position: relative;
+                top: 1px;
             }
 
             @media (max-width: 640px) {
@@ -583,6 +612,14 @@
                                         Log a chicken burrito bowl with extra
                                         guac for lunch
                                     </p>
+                                    <p class="tool-ex-photo">
+                                        <i
+                                            class="fa-solid fa-camera"
+                                            aria-hidden="true"
+                                        ></i>
+                                        …or just snap a photo of your plate —
+                                        the AI reads it and logs it.
+                                    </p>
                                 </div>
                             </article>
 
@@ -608,6 +645,14 @@
                                         >Try saying</span
                                     >
                                     <p>Scan this barcode: 3017620422003</p>
+                                    <p class="tool-ex-photo">
+                                        <i
+                                            class="fa-solid fa-camera"
+                                            aria-hidden="true"
+                                        ></i>
+                                        …or send a photo of the package — the AI
+                                        reads the barcode digits off it.
+                                    </p>
                                 </div>
                             </article>
 
