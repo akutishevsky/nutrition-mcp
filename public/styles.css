@@ -1239,7 +1239,7 @@ html:has(body.landing) {
    ring, protein/carbs/fat ring row, water bar). Rendered inside an AI reply so
    the demos show what the connected widget actually looks like. */
 .wdg {
-    margin-top: 0.7rem;
+    margin: 0.15rem 0 0.6rem;
     background: var(--bg);
     border: 1px solid var(--line);
     border-radius: 16px;
