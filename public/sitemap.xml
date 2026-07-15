@@ -6,6 +6,11 @@
         <priority>1.0</priority>
     </url>
     <url>
+        <loc>https://nutrition-mcp.com/tools</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
         <loc>https://nutrition-mcp.com/alternatives</loc>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>

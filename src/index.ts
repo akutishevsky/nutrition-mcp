@@ -193,6 +193,12 @@ app.get("/privacy", async (c) => {
     return c.html(await Bun.file("./public/privacy.html").text());
 });
 
+// Tools reference — the full list of MCP tools with descriptions and examples.
+app.get("/tools", async (c) => {
+    return c.html(await Bun.file("./public/tools.html").text());
+});
+app.get("/tools/", (c) => c.redirect("/tools", 301));
+
 // SEO comparison / "alternative to X" landing pages. Each targets long-tail
 // queries like "myfitnesspal mcp" or "connect myfitnesspal to claude" and is a
 // static HTML file under public/alternatives. Kept data-driven so adding a page
