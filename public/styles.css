@@ -1389,6 +1389,17 @@ html:has(body.landing) {
     background: var(--wat);
 }
 
+/* Section label inside a widget (e.g. "7-day average vs goal"), echoing the
+   widget's own .section-title. */
+.wdg-section {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0.9rem 2px 0.7rem;
+}
+
 /* Mini calorie-trend card — a compact echo of the get_trends / summary chart. */
 .wdg-thead {
     display: flex;
