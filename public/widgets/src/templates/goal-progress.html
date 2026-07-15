@@ -192,6 +192,44 @@
                     unit: "kg",
                     logged_on: "2026-07-09",
                 },
+                meals: [
+                    {
+                        description: "Overnight oats with berries",
+                        meal_type: "breakfast",
+                        date: null,
+                        calories: 420,
+                        protein_g: 18,
+                        carbs_g: 62,
+                        fat_g: 12,
+                    },
+                    {
+                        description: "Grilled chicken & rice bowl",
+                        meal_type: "lunch",
+                        date: null,
+                        calories: 650,
+                        protein_g: 52,
+                        carbs_g: 78,
+                        fat_g: 16,
+                    },
+                    {
+                        description: "Greek yogurt & almonds",
+                        meal_type: "snack",
+                        date: null,
+                        calories: 260,
+                        protein_g: 22,
+                        carbs_g: 14,
+                        fat_g: 14,
+                    },
+                    {
+                        description: "Salmon with quinoa & veg",
+                        meal_type: "dinner",
+                        date: null,
+                        calories: 650,
+                        protein_g: 56,
+                        carbs_g: 77,
+                        fat_g: 32,
+                    },
+                ],
             };
 
             function fmt(n, decimals) {
@@ -363,7 +401,12 @@
                 }
 
                 const entries = `${meals} meal${meals === 1 ? "" : "s"} · ${water} water entr${water === 1 ? "y" : "ies"}`;
-                const panel = macroPanel(totals, data.goals);
+                const panel = macroPanel(
+                    totals,
+                    data.goals,
+                    undefined,
+                    data.meals,
+                );
                 const dayEmpty =
                     meals === 0 && water === 0
                         ? `<div class="note">Nothing logged yet for ${esc(data.date || "this day")}.</div>`

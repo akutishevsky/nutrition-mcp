@@ -78,6 +78,44 @@
                     fat_g: 52,
                     water_ml: 1600,
                 },
+                meals: [
+                    {
+                        description: "Overnight oats with berries",
+                        meal_type: "breakfast",
+                        date: null,
+                        calories: 420,
+                        protein_g: 18,
+                        carbs_g: 62,
+                        fat_g: 12,
+                    },
+                    {
+                        description: "Greek yogurt & almonds",
+                        meal_type: "snack",
+                        date: null,
+                        calories: 260,
+                        protein_g: 22,
+                        carbs_g: 14,
+                        fat_g: 14,
+                    },
+                    {
+                        description: "Turkey sandwich",
+                        meal_type: "lunch",
+                        date: null,
+                        calories: 280,
+                        protein_g: 36,
+                        carbs_g: 61,
+                        fat_g: 4,
+                    },
+                    {
+                        description: "Grilled chicken salad",
+                        meal_type: "lunch",
+                        date: null,
+                        calories: 520,
+                        protein_g: 42,
+                        carbs_g: 28,
+                        fat_g: 22,
+                    },
+                ],
             };
 
             function fmt(n, decimals) {
@@ -111,7 +149,12 @@
                 }
 
                 const totals = data.totals || {};
-                const panel = macroPanel(totals, data.goals);
+                const panel = macroPanel(
+                    totals,
+                    data.goals,
+                    undefined,
+                    data.meals,
+                );
 
                 const meal = data.logged_meal;
                 let sub = "";

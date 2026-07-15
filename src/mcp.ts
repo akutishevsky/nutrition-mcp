@@ -104,6 +104,32 @@ function sumWater(entries: WaterEntry[]): number {
     return total;
 }
 
+// Per-meal macro breakdown handed to the widgets so tapping a macro ring can
+// reveal which meals contributed to it. `date` is null for single-day views
+// (the widget labels each row by meal type instead) and set to YYYY-MM-DD for
+// multi-day ranges so the widget can tag each meal with its day.
+const MEAL_BREAKDOWN_ITEM = z.object({
+    description: z.string(),
+    meal_type: z.string().nullable(),
+    date: z.string().nullable(),
+    calories: z.number(),
+    protein_g: z.number(),
+    carbs_g: z.number(),
+    fat_g: z.number(),
+});
+
+function mealBreakdown(meals: Meal[], dateTz: string | null) {
+    return meals.map((m) => ({
+        description: m.description,
+        meal_type: m.meal_type ?? null,
+        date: dateTz ? dateInTz(m.logged_at, dateTz) : null,
+        calories: Math.round(m.calories ?? 0),
+        protein_g: Math.round((m.protein_g ?? 0) * 10) / 10,
+        carbs_g: Math.round((m.carbs_g ?? 0) * 10) / 10,
+        fat_g: Math.round((m.fat_g ?? 0) * 10) / 10,
+    }));
+}
+
 // log_meal and update_meal share the same MCP Apps widget
 // (public/widgets/meal-logged.html). Both declare this identical output shape
 // and both build their payload via buildMealProgress() below, so the widget can
@@ -136,6 +162,7 @@ const MEAL_PROGRESS_OUTPUT_SCHEMA = {
         fat_g: z.number(),
         water_ml: z.number(),
     }),
+    meals: z.array(MEAL_BREAKDOWN_ITEM),
 };
 
 // Compute the day's running totals vs goals for a meal that was just logged or
@@ -189,6 +216,8 @@ async function buildMealProgress(
             fat_g: Math.round(totals.fat_g * 10) / 10,
             water_ml: totals.water_ml,
         },
+        // Single day → label rows by meal type in the widget, not by date.
+        meals: mealBreakdown(meals, null),
     };
 
     return { progressSection, structuredContent };
@@ -806,6 +835,7 @@ function registerTools(server: McpServer, userId: string) {
                         water_ml: z.number(),
                     }),
                 ),
+                meals: z.array(MEAL_BREAKDOWN_ITEM),
             },
             // Link the tool to its dashboard UI (MCP Apps).
             _meta: { ui: { resourceUri: SUMMARY_WIDGET_URI } },
@@ -852,6 +882,7 @@ function registerTools(server: McpServer, userId: string) {
                                     water_ml: 0,
                                 },
                                 days: [],
+                                meals: [],
                             },
                         };
                     }
@@ -943,6 +974,8 @@ function registerTools(server: McpServer, userId: string) {
                             goals: goalsPayload,
                             averages,
                             days,
+                            // Multi-day range → tag each meal with its date.
+                            meals: mealBreakdown(meals, tz),
                         },
                     };
                 },
@@ -1153,6 +1186,7 @@ function registerTools(server: McpServer, userId: string) {
                         logged_on: z.string().nullable(),
                     })
                     .nullable(),
+                meals: z.array(MEAL_BREAKDOWN_ITEM),
             },
             // Link the tool to its progress UI (MCP Apps).
             _meta: { ui: { resourceUri: GOAL_PROGRESS_WIDGET_URI } },
@@ -1254,6 +1288,8 @@ function registerTools(server: McpServer, userId: string) {
                             goals: goalsPayload,
                             totals: totalsPayload,
                             weight: weightPayload,
+                            // Single day → label rows by meal type in the widget.
+                            meals: mealBreakdown(meals, null),
                         },
                     };
                 },

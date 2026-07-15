@@ -84,6 +84,80 @@
                         water_ml: 2100,
                     },
                 ],
+                meals: [
+                    {
+                        description: "Grilled chicken & rice bowl",
+                        meal_type: "lunch",
+                        date: "2026-07-05",
+                        calories: 650,
+                        protein_g: 52,
+                        carbs_g: 78,
+                        fat_g: 16,
+                    },
+                    {
+                        description: "Salmon with quinoa & veg",
+                        meal_type: "dinner",
+                        date: "2026-07-05",
+                        calories: 640,
+                        protein_g: 55,
+                        carbs_g: 74,
+                        fat_g: 30,
+                    },
+                    {
+                        description: "Overnight oats with berries",
+                        meal_type: "breakfast",
+                        date: "2026-07-06",
+                        calories: 430,
+                        protein_g: 19,
+                        carbs_g: 63,
+                        fat_g: 12,
+                    },
+                    {
+                        description: "Steak burrito",
+                        meal_type: "dinner",
+                        date: "2026-07-06",
+                        calories: 720,
+                        protein_g: 48,
+                        carbs_g: 66,
+                        fat_g: 30,
+                    },
+                    {
+                        description: "Protein shake",
+                        meal_type: "snack",
+                        date: "2026-07-06",
+                        calories: 210,
+                        protein_g: 40,
+                        carbs_g: 8,
+                        fat_g: 3,
+                    },
+                    {
+                        description: "Egg & avocado toast",
+                        meal_type: "breakfast",
+                        date: "2026-07-07",
+                        calories: 480,
+                        protein_g: 24,
+                        carbs_g: 42,
+                        fat_g: 26,
+                    },
+                    {
+                        description: "Turkey & hummus wrap",
+                        meal_type: "lunch",
+                        date: "2026-07-07",
+                        calories: 560,
+                        protein_g: 44,
+                        carbs_g: 58,
+                        fat_g: 18,
+                    },
+                    {
+                        description: "Greek yogurt & almonds",
+                        meal_type: "snack",
+                        date: "2026-07-07",
+                        calories: 260,
+                        protein_g: 22,
+                        carbs_g: 14,
+                        fat_g: 14,
+                    },
+                ],
             };
 
             function fmt(n, decimals) {
@@ -207,7 +281,12 @@
                     : days[0].date;
 
                 // Calories hero + protein/carbs/fat row + water bar.
-                const panel = macroPanel(data.averages, data.goals);
+                const panel = macroPanel(
+                    data.averages,
+                    data.goals,
+                    undefined,
+                    data.meals,
+                );
                 const trend =
                     multi && days.length >= 2
                         ? trendChart(days, data.goals?.calories ?? null)

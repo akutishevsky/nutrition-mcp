@@ -105,19 +105,27 @@ function macroLabelGoal(m, b) {
       <div class="mgoal">${esc(b.goalLine)}</div>`;
 }
 
+// When the panel is interactive (meals were supplied), a macro tile is also a
+// button that toggles its per-meal breakdown — see macroToggle below.
+function interactiveAttrs(m, interactive) {
+    return interactive
+        ? ` role="button" tabindex="0" data-macro="${m.key}" aria-expanded="false" aria-label="Show meals contributing ${esc(m.label)}"`
+        : "";
+}
+
 // Calories — full-width hero card with the large ring.
-function macroHero(m, vals, goal, wording) {
+function macroHero(m, vals, goal, wording, interactive) {
     const b = macroBits(m, vals, goal, wording);
     return `
-      <div class="mcard macro-hero">${ringMarkup(m, b)}${macroLabelGoal(m, b)}
+      <div class="mcard macro-hero${interactive ? " interactive" : ""}"${interactiveAttrs(m, interactive)}>${ringMarkup(m, b)}${macroLabelGoal(m, b)}
       </div>`;
 }
 
 // One protein/carbs/fat cell inside the shared row card.
-function macroCell(m, vals, goal, wording) {
+function macroCell(m, vals, goal, wording, interactive) {
     const b = macroBits(m, vals, goal, wording);
     return `
-        <div class="macro-cell">${ringMarkup(m, b)}${macroLabelGoal(m, b)}
+        <div class="macro-cell${interactive ? " interactive" : ""}"${interactiveAttrs(m, interactive)}>${ringMarkup(m, b)}${macroLabelGoal(m, b)}
         </div>`;
 }
 
@@ -142,23 +150,152 @@ function macroWater(m, vals, goal, wording) {
 }
 
 // Full macro panel: calories hero + protein/carbs/fat row + water bar.
-function macroPanel(vals, goal, wording) {
+//
+// `meals` is optional: when a non-empty array of per-meal breakdown rows is
+// passed (each { description, meal_type, date, calories, protein_g, carbs_g,
+// fat_g }), the calorie/protein/carbs/fat tiles become tappable and reveal the
+// meals that contributed to that macro (see macroToggle). Omit it (or pass an
+// empty array) and the panel renders exactly as before, non-interactive — so
+// averaged views like trends stay static.
+function macroPanel(vals, goal, wording, meals) {
     const cal = MACROS.find((m) => m.key === "calories");
     const trio = MACROS.filter((m) =>
         ["protein_g", "carbs_g", "fat_g"].includes(m.key),
     );
     const water = MACROS.find((m) => m.key === "water_ml");
+    const interactive = Array.isArray(meals) && meals.length > 0;
+    // Stash the meals so the delegated toggle handler can build the breakdown
+    // on demand. One panel per widget, so a single slot is enough.
+    __macroMeals = interactive ? meals : null;
     // Only show the water bar when water was actually tracked — an empty bar for
     // an untouched metric is noise.
     const waterBar =
         (vals?.[water.key] ?? 0) > 0
             ? macroWater(water, vals, goal, wording)
             : "";
+    const hint = interactive
+        ? `<div class="macro-hint">Tap a metric to see which meals contributed.</div>`
+        : "";
+    // The breakdown renders into this region on tap; hidden until then.
+    const detail = interactive
+        ? `<div class="macro-detail" hidden aria-live="polite"></div>`
+        : "";
     return `
-      ${macroHero(cal, vals, goal, wording)}
+      <div class="macro-panel"${interactive ? " data-macro-panel" : ""}>
+      ${hint}
+      ${macroHero(cal, vals, goal, wording, interactive)}
       <div class="mcard macro-row">${trio
-          .map((m) => macroCell(m, vals, goal, wording))
+          .map((m) => macroCell(m, vals, goal, wording, interactive))
           .join("")}
       </div>
-      ${waterBar}`;
+      ${waterBar}
+      ${detail}
+      </div>`;
+}
+
+// ---- Interactive per-meal breakdown --------------------------------------
+// Set by macroPanel() when meals are supplied; read by the delegated handlers.
+let __macroMeals = null;
+
+// Build the breakdown list for one macro: every meal that contributed a
+// positive amount, largest-first, capped so a long range stays readable.
+function macroDetailBody(m, meals) {
+    const decimals = m.key === "calories" ? 0 : 1;
+    const rows = meals
+        .map((meal) => ({ meal, v: Number(meal?.[m.key] ?? 0) || 0 }))
+        .filter((r) => r.v > 0)
+        .sort((a, b) => b.v - a.v);
+
+    const head = `
+      <div class="md-head">
+        <span class="md-title"><span class="dot" style="background:${m.color}"></span>${esc(m.label)} by meal</span>
+        <button class="md-close" data-macro-close aria-label="Close breakdown">✕</button>
+      </div>`;
+
+    if (!rows.length) {
+        return `${head}<div class="md-empty">No logged meals contributed ${esc(m.label.toLowerCase())}.</div>`;
+    }
+
+    const CAP = 8;
+    const shown = rows.slice(0, CAP);
+    const extra = rows.length - shown.length;
+    const items = shown
+        .map(({ meal, v }) => {
+            // Prefer a date tag for multi-day ranges, otherwise the meal type.
+            const sub = meal.date
+                ? esc(String(meal.date).slice(5))
+                : meal.meal_type
+                  ? esc(meal.meal_type)
+                  : "";
+            return `
+        <li class="md-row">
+          <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(m.unit)}</span></span>
+          <span class="md-name">${esc(meal.description || "Untitled meal")}${sub ? `<span class="md-sub">${sub}</span>` : ""}</span>
+        </li>`;
+        })
+        .join("");
+    const more =
+        extra > 0
+            ? `<li class="md-more">+ ${extra} smaller meal${extra === 1 ? "" : "s"}</li>`
+            : "";
+    return `${head}<ul class="md-list">${items}${more}</ul>`;
+}
+
+// Toggle the breakdown for the tapped tile. Tapping the open tile again (or its
+// ✕) collapses it; tapping another tile swaps the list. The height change is
+// picked up by the bridge's ResizeObserver, which re-reports so the host grows
+// the iframe.
+function macroToggle(cell) {
+    const panel = cell.closest("[data-macro-panel]");
+    if (!panel || !__macroMeals) return;
+    const detail = panel.querySelector(".macro-detail");
+    if (!detail) return;
+    const key = cell.dataset.macro;
+    const alreadyOpen = detail.dataset.open === key && detail.hidden === false;
+
+    panel.querySelectorAll("[data-macro]").forEach((c) => {
+        const on = c === cell && !alreadyOpen;
+        c.classList.toggle("open", on);
+        c.setAttribute("aria-expanded", on ? "true" : "false");
+    });
+
+    if (alreadyOpen) {
+        detail.hidden = true;
+        detail.dataset.open = "";
+        detail.innerHTML = "";
+        return;
+    }
+    const m = MACROS.find((mm) => mm.key === key);
+    if (!m) return;
+    detail.innerHTML = macroDetailBody(m, __macroMeals);
+    detail.dataset.open = key;
+    detail.hidden = false;
+}
+
+// Delegated once per document. No-ops on non-interactive panels (no
+// [data-macro] tiles), so widgets that omit meals are unaffected.
+if (typeof document !== "undefined" && !window.__macroWired) {
+    window.__macroWired = true;
+    document.addEventListener("click", (e) => {
+        if (e.target.closest("[data-macro-close]")) {
+            const panel = e.target.closest("[data-macro-panel]");
+            const detail = panel && panel.querySelector(".macro-detail");
+            if (detail && detail.dataset.open) {
+                const cell = panel.querySelector(
+                    `[data-macro="${detail.dataset.open}"]`,
+                );
+                if (cell) macroToggle(cell);
+            }
+            return;
+        }
+        const cell = e.target.closest("[data-macro]");
+        if (cell) macroToggle(cell);
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+        const cell = e.target.closest("[data-macro]");
+        if (!cell) return;
+        e.preventDefault();
+        macroToggle(cell);
+    });
 }
