@@ -1447,62 +1447,50 @@ html:has(body.landing) {
     font-variant-numeric: tabular-nums;
 }
 
-/* Mini weight card — current weight, a number-line toward target, and a
-   trend caption. Mirrors the get_weight_trends widget in miniature. */
-.wdg-whead {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 0.55rem;
+/* Mini weight card — a weight-over-time chart plus Latest / Change / Target
+   stat cards, mirroring the get_weight_trends widget. */
+.wdg-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
-.wdg-wnow {
-    font-family: var(--font-display);
+.wdg-stat {
+    background: var(--bg-alt);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.5rem 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.wdg-slabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+}
+.wdg-sval {
+    font-size: 1rem;
     font-weight: 800;
     letter-spacing: -0.02em;
-    font-size: 1.4rem;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
 }
-.wdg-wnow span {
-    font-size: 0.68rem;
+.wdg-sunit {
+    font-size: 0.6rem;
     font-weight: 600;
     color: var(--ink-2);
     margin-left: 2px;
 }
-.wdg-wdelta {
-    font-size: 0.62rem;
-    font-weight: 700;
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-.wdg-weight svg text {
-    font-family: var(--font-body, inherit);
-    fill: var(--ink-2);
-    font-variant-numeric: tabular-nums;
-}
-.wdg-weight .wl-now {
-    fill: var(--ink);
-    font-weight: 700;
-}
-.wdg-weight .wl-track {
-    stroke: var(--wtrack);
-    stroke-width: 4;
-    stroke-linecap: round;
-}
-.wdg-weight .wl-prog {
-    stroke: var(--accent);
-    stroke-width: 4;
-    stroke-linecap: round;
-}
-.wdg-wcap {
-    font-size: 0.6rem;
+.wdg-scap {
+    font-size: 0.52rem;
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
-    margin-top: 0.15rem;
 }
 
 /* meal-type picker chips inside an AI reply */
