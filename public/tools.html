@@ -300,6 +300,76 @@
                     padding-top: 52px;
                 }
             }
+
+            /* Sticky category jump-bar with scrollspy. Sits directly under the
+               52px site header; the active pill tracks the section in view. */
+            html {
+                scroll-behavior: smooth;
+            }
+            .tool-group {
+                scroll-margin-top: 118px;
+            }
+            .cat-nav {
+                position: sticky;
+                top: 52px;
+                z-index: 20;
+                background: color-mix(in srgb, var(--bg) 85%, transparent);
+                -webkit-backdrop-filter: saturate(180%) blur(12px);
+                backdrop-filter: saturate(180%) blur(12px);
+                border-bottom: 1px solid var(--line);
+            }
+            .cat-nav .container {
+                max-width: 1080px;
+            }
+            .cat-nav-scroll {
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                padding: 11px 2px;
+                scrollbar-width: none;
+            }
+            .cat-nav-scroll::-webkit-scrollbar {
+                display: none;
+            }
+            .cat-pill {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                padding: 7px 15px;
+                border-radius: 999px;
+                border: 1px solid var(--line);
+                background: var(--bg);
+                color: var(--ink-2);
+                font-size: 0.875rem;
+                font-weight: 600;
+                text-decoration: none;
+                white-space: nowrap;
+                transition:
+                    background 0.15s ease,
+                    border-color 0.15s ease,
+                    color 0.15s ease;
+            }
+            .cat-pill i {
+                font-size: 0.85em;
+                opacity: 0.8;
+            }
+            .cat-pill:hover {
+                color: var(--ink);
+                border-color: color-mix(
+                    in srgb,
+                    var(--accent) 45%,
+                    var(--line)
+                );
+            }
+            .cat-pill.active {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: #fff;
+            }
+            .cat-pill.active i {
+                opacity: 1;
+            }
         </style>
     </head>
     <body class="landing">
@@ -364,9 +434,62 @@
                 </div>
             </section>
 
+            <nav class="cat-nav" aria-label="Jump to a tool category">
+                <div class="container">
+                    <div class="cat-nav-scroll" role="list">
+                        <a class="cat-pill" href="#logging-food-meals"
+                            ><i
+                                class="fa-solid fa-utensils"
+                                aria-hidden="true"
+                            ></i>
+                            Logging</a
+                        >
+                        <a class="cat-pill" href="#reviewing-your-meals"
+                            ><i
+                                class="fa-solid fa-clock-rotate-left"
+                                aria-hidden="true"
+                            ></i>
+                            Reviewing</a
+                        >
+                        <a class="cat-pill" href="#water"
+                            ><i
+                                class="fa-solid fa-droplet"
+                                aria-hidden="true"
+                            ></i>
+                            Water</a
+                        >
+                        <a class="cat-pill" href="#weight"
+                            ><i
+                                class="fa-solid fa-weight-scale"
+                                aria-hidden="true"
+                            ></i>
+                            Weight</a
+                        >
+                        <a class="cat-pill" href="#goals-progress"
+                            ><i
+                                class="fa-solid fa-bullseye"
+                                aria-hidden="true"
+                            ></i>
+                            Goals</a
+                        >
+                        <a class="cat-pill" href="#insights-trends"
+                            ><i
+                                class="fa-solid fa-chart-line"
+                                aria-hidden="true"
+                            ></i>
+                            Insights</a
+                        >
+                        <a class="cat-pill" href="#settings-account"
+                            ><i class="fa-solid fa-gear" aria-hidden="true"></i>
+                            Settings</a
+                        >
+                    </div>
+                </div>
+            </nav>
+
             <div class="tools-main">
                 <div class="container">
-                    <section class="tool-group">
+                    <section class="tool-group" id="logging-food-meals">
                         <div class="tool-group-head">
                             <span class="tool-group-icon"
                                 ><i
@@ -599,7 +722,7 @@
                         </div>
                     </section>
 
-                    <section class="tool-group">
+                    <section class="tool-group" id="reviewing-your-meals">
                         <div class="tool-group-head">
                             <span class="tool-group-icon"
                                 ><i
@@ -733,7 +856,7 @@
                         </div>
                     </section>
 
-                    <section class="tool-group">
+                    <section class="tool-group" id="water">
                         <div class="tool-group-head">
                             <span class="tool-group-icon"
                                 ><i
@@ -864,7 +987,7 @@
                         </div>
                     </section>
 
-                    <section class="tool-group">
+                    <section class="tool-group" id="weight">
                         <div class="tool-group-head">
                             <span class="tool-group-icon"
                                 ><i
@@ -1178,7 +1301,7 @@
                         </div>
                     </section>
 
-                    <section class="tool-group">
+                    <section class="tool-group" id="goals-progress">
                         <div class="tool-group-head">
                             <span class="tool-group-icon"
                                 ><i
@@ -1374,7 +1497,7 @@
                         </div>
                     </section>
 
-                    <section class="tool-group">
+                    <section class="tool-group" id="insights-trends">
                         <div class="tool-group-head">
                             <span class="tool-group-icon"
                                 ><i
@@ -1477,7 +1600,7 @@
                         </div>
                     </section>
 
-                    <section class="tool-group">
+                    <section class="tool-group" id="settings-account">
                         <div class="tool-group-head">
                             <span class="tool-group-icon"
                                 ><i
@@ -1622,6 +1745,59 @@
                     if (!document.body.getAttribute("data-theme")) syncUI();
                 });
                 syncUI();
+            })();
+        </script>
+        <script>
+            // Category jump-bar: highlight the pill for the section in view, and
+            // keep the active pill scrolled into view on narrow screens.
+            (function () {
+                var pills = Array.prototype.slice.call(
+                    document.querySelectorAll(".cat-pill"),
+                );
+                if (!pills.length) return;
+                var scroller = document.querySelector(".cat-nav-scroll");
+                var groups = pills.map(function (p) {
+                    return document.querySelector(p.getAttribute("href"));
+                });
+                var OFFSET = 130; // 52px header + ~54px bar + breathing room
+                var raf = 0;
+                function update() {
+                    raf = 0;
+                    var idx = 0;
+                    for (var i = 0; i < groups.length; i++) {
+                        if (
+                            groups[i] &&
+                            groups[i].getBoundingClientRect().top - OFFSET <= 1
+                        )
+                            idx = i;
+                    }
+                    // Snap to the last category once scrolled to the bottom.
+                    if (
+                        window.innerHeight + window.scrollY >=
+                        document.documentElement.scrollHeight - 4
+                    )
+                        idx = groups.length - 1;
+                    for (var j = 0; j < pills.length; j++)
+                        pills[j].classList.toggle("active", j === idx);
+                    var active = pills[idx];
+                    if (active && scroller) {
+                        var pr = active.getBoundingClientRect();
+                        var sr = scroller.getBoundingClientRect();
+                        scroller.scrollLeft +=
+                            pr.left + pr.width / 2 - (sr.left + sr.width / 2);
+                    }
+                }
+                function onScroll() {
+                    if (!raf) raf = requestAnimationFrame(update);
+                }
+                window.addEventListener("scroll", onScroll, { passive: true });
+                window.addEventListener("resize", onScroll);
+                pills.forEach(function (p) {
+                    p.addEventListener("click", function () {
+                        setTimeout(update, 60);
+                    });
+                });
+                update();
             })();
         </script>
     </body>
