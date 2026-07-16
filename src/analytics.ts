@@ -37,7 +37,8 @@ function categorizeError(error: unknown): string {
         msg.includes("failed to insert") ||
         msg.includes("failed to get") ||
         msg.includes("failed to delete") ||
-        msg.includes("failed to update")
+        msg.includes("failed to update") ||
+        msg.includes("failed to search")
     )
         return "supabase_error";
     if (
