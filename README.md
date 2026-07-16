@@ -36,11 +36,12 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 | Tool                       | Description                                                                                              |
 | -------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `log_meal`                 | Log a meal with description, type, calories, macros, notes                                               |
+| `log_meal`                 | Log a meal with description, type, calories, macros, notes — from text or a photo of your plate          |
 | `lookup_barcode`           | Look up a packaged product's verified macros by barcode via Open Food Facts (read from a photo or typed) |
 | `get_meals_today`          | Get all meals logged today                                                                               |
 | `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD)                                                               |
 | `get_meals_by_date_range`  | Get meals between two dates (inclusive)                                                                  |
+| `search_meals`             | Search past meals by keyword, grouped into recurring variations (counts, last logged, typical macros)    |
 | `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range                                                  |
 | `update_meal`              | Update any fields of an existing meal                                                                    |
 | `delete_meal`              | Delete a meal by ID                                                                                      |
