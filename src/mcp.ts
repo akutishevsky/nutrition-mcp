@@ -6,6 +6,7 @@ import {
     insertMeal,
     getMealsByDate,
     getMealsInRange,
+    searchMeals,
     deleteMeal,
     updateMeal,
     deleteAllUserData,
@@ -56,6 +57,7 @@ import {
 } from "./units.js";
 import { exportMeals } from "./export.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
+import { formatMealSearchResults } from "./search.js";
 import { getWidgetHtml } from "./widgets.js";
 
 // MCP Apps UI (https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/):
@@ -72,6 +74,22 @@ const GOAL_PROGRESS_WIDGET_URI = "ui://widget/goal-progress.html";
 const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const TRENDS_WIDGET_URI = "ui://widget/trends.html";
 const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
+
+// Sent to clients in the initialize response (SDK ServerOptions.instructions).
+// Advisory — not every client surfaces it, so the enforcement rule ("never log
+// from a photo until the user confirms") is repeated in log_meal's own
+// description. Keep both in sync.
+const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, goals, and trends, per-user with timezone support.
+
+Photo-based meal logging — when the user sends a photo of food, follow these steps in order:
+1. Pick the flow. A packaged product with a visible barcode: transcribe the digits printed under the barcode and call lookup_barcode. A plate, bowl, or prepared meal: continue below.
+2. Identify each distinct dish or food item in the photo.
+3. Estimate portions in household measures the user can verify at a glance — "a glass of", "a handful of", "a tablespoon of", "half the plate" — never grams or ounces (nobody can weigh food from a photo).
+4. Call search_meals with a short keyword per dish, passing alternatives in both the conversation language and English (past logs may be in either). Past variations reveal ingredients invisible in the photo (raisins vs banana, milk vs water, added honey or oil). Offer them as options: "Is this the oatmeal with raisins like Monday, or with banana, or something else?"
+5. Present the identified dishes, your portion assumptions, and the past-variation options, then WAIT for the user to confirm or correct before calling log_meal. Never log straight from a photo.
+6. When logging, write the confirmed household-measure portions into the meal description itself (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") so future search_meals results are self-describing.
+
+For "log my usual X" requests, use search_meals the same way: search, confirm the variation, then log.`;
 
 interface DailyTotals {
     calories: number;
@@ -352,7 +370,7 @@ function registerTools(server: McpServer, userId: string) {
         {
             title: "Log Meal",
             description:
-                "Log a meal entry with nutritional information. If the user doesn't specify the quantity or portion size, ask how much they ate before estimating calories and macros. When the user gives a barcode — typed, or read from a photo of the package (transcribe the digits printed under the barcode) — call lookup_barcode first to get verified nutritional data, then scale it to the amount eaten. Fall back to web search or estimation only when no product is found. Use web search for branded products when no barcode is available.",
+                "Log a meal entry with nutritional information. If the user doesn't specify the quantity or portion size, ask how much they ate before estimating calories and macros. When the user gives a barcode — typed, or read from a photo of the package (transcribe the digits printed under the barcode) — call lookup_barcode first to get verified nutritional data, then scale it to the amount eaten. Fall back to web search or estimation only when no product is found. Use web search for branded products when no barcode is available. When logging from a photo of a plated or prepared meal (no package/barcode): first identify each dish, estimate portions in household measures the user can eyeball (a glass of, a handful of, a tablespoon of — NOT grams), call search_meals to see how similar meals were logged before and to surface ingredients that may be invisible in the photo, then present your assumptions and the past variations as options — do NOT call this tool until the user confirms. Write the confirmed household-measure portions into the description itself (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,
@@ -656,6 +674,88 @@ function registerTools(server: McpServer, userId: string) {
                 },
                 { userId },
                 { start_date, end_date },
+            );
+        },
+    );
+
+    server.registerTool(
+        "search_meals",
+        {
+            title: "Search Past Meals",
+            description:
+                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Use this BEFORE logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil) — present them to the user as options rather than picking one silently. Also use it for requests like 'log my usual breakfast': search, confirm the variation with the user, then log_meal. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                queries: z
+                    .array(z.string().min(1))
+                    .min(1)
+                    .max(5)
+                    .describe(
+                        "Keyword alternatives, each a short food name like 'oatmeal' or 'chicken salad' (all words of one alternative must match; alternatives are OR'd). Include the food name in every language the user may have logged in — typically the conversation language plus English.",
+                    ),
+                days: z.coerce
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(3650)
+                    .optional()
+                    .describe("How far back to search, in days (default 365)."),
+                limit: z.coerce
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(100)
+                    .optional()
+                    .describe("Max matching entries to analyze (default 50)."),
+            },
+        },
+        async ({ queries, days, limit }) => {
+            return withAnalytics(
+                "search_meals",
+                async () => {
+                    const tz = await getUserTimezone(userId);
+                    const windowDays = days ?? 365;
+                    // A fuzzy lookback window needs no calendar-day precision,
+                    // so a plain UTC offset from now is enough (tz is still
+                    // used to render dates in the results).
+                    const sinceIso = new Date(
+                        Date.now() - windowDays * 24 * 60 * 60 * 1000,
+                    ).toISOString();
+                    const meals = await searchMeals(userId, queries, {
+                        limit: limit ?? 50,
+                        sinceIso,
+                    });
+                    if (meals.length === 0) {
+                        const label = queries.map((q) => `"${q}"`).join(" / ");
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No past meals matching ${label} in the last ${windowDays} days. If logging from a photo, proceed with your own portion assumptions — but still confirm them with the user before calling log_meal.`,
+                                },
+                            ],
+                        };
+                    }
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: formatMealSearchResults(
+                                    meals,
+                                    queries,
+                                    tz,
+                                ),
+                            },
+                        ],
+                    };
+                },
+                { userId },
+                { days: days ?? 365 },
             );
         },
     );
@@ -2595,7 +2695,7 @@ function buildMcpServer(c: Context, userId: string): McpServer {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.17.0",
+            version: "1.18.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
@@ -2603,7 +2703,10 @@ function buildMcpServer(c: Context, userId: string): McpServer {
                 },
             ],
         },
-        { capabilities: { tools: {}, resources: {} } },
+        {
+            capabilities: { tools: {}, resources: {} },
+            instructions: SERVER_INSTRUCTIONS,
+        },
     );
 
     registerTools(server, userId);

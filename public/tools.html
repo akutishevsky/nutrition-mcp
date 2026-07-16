@@ -458,7 +458,7 @@
                     </p>
                     <span class="count-pill"
                         ><i class="fa-solid fa-wrench" aria-hidden="true"></i
-                        ><b>30 tools</b> across 7 areas</span
+                        ><b>31 tools</b> across 7 areas</span
                     >
                 </div>
             </section>
@@ -618,7 +618,11 @@
                                             aria-hidden="true"
                                         ></i>
                                         …or just snap a photo of your plate —
-                                        the AI reads it and logs it.
+                                        the AI names each dish, sizes portions
+                                        in everyday measures (a glass, a
+                                        handful), checks how you've logged it
+                                        before, and confirms with you before
+                                        logging.
                                     </p>
                                 </div>
                             </article>
@@ -784,6 +788,58 @@
                             </div>
                         </div>
                         <div class="tool-grid">
+                            <article class="tool-card" id="search_meals">
+                                <div class="tool-head">
+                                    <code class="tool-name">search_meals</code>
+                                    <span class="chip chip-view">View</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Search your past meals by keyword and see
+                                    them grouped into your recurring variations
+                                    — how often each was logged, when last, and
+                                    its typical calories. This is how the AI
+                                    checks a photo of your plate against how
+                                    you've actually logged that meal before, and
+                                    how "log my usual breakfast" works.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parameters</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>queries</code>
+                                            <span class="param-req"
+                                                >required</span
+                                            >
+                                            — Food keyword alternatives, in any
+                                            language you've logged in
+                                        </li>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >optional</span
+                                            >
+                                            — How far back to look (default a
+                                            year)
+                                        </li>
+                                        <li>
+                                            <code>limit</code>
+                                            <span class="param-opt"
+                                                >optional</span
+                                            >
+                                            — Max entries to analyze
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Try saying</span
+                                    >
+                                    <p>Log my usual breakfast</p>
+                                </div>
+                            </article>
+
                             <article class="tool-card" id="get_meals_today">
                                 <div class="tool-head">
                                     <code class="tool-name"

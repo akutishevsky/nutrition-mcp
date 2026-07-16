@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
 import { isWeightUnit, type WeightUnit } from "./units.js";
+import { escapeLikePattern, tokenizeQuery } from "./search.js";
 
 let supabase: SupabaseClient;
 
@@ -248,6 +249,56 @@ export async function getAllMeals(userId: string): Promise<Meal[]> {
 
     if (error) throw new Error(`Failed to get meals: ${error.message}`);
     return (data as Meal[]) ?? [];
+}
+
+// Keyword search over past meals. Each query string is an alternative (OR'd
+// across, e.g. the same food in two languages); within one alternative every
+// word token must match the column (AND'd via chained .ilike). We deliberately
+// avoid PostgREST's .or() — its logic-tree grammar treats commas/parens inside
+// values as structure and supabase-js does not quote them — and instead run
+// one cheap per-user query per (alternative × column) and merge in code.
+export async function searchMeals(
+    userId: string,
+    queries: string[],
+    opts: { limit?: number; sinceIso?: string } = {},
+): Promise<Meal[]> {
+    const limit = opts.limit ?? 50;
+    const tokenized = queries
+        .map(tokenizeQuery)
+        .filter((tokens) => tokens.length > 0);
+    if (tokenized.length === 0) return [];
+
+    const buildQuery = (tokens: string[], column: "description" | "notes") => {
+        let q = getSupabase().from("meals").select("*").eq("user_id", userId);
+        if (opts.sinceIso) q = q.gte("logged_at", opts.sinceIso);
+        for (const token of tokens) {
+            q = q.ilike(column, `%${escapeLikePattern(token)}%`);
+        }
+        return q.order("logged_at", { ascending: false }).limit(limit);
+    };
+
+    const results = await Promise.all(
+        tokenized.flatMap((tokens) => [
+            buildQuery(tokens, "description"),
+            buildQuery(tokens, "notes"),
+        ]),
+    );
+
+    const seen = new Set<string>();
+    const merged: Meal[] = [];
+    for (const { data, error } of results) {
+        if (error) {
+            throw new Error(`Failed to search meals: ${error.message}`);
+        }
+        for (const meal of (data as Meal[]) ?? []) {
+            if (!seen.has(meal.id)) {
+                seen.add(meal.id);
+                merged.push(meal);
+            }
+        }
+    }
+    merged.sort((a, b) => b.logged_at.localeCompare(a.logged_at));
+    return merged.slice(0, limit);
 }
 
 export async function deleteMeal(userId: string, id: string): Promise<void> {
