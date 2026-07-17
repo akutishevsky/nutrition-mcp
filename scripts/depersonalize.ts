@@ -8,6 +8,7 @@
  *
  * What it removes / neutralizes:
  *   - Google Analytics (gtag) from every public HTML page + the CSP allow-list
+ *   - The Glama connector-ownership route (embeds the maintainer's email)
  *   - Patreon "Support" section and hero button
  *   - GitHub repo links (nav, footer, "Star on GitHub" CTA) and the live
  *     star-count fetch
@@ -133,6 +134,17 @@ const LANDING_RULES: Rule[] = [
     },
 ];
 
+/**
+ * The Glama connector-ownership route (`/.well-known/glama.json`) exists only to
+ * claim the maintainer's Glama listing and hard-codes their email, so drop the
+ * whole handler. Matches the comment through the route's closing `});` and the
+ * trailing blank line, leaving the surrounding routes intact.
+ */
+const GLAMA_RULE: Rule = {
+    name: "Glama connector-ownership route",
+    find: /[ \t]*\/\/ Glama connector ownership verification\.[\s\S]*?app\.get\("\/\.well-known\/glama\.json"[\s\S]*?\n\}\);\n\n/,
+};
+
 /** Tighten the Content-Security-Policy: drop GA + GitHub API hosts. */
 const CSP_RULES: Rule[] = [
     {
@@ -204,7 +216,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     // SITE constant, GA tag, GitHub/contact links by hand (see its header).
     { path: "public/sitemap.xml", rules: [DOMAIN_RULE] },
     { path: "public/robots.txt", rules: [DOMAIN_RULE] },
-    { path: "src/index.ts", rules: CSP_RULES },
+    { path: "src/index.ts", rules: [GLAMA_RULE, ...CSP_RULES] },
 ];
 
 let hadWarning = false;

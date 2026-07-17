@@ -114,6 +114,15 @@ app.get("/.well-known/oauth-authorization-server", (c) => {
     });
 });
 
+// Glama connector ownership verification. Glama polls this file and matches the
+// maintainer email against the Glama account email to claim the listing.
+app.get("/.well-known/glama.json", (c) => {
+    return c.json({
+        $schema: "https://glama.ai/mcp/schemas/connector.json",
+        maintainers: [{ email: "akutishevsky@gmail.com" }],
+    });
+});
+
 // OAuth routes
 app.route("/", createOAuthRouter());
 
