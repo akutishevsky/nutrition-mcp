@@ -34,11 +34,17 @@ type App = {
     /** Gracious closing note under the comparison — acknowledges the app's strength. */
     note: string;
     /**
-     * Genuinely per-app prose (title + two paragraphs) for the "Moving from X"
+     * Genuinely per-app prose (title + paragraphs) for the "Moving from X"
      * section. This is what differentiates each page from the shared template so
      * they don't read as thin/duplicate content.
      */
-    migrate: { title: string; body: [string, string] };
+    migrate: { title: string; body: string[] };
+    /**
+     * Two app-specific FAQ entries interleaved into the shared FAQ set. These
+     * carry unique text AND unique FAQPage structured-data entries per page, so
+     * each page competes on more than a name-swapped template.
+     */
+    extraFaqs: { q: string; a: string }[];
     /** Optional override for the "Is Nutrition MCP free?" FAQ answer (e.g. paid-only apps). */
     freeAnswer?: string;
 };
@@ -63,8 +69,19 @@ const APPS: App[] = [
             body: [
                 "MyFitnessPal built its following on one of the largest food databases anywhere — tens of millions of crowd-sourced entries. That scale is also its friction: for any given food you scroll past near-duplicates and have to guess which entry is accurate. Conversational logging skips the lookup entirely — you describe the food and your AI estimates the macros.",
                 "There's no one-click import of your MyFitnessPal diary yet, but starting over is quick when logging is a single sentence. Tell your AI the handful of meals you eat on repeat and it will log them in seconds — and everything you record is yours to export as CSV whenever you want.",
+                "The features MyFitnessPal gradually moved behind Premium — barcode scanning, macros by gram, no ads — are simply included here. You're not weighing a free tier against a $20-a-month upgrade; there's one free, open-source tier, and the only account you need is the Claude or ChatGPT one you already have.",
             ],
         },
+        extraFaqs: [
+            {
+                q: "Can Nutrition MCP scan barcodes like MyFitnessPal Premium?",
+                a: "Yes, and it's free. Send a product's barcode and Nutrition MCP pulls verified macros from Open Food Facts — whereas MyFitnessPal moved its barcode scanner behind a paid Premium subscription.",
+            },
+            {
+                q: "How does logging work without MyFitnessPal's food database?",
+                a: "You describe what you ate in plain language — “a chicken burrito bowl with extra rice” — and your AI estimates the calories and macros. There's no database of millions of crowd-sourced entries to search through and no guessing which one is accurate.",
+            },
+        ],
     },
     {
         name: "Cronometer",
@@ -85,8 +102,19 @@ const APPS: App[] = [
             body: [
                 "Cronometer earned its reputation on precision — curated databases and tracking for 80+ micronutrients, vitamins and minerals included. If that micronutrient depth is why you open it, be honest with yourself: conversational estimates won't match a lab-grade database entry gram for gram.",
                 "But most people log to keep calories and the big three macros in range, not to audit their selenium intake. For that, describing a meal to your AI is far less work than searching for and weighing every component — and you still get daily totals, trends, and a target weight to track against, for free.",
+                "There's also a middle path: because you're inside an AI assistant, you can ask for the micronutrient angle when you actually want it — “roughly how much iron and B12 was in today's meals?” — and get a reasoned estimate on demand, without the overhead of logging every gram to a curated entry the rest of the time.",
             ],
         },
+        extraFaqs: [
+            {
+                q: "Does Nutrition MCP track micronutrients like Cronometer?",
+                a: "Not as a core feature. Cronometer's tracking of 80+ vitamins and minerals is its specialty; Nutrition MCP focuses on calories, macros, water, and weight. You can still ask your AI for a rough micronutrient read on a meal, but if lab-grade micronutrient depth is essential, Cronometer is the better fit.",
+            },
+            {
+                q: "Is Nutrition MCP as accurate as Cronometer?",
+                a: "For calories and the big three macros, conversational estimates are close enough for most goals — but they won't match Cronometer's curated, gram-for-gram database. It trades a little precision for far less logging effort, which is the right trade for most people.",
+            },
+        ],
     },
     {
         name: "Lose It!",
@@ -107,8 +135,19 @@ const APPS: App[] = [
             body: [
                 "Lose It! won people over by keeping calorie counting light and a little gamified, with its Snap It photo logging as the headline trick. Nutrition MCP does the photo trick too — send a picture of your plate and your AI reads it — except it lives inside the assistant you already chat with, so there's no separate app to open.",
                 "If what you liked about Lose It! was low-friction logging and quick daily feedback, you'll feel at home: say what you ate, get your remaining calories and macros back, and move on. No ads, no upsell, and no account to juggle.",
+                "The one thing you give up is the streaks-and-badges layer Lose It! uses to keep you coming back. If that gamification is what motivates you, that's a fair reason to stay. If it always felt like noise on top of the actual logging, you won't miss it — the daily number is right there in the chat whenever you ask.",
             ],
         },
+        extraFaqs: [
+            {
+                q: "Does Nutrition MCP have photo logging like Lose It!'s Snap It?",
+                a: "Yes — send a photo of your plate and your AI identifies the food and estimates the macros, then logs it after you confirm. In Lose It! photo logging sits behind a paid plan; with Nutrition MCP it's free and works right in the chat.",
+            },
+            {
+                q: "Can I count calories the same way I did in Lose It!?",
+                a: "Yes. The core loop is identical — say what you ate and get your remaining calories and macros back instantly. The difference is you talk to your AI instead of tapping through an app, and there are no ads or upsells on the way.",
+            },
+        ],
     },
     {
         name: "MacroFactor",
@@ -129,8 +168,19 @@ const APPS: App[] = [
             body: [
                 "MacroFactor's pitch is its algorithm: it watches your logged intake and weight and quietly recalculates your calorie and macro targets each week — genuinely clever, adaptive coaching from the Stronger By Science team. That coaching is the product, which is why it's subscription-only.",
                 "Nutrition MCP doesn't run a coaching algorithm — but because you're already inside an AI assistant, you can just ask. “Given my last three weeks, should I adjust my calories?” gets you a reasoned answer on demand. It's a different model: analysis when you want it, conversationally, instead of a fixed weekly recalculation — and it's free.",
+                "The honest trade-off is discipline versus flexibility. MacroFactor's weekly recalculation happens whether or not you think to ask, which keeps you honest; the conversational model only adjusts when you prompt it. If you want a hands-off algorithm steering your numbers, MacroFactor is worth the subscription. If you'd rather log for free and pull analysis when you care, this fits better.",
             ],
         },
+        extraFaqs: [
+            {
+                q: "Does Nutrition MCP adjust my calorie targets like MacroFactor?",
+                a: "Not automatically. MacroFactor's weekly, algorithmic recalculation is its paid core feature. With Nutrition MCP you ask — “based on my last three weeks of intake and weight, should I adjust my calories?” — and your AI reasons through it on demand, rather than a fixed weekly update.",
+            },
+            {
+                q: "Is Nutrition MCP really free when MacroFactor is subscription-only?",
+                a: "Yes. Nutrition MCP is completely free and open source, with no trial-then-pay and no free-tier limits — unlike MacroFactor, which has no free tier and requires a subscription after its trial. You only need a Claude or ChatGPT account.",
+            },
+        ],
         freeAnswer:
             "Yes. Nutrition MCP is completely free and open source, with no subscription — whereas MacroFactor requires a paid subscription after its free trial. You just need a Claude or ChatGPT account to connect.",
     },
@@ -153,8 +203,19 @@ const APPS: App[] = [
             body: [
                 "Yazio pairs tracking with structured meal plans, recipes, and fasting tools, polished for a European audience. If a guided plan is what keeps you on track, Yazio does that well and Nutrition MCP doesn't try to — it isn't a meal-plan app.",
                 "What it does do is make the logging half effortless. Instead of searching Yazio's database for each ingredient, you describe the dish and your AI handles the macros — then answers “how am I doing today?” in the same breath. Pair it with whatever eating plan you already follow.",
+                "This actually makes the two complementary rather than competing. Keep following a Yazio plan, or any plan, for the “what to eat” side; use Nutrition MCP for the “did I stay on track” side, logged by conversation and free. The one place it won't help is fasting timers — that's Yazio's territory, not a nutrition log's.",
             ],
         },
+        extraFaqs: [
+            {
+                q: "Does Nutrition MCP include meal plans like Yazio PRO?",
+                a: "No. Yazio's structured meal plans, recipes, and fasting tools are its strength, and Nutrition MCP doesn't try to replace them — it handles the logging half. Many people keep following their Yazio (or any) plan and simply log against it here for free.",
+            },
+            {
+                q: "Can I log meals faster than searching Yazio's database?",
+                a: "Usually, yes. Rather than searching Yazio's database for each ingredient and setting portions, you describe the finished dish once — “a bowl of muesli with yogurt and berries” — and your AI estimates and logs the macros in a single step.",
+            },
+        ],
     },
     {
         name: "Lifesum",
@@ -175,8 +236,19 @@ const APPS: App[] = [
             body: [
                 "Lifesum leans on structure and feedback — diet plans, recipes, and its food-rating system that scores what you eat. Nutrition MCP doesn't grade your foods with a badge, so if that scoring loop is what motivates you, Lifesum has an edge there.",
                 "The trade is flexibility: rather than a fixed rating, you can ask your AI “is this a good choice for my goals?” and get a real answer in context. Logging is a single sentence, trends and a target weight come built in, and there's no premium tier gating the useful parts.",
+                "A badge tells you a food scored 3 out of 5; a conversation tells you why, and what to do about it — “swap half the rice for greens and this fits your day.” It's the difference between a score and a coach, and because Lifesum puts diet plans and some tracking behind Premium, it's the free option of the two.",
             ],
         },
+        extraFaqs: [
+            {
+                q: "Does Nutrition MCP rate my food like Lifesum's food ratings?",
+                a: "No — there's no badge or numeric score. Instead you can ask your AI “is this a good choice for my goals?” and get a contextual answer that explains the trade-offs, rather than a fixed rating on the food itself.",
+            },
+            {
+                q: "Is Nutrition MCP free without a Lifesum Premium-style plan?",
+                a: "Yes. Nutrition MCP is completely free and open source, with no premium tier — whereas Lifesum puts diet plans and some tracking features behind a Premium subscription. You only need a Claude or ChatGPT account to connect.",
+            },
+        ],
     },
 ];
 
@@ -500,6 +572,7 @@ function faqsFor(app: App): { q: string; a: string }[] {
             q: `How do I connect ${app.name} to Claude?`,
             a: `There is no official ${app.name} connector for Claude, because ${app.name} has no MCP server or public MCP integration. The closest option is Nutrition MCP, a free MCP server: add https://nutrition-mcp.com/mcp as a custom connector in Claude, sign in, and start logging by conversation.`,
         },
+        ...app.extraFaqs,
         {
             q: `Is Nutrition MCP a good ${app.name} alternative?`,
             a: `If you want to track calories, macros, water, and weight without opening a separate app or searching a food database, yes. Instead of tapping through a database, you describe what you ate in plain language, send a photo, or scan a barcode, and your AI logs it — completely free and open source.`,
@@ -736,8 +809,9 @@ ${pros}
                         </h2>
                     </div>
                     <div class="prose">
-                        <p>${esc(app.migrate.body[0])}</p>
-                        <p>${esc(app.migrate.body[1])}</p>
+${app.migrate.body
+    .map((p) => `                        <p>${esc(p)}</p>`)
+    .join("\n")}
                     </div>
                 </div>
             </section>
