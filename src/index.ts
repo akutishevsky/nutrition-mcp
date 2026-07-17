@@ -182,6 +182,13 @@ app.get("/sitemap.xml", async (c) => {
         "Content-Type": "application/xml",
     });
 });
+// llms.txt — curated site map for LLMs / AI agents (llmstxt.org). Relevant here
+// because this is an MCP server: Anthropic and OpenAI agents are a real referrer.
+app.get("/llms.txt", async (c) => {
+    return c.body(await Bun.file("./public/llms.txt").text(), 200, {
+        "Content-Type": "text/plain; charset=utf-8",
+    });
+});
 
 // Landing page
 app.get("/", async (c) => {
