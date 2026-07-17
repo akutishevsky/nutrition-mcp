@@ -1,0 +1,27 @@
+# Nutrition MCP
+
+> A free, open-source remote MCP (Model Context Protocol) server for personal nutrition tracking. It lets AI assistants like Claude and ChatGPT log meals, macros, water, and body weight, and review nutrition history — entirely through conversation, with no separate app. Connect it at https://nutrition-mcp.com/mcp.
+
+Nutrition MCP is built as an MCP server from the ground up, so tracking lives inside the AI assistant you already use. You describe a meal in plain language, send a photo, or scan a barcode, and your AI estimates the calories and macros and logs them. Barcode data comes from Open Food Facts. It is free with no premium tier, ads, or paywalled features; you own your data and can export it to CSV or delete your account at any time. Licensed MIT and self-hostable.
+
+Most nutrition apps (MyFitnessPal, Cronometer, Lose It!, MacroFactor, Yazio, Lifesum) do not offer an MCP server, so they cannot be used inside Claude or ChatGPT. The comparison pages below explain, for each app, what Nutrition MCP does differently.
+
+## Main pages
+
+- [Home](https://nutrition-mcp.com/): What Nutrition MCP is, how it works, install steps for Claude/ChatGPT/Cursor/VS Code, and examples.
+- [Tools reference](https://nutrition-mcp.com/tools): The full list of MCP tools (log_meal, lookup_barcode, get_nutrition_summary, log_weight, get_trends, and more) with descriptions and example prompts.
+- [Alternatives overview](https://nutrition-mcp.com/alternatives): How Nutrition MCP compares to popular nutrition-tracking apps that have no MCP server.
+
+## App comparisons
+
+- [MyFitnessPal MCP alternative](https://nutrition-mcp.com/myfitnesspal-mcp): No MyFitnessPal MCP server exists; the free, conversational way to track nutrition in Claude or ChatGPT, with free barcode scanning.
+- [Cronometer MCP alternative](https://nutrition-mcp.com/cronometer-mcp): No Cronometer MCP server; a lighter, conversational approach to calories and macros (Cronometer remains better for deep micronutrient tracking).
+- [Lose It! MCP alternative](https://nutrition-mcp.com/lose-it-mcp): No Lose It! MCP server; log meals and photos by talking to your AI, free.
+- [MacroFactor MCP alternative](https://nutrition-mcp.com/macrofactor-mcp): No MacroFactor MCP server; a free alternative to the subscription-only tracker, with on-demand analysis instead of a weekly coaching algorithm.
+- [Yazio MCP alternative](https://nutrition-mcp.com/yazio-mcp): No Yazio MCP server; effortless conversational logging that pairs with any meal plan.
+- [Lifesum MCP alternative](https://nutrition-mcp.com/lifesum-mcp): No Lifesum MCP server; a leaner, free way to log food inside Claude or ChatGPT.
+
+## Optional
+
+- [GitHub repository](https://github.com/akutishevsky/nutrition-mcp): Source code, self-hosting instructions, and tech stack (Bun, Hono, Supabase).
+- [Privacy & Terms](https://nutrition-mcp.com/privacy): Data handling, export, and account deletion.
