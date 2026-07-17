@@ -68,6 +68,8 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `export_meals`             | Export all meals as a CSV and return a 60-minute download link                                           |
 | `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                |
 | `get_timezone`             | Get the user's configured timezone                                                                       |
+| `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default             |
+| `get_widget_display`       | Get whether the in-chat visual widgets are enabled                                                       |
 | `delete_account`           | Permanently delete account and all associated data                                                       |
 
 ## MCP Resources

@@ -24,6 +24,7 @@ import {
     deleteWeight,
     getUserTimezone,
     getPreferredWeightUnit,
+    getWidgetsEnabled,
     upsertProfile,
     getProfile,
     type Meal,
@@ -364,7 +365,18 @@ function formatMeal(meal: Meal): string {
     return parts.filter(Boolean).join("\n");
 }
 
-function registerTools(server: McpServer, userId: string) {
+function registerTools(
+    server: McpServer,
+    userId: string,
+    widgetsEnabled: boolean,
+) {
+    // Link a tool to its widget only when this user has widgets enabled. Because
+    // buildMcpServer registers tools per request, this makes widget display a
+    // per-user setting: with widgets off, tools/list advertises no UI link, so
+    // hosts render no widget. Spreads to nothing when disabled.
+    const uiMeta = (resourceUri: string) =>
+        widgetsEnabled ? { _meta: { ui: { resourceUri } } } : {};
+
     server.registerTool(
         "log_meal",
         {
@@ -417,7 +429,7 @@ function registerTools(server: McpServer, userId: string) {
             // Link the tool to its progress UI (MCP Apps). update_meal reuses
             // the SAME widget; see buildMealProgress / meal-logged.html. The
             // widget renders nothing when no goals are set.
-            _meta: { ui: { resourceUri: MEAL_LOGGED_WIDGET_URI } },
+            ...uiMeta(MEAL_LOGGED_WIDGET_URI),
         },
         async (args) => {
             return withAnalytics(
@@ -938,7 +950,7 @@ function registerTools(server: McpServer, userId: string) {
                 meals: z.array(MEAL_BREAKDOWN_ITEM),
             },
             // Link the tool to its dashboard UI (MCP Apps).
-            _meta: { ui: { resourceUri: SUMMARY_WIDGET_URI } },
+            ...uiMeta(SUMMARY_WIDGET_URI),
         },
         async ({ start_date, end_date }) => {
             return withAnalytics(
@@ -1289,7 +1301,7 @@ function registerTools(server: McpServer, userId: string) {
                 meals: z.array(MEAL_BREAKDOWN_ITEM),
             },
             // Link the tool to its progress UI (MCP Apps).
-            _meta: { ui: { resourceUri: GOAL_PROGRESS_WIDGET_URI } },
+            ...uiMeta(GOAL_PROGRESS_WIDGET_URI),
         },
         async ({ date }) => {
             return withAnalytics(
@@ -1458,7 +1470,7 @@ function registerTools(server: McpServer, userId: string) {
             // Reuses the SAME meal-logged widget as log_meal (see
             // buildMealProgress / meal-logged.html); `action: "updated"` just
             // changes its header. Renders nothing when no goals are set.
-            _meta: { ui: { resourceUri: MEAL_LOGGED_WIDGET_URI } },
+            ...uiMeta(MEAL_LOGGED_WIDGET_URI),
         },
         async ({ id, ...fields }) => {
             return withAnalytics(
@@ -1993,7 +2005,7 @@ function registerTools(server: McpServer, userId: string) {
                 ),
             },
             // Link the tool to its interactive weight-trends UI (MCP Apps).
-            _meta: { ui: { resourceUri: WEIGHT_TRENDS_WIDGET_URI } },
+            ...uiMeta(WEIGHT_TRENDS_WIDGET_URI),
         },
         async ({ days, end_date }) => {
             return withAnalytics(
@@ -2282,6 +2294,83 @@ function registerTools(server: McpServer, userId: string) {
     );
 
     server.registerTool(
+        "set_widget_display",
+        {
+            title: "Set Widget Display",
+            description:
+                "Enable or disable the in-chat visual widgets (nutrition dashboard, goal progress, meal-logged rings, trends, weight charts). When disabled, the same tools still return their full text and data — just no rendered widget. Widgets are enabled by default. Note: hosts read the widget list when a session connects, so the change takes effect in new conversations; an already-open chat may keep showing widgets until it reconnects.",
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: {
+                enabled: z
+                    .boolean()
+                    .describe(
+                        "true to show widgets (default), false for text-only responses with no widget.",
+                    ),
+            },
+        },
+        async ({ enabled }) => {
+            return withAnalytics(
+                "set_widget_display",
+                async () => {
+                    const profile = await upsertProfile(userId, {
+                        widgets_enabled: enabled,
+                    });
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: profile.widgets_enabled
+                                    ? "Widgets enabled. Supported tools will show a visual widget alongside their text in new conversations."
+                                    : "Widgets disabled. Supported tools will return text and data only, with no widget, in new conversations.",
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_widget_display",
+        {
+            title: "Get Widget Display",
+            description:
+                "Get whether the in-chat visual widgets are currently enabled for the user. Enabled by default.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_widget_display",
+                async () => {
+                    const enabled = await getWidgetsEnabled(userId);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: enabled
+                                    ? "Widgets are enabled. Supported tools show a visual widget alongside their text."
+                                    : "Widgets are disabled. Supported tools return text and data only.",
+                            },
+                        ],
+                    };
+                },
+                { userId },
+            );
+        },
+    );
+
+    server.registerTool(
         "get_trends",
         {
             title: "Get Trends",
@@ -2332,7 +2421,7 @@ function registerTools(server: McpServer, userId: string) {
                 ),
             },
             // Link the tool to its interactive trends UI (MCP Apps).
-            _meta: { ui: { resourceUri: TRENDS_WIDGET_URI } },
+            ...uiMeta(TRENDS_WIDGET_URI),
         },
         async ({ days, end_date }) => {
             return withAnalytics(
@@ -2686,7 +2775,7 @@ function registerTools(server: McpServer, userId: string) {
 }
 
 // Build a fresh McpServer with this user's tools registered.
-function buildMcpServer(c: Context, userId: string): McpServer {
+async function buildMcpServer(c: Context, userId: string): Promise<McpServer> {
     const proto = c.req.header("x-forwarded-proto") || "http";
     const host =
         c.req.header("x-forwarded-host") || c.req.header("host") || "localhost";
@@ -2695,7 +2784,7 @@ function buildMcpServer(c: Context, userId: string): McpServer {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.18.0",
+            version: "1.19.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
@@ -2709,7 +2798,7 @@ function buildMcpServer(c: Context, userId: string): McpServer {
         },
     );
 
-    registerTools(server, userId);
+    registerTools(server, userId, await getWidgetsEnabled(userId));
     return server;
 }
 
@@ -2750,7 +2839,7 @@ export const handleMcp = async (c: Context) => {
     const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
     });
-    const server = buildMcpServer(c, userId);
+    const server = await buildMcpServer(c, userId);
     await server.connect(transport);
 
     return transport.handleRequest(c.req.raw);

@@ -47,10 +47,28 @@ function initWidget(config) {
             null
         );
     }
+    // Render, then append a small persistent note at the bottom explaining that
+    // widget display is a user setting. render() replaces #root wholesale, so
+    // the footer is re-appended after every paint. Skipped when a widget
+    // deliberately renders nothing (e.g. meal-logged with no goals) so an empty
+    // widget stays empty and the host collapses it.
+    function paint(data) {
+        config.render(data);
+        const el = root();
+        if (!el || el.innerHTML.trim() === "") return;
+        const foot = document.createElement("div");
+        foot.textContent =
+            "You can enable or disable these widgets anytime — just ask to update your settings.";
+        foot.style.cssText =
+            "margin-top:14px;padding-top:10px;" +
+            "border-top:1px solid var(--panel-border);" +
+            "font-size:11px;line-height:1.4;color:var(--text-dim);text-align:center;";
+        el.appendChild(foot);
+    }
     function show(payload) {
         const data = config.coerce(payload);
         if (!data) return false;
-        config.render(data);
+        paint(data);
         return true;
     }
 
@@ -177,6 +195,6 @@ function initWidget(config) {
     } else {
         // Opened directly in a browser (no host) — render the sample so the
         // file is previewable on its own.
-        config.render(window.__WIDGET_DATA__ || config.sample);
+        paint(window.__WIDGET_DATA__ || config.sample);
     }
 }
