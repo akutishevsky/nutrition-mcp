@@ -349,6 +349,7 @@ export interface Profile {
     user_id: string;
     timezone: string;
     preferred_weight_unit: WeightUnit | null;
+    widgets_enabled: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -380,11 +381,23 @@ export async function getPreferredWeightUnit(
     return isWeightUnit(unit) ? unit : null;
 }
 
+// Whether in-chat widgets should be shown for this user. Defaults to true when
+// no profile exists yet, or (for backward compatibility) when the column is
+// absent — widgets are on for everyone until a user explicitly opts out.
+export async function getWidgetsEnabled(userId: string): Promise<boolean> {
+    const profile = await getProfile(userId);
+    return profile?.widgets_enabled ?? true;
+}
+
 // Upsert the fields provided in `patch`, leaving other columns untouched. On
 // first insert, omitted columns fall back to their DB defaults (UTC / kg).
 export async function upsertProfile(
     userId: string,
-    patch: { timezone?: string; preferred_weight_unit?: WeightUnit | null },
+    patch: {
+        timezone?: string;
+        preferred_weight_unit?: WeightUnit | null;
+        widgets_enabled?: boolean;
+    },
 ): Promise<Profile> {
     const payload: Record<string, unknown> = {
         user_id: userId,
@@ -394,6 +407,8 @@ export async function upsertProfile(
     // null is meaningful here (clears the preference), so only skip `undefined`.
     if (patch.preferred_weight_unit !== undefined)
         payload.preferred_weight_unit = patch.preferred_weight_unit;
+    if (patch.widgets_enabled !== undefined)
+        payload.widgets_enabled = patch.widgets_enabled;
 
     const { data, error } = await getSupabase()
         .from("profiles")
