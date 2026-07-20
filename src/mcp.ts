@@ -77,9 +77,11 @@ const TRENDS_WIDGET_URI = "ui://widget/trends.html";
 const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
-// Advisory — not every client surfaces it, so the enforcement rule ("never log
-// from a photo until the user confirms") is repeated in log_meal's own
-// description. Keep both in sync.
+// Advisory — not every client surfaces it, so the enforcement rule ("interview
+// the user one question at a time; never log from a photo until every open
+// question is resolved") is repeated in log_meal's own description. Keep both
+// in sync. Note this is guidance only: the client model decides whether to
+// follow it, so the loop cannot be strictly enforced from here.
 const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, goals, and trends, per-user with timezone support.
 
 Photo-based meal logging — when the user sends a photo of food, follow these steps in order:
@@ -87,10 +89,13 @@ Photo-based meal logging — when the user sends a photo of food, follow these s
 2. Identify each distinct dish or food item in the photo.
 3. Estimate portions in household measures the user can verify at a glance — "a glass of", "a handful of", "a tablespoon of", "half the plate" — never grams or ounces (nobody can weigh food from a photo).
 4. Call search_meals with a short keyword per dish, passing alternatives in both the conversation language and English (past logs may be in either). Past variations reveal ingredients invisible in the photo (raisins vs banana, milk vs water, added honey or oil). Offer them as options: "Is this the oatmeal with raisins like Monday, or with banana, or something else?"
-5. Present the identified dishes, your portion assumptions, and the past-variation options, then WAIT for the user to confirm or correct before calling log_meal. Never log straight from a photo.
-6. When logging, write the confirmed household-measure portions into the meal description itself (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") so future search_meals results are self-describing.
+5. Interview the user — this is a multi-turn conversation, not a single confirmation step. Build a checklist of every open question across all dishes: which variation each dish is (from step 4), how much of each the user actually ate, and any ingredient the photo cannot show (oil, butter, sugar, dressing, sauce, what a drink was made with). Then work through that checklist ONE question per message. Ask the single most impactful open question, wait for the answer, let it update your assumptions, and ask the next. Do NOT batch the whole checklist into one message and do NOT stop after the first answer — a single round-trip is not an interview.
+6. Keep going until every item on the checklist is resolved. Before each question it helps to note what is already settled and what is still open ("Got it — oatmeal with raisins. Two things left: how much you ate, and whether there was honey"). When the checklist is empty, summarize the full meal as you understand it and ask for a final yes before logging. Never log straight from a photo, and never log while any checklist item is still open.
+7. When logging, write the confirmed household-measure portions into the meal description itself (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") so future search_meals results are self-describing.
 
-For "log my usual X" requests, use search_meals the same way: search, confirm the variation, then log.`;
+Keep the interview proportional: a single obvious item with one known past variation may need only one question, while a full plate with several dishes usually needs several. If the user says to just log it or otherwise signals impatience, stop asking, state your remaining assumptions plainly, and log.
+
+For "log my usual X" requests, use search_meals the same way: search, then interview to confirm the variation and the amount before logging.`;
 
 interface DailyTotals {
     calories: number;
@@ -382,7 +387,7 @@ function registerTools(
         {
             title: "Log Meal",
             description:
-                "Log a meal entry with nutritional information. If the user doesn't specify the quantity or portion size, ask how much they ate before estimating calories and macros. When the user gives a barcode — typed, or read from a photo of the package (transcribe the digits printed under the barcode) — call lookup_barcode first to get verified nutritional data, then scale it to the amount eaten. Fall back to web search or estimation only when no product is found. Use web search for branded products when no barcode is available. When logging from a photo of a plated or prepared meal (no package/barcode): first identify each dish, estimate portions in household measures the user can eyeball (a glass of, a handful of, a tablespoon of — NOT grams), call search_meals to see how similar meals were logged before and to surface ingredients that may be invisible in the photo, then present your assumptions and the past variations as options — do NOT call this tool until the user confirms. Write the confirmed household-measure portions into the description itself (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing.",
+                "Log a meal entry with nutritional information. If the user doesn't specify the quantity or portion size, ask how much they ate before estimating calories and macros. When the user gives a barcode — typed, or read from a photo of the package (transcribe the digits printed under the barcode) — call lookup_barcode first to get verified nutritional data, then scale it to the amount eaten. Fall back to web search or estimation only when no product is found. Use web search for branded products when no barcode is available. When logging from a photo of a plated or prepared meal (no package/barcode): first identify each dish, estimate portions in household measures the user can eyeball (a glass of, a handful of, a tablespoon of — NOT grams), call search_meals to see how similar meals were logged before and to surface ingredients that may be invisible in the photo, then interview the user across multiple turns — one question per message, covering which variation each dish is, how much they ate, and photo-invisible ingredients (oil, sugar, sauce, what a drink was made with) — until nothing is left open. Do NOT call this tool after a single question-and-answer round; a lone confirmation is not enough. Only call it once every open question is resolved and the user has approved a full summary of the meal (or has told you to stop asking and just log it). Write the confirmed household-measure portions into the description itself (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,
@@ -695,7 +700,7 @@ function registerTools(
         {
             title: "Search Past Meals",
             description:
-                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Use this BEFORE logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil) — present them to the user as options rather than picking one silently. Also use it for requests like 'log my usual breakfast': search, confirm the variation with the user, then log_meal. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
+                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Use this BEFORE logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil) — turn each difference between variations into a question for the user rather than picking one silently, and ask those questions one at a time across several turns instead of batching them. Also use it for requests like 'log my usual breakfast': search, interview the user to pin down the variation and the amount, then log_meal. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -748,7 +753,7 @@ function registerTools(
                             content: [
                                 {
                                     type: "text",
-                                    text: `No past meals matching ${label} in the last ${windowDays} days. If logging from a photo, proceed with your own portion assumptions — but still confirm them with the user before calling log_meal.`,
+                                    text: `No past meals matching ${label} in the last ${windowDays} days. If logging from a photo, proceed with your own portion assumptions — but with no past variations to draw on, you have MORE to ask about, not less. Interview the user one question per message about the amount eaten and about ingredients the photo cannot show (oil, butter, sugar, sauce, what a drink was made with) before calling log_meal.`,
                                 },
                             ],
                         };
