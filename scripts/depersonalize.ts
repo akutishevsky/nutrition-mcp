@@ -10,6 +10,8 @@
  *   - Google Analytics (gtag) from every public HTML page + the CSP allow-list
  *   - The Glama connector-ownership route (embeds the maintainer's email)
  *   - Patreon "Support" section and hero button
+ *   - The Product Hunt launch badge (hero markup, its CSS, and the
+ *     api.producthunt.com CSP host)
  *   - GitHub repo links (nav, footer, "Star on GitHub" CTA) and the live
  *     star-count fetch
  *   - Contact section, footer contact link
@@ -103,6 +105,14 @@ const LANDING_RULES: Rule[] = [
         name: "hero: Support button",
         find: /[ \t]*<a class="btn btn-secondary" href="#support"[\s\S]*?>Support<\/a\s*>\n/,
     },
+    // The Product Hunt launch badge — the maintainer's listing and upvote
+    // count. Leading \n eats the blank line that separates it from the
+    // hero actions above; the inner markup holds no <div>, so the lazy
+    // match stops at the wrapper's own closing tag.
+    {
+        name: "hero: Product Hunt badge",
+        find: /\n[ \t]*<!-- Product Hunt launch badge[\s\S]*?<\/div>\n/,
+    },
     // Whole Support (Patreon) and Contact sections.
     {
         name: "section: Support (Patreon)",
@@ -145,6 +155,23 @@ const GLAMA_RULE: Rule = {
     find: /[ \t]*\/\/ Glama connector ownership verification\.[\s\S]*?app\.get\("\/\.well-known\/glama\.json"[\s\S]*?\n\}\);\n\n/,
 };
 
+/**
+ * The Product Hunt badge's styling, left dead once the markup above is gone:
+ * the base block in the hero section, plus the light/dark swap rules that the
+ * theme section carries twice (once for the OS media query, once for the
+ * explicit data-theme override).
+ */
+const PH_CSS_RULES: Rule[] = [
+    {
+        name: "css: .ph-badge base block",
+        find: /\/\* -+ Product Hunt launch badge -+ \*\/\n[\s\S]*?\.ph-badge \.ph-dark \{[\s\S]*?\}\n\n/,
+    },
+    {
+        name: "css: .ph-badge dark-theme swaps",
+        find: /[ \t]*body\.landing[^\n]*\.ph-badge [^\n]*\{\n[\s\S]*?\n[ \t]*\}\n/g,
+    },
+];
+
 /** Tighten the Content-Security-Policy: drop GA + GitHub API hosts. */
 const CSP_RULES: Rule[] = [
     {
@@ -155,6 +182,11 @@ const CSP_RULES: Rule[] = [
     {
         name: "CSP: googletagmanager host (script-src + img-src)",
         find: / https:\/\/www\.googletagmanager\.com/g,
+        replace: "",
+    },
+    {
+        name: "CSP: producthunt img-src host",
+        find: / https:\/\/api\.producthunt\.com/,
         replace: "",
     },
 ];
@@ -214,6 +246,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     // rewritten here — these HTML-tuned patterns are unreliable against its TS
     // template literals. If you regenerate the pages, update the generator's
     // SITE constant, GA tag, GitHub/contact links by hand (see its header).
+    { path: "public/styles.css", rules: PH_CSS_RULES },
     { path: "public/sitemap.xml", rules: [DOMAIN_RULE] },
     { path: "public/robots.txt", rules: [DOMAIN_RULE] },
     { path: "src/index.ts", rules: [GLAMA_RULE, ...CSP_RULES] },

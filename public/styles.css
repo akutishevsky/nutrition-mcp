@@ -580,6 +580,24 @@ html:has(body.landing) {
     margin-top: 2.1rem;
 }
 
+/* ---------- Product Hunt launch badge ---------- */
+/* Inline-level so it inherits the hero's text-align (centred on mobile).
+   Both themes ship; the dark swap lives in the dark-theme section below. */
+.ph-badge {
+    margin-top: 1.8rem;
+}
+.ph-badge a {
+    display: inline-block;
+    line-height: 0;
+}
+.ph-badge img {
+    width: 250px;
+    height: 54px;
+}
+.ph-badge .ph-dark {
+    display: none;
+}
+
 /* ---------- hero dashboard card ---------- */
 .hero-card {
     display: flex;
@@ -2162,6 +2180,12 @@ body.landing[data-theme="dark"] {
     body.landing:not([data-theme="light"]) .section.cta {
         background: #234a33;
     }
+    body.landing:not([data-theme="light"]) .ph-badge .ph-light {
+        display: none;
+    }
+    body.landing:not([data-theme="light"]) .ph-badge .ph-dark {
+        display: inline;
+    }
 }
 body.landing[data-theme="dark"] .card {
     border-color: rgba(255, 255, 255, 0.08);
@@ -2188,6 +2212,12 @@ body.landing[data-theme="dark"] .cw-avatar {
 }
 body.landing[data-theme="dark"] .section.cta {
     background: #234a33;
+}
+body.landing[data-theme="dark"] .ph-badge .ph-light {
+    display: none;
+}
+body.landing[data-theme="dark"] .ph-badge .ph-dark {
+    display: inline;
 }
 
 /* =====================================================================
