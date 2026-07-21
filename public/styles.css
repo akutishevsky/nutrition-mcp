@@ -814,6 +814,16 @@ html:has(body.landing) {
     align-items: center;
     justify-content: center;
 }
+.step-say {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.92rem;
+    color: var(--ink-2);
+}
+.step-say q {
+    color: var(--ink);
+    font-style: italic;
+}
 .copy-url {
     display: inline-flex;
     align-items: center;
