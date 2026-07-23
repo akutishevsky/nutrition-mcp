@@ -198,6 +198,27 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     },
     { path: "public/login.html", rules: [...ANALYTICS_RULES, DOMAIN_RULE] },
     { path: "public/privacy.html", rules: [...ANALYTICS_RULES, DOMAIN_RULE] },
+    // Terms page. Its GitHub link and contact mailto sit mid-sentence, so the
+    // generic GITHUB_LINKS_RULE / MAILTO_RULE (which delete the whole anchor
+    // line) would leave dangling prose — unwrap them to text instead. Both run
+    // before DOMAIN_RULE so the email goes before the domain sweep sees it.
+    {
+        path: "public/terms.html",
+        rules: [
+            ...ANALYTICS_RULES,
+            {
+                name: "terms: 'GitHub' prose link -> plain text",
+                find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>/,
+                replace: "GitHub",
+            },
+            {
+                name: "terms: contact mailto -> placeholder address",
+                find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>[^<]*<\/a\s*>/,
+                replace: "your@email.com",
+            },
+            DOMAIN_RULE,
+        ],
+    },
     // Tools reference page: GA + the nav/footer GitHub link, the footer contact
     // mailto, and the canonical/OG domain.
     {
