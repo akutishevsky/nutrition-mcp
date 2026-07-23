@@ -84,6 +84,8 @@ const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
 // follow it, so the loop cannot be strictly enforced from here.
 const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, goals, and trends, per-user with timezone support.
 
+All nutrition figures are estimates and this server does not provide medical or dietary advice.
+
 Photo-based meal logging — when the user sends a photo of food, follow these steps in order:
 1. Pick the flow. A packaged product with a visible barcode: transcribe the digits printed under the barcode and call lookup_barcode. A plate, bowl, or prepared meal: continue below.
 2. Identify each distinct dish or food item in the photo.
@@ -917,7 +919,7 @@ function registerTools(
         {
             title: "Get Nutrition Summary",
             description:
-                "Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere.",
+                "Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -1114,7 +1116,7 @@ function registerTools(
         {
             title: "Set Nutrition Goals",
             description:
-                "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target.",
+                "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Targets are the user's own choice; this server does not provide medical or dietary advice.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,
@@ -1269,7 +1271,7 @@ function registerTools(
         {
             title: "Get Goal Progress",
             description:
-                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere.",
+                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -2387,7 +2389,7 @@ function registerTools(
         {
             title: "Get Trends",
             description:
-                "Rolling 7/14/30-day averages, standard deviation, coefficient of variation, logging streaks, day-of-week breakdowns, and best/worst day for calories and each macro. Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today.",
+                "Rolling 7/14/30-day averages, standard deviation, coefficient of variation, logging streaks, day-of-week breakdowns, and best/worst day for calories and each macro. Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -2511,7 +2513,7 @@ function registerTools(
         {
             title: "Get Meal Patterns",
             description:
-                "Pre-aggregated behavioural patterns across the logged window: meal-type presence rates, breakfast effect (days with vs without), high-calorie-lunch effect, late-dinner effect, weekday vs weekend, and outlier days. Narrate findings conversationally to the user. Defaults to the last 30 days.",
+                "Pre-aggregated behavioural patterns across the logged window: meal-type presence rates, breakfast effect (days with vs without), high-calorie-lunch effect, late-dinner effect, weekday vs weekend, and outlier days. Narrate findings conversationally to the user. Defaults to the last 30 days. Patterns are descriptive estimates, not medical or dietary advice.",
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,

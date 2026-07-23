@@ -24,4 +24,5 @@ Most nutrition apps (MyFitnessPal, Cronometer, Lose It!, MacroFactor, Yazio, Lif
 ## Optional
 
 - [GitHub repository](https://github.com/akutishevsky/nutrition-mcp): Source code, self-hosting instructions, and tech stack (Bun, Hono, Supabase).
-- [Privacy & Terms](https://nutrition-mcp.com/privacy): Data handling, export, and account deletion.
+- [Privacy Policy](https://nutrition-mcp.com/privacy): Data handling, export, and account deletion.
+- [Terms of Service](https://nutrition-mcp.com/terms): Acceptable use, not-medical-advice notice, no warranty, and termination.

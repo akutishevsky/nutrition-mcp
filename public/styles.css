@@ -222,49 +222,8 @@ pre.code-block {
     padding-top: 1.25rem;
 }
 
-/* legal page */
-.legal-section {
-    margin-bottom: 1.25rem;
-}
-
-.legal-section:last-of-type {
-    margin-bottom: 0;
-}
-
-.legal-heading {
-    font-family: "DM Serif Display", serif;
-    font-size: 1rem;
-    font-weight: 400;
-    color: #2c2416;
-    margin-bottom: 0.35rem;
-}
-
-.legal-section p {
-    font-size: 0.875rem;
-    line-height: 1.6;
-    color: #5a5247;
-}
-
-.legal-section a {
-    color: var(--accent);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.legal-section a:hover {
-    color: var(--accent-hover);
-}
-
-.back-link {
-    font-size: 0.85rem;
-    color: #8a7e6b;
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.back-link:hover {
-    color: #2c2416;
-}
+/* Legal pages (/privacy, /terms) are styled under `body.auth` further down
+   this file — see the "Privacy / legal page" section. */
 
 .icon-wrap-small {
     width: 56px;
@@ -2404,6 +2363,14 @@ body.auth[data-theme="dark"] {
     text-align: center;
     color: var(--auth-ink-2);
 }
+/* Links inside the fine print (Terms / Privacy consent line). Accent + an
+   underline so they are distinguishable from the muted note text without
+   relying on colour alone. */
+body.auth .auth-note a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
 
 /* error banner (rendered into {{ERROR}} as .error-banner) */
 body.auth .error-banner {
@@ -2470,9 +2437,6 @@ body.auth .error-banner {
 body.auth .auth-card .legal-section {
     margin-bottom: 1.5rem;
 }
-body.auth .auth-card .legal-section:last-of-type {
-    margin-bottom: 0;
-}
 body.auth .legal-heading {
     font-family: var(--font-display);
     font-weight: 700;
@@ -2506,11 +2470,42 @@ body.auth .legal-section a:hover {
 .legal-back {
     font-size: 0.9rem;
     color: var(--auth-ink-2);
-    text-decoration: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
     transition: color 0.2s ease;
 }
 .legal-back:hover {
     color: var(--auth-ink);
+}
+/* Terms page extras: sections there run to several paragraphs and a bullet
+   list, where the privacy page is one paragraph per section. */
+body.auth .legal-section p + p,
+body.auth .legal-section ul + p {
+    margin-top: 0.7rem;
+}
+body.auth .legal-section ul {
+    margin: 0.55rem 0 0;
+    padding-left: 1.15rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--auth-ink-2);
+}
+body.auth .legal-section li {
+    margin-bottom: 0.35rem;
+}
+body.auth .legal-section li:last-child {
+    margin-bottom: 0;
+}
+body.auth .legal-updated {
+    font-size: 0.82rem;
+    color: var(--auth-ink-2);
+    margin: -0.4rem 0 1.5rem;
+}
+.legal-sep {
+    color: var(--auth-ink-2);
+    opacity: 0.45;
+    margin: 0 0.55rem;
+    font-size: 0.9rem;
 }
 
 /* ---------- SEO comparison / "alternative" landing pages ---------- */

@@ -204,10 +204,17 @@ app.get("/", async (c) => {
     return c.html(await Bun.file("./public/index.html").text());
 });
 
-// Privacy & Terms
+// Privacy Policy
 app.get("/privacy", async (c) => {
     return c.html(await Bun.file("./public/privacy.html").text());
 });
+app.get("/privacy/", (c) => c.redirect("/privacy", 301));
+
+// Terms of Service
+app.get("/terms", async (c) => {
+    return c.html(await Bun.file("./public/terms.html").text());
+});
+app.get("/terms/", (c) => c.redirect("/terms", 301));
 
 // Tools reference — the full list of MCP tools with descriptions and examples.
 app.get("/tools", async (c) => {

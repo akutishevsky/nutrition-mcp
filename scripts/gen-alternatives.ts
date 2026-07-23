@@ -339,7 +339,8 @@ const FOOTER = `        <footer class="footer">
                         >GitHub</a
                     >
                     <a href="mailto:anton@nutrition-mcp.com">Contact</a>
-                    <a href="/privacy">Privacy &amp; Terms</a>
+                    <a href="/privacy">Privacy Policy</a>
+                    <a href="/terms">Terms of Service</a>
                 </nav>
             </div>
         </footer>`;
