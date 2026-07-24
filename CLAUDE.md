@@ -27,6 +27,9 @@ The `.github/workflows/publish-mcp.yml` workflow then runs the tests, verifies t
 - `bun test` - Run all tests
 - `bun test src/path/to/file.test.ts` - Run a single test file
 - `bun run format` - Format code with Prettier (4-space indentation)
+- `bun run format:check` - Verify the tree is prettier-clean (CI runs this on every PR)
+
+The committed tree is kept prettier-clean, so `bun run format` only rewrites files you actually edited. Generated output that must not be formatted goes in `.prettierignore`.
 
 ## Bun Runtime
 
