@@ -10,7 +10,7 @@ import {
 import { handleMcp } from "./mcp.js";
 import { startExportCleanup } from "./export.js";
 import { getLandingStats, type LandingStats } from "./supabase.js";
-import { getBaseUrl } from "./url.js";
+import { registerDiscoveryRoutes } from "./discovery.js";
 import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
 
@@ -97,29 +97,10 @@ app.use(
     }),
 );
 
-// Protected resource metadata (MCP spec requirement)
-app.get("/.well-known/oauth-protected-resource", (c) => {
-    const baseUrl = getBaseUrl(c);
-    return c.json({
-        resource: baseUrl,
-        authorization_servers: [baseUrl],
-    });
-});
-
-// OAuth authorization server metadata
-app.get("/.well-known/oauth-authorization-server", (c) => {
-    const baseUrl = getBaseUrl(c);
-    return c.json({
-        issuer: baseUrl,
-        authorization_endpoint: `${baseUrl}/authorize`,
-        token_endpoint: `${baseUrl}/token`,
-        registration_endpoint: `${baseUrl}/register`,
-        grant_types_supported: ["authorization_code", "refresh_token"],
-        response_types_supported: ["code"],
-        code_challenge_methods_supported: ["S256"],
-        token_endpoint_auth_methods_supported: ["none", "client_secret_post"],
-    });
-});
+// OAuth discovery metadata (MCP spec requirement) — protected-resource and
+// authorization-server documents, served at the root and at the path-folded
+// variants clients derive from the /mcp endpoint. See src/discovery.ts.
+registerDiscoveryRoutes(app);
 
 // Glama connector ownership verification. Glama polls this file and matches the
 // maintainer email against the Glama account email to claim the listing.

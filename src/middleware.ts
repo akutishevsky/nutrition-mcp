@@ -1,6 +1,7 @@
 import type { Context, Next } from "hono";
 import { getUserIdByToken } from "./supabase.js";
 import { maskIp } from "./net.js";
+import { resourceMetadataUrl } from "./discovery.js";
 
 // Declare the context variables this middleware sets. Without it, c.get/c.set on
 // an untyped `new Hono()` app types its keys as `never`, so index.ts cannot read
@@ -59,10 +60,9 @@ function rejectUnauthenticated(
         );
     }
 
-    const resourceMetadataUrl = `${getBaseUrl(c)}/.well-known/oauth-protected-resource`;
     c.header(
         "WWW-Authenticate",
-        `Bearer resource_metadata="${resourceMetadataUrl}"`,
+        `Bearer resource_metadata="${resourceMetadataUrl(getBaseUrl(c))}"`,
     );
     return c.json({ error, error_description: description }, 401);
 }
@@ -87,7 +87,7 @@ export const authenticateBearer = async (c: Context, next: Next) => {
         // outage would ban every active user and outlast the outage itself.
         c.header(
             "WWW-Authenticate",
-            `Bearer resource_metadata="${getBaseUrl(c)}/.well-known/oauth-protected-resource"`,
+            `Bearer resource_metadata="${resourceMetadataUrl(getBaseUrl(c))}"`,
         );
         return c.json(
             {
