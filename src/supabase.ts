@@ -896,16 +896,40 @@ export async function storeToken(token: string, userId: string): Promise<void> {
     if (error) throw new Error(`Failed to store token: ${error.message}`);
 }
 
-export async function getUserIdByToken(token: string): Promise<string | null> {
-    const { data, error } = await getSupabase()
-        .from("oauth_tokens")
-        .select("user_id")
-        .eq("token", token)
-        .gt("expires_at", new Date().toISOString())
-        .single();
+// "invalid" means the token definitively isn't valid; "unavailable" means we
+// could not find out. Callers must not treat the two alike: counting an
+// unavailable lookup as a failed auth attempt would let a brief Supabase outage
+// — during which *every* token looks invalid — trip the repeat-failure bans in
+// rate-limit.ts and keep clients shed long after the database recovered.
+export type TokenLookup =
+    | { status: "valid"; userId: string }
+    | { status: "invalid" }
+    | { status: "unavailable" };
 
-    if (error || !data) return null;
-    return data.user_id as string;
+// PostgREST's code for "no rows returned" from .single() — a real answer (this
+// token does not exist), not a transport or availability failure.
+const PGRST_NO_ROWS = "PGRST116";
+
+export async function getUserIdByToken(token: string): Promise<TokenLookup> {
+    try {
+        const { data, error } = await getSupabase()
+            .from("oauth_tokens")
+            .select("user_id")
+            .eq("token", token)
+            .gt("expires_at", new Date().toISOString())
+            .single();
+
+        if (error) {
+            return error.code === PGRST_NO_ROWS
+                ? { status: "invalid" }
+                : { status: "unavailable" };
+        }
+        if (!data) return { status: "invalid" };
+        return { status: "valid", userId: data.user_id as string };
+    } catch {
+        // Network-level failure never reaches the `error` field.
+        return { status: "unavailable" };
+    }
 }
 
 // ---------- Auth codes ----------

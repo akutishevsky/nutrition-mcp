@@ -96,13 +96,33 @@ async function finishAuthorization(
     return c.redirect(redirectUrl.toString());
 }
 
+// Every path this router serves. Kept in sync with the oauth.get/oauth.post
+// registrations below — a route added there but missing here is unthrottled.
+export const OAUTH_PATHS = [
+    "/register",
+    "/authorize",
+    "/approve",
+    "/authorize/google",
+    "/auth/google/callback",
+    "/token",
+] as const;
+
 export function createOAuthRouter() {
     const oauth = new Hono();
 
     // Per-IP rate limit across all OAuth endpoints — these are unauthenticated,
     // so this is the only throttle standing between the internet and signup /
     // sign-in / token issuance.
-    oauth.use("*", rateLimitAuth);
+    //
+    // Deliberately NOT `oauth.use("*", ...)`: this router is mounted at the root
+    // (`app.route("/", createOAuthRouter())`) because the OAuth paths are
+    // spec-fixed there, and Hono applies a sub-app's wildcard middleware to
+    // *every* path of the parent app — a wildcard here rate-limited /mcp too,
+    // capping authenticated MCP traffic at the 30/min per-IP auth limit. Listing
+    // the endpoints explicitly keeps the limiter from leaking beyond OAuth again.
+    for (const path of OAUTH_PATHS) {
+        oauth.use(path, rateLimitAuth);
+    }
 
     const clientId = process.env.OAUTH_CLIENT_ID;
     const clientSecret = process.env.OAUTH_CLIENT_SECRET;

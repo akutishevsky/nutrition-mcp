@@ -2,7 +2,11 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
 import { createOAuthRouter } from "./oauth.js";
-import { authenticateBearer, rateLimit } from "./middleware.js";
+import {
+    authenticateBearer,
+    rateLimit,
+    banRepeatAuthFailures,
+} from "./middleware.js";
 import { handleMcp } from "./mcp.js";
 import { startExportCleanup } from "./export.js";
 import { getLandingStats, type LandingStats } from "./supabase.js";
@@ -19,11 +23,14 @@ const app = new Hono();
 // OAuth discovery crawls, vuln scanners. Registered first so it runs outermost
 // and observes the final response status. /health is skipped to keep the
 // platform's frequent health checks from evicting real traffic from the buffer.
+// Requests from IPs banned for repeated auth failures are skipped too — they are
+// announced once by a [ban] line and would otherwise dominate the log.
 app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
     if (path === "/health") return next();
     const start = performance.now();
     await next();
+    if (c.get("suppressAccessLog")) return;
     const ms = Math.round(performance.now() - start);
     const ip = maskIp(c.req.header("x-forwarded-for"));
     console.log(
@@ -126,8 +133,15 @@ app.get("/.well-known/glama.json", (c) => {
 // OAuth routes
 app.route("/", createOAuthRouter());
 
-// MCP endpoint (protected)
-app.all("/mcp", authenticateBearer, rateLimit, handleMcp);
+// MCP endpoint (protected). banRepeatAuthFailures runs first so a client stuck
+// in a failed-auth retry loop is rejected before any token verification.
+app.all(
+    "/mcp",
+    banRepeatAuthFailures,
+    authenticateBearer,
+    rateLimit,
+    handleMcp,
+);
 
 // Aggregate landing-page stats, cached in-memory so page views don't each hit
 // the DB. The numbers move slowly, so a stale value for a few minutes is fine.
