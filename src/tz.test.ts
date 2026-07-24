@@ -20,13 +20,13 @@ test("dateInTz maps an instant to the local calendar day", () => {
 });
 
 test("formatLocalDateTime renders wall-clock time, normalizing hour 24 to 00", () => {
-    expect(formatLocalDateTime("2024-03-01T07:00:00Z", "America/Los_Angeles")).toBe(
-        "2024-02-29 23:00:00",
-    );
+    expect(
+        formatLocalDateTime("2024-03-01T07:00:00Z", "America/Los_Angeles"),
+    ).toBe("2024-02-29 23:00:00");
     // Exactly midnight LA (PST UTC-8).
-    expect(formatLocalDateTime("2024-03-01T08:00:00Z", "America/Los_Angeles")).toBe(
-        "2024-03-01 00:00:00",
-    );
+    expect(
+        formatLocalDateTime("2024-03-01T08:00:00Z", "America/Los_Angeles"),
+    ).toBe("2024-03-01 00:00:00");
 });
 
 test("hourInTz and dowInTz reflect local time", () => {
@@ -36,17 +36,17 @@ test("hourInTz and dowInTz reflect local time", () => {
 });
 
 test("zonedDayStartUtc handles DST transitions and fractional offsets", () => {
-    expect(zonedDayStartUtc("2024-03-01", "America/Los_Angeles").toISOString()).toBe(
-        "2024-03-01T08:00:00.000Z",
-    );
+    expect(
+        zonedDayStartUtc("2024-03-01", "America/Los_Angeles").toISOString(),
+    ).toBe("2024-03-01T08:00:00.000Z");
     // 2024-03-10 is the spring-forward day; midnight is still PST (UTC-8).
-    expect(zonedDayStartUtc("2024-03-10", "America/Los_Angeles").toISOString()).toBe(
-        "2024-03-10T08:00:00.000Z",
-    );
+    expect(
+        zonedDayStartUtc("2024-03-10", "America/Los_Angeles").toISOString(),
+    ).toBe("2024-03-10T08:00:00.000Z");
     // The next day is PDT (UTC-7).
-    expect(zonedDayStartUtc("2024-03-11", "America/Los_Angeles").toISOString()).toBe(
-        "2024-03-11T07:00:00.000Z",
-    );
+    expect(
+        zonedDayStartUtc("2024-03-11", "America/Los_Angeles").toISOString(),
+    ).toBe("2024-03-11T07:00:00.000Z");
     expect(zonedDayStartUtc("2024-03-01", "Asia/Kolkata").toISOString()).toBe(
         "2024-02-29T18:30:00.000Z",
     );
