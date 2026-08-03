@@ -6,3 +6,4 @@ export * from "./ranking.js";
 export * from "./cache.js";
 export * from "./registry.js";
 export * from "./usda.js";
+export * from "./open-food-facts.js";

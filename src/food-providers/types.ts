@@ -14,6 +14,7 @@ export interface NutrientValues {
     fat_g?: number;
     fiber_g?: number;
     sugar_g?: number;
+    alcohol_g?: number;
     sodium_mg?: number;
     saturated_fat_g?: number;
     cholesterol_mg?: number;

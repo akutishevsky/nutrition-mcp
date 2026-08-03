@@ -7,6 +7,7 @@ export const NUTRIENT_KEYS = [
     "fat_g",
     "fiber_g",
     "sugar_g",
+    "alcohol_g",
     "sodium_mg",
     "saturated_fat_g",
     "cholesterol_mg",
@@ -75,10 +76,15 @@ export function nutrientCompleteness(nutrients: NutrientValues): number {
         "fat_g",
     ];
     const corePresent = core.filter((key) => nutrients[key] !== undefined).length;
-    const optionalPresent = NUTRIENT_KEYS.filter(
-        (key) => !core.includes(key) && nutrients[key] !== undefined,
+    const optionalKeys = NUTRIENT_KEYS.filter((key) => !core.includes(key));
+    const optionalPresent = optionalKeys.filter(
+        (key) => nutrients[key] !== undefined,
     ).length;
-    return Math.min(1, corePresent / core.length * 0.8 + optionalPresent / 6 * 0.2);
+    return Math.min(
+        1,
+        (corePresent / core.length) * 0.8 +
+            (optionalPresent / optionalKeys.length) * 0.2,
+    );
 }
 
 export function hasUsableNutrition(nutrients: NutrientValues): boolean {
