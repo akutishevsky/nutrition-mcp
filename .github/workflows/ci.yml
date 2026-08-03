@@ -84,6 +84,12 @@ jobs:
       - name: Exercise nutrition persistence, idempotency, and RLS
         run: bun scripts/nutrition-platform-smoke.ts
 
+      - name: Exercise service facilities and coherent backend selection
+        run: bun scripts/service-platform-smoke.ts
+
+      - name: Exercise structured meal items, totals, idempotency, and RLS
+        run: bun scripts/structured-meal-smoke.ts
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15
