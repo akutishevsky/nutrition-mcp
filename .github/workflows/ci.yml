@@ -75,8 +75,11 @@ jobs:
       - name: Verify migrations are idempotent
         run: bun run db:migrate
 
-      - name: Exercise account and billing persistence
+      - name: Exercise account, billing, and OAuth persistence
         run: bun scripts/platform-smoke.ts
+
+      - name: Exercise OAuth HTTP routes and subscription enforcement
+        run: bun scripts/oauth-http-smoke.ts
 
   container:
     runs-on: ubuntu-latest

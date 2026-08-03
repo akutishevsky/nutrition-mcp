@@ -13,14 +13,15 @@ import {
 } from "./middleware.js";
 import { maskIp } from "./net.js";
 import { createOAuthRouter } from "./oauth.js";
+import { authenticatePlatformBearer } from "./oauth-platform/middleware.js";
+import { createPlatformOAuthRouter } from "./oauth-platform/routes.js";
 import { getLandingStats, type LandingStats } from "./supabase.js";
 import { warmWidgets } from "./widgets.js";
 
 const app = new Hono();
+const railwayAuthEnabled =
+    process.env.MUNCH_RAILWAY_AUTH_ENABLED === "true";
 
-// Route-level operational metadata only. Request and response bodies are never
-// logged, so nutrition records, Stripe payloads, and credentials stay out of
-// routine application logs.
 app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
     if (path === "/health") return next();
@@ -34,7 +35,6 @@ app.use("*", async (c, next) => {
     );
 });
 
-// Munch does not load advertising or behavioral analytics.
 app.use("*", async (c, next) => {
     await next();
     c.header("X-Content-Type-Options", "nosniff");
@@ -96,20 +96,25 @@ registerDiscoveryRoutes(app);
 app.route("/", createAccountRouter());
 app.route("/", createBillingRouter());
 
-// The inherited Supabase-backed OAuth routes remain active until the dedicated
-// Railway-native MCP OAuth cutover is complete.
-app.route("/", createOAuthRouter());
+if (railwayAuthEnabled) {
+    app.use("/token", async (c, next) => {
+        await next();
+        c.header("Cache-Control", "no-store");
+        c.header("Pragma", "no-cache");
+    });
+    app.route("/", createPlatformOAuthRouter());
+} else {
+    app.route("/", createOAuthRouter());
+}
 
 app.all(
     "/mcp",
     banRepeatAuthFailures,
-    authenticateBearer,
+    railwayAuthEnabled ? authenticatePlatformBearer : authenticateBearer,
     rateLimit,
     handleMcp,
 );
 
-// This inherited landing-page statistic remains Supabase-backed until the
-// nutrition persistence cutover.
 const STATS_TTL_MS = 5 * 60 * 1000;
 let statsCache: { data: LandingStats; expiresAt: number } | null = null;
 
@@ -137,33 +142,28 @@ app.get("/map-data.json", async (c) =>
         "Cache-Control": "public, max-age=86400",
     }),
 );
-
 app.get("/og.png", async (c) =>
     c.body(await Bun.file("./public/og.png").arrayBuffer(), 200, {
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=86400",
     }),
 );
-
 app.get("/apple-touch-icon.png", async (c) =>
     c.body(await Bun.file("./public/apple-touch-icon.png").arrayBuffer(), 200, {
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=86400",
     }),
 );
-
 app.get("/robots.txt", async (c) =>
     c.body(await Bun.file("./public/robots.txt").text(), 200, {
         "Content-Type": "text/plain",
     }),
 );
-
 app.get("/sitemap.xml", async (c) =>
     c.body(await Bun.file("./public/sitemap.xml").text(), 200, {
         "Content-Type": "application/xml",
     }),
 );
-
 app.get("/llms.txt", async (c) =>
     c.body(await Bun.file("./public/llms.txt").text(), 200, {
         "Content-Type": "text/plain; charset=utf-8",
@@ -205,7 +205,6 @@ app.get("/styles.css", async (c) =>
         "Content-Type": "text/css",
     }),
 );
-
 app.get("/favicon.ico", async (c) => {
     try {
         return c.body(await Bun.file("./public/favicon.ico").arrayBuffer(), 200, {
@@ -218,18 +217,17 @@ app.get("/favicon.ico", async (c) => {
 });
 
 app.get("/health", (c) => c.text("ok"));
-
 app.onError((_error, c) => {
     console.error("Unhandled application error");
     return c.json({ error: "internal_server_error" }, 500);
 });
 
 const port = parseInt(process.env.PORT || "8080");
-console.log(`Munch server listening on 0.0.0.0:${port}`);
+console.log(
+    `Munch server listening on 0.0.0.0:${port} auth=${railwayAuthEnabled ? "railway" : "inherited"}`,
+);
 
 await warmWidgets();
-
-// Replaced when the inherited export implementation moves off Supabase Storage.
 startExportCleanup();
 
 let shuttingDown = false;

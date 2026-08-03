@@ -6,6 +6,7 @@ Architecture decision records (ADRs) document decisions that constrain later imp
 - [ADR-0002: Munch identity, MCP OAuth, and Stripe entitlements](0002-identity-oauth-stripe.md)
 - [ADR-0003: Multi-tenant isolation and administrative privacy](0003-tenant-isolation-privacy.md)
 - [ADR-0004: Railway-native MCP OAuth token lifecycle](0004-oauth-token-lifecycle.md)
+- [ADR-0005: Staged Railway OAuth route cutover](0005-oauth-route-cutover.md)
 
 ## Non-negotiable boundaries
 

@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { requireSameOrigin } from "../accounts/csrf.js";
+import { safeLocalRedirectPath } from "../accounts/redirect.js";
 import { requireWebSession } from "../accounts/session.js";
 import {
     createCheckoutForUser,
     createCustomerPortalForUser,
     verifyCheckoutForUser,
 } from "./checkout-service.js";
-import { upsertStripeCustomer } from "./repository.js";
 import { verifyStripeWebhookSignature } from "./stripe-webhook.js";
 import { processStripeWebhook } from "./webhook-service.js";
 
@@ -41,8 +41,20 @@ export function createBillingRouter(): Hono {
         requireSameOrigin,
         requireWebSession,
         async (c) => {
+            let returnTo: string | undefined;
+            try {
+                const body = (await c.req.json()) as { returnTo?: unknown };
+                if (typeof body.returnTo === "string") {
+                    returnTo = safeLocalRedirectPath(body.returnTo);
+                }
+            } catch {
+                // An empty body is valid for ordinary account checkout.
+            }
+
             const checkout = await createCheckoutForUser({
                 userId: c.get("munchUserId"),
+                successReturnTo: returnTo,
+                cancelReturnTo: returnTo,
             });
             return c.json(checkout);
         },
@@ -55,24 +67,18 @@ export function createBillingRouter(): Hono {
         }
 
         try {
-            const result = await verifyCheckoutForUser(
-                c.get("munchUserId"),
-                sessionId,
+            await verifyCheckoutForUser(c.get("munchUserId"), sessionId);
+            return c.redirect(
+                safeLocalRedirectPath(c.req.query("return_to")),
+                303,
             );
-            if (result.customerId) {
-                await upsertStripeCustomer(
-                    c.get("munchUserId"),
-                    result.customerId,
-                );
-            }
-            return c.redirect("/account", 303);
         } catch {
             return c.json({ error: "checkout_verification_failed" }, 400);
         }
     });
 
     billing.get("/billing/canceled", requireWebSession, (c) =>
-        c.redirect("/account", 303),
+        c.redirect(safeLocalRedirectPath(c.req.query("return_to")), 303),
     );
 
     billing.post(

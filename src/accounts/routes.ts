@@ -1,13 +1,14 @@
 import { Hono } from "hono";
-import { rateLimitAuth } from "../middleware.js";
-import { getSubscriptionSnapshot } from "../billing/repository.js";
 import { decideEntitlement } from "../billing/entitlements.js";
+import { getSubscriptionSnapshot } from "../billing/repository.js";
+import { rateLimitAuth } from "../middleware.js";
 import { requireSameOrigin } from "./csrf.js";
+import { deliverLoginLink } from "./login-delivery.js";
+import { safeLocalRedirectPath } from "./redirect.js";
 import {
     consumeLoginChallenge,
     createLoginChallenge,
 } from "./repository.js";
-import { deliverLoginLink } from "./login-delivery.js";
 import {
     clearWebSession,
     requireWebSession,
@@ -16,13 +17,7 @@ import {
 
 interface LoginRequestBody {
     email?: unknown;
-}
-
-function safeRedirectPath(value: string | undefined): string {
-    if (!value || !value.startsWith("/") || value.startsWith("//")) {
-        return "/account";
-    }
-    return value;
+    returnTo?: unknown;
 }
 
 export function createAccountRouter(): Hono {
@@ -46,9 +41,17 @@ export function createAccountRouter(): Hono {
                 return c.json({ error: "email_required" }, 400);
             }
 
+            const returnTo =
+                typeof body.returnTo === "string"
+                    ? safeLocalRedirectPath(body.returnTo)
+                    : undefined;
+
             try {
                 const challenge = await createLoginChallenge(body.email);
-                const delivery = await deliverLoginLink(challenge);
+                const delivery = await deliverLoginLink({
+                    ...challenge,
+                    returnTo,
+                });
 
                 return c.json({
                     accepted: true,
@@ -66,8 +69,6 @@ export function createAccountRouter(): Hono {
                     return c.json({ error: "login_delivery_unavailable" }, 503);
                 }
 
-                // Do not reveal whether an email already exists or whether an
-                // account is suspended. The caller receives one generic result.
                 return c.json({ accepted: true });
             }
         },
@@ -85,8 +86,10 @@ export function createAccountRouter(): Hono {
         }
 
         setWebSessionCookie(c, session);
-        const redirectTo = safeRedirectPath(c.req.query("return_to"));
-        return c.redirect(redirectTo, 303);
+        return c.redirect(
+            safeLocalRedirectPath(c.req.query("return_to")),
+            303,
+        );
     });
 
     account.get("/account", requireWebSession, async (c) => {

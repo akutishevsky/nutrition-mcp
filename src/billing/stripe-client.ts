@@ -18,6 +18,23 @@ export interface StripeCheckoutSession {
     client_reference_id: string | null;
 }
 
+export interface StripeSubscription {
+    id: string;
+    customer: string;
+    status: string;
+    current_period_start?: number;
+    current_period_end?: number;
+    trial_end?: number | null;
+    cancel_at_period_end?: boolean;
+    canceled_at?: number | null;
+    metadata?: Record<string, string>;
+    items?: {
+        data?: Array<{
+            price?: { id?: string };
+        }>;
+    };
+}
+
 export interface StripePortalSession {
     id: string;
     url: string;
@@ -113,6 +130,18 @@ export async function retrieveStripeCheckoutSession(
     }
     return stripeRequest<StripeCheckoutSession>(
         `/checkout/sessions/${encodeURIComponent(sessionId)}`,
+        "GET",
+    );
+}
+
+export async function retrieveStripeSubscription(
+    subscriptionId: string,
+): Promise<StripeSubscription> {
+    if (!/^sub_[A-Za-z0-9_]+$/.test(subscriptionId)) {
+        throw new Error("Invalid Stripe Subscription ID");
+    }
+    return stripeRequest<StripeSubscription>(
+        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
         "GET",
     );
 }

@@ -1,3 +1,5 @@
+import { safeLocalRedirectPath } from "./redirect.js";
+
 export interface LoginDeliveryResult {
     mode: "external" | "development";
     developmentLoginUrl?: string;
@@ -11,9 +13,12 @@ function applicationBaseUrl(): string {
     return value;
 }
 
-export function buildLoginUrl(token: string): string {
+export function buildLoginUrl(token: string, returnTo?: string): string {
     const url = new URL("/account/login/consume", applicationBaseUrl());
     url.searchParams.set("token", token);
+    if (returnTo) {
+        url.searchParams.set("return_to", safeLocalRedirectPath(returnTo));
+    }
     return url.toString();
 }
 
@@ -41,8 +46,9 @@ export async function deliverLoginLink(input: {
     email: string;
     token: string;
     expiresAt: Date;
+    returnTo?: string;
 }): Promise<LoginDeliveryResult> {
-    const loginUrl = buildLoginUrl(input.token);
+    const loginUrl = buildLoginUrl(input.token, input.returnTo);
     const endpoint = deliveryEndpoint();
 
     if (endpoint) {
