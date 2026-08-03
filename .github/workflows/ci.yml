@@ -81,6 +81,9 @@ jobs:
       - name: Exercise OAuth HTTP routes and subscription enforcement
         run: bun scripts/oauth-http-smoke.ts
 
+      - name: Exercise nutrition persistence, idempotency, and RLS
+        run: bun scripts/nutrition-platform-smoke.ts
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15
