@@ -102,6 +102,14 @@ export async function withSupportDatabase<T>(
     });
 }
 
+export async function closePlatformDatabase(): Promise<void> {
+    const current = database;
+    database = null;
+    if (current) {
+        await current.close();
+    }
+}
+
 export function _resetPlatformDatabaseForTests(): void {
     database = null;
 }
