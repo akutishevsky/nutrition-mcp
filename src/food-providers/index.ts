@@ -5,3 +5,4 @@ export * from "./portions.js";
 export * from "./ranking.js";
 export * from "./cache.js";
 export * from "./registry.js";
+export * from "./usda.js";
