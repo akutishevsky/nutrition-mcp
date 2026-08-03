@@ -93,6 +93,9 @@ jobs:
       - name: Exercise saved foods, personal history, and RLS
         run: bun scripts/saved-foods-smoke.ts
 
+      - name: Exercise meal draft state, confirmation, idempotency, and RLS
+        run: bun scripts/meal-drafts-smoke.ts
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Context } from "hono";
 import { registerFoodTools } from "./food-tools.js";
+import { registerMealDraftTools } from "./meal-draft-tools.js";
 import { registerSavedFoodTools } from "./saved-food-tools.js";
 import { registerTools } from "./mcp.js";
 import {
@@ -15,7 +16,7 @@ const MUNCH_SERVER_INSTRUCTIONS = `Munch tracks meals, water, weight, goals, and
 
 Before estimating a generic or branded food, search personal foods first when the user says "my usual" or refers to something eaten before. Otherwise call search_foods. Confirm the selected candidate and serving with the user, then call get_food_details. For a visible packaged-food barcode, call lookup_food_barcode and use verified label values when available. Always identify the source and do not present model estimates as database facts.
 
-For photos and ambiguous meals, ask one high-impact question at a time until the food, portion, and important hidden ingredients are resolved. Do not log until the user confirms the final summary, unless they explicitly tell you to stop asking and accept stated assumptions.
+For photos and any ambiguous meal, use start_meal_draft. Add structured items and every unresolved question to the draft, then answer one highest-impact question at a time. Call prepare_meal_confirmation only when no questions remain, unless the user explicitly directs you to accept the remaining stated assumptions. Present the complete prepared draft and call confirm_meal_draft only after an explicit yes. Do not use log_meal for photo or ambiguous flows.
 
 Use search_meals and search_saved_foods for prior variations. Use the interactive importer for history files instead of repeatedly calling log_meal.`;
 
@@ -30,7 +31,7 @@ async function buildMunchMcpServer(
     const server = new McpServer(
         {
             name: "Munch",
-            version: "0.3.0",
+            version: "0.4.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
@@ -54,6 +55,7 @@ async function buildMunchMcpServer(
     );
     registerFoodTools(server, userId);
     registerSavedFoodTools(server, userId);
+    registerMealDraftTools(server, userId);
     return server;
 }
 
