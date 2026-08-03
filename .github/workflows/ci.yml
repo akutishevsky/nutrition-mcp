@@ -90,6 +90,9 @@ jobs:
       - name: Exercise structured meal items, totals, idempotency, and RLS
         run: bun scripts/structured-meal-smoke.ts
 
+      - name: Exercise saved foods, personal history, and RLS
+        run: bun scripts/saved-foods-smoke.ts
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15

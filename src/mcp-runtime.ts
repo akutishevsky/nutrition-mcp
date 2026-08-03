@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Context } from "hono";
 import { registerFoodTools } from "./food-tools.js";
+import { registerSavedFoodTools } from "./saved-food-tools.js";
 import { registerTools } from "./mcp.js";
 import {
     alcoholTrackingEnabledFromProfile,
@@ -12,11 +13,11 @@ import {
 
 const MUNCH_SERVER_INSTRUCTIONS = `Munch tracks meals, water, weight, goals, and nutrition trends. Nutrition values are estimates and Munch does not provide medical advice.
 
-Before estimating a generic or branded food, call search_foods. Confirm the selected candidate and serving with the user, then call get_food_details. For a visible packaged-food barcode, call lookup_food_barcode and use the verified label values when available. Always identify the source and do not present model estimates as database facts.
+Before estimating a generic or branded food, search personal foods first when the user says "my usual" or refers to something eaten before. Otherwise call search_foods. Confirm the selected candidate and serving with the user, then call get_food_details. For a visible packaged-food barcode, call lookup_food_barcode and use verified label values when available. Always identify the source and do not present model estimates as database facts.
 
 For photos and ambiguous meals, ask one high-impact question at a time until the food, portion, and important hidden ingredients are resolved. Do not log until the user confirms the final summary, unless they explicitly tell you to stop asking and accept stated assumptions.
 
-Use search_meals for the user's prior variations and usual foods. Use the interactive importer for history files instead of repeatedly calling log_meal.`;
+Use search_meals and search_saved_foods for prior variations. Use the interactive importer for history files instead of repeatedly calling log_meal.`;
 
 async function buildMunchMcpServer(
     c: Context,
@@ -29,7 +30,7 @@ async function buildMunchMcpServer(
     const server = new McpServer(
         {
             name: "Munch",
-            version: "0.2.0",
+            version: "0.3.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
@@ -52,6 +53,7 @@ async function buildMunchMcpServer(
         alcoholTrackingEnabledFromProfile(profile) ? (drinkUnit ?? "us") : null,
     );
     registerFoodTools(server, userId);
+    registerSavedFoodTools(server, userId);
     return server;
 }
 
