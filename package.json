@@ -1,19 +1,19 @@
 {
-    "name": "nutrition-mcp",
-    "version": "1.23.1",
-    "description": "A remote MCP server for personal nutrition tracking. Log meals, track macros, and review nutrition history through Claude.",
-    "author": "akutishevsky",
+    "name": "munch-mcp",
+    "version": "0.1.0",
+    "description": "A privacy-conscious nutrition tracking MCP service for ChatGPT and other MCP clients.",
+    "author": "Munch contributors",
     "license": "MIT",
-    "homepage": "https://nutrition-mcp.com",
+    "homepage": "https://github.com/michaelhmiv/Munch",
     "repository": {
         "type": "git",
-        "url": "https://github.com/akutishevsky/nutrition-mcp.git"
+        "url": "https://github.com/michaelhmiv/Munch.git"
     },
     "keywords": [
         "mcp",
         "nutrition",
         "meal-tracking",
-        "claude",
+        "chatgpt",
         "model-context-protocol"
     ],
     "module": "index.ts",
@@ -28,6 +28,7 @@
     "scripts": {
         "start": "bun src/index.ts",
         "dev": "bun --watch src/index.ts",
+        "test": "bun test",
         "inspect": "bunx @modelcontextprotocol/inspector",
         "harness": "bun run scripts/widget-harness.ts",
         "format": "bunx prettier --write .",

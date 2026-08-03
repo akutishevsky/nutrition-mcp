@@ -1,174 +1,112 @@
-# Nutrition MCP
+# Munch
 
-A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber and total sugar, log water and body weight, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
+Munch is a privacy-conscious nutrition tracking service designed for ChatGPT and other Model Context Protocol clients. It lets users log meals, water, body weight, nutrition goals, and history through conversation while keeping deterministic validation, food-data retrieval, account authorization, and storage in the Munch backend.
 
-[Help me pay for the servers on Patreon][patreon]
+> **Development status:** Munch is an active commercial-development fork and is not yet available as a production service. Do not use the repository's current configuration for sensitive production data.
 
-[patreon]: https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink
+## Origin and attribution
 
-## Quick Start
+Munch is based on [Nutrition MCP](https://github.com/akutishevsky/nutrition-mcp), created by [akutishevsky](https://github.com/akutishevsky). The upstream project established the core MCP nutrition tools, OAuth flow, data model, import/export support, widgets, trend analysis, hydration tracking, and weight tracking that Munch is building upon.
 
-Already hosted and ready to use — just connect it to your MCP client:
+The original project and this fork are licensed under the MIT License. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). Munch is an independent project and is not endorsed by the upstream maintainer.
 
-```
-https://nutrition-mcp.com/mcp
-```
+## Product direction
 
-**On Claude.ai:** Customize → Connectors → + → Add custom connector → paste the URL → Connect
+Munch is being developed around the following operating model:
 
-On first connect you'll be asked to register with an email and password. Your data persists across reconnections.
+- ChatGPT or another MCP client performs language and image reasoning.
+- Munch performs authentication, subscription entitlement checks, deterministic validation, food-source retrieval, storage, summaries, exports, and deletion.
+- Railway hosts the application and PostgreSQL database.
+- Stripe manages checkout, subscriptions, invoices, and customer billing state.
+- A Munch account remains the identity boundary; Stripe is the billing authority rather than the sole authenticator.
+- Users share one multi-tenant deployment, with PostgreSQL row-level security and restricted database roles isolating user-owned records.
+- Administrative tools expose billing and service metadata, not meal, weight, hydration, or goal contents.
+- No advertising or behavioral analytics are planned for authenticated or nutrition-data surfaces.
 
-Switching from another tracker? See the [nutrition-app alternatives](https://nutrition-mcp.com/alternatives) — how it compares to [MyFitnessPal](https://nutrition-mcp.com/myfitnesspal-mcp), [Cronometer](https://nutrition-mcp.com/cronometer-mcp), [Lose It!](https://nutrition-mcp.com/lose-it-mcp), [MacroFactor](https://nutrition-mcp.com/macrofactor-mcp), [Yazio](https://nutrition-mcp.com/yazio-mcp), and [Lifesum](https://nutrition-mcp.com/lifesum-mcp). Bring your history with you: say "import my meals" and an importer opens in the chat, where you pick the CSV you exported from your old app, map its columns, and check what will be added before anything is saved. Exports from MyFitnessPal, Cronometer, Lose It! and MacroFactor are recognised automatically; any other CSV works by mapping its columns yourself. In clients that can't show in-chat panels, paste the export instead and the AI imports it for you. If your export has an alcohol column and you want it kept, turn alcohol tracking on before importing — the importer skips that column while tracking is off, and re-importing the same file later won't backfill it.
+Architecture decisions are documented under [`docs/architecture/`](docs/architecture/).
 
-## Demo
+## Inherited capabilities
 
-[![Demo](https://img.youtube.com/vi/Y1EHbfimQ70/maxresdefault.jpg)](https://youtube.com/shorts/Y1EHbfimQ70)
+The fork currently inherits the upstream Nutrition MCP feature set, including:
 
-Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Single MCP Server](https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673)
+- meal logging, editing, deletion, date retrieval, range retrieval, and history search;
+- calories, protein, carbohydrates, fat, fiber, total sugar, and opt-in alcohol tracking;
+- water logging and daily hydration goals;
+- body-weight logging, unit preferences, trends, and target weight;
+- nutrition goals and daily progress;
+- 7-, 14-, and 30-day trends and behavioral meal patterns;
+- CSV history import with validation and idempotency;
+- CSV export and account deletion;
+- Open Food Facts barcode lookup;
+- MCP Apps widgets for summaries, goals, trends, imports, and confirmation;
+- OAuth-based remote MCP access.
 
-## Tech Stack
+Until the Railway/PostgreSQL migration is complete, some inherited implementation details still refer to Supabase and the original project. These are being replaced through staged, tested pull requests.
 
-- **Bun** — runtime and package manager
-- **Hono** — HTTP framework
-- **MCP SDK** — Model Context Protocol over Streamable HTTP
-- **Supabase** — PostgreSQL database + user authentication
-- **OAuth 2.0** — authentication for Claude.ai connectors
+## Planned Munch additions
 
-## MCP Tools
+The commercial foundation is being built before broader feature expansion:
 
-| Tool                       | Description                                                                                                                                      |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `log_meal`                 | Log a meal with description, type, calories, macros, fiber, total sugar, alcohol, notes — from text or a photo of your plate                     |
-| `start_meal_import`        | Open the in-chat CSV importer: pick an export from another app, map its columns, preview, confirm                                                |
-| `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe                                              |
-| `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts (read from a photo or typed)                                         |
-| `get_meals_today`          | Get all meals logged today                                                                                                                       |
-| `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD)                                                                                                       |
-| `get_meals_by_date_range`  | Get meals between two dates (inclusive)                                                                                                          |
-| `search_meals`             | Search past meals by keyword, grouped into recurring variations (counts, last logged, typical macros)                                            |
-| `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range                                                                                          |
-| `update_meal`              | Update any fields of an existing meal                                                                                                            |
-| `delete_meal`              | Delete a meal by ID                                                                                                                              |
-| `set_nutrition_goals`      | Set daily calorie, macro, fiber and water targets to reach, sugar and alcohol limits to stay under, plus an optional target weight               |
-| `get_nutrition_goals`      | Get the current daily targets and limits                                                                                                         |
-| `get_goal_progress`        | Get intake vs. targets and limits for a given day (default: today), plus latest weight vs. target                                                |
-| `log_water`                | Log a hydration entry in milliliters                                                                                                             |
-| `get_water_today`          | Get today's water intake total and entries                                                                                                       |
-| `get_water_by_date`        | Get water intake for a specific date                                                                                                             |
-| `delete_water`             | Delete a water log entry by ID                                                                                                                   |
-| `log_weight`               | Log a body-weight measurement in kg or lb (converted and stored server-side)                                                                     |
-| `get_weight_today`         | Get today's weight entries                                                                                                                       |
-| `get_weight_by_date`       | Get weight entries for a specific date                                                                                                           |
-| `get_weight_by_date_range` | Get weight entries between two dates (inclusive), grouped by day                                                                                 |
-| `get_weight_trends`        | Weight trend: latest, overall change, 7/14/30-day moving averages, min/max, and goal progress                                                    |
-| `update_weight`            | Update an existing weight entry                                                                                                                  |
-| `delete_weight`            | Delete a weight entry by ID                                                                                                                      |
-| `set_weight_unit`          | Set the preferred weight unit (`kg` or `lb`; null to clear)                                                                                      |
-| `get_weight_unit`          | Get the preferred weight unit                                                                                                                    |
-| `get_trends`               | 7/14/30-day averages, std dev, streaks, day-of-week, best/worst day                                                                              |
-| `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                |
-| `export_meals`             | Export all meals as a CSV and return a 60-minute download link                                                                                   |
-| `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                                                        |
-| `get_timezone`             | Get the user's configured timezone                                                                                                               |
-| `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default                                                     |
-| `get_widget_display`       | Get whether the in-chat visual widgets are enabled                                                                                               |
-| `set_alcohol_tracking`     | Turn alcohol tracking on or off (off by default) and choose US standard drinks or UK units; turning it off hides alcohol rather than deleting it |
-| `get_alcohol_tracking`     | Get whether alcohol tracking is on and which standard drink it's displayed in                                                                    |
-| `delete_account`           | Permanently delete account and all associated data                                                                                               |
+1. Railway-native PostgreSQL storage and migrations.
+2. Passwordless Munch identity and hardened MCP OAuth.
+3. Stripe checkout, subscription synchronization, customer portal, and entitlement middleware.
+4. Strong tenant isolation and cross-account authorization tests.
+5. Federated food search across USDA FoodData Central, Open Food Facts, saved foods, and confirmed meal history.
+6. Structured meal items with source provenance and serving options.
+7. Draft-and-confirm meal workflows for uncertain text and photo logs.
+8. Saved foods, saved meals, and “log my usual” behavior.
+9. A customer portal for billing, connection management, export, deletion, and privacy controls.
+10. Production observability, redacted logging, backups, restore testing, and synthetic MCP checks.
 
-## MCP Resources
-
-| URI                          | Description                                                                       |
-| ---------------------------- | --------------------------------------------------------------------------------- |
-| `nutrition://weekly-summary` | Rolling 7-day digest (averages vs targets, best/roughest day) for proactive pulls |
-
-## Self-hosting
-
-### 1. Supabase setup
-
-1. Create a [Supabase](https://supabase.com) project.
-2. Enable **Email Auth** (Authentication → Providers → Email) and disable email confirmation.
-3. Apply the schema. The full schema lives in [`supabase/migrations/`](supabase/migrations/). With the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started):
-
-    ```bash
-    supabase link --project-ref <your-project-ref>
-    supabase db push
-    ```
-
-    This creates every table, index, RLS policy, and foreign key the app needs. No local Postgres is involved — migrations run against your hosted project.
-
-4. Copy the **service role key** from Project Settings → API and use it as `SUPABASE_SECRET_KEY`.
-
-### 2. Environment variables
-
-| Variable               | Description                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| `SUPABASE_URL`         | Your Supabase project URL                                                     |
-| `SUPABASE_SECRET_KEY`  | Supabase service role key (bypasses RLS)                                      |
-| `OAUTH_CLIENT_ID`      | Random string for OAuth client identification                                 |
-| `OAUTH_CLIENT_SECRET`  | Random string for OAuth client authentication                                 |
-| `GOOGLE_CLIENT_ID`     | _(optional)_ Google OAuth client ID for "Sign in with Google"                 |
-| `GOOGLE_CLIENT_SECRET` | _(optional)_ Google OAuth client secret                                       |
-| `OFF_USER_AGENT`       | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)` |
-| `PORT`                 | Server port (default: `8080`)                                                 |
-
-> **Making it yours:** The public site includes the maintainer's personal bits — Google Analytics, Patreon/GitHub/contact links, and the `nutrition-mcp.com` domain. Run `bun run depersonalize` to strip them all in one pass (analytics + CSP, the Support/Contact sections, social links, and the domain → a `your-domain.com` placeholder). Use `bun run depersonalize --dry` to preview without writing. Afterwards, swap in your own `public/og.png`, `favicon.ico`, and `apple-touch-icon.png`, and replace the domain placeholder with your real domain.
-
-Generate OAuth credentials:
-
-```bash
-openssl rand -hex 16   # use as OAUTH_CLIENT_ID
-openssl rand -hex 32   # use as OAUTH_CLIENT_SECRET
-```
-
-### 3. Google sign-in (optional)
-
-Email/password works out of the box. To also offer **"Continue with Google"**,
-follow [`docs/google-auth-setup.md`](docs/google-auth-setup.md) to create a
-Google OAuth client, enable the Google provider in Supabase, and set
-`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+Plugin marketplace submission and public directory distribution are intentionally deferred until the backend, billing, and authorization foundations are stable.
 
 ## Development
 
+The current inherited runtime uses Bun and Hono.
+
 ```bash
 bun install
-cp .env.example .env   # fill in your credentials
-bun run dev             # starts with hot reload on http://localhost:8080
+cp .env.example .env
+bun run dev
 ```
 
-## Connect to Claude.ai
+Quality gates:
 
-1. Open [Claude.ai](https://claude.ai) and click **Customize**
-2. Click **Connectors**, then the **+** button
-3. Click **Add custom connector**
-4. Fill in:
-    - **Name**: Nutrition Tracker
-    - **Remote MCP Server URL**: `https://nutrition-mcp.com/mcp`
-5. Click **Connect** — sign in or register when prompted
-6. After signing in, Claude can use your nutrition tools. If you reconnect later, sign in with the same email and password to keep your data.
+```bash
+bun run format:check
+bun run typecheck
+bun test
+```
 
-## API Endpoints
+## Repository workflow
 
-| Endpoint                                      | Description                            |
-| --------------------------------------------- | -------------------------------------- |
-| `GET /health`                                 | Health check                           |
-| `GET /.well-known/oauth-authorization-server` | OAuth metadata discovery               |
-| `POST /register`                              | Dynamic client registration            |
-| `GET /authorize`                              | OAuth authorization (shows login page) |
-| `POST /approve`                               | Login/register handler                 |
-| `POST /token`                                 | Token exchange                         |
-| `GET /favicon.ico`                            | Server icon                            |
-| `ALL /mcp`                                    | MCP endpoint (authenticated)           |
+The fork should retain an `upstream` remote pointing to the original project:
 
-## Deploy
+```bash
+git remote add upstream https://github.com/akutishevsky/nutrition-mcp.git
+git fetch upstream
+```
 
-The project includes a `Dockerfile` for container-based deployment.
+Generic security fixes and broadly useful nutrition improvements may be contributed upstream. Munch-specific billing, Railway infrastructure, account administration, branding, and commercial product features remain fork-specific.
 
-1. Push your repo to a hosting provider (e.g. DigitalOcean App Platform)
-2. Set the environment variables listed above
-3. The app auto-detects the Dockerfile and deploys on port `8080`
-4. Point your domain to the deployed URL
+See [`docs/upstream-sync.md`](docs/upstream-sync.md) for the synchronization policy.
+
+## Security and privacy
+
+Munch handles sensitive consumer wellness information. Development requirements include:
+
+- derive the user identity from a verified session or bearer token;
+- never accept a selectable `user_id` in an MCP tool schema;
+- hash login, access, refresh, and authorization tokens at rest;
+- enforce PostgreSQL RLS on every user-owned table;
+- separate migration, application, billing, and support database roles;
+- avoid logging tool payloads, meal descriptions, weights, goals, tokens, or email addresses;
+- retain export and deletion access after subscription expiration;
+- audit privileged production access;
+- maintain clear privacy, terms, retention, deletion, and incident-response policies before launch.
+
+Munch is intended as a consumer wellness tracker, not a medical device, diagnostic system, or clinical records platform.
 
 ## License
 
-[MIT](LICENSE)
+MIT. See [LICENSE](LICENSE).

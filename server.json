@@ -1,19 +1,14 @@
 {
     "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-    "name": "io.github.akutishevsky/nutrition-mcp",
-    "title": "Nutrition MCP",
-    "description": "Personal nutrition tracking — log meals, track macros, review history, import from another app.",
-    "version": "1.23.1",
-    "websiteUrl": "https://nutrition-mcp.com/",
+    "name": "io.github.michaelhmiv/munch",
+    "title": "Munch",
+    "description": "Privacy-conscious nutrition tracking through ChatGPT and other MCP clients.",
+    "version": "0.1.0",
+    "websiteUrl": "https://github.com/michaelhmiv/Munch",
     "repository": {
-        "url": "https://github.com/akutishevsky/nutrition-mcp",
+        "url": "https://github.com/michaelhmiv/Munch",
         "source": "github",
-        "id": "akutishevsky/nutrition-mcp"
+        "id": "michaelhmiv/Munch"
     },
-    "remotes": [
-        {
-            "type": "streamable-http",
-            "url": "https://nutrition-mcp.com/mcp"
-        }
-    ]
+    "remotes": []
 }
