@@ -1,0 +1,82 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import type { Context } from "hono";
+import { registerFoodTools } from "./food-tools.js";
+import { registerTools } from "./mcp.js";
+import {
+    alcoholTrackingEnabledFromProfile,
+    getProfile,
+    preferredDrinkUnitFromProfile,
+    widgetsEnabledFromProfile,
+} from "./supabase.js";
+
+const MUNCH_SERVER_INSTRUCTIONS = `Munch tracks meals, water, weight, goals, and nutrition trends. Nutrition values are estimates and Munch does not provide medical advice.
+
+Before estimating a generic or branded food, call search_foods. Confirm the selected candidate and serving with the user, then call get_food_details. For a visible packaged-food barcode, call lookup_food_barcode and use the verified label values when available. Always identify the source and do not present model estimates as database facts.
+
+For photos and ambiguous meals, ask one high-impact question at a time until the food, portion, and important hidden ingredients are resolved. Do not log until the user confirms the final summary, unless they explicitly tell you to stop asking and accept stated assumptions.
+
+Use search_meals for the user's prior variations and usual foods. Use the interactive importer for history files instead of repeatedly calling log_meal.`;
+
+async function buildMunchMcpServer(
+    c: Context,
+    userId: string,
+): Promise<McpServer> {
+    const proto = c.req.header("x-forwarded-proto") || "http";
+    const host =
+        c.req.header("x-forwarded-host") || c.req.header("host") || "localhost";
+    const baseUrl = `${proto}://${host}`;
+    const server = new McpServer(
+        {
+            name: "Munch",
+            version: "0.2.0",
+            icons: [
+                {
+                    src: `${baseUrl}/favicon.ico`,
+                    mimeType: "image/x-icon",
+                },
+            ],
+        },
+        {
+            capabilities: { tools: {}, resources: {} },
+            instructions: MUNCH_SERVER_INSTRUCTIONS,
+        },
+    );
+
+    const profile = await getProfile(userId);
+    const drinkUnit = preferredDrinkUnitFromProfile(profile);
+    registerTools(
+        server,
+        userId,
+        widgetsEnabledFromProfile(profile),
+        alcoholTrackingEnabledFromProfile(profile) ? (drinkUnit ?? "us") : null,
+    );
+    registerFoodTools(server, userId);
+    return server;
+}
+
+export const handleMcp = async (c: Context) => {
+    if (c.req.method !== "POST") {
+        return c.json(
+            {
+                jsonrpc: "2.0",
+                id: null,
+                error: {
+                    code: -32000,
+                    message:
+                        "Method Not Allowed: this endpoint serves POST only and offers no SSE stream",
+                },
+            },
+            405,
+            { Allow: "POST" },
+        );
+    }
+
+    const userId = c.get("userId") as string;
+    const transport = new WebStandardStreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+    });
+    const server = await buildMunchMcpServer(c, userId);
+    await server.connect(transport);
+    return transport.handleRequest(c.req.raw);
+};

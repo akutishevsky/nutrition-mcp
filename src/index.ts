@@ -5,7 +5,7 @@ import { createAccountRouter } from "./accounts/routes.js";
 import { createBillingRouter } from "./billing/routes.js";
 import { registerDiscoveryRoutes } from "./discovery.js";
 import { startExportCleanup } from "./export.js";
-import { handleMcp } from "./mcp.js";
+import { handleMcp } from "./mcp-runtime.js";
 import {
     authenticateBearer,
     banRepeatAuthFailures,
