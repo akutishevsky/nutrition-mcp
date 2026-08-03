@@ -4,6 +4,13 @@ let database: SQL | null = null;
 
 export type DatabaseTransaction = SQL;
 
+type DatabaseRole =
+    | "munch_app"
+    | "munch_auth"
+    | "munch_billing"
+    | "munch_support"
+    | "munch_service";
+
 function databaseUrl(): string {
     const value = process.env.DATABASE_URL?.trim();
     if (!value) {
@@ -32,10 +39,7 @@ export function getPlatformDatabase(): SQL {
     return database;
 }
 
-async function setRole(
-    tx: SQL,
-    role: "munch_app" | "munch_auth" | "munch_billing" | "munch_support",
-) {
+async function setRole(tx: SQL, role: DatabaseRole): Promise<void> {
     switch (role) {
         case "munch_app":
             await tx`set local role munch_app`;
@@ -49,7 +53,21 @@ async function setRole(
         case "munch_support":
             await tx`set local role munch_support`;
             return;
+        case "munch_service":
+            await tx`set local role munch_service`;
+            return;
     }
+}
+
+async function withRoleDatabase<T>(
+    role: Exclude<DatabaseRole, "munch_app">,
+    callback: (tx: DatabaseTransaction) => Promise<T>,
+): Promise<T> {
+    return getPlatformDatabase().begin(async (transaction) => {
+        const tx = transaction as unknown as SQL;
+        await setRole(tx, role);
+        return callback(tx);
+    });
 }
 
 export async function withUserDatabase<T>(
@@ -75,31 +93,25 @@ export async function withUserDatabase<T>(
 export async function withAuthDatabase<T>(
     callback: (tx: DatabaseTransaction) => Promise<T>,
 ): Promise<T> {
-    return getPlatformDatabase().begin(async (transaction) => {
-        const tx = transaction as unknown as SQL;
-        await setRole(tx, "munch_auth");
-        return callback(tx);
-    });
+    return withRoleDatabase("munch_auth", callback);
 }
 
 export async function withBillingDatabase<T>(
     callback: (tx: DatabaseTransaction) => Promise<T>,
 ): Promise<T> {
-    return getPlatformDatabase().begin(async (transaction) => {
-        const tx = transaction as unknown as SQL;
-        await setRole(tx, "munch_billing");
-        return callback(tx);
-    });
+    return withRoleDatabase("munch_billing", callback);
 }
 
 export async function withSupportDatabase<T>(
     callback: (tx: DatabaseTransaction) => Promise<T>,
 ): Promise<T> {
-    return getPlatformDatabase().begin(async (transaction) => {
-        const tx = transaction as unknown as SQL;
-        await setRole(tx, "munch_support");
-        return callback(tx);
-    });
+    return withRoleDatabase("munch_support", callback);
+}
+
+export async function withServiceDatabase<T>(
+    callback: (tx: DatabaseTransaction) => Promise<T>,
+): Promise<T> {
+    return withRoleDatabase("munch_service", callback);
 }
 
 export async function closePlatformDatabase(): Promise<void> {
