@@ -75,6 +75,9 @@ jobs:
       - name: Verify migrations are idempotent
         run: bun run db:migrate
 
+      - name: Exercise account and billing persistence
+        run: bun scripts/platform-smoke.ts
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15

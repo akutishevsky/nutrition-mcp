@@ -1,58 +1,53 @@
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
-import { createOAuthRouter } from "./oauth.js";
+import { cors } from "hono/cors";
+import { createAccountRouter } from "./accounts/routes.js";
+import { createBillingRouter } from "./billing/routes.js";
+import { registerDiscoveryRoutes } from "./discovery.js";
+import { startExportCleanup } from "./export.js";
+import { handleMcp } from "./mcp.js";
 import {
     authenticateBearer,
-    rateLimit,
     banRepeatAuthFailures,
+    rateLimit,
 } from "./middleware.js";
-import { handleMcp } from "./mcp.js";
-import { startExportCleanup } from "./export.js";
-import { getLandingStats, type LandingStats } from "./supabase.js";
-import { registerDiscoveryRoutes } from "./discovery.js";
 import { maskIp } from "./net.js";
+import { createOAuthRouter } from "./oauth.js";
+import { getLandingStats, type LandingStats } from "./supabase.js";
 import { warmWidgets } from "./widgets.js";
 
 const app = new Hono();
 
-// Access log — records every non-health HTTP request (method, path, status,
-// duration, masked client subnet) so traffic that never reaches a tool handler
-// — and is therefore invisible to tool analytics — is still attributable in the
-// runtime logs: unauthenticated /mcp probes (401), rate-limited hits (429),
-// OAuth discovery crawls, vuln scanners. Registered first so it runs outermost
-// and observes the final response status. /health is skipped to keep the
-// platform's frequent health checks from evicting real traffic from the buffer.
-// Requests from IPs banned for repeated auth failures are skipped too — they are
-// announced once by a [ban] line and would otherwise dominate the log.
+// Route-level operational metadata only. Request and response bodies are never
+// logged, so nutrition records, Stripe payloads, and credentials stay out of
+// routine application logs.
 app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
     if (path === "/health") return next();
+
     const start = performance.now();
     await next();
     if (c.get("suppressAccessLog")) return;
-    const ms = Math.round(performance.now() - start);
-    const ip = maskIp(c.req.header("x-forwarded-for"));
+
     console.log(
-        `[req] ${c.req.method} ${path} ${c.res.status} ${ms}ms ip=${ip}`,
+        `[req] ${c.req.method} ${path} ${c.res.status} ${Math.round(performance.now() - start)}ms ip=${maskIp(c.req.header("x-forwarded-for"))}`,
     );
 });
 
-// Security headers
+// Munch does not load advertising or behavioral analytics.
 app.use("*", async (c, next) => {
     await next();
     c.header("X-Content-Type-Options", "nosniff");
     c.header("X-Frame-Options", "DENY");
+    c.header("Referrer-Policy", "no-referrer");
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.github.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self'; frame-ancestors 'none'",
         );
     }
-    c.header("Referrer-Policy", "no-referrer");
 });
 
-// Body limit
 app.use(
     "*",
     bodyLimit({
@@ -61,7 +56,6 @@ app.use(
     }),
 );
 
-// CORS
 app.use(
     "*",
     cors({
@@ -74,8 +68,9 @@ app.use(
                 return origin;
             }
             const allowed =
-                process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) ??
-                [];
+                process.env.ALLOWED_ORIGINS?.split(",").map((value) =>
+                    value.trim(),
+                ) ?? [];
             return allowed.includes(origin) ? origin : null;
         },
         allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
@@ -97,25 +92,14 @@ app.use(
     }),
 );
 
-// OAuth discovery metadata (MCP spec requirement) — protected-resource and
-// authorization-server documents, served at the root and at the path-folded
-// variants clients derive from the /mcp endpoint. See src/discovery.ts.
 registerDiscoveryRoutes(app);
+app.route("/", createAccountRouter());
+app.route("/", createBillingRouter());
 
-// Glama connector ownership verification. Glama polls this file and matches the
-// maintainer email against the Glama account email to claim the listing.
-app.get("/.well-known/glama.json", (c) => {
-    return c.json({
-        $schema: "https://glama.ai/mcp/schemas/connector.json",
-        maintainers: [{ email: "akutishevsky@gmail.com" }],
-    });
-});
-
-// OAuth routes
+// The inherited Supabase-backed OAuth routes remain active until the dedicated
+// Railway-native MCP OAuth cutover is complete.
 app.route("/", createOAuthRouter());
 
-// MCP endpoint (protected). banRepeatAuthFailures runs first so a client stuck
-// in a failed-auth retry loop is rejected before any token verification.
 app.all(
     "/mcp",
     banRepeatAuthFailures,
@@ -124,8 +108,8 @@ app.all(
     handleMcp,
 );
 
-// Aggregate landing-page stats, cached in-memory so page views don't each hit
-// the DB. The numbers move slowly, so a stale value for a few minutes is fine.
+// This inherited landing-page statistic remains Supabase-backed until the
+// nutrition persistence cutover.
 const STATS_TTL_MS = 5 * 60 * 1000;
 let statsCache: { data: LandingStats; expiresAt: number } | null = null;
 
@@ -140,87 +124,66 @@ app.get("/api/stats", async (c) => {
         return c.json(statsCache.data, 200, {
             "Cache-Control": "public, max-age=300",
         });
-    } catch (err) {
-        console.error("Failed to load landing stats:", err);
-        // Serve the last good value if we have one, even if expired.
+    } catch {
+        console.error("Failed to load landing stats");
         if (statsCache) return c.json(statsCache.data);
         return c.json({ error: "stats_unavailable" }, 503);
     }
 });
 
-// Static world-map data (land dot-matrix + projected timezone coords) for the
-// landing page. Generated offline; safe to cache aggressively.
-app.get("/map-data.json", async (c) => {
-    return c.body(await Bun.file("./public/map-data.json").text(), 200, {
+app.get("/map-data.json", async (c) =>
+    c.body(await Bun.file("./public/map-data.json").text(), 200, {
         "Content-Type": "application/json",
         "Cache-Control": "public, max-age=86400",
-    });
-});
+    }),
+);
 
-// Static images (social card + touch icon)
-app.get("/og.png", async (c) => {
-    return c.body(await Bun.file("./public/og.png").arrayBuffer(), 200, {
+app.get("/og.png", async (c) =>
+    c.body(await Bun.file("./public/og.png").arrayBuffer(), 200, {
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=86400",
-    });
-});
-app.get("/apple-touch-icon.png", async (c) => {
-    return c.body(
-        await Bun.file("./public/apple-touch-icon.png").arrayBuffer(),
-        200,
-        {
-            "Content-Type": "image/png",
-            "Cache-Control": "public, max-age=86400",
-        },
-    );
-});
+    }),
+);
 
-// SEO crawl files
-app.get("/robots.txt", async (c) => {
-    return c.body(await Bun.file("./public/robots.txt").text(), 200, {
+app.get("/apple-touch-icon.png", async (c) =>
+    c.body(await Bun.file("./public/apple-touch-icon.png").arrayBuffer(), 200, {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400",
+    }),
+);
+
+app.get("/robots.txt", async (c) =>
+    c.body(await Bun.file("./public/robots.txt").text(), 200, {
         "Content-Type": "text/plain",
-    });
-});
-app.get("/sitemap.xml", async (c) => {
-    return c.body(await Bun.file("./public/sitemap.xml").text(), 200, {
+    }),
+);
+
+app.get("/sitemap.xml", async (c) =>
+    c.body(await Bun.file("./public/sitemap.xml").text(), 200, {
         "Content-Type": "application/xml",
-    });
-});
-// llms.txt — curated site map for LLMs / AI agents (llmstxt.org). Relevant here
-// because this is an MCP server: Anthropic and OpenAI agents are a real referrer.
-app.get("/llms.txt", async (c) => {
-    return c.body(await Bun.file("./public/llms.txt").text(), 200, {
+    }),
+);
+
+app.get("/llms.txt", async (c) =>
+    c.body(await Bun.file("./public/llms.txt").text(), 200, {
         "Content-Type": "text/plain; charset=utf-8",
-    });
-});
+    }),
+);
 
-// Landing page
-app.get("/", async (c) => {
-    return c.html(await Bun.file("./public/index.html").text());
-});
-
-// Privacy Policy
-app.get("/privacy", async (c) => {
-    return c.html(await Bun.file("./public/privacy.html").text());
-});
+app.get("/", async (c) => c.html(await Bun.file("./public/index.html").text()));
+app.get("/privacy", async (c) =>
+    c.html(await Bun.file("./public/privacy.html").text()),
+);
 app.get("/privacy/", (c) => c.redirect("/privacy", 301));
-
-// Terms of Service
-app.get("/terms", async (c) => {
-    return c.html(await Bun.file("./public/terms.html").text());
-});
+app.get("/terms", async (c) =>
+    c.html(await Bun.file("./public/terms.html").text()),
+);
 app.get("/terms/", (c) => c.redirect("/terms", 301));
-
-// Tools reference — the full list of MCP tools with descriptions and examples.
-app.get("/tools", async (c) => {
-    return c.html(await Bun.file("./public/tools.html").text());
-});
+app.get("/tools", async (c) =>
+    c.html(await Bun.file("./public/tools.html").text()),
+);
 app.get("/tools/", (c) => c.redirect("/tools", 301));
 
-// SEO comparison / "alternative to X" landing pages. Each targets long-tail
-// queries like "myfitnesspal mcp" or "connect myfitnesspal to claude" and is a
-// static HTML file under public/alternatives. Kept data-driven so adding a page
-// is one entry here plus the file and a sitemap.xml line.
 const ALT_PAGES: Record<string, string> = {
     "/alternatives": "alternatives/index.html",
     "/myfitnesspal-mcp": "alternatives/myfitnesspal.html",
@@ -230,55 +193,45 @@ const ALT_PAGES: Record<string, string> = {
     "/yazio-mcp": "alternatives/yazio.html",
     "/lifesum-mcp": "alternatives/lifesum.html",
 };
-for (const [path, file] of Object.entries(ALT_PAGES)) {
-    app.get(path, async (c) =>
+for (const [route, file] of Object.entries(ALT_PAGES)) {
+    app.get(route, async (c) =>
         c.html(await Bun.file(`./public/${file}`).text()),
     );
-    // Redirect the trailing-slash variant to the canonical no-slash URL so a
-    // stray "/myfitnesspal-mcp/" link doesn't 404.
-    app.get(`${path}/`, (c) => c.redirect(path, 301));
+    app.get(`${route}/`, (c) => c.redirect(route, 301));
 }
 
-// CSS
-app.get("/styles.css", async (c) => {
-    const file = Bun.file("./public/styles.css");
-    return c.body(await file.text(), 200, { "Content-Type": "text/css" });
-});
+app.get("/styles.css", async (c) =>
+    c.body(await Bun.file("./public/styles.css").text(), 200, {
+        "Content-Type": "text/css",
+    }),
+);
 
-// Favicon endpoint
 app.get("/favicon.ico", async (c) => {
     try {
-        const file = Bun.file("./public/favicon.ico");
-        return c.body(await file.arrayBuffer(), 200, {
+        return c.body(await Bun.file("./public/favicon.ico").arrayBuffer(), 200, {
             "Content-Type": "image/x-icon",
+            "Cache-Control": "public, max-age=86400",
         });
     } catch {
         return c.notFound();
     }
 });
 
-// Health check
 app.get("/health", (c) => c.text("ok"));
 
-// Error handler
-app.onError((_err, c) => {
-    console.error("Unhandled error:", _err);
+app.onError((_error, c) => {
+    console.error("Unhandled application error");
     return c.json({ error: "internal_server_error" }, 500);
 });
 
 const port = parseInt(process.env.PORT || "8080");
+console.log(`Munch server listening on 0.0.0.0:${port}`);
 
-console.log(`Nutrition MCP server listening on 0.0.0.0:${port}`);
-
-// Assemble every MCP Apps widget from its source partials up front, so a broken
-// @include/partial fails fast at boot rather than on a client's first tool call.
 await warmWidgets();
 
-// Periodically delete expired meal-export files from the storage bucket.
+// Replaced when the inherited export implementation moves off Supabase Storage.
 startExportCleanup();
 
-// Exit cleanly on shutdown signals (e.g. deploys). /mcp is stateless — no
-// server-side sessions are held, so there is nothing to tear down; just exit.
 let shuttingDown = false;
 function shutdown(signal: string): void {
     if (shuttingDown) return;
@@ -292,9 +245,6 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 export default {
     port,
     hostname: "0.0.0.0",
-    // Long-lived MCP streams (StreamableHTTP GET/SSE) can idle between events;
-    // Bun's 10s default closes them and logs "request timed out after 10
-    // seconds". Raise it so legitimate streaming connections aren't severed.
     idleTimeout: 120,
     fetch: app.fetch,
 };
