@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { decideEntitlement } from "../billing/entitlements.js";
 import { getSubscriptionSnapshot } from "../billing/repository.js";
 import { rateLimitAuth } from "../middleware.js";
+import { createPortalRouter } from "../portal/routes.js";
 import { requireSameOrigin } from "./csrf.js";
 import { deliverLoginLink } from "./login-delivery.js";
 import { safeLocalRedirectPath } from "./redirect.js";
@@ -56,7 +57,10 @@ export function createAccountRouter(): Hono {
                 return c.json({
                     accepted: true,
                     ...(delivery.mode === "development"
-                        ? { developmentLoginUrl: delivery.developmentLoginUrl }
+                        ? {
+                              developmentLoginUrl:
+                                  delivery.developmentLoginUrl,
+                          }
                         : {}),
                 });
             } catch (error) {
@@ -66,7 +70,10 @@ export function createAccountRouter(): Hono {
                         error.message.includes("is required"));
                 if (configurationFailure) {
                     console.error("Passwordless login delivery is unavailable");
-                    return c.json({ error: "login_delivery_unavailable" }, 503);
+                    return c.json(
+                        { error: "login_delivery_unavailable" },
+                        503,
+                    );
                 }
 
                 return c.json({ accepted: true });
@@ -82,7 +89,10 @@ export function createAccountRouter(): Hono {
 
         const session = await consumeLoginChallenge(token);
         if (!session) {
-            return c.json({ error: "invalid_or_expired_login_token" }, 400);
+            return c.json(
+                { error: "invalid_or_expired_login_token" },
+                400,
+            );
         }
 
         setWebSessionCookie(c, session);
@@ -104,6 +114,7 @@ export function createAccountRouter(): Hono {
             },
             subscription,
             entitlement,
+            portalUrl: "/account/portal",
         });
     });
 
@@ -117,5 +128,6 @@ export function createAccountRouter(): Hono {
         },
     );
 
+    account.route("/", createPortalRouter());
     return account;
 }

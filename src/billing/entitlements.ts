@@ -15,6 +15,7 @@ export interface SubscriptionSnapshot {
 }
 
 export interface EntitlementDecision {
+    allowMcp: boolean;
     canUseProtectedTools: boolean;
     canWriteNutritionData: boolean;
     canReadNutritionData: boolean;
@@ -28,10 +29,8 @@ export interface EntitlementDecision {
         | "subscription_ended";
 }
 
-const ACCOUNT_ACCESS_ONLY: Omit<
-    EntitlementDecision,
-    "reason"
-> = {
+const ACCOUNT_ACCESS_ONLY: Omit<EntitlementDecision, "reason"> = {
+    allowMcp: false,
     canUseProtectedTools: false,
     canWriteNutritionData: false,
     canReadNutritionData: false,
@@ -39,45 +38,33 @@ const ACCOUNT_ACCESS_ONLY: Omit<
     canDeleteAccount: true,
 };
 
+function fullAccess(
+    reason: "active" | "trialing" | "past_due_grace",
+): EntitlementDecision {
+    return {
+        allowMcp: true,
+        canUseProtectedTools: true,
+        canWriteNutritionData: true,
+        canReadNutritionData: true,
+        canExportData: true,
+        canDeleteAccount: true,
+        reason,
+    };
+}
+
 export function decideEntitlement(
     subscription: SubscriptionSnapshot,
     now = new Date(),
 ): EntitlementDecision {
-    if (subscription.status === "active") {
-        return {
-            canUseProtectedTools: true,
-            canWriteNutritionData: true,
-            canReadNutritionData: true,
-            canExportData: true,
-            canDeleteAccount: true,
-            reason: "active",
-        };
-    }
-
-    if (subscription.status === "trialing") {
-        return {
-            canUseProtectedTools: true,
-            canWriteNutritionData: true,
-            canReadNutritionData: true,
-            canExportData: true,
-            canDeleteAccount: true,
-            reason: "trialing",
-        };
-    }
+    if (subscription.status === "active") return fullAccess("active");
+    if (subscription.status === "trialing") return fullAccess("trialing");
 
     if (
         subscription.status === "past_due" &&
         subscription.graceExpiresAt &&
         subscription.graceExpiresAt.getTime() > now.getTime()
     ) {
-        return {
-            canUseProtectedTools: true,
-            canWriteNutritionData: true,
-            canReadNutritionData: true,
-            canExportData: true,
-            canDeleteAccount: true,
-            reason: "past_due_grace",
-        };
+        return fullAccess("past_due_grace");
     }
 
     if (

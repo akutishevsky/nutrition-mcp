@@ -96,6 +96,9 @@ jobs:
       - name: Exercise meal draft state, confirmation, idempotency, and RLS
         run: bun scripts/meal-drafts-smoke.ts
 
+      - name: Exercise account portal, preferences, exports, and connections
+        run: bun scripts/account-portal-smoke.ts
+
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15
