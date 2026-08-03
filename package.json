@@ -29,6 +29,7 @@
         "start": "bun src/index.ts",
         "dev": "bun --watch src/index.ts",
         "test": "bun test",
+        "db:migrate": "bun scripts/migrate.ts",
         "inspect": "bunx @modelcontextprotocol/inspector",
         "harness": "bun run scripts/widget-harness.ts",
         "format": "bunx prettier --write .",
