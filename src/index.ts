@@ -15,8 +15,12 @@ import { maskIp } from "./net.js";
 import { createOAuthRouter } from "./oauth.js";
 import { authenticatePlatformBearer } from "./oauth-platform/middleware.js";
 import { createPlatformOAuthRouter } from "./oauth-platform/routes.js";
+import { validateStartupConfiguration } from "./operations/config.js";
+import { createOperationsRouter } from "./operations/routes.js";
 import { getLandingStats, type LandingStats } from "./supabase.js";
 import { warmWidgets } from "./widgets.js";
+
+validateStartupConfiguration();
 
 const app = new Hono();
 const railwayAuthEnabled =
@@ -24,8 +28,6 @@ const railwayAuthEnabled =
 
 app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
-    if (path === "/health") return next();
-
     const start = performance.now();
     await next();
     if (c.get("suppressAccessLog")) return;
@@ -92,6 +94,7 @@ app.use(
     }),
 );
 
+app.route("/", createOperationsRouter());
 registerDiscoveryRoutes(app);
 app.route("/", createAccountRouter());
 app.route("/", createBillingRouter());
@@ -216,7 +219,6 @@ app.get("/favicon.ico", async (c) => {
     }
 });
 
-app.get("/health", (c) => c.text("ok"));
 app.onError((_error, c) => {
     console.error("Unhandled application error");
     return c.json({ error: "internal_server_error" }, 500);
