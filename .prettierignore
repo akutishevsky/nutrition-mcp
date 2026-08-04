@@ -13,7 +13,6 @@ public/map-data.json
 
 # Workflow YAML is maintained separately from the application formatting gate.
 .github/workflows/ci.yml
-.github/workflows/better-auth-bootstrap.yml
 
 # Local Claude Code state — untracked, not ours to format.
 .claude/
