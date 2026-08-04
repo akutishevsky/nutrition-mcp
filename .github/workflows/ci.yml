@@ -141,6 +141,9 @@ jobs:
       - name: Exercise household membership, invitations, and RLS
         run: bun scripts/household-rls-smoke.ts
 
+      - name: Exercise household transfer, leave, and dissolution
+        run: bun scripts/household-lifecycle-smoke.ts
+
       - name: Exercise recipes, planning, groceries, idempotency, and RLS
         run: bun scripts/recipe-planning-smoke.ts
 
