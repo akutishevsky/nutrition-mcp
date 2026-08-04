@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createAccountExportRouter } from "../account-export-routes.js";
 import { betterAuthIsEnabled } from "../auth/config.js";
 import { decideEntitlement } from "../billing/entitlements.js";
 import { getSubscriptionSnapshot } from "../billing/repository.js";
@@ -163,6 +164,10 @@ export function createAccountRouter(): Hono {
         },
     );
 
+    // Register the complete JSON account export before the legacy portal router's
+    // meal-only CSV endpoint. Conversational CSV export remains available through
+    // the MCP tool; the account portal exports the user's full accessible dataset.
+    account.route("/", createAccountExportRouter());
     account.route("/", createPortalRouter());
     account.route("/", createHouseholdRouter());
     account.route("/", createHouseholdLifecycleRouter());

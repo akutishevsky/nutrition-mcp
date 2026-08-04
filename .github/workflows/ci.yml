@@ -147,6 +147,9 @@ jobs:
       - name: Exercise recipes, planning, groceries, idempotency, and RLS
         run: bun scripts/recipe-planning-smoke.ts
 
+      - name: Exercise complete account export and household privacy
+        run: bun scripts/account-export-smoke.ts
+
       - name: Exercise meal draft state, confirmation, idempotency, and RLS
         run: bun scripts/meal-drafts-smoke.ts
 

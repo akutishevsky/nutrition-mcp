@@ -156,10 +156,12 @@ export async function getLandingStats(): Promise<LandingStats> {
 export async function createExportFile(input: {
     userId: string;
     fileName: string;
+    contentType?: string;
     content: string;
     expiresAt: Date;
 }): Promise<{ token: string }> {
     if (!input.content) throw new Error("Export content cannot be empty");
+    const contentType = input.contentType?.trim() || "text/csv; charset=utf-8";
     const token = issueOpaqueToken(32);
 
     await withServiceDatabase(async (tx) => {
@@ -168,12 +170,14 @@ export async function createExportFile(input: {
                 token_hash,
                 user_id,
                 file_name,
+                content_type,
                 content,
                 expires_at
             ) values (
                 ${token.hash},
                 ${input.userId},
                 ${input.fileName},
+                ${contentType},
                 ${input.content},
                 ${input.expiresAt}
             )
