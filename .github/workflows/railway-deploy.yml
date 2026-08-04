@@ -1,0 +1,73 @@
+name: Railway Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact commit SHA, tag, or branch to deploy
+        required: true
+        default: main
+      environment:
+        description: GitHub/Railway environment name
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: railway-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run typecheck
+      - run: bun test
+      - run: docker build --tag munch-release:${{ github.sha }} .
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.environment }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE_ID: ${{ vars.RAILWAY_SERVICE_ID }}
+      RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
+      MUNCH_CERTIFICATION_BASE_URL: ${{ vars.MUNCH_CERTIFICATION_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+      - run: bun install --frozen-lockfile
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+      - name: Upload exact checked-out source
+        run: >-
+          railway up --ci
+          --project "$RAILWAY_PROJECT_ID"
+          --service "$RAILWAY_SERVICE_ID"
+          --environment "$RAILWAY_ENVIRONMENT_ID"
+          --message "GitHub Actions deploy $GITHUB_SHA"
+      - name: Public readiness and OAuth discovery
+        run: bun scripts/certification/public.ts "$MUNCH_CERTIFICATION_BASE_URL"

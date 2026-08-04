@@ -11,9 +11,13 @@
 # inflates the payload ~58% and gets undone by the next regeneration anyway.
 public/map-data.json
 
-# Workflow YAML is maintained separately from the application formatting gate.
+# Workflow and deployment assets are maintained separately from application
+# formatting because they are executed/reviewed as operational artifacts.
 .github/workflows/ci.yml
-.github/workflows/oauth-schema-generator.yml
+.github/workflows/railway-deploy.yml
+docs/deployment/better-auth-certification.md
+docs/deployment/better-auth-cutover.md
+scripts/certification/public.ts
 
 # Local Claude Code state — untracked, not ours to format.
 .claude/
