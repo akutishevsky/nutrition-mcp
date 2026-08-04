@@ -5,12 +5,17 @@ process.env.MUNCH_RAILWAY_AUTH_ENABLED = "true";
 process.env.MUNCH_APP_BASE_URL = "https://munch.example";
 
 const { Hono } = await import("hono");
+const { createAccountExportRouter } =
+    await import("../src/account-export-routes.js");
 const { consumeLoginChallenge, createLoginChallenge } =
     await import("../src/accounts/repository.js");
 const { MUNCH_SESSION_COOKIE } = await import("../src/accounts/session.js");
-const { createPortalRouter } = await import("../src/portal/routes.js");
-const { listOAuthConnections, revokeOAuthConnection } =
-    await import("../src/portal/repository.js");
+const { upsertSubscription } = await import("../src/billing/repository.js");
+const {
+    acceptHouseholdInvitation,
+    createHousehold,
+    createHouseholdInvitation,
+} = await import("../src/households/repository.js");
 const {
     authorizeSession,
     createAuthorizationSession,
@@ -20,19 +25,52 @@ const {
 } = await import("../src/oauth-platform/repository.js");
 const { codeChallengeForVerifier } =
     await import("../src/oauth-platform/pkce.js");
-const storage = await import("../src/storage.js");
 const { closePlatformDatabase } = await import("../src/platform/database.js");
+const { createPortalRouter } = await import("../src/portal/routes.js");
+const { listOAuthConnections, revokeOAuthConnection } =
+    await import("../src/portal/repository.js");
+const storage = await import("../src/storage.js");
 
 if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required for account portal smoke tests");
 }
 
-const challenge = await createLoginChallenge(
-    `portal-${crypto.randomUUID()}@example.test`,
-);
-const session = await consumeLoginChallenge(challenge.token);
-if (!session) throw new Error("Unable to activate portal smoke user");
-const userId = challenge.userId;
+async function createUser(prefix: string) {
+    const challenge = await createLoginChallenge(
+        `${prefix}-${crypto.randomUUID()}@example.test`,
+    );
+    const session = await consumeLoginChallenge(challenge.token);
+    if (!session) throw new Error("Unable to activate portal smoke user");
+    return { ...challenge, session };
+}
+
+const owner = await createUser("portal-owner");
+const member = await createUser("portal-member");
+const userId = owner.userId;
+
+await upsertSubscription({
+    userId,
+    stripeSubscriptionId: `sub_portal_${crypto.randomUUID().replaceAll("-", "")}`,
+    stripePriceId: "price_portal_smoke",
+    status: "active",
+    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000),
+});
+const household = await createHousehold({
+    userId,
+    name: "Portal Household",
+    displayName: "Mom",
+});
+const invitation = await createHouseholdInvitation({
+    userId,
+    householdId: household.householdId,
+    email: member.email,
+    role: "member",
+});
+await acceptHouseholdInvitation({
+    userId: member.userId,
+    token: invitation.rawToken,
+    displayName: "Dad",
+});
 
 const client = await registerOAuthClient({
     clientName: "Portal smoke client",
@@ -65,12 +103,6 @@ if (
 ) {
     throw new Error("Portal did not list the active OAuth connection");
 }
-if (
-    !(await revokeOAuthConnection(userId, connections[0].tokenFamilyId)) ||
-    (await listOAuthConnections(userId)).length !== 0
-) {
-    throw new Error("Portal OAuth connection revocation failed");
-}
 
 await storage.upsertProfile(userId, {
     timezone: "UTC",
@@ -87,8 +119,9 @@ await storage.insertMeal(userId, {
 });
 
 const app = new Hono();
+app.route("/", createAccountExportRouter());
 app.route("/", createPortalRouter());
-const cookie = `${MUNCH_SESSION_COOKIE}=${session.sessionToken}`;
+const cookie = `${MUNCH_SESSION_COOKIE}=${owner.session.sessionToken}`;
 const portalResponse = await app.request(
     "https://munch.example/account/portal",
     {
@@ -101,9 +134,15 @@ if (portalResponse.status !== 200) {
 const portalHtml = await portalResponse.text();
 if (
     !portalHtml.includes("Munch account") ||
-    !portalHtml.includes(challenge.email)
+    !portalHtml.includes(owner.email) ||
+    !portalHtml.includes("Portal Household") ||
+    !portalHtml.includes("Send invitation") ||
+    !portalHtml.includes("Transfer ownership") ||
+    !portalHtml.includes("Dissolve household") ||
+    !portalHtml.includes("Export complete account data") ||
+    !portalHtml.includes("Premium · ChatGPT access active")
 ) {
-    throw new Error("Portal HTML did not contain account identity");
+    throw new Error("Portal HTML omitted account or household controls");
 }
 if (portalResponse.headers.get("cache-control") !== "private, no-store") {
     throw new Error("Portal response was cacheable");
@@ -164,18 +203,32 @@ const exported = (await exportResponse.json()) as { url?: string };
 if (!exported.url) throw new Error("Portal export did not issue a URL");
 const exportUrl = new URL(exported.url);
 const downloadResponse = await app.request(exportUrl.toString());
+const exportDocument = JSON.parse(await downloadResponse.text()) as {
+    meals?: Array<{ description?: string }>;
+};
 if (
     downloadResponse.status !== 200 ||
     !downloadResponse.headers
         .get("content-disposition")
-        ?.includes("munch-meals-") ||
+        ?.includes("munch-account-") ||
+    downloadResponse.headers.get("content-type") !==
+        "application/json; charset=utf-8" ||
     downloadResponse.headers.get("cache-control") !== "private, no-store" ||
-    !(await downloadResponse.text()).includes("Portal export smoke meal")
+    !exportDocument.meals?.some(
+        (meal) => meal.description === "Portal export smoke meal",
+    )
 ) {
-    throw new Error("Portal export download failed security or content checks");
+    throw new Error("Portal account export failed security or content checks");
+}
+
+if (
+    !(await revokeOAuthConnection(userId, connections[0].tokenFamilyId)) ||
+    (await listOAuthConnections(userId)).length !== 0
+) {
+    throw new Error("Portal OAuth connection revocation failed");
 }
 
 await closePlatformDatabase();
 console.log(
-    "Munch account portal, export, preferences, and OAuth connection smoke test passed.",
+    "Munch account portal, household controls, complete export, preferences, and OAuth connection smoke test passed.",
 );

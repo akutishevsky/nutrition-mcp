@@ -1,0 +1,42 @@
+.portal-list .portal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.portal-list .portal-actions select {
+    width: auto;
+    min-width: 7.5rem;
+    min-height: 38px;
+    padding: 0.45rem 0.65rem;
+}
+
+.portal-card > .portal-actions,
+.portal-form > .portal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1rem;
+}
+
+.portal-card h3 {
+    margin-top: 1.25rem;
+}
+
+@media (max-width: 800px) {
+    .portal-list li {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .portal-list .portal-actions {
+        justify-content: flex-start;
+    }
+
+    .portal-list .portal-actions select,
+    .portal-list .portal-actions .button {
+        width: 100%;
+    }
+}
