@@ -87,6 +87,7 @@ export async function createCheckoutForUser(input: {
         successUrl: `${config.appBaseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}&return_to=${successReturnTo}`,
         cancelUrl: `${config.appBaseUrl}/billing/canceled?return_to=${cancelReturnTo}`,
         pendingOAuthSessionId: input.pendingOAuthSessionId,
+        trialDays: account.hasPriorSubscription ? null : undefined,
     });
 
     if (!checkout.url) {

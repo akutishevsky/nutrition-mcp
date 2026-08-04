@@ -43,4 +43,19 @@ describe("subscription entitlement policy", () => {
         expect(decision.canExportData).toBe(true);
         expect(decision.canDeleteAccount).toBe(true);
     });
+
+    test("denies protected access for non-entitled Stripe states", () => {
+        for (const status of [
+            "incomplete",
+            "incomplete_expired",
+            "paused",
+            "canceled",
+            "unpaid",
+        ] as const) {
+            const decision = decideEntitlement({ status }, now);
+            expect(decision.allowMcp).toBe(false);
+            expect(decision.canUseProtectedTools).toBe(false);
+            expect(decision.canWriteNutritionData).toBe(false);
+        }
+    });
 });
