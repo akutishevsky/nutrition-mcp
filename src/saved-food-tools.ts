@@ -1,12 +1,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { withAnalytics } from "./analytics.js";
+import type { MunchCapabilities } from "./billing/capabilities.js";
 import { serializeFoodCandidate } from "./food-tools.js";
 import { getFoodSearchService } from "./food-providers/service.js";
 import {
     deleteSavedFood,
     listSavedFoods,
     markSavedFoodUsed,
+    normalizeSavedFoodLabel,
     saveFood,
     searchRecentMealItems,
     searchSavedFoods,
@@ -70,13 +72,32 @@ function formatSavedFood(record: SavedFoodRecord, index: number): string {
     return `${index + 1}. ${record.label}\n   ${portion?.label ?? "No default portion"}${portion?.nutrients.calories == null ? "" : ` · ${portion.nutrients.calories} kcal`}\n   saved_food_id: ${record.id} · used ${record.useCount} times`;
 }
 
+async function assertSavedFoodCapacity(
+    userId: string,
+    label: string,
+    capabilities: MunchCapabilities,
+): Promise<void> {
+    if (capabilities.savedFoodLimit === null) return;
+    const existing = await listSavedFoods(
+        userId,
+        capabilities.savedFoodLimit + 1,
+    );
+    const normalized = normalizeSavedFoodLabel(label);
+    const updatesExisting = existing.some(
+        (record) => normalizeSavedFoodLabel(record.label) === normalized,
+    );
+    if (!updatesExisting && existing.length >= capabilities.savedFoodLimit) {
+        throw new Error(
+            `Saved food capacity reached (${capabilities.savedFoodLimit}). Existing foods can still be used, updated, or deleted.`,
+        );
+    }
+}
+
 export function registerSavedFoodTools(
     server: McpServer,
     userId: string,
+    capabilities: MunchCapabilities,
 ): void {
-    // Keep the expensive MCP SDK schema generic out of the native compiler's
-    // hot path; runtime registration and MCP integration tests still validate
-    // the complete schemas.
     const toolServer = server as unknown as {
         registerTool: (
             name: string,
@@ -109,6 +130,7 @@ export function registerSavedFoodTools(
             withAnalytics(
                 "save_food",
                 async () => {
+                    await assertSavedFoodCapacity(userId, label, capabilities);
                     const candidate =
                         await getFoodSearchService().details(candidate_id);
                     if (!candidate) {
@@ -228,7 +250,15 @@ export function registerSavedFoodTools(
             withAnalytics(
                 "list_saved_foods",
                 async () => {
-                    const saved = await listSavedFoods(userId, limit ?? 50);
+                    const requestedLimit = limit ?? 50;
+                    const effectiveLimit =
+                        capabilities.savedFoodLimit === null
+                            ? requestedLimit
+                            : Math.min(
+                                  requestedLimit,
+                                  capabilities.savedFoodLimit,
+                              );
+                    const saved = await listSavedFoods(userId, effectiveLimit);
                     return {
                         content: [
                             {
@@ -255,7 +285,7 @@ export function registerSavedFoodTools(
         {
             title: "Mark Saved Food Used",
             description:
-                "Record that a saved food was used after it has been selected for a confirmed meal. This improves future 'usual food' ranking. Do not call merely because the food appeared in search results.",
+                "Record that a saved food was used after it has been selected for a confirmed meal. This improves future usual-food ranking. Do not call merely because the food appeared in search results.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,

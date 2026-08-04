@@ -38,6 +38,7 @@ import {
     type WeightEntry,
 } from "./supabase.js";
 import { withAnalytics } from "./analytics.js";
+import type { MunchCapabilities } from "./billing/capabilities.js";
 import {
     todayInTz,
     validateTz,
@@ -899,6 +900,43 @@ export function alcoholHiddenNote(
     return `\n\n(${subject}, but alcohol tracking is off for this account so it is not shown. Turn it on with set_alcohol_tracking.)`;
 }
 
+export interface EffectiveHistoryRange {
+    requestedStart: string;
+    requestedEnd: string;
+    effectiveStart: string;
+    effectiveEnd: string;
+    cutoff: string | null;
+    applied: boolean;
+    empty: boolean;
+}
+
+export function applyHistoryDateRange(
+    requestedStart: string,
+    requestedEnd: string,
+    today: string,
+    historyDays: number | null,
+): EffectiveHistoryRange {
+    const cutoff =
+        historyDays === null ? null : shiftLocalDate(today, -(historyDays - 1));
+    const effectiveStart =
+        cutoff && requestedStart < cutoff ? cutoff : requestedStart;
+    return {
+        requestedStart,
+        requestedEnd,
+        effectiveStart,
+        effectiveEnd: requestedEnd,
+        cutoff,
+        applied: effectiveStart !== requestedStart,
+        empty: effectiveStart > requestedEnd,
+    };
+}
+
+function historyWindowNote(range: EffectiveHistoryRange): string {
+    return range.applied && range.cutoff
+        ? `Conversational history is available from ${range.cutoff}; the requested range was adjusted.\n\n`
+        : "";
+}
+
 // `alcohol` is the whole alcohol opt-in, threaded once: the drink unit to render
 // grams in, or null when this user has alcohol tracking off. It is resolved from
 // the profile in buildMcpServer (like widgetsEnabled) rather than re-read inside
@@ -924,7 +962,9 @@ export function registerTools(
     userId: string,
     widgetsEnabled: boolean,
     alcohol: AlcoholDisplay,
+    capabilities: MunchCapabilities | null = null,
 ) {
+    const historyDays = capabilities?.historyDays ?? null;
     // Keep the expensive MCP SDK schema generic out of the native compiler's
     // hot path; runtime registration and MCP integration tests still validate
     // the complete schemas.
@@ -1457,6 +1497,22 @@ export function registerTools(
                 "get_meals_by_date",
                 async () => {
                     const tz = await getUserTimezone(userId);
+                    const range = applyHistoryDateRange(
+                        date,
+                        date,
+                        todayInTz(tz),
+                        historyDays,
+                    );
+                    if (range.empty || range.effectiveStart !== date) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `Conversational history is available from ${range.cutoff}. The requested date ${date} is outside that window. Data export remains available from the Munch account portal.`,
+                                },
+                            ],
+                        };
+                    }
                     const meals = await getMealsByDate(userId, date, tz);
                     if (meals.length === 0) {
                         return {
@@ -1501,10 +1557,26 @@ export function registerTools(
                 "get_meals_by_date_range",
                 async () => {
                     const tz = await getUserTimezone(userId);
-                    const meals = await getMealsInRange(
-                        userId,
+                    const range = applyHistoryDateRange(
                         start_date,
                         end_date,
+                        todayInTz(tz),
+                        historyDays,
+                    );
+                    if (range.empty) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `Conversational history is available from ${range.cutoff}. The requested range ends before that date. Data export remains available from the Munch account portal.`,
+                                },
+                            ],
+                        };
+                    }
+                    const meals = await getMealsInRange(
+                        userId,
+                        range.effectiveStart,
+                        range.effectiveEnd,
                         tz,
                     );
                     if (meals.length === 0) {
@@ -1512,7 +1584,7 @@ export function registerTools(
                             content: [
                                 {
                                     type: "text",
-                                    text: `No meals found between ${start_date} and ${end_date}.`,
+                                    text: `${historyWindowNote(range)}No meals found between ${range.effectiveStart} and ${range.effectiveEnd}.`,
                                 },
                             ],
                         };
@@ -1542,7 +1614,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: sections.join("\n\n===\n\n"),
+                                text: `${historyWindowNote(range)}${sections.join("\n\n===\n\n")}`,
                             },
                         ],
                     };
@@ -1594,7 +1666,11 @@ export function registerTools(
                 "search_meals",
                 async () => {
                     const tz = await getUserTimezone(userId);
-                    const windowDays = days ?? 365;
+                    const requestedWindowDays = days ?? 365;
+                    const windowDays =
+                        historyDays === null
+                            ? requestedWindowDays
+                            : Math.min(requestedWindowDays, historyDays);
                     // A fuzzy lookback window needs no calendar-day precision,
                     // so a plain UTC offset from now is enough (tz is still
                     // used to render dates in the results).
@@ -1815,11 +1891,29 @@ export function registerTools(
                 "get_nutrition_summary",
                 async () => {
                     const tz = await getUserTimezone(userId);
-                    const [meals, water, goals] = await Promise.all([
-                        getMealsInRange(userId, start_date, end_date, tz),
-                        getWaterInRange(userId, start_date, end_date, tz),
-                        getNutritionGoals(userId),
-                    ]);
+                    const range = applyHistoryDateRange(
+                        start_date,
+                        end_date,
+                        todayInTz(tz),
+                        historyDays,
+                    );
+                    const [meals, water, goals] = range.empty
+                        ? [[], [], await getNutritionGoals(userId)]
+                        : await Promise.all([
+                              getMealsInRange(
+                                  userId,
+                                  range.effectiveStart,
+                                  range.effectiveEnd,
+                                  tz,
+                              ),
+                              getWaterInRange(
+                                  userId,
+                                  range.effectiveStart,
+                                  range.effectiveEnd,
+                                  tz,
+                              ),
+                              getNutritionGoals(userId),
+                          ]);
 
                     const goalsPayload = goalsPayloadOf(goals, alcohol);
 
@@ -1828,7 +1922,7 @@ export function registerTools(
                             content: [
                                 {
                                     type: "text",
-                                    text: `No meals or water logged between ${start_date} and ${end_date}.`,
+                                    text: `${historyWindowNote(range)}No meals or water logged between ${range.effectiveStart} and ${range.effectiveEnd}.`,
                                 },
                             ],
                             structuredContent: {

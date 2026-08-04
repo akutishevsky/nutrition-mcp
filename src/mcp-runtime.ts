@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Context } from "hono";
+import { resolveMunchCapabilities } from "./billing/capabilities.js";
 import { registerFoodTools } from "./food-tools.js";
 import { registerMealDraftTools } from "./meal-draft-tools.js";
 import { registerSavedFoodTools } from "./saved-food-tools.js";
@@ -12,13 +13,13 @@ import {
     widgetsEnabledFromProfile,
 } from "./supabase.js";
 
-const MUNCH_SERVER_INSTRUCTIONS = `Munch tracks meals, water, weight, goals, and nutrition trends. Nutrition values are estimates and Munch does not provide medical advice.
+const MUNCH_SERVER_INSTRUCTIONS = `Munch stores and retrieves factual food, serving, macro, meal, hydration, weight, recipe, planning, and grocery data. Nutrition values are estimates and Munch does not provide medical or dietary advice. Do not ask Munch to determine what a user should eat, set a calorie target, diagnose a condition, or judge whether a food is healthy. ChatGPT may reason from the factual data under its own policies.
 
 Before estimating a generic or branded food, search personal foods first when the user says "my usual" or refers to something eaten before. Otherwise call search_foods. Confirm the selected candidate and serving with the user, then call get_food_details. For a visible packaged-food barcode, call lookup_food_barcode and use verified label values when available. Always identify the source and do not present model estimates as database facts.
 
 For photos and any ambiguous meal, use start_meal_draft. Add structured items and every unresolved question to the draft, then answer one highest-impact question at a time. Call prepare_meal_confirmation only when no questions remain, unless the user explicitly directs you to accept the remaining stated assumptions. Present the complete prepared draft and call confirm_meal_draft only after an explicit yes. Do not use log_meal for photo or ambiguous flows.
 
-Use search_meals and search_saved_foods for prior variations. Use the interactive importer for history files instead of repeatedly calling log_meal.`;
+Use search_meals and search_saved_foods for prior variations. Use the interactive importer for history files instead of repeatedly calling log_meal. Munch tool availability is account-specific; do not advertise, describe, or link to unavailable paid capabilities.`;
 
 async function buildMunchMcpServer(
     c: Context,
@@ -31,7 +32,7 @@ async function buildMunchMcpServer(
     const server = new McpServer(
         {
             name: "Munch",
-            version: "0.4.0",
+            version: "0.5.0",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
@@ -45,16 +46,20 @@ async function buildMunchMcpServer(
         },
     );
 
-    const profile = await getProfile(userId);
+    const [profile, capabilities] = await Promise.all([
+        getProfile(userId),
+        resolveMunchCapabilities(userId),
+    ]);
     const drinkUnit = preferredDrinkUnitFromProfile(profile);
     registerTools(
         server,
         userId,
         widgetsEnabledFromProfile(profile),
         alcoholTrackingEnabledFromProfile(profile) ? (drinkUnit ?? "us") : null,
+        capabilities,
     );
     registerFoodTools(server, userId);
-    registerSavedFoodTools(server, userId);
+    registerSavedFoodTools(server, userId, capabilities);
     registerMealDraftTools(server, userId);
     return server;
 }
