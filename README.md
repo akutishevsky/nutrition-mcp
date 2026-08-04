@@ -15,9 +15,9 @@ The original project and this fork are licensed under the MIT License. See [LICE
 Munch is being developed around the following operating model:
 
 - ChatGPT or another MCP client performs language and image reasoning.
-- Munch performs authentication, subscription entitlement checks, deterministic validation, food-source retrieval, storage, summaries, exports, and deletion.
+- Munch performs authentication, capability resolution, deterministic validation, food-source retrieval, storage, summaries, exports, and deletion.
 - Railway hosts the application and PostgreSQL database.
-- Stripe manages checkout, subscriptions, invoices, and customer billing state.
+- Stripe manages website-only Premium checkout, subscriptions, invoices, and customer billing state; OAuth and MCP remain billing-neutral.
 - A Munch account remains the identity boundary; Stripe is the billing authority rather than the sole authenticator.
 - Users share one multi-tenant deployment, with PostgreSQL row-level security and restricted database roles isolating user-owned records.
 - Administrative tools expose billing and service metadata, not meal, weight, hydration, or goal contents.
@@ -54,7 +54,7 @@ The commercial foundation is being built before broader feature expansion:
 5. Federated food search across USDA FoodData Central, Open Food Facts, saved foods, and confirmed meal history.
 6. Structured meal items with source provenance and serving options.
 7. Draft-and-confirm meal workflows for uncertain text and photo logs.
-8. Saved foods, saved meals, and “log my usual” behavior.
+8. Saved foods, structured recipes, meal calendars, grocery lists, household sharing, and “log my usual” behavior.
 9. A customer portal for billing, connection management, export, deletion, and privacy controls.
 10. Production observability, redacted logging, backups, restore testing, and synthetic MCP checks.
 
