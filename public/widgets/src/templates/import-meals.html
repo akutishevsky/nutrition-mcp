@@ -18,7 +18,10 @@
 
   The CSV parser is NOT written here. `@inlinets src/csv.ts` splices in the real
   tested module (src/csv.test.ts), because a parser facing arbitrary user files
-  must not live as untested inline template JS.
+  must not live as untested inline template JS. Same for the row chunker:
+  `@inlinets src/chunk.ts` (src/chunk.test.ts) — the boundary logic deciding
+  which rows go in which server call was untested inline JS once and had a real
+  bug (issue #65).
 
   Degrades on purpose:
     - api.canCallTools false  -> tells the user to ask Claude to import instead
@@ -661,26 +664,14 @@
                 S.skipped = skipped + t.skippedTotalsRows + t.skippedBlankRows;
             }
 
-            // Never split a calendar date across chunks: the server's duplicate
-            // handling is per call, so an identical pair straddling a boundary
-            // would collapse into one row.
-            function chunkRows(rows, max) {
-                const dayOf = (r) => String(r.logged_at).slice(0, 10);
-                const out = [];
-                let cur = [];
-                for (const r of rows) {
-                    if (
-                        cur.length >= max &&
-                        dayOf(r) !== dayOf(cur[cur.length - 1])
-                    ) {
-                        out.push(cur);
-                        cur = [];
-                    }
-                    cur.push(r);
-                }
-                if (cur.length) out.push(cur);
-                return out;
-            }
+            // The real, unit-tested chunker (src/chunk.ts + src/chunk.test.ts).
+            // Not written here: the boundary logic deciding which rows land in
+            // which server call was hand-copied inline JS with no test coverage
+            // and had a real bug (issue #65) — a run of same-date rows
+            // straddling the 50-row cap kept absorbing more rows instead of
+            // closing the chunk, so the server's hard MAX_ROWS_PER_CALL reject
+            // hit silently.
+            /*@inlinets src/chunk.ts@*/
 
             // ---- step 3: import ----------------------------------------------
             async function runImport() {
@@ -695,7 +686,7 @@
                     rowErrors: [],
                     warnings: [],
                 };
-                const chunks = chunkRows(S.rows, CFG.max_rows_per_call);
+                const { chunks } = chunkRows(S.rows, CFG.max_rows_per_call);
                 S.progress = { done: 0, total: chunks.length, label: "" };
                 render();
 
@@ -740,7 +731,24 @@
 
                         if (i === 0) {
                             // Dry run: abort on failure rather than writing.
+                            // Surfaced through chunkErrors (rendered right on
+                            // this step) rather than a bare return — collect()
+                            // already put the server's reason in S.result.warnings,
+                            // but the preview step never renders that list, so a
+                            // silent return here left the user staring at an
+                            // unchanged preview with no visible explanation
+                            // (issue #65).
                             if (sc.status === "failed") {
+                                S.result.chunkErrors.push(
+                                    "Rows " +
+                                        rows[0].source_line +
+                                        "–" +
+                                        rows[rows.length - 1].source_line +
+                                        ": " +
+                                        (sc.warnings && sc.warnings.length
+                                            ? sc.warnings.join("; ")
+                                            : "Preflight check failed."),
+                                );
                                 S.busy = false;
                                 S.progress = null;
                                 render();
@@ -1057,7 +1065,11 @@
                 const noTime = S.rows.filter(
                     (r) => !/\d\d:\d\d/.test(String(r.logged_at)),
                 ).length;
-                const chunks = chunkRows(S.rows, CFG.max_rows_per_call).length;
+                const { chunks: previewChunks, splitDates } = chunkRows(
+                    S.rows,
+                    CFG.max_rows_per_call,
+                );
+                const chunks = previewChunks.length;
                 // Fiber, sugar and alcohol are missing from most exports, so
                 // their columns appear only when this file actually carries
                 // them — three columns of "—" would push the macros that do
@@ -1122,6 +1134,27 @@
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
                           noTime +
                           " row(s) have a date but no time — they will be logged at midday." +
+                          "</span></div>"
+                        : "") +
+                    // A calendar date with more than max_rows_per_call rows on
+                    // its own has to be split across more than one import
+                    // call — max_rows_per_call and "keep every date together"
+                    // cannot both hold there. Flagged so the user knows why,
+                    // and because two identical rows for that date landing in
+                    // different calls can dedupe against each other instead of
+                    // both being written (see chunkRows in src/chunk.ts).
+                    (splitDates.length
+                        ? '<div class="notice notice-warn"><span>!</span><span>' +
+                          esc(
+                              (splitDates.length === 1
+                                  ? "One date has"
+                                  : splitDates.length + " dates have") +
+                                  " more than " +
+                                  CFG.max_rows_per_call +
+                                  " meals (e.g. " +
+                                  splitDates[0] +
+                                  ") and had to be split across separate import batches. If that date contains two entries with the exact same food, meal type and macros, one of them may be skipped as a duplicate instead of imported.",
+                          ) +
                           "</span></div>"
                         : "") +
                     '<div class="tscroll"><table class="tbl"><thead><tr>' +
