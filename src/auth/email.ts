@@ -32,10 +32,17 @@ function deliverySecret(): string {
     return value;
 }
 
+function deliveryFrom(): string {
+    const value = process.env.MUNCH_EMAIL_FROM?.trim();
+    if (!value) throw new Error("MUNCH_EMAIL_FROM is required");
+    return value;
+}
+
 export async function sendBetterAuthMagicLink(
     input: MagicLinkDeliveryInput,
+    fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
-    const response = await fetch(deliveryEndpoint(), {
+    const response = await fetchImpl(deliveryEndpoint(), {
         method: "POST",
         headers: {
             Authorization: `Bearer ${deliverySecret()}`,
@@ -43,6 +50,7 @@ export async function sendBetterAuthMagicLink(
         },
         body: JSON.stringify({
             email: input.email,
+            from: deliveryFrom(),
             loginUrl: input.loginUrl,
             expiresAt: input.expiresAt.toISOString(),
             product: "Munch",

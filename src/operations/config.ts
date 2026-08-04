@@ -97,6 +97,7 @@ export function configurationIssues(): ConfigurationIssue[] {
         }
         requireValue(issues, "MUNCH_EMAIL_DELIVERY_ENDPOINT");
         requireValue(issues, "MUNCH_EMAIL_DELIVERY_SECRET");
+        requireValue(issues, "MUNCH_EMAIL_FROM");
         if (production) {
             validateHttpsUrl(
                 issues,

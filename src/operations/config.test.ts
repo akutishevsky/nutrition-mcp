@@ -30,9 +30,25 @@ function validRailwayEnvironment() {
     });
 }
 
+function validBetterAuthRailwayEnvironment() {
+    validRailwayEnvironment();
+    Object.assign(process.env, {
+        MUNCH_AUTH_BACKEND: "better_auth",
+        BETTER_AUTH_SECRET: "b".repeat(64),
+        MUNCH_EMAIL_DELIVERY_ENDPOINT: "https://mail.example/deliver",
+        MUNCH_EMAIL_DELIVERY_SECRET: "better-auth-delivery-secret",
+        MUNCH_EMAIL_FROM: "Munch <support@munch.example>",
+    });
+}
+
 describe("Munch startup configuration", () => {
     test("accepts a complete Railway production configuration", () => {
         validRailwayEnvironment();
+        expect(configurationIssues()).toEqual([]);
+    });
+
+    test("accepts a complete Better Auth Railway configuration", () => {
+        validBetterAuthRailwayEnvironment();
         expect(configurationIssues()).toEqual([]);
     });
 
@@ -64,5 +80,13 @@ describe("Munch startup configuration", () => {
         const keys = configurationIssues().map((issue) => issue.key);
         expect(keys).toContain("USDA_FDC_API_KEY");
         expect(keys).toContain("STRIPE_WEBHOOK_SECRET");
+    });
+
+    test("requires an explicit Better Auth sender identity", () => {
+        validBetterAuthRailwayEnvironment();
+        delete process.env.MUNCH_EMAIL_FROM;
+        expect(configurationIssues()).toContainEqual(
+            expect.objectContaining({ key: "MUNCH_EMAIL_FROM" }),
+        );
     });
 });
