@@ -3,6 +3,7 @@ import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { createAccountRouter } from "./accounts/routes.js";
 import { createBillingRouter } from "./billing/routes.js";
+import { registerBetterAuthRoutes } from "./auth/routes.js";
 import { registerDiscoveryRoutes } from "./discovery.js";
 import { startExportCleanup } from "./export.js";
 import { handleMcp } from "./mcp-runtime.js";
@@ -95,6 +96,7 @@ app.use(
 
 app.route("/", createOperationsRouter());
 registerDiscoveryRoutes(app);
+registerBetterAuthRoutes(app);
 app.route("/", createAccountRouter());
 app.route("/", createBillingRouter());
 

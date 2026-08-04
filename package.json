@@ -22,6 +22,7 @@
     "devDependencies": {
         "@types/bun": "latest",
         "@types/node": "^26.1.2",
+        "@types/pg": "8.15.5",
         "@typescript/native-preview": "7.0.0-dev.20260707.2"
     },
     "peerDependencies": {
@@ -39,12 +40,16 @@
         "format:check": "bunx prettier --check .",
         "typecheck": "bun run scripts/typecheck.ts",
         "brand:check": "bun run scripts/brand-check.ts",
+        "auth:schema": "bunx auth@1.6.25 generate --config src/auth/auth.ts --output .better-auth-schema.sql --yes",
         "generate-oauth-creds": "echo \"OAUTH_CLIENT_ID=$(openssl rand -hex 16)\" && echo \"OAUTH_CLIENT_SECRET=$(openssl rand -hex 32)\""
     },
     "dependencies": {
+        "@better-auth/oauth-provider": "1.6.25",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@supabase/supabase-js": "^2.110.5",
+        "better-auth": "1.6.25",
         "hono": "^4.12.30",
+        "pg": "8.16.3",
         "prettier": "^3.9.5",
         "zod": "3.25.76"
     }

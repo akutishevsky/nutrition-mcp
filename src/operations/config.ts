@@ -20,6 +20,13 @@ export function configurationIssues(): ConfigurationIssue[] {
     const production = process.env.NODE_ENV === "production";
     const railwayAuth = present("MUNCH_RAILWAY_AUTH_ENABLED") === "true";
     const railwayData = present("MUNCH_RAILWAY_DATA_ENABLED") === "true";
+    const authBackend = present("MUNCH_AUTH_BACKEND") || "custom";
+    if (authBackend !== "custom" && authBackend !== "better_auth") {
+        issues.push({
+            key: "MUNCH_AUTH_BACKEND",
+            message: "Authentication backend must be custom or better_auth",
+        });
+    }
 
     if (railwayAuth !== railwayData) {
         issues.push({
@@ -61,6 +68,20 @@ export function configurationIssues(): ConfigurationIssue[] {
             key: "MUNCH_SESSION_SECRET",
             message: "Session secret must contain at least 32 characters",
         });
+    }
+
+    if (authBackend === "better_auth") {
+        requireValue(issues, "BETTER_AUTH_SECRET");
+        const secret = present("BETTER_AUTH_SECRET");
+        if (secret && secret.length < 32) {
+            issues.push({
+                key: "BETTER_AUTH_SECRET",
+                message:
+                    "Better Auth secret must contain at least 32 characters",
+            });
+        }
+        requireValue(issues, "MUNCH_EMAIL_DELIVERY_ENDPOINT");
+        requireValue(issues, "MUNCH_EMAIL_DELIVERY_SECRET");
     }
 
     if (production && present("MUNCH_DEV_EXPOSE_LOGIN_LINK") === "true") {
