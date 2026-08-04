@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { requestOriginMatches } from "./csrf.js";
+import { requestHasSameOriginEvidence, requestOriginMatches } from "./csrf.js";
 
 describe("same-origin request protection", () => {
     test("accepts the configured application origin", () => {
@@ -11,7 +11,36 @@ describe("same-origin request protection", () => {
         ).toBe(true);
     });
 
-    test("rejects missing, malformed, and foreign origins", () => {
+    test("accepts the public origin derived through a reverse proxy", () => {
+        expect(
+            requestOriginMatches(
+                "https://munch.business",
+                "https://internal.example",
+                "https://munch.business",
+            ),
+        ).toBe(true);
+    });
+
+    test("accepts a browser same-origin fallback only on the configured host", () => {
+        expect(
+            requestHasSameOriginEvidence({
+                requestOrigin: undefined,
+                configuredBaseUrl: "https://munch.business",
+                requestBaseUrl: "https://munch.business",
+                secFetchSite: "same-origin",
+            }),
+        ).toBe(true);
+        expect(
+            requestHasSameOriginEvidence({
+                requestOrigin: undefined,
+                configuredBaseUrl: "https://munch.business",
+                requestBaseUrl: "https://attacker.example",
+                secFetchSite: "same-origin",
+            }),
+        ).toBe(false);
+    });
+
+    test("rejects missing, malformed, foreign, and cross-site evidence", () => {
         expect(requestOriginMatches(undefined, "https://munch.example")).toBe(
             false,
         );
@@ -23,6 +52,22 @@ describe("same-origin request protection", () => {
                 "https://attacker.example",
                 "https://munch.example",
             ),
+        ).toBe(false);
+        expect(
+            requestHasSameOriginEvidence({
+                requestOrigin: "https://attacker.example",
+                configuredBaseUrl: "https://munch.business",
+                requestBaseUrl: "https://munch.business",
+                secFetchSite: "same-origin",
+            }),
+        ).toBe(false);
+        expect(
+            requestHasSameOriginEvidence({
+                requestOrigin: undefined,
+                configuredBaseUrl: "https://munch.business",
+                requestBaseUrl: "https://munch.business",
+                secFetchSite: "cross-site",
+            }),
         ).toBe(false);
     });
 });
