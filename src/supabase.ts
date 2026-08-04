@@ -331,15 +331,60 @@ export async function existingIdempotencyKeys(
     );
 }
 
-export async function getAllMeals(userId: string): Promise<Meal[]> {
-    const { data, error } = await getSupabase()
-        .from("meals")
-        .select("*")
-        .eq("user_id", userId)
-        .order("logged_at", { ascending: true });
+/**
+ * Fetch pages via `fetchPage(from, to)` (inclusive, 0-indexed) until a page
+ * comes back shorter than `pageSize`. A plain unbounded select silently caps
+ * at PostgREST's `db-max-rows` (default 1000), so any query that can return
+ * more rows than that must page through `.range()` instead of relying on one
+ * request to return everything.
+ */
+export async function fetchAllPages<T>(
+    fetchPage: (from: number, to: number) => Promise<T[]>,
+    pageSize = 1000,
+): Promise<T[]> {
+    const all: T[] = [];
+    for (let from = 0; ; from += pageSize) {
+        const page = await fetchPage(from, from + pageSize - 1);
+        all.push(...page);
+        if (page.length < pageSize) break;
+    }
+    return all;
+}
 
-    if (error) throw new Error(`Failed to get meals: ${error.message}`);
-    return (data as Meal[]) ?? [];
+/**
+ * All of a user's meals, oldest first — used by export_meals. Pages through
+ * `.range()` (see `fetchAllPages`) rather than one unbounded select, since a
+ * user can have up to MAX_MEALS_PER_USER (200,000) meals, far past the
+ * PostgREST row cap. `id` is a secondary sort key so rows sharing a
+ * `logged_at` timestamp still get a stable order across page boundaries —
+ * without it, ties straddling a page edge could be skipped or duplicated.
+ * Reconciles the fetched total against `countMeals` (an independent exact
+ * count) so a truncated result throws instead of silently exporting less
+ * than the user has.
+ */
+export async function getAllMeals(userId: string): Promise<Meal[]> {
+    const expected = await countMeals(userId);
+    if (expected === 0) return [];
+
+    const meals = await fetchAllPages<Meal>(async (from, to) => {
+        const { data, error } = await getSupabase()
+            .from("meals")
+            .select("*")
+            .eq("user_id", userId)
+            .order("logged_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to);
+
+        if (error) throw new Error(`Failed to get meals: ${error.message}`);
+        return (data as Meal[]) ?? [];
+    });
+
+    if (meals.length < expected) {
+        throw new Error(
+            `getAllMeals: fetched ${meals.length} meals but countMeals reported ${expected} — export would be truncated`,
+        );
+    }
+    return meals;
 }
 
 // Keyword search over past meals. Each query string is an alternative (OR'd

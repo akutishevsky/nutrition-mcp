@@ -4,6 +4,7 @@ import {
     widgetsEnabledFromProfile,
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
+    fetchAllPages,
     type MealInput,
     type Profile,
 } from "./supabase.js";
@@ -256,5 +257,89 @@ describe("no-profile defaults, together", () => {
             alcohol: alcoholTrackingEnabledFromProfile(null),
             drinkUnit: preferredDrinkUnitFromProfile(null),
         }).toEqual({ widgets: true, alcohol: false, drinkUnit: null });
+    });
+});
+
+// ---------- fetchAllPages (issue #66: export_meals silently truncated at
+// PostgREST's default db-max-rows of 1000, since getAllMeals had no .range()
+// pagination) ----------
+
+/** An in-memory paged source, standing in for a `.range(from, to)` query. */
+function paged<T>(rows: T[]) {
+    const calls: Array<[number, number]> = [];
+    const fetchPage = async (from: number, to: number): Promise<T[]> => {
+        calls.push([from, to]);
+        return rows.slice(from, to + 1);
+    };
+    return { fetchPage, calls };
+}
+
+describe("fetchAllPages", () => {
+    test("returns everything when it all fits in one short page", async () => {
+        const rows = Array.from({ length: 5 }, (_, i) => i);
+        const { fetchPage, calls } = paged(rows);
+        expect(await fetchAllPages(fetchPage, 1000)).toEqual(rows);
+        // A page shorter than pageSize is itself proof there is no more —
+        // one fetch should be enough, not a second empty-page round trip.
+        expect(calls).toEqual([[0, 999]]);
+    });
+
+    test("empty source returns an empty array from a single fetch", async () => {
+        const { fetchPage, calls } = paged<number>([]);
+        expect(await fetchAllPages(fetchPage, 1000)).toEqual([]);
+        expect(calls).toEqual([[0, 999]]);
+    });
+
+    test("pages through a total larger than one page (the reported bug)", async () => {
+        // 1500 rows with the default 1000-row page: the original unbounded
+        // select returned only the first 1000 and silently dropped the rest.
+        const rows = Array.from({ length: 1500 }, (_, i) => i);
+        const { fetchPage, calls } = paged(rows);
+        const result = await fetchAllPages(fetchPage, 1000);
+        expect(result).toEqual(rows);
+        expect(result).toHaveLength(1500);
+        expect(calls).toEqual([
+            [0, 999],
+            [1000, 1999],
+        ]);
+    });
+
+    test("total an exact multiple of pageSize still terminates", async () => {
+        // A full last page is indistinguishable from "there might be more"
+        // until the next fetch comes back empty — this pins that the loop
+        // does make that extra call, and does stop once it does.
+        const rows = Array.from({ length: 2000 }, (_, i) => i);
+        const { fetchPage, calls } = paged(rows);
+        const result = await fetchAllPages(fetchPage, 1000);
+        expect(result).toEqual(rows);
+        expect(calls).toEqual([
+            [0, 999],
+            [1000, 1999],
+            [2000, 2999],
+        ]);
+    });
+
+    test("honours a custom page size", async () => {
+        const rows = Array.from({ length: 25 }, (_, i) => i);
+        const { fetchPage, calls } = paged(rows);
+        const result = await fetchAllPages(fetchPage, 10);
+        expect(result).toEqual(rows);
+        expect(calls).toEqual([
+            [0, 9],
+            [10, 19],
+            [20, 29],
+        ]);
+    });
+
+    test("preserves row order across page boundaries", async () => {
+        // getAllMeals sorts by logged_at then id before paging; fetchAllPages
+        // must not reorder or interleave what each page hands back.
+        const rows = Array.from({ length: 12 }, (_, i) => ({
+            id: i,
+            logged_at: `2026-01-${String(i + 1).padStart(2, "0")}`,
+        }));
+        const { fetchPage } = paged(rows);
+        const result = await fetchAllPages(fetchPage, 5);
+        expect(result.map((r) => r.id)).toEqual(rows.map((r) => r.id));
     });
 });
