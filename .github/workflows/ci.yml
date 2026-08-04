@@ -120,6 +120,19 @@ jobs:
           MUNCH_EMAIL_FROM: Munch <support@munch.example>
         run: bun scripts/better-auth-oauth-http-smoke.ts
 
+      - name: Provision and exercise marketplace reviewer account
+        env:
+          NODE_ENV: test
+          MUNCH_AUTH_BACKEND: better_auth
+          BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          RESEND_API_KEY: re_test_schema
+          MUNCH_EMAIL_FROM: Munch <support@munch.example>
+        run: |
+          REVIEWER_PASSWORD="$(openssl rand -hex 24)"
+          REVIEWER_EMAIL="reviewer-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.test"
+          MUNCH_REVIEWER_EMAIL="$REVIEWER_EMAIL" MUNCH_REVIEWER_PASSWORD="$REVIEWER_PASSWORD" bun scripts/provision-reviewer.ts
+          MUNCH_REVIEWER_EMAIL="$REVIEWER_EMAIL" MUNCH_REVIEWER_PASSWORD="$REVIEWER_PASSWORD" bun scripts/reviewer-readiness-smoke.ts
+
       - name: Exercise account, billing, and OAuth persistence
         run: bun scripts/platform-smoke.ts
 

@@ -1,6 +1,7 @@
 import { getActiveHouseholdContext } from "../households/repository.js";
-import { getSubscriptionSnapshot } from "./repository.js";
 import type { SubscriptionSnapshot } from "./entitlements.js";
+import { hasActivePremiumOverride } from "./override.js";
+import { getSubscriptionSnapshot } from "./repository.js";
 
 export const FREE_HISTORY_DAYS = 30;
 export const FREE_SAVED_FOOD_LIMIT = 25;
@@ -29,6 +30,7 @@ export interface MunchCapabilities {
     entitlementSource:
         | "free"
         | "direct_subscription"
+        | "explicit_override"
         | "household_subscription"
         | "retained_read_access";
 }
@@ -72,24 +74,43 @@ export function capabilitiesFromSubscription(
     };
 }
 
+function applyPremiumOverride(
+    capabilities: MunchCapabilities,
+): MunchCapabilities {
+    return {
+        ...capabilities,
+        tier: "premium",
+        historyDays: null,
+        savedFoodLimit: null,
+        personalRecipesRead: true,
+        personalRecipesWrite: true,
+        personalPlanningRead: true,
+        personalPlanningWrite: true,
+        entitlementSource: "explicit_override",
+    };
+}
+
 export async function resolveMunchCapabilities(
     userId: string,
 ): Promise<MunchCapabilities> {
-    const [directSubscription, household] = await Promise.all([
-        getSubscriptionSnapshot(userId),
-        getActiveHouseholdContext(userId),
-    ]);
-    const result = capabilitiesFromSubscription(directSubscription);
+    const [directSubscription, household, explicitOverride] = await Promise.all(
+        [
+            getSubscriptionSnapshot(userId),
+            getActiveHouseholdContext(userId),
+            hasActivePremiumOverride(userId),
+        ],
+    );
+    const direct = capabilitiesFromSubscription(directSubscription);
+    const result = explicitOverride ? applyPremiumOverride(direct) : direct;
     if (!household) return result;
 
-    const ownerSubscription =
+    const ownerPremium =
         household.ownerUserId === userId
-            ? directSubscription
-            : await getSubscriptionSnapshot(household.ownerUserId);
-    const householdPremium = subscriptionProvidesPremium(
-        ownerSubscription,
-        new Date(),
-    );
+            ? result.tier === "premium"
+            : subscriptionProvidesPremium(
+                  await getSubscriptionSnapshot(household.ownerUserId),
+                  new Date(),
+              ) || (await hasActivePremiumOverride(household.ownerUserId));
     const canEdit = household.role === "owner" || household.role === "member";
 
     return {
@@ -102,15 +123,16 @@ export async function resolveMunchCapabilities(
             displayName: household.displayName,
         },
         householdRead: true,
-        householdWrite: householdPremium && canEdit,
+        householdWrite: ownerPremium && canEdit,
         householdManage:
-            householdPremium &&
+            ownerPremium &&
             household.role === "owner" &&
             household.ownerUserId === userId,
-        entitlementSource: result.personalRecipesWrite
-            ? "direct_subscription"
-            : householdPremium
-              ? "household_subscription"
-              : "retained_read_access",
+        entitlementSource:
+            result.tier === "premium"
+                ? result.entitlementSource
+                : ownerPremium
+                  ? "household_subscription"
+                  : "retained_read_access",
     };
 }

@@ -13,6 +13,7 @@ import {
 
 function createMunchBetterAuth() {
     const config = getBetterAuthRuntimeConfig();
+    const reviewerSeedMode = process.env.MUNCH_REVIEWER_SEED_MODE === "true";
     const database = new Pool({
         connectionString: config.databaseUrl,
         max: config.databasePoolSize,
@@ -42,7 +43,12 @@ function createMunchBetterAuth() {
         database,
         trustedOrigins: [config.baseUrl],
         emailAndPassword: {
-            enabled: false,
+            enabled: true,
+            disableSignUp: !reviewerSeedMode,
+            minPasswordLength: 16,
+            maxPasswordLength: 128,
+            autoSignIn: false,
+            requireEmailVerification: false,
         },
         user: {
             modelName: "users",
@@ -139,6 +145,14 @@ function createMunchBetterAuth() {
                 "/sign-in/magic-link": {
                     window: 60,
                     max: 5,
+                },
+                "/sign-in/email": {
+                    window: 60,
+                    max: 5,
+                },
+                "/sign-up/email": {
+                    window: 60,
+                    max: 2,
                 },
                 "/oauth2/register": {
                     window: 60,
