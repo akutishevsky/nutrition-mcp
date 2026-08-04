@@ -114,6 +114,15 @@ jobs:
           MUNCH_EMAIL_FROM: Munch <support@munch.example>
         run: bun scripts/better-auth-schema-smoke.ts
 
+      - name: Exercise Better Auth dynamic client registration
+        env:
+          NODE_ENV: test
+          MUNCH_AUTH_BACKEND: better_auth
+          BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          RESEND_API_KEY: re_test_schema
+          MUNCH_EMAIL_FROM: Munch <support@munch.example>
+        run: bun scripts/better-auth-oauth-http-smoke.ts
+
       - name: Exercise account, billing, and OAuth persistence
         run: bun scripts/platform-smoke.ts
 
