@@ -6,13 +6,10 @@
         <title>Privacy Policy — Munch</title>
         <meta
             name="description"
-            content="How Munch stores nutrition records, works with ChatGPT, protects account data, and supports export and deletion."
+            content="How Munch stores nutrition, recipe, planning, grocery, and household records; works with ChatGPT; and supports export and deletion."
         />
         <meta name="theme-color" content="#0B8F4D" />
-        <link
-            rel="canonical"
-            href="https://munch-production-de3a.up.railway.app/privacy"
-        />
+        <link rel="canonical" href="https://munch.business/privacy" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/styles.css" />
     </head>
@@ -38,15 +35,17 @@
                     <p class="section-kicker">Privacy without vague promises</p>
                     <h1>Privacy Policy</h1>
                     <p class="section-copy">
-                        Munch is a consumer nutrition service designed to work
-                        through ChatGPT and compatible MCP clients.
+                        Munch is a consumer nutrition, recipe, and meal-planning
+                        service designed to work through ChatGPT and compatible
+                        MCP clients.
                     </p>
-                    <p class="tiny spacer-top">Last updated: August 3, 2026</p>
+                    <p class="tiny spacer-top">Last updated: August 4, 2026</p>
                 </div>
             </section>
             <div class="container legal-layout">
                 <nav class="legal-nav" aria-label="Privacy sections">
                     <a href="#summary">Summary</a><a href="#data">Data stored</a
+                    ><a href="#households">Households</a
                     ><a href="#chatgpt">ChatGPT and OpenAI</a
                     ><a href="#providers">Service providers</a
                     ><a href="#security">Security</a
@@ -58,24 +57,24 @@
                     <section id="summary">
                         <h2>Summary</h2>
                         <div class="notice">
-                            Munch does not sell nutrition data, use Google
-                            Analytics or advertising trackers, or train a Munch
-                            AI model on your nutrition records. ChatGPT is
-                            operated by OpenAI and is governed separately by
-                            OpenAI's terms, privacy policy, plan, and user
-                            settings.
+                            Munch does not sell nutrition data, use advertising
+                            trackers, or train a Munch AI model on your
+                            nutrition records. ChatGPT is operated by OpenAI and
+                            is governed separately by OpenAI's terms, privacy
+                            policy, plan, and user settings.
                         </div>
                     </section>
                     <section id="data">
                         <h2>What Munch stores</h2>
                         <p>
-                            Munch stores the information needed to provide the
-                            service, including:
+                            Munch stores the information needed to provide and
+                            protect the service, including:
                         </p>
                         <ul>
                             <li>
-                                Account email, login challenges, sessions, and
-                                security records.
+                                Account email, passwordless login challenges,
+                                sessions, security records, preferences, and
+                                authorized connections.
                             </li>
                             <li>
                                 Meals, meal items, calories, nutrients, meal
@@ -88,13 +87,19 @@
                                 save.
                             </li>
                             <li>
-                                Water, weight, goals, timezone, units, and other
-                                account preferences.
+                                Water, weight, user-entered goals, timezone,
+                                units, and other account preferences.
                             </li>
                             <li>
-                                OAuth clients, authorization sessions, token
-                                families, connection status, and revocation
-                                records.
+                                Recipes, immutable recipe revisions,
+                                ingredients, instructions, servings, factual
+                                nutrition, source provenance, planned meals, and
+                                grocery-list items.
+                            </li>
+                            <li>
+                                Household names, display names, membership
+                                roles, invitations, and factual attribution
+                                showing who created or changed shared records.
                             </li>
                             <li>
                                 Stripe customer, subscription, entitlement,
@@ -103,27 +108,57 @@
                                 numbers.
                             </li>
                             <li>
-                                Exports, deletion requests, bounded operational
-                                logs, and security telemetry needed to run and
-                                protect the service.
+                                Short-lived exports, deletion requests, bounded
+                                operational logs, and security telemetry needed
+                                to run and protect the service.
                             </li>
                         </ul>
                         <h3>Tool inputs</h3>
                         <p>
                             When ChatGPT calls a Munch tool, Munch receives the
-                            tool arguments needed to perform the request. Those
-                            arguments can contain food descriptions, quantities,
-                            dates, nutrition values, water, weight, goals, or
+                            tool arguments needed to perform that request. Those
+                            arguments can include food descriptions, quantities,
+                            dates, nutrition values, water, weight, goals,
+                            recipes, meal-plan instructions, grocery items, or
                             account instructions. Munch does not automatically
                             receive unrelated parts of your conversation.
                         </p>
                         <h3>Why it is stored</h3>
                         <p>
                             Munch uses this information to authenticate you,
-                            maintain persistent nutrition history, search food
-                            databases, answer authorized tool requests, enforce
-                            subscription access, prevent abuse, support export
-                            and deletion, and operate the service.
+                            maintain persistent records, search food databases,
+                            answer authorized tool requests, apply Free and
+                            Premium capability limits, coordinate household
+                            workspaces, prevent abuse, support export and
+                            deletion, and operate the service.
+                        </p>
+                    </section>
+                    <section id="households">
+                        <h2>Household sharing</h2>
+                        <p>
+                            A household is a shared workspace. Active household
+                            members can see household recipes, planned meals,
+                            grocery lists, household display names, roles, and
+                            factual activity attribution. Owners and members can
+                            edit shared records when the household has
+                            applicable access; viewers are read-only.
+                        </p>
+                        <p>
+                            Personal meal history, water logs, weight logs,
+                            personal saved foods, and personal goals are not
+                            shared merely because an account joins a household.
+                            A record is shared only when it is created in the
+                            household workspace.
+                        </p>
+                        <p>
+                            If a non-owner deletes an account, the account link
+                            is removed but the display name recorded on shared
+                            household activity may remain so other members can
+                            understand the history of the shared workspace. A
+                            household owner must transfer ownership or dissolve
+                            the household before deleting the owner's account.
+                            Dissolving a household permanently deletes its
+                            shared workspace records.
                         </p>
                     </section>
                     <section id="chatgpt">
@@ -155,17 +190,18 @@
                         <ul>
                             <li>
                                 <strong>Railway</strong> hosts the Munch
-                                application and Railway PostgreSQL database.
+                                application and PostgreSQL database.
                             </li>
                             <li>
-                                <strong>Stripe</strong> processes checkout,
-                                recurring billing, payment methods, invoices,
-                                cancellations, and subscription recovery.
+                                <strong>Stripe</strong> processes Premium
+                                checkout, recurring billing, payment methods,
+                                invoices, cancellations, and subscription
+                                recovery on the Munch website.
                             </li>
                             <li>
-                                <strong>Email delivery provider</strong>
-                                processes the email address and secure sign-in
-                                link needed for passwordless login.
+                                <strong>Resend</strong> processes email
+                                addresses and sends passwordless sign-in links
+                                and household invitations.
                             </li>
                             <li>
                                 <strong>USDA FoodData Central</strong> receives
@@ -186,8 +222,8 @@
                         <p>
                             These providers process information under their own
                             terms and privacy practices. Munch does not use
-                            Google Analytics and does not operate an advertising
-                            profile.
+                            advertising analytics or create advertising
+                            profiles.
                         </p>
                     </section>
                     <section id="security">
@@ -196,10 +232,9 @@
                             Munch uses HTTPS in production, signed and expiring
                             sessions, OAuth authorization with PKCE, verified
                             Stripe webhook signatures, rate limiting, bounded
-                            request bodies, and account-scoped database access
-                            patterns. Nutrition records are associated with an
-                            account and are not exposed through routine billing
-                            or support views.
+                            request bodies, hashed invitation and export tokens,
+                            and forced PostgreSQL row-level security for
+                            personal and household records.
                         </p>
                         <p>
                             Access to production systems is restricted, but no
@@ -213,19 +248,31 @@
                     <section id="rights">
                         <h2>Export, connections, and deletion</h2>
                         <p>
-                            You can export meal history, revoke individual
-                            ChatGPT/MCP connections, manage billing through
-                            Stripe, and permanently delete your Munch account
-                            through the account portal.
+                            The account portal can generate a short-lived JSON
+                            export containing personal Munch data and shared
+                            household records the account is authorized to view.
+                            The export excludes other household members' email
+                            addresses and internal account identifiers. The
+                            conversational meal-history CSV export remains
+                            available separately.
+                        </p>
+                        <p>
+                            You can revoke individual ChatGPT/MCP connections,
+                            manage website billing through Stripe, leave a
+                            household, transfer ownership, dissolve a household,
+                            and permanently delete your Munch account through
+                            available controls.
                         </p>
                         <p>
                             Account deletion removes active Munch account data,
-                            nutrition records, saved foods, drafts, preferences,
-                            and active connections from the primary application
-                            database. Some limited records may remain
-                            temporarily in security logs, database backups,
-                            Stripe records, or records Munch must retain for
-                            fraud, accounting, legal, or dispute purposes.
+                            personal nutrition records, saved foods, drafts,
+                            preferences, and active connections from the primary
+                            application database. Shared display-name
+                            attribution may remain as described above. Limited
+                            records may also remain temporarily in security
+                            logs, database backups, Stripe records, or records
+                            Munch must retain for fraud, accounting, legal, or
+                            dispute purposes.
                         </p>
                         <p>
                             Deleting Munch data does not delete conversation
@@ -235,13 +282,13 @@
                     <section id="retention">
                         <h2>Retention</h2>
                         <p>
-                            Active account data is retained while the account is
-                            open and as needed to provide the service. Expired
-                            login challenges, sessions, OAuth artifacts,
-                            exports, and operational records are subject to
-                            bounded cleanup. Backups and legally required
-                            billing records can persist after deletion for a
-                            limited period.
+                            Active account and workspace data is retained while
+                            needed to provide the service. Expired login
+                            challenges, sessions, OAuth artifacts, invitation
+                            tokens, export files, and operational records are
+                            subject to bounded cleanup. Exports expire after one
+                            hour. Backups and legally required billing records
+                            can persist after deletion for a limited period.
                         </p>
                     </section>
                     <section id="limits">
@@ -262,11 +309,10 @@
                         </p>
                         <h3>Contact</h3>
                         <p>
-                            A dedicated support and privacy contact will be
-                            published before general availability. Until then,
-                            project issues may be reported through the Munch
-                            GitHub repository without including sensitive
-                            nutrition or account data.
+                            Do not place sensitive nutrition or account data in
+                            public GitHub issues. Privacy and support contact
+                            information will be provided through official Munch
+                            account communications and website notices.
                         </p>
                     </section>
                 </article>

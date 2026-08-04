@@ -6,13 +6,10 @@
         <title>Terms of Service — Munch</title>
         <meta
             name="description"
-            content="Terms governing the Munch ChatGPT-first nutrition subscription service."
+            content="Terms governing Munch Free, Premium, household workspaces, website billing, OAuth connections, and MCP nutrition tools."
         />
         <meta name="theme-color" content="#0B8F4D" />
-        <link
-            rel="canonical"
-            href="https://munch-production-de3a.up.railway.app/terms"
-        />
+        <link rel="canonical" href="https://munch.business/terms" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/styles.css" />
     </head>
@@ -38,18 +35,20 @@
                     <p class="section-kicker">Service terms</p>
                     <h1>Terms of Service</h1>
                     <p class="section-copy">
-                        These terms govern access to Munch, including the
-                        website, account portal, billing, OAuth connections, and
-                        MCP nutrition tools.
+                        These terms govern Munch, including the website, account
+                        portal, Free and Premium capabilities, household
+                        workspaces, billing, OAuth connections, and MCP tools.
                     </p>
-                    <p class="tiny spacer-top">Last updated: August 3, 2026</p>
+                    <p class="tiny spacer-top">Last updated: August 4, 2026</p>
                 </div>
             </section>
             <div class="container legal-layout">
                 <nav class="legal-nav" aria-label="Terms sections">
                     <a href="#service">Service</a
-                    ><a href="#subscription">Subscription</a
+                    ><a href="#plans">Free and Premium</a
+                    ><a href="#households">Households</a
                     ><a href="#accuracy">Nutrition accuracy</a
+                    ><a href="#account">Account security</a
                     ><a href="#acceptable">Acceptable use</a
                     ><a href="#third-party">Third parties</a
                     ><a href="#availability">Availability</a
@@ -62,9 +61,10 @@
                         <p>
                             Munch is a consumer wellness service that gives
                             ChatGPT and compatible MCP clients authorized tools
-                            for storing and retrieving nutrition records,
-                            searching food databases, managing saved foods,
-                            tracking water and weight, and reviewing trends.
+                            for food search, nutrition records, saved foods,
+                            recipes, meal calendars, grocery lists, household
+                            collaboration, water and weight tracking, and
+                            factual summaries.
                         </p>
                         <p>
                             Munch is not a standalone AI model and does not
@@ -73,32 +73,40 @@
                             Munch.
                         </p>
                     </section>
-                    <section id="subscription">
+                    <section id="plans">
                         <h2>
-                            2. Subscription, trial, renewal, and cancellation
+                            2. Free access, Premium, trial, and cancellation
                         </h2>
                         <p>
-                            Munch currently offers one subscription: a seven-day
-                            free trial followed by $4.99 per month, plus any
-                            applicable taxes. Payment information is collected
-                            by Stripe when the trial begins.
+                            Munch Free provides permanent core access without a
+                            payment method, subject to the limits shown on the
+                            Munch website. Connecting Munch to ChatGPT does not
+                            require Premium.
                         </p>
                         <p>
-                            Unless canceled before the trial ends, the
-                            subscription automatically converts to a paid
-                            monthly subscription. It then renews each month
-                            until canceled. You authorize Stripe to charge the
-                            saved payment method for recurring fees and
-                            applicable taxes.
+                            Munch Premium is purchased independently on the
+                            Munch website. The current offer is a 30-day trial
+                            followed by $4.99 per month, plus applicable taxes.
+                            Payment information is collected by Stripe when the
+                            Premium trial begins. Trial availability may be
+                            limited to eligible accounts.
                         </p>
                         <p>
-                            You can cancel and manage payment methods through
-                            the Stripe-hosted customer portal linked from the
-                            Munch account portal. Cancellation normally takes
-                            effect at the end of the current paid period unless
-                            Stripe or applicable law provides otherwise.
-                            Deleting a Munch account does not automatically
-                            erase Stripe's legally required billing records.
+                            Unless canceled before the trial ends, Premium
+                            automatically converts to a paid monthly
+                            subscription and renews each month until canceled.
+                            You authorize Stripe to charge the saved payment
+                            method for recurring fees and applicable taxes.
+                        </p>
+                        <p>
+                            Payment methods, invoices, and cancellation are
+                            managed through the Stripe-hosted customer portal
+                            linked from the Munch account portal. Cancellation
+                            normally takes effect at the end of the current paid
+                            period unless Stripe or applicable law provides
+                            otherwise. Canceling Premium does not delete the
+                            Munch account or personal data; the account returns
+                            to applicable Free capabilities.
                         </p>
                         <p>
                             Promotions, refunds, credits, and trial eligibility
@@ -107,13 +115,44 @@
                             non-refundable.
                         </p>
                     </section>
+                    <section id="households">
+                        <h2>3. Household workspaces</h2>
+                        <p>
+                            A directly eligible Premium account may create and
+                            own one household subject to the current member
+                            limit. The owner can invite accounts as members or
+                            viewers. Members may edit shared records while
+                            viewers are read-only. Household access depends on
+                            the owner's applicable entitlement.
+                        </p>
+                        <p>
+                            Household recipes, planned meals, grocery lists,
+                            display names, roles, and factual activity
+                            attribution are visible to active household members.
+                            Personal meals, water, weight, personal saved foods,
+                            and personal goals remain private unless the user
+                            deliberately creates a record in the shared
+                            household workspace.
+                        </p>
+                        <p>
+                            Household members are responsible for inviting only
+                            people they are authorized to include and for the
+                            information they place in the shared workspace. A
+                            household owner must transfer ownership or dissolve
+                            the household before deleting the owner's account.
+                            Dissolution permanently deletes shared household
+                            records. A former member's display-name attribution
+                            may remain with shared activity as described in the
+                            Privacy Policy.
+                        </p>
+                    </section>
                     <section id="accuracy">
-                        <h2>3. Nutrition estimates and no medical advice</h2>
+                        <h2>4. Nutrition estimates and no medical advice</h2>
                         <p>
                             Munch may use USDA FoodData Central, Open Food
-                            Facts, saved foods, prior confirmed meals,
+                            Facts, saved foods, recipes, prior confirmed meals,
                             user-provided information, and AI-assisted
-                            estimates. Food records can be incomplete, outdated,
+                            estimates. Records can be incomplete, outdated,
                             mislabeled, or based on assumptions. Restaurant
                             preparation, portion size, recipes, and product
                             reformulation can materially change actual
@@ -129,23 +168,24 @@
                         </p>
                     </section>
                     <section id="account">
-                        <h2>4. Account and connection security</h2>
+                        <h2>5. Account, invitation, and connection security</h2>
                         <p>
                             You are responsible for controlling access to your
                             email account, Munch session, ChatGPT account,
-                            connected MCP clients, and devices. Notify Munch of
-                            suspected unauthorized access and revoke affected
-                            connections promptly.
+                            connected MCP clients, household invitation links,
+                            and devices. Notify Munch of suspected unauthorized
+                            access and revoke affected connections promptly.
                         </p>
                         <p>
                             You must provide accurate information and may not
-                            impersonate another person, transfer access
-                            deceptively, or attempt to bypass subscriptions,
-                            authorization, rate limits, or database isolation.
+                            impersonate another person, accept an invitation
+                            sent to another email address, transfer access
+                            deceptively, or attempt to bypass authorization,
+                            plan limits, rate limits, or database isolation.
                         </p>
                     </section>
                     <section id="acceptable">
-                        <h2>5. Acceptable use</h2>
+                        <h2>6. Acceptable use</h2>
                         <p>You may not use Munch to:</p>
                         <ul>
                             <li>
@@ -156,7 +196,8 @@
                                 reverse engineer, or bypass security controls.
                             </li>
                             <li>
-                                Access another account's records or credentials.
+                                Access another account's personal or household
+                                records or credentials without authorization.
                             </li>
                             <li>Upload malware or automate abusive traffic.</li>
                             <li>
@@ -164,21 +205,20 @@
                                 clinical, or laboratory analysis.
                             </li>
                             <li>
-                                Resell the service or create competing bulk data
-                                services without written permission.
+                                Resell the hosted service or create competing
+                                bulk data services without written permission.
                             </li>
                         </ul>
                     </section>
                     <section id="third-party">
                         <h2>
-                            6. Third-party services and open-source software
+                            7. Third-party services and open-source software
                         </h2>
                         <p>
                             Munch depends on services operated by OpenAI,
-                            Stripe, Railway, email providers, USDA FoodData
-                            Central, Open Food Facts, and other infrastructure
-                            providers. Their terms and availability apply
-                            separately.
+                            Stripe, Railway, Resend, USDA FoodData Central, Open
+                            Food Facts, and other infrastructure providers.
+                            Their terms and availability apply separately.
                         </p>
                         <p>
                             Munch began as a fork of the MIT-licensed Nutrition
@@ -190,13 +230,14 @@
                         </p>
                     </section>
                     <section id="availability">
-                        <h2>7. Changes and availability</h2>
+                        <h2>8. Changes and availability</h2>
                         <p>
-                            Munch may modify tools, limits, supported clients,
-                            sources, pricing for future periods, security
-                            requirements, or the service itself. Reasonable
-                            notice will be provided for material subscription
-                            changes when required.
+                            Munch may modify tools, Free limits, supported
+                            clients, food sources, household limits, Premium
+                            pricing for future periods, security requirements,
+                            or the service itself. Reasonable notice will be
+                            provided for material subscription changes when
+                            required.
                         </p>
                         <p>
                             The service may be interrupted by maintenance,
@@ -207,18 +248,27 @@
                         </p>
                     </section>
                     <section id="termination">
-                        <h2>8. Suspension and termination</h2>
+                        <h2>9. Suspension, cancellation, and termination</h2>
                         <p>
-                            Munch may suspend or terminate access for
-                            nonpayment, abuse, security risk, legal
-                            requirements, material breach, or discontinued
-                            service. You may stop using Munch, cancel billing,
-                            revoke connections, export data, and delete the
-                            account through available controls.
+                            Munch may suspend or terminate access for abuse,
+                            security risk, legal requirements, material breach,
+                            or discontinued service. Premium capabilities may be
+                            restricted for nonpayment while applicable Free
+                            capabilities remain available unless the account is
+                            otherwise suspended.
+                        </p>
+                        <p>
+                            You may stop using Munch, cancel Premium, revoke
+                            connections, export data, leave or dissolve a
+                            household as applicable, and delete the account
+                            through available controls. Deleting a Munch account
+                            does not automatically cancel an active Stripe
+                            subscription or erase Stripe's legally required
+                            billing records.
                         </p>
                     </section>
                     <section id="liability">
-                        <h2>9. Disclaimers and limitation of liability</h2>
+                        <h2>10. Disclaimers and limitation of liability</h2>
                         <p>
                             To the maximum extent permitted by law, Munch is
                             provided "as is" and "as available" without
@@ -239,17 +289,19 @@
                         </p>
                     </section>
                     <section id="law">
-                        <h2>10. Governing law and contact</h2>
+                        <h2>11. Governing law, consumer rights, and contact</h2>
                         <p>
-                            The governing-law and formal legal-contact
-                            provisions will be finalized before general
-                            commercial availability. Consumer rights that cannot
-                            lawfully be waived remain unaffected.
+                            Formal governing-law and legal-contact provisions
+                            may be supplemented before broader commercial
+                            availability. Consumer rights that cannot lawfully
+                            be waived remain unaffected.
                         </p>
                         <p>
-                            A dedicated support address will be published before
-                            launch. Do not place sensitive nutrition or account
-                            information in public GitHub issues.
+                            Do not place sensitive nutrition, household, or
+                            account information in public GitHub issues.
+                            Official support and legal contact information will
+                            be provided through Munch account communications and
+                            website notices.
                         </p>
                         <h3>Changes to these terms</h3>
                         <p>
