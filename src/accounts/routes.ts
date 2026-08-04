@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { betterAuthIsEnabled } from "../auth/config.js";
 import { decideEntitlement } from "../billing/entitlements.js";
 import { getSubscriptionSnapshot } from "../billing/repository.js";
 import { rateLimitAuth } from "../middleware.js";
@@ -37,11 +38,31 @@ export function createAccountRouter(): Hono {
     account.use("/account/login/request", rateLimitAuth);
     account.use("/account/login/consume", rateLimitAuth);
 
-    account.get("/account/login", async (c) =>
-        c.html(await Bun.file("./public/login.html").text()),
-    );
+    account.get("/account/login", async (c) => {
+        if (betterAuthIsEnabled()) {
+            const returnTo = safeLocalRedirectPath(
+                c.req.query("return_to"),
+                "/account/portal",
+            );
+            return c.redirect(
+                `/connect/sign-in?return_to=${encodeURIComponent(returnTo)}`,
+                302,
+            );
+        }
+        return c.html(await Bun.file("./public/login.html").text());
+    });
 
     account.post("/account/login/request", requireSameOrigin, async (c) => {
+        if (betterAuthIsEnabled()) {
+            return c.json(
+                {
+                    error: "legacy_login_disabled",
+                    loginUrl: "/connect/sign-in",
+                },
+                410,
+            );
+        }
+
         let body: LoginRequestBody;
         try {
             body = (await c.req.json()) as LoginRequestBody;
@@ -88,6 +109,10 @@ export function createAccountRouter(): Hono {
     });
 
     account.get("/account/login/consume", async (c) => {
+        if (betterAuthIsEnabled()) {
+            return c.redirect("/connect/error", 302);
+        }
+
         const token = c.req.query("token");
         if (!token) {
             return c.html(loginErrorPage("The sign-in token is missing."), 400);

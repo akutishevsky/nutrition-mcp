@@ -3,6 +3,7 @@ import { magicLink } from "better-auth/plugins";
 import { Pool } from "pg";
 import { getBetterAuthRuntimeConfig } from "./config.js";
 import { sendBetterAuthMagicLink } from "./email.js";
+import { buildScannerSafeMagicLink } from "./magic-link-url.js";
 
 function createMunchBetterAuth() {
     const config = getBetterAuthRuntimeConfig();
@@ -14,6 +15,18 @@ function createMunchBetterAuth() {
         application_name: "munch-better-auth",
         options: "-c search_path=munch,public -c role=munch_auth",
     });
+
+    async function activateVerifiedUser(userId: string): Promise<void> {
+        await database.query(
+            `update munch.users
+             set status = 'active',
+                 email_verified = true,
+                 email_verified_at = coalesce(email_verified_at, now()),
+                 updated_at = now()
+             where id = $1`,
+            [userId],
+        );
+    }
 
     return betterAuth({
         appName: "Munch",
@@ -97,6 +110,18 @@ function createMunchBetterAuth() {
                             name: user.name?.trim() || "Munch user",
                         },
                     }),
+                    after: async (user) => {
+                        if (user.emailVerified) {
+                            await activateVerifiedUser(user.id);
+                        }
+                    },
+                },
+                update: {
+                    after: async (user) => {
+                        if (user.emailVerified) {
+                            await activateVerifiedUser(user.id);
+                        }
+                    },
                 },
             },
         },
@@ -112,6 +137,7 @@ function createMunchBetterAuth() {
             },
         },
         advanced: {
+            cookiePrefix: "munch",
             useSecureCookies: config.production,
             database: {
                 generateId: "uuid",
@@ -131,7 +157,10 @@ function createMunchBetterAuth() {
                 sendMagicLink: async ({ email, url }) => {
                     await sendBetterAuthMagicLink({
                         email,
-                        loginUrl: url,
+                        loginUrl: buildScannerSafeMagicLink({
+                            generatedUrl: url,
+                            baseUrl: config.baseUrl,
+                        }),
                         expiresAt: new Date(
                             Date.now() + config.magicLinkExpiresIn * 1000,
                         ),

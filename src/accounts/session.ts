@@ -1,5 +1,7 @@
 import type { Context, Next } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { getMunchBetterAuth } from "../auth/auth.js";
+import { betterAuthIsEnabled } from "../auth/config.js";
 import {
     resolveWebSession,
     revokeWebSession,
@@ -33,6 +35,20 @@ export function setWebSessionCookie(
 }
 
 export async function requireWebSession(c: Context, next: Next) {
+    if (betterAuthIsEnabled()) {
+        const session = await getMunchBetterAuth().api.getSession({
+            headers: c.req.raw.headers,
+        });
+        if (!session?.user) {
+            return c.json({ error: "authentication_required" }, 401);
+        }
+
+        c.set("munchUserId", session.user.id);
+        c.set("munchUserEmail", session.user.email);
+        await next();
+        return;
+    }
+
     const token = getCookie(c, MUNCH_SESSION_COOKIE);
     if (!token) {
         return c.json({ error: "authentication_required" }, 401);
@@ -50,6 +66,17 @@ export async function requireWebSession(c: Context, next: Next) {
 }
 
 export async function clearWebSession(c: Context): Promise<void> {
+    if (betterAuthIsEnabled()) {
+        const response = await getMunchBetterAuth().api.signOut({
+            headers: c.req.raw.headers,
+            asResponse: true,
+        });
+        for (const cookie of response.headers.getSetCookie()) {
+            c.header("Set-Cookie", cookie, { append: true });
+        }
+        return;
+    }
+
     const token = getCookie(c, MUNCH_SESSION_COOKIE);
     if (token) {
         await revokeWebSession(token);
