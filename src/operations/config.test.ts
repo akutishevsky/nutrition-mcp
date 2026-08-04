@@ -35,8 +35,7 @@ function validBetterAuthRailwayEnvironment() {
     Object.assign(process.env, {
         MUNCH_AUTH_BACKEND: "better_auth",
         BETTER_AUTH_SECRET: "b".repeat(64),
-        MUNCH_EMAIL_DELIVERY_ENDPOINT: "https://mail.example/deliver",
-        MUNCH_EMAIL_DELIVERY_SECRET: "better-auth-delivery-secret",
+        RESEND_API_KEY: "re_test_key",
         MUNCH_EMAIL_FROM: "Munch <support@munch.example>",
     });
 }
@@ -82,11 +81,12 @@ describe("Munch startup configuration", () => {
         expect(keys).toContain("STRIPE_WEBHOOK_SECRET");
     });
 
-    test("requires an explicit Better Auth sender identity", () => {
+    test("requires Resend and an explicit Better Auth sender", () => {
         validBetterAuthRailwayEnvironment();
+        delete process.env.RESEND_API_KEY;
         delete process.env.MUNCH_EMAIL_FROM;
-        expect(configurationIssues()).toContainEqual(
-            expect.objectContaining({ key: "MUNCH_EMAIL_FROM" }),
-        );
+        const keys = configurationIssues().map((issue) => issue.key);
+        expect(keys).toContain("RESEND_API_KEY");
+        expect(keys).toContain("MUNCH_EMAIL_FROM");
     });
 });

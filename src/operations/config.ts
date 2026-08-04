@@ -95,16 +95,8 @@ export function configurationIssues(): ConfigurationIssue[] {
                     "Better Auth secret must contain at least 32 characters",
             });
         }
-        requireValue(issues, "MUNCH_EMAIL_DELIVERY_ENDPOINT");
-        requireValue(issues, "MUNCH_EMAIL_DELIVERY_SECRET");
+        requireValue(issues, "RESEND_API_KEY");
         requireValue(issues, "MUNCH_EMAIL_FROM");
-        if (production) {
-            validateHttpsUrl(
-                issues,
-                "MUNCH_EMAIL_DELIVERY_ENDPOINT",
-                "Production Better Auth email delivery endpoint must use HTTPS",
-            );
-        }
     } else {
         const sessionSecret = present("MUNCH_SESSION_SECRET");
         if (sessionSecret.length < 32) {

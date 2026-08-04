@@ -14,8 +14,6 @@ public/map-data.json
 # Workflow and deployment assets are maintained separately from application
 # formatting because they are executed/reviewed as operational artifacts.
 .github/workflows/ci.yml
-.github/workflows/railway-deploy.yml
-docs/deployment/better-auth-certification.md
 docs/deployment/better-auth-cutover.md
 scripts/certification/public.ts
 

@@ -110,8 +110,8 @@ jobs:
           NODE_ENV: test
           MUNCH_AUTH_BACKEND: better_auth
           BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-          MUNCH_EMAIL_DELIVERY_ENDPOINT: https://email.example/deliver
-          MUNCH_EMAIL_DELIVERY_SECRET: test-delivery-secret
+          RESEND_API_KEY: re_test_schema
+          MUNCH_EMAIL_FROM: Munch <support@munch.example>
         run: bun scripts/better-auth-schema-smoke.ts
 
       - name: Exercise account, billing, and OAuth persistence
