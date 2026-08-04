@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { betterAuthIsEnabled } from "../auth/config.js";
 import { decideEntitlement } from "../billing/entitlements.js";
 import { getSubscriptionSnapshot } from "../billing/repository.js";
+import { createHouseholdRouter } from "../households/routes.js";
 import { rateLimitAuth } from "../middleware.js";
 import { createPortalRouter } from "../portal/routes.js";
 import { requireSameOrigin } from "./csrf.js";
@@ -162,5 +163,6 @@ export function createAccountRouter(): Hono {
     );
 
     account.route("/", createPortalRouter());
+    account.route("/", createHouseholdRouter());
     return account;
 }
