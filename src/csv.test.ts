@@ -16,6 +16,7 @@ import {
     isDeletedRow,
     sniffDateFormat,
     toIsoDate,
+    normalizeTime,
     sniffEnergyUnit,
     toKcal,
 } from "./csv.js";
@@ -672,6 +673,101 @@ test("toIsoDate output is accepted by the server's resolveLoggedAt", () => {
     expect(resolveLoggedAt("18/07/2026", "Europe/Kyiv", Date.now()).ok).toBe(
         false,
     );
+});
+
+// ---------- time conversion ----------
+
+test("normalizeTime pads an unpadded 24-hour hour", () => {
+    // The server's LOCAL_DATETIME_RE demands exactly 2-2 digits, so "9:15"
+    // would be rejected even though it names a real time.
+    expect(normalizeTime("9:15")).toBe("09:15");
+    expect(normalizeTime("0:05")).toBe("00:05");
+    // Already padded: unchanged.
+    expect(normalizeTime("09:15")).toBe("09:15");
+    expect(normalizeTime("23:15")).toBe("23:15");
+    expect(normalizeTime("00:00")).toBe("00:00");
+});
+
+test("normalizeTime converts 12-hour AM/PM to 24-hour", () => {
+    // Cronometer's Time column shape — the exact case from issue #64.
+    expect(normalizeTime("9:15 AM")).toBe("09:15");
+    expect(normalizeTime("1:00 PM")).toBe("13:00");
+    // The two hours a 12-hour clock spells unintuitively.
+    expect(normalizeTime("12:00 AM")).toBe("00:00"); // midnight
+    expect(normalizeTime("12:00 PM")).toBe("12:00"); // noon
+    expect(normalizeTime("12:30 AM")).toBe("00:30");
+    expect(normalizeTime("12:30 PM")).toBe("12:30");
+    expect(normalizeTime("11:59 PM")).toBe("23:59");
+});
+
+test("normalizeTime accepts the export-observed AM/PM spellings", () => {
+    for (const v of [
+        "9:15 AM",
+        "9:15AM",
+        "9:15am",
+        "9:15 am",
+        "9:15 a.m.",
+        "9:15a.m.",
+        "9:15a",
+    ]) {
+        expect(normalizeTime(v)).toBe("09:15");
+    }
+    for (const v of ["1:00 PM", "1:00pm", "1:00 p.m.", "1:00p"]) {
+        expect(normalizeTime(v)).toBe("13:00");
+    }
+});
+
+test("normalizeTime preserves seconds when present", () => {
+    expect(normalizeTime("9:15:07")).toBe("09:15:07");
+    expect(normalizeTime("9:15:07 AM")).toBe("09:15:07");
+    expect(normalizeTime("11:59:59 PM")).toBe("23:59:59");
+});
+
+test("normalizeTime rejects out-of-range and unparseable values", () => {
+    // Minutes/seconds out of range.
+    expect(normalizeTime("9:60")).toBeNull();
+    expect(normalizeTime("9:15:60")).toBeNull();
+    // 24-hour value out of range with no meridiem to reinterpret it by.
+    expect(normalizeTime("24:00")).toBeNull();
+    expect(normalizeTime("25:15")).toBeNull();
+    // A 12-hour clock never carries these hours.
+    expect(normalizeTime("13:00 PM")).toBeNull();
+    expect(normalizeTime("00:15 AM")).toBeNull();
+    expect(normalizeTime("0:15 PM")).toBeNull();
+    // Blank-ish and junk cells.
+    for (const v of ["", "  ", "n/a", "-", undefined, "Breakfast", "9"]) {
+        expect(normalizeTime(v)).toBeNull();
+    }
+});
+
+test("normalizeTime output is accepted by the server's resolveLoggedAt", () => {
+    // The contract that matters, mirroring the toIsoDate test above: normalising
+    // client-side is pointless unless the result actually lands in
+    // resolveLoggedAt's local-time branch. This is issue #64 end-to-end — a
+    // Cronometer row with a "9:15 AM" Time column, reproduced from the
+    // Cronometer-shaped fixture earlier in this file.
+    const iso = toIsoDate("2026-01-15", "iso");
+    const time = normalizeTime("9:15 AM");
+    expect(iso).toBe("2026-01-15");
+    expect(time).toBe("09:15");
+
+    const r = resolveLoggedAt(
+        `${iso} ${time}`,
+        "Europe/Kyiv",
+        Date.parse("2026-01-20T12:00:00Z"),
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+        expect(r.value.fromBareDate).toBe(false);
+        // Kyiv is +02:00 in January, so 09:15 local is 07:15Z.
+        expect(r.value.iso).toBe("2026-01-15T07:15:00.000Z");
+    }
+
+    // And the raw, un-normalized cell the widget used to send is rejected
+    // server-side — every single row, which is exactly issue #64's failure.
+    expect(
+        resolveLoggedAt(`${iso} 9:15 AM`, "Europe/Kyiv", Date.now()).ok,
+    ).toBe(false);
 });
 
 // ---------- energy units ----------

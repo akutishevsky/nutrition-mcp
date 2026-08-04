@@ -627,8 +627,14 @@
                     let when = iso;
                     // A separate time column is common (Cronometer: Day + Time);
                     // otherwise keep a time that rode along in the date cell,
-                    // which toIsoDate drops.
-                    const time = cell(r, m.time) || timeInDateCell(rawWhen);
+                    // which toIsoDate drops. Either can be unpadded 12-hour
+                    // ("9:15 AM") — the server only accepts zero-padded 24-hour
+                    // HH:MM, so normalizeTime converts it. A time that fails to
+                    // parse is dropped rather than failing the whole row: the
+                    // meal still imports, dated but timeless (server default:
+                    // local noon), and shows up in the noTime notice below.
+                    const rawTime = cell(r, m.time) || timeInDateCell(rawWhen);
+                    const time = rawTime ? normalizeTime(rawTime) : null;
                     if (time) when = when + " " + time;
 
                     // Calories only: protein/carbs/fat/fiber/sugar/alcohol are
@@ -913,7 +919,7 @@
                         esc(dateFormatLabel(S.dateFormat)) +
                         ", so rows like it will be skipped"
                     );
-                const time = timeInDateCell(raw);
+                const time = normalizeTime(timeInDateCell(raw));
                 return esc(raw) + " → " + esc(iso + (time ? " " + time : ""));
             }
             function energyExampleHtml() {

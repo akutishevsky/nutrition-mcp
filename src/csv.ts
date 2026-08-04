@@ -756,6 +756,67 @@ export function toIsoDate(
     return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+// ---------- times ----------
+//
+// The server's LOCAL_DATETIME_RE (src/import.ts) only accepts zero-padded
+// 24-hour HH:MM[:SS] — it has to, since it also parses the T-joined form of a
+// full timestamp, where "9:15 AM" would be ambiguous with other fields. But
+// exports hand back whatever their own locale prints: Cronometer's Time
+// column is unpadded 12-hour ("9:15 AM"), and a date cell's trailing time
+// (captured by CELL_TIME_RE in the widget) carries the same shapes. Sending
+// either straight through made the server reject every single row.
+
+const TIME_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap])?\.?m?\.?$/i;
+
+/**
+ * Convert a raw time cell to zero-padded 24-hour `HH:MM` or `HH:MM:SS`, or
+ * null when it cannot be trusted. Accepts an optional trailing am/pm marker
+ * in any of the export-observed spellings ("AM", "am", "a.m.", "9:15a").
+ *
+ * A meridiem marker switches validation to the 12-hour range (1-12) and
+ * converts to 24-hour; its absence keeps the value in 24-hour range (0-23)
+ * unchanged but still zero-pads it, so an already-correct "9:15" (missing
+ * only its leading zero) is not rejected for lack of an AM/PM marker.
+ */
+export function normalizeTime(raw: string | undefined): string | null {
+    if (raw === undefined) return null;
+    const text = raw.trim();
+    if (text === "") return null;
+
+    const m = TIME_RE.exec(text);
+    if (!m) return null;
+
+    let hour = Number(m[1]);
+    const minute = Number(m[2]);
+    const second = m[3] !== undefined ? Number(m[3]) : undefined;
+    const meridiem = m[4] ? m[4].toLowerCase() : null;
+
+    if (minute > 59) return null;
+    if (second !== undefined && second > 59) return null;
+
+    if (meridiem) {
+        // A 12-hour clock never carries an hour outside 1-12 (no "00" or
+        // "13 PM"); reject rather than guess what was meant.
+        if (hour < 1 || hour > 12) return null;
+        hour =
+            meridiem === "a"
+                ? hour === 12
+                    ? 0
+                    : hour
+                : hour === 12
+                  ? 12
+                  : hour + 12;
+    } else if (hour > 23) {
+        return null;
+    }
+
+    const hh = String(hour).padStart(2, "0");
+    const mm = String(minute).padStart(2, "0");
+    return second === undefined
+        ? `${hh}:${mm}`
+        : `${hh}:${mm}:${String(second).padStart(2, "0")}`;
+}
+
 // ---------- energy ----------
 
 export type EnergyUnit = "kcal" | "kj";
