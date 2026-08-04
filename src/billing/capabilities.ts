@@ -1,8 +1,17 @@
+import { getActiveHouseholdContext } from "../households/repository.js";
 import { getSubscriptionSnapshot } from "./repository.js";
 import type { SubscriptionSnapshot } from "./entitlements.js";
 
 export const FREE_HISTORY_DAYS = 30;
 export const FREE_SAVED_FOOD_LIMIT = 25;
+
+export interface HouseholdCapabilityContext {
+    householdId: string;
+    householdName: string;
+    ownerUserId: string;
+    role: "owner" | "member" | "viewer";
+    displayName: string;
+}
 
 export interface MunchCapabilities {
     tier: "free" | "premium";
@@ -16,10 +25,15 @@ export interface MunchCapabilities {
     householdRead: boolean;
     householdWrite: boolean;
     householdManage: boolean;
-    entitlementSource: "free" | "direct_subscription";
+    household: HouseholdCapabilityContext | null;
+    entitlementSource:
+        | "free"
+        | "direct_subscription"
+        | "household_subscription"
+        | "retained_read_access";
 }
 
-function subscriptionProvidesPremium(
+export function subscriptionProvidesPremium(
     subscription: SubscriptionSnapshot,
     now: Date,
 ): boolean {
@@ -53,6 +67,7 @@ export function capabilitiesFromSubscription(
         householdRead: false,
         householdWrite: false,
         householdManage: false,
+        household: null,
         entitlementSource: premium ? "direct_subscription" : "free",
     };
 }
@@ -60,5 +75,42 @@ export function capabilitiesFromSubscription(
 export async function resolveMunchCapabilities(
     userId: string,
 ): Promise<MunchCapabilities> {
-    return capabilitiesFromSubscription(await getSubscriptionSnapshot(userId));
+    const [directSubscription, household] = await Promise.all([
+        getSubscriptionSnapshot(userId),
+        getActiveHouseholdContext(userId),
+    ]);
+    const result = capabilitiesFromSubscription(directSubscription);
+    if (!household) return result;
+
+    const ownerSubscription =
+        household.ownerUserId === userId
+            ? directSubscription
+            : await getSubscriptionSnapshot(household.ownerUserId);
+    const householdPremium = subscriptionProvidesPremium(
+        ownerSubscription,
+        new Date(),
+    );
+    const canEdit = household.role === "owner" || household.role === "member";
+
+    return {
+        ...result,
+        household: {
+            householdId: household.householdId,
+            householdName: household.householdName,
+            ownerUserId: household.ownerUserId,
+            role: household.role,
+            displayName: household.displayName,
+        },
+        householdRead: true,
+        householdWrite: householdPremium && canEdit,
+        householdManage:
+            householdPremium &&
+            household.role === "owner" &&
+            household.ownerUserId === userId,
+        entitlementSource: result.personalRecipesWrite
+            ? "direct_subscription"
+            : householdPremium
+              ? "household_subscription"
+              : "retained_read_access",
+    };
 }
