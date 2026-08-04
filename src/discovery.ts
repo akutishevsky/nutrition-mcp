@@ -6,6 +6,7 @@ import { getBaseUrl } from "./url.js";
 // The path component of this server's MCP endpoint. Discovery URLs are derived
 // from it, so the two can never drift apart.
 export const MCP_PATH = "/mcp";
+export const BETTER_AUTH_ISSUER_PATH = "/api/auth";
 
 // The canonical resource identifier clients authenticate against: the MCP
 // endpoint *including* its path, not the bare origin. RFC 8707 §2 asks the
@@ -16,7 +17,9 @@ export function mcpResourceUrl(baseUrl: string): string {
 }
 
 export function oauthIssuerUrl(baseUrl: string): string {
-    return betterAuthIsEnabled() ? `${baseUrl}/api/auth` : baseUrl;
+    return betterAuthIsEnabled()
+        ? `${baseUrl}${BETTER_AUTH_ISSUER_PATH}`
+        : baseUrl;
 }
 
 // The resource-metadata URL a 401 should advertise via WWW-Authenticate. This is
@@ -99,6 +102,11 @@ export function authorizationServerMetadata(baseUrl: string) {
 //   /.well-known/<suffix>          the root fallback, kept for clients that
 //                                  probe the origin.
 //
+// Better Auth mounts its authorization server under `/api/auth`, so OAuth
+// clients may also derive `/.well-known/oauth-authorization-server/api/auth`
+// from the advertised issuer. Better Auth itself probes that URL and warns when
+// it is absent. Serve both insertion and appending variants.
+//
 // Deliberately NOT rate-limited: these are static JSON documents with no user
 // data and are required to bootstrap OAuth before a client has credentials.
 export function registerDiscoveryRoutes(app: Hono): void {
@@ -140,6 +148,14 @@ export function registerDiscoveryRoutes(app: Hono): void {
     );
     app.get(
         `${MCP_PATH}/.well-known/oauth-authorization-server`,
+        authorizationServer,
+    );
+    app.get(
+        `/.well-known/oauth-authorization-server${BETTER_AUTH_ISSUER_PATH}`,
+        authorizationServer,
+    );
+    app.get(
+        `${BETTER_AUTH_ISSUER_PATH}/.well-known/oauth-authorization-server`,
         authorizationServer,
     );
 }
