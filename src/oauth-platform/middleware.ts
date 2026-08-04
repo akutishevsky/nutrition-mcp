@@ -5,8 +5,6 @@ import {
     getBetterAuthRuntimeConfig,
 } from "../auth/config.js";
 import { munchMcpResourceUrl } from "../auth/oauth-scopes.js";
-import { decideEntitlement } from "../billing/entitlements.js";
-import { getSubscriptionSnapshot } from "../billing/repository.js";
 import { resourceMetadataUrl } from "../discovery.js";
 import { maskIp } from "../net.js";
 import { clearAuthFailures, noteAuthFailure } from "../rate-limit.js";
@@ -67,23 +65,6 @@ async function authenticateBetterAuthBearer(
     });
 
     if (!payload.sub) return rejectToken(c, "invalid_token");
-    const entitlement = decideEntitlement(
-        await getSubscriptionSnapshot(payload.sub),
-    );
-    if (!entitlement.canUseProtectedTools) {
-        c.header(
-            "WWW-Authenticate",
-            `Bearer resource_metadata="${resourceMetadataUrl(baseUrl(c))}", error="insufficient_scope"`,
-        );
-        return c.json(
-            {
-                error: "subscription_required",
-                error_description:
-                    "An active Munch Premium subscription is required",
-            },
-            403,
-        );
-    }
 
     clearAuthFailures(clientIp(c));
     c.set("accessToken", token);
