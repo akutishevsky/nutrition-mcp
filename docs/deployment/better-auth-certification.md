@@ -33,7 +33,20 @@ Create GitHub environments named `staging` and `production`. Each environment re
 - secret `RAILWAY_TOKEN`;
 - variables `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID`, `RAILWAY_ENVIRONMENT_ID`, and `MUNCH_CERTIFICATION_BASE_URL`.
 
-Require manual approval for the `production` environment. Run the `Railway Deploy` workflow with the exact commit SHA certified in staging. The workflow checks out and uploads that source tree with `railway up --ci`; it does not ask Railway to rebuild an unspecified branch head.
+Require manual approval for the `production` environment. Run the `Railway Deploy` workflow with the full 40-character commit SHA certified in staging. Branch names, tags, and abbreviated SHAs are rejected. The verification job pins the resolved commit, passes that immutable SHA to the deployment job, and both jobs fail if their checkout differs from the requested commit. The workflow uploads that exact source tree with `railway up --ci`; it does not ask Railway to rebuild an unspecified branch head.
+
+## Automated pre-deploy gate
+
+Before Railway receives source, the deployment workflow runs the release candidate through:
+
+- formatting and TypeScript checks;
+- unit tests;
+- fresh PostgreSQL migrations and a second idempotency pass;
+- Better Auth migrated-schema drift validation;
+- account, billing, OAuth, nutrition, structured-meal, saved-food, meal-draft, portal, export, readiness, maintenance, idempotency, and forced-RLS smoke suites;
+- a production container build tagged with the verified commit SHA.
+
+The deployment job also rejects missing GitHub environment values before invoking Railway.
 
 ## Automated public gate
 
