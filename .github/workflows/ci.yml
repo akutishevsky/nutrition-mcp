@@ -61,6 +61,35 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject changes to existing migrations
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only --diff-filter=MDR "origin/${GITHUB_BASE_REF}"...HEAD -- 'db/migrations/*.sql')"
+          violations=""
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+
+            # One-time recovery allowance: PR #22 restores migration 0005 to the
+            # exact checksum already recorded in the production database. Once
+            # merged, any later edit will have a different checksum and fail.
+            if [[ "$file" == "db/migrations/0005_service_facilities.sql" ]] && \
+               [[ "$(sha256sum "$file" | cut -d' ' -f1)" == "41e73783f3ad8175e382362d3ef6da0bb1c83bc9a6546da44e47a7a913541a5a" ]]; then
+              continue
+            fi
+
+            violations+="$file"$'\n'
+          done <<< "$changed"
+
+          if [[ -n "$violations" ]]; then
+            echo "Existing migration files are immutable. Add a new numbered migration instead:" >&2
+            printf '%s' "$violations" >&2
+            exit 1
+          fi
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
