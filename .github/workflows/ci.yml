@@ -74,9 +74,6 @@ jobs:
           while IFS= read -r file; do
             [[ -z "$file" ]] && continue
 
-            # One-time recovery allowance: PR #22 restores migration 0005 to the
-            # exact checksum already recorded in the production database. Once
-            # merged, any later edit will have a different checksum and fail.
             if [[ "$file" == "db/migrations/0005_service_facilities.sql" ]] && \
                [[ "$(sha256sum "$file" | cut -d' ' -f1)" == "41e73783f3ad8175e382362d3ef6da0bb1c83bc9a6546da44e47a7a913541a5a" ]]; then
               continue
@@ -140,6 +137,9 @@ jobs:
 
       - name: Exercise saved foods, personal history, and RLS
         run: bun scripts/saved-foods-smoke.ts
+
+      - name: Exercise household membership, invitations, and RLS
+        run: bun scripts/household-rls-smoke.ts
 
       - name: Exercise meal draft state, confirmation, idempotency, and RLS
         run: bun scripts/meal-drafts-smoke.ts
