@@ -21,10 +21,19 @@ describe("same-origin request protection", () => {
         ).toBe(true);
     });
 
-    test("accepts a browser same-origin fallback only on the configured host", () => {
+    test("accepts duplicated identical origins combined by a proxy", () => {
+        expect(
+            requestOriginMatches(
+                "https://munch.business, https://munch.business",
+                "https://munch.business",
+            ),
+        ).toBe(true);
+    });
+
+    test("accepts opaque browser origin with verified same-origin metadata", () => {
         expect(
             requestHasSameOriginEvidence({
-                requestOrigin: undefined,
+                requestOrigin: "null",
                 configuredBaseUrl: "https://munch.business",
                 requestBaseUrl: "https://munch.business",
                 secFetchSite: "same-origin",
@@ -34,13 +43,13 @@ describe("same-origin request protection", () => {
             requestHasSameOriginEvidence({
                 requestOrigin: undefined,
                 configuredBaseUrl: "https://munch.business",
-                requestBaseUrl: "https://attacker.example",
+                requestBaseUrl: "https://munch.business",
                 secFetchSite: "same-origin",
             }),
-        ).toBe(false);
+        ).toBe(true);
     });
 
-    test("rejects missing, malformed, foreign, and cross-site evidence", () => {
+    test("rejects foreign, conflicting, and cross-site evidence", () => {
         expect(requestOriginMatches(undefined, "https://munch.example")).toBe(
             false,
         );
@@ -54,6 +63,12 @@ describe("same-origin request protection", () => {
             ),
         ).toBe(false);
         expect(
+            requestOriginMatches(
+                "https://munch.business, https://attacker.example",
+                "https://munch.business",
+            ),
+        ).toBe(false);
+        expect(
             requestHasSameOriginEvidence({
                 requestOrigin: "https://attacker.example",
                 configuredBaseUrl: "https://munch.business",
@@ -63,10 +78,18 @@ describe("same-origin request protection", () => {
         ).toBe(false);
         expect(
             requestHasSameOriginEvidence({
-                requestOrigin: undefined,
+                requestOrigin: "null",
                 configuredBaseUrl: "https://munch.business",
                 requestBaseUrl: "https://munch.business",
                 secFetchSite: "cross-site",
+            }),
+        ).toBe(false);
+        expect(
+            requestHasSameOriginEvidence({
+                requestOrigin: undefined,
+                configuredBaseUrl: "https://munch.business",
+                requestBaseUrl: "https://attacker.example",
+                secFetchSite: "same-origin",
             }),
         ).toBe(false);
     });
