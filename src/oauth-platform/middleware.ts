@@ -1,4 +1,12 @@
+import { verifyAccessToken } from "better-auth/oauth2";
 import type { Context, Next } from "hono";
+import {
+    betterAuthIsEnabled,
+    getBetterAuthRuntimeConfig,
+} from "../auth/config.js";
+import { munchMcpResourceUrl } from "../auth/oauth-scopes.js";
+import { decideEntitlement } from "../billing/entitlements.js";
+import { getSubscriptionSnapshot } from "../billing/repository.js";
 import { resourceMetadataUrl } from "../discovery.js";
 import { maskIp } from "../net.js";
 import { clearAuthFailures, noteAuthFailure } from "../rate-limit.js";
@@ -30,7 +38,7 @@ function rejectToken(c: Context, error: "unauthorized" | "invalid_token") {
 
     c.header(
         "WWW-Authenticate",
-        `Bearer resource_metadata="${resourceMetadataUrl(baseUrl(c))}"`,
+        `Bearer resource_metadata="${resourceMetadataUrl(baseUrl(c))}", error="${error}"`,
     );
     return c.json(
         {
@@ -44,6 +52,45 @@ function rejectToken(c: Context, error: "unauthorized" | "invalid_token") {
     );
 }
 
+async function authenticateBetterAuthBearer(
+    c: Context,
+    next: Next,
+    token: string,
+) {
+    const config = getBetterAuthRuntimeConfig();
+    const payload = await verifyAccessToken(token, {
+        verifyOptions: {
+            issuer: `${config.baseUrl}/api/auth`,
+            audience: munchMcpResourceUrl(config.baseUrl),
+        },
+        scopes: ["nutrition.read", "nutrition.write"],
+    });
+
+    if (!payload.sub) return rejectToken(c, "invalid_token");
+    const entitlement = decideEntitlement(
+        await getSubscriptionSnapshot(payload.sub),
+    );
+    if (!entitlement.canUseProtectedTools) {
+        c.header(
+            "WWW-Authenticate",
+            `Bearer resource_metadata="${resourceMetadataUrl(baseUrl(c))}", error="insufficient_scope"`,
+        );
+        return c.json(
+            {
+                error: "subscription_required",
+                error_description:
+                    "An active Munch Premium subscription is required",
+            },
+            403,
+        );
+    }
+
+    clearAuthFailures(clientIp(c));
+    c.set("accessToken", token);
+    c.set("userId", payload.sub);
+    await next();
+}
+
 export async function authenticatePlatformBearer(c: Context, next: Next) {
     const authorization = c.req.header("authorization");
     if (!authorization?.startsWith("Bearer ")) {
@@ -52,6 +99,10 @@ export async function authenticatePlatformBearer(c: Context, next: Next) {
 
     const token = authorization.slice(7);
     try {
+        if (betterAuthIsEnabled()) {
+            return await authenticateBetterAuthBearer(c, next, token);
+        }
+
         const lookup = await resolveAccessToken(token);
         if (lookup.status !== "valid") {
             return rejectToken(c, "invalid_token");
@@ -62,6 +113,9 @@ export async function authenticatePlatformBearer(c: Context, next: Next) {
         c.set("userId", lookup.userId);
         await next();
     } catch {
+        if (betterAuthIsEnabled()) {
+            return rejectToken(c, "invalid_token");
+        }
         c.header("Retry-After", "5");
         return c.json(
             {

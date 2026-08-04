@@ -1,4 +1,6 @@
 import type { Context, Hono } from "hono";
+import { betterAuthIsEnabled } from "./auth/config.js";
+import { MUNCH_OAUTH_SCOPES } from "./auth/oauth-scopes.js";
 import { getBaseUrl } from "./url.js";
 
 // The path component of this server's MCP endpoint. Discovery URLs are derived
@@ -11,6 +13,10 @@ export const MCP_PATH = "/mcp";
 // canonical-server-URI rule says the same.
 export function mcpResourceUrl(baseUrl: string): string {
     return `${baseUrl}${MCP_PATH}`;
+}
+
+export function oauthIssuerUrl(baseUrl: string): string {
+    return betterAuthIsEnabled() ? `${baseUrl}/api/auth` : baseUrl;
 }
 
 // The resource-metadata URL a 401 should advertise via WWW-Authenticate. This is
@@ -30,16 +36,40 @@ export function resourceMetadataUrl(baseUrl: string): string {
 export function protectedResourceMetadata(baseUrl: string, resource: string) {
     return {
         resource,
-        authorization_servers: [baseUrl],
+        authorization_servers: [oauthIssuerUrl(baseUrl)],
         bearer_methods_supported: ["header"],
+        scopes_supported: betterAuthIsEnabled()
+            ? [...MUNCH_OAUTH_SCOPES]
+            : undefined,
+        resource_name: "Munch nutrition MCP",
     };
 }
 
-// RFC 8414 authorization server metadata. Byte-identical on every route that
-// serves it: the issuer is this origin with no path, so `issuer` must stay the
-// bare origin or the RFC 8414 §3.3 issuer-match check fails and conformant
-// clients discard the document.
+// RFC 8414 authorization server metadata. The custom rollback issuer is the
+// bare origin. Better Auth uses its mounted `/api/auth` path as the issuer.
 export function authorizationServerMetadata(baseUrl: string) {
+    if (betterAuthIsEnabled()) {
+        const issuer = oauthIssuerUrl(baseUrl);
+        return {
+            issuer,
+            authorization_endpoint: `${issuer}/oauth2/authorize`,
+            token_endpoint: `${issuer}/oauth2/token`,
+            registration_endpoint: `${issuer}/oauth2/register`,
+            revocation_endpoint: `${issuer}/oauth2/revoke`,
+            introspection_endpoint: `${issuer}/oauth2/introspect`,
+            jwks_uri: `${baseUrl}/api/auth/jwks`,
+            grant_types_supported: ["authorization_code", "refresh_token"],
+            response_types_supported: ["code"],
+            code_challenge_methods_supported: ["S256"],
+            token_endpoint_auth_methods_supported: [
+                "none",
+                "client_secret_basic",
+                "client_secret_post",
+            ],
+            scopes_supported: [...MUNCH_OAUTH_SCOPES],
+        };
+    }
+
     return {
         issuer: baseUrl,
         authorization_endpoint: `${baseUrl}/authorize`,
@@ -67,23 +97,28 @@ export function authorizationServerMetadata(baseUrl: string) {
 //                                  clients that hand-roll the OAuth suffix. A
 //                                  tolerant alias; cheap, and it unsticks them.
 //   /.well-known/<suffix>          the root fallback, kept for clients that
-//                                  probe the origin. Unchanged.
+//                                  probe the origin.
 //
-// Deliberately NOT rate-limited (see #50, which scoped `rateLimitAuth` to the
-// six OAuth paths): these are static JSON built from a request header, with no
-// auth, no DB, and no per-caller state — nothing a limiter would protect. They
-// are also the endpoints a stuck client hammers, and throttling discovery is a
-// good way to keep it stuck.
+// Deliberately NOT rate-limited: these are static JSON documents with no user
+// data and are required to bootstrap OAuth before a client has credentials.
 export function registerDiscoveryRoutes(app: Hono): void {
     const protectedResource =
         (resource: (baseUrl: string) => string) => (c: Context) => {
             const baseUrl = getBaseUrl(c);
             return c.json(
                 protectedResourceMetadata(baseUrl, resource(baseUrl)),
+                200,
+                {
+                    "Cache-Control":
+                        "public, max-age=15, stale-while-revalidate=15, stale-if-error=86400",
+                },
             );
         };
     const authorizationServer = (c: Context) =>
-        c.json(authorizationServerMetadata(getBaseUrl(c)));
+        c.json(authorizationServerMetadata(getBaseUrl(c)), 200, {
+            "Cache-Control":
+                "public, max-age=15, stale-while-revalidate=15, stale-if-error=86400",
+        });
 
     app.get(
         "/.well-known/oauth-protected-resource",

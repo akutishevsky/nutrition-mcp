@@ -15,6 +15,22 @@ function requireValue(
     if (!present(key)) issues.push({ key, message });
 }
 
+function validateHttpsUrl(
+    issues: ConfigurationIssue[],
+    key: string,
+    message: string,
+): void {
+    const value = present(key);
+    if (!value) return;
+    try {
+        if (new URL(value).protocol !== "https:") {
+            issues.push({ key, message });
+        }
+    } catch {
+        issues.push({ key, message: `${key} is invalid` });
+    }
+}
+
 export function configurationIssues(): ConfigurationIssue[] {
     const issues: ConfigurationIssue[] = [];
     const production = process.env.NODE_ENV === "production";
@@ -33,6 +49,13 @@ export function configurationIssues(): ConfigurationIssue[] {
             key: "MUNCH_RAILWAY_AUTH_ENABLED",
             message:
                 "Railway authentication and data flags must be enabled or disabled together",
+        });
+    }
+    if (authBackend === "better_auth" && !(railwayAuth && railwayData)) {
+        issues.push({
+            key: "MUNCH_AUTH_BACKEND",
+            message:
+                "Better Auth requires Railway authentication and Railway data to be enabled together",
         });
     }
 
@@ -62,14 +85,6 @@ export function configurationIssues(): ConfigurationIssue[] {
         }
     }
 
-    const sessionSecret = present("MUNCH_SESSION_SECRET");
-    if (sessionSecret.length < 32) {
-        issues.push({
-            key: "MUNCH_SESSION_SECRET",
-            message: "Session secret must contain at least 32 characters",
-        });
-    }
-
     if (authBackend === "better_auth") {
         requireValue(issues, "BETTER_AUTH_SECRET");
         const secret = present("BETTER_AUTH_SECRET");
@@ -82,6 +97,30 @@ export function configurationIssues(): ConfigurationIssue[] {
         }
         requireValue(issues, "MUNCH_EMAIL_DELIVERY_ENDPOINT");
         requireValue(issues, "MUNCH_EMAIL_DELIVERY_SECRET");
+        if (production) {
+            validateHttpsUrl(
+                issues,
+                "MUNCH_EMAIL_DELIVERY_ENDPOINT",
+                "Production Better Auth email delivery endpoint must use HTTPS",
+            );
+        }
+    } else {
+        const sessionSecret = present("MUNCH_SESSION_SECRET");
+        if (sessionSecret.length < 32) {
+            issues.push({
+                key: "MUNCH_SESSION_SECRET",
+                message: "Session secret must contain at least 32 characters",
+            });
+        }
+        if (production) {
+            requireValue(issues, "MUNCH_LOGIN_DELIVERY_ENDPOINT");
+            requireValue(issues, "MUNCH_LOGIN_DELIVERY_SECRET");
+            validateHttpsUrl(
+                issues,
+                "MUNCH_LOGIN_DELIVERY_ENDPOINT",
+                "Production login delivery endpoint must use HTTPS",
+            );
+        }
     }
 
     if (production && present("MUNCH_DEV_EXPOSE_LOGIN_LINK") === "true") {
@@ -96,28 +135,6 @@ export function configurationIssues(): ConfigurationIssue[] {
     requireValue(issues, "STRIPE_WEBHOOK_SECRET");
     requireValue(issues, "STRIPE_PRICE_ID");
     requireValue(issues, "OFF_USER_AGENT");
-
-    if (production) {
-        requireValue(issues, "MUNCH_LOGIN_DELIVERY_ENDPOINT");
-        requireValue(issues, "MUNCH_LOGIN_DELIVERY_SECRET");
-        const deliveryUrl = present("MUNCH_LOGIN_DELIVERY_ENDPOINT");
-        if (deliveryUrl) {
-            try {
-                if (new URL(deliveryUrl).protocol !== "https:") {
-                    issues.push({
-                        key: "MUNCH_LOGIN_DELIVERY_ENDPOINT",
-                        message:
-                            "Production login delivery endpoint must use HTTPS",
-                    });
-                }
-            } catch {
-                issues.push({
-                    key: "MUNCH_LOGIN_DELIVERY_ENDPOINT",
-                    message: "Login delivery endpoint is invalid",
-                });
-            }
-        }
-    }
 
     if (railwayAuth && railwayData) {
         requireValue(issues, "DATABASE_URL");
