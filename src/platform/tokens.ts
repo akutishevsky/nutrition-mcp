@@ -1,8 +1,4 @@
-import {
-    createHash,
-    randomBytes,
-    timingSafeEqual,
-} from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 export interface IssuedOpaqueToken {
     token: string;
@@ -18,7 +14,9 @@ export function hashOpaqueToken(token: string): Buffer {
 
 export function issueOpaqueToken(byteLength = 32): IssuedOpaqueToken {
     if (!Number.isInteger(byteLength) || byteLength < 24 || byteLength > 128) {
-        throw new Error("Token byte length must be an integer between 24 and 128");
+        throw new Error(
+            "Token byte length must be an integer between 24 and 128",
+        );
     }
 
     const token = randomBytes(byteLength).toString("base64url");
@@ -28,7 +26,10 @@ export function issueOpaqueToken(byteLength = 32): IssuedOpaqueToken {
     };
 }
 
-export function tokenHashMatches(token: string, expectedHash: Uint8Array): boolean {
+export function tokenHashMatches(
+    token: string,
+    expectedHash: Uint8Array,
+): boolean {
     const actual = hashOpaqueToken(token);
     const expected = Buffer.from(expectedHash);
     return (

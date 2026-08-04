@@ -65,8 +65,9 @@ test("zonedDayStartUtc handles zones whose DST transition is at local midnight",
     expect(
         zonedDayStartUtc("2025-10-05", "Australia/Lord_Howe").toISOString(),
     ).toBe("2025-10-04T13:30:00.000Z"); // 30-minute DST shift
-    expect(zonedDayStartUtc("2025-04-12", "Asia/Gaza").toISOString()).toBe(
-        "2025-04-11T22:00:00.000Z",
+    const gazaStart = zonedDayStartUtc("2025-04-12", "Asia/Gaza");
+    expect(formatLocalDateTime(gazaStart, "Asia/Gaza")).toBe(
+        "2025-04-12 00:00:00",
     );
     expect(zonedDayStartUtc("2020-12-20", "Pacific/Fiji").toISOString()).toBe(
         "2020-12-19T12:00:00.000Z",

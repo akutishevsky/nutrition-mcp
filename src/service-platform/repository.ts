@@ -1,9 +1,6 @@
 import { createHash } from "node:crypto";
 import { withServiceDatabase } from "../platform/database.js";
-import {
-    hashOpaqueToken,
-    issueOpaqueToken,
-} from "../platform/tokens.js";
+import { hashOpaqueToken, issueOpaqueToken } from "../platform/tokens.js";
 
 export interface CountryStat {
     country: string;
@@ -41,7 +38,13 @@ export async function getCachedFood(
             where source = ${source}
               and source_id = ${sourceId}
         `;
-        return rows[0]?.payload ?? null;
+        const payload = rows[0]?.payload;
+        if (typeof payload !== "string") return payload ?? null;
+        try {
+            return JSON.parse(payload) as unknown;
+        } catch {
+            return null;
+        }
     });
 }
 
@@ -60,7 +63,7 @@ export async function cacheFood(
             ) values (
                 ${source},
                 ${sourceId},
-                ${JSON.stringify(payload)}::jsonb,
+                ${payload}::jsonb,
                 now()
             )
             on conflict (source, source_id) do update
@@ -80,9 +83,7 @@ export async function insertToolAnalytics(row: {
     mcp_session_id?: string;
 }): Promise<void> {
     const sessionHash = row.mcp_session_id
-        ? createHash("sha256")
-              .update(row.mcp_session_id, "utf8")
-              .digest("hex")
+        ? createHash("sha256").update(row.mcp_session_id, "utf8").digest("hex")
         : null;
 
     await withServiceDatabase(async (tx) => {

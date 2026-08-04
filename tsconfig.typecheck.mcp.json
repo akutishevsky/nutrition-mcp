@@ -1,0 +1,7 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "allowJs": false
+    },
+    "files": ["src/mcp.ts", "src/mcp-runtime.ts", "src/index.ts"]
+}

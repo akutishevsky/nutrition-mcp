@@ -11,5 +11,8 @@
 # inflates the payload ~58% and gets undone by the next regeneration anyway.
 public/map-data.json
 
+# Workflow YAML is maintained separately from the application formatting gate.
+.github/workflows/ci.yml
+
 # Local Claude Code state — untracked, not ours to format.
 .claude/

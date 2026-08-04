@@ -143,10 +143,8 @@
             // sandbox="allow-scripts" iframe and Chrome blocks navigation to
             // external protocols from one, so a mailto anchor silently does
             // nothing while still looking clickable.
-            // depersonalize.ts strips this block; keep the marker comments.
-            /* support-contact:start */
-            const SUPPORT_EMAIL = "anton@nutrition-mcp.com";
-            /* support-contact:end */
+            // Munch does not embed a maintainer email inside the sandboxed widget.
+            const SUPPORT_EMAIL = "";
 
             // A short, copyable description of the file and what went wrong.
             // "Email me" on its own costs two round trips — the first reply is

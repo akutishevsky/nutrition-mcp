@@ -49,16 +49,24 @@ export class FoodProviderRegistry {
         const limit = Math.max(1, Math.min(25, input.limit ?? 10));
         const providers = [...this.providers.values()];
         const settled = await Promise.allSettled(
-            providers.map(async (provider): Promise<ProviderCallResult<FoodCandidate[]>> => {
-                try {
-                    return {
-                        provider: provider.name,
-                        value: await provider.search({ ...input, query, limit }),
-                    };
-                } catch (error) {
-                    throw asFoodProviderError(error, provider.name);
-                }
-            }),
+            providers.map(
+                async (
+                    provider,
+                ): Promise<ProviderCallResult<FoodCandidate[]>> => {
+                    try {
+                        return {
+                            provider: provider.name,
+                            value: await provider.search({
+                                ...input,
+                                query,
+                                limit,
+                            }),
+                        };
+                    } catch (error) {
+                        throw asFoodProviderError(error, provider.name);
+                    }
+                },
+            ),
         );
 
         const candidates: FoodCandidate[] = [];
@@ -103,16 +111,20 @@ export class FoodProviderRegistry {
             (provider) => provider.lookupBarcode,
         );
         const settled = await Promise.allSettled(
-            providers.map(async (provider): Promise<ProviderCallResult<FoodCandidate | null>> => {
-                try {
-                    return {
-                        provider: provider.name,
-                        value: await provider.lookupBarcode!(input),
-                    };
-                } catch (error) {
-                    throw asFoodProviderError(error, provider.name);
-                }
-            }),
+            providers.map(
+                async (
+                    provider,
+                ): Promise<ProviderCallResult<FoodCandidate | null>> => {
+                    try {
+                        return {
+                            provider: provider.name,
+                            value: await provider.lookupBarcode!(input),
+                        };
+                    } catch (error) {
+                        throw asFoodProviderError(error, provider.name);
+                    }
+                },
+            ),
         );
         const candidates: FoodCandidate[] = [];
         const failures: FoodProviderFailure[] = [];

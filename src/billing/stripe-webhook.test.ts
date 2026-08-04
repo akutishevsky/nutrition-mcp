@@ -12,7 +12,10 @@ function signatureHeader(payload: string, secret: string, timestamp: number) {
 describe("Stripe webhook verification", () => {
     const secret = "whsec_test_secret";
     const timestamp = 1_785_779_200;
-    const payload = JSON.stringify({ id: "evt_test", type: "customer.updated" });
+    const payload = JSON.stringify({
+        id: "evt_test",
+        type: "customer.updated",
+    });
 
     test("accepts a valid v1 signature", () => {
         const verified = verifyStripeWebhookSignature(

@@ -23,8 +23,7 @@ import { warmWidgets } from "./widgets.js";
 validateStartupConfiguration();
 
 const app = new Hono();
-const railwayAuthEnabled =
-    process.env.MUNCH_RAILWAY_AUTH_ENABLED === "true";
+const railwayAuthEnabled = process.env.MUNCH_RAILWAY_AUTH_ENABLED === "true";
 
 app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
@@ -45,7 +44,7 @@ app.use("*", async (c, next) => {
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self'; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'",
         );
     }
 });
@@ -157,6 +156,37 @@ app.get("/apple-touch-icon.png", async (c) =>
         "Cache-Control": "public, max-age=86400",
     }),
 );
+const BRAND_ASSETS: Record<string, { file: string; contentType: string }> = {
+    "/brand/munch-mark.svg": {
+        file: "./public/brand/munch-mark.svg",
+        contentType: "image/svg+xml",
+    },
+    "/brand/munch-mark-dark.svg": {
+        file: "./public/brand/munch-mark-dark.svg",
+        contentType: "image/svg+xml",
+    },
+    "/brand/munch-mark-white.svg": {
+        file: "./public/brand/munch-mark-white.svg",
+        contentType: "image/svg+xml",
+    },
+    "/brand/munch-mark-192.png": {
+        file: "./public/brand/munch-mark-192.png",
+        contentType: "image/png",
+    },
+    "/brand/munch-mark-512.png": {
+        file: "./public/brand/munch-mark-512.png",
+        contentType: "image/png",
+    },
+};
+for (const [route, asset] of Object.entries(BRAND_ASSETS)) {
+    app.get(route, async (c) =>
+        c.body(await Bun.file(asset.file).arrayBuffer(), 200, {
+            "Content-Type": asset.contentType,
+            "Cache-Control": "public, max-age=86400",
+        }),
+    );
+}
+
 app.get("/robots.txt", async (c) =>
     c.body(await Bun.file("./public/robots.txt").text(), 200, {
         "Content-Type": "text/plain",
@@ -187,20 +217,18 @@ app.get("/tools", async (c) =>
 );
 app.get("/tools/", (c) => c.redirect("/tools", 301));
 
-const ALT_PAGES: Record<string, string> = {
-    "/alternatives": "alternatives/index.html",
-    "/myfitnesspal-mcp": "alternatives/myfitnesspal.html",
-    "/cronometer-mcp": "alternatives/cronometer.html",
-    "/lose-it-mcp": "alternatives/lose-it.html",
-    "/macrofactor-mcp": "alternatives/macrofactor.html",
-    "/yazio-mcp": "alternatives/yazio.html",
-    "/lifesum-mcp": "alternatives/lifesum.html",
-};
-for (const [route, file] of Object.entries(ALT_PAGES)) {
-    app.get(route, async (c) =>
-        c.html(await Bun.file(`./public/${file}`).text()),
-    );
-    app.get(`${route}/`, (c) => c.redirect(route, 301));
+const LEGACY_PUBLIC_ROUTES = [
+    "/alternatives",
+    "/myfitnesspal-mcp",
+    "/cronometer-mcp",
+    "/lose-it-mcp",
+    "/macrofactor-mcp",
+    "/yazio-mcp",
+    "/lifesum-mcp",
+];
+for (const route of LEGACY_PUBLIC_ROUTES) {
+    app.get(route, (c) => c.redirect("/tools", 301));
+    app.get(`${route}/`, (c) => c.redirect("/tools", 301));
 }
 
 app.get("/styles.css", async (c) =>
@@ -210,10 +238,14 @@ app.get("/styles.css", async (c) =>
 );
 app.get("/favicon.ico", async (c) => {
     try {
-        return c.body(await Bun.file("./public/favicon.ico").arrayBuffer(), 200, {
-            "Content-Type": "image/x-icon",
-            "Cache-Control": "public, max-age=86400",
-        });
+        return c.body(
+            await Bun.file("./public/favicon.ico").arrayBuffer(),
+            200,
+            {
+                "Content-Type": "image/x-icon",
+                "Cache-Control": "public, max-age=86400",
+            },
+        );
     } catch {
         return c.notFound();
     }

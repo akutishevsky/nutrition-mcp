@@ -92,11 +92,14 @@ function draftSummary(draft: MealDraft): string {
     );
     const lines = [
         `Draft ${draft.id} · status ${draft.status} · version ${draft.version}`,
-        draft.description ? `Meal: ${draft.description}` : "Meal description not set",
+        draft.description
+            ? `Meal: ${draft.description}`
+            : "Meal description not set",
         draft.mealType ? `Type: ${draft.mealType}` : "Meal type not set",
         `Items: ${draft.items.length} · Open questions: ${open.length}`,
     ];
-    if (open[0]) lines.push(`Next question: ${open[0].prompt} [id: ${open[0].id}]`);
+    if (open[0])
+        lines.push(`Next question: ${open[0].prompt} [id: ${open[0].id}]`);
     if (draft.confirmedMealId) {
         lines.push(`Confirmed meal ID: ${draft.confirmedMealId}`);
     }
@@ -107,8 +110,21 @@ const DRAFT_OUTPUT = {
     draft: z.record(z.string(), z.unknown()),
 };
 
-export function registerMealDraftTools(server: McpServer, userId: string): void {
-    server.registerTool(
+export function registerMealDraftTools(
+    server: McpServer,
+    userId: string,
+): void {
+    // Keep the expensive MCP SDK schema generic out of the native compiler's
+    // hot path; runtime registration and MCP integration tests still validate
+    // the complete schemas.
+    const toolServer = server as unknown as {
+        registerTool: (
+            name: string,
+            config: unknown,
+            handler: (...args: any[]) => unknown,
+        ) => unknown;
+    };
+    toolServer.registerTool(
         "start_meal_draft",
         {
             title: "Start Meal Draft",
@@ -159,7 +175,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_meal_draft",
         {
             title: "Get Meal Draft",
@@ -201,7 +217,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "update_meal_draft",
         {
             title: "Update Meal Draft",
@@ -248,7 +264,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "upsert_meal_draft_item",
         {
             title: "Add or Update Draft Item",
@@ -303,7 +319,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "add_meal_draft_question",
         {
             title: "Add Draft Question",
@@ -320,7 +336,12 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
                 expected_version: z.coerce.number().int().positive(),
                 question_key: z.string().min(1).max(200),
                 prompt: z.string().min(1).max(1_000),
-                impact_score: z.coerce.number().int().min(0).max(100).optional(),
+                impact_score: z.coerce
+                    .number()
+                    .int()
+                    .min(0)
+                    .max(100)
+                    .optional(),
                 item_id: z.string().uuid().optional(),
             },
             outputSchema: DRAFT_OUTPUT,
@@ -347,7 +368,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "answer_meal_draft_question",
         {
             title: "Answer Draft Question",
@@ -387,7 +408,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "prepare_meal_confirmation",
         {
             title: "Prepare Meal Confirmation",
@@ -431,7 +452,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "confirm_meal_draft",
         {
             title: "Confirm Meal Draft",
@@ -474,7 +495,7 @@ export function registerMealDraftTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "cancel_meal_draft",
         {
             title: "Cancel Meal Draft",

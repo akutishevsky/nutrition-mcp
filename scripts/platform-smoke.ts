@@ -113,13 +113,12 @@ const authorization = await createAuthorizationSession({
 });
 
 if (!(await authorizeSession(authorization.id, challenge.userId))) {
-    throw new Error("OAuth authorization session could not be attached to user");
+    throw new Error(
+        "OAuth authorization session could not be attached to user",
+    );
 }
 
-const code = await issueAuthorizationCode(
-    authorization.id,
-    challenge.userId,
-);
+const code = await issueAuthorizationCode(authorization.id, challenge.userId);
 const tokens = await exchangeAuthorizationCode({
     code: code.code,
     clientId: client.clientId,
@@ -128,10 +127,7 @@ const tokens = await exchangeAuthorizationCode({
 });
 
 const firstAccess = await resolveAccessToken(tokens.accessToken);
-if (
-    firstAccess.status !== "valid" ||
-    firstAccess.userId !== challenge.userId
-) {
+if (firstAccess.status !== "valid" || firstAccess.userId !== challenge.userId) {
     throw new Error("Issued OAuth access token was not valid");
 }
 

@@ -25,8 +25,6 @@ import {
     getUserTimezone,
     getPreferredWeightUnit,
     getWidgetsEnabled,
-    getAlcoholTrackingEnabled,
-    getPreferredDrinkUnit,
     widgetsEnabledFromProfile,
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
@@ -356,14 +354,14 @@ export const GOALS_ITEM = z.object({
 });
 
 export const TOTALS_ITEM = z.object({
-    calories: z.number(),
-    protein_g: z.number(),
-    carbs_g: z.number(),
-    fat_g: z.number(),
-    fiber_g: z.number(),
-    sugar_g: z.number(),
-    alcohol_g: z.number().nullable(),
-    water_ml: z.number(),
+    calories: z.number().finite(),
+    protein_g: z.number().finite(),
+    carbs_g: z.number().finite(),
+    fat_g: z.number().finite(),
+    fiber_g: z.number().finite(),
+    sugar_g: z.number().finite(),
+    alcohol_g: z.number().finite().nullable(),
+    water_ml: z.number().finite(),
 });
 
 // Which standard-drink convention the widget should render alcohol_g in. The
@@ -927,6 +925,16 @@ export function registerTools(
     widgetsEnabled: boolean,
     alcohol: AlcoholDisplay,
 ) {
+    // Keep the expensive MCP SDK schema generic out of the native compiler's
+    // hot path; runtime registration and MCP integration tests still validate
+    // the complete schemas.
+    const toolServer = server as unknown as {
+        registerTool: (
+            name: string,
+            config: unknown,
+            handler: (...args: any[]) => unknown,
+        ) => unknown;
+    };
     // Link a tool to its widget only when this user has widgets enabled. Because
     // buildMcpServer registers tools per request, this makes widget display a
     // per-user setting: with widgets off, tools/list advertises no UI link, so
@@ -934,7 +942,7 @@ export function registerTools(
     const uiMeta = (resourceUri: string) =>
         widgetsEnabled ? { _meta: { ui: { resourceUri } } } : {};
 
-    server.registerTool(
+    toolServer.registerTool(
         "log_meal",
         {
             title: "Log Meal",
@@ -1087,7 +1095,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "start_meal_import",
         {
             title: "Import Meals from a File",
@@ -1131,7 +1139,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "bulk_import_meals",
         {
             title: "Bulk Import Meals",
@@ -1309,7 +1317,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "lookup_barcode",
         {
             title: "Look Up Barcode",
@@ -1387,7 +1395,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_meals_today",
         {
             title: "Get Today's Meals",
@@ -1429,7 +1437,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_meals_by_date",
         {
             title: "Get Meals by Date",
@@ -1471,7 +1479,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_meals_by_date_range",
         {
             title: "Get Meals by Date Range",
@@ -1545,7 +1553,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "search_meals",
         {
             title: "Search Past Meals",
@@ -1598,7 +1606,9 @@ export function registerTools(
                         sinceIso,
                     });
                     if (meals.length === 0) {
-                        const label = queries.map((q) => `"${q}"`).join(" / ");
+                        const label = queries
+                            .map((q: string) => `"${q}"`)
+                            .join(" / ");
                         return {
                             content: [
                                 {
@@ -1755,7 +1765,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_nutrition_summary",
         {
             title: "Get Nutrition Summary",
@@ -1961,7 +1971,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "set_nutrition_goals",
         {
             title: "Set Nutrition Goals",
@@ -2139,7 +2149,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_nutrition_goals",
         {
             title: "Get Nutrition Goals",
@@ -2174,7 +2184,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_goal_progress",
         {
             title: "Get Goal Progress",
@@ -2312,7 +2322,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "delete_meal",
         {
             title: "Delete Meal",
@@ -2343,7 +2353,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "update_meal",
         {
             title: "Update Meal",
@@ -2426,7 +2436,7 @@ export function registerTools(
             );
         },
     );
-    server.registerTool(
+    toolServer.registerTool(
         "log_water",
         {
             title: "Log Water",
@@ -2489,7 +2499,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_water_today",
         {
             title: "Get Today's Water",
@@ -2541,7 +2551,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_water_by_date",
         {
             title: "Get Water by Date",
@@ -2593,7 +2603,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "delete_water",
         {
             title: "Delete Water Entry",
@@ -2627,7 +2637,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "log_weight",
         {
             title: "Log Weight",
@@ -2707,7 +2717,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_weight_today",
         {
             title: "Get Today's Weight",
@@ -2761,7 +2771,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_weight_by_date",
         {
             title: "Get Weight by Date",
@@ -2815,7 +2825,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_weight_by_date_range",
         {
             title: "Get Weight by Date Range",
@@ -2898,7 +2908,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_weight_trends",
         {
             title: "Get Weight Trends",
@@ -3034,7 +3044,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "update_weight",
         {
             title: "Update Weight Entry",
@@ -3107,7 +3117,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "delete_weight",
         {
             title: "Delete Weight Entry",
@@ -3143,7 +3153,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "set_weight_unit",
         {
             title: "Set Weight Unit",
@@ -3192,7 +3202,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_weight_unit",
         {
             title: "Get Weight Unit",
@@ -3226,7 +3236,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "set_widget_display",
         {
             title: "Set Widget Display",
@@ -3269,7 +3279,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_widget_display",
         {
             title: "Get Widget Display",
@@ -3303,7 +3313,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "set_alcohol_tracking",
         {
             title: "Set Alcohol Tracking",
@@ -3375,7 +3385,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_alcohol_tracking",
         {
             title: "Get Alcohol Tracking",
@@ -3392,10 +3402,9 @@ export function registerTools(
             return withAnalytics(
                 "get_alcohol_tracking",
                 async () => {
-                    const [enabled, unit] = await Promise.all([
-                        getAlcoholTrackingEnabled(userId),
-                        getPreferredDrinkUnit(userId),
-                    ]);
+                    const profile = await getProfile(userId);
+                    const enabled = alcoholTrackingEnabledFromProfile(profile);
+                    const unit = preferredDrinkUnitFromProfile(profile);
                     const unitLabel =
                         (unit ?? "us") === "us"
                             ? "US standard drinks (14 g each)"
@@ -3416,7 +3425,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_trends",
         {
             title: "Get Trends",
@@ -3530,7 +3539,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_meal_patterns",
         {
             title: "Get Meal Patterns",
@@ -3595,7 +3604,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "export_meals",
         {
             title: "Export Meals",
@@ -3677,7 +3686,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "set_timezone",
         {
             title: "Set Timezone",
@@ -3721,7 +3730,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_timezone",
         {
             title: "Get Timezone",
@@ -3763,7 +3772,7 @@ export function registerTools(
         },
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "delete_account",
         {
             title: "Delete Account",

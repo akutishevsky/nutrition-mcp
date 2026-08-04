@@ -6,10 +6,7 @@ import {
     summarizeFoodCandidate,
 } from "./food-providers/service.js";
 import type { FoodProviderFailure } from "./food-providers/registry.js";
-import type {
-    FoodCandidate,
-    NutrientValues,
-} from "./food-providers/types.js";
+import type { FoodCandidate, NutrientValues } from "./food-providers/types.js";
 
 const nutrientOutputSchema = z.object({
     calories: z.number().nullable(),
@@ -152,7 +149,9 @@ function formatCandidate(candidate: FoodCandidate, index?: number): string {
     const macros = portion
         ? [
               portion.calories == null ? null : `${portion.calories} kcal`,
-              portion.protein_g == null ? null : `${portion.protein_g}g protein`,
+              portion.protein_g == null
+                  ? null
+                  : `${portion.protein_g}g protein`,
               portion.carbs_g == null ? null : `${portion.carbs_g}g carbs`,
               portion.fat_g == null ? null : `${portion.fat_g}g fat`,
           ]
@@ -172,9 +171,19 @@ function serializeFailures(failures: FoodProviderFailure[]) {
 }
 
 export function registerFoodTools(server: McpServer, userId: string): void {
+    // Keep the expensive MCP SDK schema generic out of the native compiler's
+    // hot path; runtime registration and MCP integration tests still validate
+    // the complete schemas.
+    const toolServer = server as unknown as {
+        registerTool: (
+            name: string,
+            config: unknown,
+            handler: (...args: any[]) => unknown,
+        ) => unknown;
+    };
     const service = getFoodSearchService();
 
-    server.registerTool(
+    toolServer.registerTool(
         "search_foods",
         {
             title: "Search Verified Foods",
@@ -207,7 +216,10 @@ export function registerFoodTools(server: McpServer, userId: string): void {
                     const failures = serializeFailures(result.failures);
                     const failureNote = failures.length
                         ? `\n\nSome sources were unavailable: ${failures
-                              .map((failure) => `${failure.provider} (${failure.code})`)
+                              .map(
+                                  (failure) =>
+                                      `${failure.provider} (${failure.code})`,
+                              )
                               .join(", ")}. The results above are still usable.`
                         : "";
                     return {
@@ -233,7 +245,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "get_food_details",
         {
             title: "Get Food Details",
@@ -280,7 +292,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "lookup_food_barcode",
         {
             title: "Look Up Food Barcode",

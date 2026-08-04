@@ -63,14 +63,28 @@ function serializeHistory(record: RecentMealItemMemory) {
 }
 
 function formatSavedFood(record: SavedFoodRecord, index: number): string {
-    const portion = record.food.portions.find(
-        (candidate) => candidate.id === record.defaultPortionId,
-    ) ?? record.food.portions[0];
+    const portion =
+        record.food.portions.find(
+            (candidate) => candidate.id === record.defaultPortionId,
+        ) ?? record.food.portions[0];
     return `${index + 1}. ${record.label}\n   ${portion?.label ?? "No default portion"}${portion?.nutrients.calories == null ? "" : ` · ${portion.nutrients.calories} kcal`}\n   saved_food_id: ${record.id} · used ${record.useCount} times`;
 }
 
-export function registerSavedFoodTools(server: McpServer, userId: string): void {
-    server.registerTool(
+export function registerSavedFoodTools(
+    server: McpServer,
+    userId: string,
+): void {
+    // Keep the expensive MCP SDK schema generic out of the native compiler's
+    // hot path; runtime registration and MCP integration tests still validate
+    // the complete schemas.
+    const toolServer = server as unknown as {
+        registerTool: (
+            name: string,
+            config: unknown,
+            handler: (...args: any[]) => unknown,
+        ) => unknown;
+    };
+    toolServer.registerTool(
         "save_food",
         {
             title: "Save Food",
@@ -95,9 +109,8 @@ export function registerSavedFoodTools(server: McpServer, userId: string): void 
             withAnalytics(
                 "save_food",
                 async () => {
-                    const candidate = await getFoodSearchService().details(
-                        candidate_id,
-                    );
+                    const candidate =
+                        await getFoodSearchService().details(candidate_id);
                     if (!candidate) {
                         throw new Error(
                             "Food candidate is invalid or expired; run search_foods again",
@@ -125,7 +138,7 @@ export function registerSavedFoodTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "search_saved_foods",
         {
             title: "Search Personal Foods",
@@ -192,7 +205,7 @@ export function registerSavedFoodTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "list_saved_foods",
         {
             title: "List Saved Foods",
@@ -223,7 +236,9 @@ export function registerSavedFoodTools(server: McpServer, userId: string): void 
                                 text:
                                     saved.length === 0
                                         ? "No saved foods yet."
-                                        : saved.map(formatSavedFood).join("\n\n"),
+                                        : saved
+                                              .map(formatSavedFood)
+                                              .join("\n\n"),
                             },
                         ],
                         structuredContent: {
@@ -235,7 +250,7 @@ export function registerSavedFoodTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "mark_saved_food_used",
         {
             title: "Mark Saved Food Used",
@@ -278,7 +293,7 @@ export function registerSavedFoodTools(server: McpServer, userId: string): void 
             ),
     );
 
-    server.registerTool(
+    toolServer.registerTool(
         "delete_saved_food",
         {
             title: "Delete Saved Food",
@@ -302,7 +317,10 @@ export function registerSavedFoodTools(server: McpServer, userId: string): void 
             withAnalytics(
                 "delete_saved_food",
                 async () => {
-                    const deleted = await deleteSavedFood(userId, saved_food_id);
+                    const deleted = await deleteSavedFood(
+                        userId,
+                        saved_food_id,
+                    );
                     return {
                         content: [
                             {

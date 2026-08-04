@@ -134,7 +134,9 @@ export async function sweepStaleExports(): Promise<void> {
     if (railwayDataEnabled) {
         const removed = await cleanupExpiredExports();
         if (removed > 0) {
-            console.log(`Export sweep: removed ${removed} expired Railway export(s).`);
+            console.log(
+                `Export sweep: removed ${removed} expired Railway export(s).`,
+            );
         }
         return;
     }
@@ -150,9 +152,12 @@ export async function sweepStaleExports(): Promise<void> {
     }
     const stalePaths: string[] = [];
     for (const folder of folders ?? []) {
-        const { data: files, error: listErr } = await storage.list(folder.name, {
-            limit: 1000,
-        });
+        const { data: files, error: listErr } = await storage.list(
+            folder.name,
+            {
+                limit: 1000,
+            },
+        );
         if (listErr) continue;
         for (const file of files ?? []) {
             const timestamp = file.updated_at ?? file.created_at;

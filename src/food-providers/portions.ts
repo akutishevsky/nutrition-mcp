@@ -41,7 +41,10 @@ export function portionFromPer100g(input: {
         unit: normalizePortionUnit(input.unit),
         label: input.label.trim() || `${input.amount} ${input.unit}`,
         gramWeight: Math.round(input.gramWeight * 100) / 100,
-        nutrients: scaleNutrients(input.nutrientsPer100g, input.gramWeight / 100),
+        nutrients: scaleNutrients(
+            input.nutrientsPer100g,
+            input.gramWeight / 100,
+        ),
     };
 }
 
@@ -56,7 +59,10 @@ export function per100gPortion(nutrients: NutrientValues): FoodPortion {
     };
 }
 
-export function scalePortion(portion: FoodPortion, quantity: number): FoodPortion {
+export function scalePortion(
+    portion: FoodPortion,
+    quantity: number,
+): FoodPortion {
     if (!Number.isFinite(quantity) || quantity <= 0) {
         throw new RangeError("Portion quantity must be positive");
     }

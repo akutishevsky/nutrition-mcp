@@ -75,7 +75,7 @@ create policy export_files_service_all
     with check (true);
 
 grant select, insert, update, delete on munch.food_cache to munch_service;
-grant insert on munch.tool_events to munch_service;
+grant select, insert on munch.tool_events to munch_service;
 grant select, insert, update, delete on munch.export_files to munch_service;
 grant usage, select on all sequences in schema munch to munch_service;
 

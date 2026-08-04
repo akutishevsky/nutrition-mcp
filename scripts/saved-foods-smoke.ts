@@ -1,8 +1,7 @@
 #!/usr/bin/env bun
 
-const { consumeLoginChallenge, createLoginChallenge } = await import(
-    "../src/accounts/repository.js"
-);
+const { consumeLoginChallenge, createLoginChallenge } =
+    await import("../src/accounts/repository.js");
 const {
     deleteSavedFood,
     listSavedFoods,
@@ -11,12 +10,9 @@ const {
     searchRecentMealItems,
     searchSavedFoods,
 } = await import("../src/saved-foods/repository.js");
-const { insertStructuredMeal } = await import(
-    "../src/structured-meals/repository.js"
-);
-const { closePlatformDatabase } = await import(
-    "../src/platform/database.js"
-);
+const { insertStructuredMeal } =
+    await import("../src/structured-meals/repository.js");
+const { closePlatformDatabase } = await import("../src/platform/database.js");
 
 if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required for saved-food smoke tests");

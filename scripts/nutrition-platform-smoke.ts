@@ -108,10 +108,12 @@ if ((await countMeals(alpha.userId)) !== 1) {
     throw new Error("Meal count was incorrect");
 }
 if (
-    !(await existingIdempotencyKeys(alpha.userId, [
-        firstMeal.meal.idempotency_key!,
-        "missing-key",
-    ])).has(firstMeal.meal.idempotency_key!)
+    !(
+        await existingIdempotencyKeys(alpha.userId, [
+            firstMeal.meal.idempotency_key!,
+            "missing-key",
+        ])
+    ).has(firstMeal.meal.idempotency_key!)
 ) {
     throw new Error("Existing idempotency-key lookup failed");
 }
@@ -185,8 +187,10 @@ await insertMeal(beta.userId, {
     logged_at: loggedAt,
 });
 
-const leakedRows = await withUserDatabase(alpha.userId, async (tx) =>
-    tx<Array<{ id: string }>>`
+const leakedRows = await withUserDatabase(
+    alpha.userId,
+    async (tx) =>
+        tx<Array<{ id: string }>>`
         select id
         from munch.meals
         where user_id = ${beta.userId}
@@ -221,8 +225,9 @@ if (!crossTenantWriteDenied) {
 }
 
 await deleteAllUserData(beta.userId);
-const remainingBeta = await withAuthDatabase(async (tx) =>
-    tx<Array<{ count: number | string }>>`
+const remainingBeta = await withAuthDatabase(
+    async (tx) =>
+        tx<Array<{ count: number | string }>>`
         select count(*)::bigint as count
         from munch.users
         where id = ${beta.userId}

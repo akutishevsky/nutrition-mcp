@@ -1,0 +1,7 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "allowJs": false
+    },
+    "files": ["src/saved-food-tools.ts"]
+}

@@ -10,6 +10,8 @@ describe("saved food labels", () => {
 
     test("keeps deterministic words for uniqueness and lookup", () => {
         expect(normalizeSavedFoodLabel("My Usual PB&J")).toBe("my usual pb j");
-        expect(normalizeSavedFoodLabel("my-usual   pb j")).toBe("my usual pb j");
+        expect(normalizeSavedFoodLabel("my-usual   pb j")).toBe(
+            "my usual pb j",
+        );
     });
 });

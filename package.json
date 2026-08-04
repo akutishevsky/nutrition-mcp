@@ -20,7 +20,9 @@
     "type": "module",
     "private": true,
     "devDependencies": {
-        "@types/bun": "latest"
+        "@types/bun": "latest",
+        "@types/node": "^26.1.2",
+        "@typescript/native-preview": "7.0.0-dev.20260707.2"
     },
     "peerDependencies": {
         "typescript": "^5.9.3"
@@ -36,13 +38,14 @@
         "format": "bunx prettier --write .",
         "format:check": "bunx prettier --check .",
         "typecheck": "bun run scripts/typecheck.ts",
-        "depersonalize": "bun run scripts/depersonalize.ts",
+        "brand:check": "bun run scripts/brand-check.ts",
         "generate-oauth-creds": "echo \"OAUTH_CLIENT_ID=$(openssl rand -hex 16)\" && echo \"OAUTH_CLIENT_SECRET=$(openssl rand -hex 32)\""
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@supabase/supabase-js": "^2.110.5",
         "hono": "^4.12.30",
-        "prettier": "^3.9.5"
+        "prettier": "^3.9.5",
+        "zod": "3.25.76"
     }
 }

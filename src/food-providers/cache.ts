@@ -65,9 +65,6 @@ export async function getOrLoadCached<T>(input: {
     const cached = readCacheEnvelope<T>(await input.backend.get(input.key));
     if (cached !== null) return cached;
     const value = await input.load();
-    await input.backend.set(
-        input.key,
-        createCacheEnvelope(value, input.ttlMs),
-    );
+    await input.backend.set(input.key, createCacheEnvelope(value, input.ttlMs));
     return value;
 }

@@ -57,6 +57,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/munch_test
+      MUNCH_APP_BASE_URL: https://munch.example
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

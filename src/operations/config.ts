@@ -43,7 +43,8 @@ export function configurationIssues(): ConfigurationIssue[] {
             if (parsed.pathname !== "/" || parsed.search || parsed.hash) {
                 issues.push({
                     key: "MUNCH_APP_BASE_URL",
-                    message: "Application URL must be an origin without path, query, or fragment",
+                    message:
+                        "Application URL must be an origin without path, query, or fragment",
                 });
             }
         } catch {
@@ -65,7 +66,8 @@ export function configurationIssues(): ConfigurationIssue[] {
     if (production && present("MUNCH_DEV_EXPOSE_LOGIN_LINK") === "true") {
         issues.push({
             key: "MUNCH_DEV_EXPOSE_LOGIN_LINK",
-            message: "Development login-link exposure cannot be enabled in production",
+            message:
+                "Development login-link exposure cannot be enabled in production",
         });
     }
 
@@ -83,7 +85,8 @@ export function configurationIssues(): ConfigurationIssue[] {
                 if (new URL(deliveryUrl).protocol !== "https:") {
                     issues.push({
                         key: "MUNCH_LOGIN_DELIVERY_ENDPOINT",
-                        message: "Production login delivery endpoint must use HTTPS",
+                        message:
+                            "Production login delivery endpoint must use HTTPS",
                     });
                 }
             } catch {
@@ -123,6 +126,8 @@ export function validateStartupConfiguration(): void {
     if (present("MUNCH_STRICT_STARTUP_VALIDATION") !== "true") return;
     const issues = configurationIssues();
     if (issues.length === 0) return;
-    const summary = issues.map((issue) => `${issue.key}: ${issue.message}`).join("; ");
+    const summary = issues
+        .map((issue) => `${issue.key}: ${issue.message}`)
+        .join("; ");
     throw new Error(`Invalid Munch configuration: ${summary}`);
 }

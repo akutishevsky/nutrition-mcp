@@ -32,7 +32,14 @@ export function asFoodProviderError(
     error: unknown,
     provider?: string,
 ): FoodProviderError {
-    if (error instanceof FoodProviderError) return error;
+    if (error instanceof FoodProviderError) {
+        if (error.provider || !provider) return error;
+        return new FoodProviderError(error.code, error.message, {
+            provider,
+            retryAfterSeconds: error.retryAfterSeconds,
+            cause: error.cause,
+        });
+    }
     return new FoodProviderError(
         "provider_unavailable",
         error instanceof Error ? error.message : "Food provider request failed",

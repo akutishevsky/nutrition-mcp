@@ -130,9 +130,12 @@ export async function getCachedFood<T>(
     sourceId: string,
 ): Promise<T | null> {
     if (railwayDataEnabled) {
-        return (await railwayService.getCachedFood(source, sourceId)) as T | null;
+        return (await railwayService.getCachedFood(
+            source,
+            sourceId,
+        )) as T | null;
     }
-    return inherited.getCachedFood<T>(source, sourceId);
+    return inherited.getCachedFood(source, sourceId) as Promise<T | null>;
 }
 
 export function cacheFood(
@@ -161,12 +164,11 @@ export function insertToolAnalytics(row: {
 
 export async function getLandingStats(): Promise<inherited.LandingStats> {
     return railwayDataEnabled
-        ? ((await railwayService.getLandingStats()) as inherited.LandingStats)
+        ? ((await railwayService.getLandingStats()) as unknown as inherited.LandingStats)
         : inherited.getLandingStats();
 }
 
 export type {
-    CountryStat,
     LandingStats,
     Meal,
     MealInput,
@@ -175,3 +177,5 @@ export type {
     WaterEntry,
     WeightEntry,
 } from "./inherited-supabase.js";
+
+export type { CountryStat } from "./service-platform/repository.js";

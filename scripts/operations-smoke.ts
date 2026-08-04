@@ -18,15 +18,9 @@ Object.assign(process.env, {
 });
 
 const { Hono } = await import("hono");
-const { buildReadinessReport } = await import(
-    "../src/operations/readiness.js"
-);
-const { createOperationsRouter } = await import(
-    "../src/operations/routes.js"
-);
-const { closePlatformDatabase } = await import(
-    "../src/platform/database.js"
-);
+const { buildReadinessReport } = await import("../src/operations/readiness.js");
+const { createOperationsRouter } = await import("../src/operations/routes.js");
+const { closePlatformDatabase } = await import("../src/platform/database.js");
 
 if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required for operations smoke tests");
@@ -43,7 +37,11 @@ for (const required of [
     "database_roles",
     "row_level_security",
 ]) {
-    if (!report.components.some((component) => component.name === required && component.ok)) {
+    if (
+        !report.components.some(
+            (component) => component.name === required && component.ok,
+        )
+    ) {
         throw new Error(`Readiness component ${required} was unavailable`);
     }
 }
@@ -55,7 +53,10 @@ if (live.status !== 200 || live.headers.get("cache-control") !== "no-store") {
     throw new Error("Liveness route failed");
 }
 const ready = await app.request("https://munch.example/health/ready");
-if (ready.status !== 200 || !(await ready.json() as { ready: boolean }).ready) {
+if (
+    ready.status !== 200 ||
+    !((await ready.json()) as { ready: boolean }).ready
+) {
     throw new Error("Readiness route failed");
 }
 

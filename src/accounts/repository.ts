@@ -1,9 +1,6 @@
 import type { SQL } from "bun";
 import { withAuthDatabase } from "../platform/database.js";
-import {
-    hashOpaqueToken,
-    issueOpaqueToken,
-} from "../platform/tokens.js";
+import { hashOpaqueToken, issueOpaqueToken } from "../platform/tokens.js";
 import { normalizeAccountEmail } from "./email.js";
 
 export type LoginTokenPurpose = "sign_in" | "verify_email" | "change_email";

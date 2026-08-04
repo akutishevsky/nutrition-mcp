@@ -1,7 +1,4 @@
-import {
-    createHmac,
-    timingSafeEqual,
-} from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 export interface StripeSignatureVerificationOptions {
     nowSeconds?: number;
@@ -48,7 +45,9 @@ function parseSignatureHeader(header: string): ParsedSignatureHeader {
 function constantTimeHexMatch(actualHex: string, expectedHex: string): boolean {
     const actual = Buffer.from(actualHex, "hex");
     const expected = Buffer.from(expectedHex, "hex");
-    return actual.length === expected.length && timingSafeEqual(actual, expected);
+    return (
+        actual.length === expected.length && timingSafeEqual(actual, expected)
+    );
 }
 
 export function verifyStripeWebhookSignature(
@@ -70,11 +69,15 @@ export function verifyStripeWebhookSignature(
         toleranceSeconds < 0 ||
         toleranceSeconds > 3600
     ) {
-        throw new Error("Stripe signature tolerance must be between 0 and 3600 seconds");
+        throw new Error(
+            "Stripe signature tolerance must be between 0 and 3600 seconds",
+        );
     }
 
     if (Math.abs(nowSeconds - parsed.timestamp) > toleranceSeconds) {
-        throw new Error("Stripe webhook timestamp is outside the accepted tolerance");
+        throw new Error(
+            "Stripe webhook timestamp is outside the accepted tolerance",
+        );
     }
 
     const body =

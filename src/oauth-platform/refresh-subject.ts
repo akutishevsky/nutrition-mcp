@@ -1,8 +1,5 @@
 import { withAuthDatabase } from "../platform/database.js";
-import {
-    hashOpaqueToken,
-    tokenHashMatches,
-} from "../platform/tokens.js";
+import { hashOpaqueToken, tokenHashMatches } from "../platform/tokens.js";
 import type { TokenEndpointAuthMethod } from "./repository.js";
 
 interface RefreshSubjectRow {

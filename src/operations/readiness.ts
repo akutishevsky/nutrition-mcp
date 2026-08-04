@@ -59,13 +59,17 @@ export async function buildReadinessReport(): Promise<ReadinessReport> {
             select version from munch.schema_migrations order by version
         `;
         const applied = new Set(migrationRows.map((row) => row.version));
-        const missing = expectedVersions.filter((version) => !applied.has(version));
+        const missing = expectedVersions.filter(
+            (version) => !applied.has(version),
+        );
         components.push({
             name: "migrations",
             ok: missing.length === 0,
             ...(missing.length > 0
                 ? { detail: `${missing.length} migration(s) missing` }
-                : { detail: `${expectedVersions.length} migration(s) applied` }),
+                : {
+                      detail: `${expectedVersions.length} migration(s) applied`,
+                  }),
         });
 
         const requiredRoles = [
@@ -117,9 +121,7 @@ export async function buildReadinessReport(): Promise<ReadinessReport> {
         `;
         const secure = new Set(
             rlsRows
-                .filter(
-                    (row) => row.relrowsecurity && row.relforcerowsecurity,
-                )
+                .filter((row) => row.relrowsecurity && row.relforcerowsecurity)
                 .map((row) => row.relname),
         );
         const insecureTables = protectedTables.filter(

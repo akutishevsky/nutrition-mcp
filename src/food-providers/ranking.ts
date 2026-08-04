@@ -12,8 +12,12 @@ export function normalizeFoodText(value: string): string {
 }
 
 function tokenOverlap(query: string, value: string): number {
-    const queryTokens = new Set(normalizeFoodText(query).split(" ").filter(Boolean));
-    const valueTokens = new Set(normalizeFoodText(value).split(" ").filter(Boolean));
+    const queryTokens = new Set(
+        normalizeFoodText(query).split(" ").filter(Boolean),
+    );
+    const valueTokens = new Set(
+        normalizeFoodText(value).split(" ").filter(Boolean),
+    );
     if (queryTokens.size === 0) return 0;
     let matches = 0;
     for (const token of queryTokens) {
@@ -54,7 +58,9 @@ export function scoreCandidate(
     const brand = normalizeFoodText(candidate.brand ?? "");
     const exactName = query !== "" && query === name ? 1 : 0;
     const exactBrandAndName =
-        query !== "" && query === normalizeFoodText(`${candidate.brand ?? ""} ${candidate.name}`)
+        query !== "" &&
+        query ===
+            normalizeFoodText(`${candidate.brand ?? ""} ${candidate.name}`)
             ? 1
             : 0;
     const overlap = Math.max(

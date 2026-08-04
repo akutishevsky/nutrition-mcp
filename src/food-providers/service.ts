@@ -9,10 +9,7 @@ import {
     FoodProviderRegistry,
     type AggregatedFoodSearchResult,
 } from "./registry.js";
-import type {
-    FoodCandidate,
-    FoodProviderName,
-} from "./types.js";
+import type { FoodCandidate, FoodProviderName } from "./types.js";
 import { UsdaFoodDataCentralProvider } from "./usda.js";
 
 const CACHE_SOURCE = "normalized_food_provider_v1";
@@ -42,7 +39,9 @@ function normalizedQuery(query: string): string {
     return query.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export function encodeFoodCandidateId(candidate: Pick<FoodCandidate, "provider" | "providerFoodId">): string {
+export function encodeFoodCandidateId(
+    candidate: Pick<FoodCandidate, "provider" | "providerFoodId">,
+): string {
     return `${candidate.provider}:${encodeURIComponent(candidate.providerFoodId)}`;
 }
 
@@ -91,9 +90,7 @@ export function summarizeFoodCandidate(
 
 async function readCache<T>(key: string): Promise<T | null> {
     try {
-        return readCacheEnvelope<T>(
-            await getCachedFood(CACHE_SOURCE, key),
-        );
+        return readCacheEnvelope<T>(await getCachedFood(CACHE_SOURCE, key));
     } catch {
         return null;
     }
@@ -105,11 +102,7 @@ async function writeCache<T>(
     ttlMs: number,
 ): Promise<void> {
     try {
-        await cacheFood(
-            CACHE_SOURCE,
-            key,
-            createCacheEnvelope(value, ttlMs),
-        );
+        await cacheFood(CACHE_SOURCE, key, createCacheEnvelope(value, ttlMs));
     } catch {
         // Provider cache is strictly best-effort.
     }
@@ -123,7 +116,10 @@ export class FoodSearchService {
         ]),
     ) {}
 
-    async search(query: string, limit = 10): Promise<AggregatedFoodSearchResult> {
+    async search(
+        query: string,
+        limit = 10,
+    ): Promise<AggregatedFoodSearchResult> {
         const normalized = normalizedQuery(query);
         if (!normalized) return { candidates: [], failures: [] };
         const boundedLimit = Math.max(1, Math.min(25, limit));

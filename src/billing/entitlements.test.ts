@@ -5,12 +5,12 @@ describe("subscription entitlement policy", () => {
     const now = new Date("2026-08-03T17:00:00Z");
 
     test("allows active and trialing subscriptions", () => {
-        expect(decideEntitlement({ status: "active" }, now).canWriteNutritionData).toBe(
-            true,
-        );
-        expect(decideEntitlement({ status: "trialing" }, now).canUseProtectedTools).toBe(
-            true,
-        );
+        expect(
+            decideEntitlement({ status: "active" }, now).canWriteNutritionData,
+        ).toBe(true);
+        expect(
+            decideEntitlement({ status: "trialing" }, now).canUseProtectedTools,
+        ).toBe(true);
     });
 
     test("allows a past-due subscription only during its grace period", () => {

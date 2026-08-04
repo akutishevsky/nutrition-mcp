@@ -56,9 +56,7 @@ describe("food tool serialization", () => {
             potassium_mg: null,
         });
         expect(serialized.portions[0]?.nutrients.sodium_mg).toBe(68);
-        expect(serialized.candidate_id).toBe(
-            "open_food_facts:012345678905",
-        );
+        expect(serialized.candidate_id).toBe("open_food_facts:012345678905");
     });
 
     test("registers three non-conflicting provider tools", () => {

@@ -1,300 +1,296 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <title>Privacy Policy — Nutrition MCP</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Privacy Policy — Munch</title>
         <meta
             name="description"
-            content="How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time."
+            content="How Munch stores nutrition records, works with ChatGPT, protects account data, and supports export and deletion."
         />
-        <meta property="og:title" content="Privacy Policy — Nutrition MCP" />
-        <meta
-            property="og:description"
-            content="How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time."
-        />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://nutrition-mcp.com/privacy" />
-        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
-        <meta name="twitter:title" content="Privacy Policy — Nutrition MCP" />
-        <meta
-            name="twitter:description"
-            content="How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time."
-        />
-        <link rel="canonical" href="https://nutrition-mcp.com/privacy" />
-        <link rel="icon" href="/favicon.ico" />
-        <meta name="theme-color" content="#4a7c59" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <meta name="theme-color" content="#0B8F4D" />
         <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@700;800&display=swap"
-            rel="stylesheet"
+            rel="canonical"
+            href="https://munch-production-de3a.up.railway.app/privacy"
         />
+        <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/styles.css" />
-        <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
-        ></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() {
-                dataLayer.push(arguments);
-            }
-            gtag("js", new Date());
-            gtag("config", "G-1K4HRB2R8X");
-        </script>
     </head>
-    <body class="auth">
-        <script>
-            // Apply a saved theme override before paint to avoid a flash.
-            // With no saved preference, the OS setting drives it via CSS.
-            (function () {
-                try {
-                    var t = localStorage.getItem("theme");
-                    if (t === "dark" || t === "light")
-                        document.body.setAttribute("data-theme", t);
-                } catch (e) {}
-            })();
-        </script>
-
-        <button
-            class="auth-toggle"
-            type="button"
-            id="theme-toggle"
-            aria-label="Toggle dark mode"
-            title="Toggle dark mode"
-        ></button>
-
-        <main class="auth-wrap legal">
-            <div class="auth-card">
-                <div class="auth-head">
-                    <span class="auth-mark" aria-hidden="true">🍏</span>
-                    <h1 class="auth-title">Privacy Policy</h1>
+    <body>
+        <header class="site-header">
+            <div class="container nav-inner">
+                <a class="brand" href="/"
+                    ><img
+                        class="brand-logo"
+                        src="/brand/munch-mark.svg"
+                        alt=""
+                    /><span>Munch</span></a
+                >
+                <nav class="nav-links">
+                    <a href="/tools">Tools</a><a href="/terms">Terms</a
+                    ><a href="/account/login">Sign in</a>
+                </nav>
+            </div>
+        </header>
+        <main>
+            <section class="legal-hero">
+                <div class="container">
+                    <p class="section-kicker">Privacy without vague promises</p>
+                    <h1>Privacy Policy</h1>
+                    <p class="section-copy">
+                        Munch is a consumer nutrition service designed to work
+                        through ChatGPT and compatible MCP clients.
+                    </p>
+                    <p class="tiny spacer-top">Last updated: August 3, 2026</p>
                 </div>
-
-                <p class="legal-updated">Last updated: July 26, 2026</p>
-
-                <div class="legal-section">
-                    <h2 class="legal-heading">What we collect</h2>
-                    <p>
-                        When you register, we store your
-                        <strong>email address</strong> and a securely hashed
-                        password via Supabase Auth. If you sign in with Google
-                        instead, we receive your email address from Google and
-                        never see a password at all.
-                    </p>
-                    <p>When you use the service, we store:</p>
-                    <ul>
-                        <li>
-                            <strong>Meal logs</strong> — description, meal type,
-                            calories, macros, fiber, total sugar, grams of
-                            alcohol, notes, and timestamps. Food photos are
-                            interpreted by your AI assistant and are never
-                            uploaded to or stored by us.
-                        </li>
-                        <li>
-                            <strong>Water logs</strong> — amount, notes, and
-                            timestamps.
-                        </li>
-                        <li>
-                            <strong>Body weight logs</strong> — weight, notes,
-                            and timestamps. This is health data, and it is
-                            treated exactly like the rest of your logs.
-                        </li>
-                        <li>
-                            <strong>Goals</strong> — your daily calorie,
-                            protein, carb, fat, fiber, sugar, alcohol, and water
-                            targets, and your target weight.
-                        </li>
-                        <li>
-                            <strong>Profile settings</strong> — your IANA
-                            timezone, preferred weight unit, whether alcohol
-                            tracking is switched on and which standard drink it
-                            is shown in, and whether in-chat widgets are
-                            enabled.
-                        </li>
-                        <li>
-                            <strong>Tool-usage telemetry</strong> — for each MCP
-                            tool call, which tool ran, whether it succeeded, how
-                            long it took, a coarse error category when it
-                            failed, the span in days of any date range you asked
-                            for, and the MCP session id. It is linked to your
-                            account id. It never includes the content of your
-                            logs.
-                        </li>
-                    </ul>
-                    <p>
-                        <strong>Alcohol is health data too</strong>, and of a
-                        more sensitive kind than a calorie count, so it works
-                        differently from everything above. Alcohol tracking is
-                        off by default, and we only ever record alcohol when it
-                        comes from you — a drink you log, or a column in a file
-                        you import. Nothing infers it on your behalf. Switching
-                        the setting off does two things: the bulk importer stops
-                        reading the alcohol column out of files you upload, and
-                        everything else stops showing alcohol in the meals,
-                        goals, progress and widgets you see. It is not a delete
-                        switch. Alcohol you logged directly is still recorded
-                        whether the setting is on or off, anything already
-                        stored stays in the database, and all of it still
-                        appears in your CSV export. To actually remove an
-                        alcohol figure, delete the meal it belongs to, or delete
-                        your account.
-                    </p>
-                    <p>
-                        We also keep the OAuth access and refresh tokens and
-                        authorization codes that let your AI assistant stay
-                        connected to your account.
-                    </p>
-                </div>
-
-                <div class="legal-section">
-                    <h2 class="legal-heading">How we use it</h2>
-                    <p>
-                        Your meal, water, weight, and goal data is used solely
-                        to provide the nutrition tracking service. We
-                        <strong
-                            >never sell it, never share it with third parties,
-                            and never use it for advertising</strong
-                        >
-                        or feed it into any ad or profiling system.
-                    </p>
-                    <p>
-                        Two kinds of analytics do exist, and neither touches the
-                        content of your logs:
-                    </p>
-                    <ul>
-                        <li>
-                            <strong>Website analytics.</strong> These pages load
-                            Google Analytics, which gives us aggregate traffic
-                            statistics — page views, referrers, rough geography,
-                            device type. It runs on every page, including this
-                            one, and there is currently no consent banner and no
-                            IP anonymization, so Google receives your IP address
-                            as part of the standard measurement. If you would
-                            rather not be measured, a tracker blocker or your
-                            browser's &ldquo;do not track&rdquo;-style
-                            protections will stop it.
-                        </li>
-                        <li>
-                            <strong>Server telemetry.</strong> Every MCP tool
-                            call writes one row of usage telemetry — which tool
-                            ran, whether it succeeded, how long it took — linked
-                            to your account id but not to what you logged. We
-                            use it to find slow and broken tools. It is not
-                            shared with anyone, and it is deleted along with
-                            everything else when you delete your account.
-                        </li>
-                    </ul>
-                    <p>
-                        Because the site loads fonts and icons from Google Fonts
-                        and jsDelivr, and the home page fetches the project's
-                        star count from the GitHub API, visiting these pages
-                        exposes your IP address to those providers.
-                    </p>
-                </div>
-
-                <div class="legal-section">
-                    <h2 class="legal-heading">Where it's stored</h2>
-                    <p>
-                        All data is stored in
-                        <a
-                            href="https://supabase.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            >Supabase</a
-                        >
-                        (PostgreSQL). Authentication is handled by Supabase
-                        Auth. The server is hosted on DigitalOcean.
-                    </p>
-                </div>
-
-                <div class="legal-section">
-                    <h2 class="legal-heading">Data deletion</h2>
-                    <p>
-                        You can delete your account and all associated data at
-                        any time by asking your AI assistant to
-                        <strong>delete your account</strong> while connected to
-                        the Nutrition MCP server. This action is immediate and
-                        irreversible. It removes your meals, water and weight
-                        logs, goals, profile settings, any stored CSV export,
-                        your tool-usage telemetry, your access tokens, and the
-                        account itself. That includes every alcohol figure you
-                        ever logged, whether or not alcohol tracking was
-                        switched on.
-                    </p>
-                </div>
-
-                <div class="legal-section">
-                    <h2 class="legal-heading">Terms of Service</h2>
-                    <p>
-                        Use of the service is also governed by our
-                        <a href="/terms">Terms of Service</a>, which cover
-                        acceptable use, the fact that nothing here is medical
-                        advice, and the absence of any warranty — the service is
-                        provided as-is, free of charge, with no guarantees of
-                        availability, accuracy, or fitness for any purpose.
-                    </p>
-                </div>
-
-                <div class="legal-foot">
-                    <a href="/" class="legal-back">&larr; Back to home</a>
-                    <span class="legal-sep" aria-hidden="true">·</span>
-                    <a href="/terms" class="legal-back">Terms of Service</a>
-                </div>
+            </section>
+            <div class="container legal-layout">
+                <nav class="legal-nav" aria-label="Privacy sections">
+                    <a href="#summary">Summary</a><a href="#data">Data stored</a
+                    ><a href="#chatgpt">ChatGPT and OpenAI</a
+                    ><a href="#providers">Service providers</a
+                    ><a href="#security">Security</a
+                    ><a href="#rights">Export and deletion</a
+                    ><a href="#retention">Retention</a
+                    ><a href="#limits">Product limits</a>
+                </nav>
+                <article class="legal-content">
+                    <section id="summary">
+                        <h2>Summary</h2>
+                        <div class="notice">
+                            Munch does not sell nutrition data, use Google
+                            Analytics or advertising trackers, or train a Munch
+                            AI model on your nutrition records. ChatGPT is
+                            operated by OpenAI and is governed separately by
+                            OpenAI's terms, privacy policy, plan, and user
+                            settings.
+                        </div>
+                    </section>
+                    <section id="data">
+                        <h2>What Munch stores</h2>
+                        <p>
+                            Munch stores the information needed to provide the
+                            service, including:
+                        </p>
+                        <ul>
+                            <li>
+                                Account email, login challenges, sessions, and
+                                security records.
+                            </li>
+                            <li>
+                                Meals, meal items, calories, nutrients, meal
+                                times, notes, sources, assumptions, drafts, and
+                                confirmations.
+                            </li>
+                            <li>
+                                Saved foods, usual meals, food-source
+                                identifiers, and barcode results you choose to
+                                save.
+                            </li>
+                            <li>
+                                Water, weight, goals, timezone, units, and other
+                                account preferences.
+                            </li>
+                            <li>
+                                OAuth clients, authorization sessions, token
+                                families, connection status, and revocation
+                                records.
+                            </li>
+                            <li>
+                                Stripe customer, subscription, entitlement,
+                                trial, renewal, cancellation, and payment-status
+                                identifiers. Munch does not store raw card
+                                numbers.
+                            </li>
+                            <li>
+                                Exports, deletion requests, bounded operational
+                                logs, and security telemetry needed to run and
+                                protect the service.
+                            </li>
+                        </ul>
+                        <h3>Tool inputs</h3>
+                        <p>
+                            When ChatGPT calls a Munch tool, Munch receives the
+                            tool arguments needed to perform the request. Those
+                            arguments can contain food descriptions, quantities,
+                            dates, nutrition values, water, weight, goals, or
+                            account instructions. Munch does not automatically
+                            receive unrelated parts of your conversation.
+                        </p>
+                        <h3>Why it is stored</h3>
+                        <p>
+                            Munch uses this information to authenticate you,
+                            maintain persistent nutrition history, search food
+                            databases, answer authorized tool requests, enforce
+                            subscription access, prevent abuse, support export
+                            and deletion, and operate the service.
+                        </p>
+                    </section>
+                    <section id="chatgpt">
+                        <h2>ChatGPT and OpenAI are separate from Munch</h2>
+                        <p>
+                            Your conversation is processed by ChatGPT before or
+                            while ChatGPT decides whether to call Munch.
+                            OpenAI—not Munch—controls how ChatGPT conversation
+                            content is retained, reviewed, or used under the
+                            applicable ChatGPT plan, account settings, and
+                            OpenAI policies.
+                        </p>
+                        <p>
+                            Munch cannot promise that OpenAI will not retain or
+                            use conversation content. Users should review
+                            OpenAI's current privacy controls and avoid entering
+                            information they do not want processed by ChatGPT.
+                        </p>
+                        <p>
+                            Munch does not train a separate model on nutrition
+                            records. Munch may use aggregate operational
+                            information that excludes nutrition-record content
+                            to identify failures, latency, abuse, or capacity
+                            needs.
+                        </p>
+                    </section>
+                    <section id="providers">
+                        <h2>Service providers and external data sources</h2>
+                        <ul>
+                            <li>
+                                <strong>Railway</strong> hosts the Munch
+                                application and Railway PostgreSQL database.
+                            </li>
+                            <li>
+                                <strong>Stripe</strong> processes checkout,
+                                recurring billing, payment methods, invoices,
+                                cancellations, and subscription recovery.
+                            </li>
+                            <li>
+                                <strong>Email delivery provider</strong>
+                                processes the email address and secure sign-in
+                                link needed for passwordless login.
+                            </li>
+                            <li>
+                                <strong>USDA FoodData Central</strong> receives
+                                food-search requests when Munch searches USDA
+                                data.
+                            </li>
+                            <li>
+                                <strong>Open Food Facts</strong> receives food
+                                or barcode lookup requests when that source is
+                                used.
+                            </li>
+                            <li>
+                                <strong>OpenAI/ChatGPT</strong> processes the
+                                conversation and decides what tool arguments to
+                                send to Munch.
+                            </li>
+                        </ul>
+                        <p>
+                            These providers process information under their own
+                            terms and privacy practices. Munch does not use
+                            Google Analytics and does not operate an advertising
+                            profile.
+                        </p>
+                    </section>
+                    <section id="security">
+                        <h2>Security and database protections</h2>
+                        <p>
+                            Munch uses HTTPS in production, signed and expiring
+                            sessions, OAuth authorization with PKCE, verified
+                            Stripe webhook signatures, rate limiting, bounded
+                            request bodies, and account-scoped database access
+                            patterns. Nutrition records are associated with an
+                            account and are not exposed through routine billing
+                            or support views.
+                        </p>
+                        <p>
+                            Access to production systems is restricted, but no
+                            internet service can guarantee absolute security.
+                            Munch does not claim zero-knowledge storage,
+                            end-to-end encryption, or that an authorized
+                            operator could never access the database during
+                            security, legal, backup, or incident-response work.
+                        </p>
+                    </section>
+                    <section id="rights">
+                        <h2>Export, connections, and deletion</h2>
+                        <p>
+                            You can export meal history, revoke individual
+                            ChatGPT/MCP connections, manage billing through
+                            Stripe, and permanently delete your Munch account
+                            through the account portal.
+                        </p>
+                        <p>
+                            Account deletion removes active Munch account data,
+                            nutrition records, saved foods, drafts, preferences,
+                            and active connections from the primary application
+                            database. Some limited records may remain
+                            temporarily in security logs, database backups,
+                            Stripe records, or records Munch must retain for
+                            fraud, accounting, legal, or dispute purposes.
+                        </p>
+                        <p>
+                            Deleting Munch data does not delete conversation
+                            history held by ChatGPT or OpenAI.
+                        </p>
+                    </section>
+                    <section id="retention">
+                        <h2>Retention</h2>
+                        <p>
+                            Active account data is retained while the account is
+                            open and as needed to provide the service. Expired
+                            login challenges, sessions, OAuth artifacts,
+                            exports, and operational records are subject to
+                            bounded cleanup. Backups and legally required
+                            billing records can persist after deletion for a
+                            limited period.
+                        </p>
+                    </section>
+                    <section id="limits">
+                        <h2>Consumer wellness product</h2>
+                        <p>
+                            Munch is not an electronic health record, medical
+                            provider, emergency service, or HIPAA-covered
+                            clinical service. Nutrition data, database records,
+                            and AI-assisted estimates can be incomplete or
+                            inaccurate and are not medical advice.
+                        </p>
+                        <h3>Policy changes</h3>
+                        <p>
+                            This policy may change as Munch, its providers, or
+                            legal requirements change. Material updates will be
+                            reflected by a revised date and, where appropriate,
+                            an in-product notice.
+                        </p>
+                        <h3>Contact</h3>
+                        <p>
+                            A dedicated support and privacy contact will be
+                            published before general availability. Until then,
+                            project issues may be reported through the Munch
+                            GitHub repository without including sensitive
+                            nutrition or account data.
+                        </p>
+                    </section>
+                </article>
             </div>
         </main>
-
-        <script>
-            (function () {
-                var btn = document.getElementById("theme-toggle");
-                if (!btn) return;
-                var meta = document.querySelector('meta[name="theme-color"]');
-                var darkQuery = window.matchMedia(
-                    "(prefers-color-scheme: dark)",
-                );
-                var MOON =
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-                var SUN =
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>';
-                // Effective theme = explicit override, else the OS setting.
-                function effectiveTheme() {
-                    var override = document.body.getAttribute("data-theme");
-                    if (override) return override;
-                    return darkQuery.matches ? "dark" : "light";
-                }
-                function syncUI() {
-                    var dark = effectiveTheme() === "dark";
-                    btn.innerHTML = dark ? SUN : MOON;
-                    var label = dark
-                        ? "Switch to light mode"
-                        : "Switch to dark mode";
-                    btn.setAttribute("aria-label", label);
-                    btn.setAttribute("title", label);
-                    if (meta)
-                        meta.setAttribute(
-                            "content",
-                            dark ? "#161617" : "#4a7c59",
-                        );
-                }
-                btn.addEventListener("click", function () {
-                    var next = effectiveTheme() === "dark" ? "light" : "dark";
-                    document.body.setAttribute("data-theme", next);
-                    try {
-                        localStorage.setItem("theme", next);
-                    } catch (e) {}
-                    syncUI();
-                });
-                // While following the OS (no override), track system changes.
-                darkQuery.addEventListener("change", function () {
-                    if (!document.body.getAttribute("data-theme")) syncUI();
-                });
-                syncUI();
-            })();
-        </script>
+        <footer class="site-footer">
+            <div class="container footer-grid">
+                <div>
+                    <a class="brand" href="/"
+                        ><img
+                            class="brand-logo"
+                            src="/brand/munch-mark.svg"
+                            alt=""
+                        /><span>Munch</span></a
+                    >
+                    <p class="footer-note">
+                        Persistent nutrition tools and memory for ChatGPT.
+                    </p>
+                </div>
+                <nav class="footer-links">
+                    <a href="/">Home</a><a href="/terms">Terms</a
+                    ><a href="/tools">Tools</a>
+                </nav>
+            </div>
+        </footer>
     </body>
 </html>

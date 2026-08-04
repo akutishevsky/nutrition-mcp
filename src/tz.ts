@@ -89,8 +89,12 @@ export function dowInTz(instant: Date | string, tz: string): number {
  * timestamp. This is the primitive the offset math is built on: the zone's
  * offset at instant `t` is `wallAsUtc(t) - t`.
  */
-function wallAsUtc(instantMs: number, tz: string): number {
-    const parts = new Intl.DateTimeFormat("en-US", {
+const wallClockFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function wallClockFormatter(tz: string): Intl.DateTimeFormat {
+    const existing = wallClockFormatters.get(tz);
+    if (existing) return existing;
+    const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: tz,
         hour12: false,
         year: "numeric",
@@ -99,7 +103,13 @@ function wallAsUtc(instantMs: number, tz: string): number {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-    }).formatToParts(new Date(instantMs));
+    });
+    wallClockFormatters.set(tz, formatter);
+    return formatter;
+}
+
+function wallAsUtc(instantMs: number, tz: string): number {
+    const parts = wallClockFormatter(tz).formatToParts(new Date(instantMs));
     const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
     const hour = get("hour") === 24 ? 0 : get("hour");
     return Date.UTC(

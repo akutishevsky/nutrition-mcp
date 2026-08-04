@@ -24,10 +24,14 @@ function isUuid(value: string): boolean {
     );
 }
 
-function validateDraftItem(item: StructuredMealItemInput): StructuredMealItemInput {
+function validateDraftItem(
+    item: StructuredMealItemInput,
+): StructuredMealItemInput {
     const name = item.name?.trim();
     if (!name || name.length > 500) {
-        throw new Error("Draft item name is required and must be at most 500 characters");
+        throw new Error(
+            "Draft item name is required and must be at most 500 characters",
+        );
     }
     if (
         item.quantity !== undefined &&
@@ -61,7 +65,9 @@ function validateDraftItem(item: StructuredMealItemInput): StructuredMealItemInp
         [keyof NutrientValues, number]
     >) {
         if (!Number.isFinite(value) || value < 0) {
-            throw new Error(`Draft item nutrient ${key} must be finite and nonnegative`);
+            throw new Error(
+                `Draft item nutrient ${key} must be finite and nonnegative`,
+            );
         }
         nutrients[key] = Math.round(value * 100) / 100;
     }
@@ -107,8 +113,7 @@ function questionFromRow(row: Record<string, unknown>): MealDraftQuestion {
         status: row.status as MealDraftQuestion["status"],
         answer: row.answer == null ? null : String(row.answer),
         createdAt: rowDate(row.created_at),
-        answeredAt:
-            row.answered_at == null ? null : rowDate(row.answered_at),
+        answeredAt: row.answered_at == null ? null : rowDate(row.answered_at),
     };
 }
 
@@ -170,7 +175,11 @@ async function loadDraft(
 }
 
 function assertEditable(draft: MealDraft): void {
-    if (!ACTIVE_STATUSES.includes(draft.status as (typeof ACTIVE_STATUSES)[number])) {
+    if (
+        !ACTIVE_STATUSES.includes(
+            draft.status as (typeof ACTIVE_STATUSES)[number],
+        )
+    ) {
         throw new Error(`Meal draft is ${draft.status} and cannot be edited`);
     }
     if (new Date(draft.expiresAt) <= new Date()) {
@@ -221,7 +230,10 @@ export async function createMealDraft(input: {
     notes?: string;
     expiresInHours?: number;
 }): Promise<MealDraft> {
-    const expiresInHours = Math.max(1, Math.min(72, input.expiresInHours ?? 24));
+    const expiresInHours = Math.max(
+        1,
+        Math.min(72, input.expiresInHours ?? 24),
+    );
     const loggedAt = input.loggedAt ? new Date(input.loggedAt) : null;
     if (loggedAt && !Number.isFinite(loggedAt.getTime())) {
         throw new Error("Draft loggedAt is invalid");
@@ -303,7 +315,11 @@ export async function upsertMealDraftItem(input: {
     position: number;
     item: StructuredMealItemInput;
 }): Promise<MealDraft> {
-    if (!Number.isInteger(input.position) || input.position < 0 || input.position > 99) {
+    if (
+        !Number.isInteger(input.position) ||
+        input.position < 0 ||
+        input.position > 99
+    ) {
         throw new Error("Draft item position must be an integer from 0 to 99");
     }
     const item = validateDraftItem(input.item);
@@ -317,7 +333,7 @@ export async function upsertMealDraftItem(input: {
                 draft_id, user_id, position, item_payload
             ) values (
                 ${input.draftId}, ${input.userId}, ${input.position},
-                ${JSON.stringify(item)}::jsonb
+                ${item}::jsonb
             )
             on conflict (draft_id, position) do update
             set item_payload = excluded.item_payload,
@@ -360,7 +376,9 @@ export async function addMealDraftQuestion(input: {
             input.itemId &&
             !draft.items.some((item) => item.id === input.itemId)
         ) {
-            throw new Error("Draft question item does not belong to this draft");
+            throw new Error(
+                "Draft question item does not belong to this draft",
+            );
         }
         await tx`
             insert into munch.meal_draft_questions (
@@ -470,12 +488,15 @@ async function insertConfirmedMeal(
     draft: MealDraft,
 ): Promise<string> {
     if (!draft.mealType || !draft.description?.trim()) {
-        throw new Error("Meal type and description are required before confirmation");
+        throw new Error(
+            "Meal type and description are required before confirmation",
+        );
     }
     const acceptedByItem = new Map<string, string[]>();
     const globalAssumptions: string[] = [];
     for (const question of draft.questions) {
-        if (question.status !== "accepted_assumption" || !question.answer) continue;
+        if (question.status !== "accepted_assumption" || !question.answer)
+            continue;
         if (question.itemId) {
             const list = acceptedByItem.get(question.itemId) ?? [];
             list.push(question.answer);
@@ -556,8 +577,8 @@ async function insertConfirmedMeal(
                     ${item.providerRevision ?? null}, ${item.sourceUrl ?? null},
                     ${item.sourceUpdatedAt ? new Date(item.sourceUpdatedAt) : null},
                     ${item.confidence ?? null},
-                    ${JSON.stringify(item.assumptions ?? [])}::jsonb,
-                    ${JSON.stringify(item.sourceSnapshot ?? {})}::jsonb
+                    ${item.assumptions ?? []}::jsonb,
+                    ${item.sourceSnapshot ?? {}}::jsonb
                 )
             `;
         }

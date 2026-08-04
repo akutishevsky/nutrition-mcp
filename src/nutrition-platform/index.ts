@@ -22,10 +22,7 @@ export {
     upsertProfile,
     widgetsEnabledFromProfile,
 } from "./profiles.js";
-export {
-    getNutritionGoals,
-    upsertNutritionGoals,
-} from "./goals.js";
+export { getNutritionGoals, upsertNutritionGoals } from "./goals.js";
 export {
     deleteWater,
     getWaterByDate,

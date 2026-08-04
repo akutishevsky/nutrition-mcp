@@ -61,7 +61,7 @@ export async function renderLoginPage(
     sessionId: string,
     error?: string,
 ): Promise<string> {
-    const template = await Bun.file("./public/login.html").text();
+    const template = await Bun.file("./public/oauth-login.html").text();
     const errorHtml = error
         ? `<div class="error-banner">${escapeHtml(error)}</div>`
         : "";

@@ -59,25 +59,29 @@ function oauthError(
     );
 }
 
-function signInPage(sessionId: string): string {
+function oauthShell(title: string, content: string): string {
     return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect Munch</title></head>
-<body><main><h1>Connect Munch</h1><p>Enter your email. Munch will send a single-use sign-in link that returns you to this connection.</p>
-<form method="post" action="/oauth/request-login">
-<input type="hidden" name="session_id" value="${escapeHtml(sessionId)}">
-<label>Email <input type="email" name="email" autocomplete="email" required maxlength="320"></label>
-<button type="submit">Send sign-in link</button>
-</form></main></body></html>`;
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B8F4D"><title>${escapeHtml(title)} — Munch</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css"></head>
+<body class="auth-page"><div class="auth-layout"><aside class="auth-brand-panel"><a class="brand" href="/"><img class="brand-logo" src="/brand/munch-mark-white.svg" alt=""><span>Munch</span></a><div class="auth-brand-copy"><p class="eyebrow">Secure ChatGPT connection</p><h1>Nutrition memory for <span>ChatGPT.</span></h1><p>Munch stores your structured nutrition history and exposes only the tools you authorize.</p></div><p class="tiny">Munch does not train models on your nutrition records. ChatGPT data handling is governed by OpenAI and your ChatGPT settings.</p></aside><main class="auth-main"><section class="auth-card">${content}</section></main></div></body></html>`;
+}
+
+function signInPage(sessionId: string): string {
+    return oauthShell(
+        "Connect Munch",
+        `<p class="section-kicker">Step 1 of 2</p><h1>Sign in to Munch</h1><p>Enter your email and use the single-use link we send. You will return here to approve ChatGPT access.</p><form class="auth-form" method="post" action="/oauth/request-login"><input type="hidden" name="session_id" value="${escapeHtml(sessionId)}"><div class="field"><label for="email">Email</label><input id="email" type="email" name="email" autocomplete="email" required maxlength="320"></div><button class="button button-primary" type="submit">Send secure sign-in link</button></form><p class="auth-footnote">By continuing, you agree to the <a href="/terms">Terms</a> and acknowledge the <a href="/privacy">Privacy Policy</a>.</p>`,
+    );
 }
 
 function checkEmailPage(developmentLoginUrl?: string): string {
-    return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Check your email</title></head>
-<body><main><h1>Check your email</h1><p>Use the single-use Munch link to continue connecting your account.</p>${
-        developmentLoginUrl
-            ? `<p>Development only: <a href="${escapeHtml(developmentLoginUrl)}">open sign-in link</a></p>`
-            : ""
-    }</main></body></html>`;
+    return oauthShell(
+        "Check your email",
+        `<p class="section-kicker">Secure sign-in</p><h1>Check your email</h1><p>Open the single-use Munch link to continue connecting ChatGPT. The link expires automatically.</p>${
+            developmentLoginUrl
+                ? `<p class="notice spacer-top">Development only: <a href="${escapeHtml(developmentLoginUrl)}">open sign-in link</a></p>`
+                : ""
+        }<div class="portal-actions"><a class="button button-secondary" href="/">Return home</a></div>`,
+    );
 }
 
 function consentPage(input: {
@@ -85,15 +89,11 @@ function consentPage(input: {
     clientName: string | null;
     redirectUri: string;
 }): string {
-    const client = input.clientName ?? "this MCP client";
-    return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authorize Munch</title></head>
-<body><main><h1>Authorize Munch</h1><p><strong>${escapeHtml(client)}</strong> is requesting access to your Munch nutrition account.</p><p>After approval, it can call Munch tools to read and write your nutrition records on your behalf.</p><p>Return destination: ${escapeHtml(new URL(input.redirectUri).origin)}</p>
-<form method="post" action="/oauth/decision">
-<input type="hidden" name="session_id" value="${escapeHtml(input.sessionId)}">
-<button type="submit" name="decision" value="approve">Approve</button>
-<button type="submit" name="decision" value="deny">Deny</button>
-</form></main></body></html>`;
+    const client = input.clientName ?? "ChatGPT or this MCP client";
+    return oauthShell(
+        "Authorize Munch",
+        `<p class="section-kicker">Step 2 of 2</p><h1>Authorize this connection</h1><div class="consent-client"><strong>${escapeHtml(client)}</strong><p>Return destination: ${escapeHtml(new URL(input.redirectUri).origin)}</p></div><p>Approval lets this client call Munch tools to read and write nutrition records on your behalf. It does not grant access to billing credentials or unrelated conversations.</p><form class="consent-actions" method="post" action="/oauth/decision"><input type="hidden" name="session_id" value="${escapeHtml(input.sessionId)}"><button class="button button-primary" type="submit" name="decision" value="approve">Approve connection</button><button class="button button-quiet" type="submit" name="decision" value="deny">Deny</button></form><p class="auth-footnote">You can revoke this connection later from the Munch account portal.</p>`,
+    );
 }
 
 function tokenResponse(
@@ -156,8 +156,7 @@ export function createPlatformOAuthRouter(): Hono {
                         : {}),
                     client_name: client.clientName,
                     redirect_uris: client.redirectUris,
-                    token_endpoint_auth_method:
-                        client.tokenEndpointAuthMethod,
+                    token_endpoint_auth_method: client.tokenEndpointAuthMethod,
                     client_id_issued_at: Math.floor(Date.now() / 1000),
                 },
                 201,
@@ -258,32 +257,28 @@ export function createPlatformOAuthRouter(): Hono {
         );
     });
 
-    oauth.post(
-        "/oauth/request-login",
-        requireSameOrigin,
-        async (c) => {
-            const body = await c.req.parseBody();
-            const sessionId = body.session_id;
-            const email = body.email;
-            if (typeof sessionId !== "string" || typeof email !== "string") {
-                return oauthError(c, 400, "invalid_request");
-            }
-            if (!(await getAuthorizationSession(sessionId))) {
-                return oauthError(c, 400, "invalid_request", "Session expired");
-            }
+    oauth.post("/oauth/request-login", requireSameOrigin, async (c) => {
+        const body = await c.req.parseBody();
+        const sessionId = body.session_id;
+        const email = body.email;
+        if (typeof sessionId !== "string" || typeof email !== "string") {
+            return oauthError(c, 400, "invalid_request");
+        }
+        if (!(await getAuthorizationSession(sessionId))) {
+            return oauthError(c, 400, "invalid_request", "Session expired");
+        }
 
-            try {
-                const challenge = await createLoginChallenge(email);
-                const delivery = await deliverLoginLink({
-                    ...challenge,
-                    returnTo: `/oauth/continue?session_id=${encodeURIComponent(sessionId)}`,
-                });
-                return c.html(checkEmailPage(delivery.developmentLoginUrl));
-            } catch {
-                return c.json({ error: "login_delivery_unavailable" }, 503);
-            }
-        },
-    );
+        try {
+            const challenge = await createLoginChallenge(email);
+            const delivery = await deliverLoginLink({
+                ...challenge,
+                returnTo: `/oauth/continue?session_id=${encodeURIComponent(sessionId)}`,
+            });
+            return c.html(checkEmailPage(delivery.developmentLoginUrl));
+        } catch {
+            return c.json({ error: "login_delivery_unavailable" }, 503);
+        }
+    });
 
     oauth.post(
         "/oauth/decision",

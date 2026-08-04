@@ -1,8 +1,7 @@
 #!/usr/bin/env bun
 
-const { consumeLoginChallenge, createLoginChallenge } = await import(
-    "../src/accounts/repository.js"
-);
+const { consumeLoginChallenge, createLoginChallenge } =
+    await import("../src/accounts/repository.js");
 const {
     addMealDraftQuestion,
     answerMealDraftQuestion,
@@ -14,12 +13,9 @@ const {
     updateMealDraftMetadata,
     upsertMealDraftItem,
 } = await import("../src/meal-drafts/repository.js");
-const { getStructuredMeal } = await import(
-    "../src/structured-meals/repository.js"
-);
-const { closePlatformDatabase } = await import(
-    "../src/platform/database.js"
-);
+const { getStructuredMeal } =
+    await import("../src/structured-meals/repository.js");
+const { closePlatformDatabase } = await import("../src/platform/database.js");
 
 if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required for meal-draft smoke tests");
@@ -107,8 +103,8 @@ draft = await addMealDraftQuestion({
 });
 if (
     draft.status !== "awaiting_answers" ||
-    draft.questions.find((question) => question.status === "open")?.questionKey !==
-        "portion_eaten"
+    draft.questions.find((question) => question.status === "open")
+        ?.questionKey !== "portion_eaten"
 ) {
     throw new Error("Draft questions were not ordered by impact");
 }
@@ -138,8 +134,8 @@ draft = await answerMealDraftQuestion({
     answer: "I ate the entire plate.",
 });
 if (
-    draft.questions.find((question) => question.status === "open")?.questionKey !==
-    "hidden_oil"
+    draft.questions.find((question) => question.status === "open")
+        ?.questionKey !== "hidden_oil"
 ) {
     throw new Error("Next draft question was not advanced correctly");
 }
@@ -176,7 +172,9 @@ if (
         value.includes("User accepted unresolved assumption"),
     )
 ) {
-    throw new Error("Accepted unresolved assumption was not preserved on the meal");
+    throw new Error(
+        "Accepted unresolved assumption was not preserved on the meal",
+    );
 }
 
 const retry = await confirmMealDraft({
@@ -211,4 +209,6 @@ if (cancelled.status !== "cancelled" || cancelled.confirmedMealId) {
 }
 
 await closePlatformDatabase();
-console.log("Munch meal draft state, confirmation, idempotency, and RLS smoke test passed.");
+console.log(
+    "Munch meal draft state, confirmation, idempotency, and RLS smoke test passed.",
+);

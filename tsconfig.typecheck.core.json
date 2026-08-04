@@ -1,0 +1,27 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "allowJs": false
+    },
+    "files": [
+        "src/alcohol.ts",
+        "src/analytics.ts",
+        "src/csv.ts",
+        "src/discovery.ts",
+        "src/export.ts",
+        "src/foods.ts",
+        "src/import.ts",
+        "src/insights.ts",
+        "src/inherited-supabase.ts",
+        "src/middleware.ts",
+        "src/net.ts",
+        "src/normalize.ts",
+        "src/oauth.ts",
+        "src/rate-limit.ts",
+        "src/search.ts",
+        "src/tz.ts",
+        "src/units.ts",
+        "src/url.ts",
+        "src/widgets.ts"
+    ]
+}

@@ -1,11 +1,7 @@
 export type FoodProviderName = "usda" | "open_food_facts";
 
 export type FoodDataKind =
-    | "generic"
-    | "branded"
-    | "packaged"
-    | "restaurant"
-    | "unknown";
+    "generic" | "branded" | "packaged" | "restaurant" | "unknown";
 
 export interface NutrientValues {
     calories?: number;

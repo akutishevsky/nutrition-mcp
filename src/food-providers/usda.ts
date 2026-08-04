@@ -138,7 +138,8 @@ function nutrientKey(input: {
     if (name.includes("carbohydrate")) return "carbs_g";
     if (name.includes("total lipid") || name === "total fat") return "fat_g";
     if (name.includes("fiber")) return "fiber_g";
-    if (name.includes("sugars, total") || name === "total sugars") return "sugar_g";
+    if (name.includes("sugars, total") || name === "total sugars")
+        return "sugar_g";
     if (name === "sodium, na" || name === "sodium") return "sodium_mg";
     if (name.includes("fatty acids, total saturated")) return "saturated_fat_g";
     if (name === "cholesterol") return "cholesterol_mg";
@@ -176,7 +177,10 @@ function normalizeDetailNutrients(
     return normalizeNutrients(values);
 }
 
-function dataKind(dataType: string | undefined, barcode?: string): FoodDataKind {
+function dataKind(
+    dataType: string | undefined,
+    barcode?: string,
+): FoodDataKind {
     const type = dataType?.toLowerCase() ?? "";
     if (type.includes("branded")) return barcode ? "packaged" : "branded";
     if (
@@ -247,7 +251,8 @@ export function normalizeUsdaSearchFood(
     const providerFoodId = String(food.fdcId);
     const barcode = food.gtinUpc?.replace(/\D/g, "") || undefined;
     const kind = dataKind(food.dataType, barcode);
-    const brand = food.brandName?.trim() || food.brandOwner?.trim() || undefined;
+    const brand =
+        food.brandName?.trim() || food.brandOwner?.trim() || undefined;
     const portions = searchPortions(food, nutrients);
     return {
         provider: "usda",
@@ -278,7 +283,8 @@ export function normalizeUsdaFoodDetails(
     const providerFoodId = String(food.fdcId);
     const barcode = food.gtinUpc?.replace(/\D/g, "") || undefined;
     const kind = dataKind(food.dataType, barcode);
-    const brand = food.brandName?.trim() || food.brandOwner?.trim() || undefined;
+    const brand =
+        food.brandName?.trim() || food.brandOwner?.trim() || undefined;
     const portions = [per100gPortion(nutrients)];
     for (const portion of food.foodPortions ?? []) {
         const gramWeight = finiteNumber(portion.gramWeight);
@@ -331,7 +337,8 @@ export class UsdaFoodDataCentralProvider implements FoodProvider {
     private readonly timeoutMs: number;
 
     constructor(options: UsdaProviderOptions = {}) {
-        this.apiKey = options.apiKey ?? process.env.USDA_FDC_API_KEY?.trim() ?? "";
+        this.apiKey =
+            options.apiKey ?? process.env.USDA_FDC_API_KEY?.trim() ?? "";
         this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
         this.fetchImpl = options.fetchImpl ?? fetch;
         this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -348,10 +355,7 @@ export class UsdaFoodDataCentralProvider implements FoodProvider {
         return this.apiKey;
     }
 
-    private async requestJson<T>(
-        path: string,
-        init?: RequestInit,
-    ): Promise<T> {
+    private async requestJson<T>(path: string, init?: RequestInit): Promise<T> {
         const apiKey = this.requireApiKey();
         const separator = path.includes("?") ? "&" : "?";
         const response = await this.fetchImpl(
@@ -360,25 +364,35 @@ export class UsdaFoodDataCentralProvider implements FoodProvider {
                 ...init,
                 headers: {
                     Accept: "application/json",
-                    ...(init?.body ? { "Content-Type": "application/json" } : {}),
+                    ...(init?.body
+                        ? { "Content-Type": "application/json" }
+                        : {}),
                     ...init?.headers,
                 },
                 signal: init?.signal ?? AbortSignal.timeout(this.timeoutMs),
             },
         );
         if (response.status === 404) {
-            throw new FoodProviderError("not_found", "USDA food was not found", {
-                provider: this.name,
-            });
+            throw new FoodProviderError(
+                "not_found",
+                "USDA food was not found",
+                {
+                    provider: this.name,
+                },
+            );
         }
         if (response.status === 429) {
             const retryAfter = Number(response.headers.get("retry-after"));
-            throw new FoodProviderError("rate_limited", "USDA rate limit exceeded", {
-                provider: this.name,
-                retryAfterSeconds: Number.isFinite(retryAfter)
-                    ? retryAfter
-                    : undefined,
-            });
+            throw new FoodProviderError(
+                "rate_limited",
+                "USDA rate limit exceeded",
+                {
+                    provider: this.name,
+                    retryAfterSeconds: Number.isFinite(retryAfter)
+                        ? retryAfter
+                        : undefined,
+                },
+            );
         }
         if (!response.ok) {
             throw new FoodProviderError(
@@ -425,9 +439,13 @@ export class UsdaFoodDataCentralProvider implements FoodProvider {
     async getDetails(input: FoodLookupInput): Promise<FoodCandidate | null> {
         const id = input.providerFoodId.trim();
         if (!/^\d+$/.test(id)) {
-            throw new FoodProviderError("invalid_request", "Invalid USDA food ID", {
-                provider: this.name,
-            });
+            throw new FoodProviderError(
+                "invalid_request",
+                "Invalid USDA food ID",
+                {
+                    provider: this.name,
+                },
+            );
         }
         try {
             const food = await this.requestJson<UsdaFoodDetails>(
@@ -436,7 +454,10 @@ export class UsdaFoodDataCentralProvider implements FoodProvider {
             );
             return normalizeUsdaFoodDetails(food);
         } catch (error) {
-            if (error instanceof FoodProviderError && error.code === "not_found") {
+            if (
+                error instanceof FoodProviderError &&
+                error.code === "not_found"
+            ) {
                 return null;
             }
             throw error;
@@ -453,6 +474,8 @@ export class UsdaFoodDataCentralProvider implements FoodProvider {
             limit: 10,
             signal: input.signal,
         });
-        return results.find((candidate) => candidate.barcode === barcode) ?? null;
+        return (
+            results.find((candidate) => candidate.barcode === barcode) ?? null
+        );
     }
 }

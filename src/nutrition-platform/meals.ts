@@ -9,11 +9,7 @@ import {
     nullableNumber,
     stringOrNull,
 } from "./shared.js";
-import type {
-    Meal,
-    MealInput,
-    MealInsertResult,
-} from "./types.js";
+import type { Meal, MealInput, MealInsertResult } from "./types.js";
 
 interface MealRow {
     id: string;
@@ -216,7 +212,7 @@ export async function existingIdempotencyKeys(
             where user_id = ${userId}
               and idempotency_key in (
                   select value
-                  from jsonb_array_elements_text(${keyJson}::jsonb)
+                  from jsonb_array_elements_text((${keyJson}::text)::jsonb)
               )
         `;
         return new Set(rows.map((row) => row.idempotency_key));
@@ -273,12 +269,12 @@ export async function searchMeals(
                   and (
                     not exists (
                         select 1
-                        from jsonb_array_elements_text(${patterns}::jsonb) pattern
+                        from jsonb_array_elements_text((${patterns}::text)::jsonb) pattern
                         where description not ilike pattern.value
                     )
                     or not exists (
                         select 1
-                        from jsonb_array_elements_text(${patterns}::jsonb) pattern
+                        from jsonb_array_elements_text((${patterns}::text)::jsonb) pattern
                         where coalesce(notes, '') not ilike pattern.value
                     )
                   )

@@ -2,10 +2,7 @@ import { safeLocalRedirectPath } from "../accounts/redirect.js";
 import { getPlatformConfig } from "../platform/config.js";
 import { getBillableAccount } from "./account-query.js";
 import type { SubscriptionStatus } from "./entitlements.js";
-import {
-    upsertStripeCustomer,
-    upsertSubscription,
-} from "./repository.js";
+import { upsertStripeCustomer, upsertSubscription } from "./repository.js";
 import {
     createStripeCheckoutSession,
     createStripePortalSession,

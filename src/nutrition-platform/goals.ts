@@ -1,10 +1,7 @@
 import { withUserDatabase } from "../platform/database.js";
 import { toStoredInteger } from "../units.js";
 import { isoTimestamp, nullableNumber } from "./shared.js";
-import type {
-    NutritionGoals,
-    NutritionGoalsInput,
-} from "./types.js";
+import type { NutritionGoals, NutritionGoalsInput } from "./types.js";
 
 interface NutritionGoalsRow {
     user_id: string;

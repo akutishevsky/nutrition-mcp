@@ -72,10 +72,10 @@ Checkout sessions include the Munch user UUID in both Checkout metadata and subs
 
 ```json
 {
-  "email": "user@example.com",
-  "loginUrl": "https://<munch-domain>/account/login/consume?token=...",
-  "expiresAt": "2026-08-03T18:00:00.000Z",
-  "product": "Munch"
+    "email": "user@example.com",
+    "loginUrl": "https://<munch-domain>/account/login/consume?token=...",
+    "expiresAt": "2026-08-03T18:00:00.000Z",
+    "product": "Munch"
 }
 ```
 

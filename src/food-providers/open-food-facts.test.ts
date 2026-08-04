@@ -122,7 +122,10 @@ describe("Open Food Facts HTTP behavior", () => {
                 });
             }) as unknown as typeof fetch,
         });
-        const results = await provider.search({ query: "greek yogurt", limit: 5 });
+        const results = await provider.search({
+            query: "greek yogurt",
+            limit: 5,
+        });
         expect(results).toHaveLength(1);
         const url = new URL(seen[0]!);
         expect(url.pathname).toBe("/cgi/search.pl");
@@ -158,7 +161,9 @@ describe("Open Food Facts HTTP behavior", () => {
     test("returns null for status-zero and 404 barcode misses", async () => {
         const statusZero = new OpenFoodFactsProvider({
             userAgent: "Munch tests (test@example.com)",
-            fetchImpl: mock(async () => jsonResponse({ status: 0 })) as unknown as typeof fetch,
+            fetchImpl: mock(async () =>
+                jsonResponse({ status: 0 }),
+            ) as unknown as typeof fetch,
         });
         expect(
             await statusZero.lookupBarcode({ barcode: "012345678905" }),
@@ -166,7 +171,9 @@ describe("Open Food Facts HTTP behavior", () => {
 
         const notFound = new OpenFoodFactsProvider({
             userAgent: "Munch tests (test@example.com)",
-            fetchImpl: mock(async () => jsonResponse({}, 404)) as unknown as typeof fetch,
+            fetchImpl: mock(async () =>
+                jsonResponse({}, 404),
+            ) as unknown as typeof fetch,
         });
         expect(
             await notFound.lookupBarcode({ barcode: "012345678905" }),
@@ -175,16 +182,20 @@ describe("Open Food Facts HTTP behavior", () => {
 
     test("requires an identifying user agent", async () => {
         const provider = new OpenFoodFactsProvider({ userAgent: "" });
-        await expect(provider.search({ query: "apple" })).rejects.toMatchObject({
-            code: "configuration_missing",
-            provider: "open_food_facts",
-        });
+        await expect(provider.search({ query: "apple" })).rejects.toMatchObject(
+            {
+                code: "configuration_missing",
+                provider: "open_food_facts",
+            },
+        );
     });
 
     test("classifies provider outages and rate limits", async () => {
         const outage = new OpenFoodFactsProvider({
             userAgent: "Munch tests (test@example.com)",
-            fetchImpl: mock(async () => jsonResponse({}, 503)) as unknown as typeof fetch,
+            fetchImpl: mock(async () =>
+                jsonResponse({}, 503),
+            ) as unknown as typeof fetch,
         });
         await expect(outage.search({ query: "apple" })).rejects.toMatchObject({
             code: "provider_unavailable",

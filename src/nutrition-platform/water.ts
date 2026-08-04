@@ -6,11 +6,7 @@ import {
     requiredNumber,
     stringOrNull,
 } from "./shared.js";
-import type {
-    WaterEntry,
-    WaterInput,
-    WaterInsertResult,
-} from "./types.js";
+import type { WaterEntry, WaterInput, WaterInsertResult } from "./types.js";
 
 interface WaterRow {
     id: string;
@@ -41,12 +37,7 @@ export async function insertWater(
     const loggedAt = input.logged_at ?? new Date().toISOString();
     const idempotencyKey =
         input.idempotency_key ??
-        deriveIdempotencyKey([
-            userId,
-            input.amount_ml,
-            input.notes,
-            loggedAt,
-        ]);
+        deriveIdempotencyKey([userId, input.amount_ml, input.notes, loggedAt]);
 
     return withUserDatabase(userId, async (tx) => {
         const inserted = await tx<Array<WaterRow>>`

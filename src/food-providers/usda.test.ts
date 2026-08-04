@@ -66,7 +66,10 @@ describe("USDA normalization", () => {
             foodNutrients: [
                 {
                     amount: 165,
-                    nutrient: { id: 1008, name: "Energy (Atwater General Factors)" },
+                    nutrient: {
+                        id: 1008,
+                        name: "Energy (Atwater General Factors)",
+                    },
                 },
                 {
                     amount: 31,
@@ -107,24 +110,29 @@ describe("USDA provider HTTP behavior", () => {
         const seen: Array<{ url: string; init?: RequestInit }> = [];
         const provider = new UsdaFoodDataCentralProvider({
             apiKey: "test-key",
-            fetchImpl: mock(async (input: string | URL | Request, init?: RequestInit) => {
-                seen.push({ url: String(input), init });
-                return jsonResponse({
-                    foods: [
-                        {
-                            fdcId: 1,
-                            description: "Banana, raw",
-                            dataType: "Foundation",
-                            foodNutrients: [
-                                { nutrientId: 1008, value: 89 },
-                                { nutrientId: 1005, value: 22.8 },
-                            ],
-                        },
-                    ],
-                });
-            }) as unknown as typeof fetch,
+            fetchImpl: mock(
+                async (input: string | URL | Request, init?: RequestInit) => {
+                    seen.push({ url: String(input), init });
+                    return jsonResponse({
+                        foods: [
+                            {
+                                fdcId: 1,
+                                description: "Banana, raw",
+                                dataType: "Foundation",
+                                foodNutrients: [
+                                    { nutrientId: 1008, value: 89 },
+                                    { nutrientId: 1005, value: 22.8 },
+                                ],
+                            },
+                        ],
+                    });
+                },
+            ) as unknown as typeof fetch,
         });
-        const results = await provider.search({ query: " banana ", limit: 100 });
+        const results = await provider.search({
+            query: " banana ",
+            limit: 100,
+        });
         expect(results).toHaveLength(1);
         expect(seen[0]?.url).toContain("api_key=test-key");
         const body = JSON.parse(String(seen[0]?.init?.body));
@@ -156,24 +164,30 @@ describe("USDA provider HTTP behavior", () => {
                 }),
             ) as unknown as typeof fetch,
         });
-        const result = await provider.lookupBarcode({ barcode: "012345678905" });
+        const result = await provider.lookupBarcode({
+            barcode: "012345678905",
+        });
         expect(result?.providerFoodId).toBe("2");
     });
 
     test("returns null for a missing detail record", async () => {
         const provider = new UsdaFoodDataCentralProvider({
             apiKey: "test-key",
-            fetchImpl: mock(async () => jsonResponse({}, 404)) as unknown as typeof fetch,
+            fetchImpl: mock(async () =>
+                jsonResponse({}, 404),
+            ) as unknown as typeof fetch,
         });
         expect(await provider.getDetails({ providerFoodId: "123" })).toBeNull();
     });
 
     test("requires configuration without exposing a key", async () => {
         const provider = new UsdaFoodDataCentralProvider({ apiKey: "" });
-        await expect(provider.search({ query: "apple" })).rejects.toMatchObject({
-            code: "configuration_missing",
-            provider: "usda",
-        });
+        await expect(provider.search({ query: "apple" })).rejects.toMatchObject(
+            {
+                code: "configuration_missing",
+                provider: "usda",
+            },
+        );
     });
 
     test("classifies rate limits with retry metadata", async () => {
@@ -198,10 +212,14 @@ describe("USDA provider HTTP behavior", () => {
     test("classifies malformed JSON", async () => {
         const provider = new UsdaFoodDataCentralProvider({
             apiKey: "test-key",
-            fetchImpl: mock(async () => new Response("not json")) as unknown as typeof fetch,
+            fetchImpl: mock(
+                async () => new Response("not json"),
+            ) as unknown as typeof fetch,
         });
-        await expect(provider.search({ query: "apple" })).rejects.toMatchObject({
-            code: "invalid_provider_response",
-        });
+        await expect(provider.search({ query: "apple" })).rejects.toMatchObject(
+            {
+                code: "invalid_provider_response",
+            },
+        );
     });
 });

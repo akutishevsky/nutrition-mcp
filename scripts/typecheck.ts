@@ -1,41 +1,52 @@
-// Typecheck gate for CI.
-//
-// Scoped to src/ on purpose. scripts/gen-map-data.ts carries 19 pre-existing
-// strict-null errors that have nothing to do with the server, and blocking every
-// PR on them is how a typecheck gate ends up never being added at all. src/ is
-// clean today, so this starts green and stays green; widen the scope once the
-// scripts/ backlog is cleared.
-//
-// tsc exits non-zero for errors anywhere in the project, so its exit code cannot
-// be the verdict here — the src/-scoped diagnostic lines are. The exit code is
-// still inspected to tell "compiled with errors elsewhere" (2) apart from "tsc
-// could not run at all", which must fail loudly rather than pass silently.
+// Typecheck production sources with Microsoft's native TypeScript compiler.
+// The whole source graph exceeded the GitHub runner's time budget because the
+// MCP SDK expands every tool schema through one enormous generic graph. Keep
+// the graph partitioned by subsystem so each gate is bounded and failures name
+// the responsible module.
 
-const proc = Bun.spawn(["bunx", "tsc", "--noEmit", "--pretty", "false"], {
-    stdout: "pipe",
-    stderr: "pipe",
-});
-const [stdout, stderr] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-]);
-const exitCode = await proc.exited;
-const output = stdout + stderr;
+const projects = [
+    ["platform", "tsconfig.typecheck.platform.json"],
+    ["core", "tsconfig.typecheck.core.json"],
+    ["providers", "tsconfig.typecheck.providers.json"],
+    ["food tools", "tsconfig.typecheck.food-tools.json"],
+    ["meal-draft tools", "tsconfig.typecheck.meal-draft-tools.json"],
+    ["saved-food tools", "tsconfig.typecheck.saved-food-tools.json"],
+    ["MCP runtime", "tsconfig.typecheck.mcp.json"],
+] as const;
 
-// 0 = clean, 2 = type errors found. Anything else means tsc itself failed (bad
-// config, missing binary), which would otherwise look identical to "no src/
-// errors" and wave a broken build through.
-if (exitCode !== 0 && exitCode !== 2) {
-    console.error(`tsc failed to run (exit ${exitCode}):\n${output}`);
-    process.exit(1);
+const startedAt = Date.now();
+const heartbeat = setInterval(() => {
+    const elapsedSeconds = Math.round((Date.now() - startedAt) / 1000);
+    console.log(`Typecheck still running (${elapsedSeconds}s)`);
+}, 30_000);
+
+try {
+    for (const [label, project] of projects) {
+        console.log(`Typechecking ${label}...`);
+        const proc = Bun.spawn(
+            [
+                "./node_modules/.bin/tsgo",
+                "--project",
+                project,
+                "--noEmit",
+                "--pretty",
+                "false",
+            ],
+            {
+                stdout: "inherit",
+                stderr: "inherit",
+            },
+        );
+        const timeout = setTimeout(() => {
+            console.error(`Typecheck timed out for ${label}`);
+            proc.kill();
+        }, 90_000);
+        const exitCode = await proc.exited;
+        clearTimeout(timeout);
+        if (exitCode !== 0) process.exit(exitCode);
+    }
+} finally {
+    clearInterval(heartbeat);
 }
 
-const srcErrors = output.split("\n").filter((line) => line.startsWith("src/"));
-
-if (srcErrors.length > 0) {
-    console.error(`Type errors in src/ (${srcErrors.length}):\n`);
-    for (const line of srcErrors) console.error(`  ${line}`);
-    process.exit(1);
-}
-
-console.log("src/ typechecks clean");
+console.log("Production sources typecheck clean with tsgo partitions");

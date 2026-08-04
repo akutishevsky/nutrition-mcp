@@ -5,17 +5,12 @@ process.env.MUNCH_RAILWAY_AUTH_ENABLED = "true";
 process.env.MUNCH_APP_BASE_URL = "https://munch.example";
 
 const { Hono } = await import("hono");
-const { consumeLoginChallenge, createLoginChallenge } = await import(
-    "../src/accounts/repository.js"
-);
-const { MUNCH_SESSION_COOKIE } = await import(
-    "../src/accounts/session.js"
-);
+const { consumeLoginChallenge, createLoginChallenge } =
+    await import("../src/accounts/repository.js");
+const { MUNCH_SESSION_COOKIE } = await import("../src/accounts/session.js");
 const { createPortalRouter } = await import("../src/portal/routes.js");
-const {
-    listOAuthConnections,
-    revokeOAuthConnection,
-} = await import("../src/portal/repository.js");
+const { listOAuthConnections, revokeOAuthConnection } =
+    await import("../src/portal/repository.js");
 const {
     authorizeSession,
     createAuthorizationSession,
@@ -23,13 +18,10 @@ const {
     issueAuthorizationCode,
     registerOAuthClient,
 } = await import("../src/oauth-platform/repository.js");
-const { codeChallengeForVerifier } = await import(
-    "../src/oauth-platform/pkce.js"
-);
+const { codeChallengeForVerifier } =
+    await import("../src/oauth-platform/pkce.js");
 const storage = await import("../src/storage.js");
-const { closePlatformDatabase } = await import(
-    "../src/platform/database.js"
-);
+const { closePlatformDatabase } = await import("../src/platform/database.js");
 
 if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required for account portal smoke tests");
@@ -97,9 +89,12 @@ await storage.insertMeal(userId, {
 const app = new Hono();
 app.route("/", createPortalRouter());
 const cookie = `${MUNCH_SESSION_COOKIE}=${session.sessionToken}`;
-const portalResponse = await app.request("https://munch.example/account/portal", {
-    headers: { cookie },
-});
+const portalResponse = await app.request(
+    "https://munch.example/account/portal",
+    {
+        headers: { cookie },
+    },
+);
 if (portalResponse.status !== 200) {
     throw new Error(`Authenticated portal returned ${portalResponse.status}`);
 }
@@ -114,9 +109,7 @@ if (portalResponse.headers.get("cache-control") !== "private, no-store") {
     throw new Error("Portal response was cacheable");
 }
 
-const unauthorized = await app.request(
-    "https://munch.example/account/portal",
-);
+const unauthorized = await app.request("https://munch.example/account/portal");
 if (unauthorized.status !== 401) {
     throw new Error("Portal allowed access without a web session");
 }
@@ -183,4 +176,6 @@ if (
 }
 
 await closePlatformDatabase();
-console.log("Munch account portal, export, preferences, and OAuth connection smoke test passed.");
+console.log(
+    "Munch account portal, export, preferences, and OAuth connection smoke test passed.",
+);

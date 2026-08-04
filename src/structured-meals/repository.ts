@@ -1,4 +1,7 @@
-import { withUserDatabase, type DatabaseTransaction } from "../platform/database.js";
+import {
+    withUserDatabase,
+    type DatabaseTransaction,
+} from "../platform/database.js";
 import type { NutrientValues } from "../food-providers/types.js";
 import type {
     StructuredMealInput,
@@ -29,7 +32,8 @@ function finiteNonnegative(value: number | undefined, label: string) {
 function validateItem(item: StructuredMealItemInput): StructuredMealItemInput {
     const name = item.name.trim();
     if (!name) throw new Error("Structured meal item name is required");
-    if (name.length > 500) throw new Error("Structured meal item name is too long");
+    if (name.length > 500)
+        throw new Error("Structured meal item name is too long");
     if (
         item.quantity !== undefined &&
         (!Number.isFinite(item.quantity) || item.quantity <= 0)
@@ -48,10 +52,15 @@ function validateItem(item: StructuredMealItemInput): StructuredMealItemInput {
             item.confidence < 0 ||
             item.confidence > 1)
     ) {
-        throw new Error("Structured meal item confidence must be between 0 and 1");
+        throw new Error(
+            "Structured meal item confidence must be between 0 and 1",
+        );
     }
     const assumptions = (item.assumptions ?? []).map((value) => value.trim());
-    if (assumptions.length > 20 || assumptions.some((value) => value.length > 500)) {
+    if (
+        assumptions.length > 20 ||
+        assumptions.some((value) => value.length > 500)
+    ) {
         throw new Error("Structured meal item assumptions exceed limits");
     }
     const snapshot = item.sourceSnapshot ?? {};
@@ -85,8 +94,9 @@ export function aggregateStructuredMealItems(
             .filter((value): value is number => value !== undefined);
         if (values.length > 0) {
             totals[key] =
-                Math.round(values.reduce((sum, value) => sum + value, 0) * 100) /
-                100;
+                Math.round(
+                    values.reduce((sum, value) => sum + value, 0) * 100,
+                ) / 100;
         }
     }
     return totals;
@@ -98,7 +108,9 @@ function numberOrNull(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
 }
 
-function mealFromRow(row: Record<string, unknown>): Omit<StructuredMealRecord, "items"> {
+function mealFromRow(
+    row: Record<string, unknown>,
+): Omit<StructuredMealRecord, "items"> {
     return {
         id: String(row.id),
         userId: String(row.user_id),
@@ -120,7 +132,9 @@ function mealFromRow(row: Record<string, unknown>): Omit<StructuredMealRecord, "
 
 function itemFromRow(row: Record<string, unknown>): StructuredMealItemRecord {
     const assumptions = Array.isArray(row.assumptions)
-        ? row.assumptions.filter((value): value is string => typeof value === "string")
+        ? row.assumptions.filter(
+              (value): value is string => typeof value === "string",
+          )
         : [];
     const sourceSnapshot =
         row.source_snapshot && typeof row.source_snapshot === "object"
@@ -151,7 +165,8 @@ function itemFromRow(row: Record<string, unknown>): StructuredMealItemRecord {
         position: Number(row.position),
         name: String(row.name),
         quantity: numberOrNull(row.quantity),
-        portionLabel: row.portion_label == null ? null : String(row.portion_label),
+        portionLabel:
+            row.portion_label == null ? null : String(row.portion_label),
         gramWeight: numberOrNull(row.gram_weight),
         nutrients,
         sourceType: row.source_type as StructuredMealItemRecord["sourceType"],
@@ -159,7 +174,9 @@ function itemFromRow(row: Record<string, unknown>): StructuredMealItemRecord {
         providerFoodId:
             row.provider_food_id == null ? null : String(row.provider_food_id),
         providerRevision:
-            row.provider_revision == null ? null : String(row.provider_revision),
+            row.provider_revision == null
+                ? null
+                : String(row.provider_revision),
         sourceUrl: row.source_url == null ? null : String(row.source_url),
         sourceUpdatedAt:
             row.source_updated_at == null
@@ -206,7 +223,8 @@ export async function insertStructuredMeal(
 ): Promise<StructuredMealInsertResult> {
     const description = input.description.trim();
     const idempotencyKey = input.idempotencyKey.trim();
-    if (!description) throw new Error("Structured meal description is required");
+    if (!description)
+        throw new Error("Structured meal description is required");
     if (!idempotencyKey || idempotencyKey.length > 255) {
         throw new Error("Structured meal idempotency key is invalid");
     }
@@ -230,7 +248,8 @@ export async function insertStructuredMeal(
         `;
         if (existingRows[0]) {
             const existing = await loadMeal(tx, existingRows[0].id);
-            if (!existing) throw new Error("Idempotent meal could not be reloaded");
+            if (!existing)
+                throw new Error("Idempotent meal could not be reloaded");
             return { meal: existing, deduplicated: true };
         }
 
@@ -326,8 +345,8 @@ export async function insertStructuredMeal(
                     ${item.sourceUrl ?? null},
                     ${item.sourceUpdatedAt ? new Date(item.sourceUpdatedAt) : null},
                     ${item.confidence ?? null},
-                    ${JSON.stringify(item.assumptions ?? [])}::jsonb,
-                    ${JSON.stringify(item.sourceSnapshot ?? {})}::jsonb
+                    ${item.assumptions ?? []}::jsonb,
+                    ${item.sourceSnapshot ?? {}}::jsonb
                 )
             `;
         }

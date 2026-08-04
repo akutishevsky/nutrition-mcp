@@ -1,6 +1,10 @@
 User-agent: *
 Allow: /
-Disallow: /api/
+Disallow: /account/
+Disallow: /oauth/
+Disallow: /authorize
+Disallow: /token
 Disallow: /mcp
+Disallow: /webhooks/
 
-Sitemap: https://nutrition-mcp.com/sitemap.xml
+Sitemap: https://munch-production-de3a.up.railway.app/sitemap.xml

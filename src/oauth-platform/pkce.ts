@@ -26,6 +26,11 @@ export function codeVerifierMatches(
     expectedChallenge: string,
 ): boolean {
     const actual = Buffer.from(codeChallengeForVerifier(verifier), "ascii");
-    const expected = Buffer.from(validateCodeChallenge(expectedChallenge), "ascii");
-    return actual.length === expected.length && timingSafeEqual(actual, expected);
+    const expected = Buffer.from(
+        validateCodeChallenge(expectedChallenge),
+        "ascii",
+    );
+    return (
+        actual.length === expected.length && timingSafeEqual(actual, expected)
+    );
 }

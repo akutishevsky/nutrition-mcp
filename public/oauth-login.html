@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Connect Munch</title>
+        <meta
+            name="description"
+            content="Sign in to connect your Munch nutrition history to ChatGPT."
+        />
+        <meta name="theme-color" content="#0B8F4D" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body class="auth-page">
+        <main class="auth-main">
+            <section class="auth-card" aria-labelledby="login-title">
+                <a class="brand" href="/"
+                    ><img
+                        class="brand-logo"
+                        src="/brand/munch-mark.svg"
+                        alt=""
+                    /><span>Munch</span></a
+                >
+                <h1 id="login-title" class="spacer-top">
+                    Connect Munch to ChatGPT
+                </h1>
+                <p>Sign in to authorize ChatGPT to use your Munch history.</p>
+                {{ERROR}}
+                <form method="post" action="/approve" class="auth-form">
+                    <input
+                        type="hidden"
+                        name="session_id"
+                        value="{{SESSION_ID}}"
+                    />
+                    <label class="field"
+                        >Email address<input
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            required
+                    /></label>
+                    <label class="field"
+                        >Password<input
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            required
+                    /></label>
+                    <button class="button button-primary" type="submit">
+                        Continue
+                    </button>
+                </form>
+                <a
+                    class="button button-secondary spacer-top"
+                    href="/authorize/google?session_id={{SESSION_ID}}"
+                    >Continue with Google</a
+                >
+                <p class="auth-footnote">
+                    Your Munch data remains yours. ChatGPT receives only the
+                    information needed for the tools you use.
+                </p>
+            </section>
+        </main>
+    </body>
+</html>

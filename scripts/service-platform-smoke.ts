@@ -2,24 +2,19 @@
 
 process.env.MUNCH_RAILWAY_DATA_ENABLED = "true";
 
-const { consumeLoginChallenge, createLoginChallenge } = await import(
-    "../src/accounts/repository.js"
-);
-const { exportMeals, getRailwayExportFile } = await import(
-    "../src/export.js"
-);
-const {
-    cleanupExpiredExports,
-    createExportFile,
-} = await import("../src/service-platform/repository.js");
+const { consumeLoginChallenge, createLoginChallenge } =
+    await import("../src/accounts/repository.js");
+const { exportMeals, getRailwayExportFile } = await import("../src/export.js");
+const { cleanupExpiredExports, createExportFile } =
+    await import("../src/service-platform/repository.js");
 const storage = await import("../src/storage.js");
-const {
-    closePlatformDatabase,
-    withServiceDatabase,
-} = await import("../src/platform/database.js");
+const { closePlatformDatabase, withServiceDatabase } =
+    await import("../src/platform/database.js");
 
 if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required for the service-platform smoke test");
+    throw new Error(
+        "DATABASE_URL is required for the service-platform smoke test",
+    );
 }
 if (!storage.railwayDataEnabled) {
     throw new Error("Railway storage selector did not activate");
@@ -69,13 +64,14 @@ await storage.insertToolAnalytics({
     mcp_session_id: "raw-session-id-must-not-be-stored",
 });
 
-const analyticsRows = await withServiceDatabase(async (tx) =>
-    tx<
-        Array<{
-            session_hash: string | null;
-            duration_ms: number;
-        }>
-    >`
+const analyticsRows = await withServiceDatabase(
+    async (tx) =>
+        tx<
+            Array<{
+                session_hash: string | null;
+                duration_ms: number;
+            }>
+        >`
         select session_hash, duration_ms
         from munch.tool_events
         where user_id = ${challenge.userId}

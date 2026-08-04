@@ -1214,6 +1214,64 @@ export async function getLandingStats(): Promise<LandingStats> {
     return data as LandingStats;
 }
 
+// These service-facility helpers keep the legacy Supabase backend compatible
+// with the shared storage facade. The Railway/PostgreSQL backend provides the
+// same contracts through src/service-platform/repository.ts.
+export async function getCachedFood(
+    source: string,
+    sourceId: string,
+): Promise<unknown | null> {
+    const { data, error } = await getSupabase()
+        .from("food_cache")
+        .select("payload")
+        .eq("source", source)
+        .eq("source_id", sourceId)
+        .maybeSingle();
+    if (error || !data) return null;
+    if (typeof data.payload !== "string") return data.payload;
+    try {
+        return JSON.parse(data.payload) as unknown;
+    } catch {
+        return null;
+    }
+}
+
+export async function cacheFood(
+    source: string,
+    sourceId: string,
+    payload: unknown,
+): Promise<void> {
+    const { error } = await getSupabase().from("food_cache").upsert(
+        {
+            source,
+            source_id: sourceId,
+            payload,
+            fetched_at: new Date().toISOString(),
+        },
+        { onConflict: "source,source_id" },
+    );
+    if (error) throw new Error(`Failed to cache food: ${error.message}`);
+}
+
+export async function insertToolAnalytics(row: {
+    user_id: string;
+    tool_name: string;
+    success: boolean;
+    duration_ms: number;
+    error_category?: string;
+    date_range_days?: number;
+    mcp_session_id?: string;
+}): Promise<void> {
+    const { error } = await getSupabase()
+        .from("tool_analytics")
+        .insert({
+            ...row,
+            invoked_at: new Date().toISOString(),
+        });
+    if (error)
+        throw new Error(`Failed to persist tool analytics: ${error.message}`);
+}
+
 // ---------- Registered clients ----------
 
 export function registerClient(

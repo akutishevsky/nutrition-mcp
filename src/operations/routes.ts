@@ -2,7 +2,8 @@ import { Hono, type Context } from "hono";
 import { buildReadinessReport, type ReadinessReport } from "./readiness.js";
 
 const READINESS_CACHE_MS = 10_000;
-let readinessCache: { expiresAt: number; report: ReadinessReport } | null = null;
+let readinessCache: { expiresAt: number; report: ReadinessReport } | null =
+    null;
 
 async function readiness(): Promise<ReadinessReport> {
     if (!readinessCache || readinessCache.expiresAt <= Date.now()) {

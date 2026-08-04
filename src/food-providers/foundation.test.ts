@@ -74,24 +74,21 @@ describe("portion normalization", () => {
 
 describe("ranking and duplicate collapse", () => {
     test("prefers exact branded matches over weaker provider confidence", () => {
-        const ranked = rankCandidates(
-            { query: "Fage Total 0" },
-            [
-                candidate({
-                    providerFoodId: "generic",
-                    name: "Greek yogurt, nonfat",
-                    confidence: 0.99,
-                }),
-                candidate({
-                    provider: "open_food_facts",
-                    providerFoodId: "fage",
-                    name: "Total 0",
-                    brand: "Fage",
-                    dataKind: "packaged",
-                    confidence: 0.85,
-                }),
-            ],
-        );
+        const ranked = rankCandidates({ query: "Fage Total 0" }, [
+            candidate({
+                providerFoodId: "generic",
+                name: "Greek yogurt, nonfat",
+                confidence: 0.99,
+            }),
+            candidate({
+                provider: "open_food_facts",
+                providerFoodId: "fage",
+                name: "Total 0",
+                brand: "Fage",
+                dataKind: "packaged",
+                confidence: 0.85,
+            }),
+        ]);
         expect(ranked[0]?.providerFoodId).toBe("fage");
     });
 
@@ -114,11 +111,17 @@ describe("versioned cache envelopes", () => {
     test("expires and rejects stale schema values", () => {
         const now = new Date("2026-08-03T18:00:00.000Z");
         const envelope = createCacheEnvelope({ ok: true }, 1_000, now);
-        expect(readCacheEnvelope(envelope, new Date(now.getTime() + 500))).toEqual({
+        expect(
+            readCacheEnvelope(envelope, new Date(now.getTime() + 500)),
+        ).toEqual({
             ok: true,
         });
-        expect(readCacheEnvelope(envelope, new Date(now.getTime() + 1_001))).toBeNull();
-        expect(readCacheEnvelope({ ...envelope, schemaVersion: 999 }, now)).toBeNull();
+        expect(
+            readCacheEnvelope(envelope, new Date(now.getTime() + 1_001)),
+        ).toBeNull();
+        expect(
+            readCacheEnvelope({ ...envelope, schemaVersion: 999 }, now),
+        ).toBeNull();
     });
 
     test("builds deterministic provider cache keys", () => {

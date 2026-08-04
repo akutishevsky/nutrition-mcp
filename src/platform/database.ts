@@ -14,7 +14,9 @@ type DatabaseRole =
 function databaseUrl(): string {
     const value = process.env.DATABASE_URL?.trim();
     if (!value) {
-        throw new Error("DATABASE_URL is required for Railway PostgreSQL access");
+        throw new Error(
+            "DATABASE_URL is required for Railway PostgreSQL access",
+        );
     }
     return value;
 }
@@ -22,7 +24,9 @@ function databaseUrl(): string {
 function poolSize(): number {
     const parsed = Number(process.env.MUNCH_DB_POOL_SIZE ?? 10);
     if (!Number.isInteger(parsed) || parsed < 1 || parsed > 50) {
-        throw new Error("MUNCH_DB_POOL_SIZE must be an integer between 1 and 50");
+        throw new Error(
+            "MUNCH_DB_POOL_SIZE must be an integer between 1 and 50",
+        );
     }
     return parsed;
 }

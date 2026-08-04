@@ -7,11 +7,7 @@ import {
     requiredNumber,
     stringOrNull,
 } from "./shared.js";
-import type {
-    WeightEntry,
-    WeightInput,
-    WeightInsertResult,
-} from "./types.js";
+import type { WeightEntry, WeightInput, WeightInsertResult } from "./types.js";
 
 interface WeightRow {
     id: string;
@@ -42,12 +38,7 @@ export async function insertWeight(
     const loggedAt = input.logged_at ?? new Date().toISOString();
     const idempotencyKey =
         input.idempotency_key ??
-        deriveIdempotencyKey([
-            userId,
-            input.weight_g,
-            input.notes,
-            loggedAt,
-        ]);
+        deriveIdempotencyKey([userId, input.weight_g, input.notes, loggedAt]);
 
     return withUserDatabase(userId, async (tx) => {
         const inserted = await tx<Array<WeightRow>>`

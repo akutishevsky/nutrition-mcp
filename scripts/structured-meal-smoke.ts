@@ -1,15 +1,10 @@
 #!/usr/bin/env bun
 
-const { consumeLoginChallenge, createLoginChallenge } = await import(
-    "../src/accounts/repository.js"
-);
-const {
-    getStructuredMeal,
-    insertStructuredMeal,
-} = await import("../src/structured-meals/repository.js");
-const { closePlatformDatabase } = await import(
-    "../src/platform/database.js"
-);
+const { consumeLoginChallenge, createLoginChallenge } =
+    await import("../src/accounts/repository.js");
+const { getStructuredMeal, insertStructuredMeal } =
+    await import("../src/structured-meals/repository.js");
+const { closePlatformDatabase } = await import("../src/platform/database.js");
 
 if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required for structured meal smoke tests");
@@ -50,7 +45,8 @@ const first = await insertStructuredMeal(userA, {
             provider: "usda",
             providerFoodId: "555",
             providerRevision: "2026-08-03",
-            sourceUrl: "https://fdc.nal.usda.gov/fdc-app.html#/food-details/555/nutrients",
+            sourceUrl:
+                "https://fdc.nal.usda.gov/fdc-app.html#/food-details/555/nutrients",
             confidence: 0.97,
             sourceSnapshot: {
                 provider: "usda",
@@ -77,15 +73,22 @@ const first = await insertStructuredMeal(userA, {
     ],
 });
 
-if (first.deduplicated) throw new Error("Initial structured meal was deduplicated");
-if (first.meal.items.length !== 2) throw new Error("Structured items were not inserted");
-if (first.meal.calories !== 489) throw new Error("Parent calories were not rounded from item totals");
-if (first.meal.proteinG !== 57.57) throw new Error("Parent protein total is incorrect");
-if (first.meal.carbsG !== 44.5) throw new Error("Parent carbohydrate total is incorrect");
+if (first.deduplicated)
+    throw new Error("Initial structured meal was deduplicated");
+if (first.meal.items.length !== 2)
+    throw new Error("Structured items were not inserted");
+if (first.meal.calories !== 489)
+    throw new Error("Parent calories were not rounded from item totals");
+if (first.meal.proteinG !== 57.57)
+    throw new Error("Parent protein total is incorrect");
+if (first.meal.carbsG !== 44.5)
+    throw new Error("Parent carbohydrate total is incorrect");
 if (first.meal.items[0]?.sourceSnapshot.provider !== "usda") {
     throw new Error("Provider source snapshot was not preserved");
 }
-if (first.meal.items[1]?.assumptions[0] !== "Portion treated as one level cup") {
+if (
+    first.meal.items[1]?.assumptions[0] !== "Portion treated as one level cup"
+) {
     throw new Error("Accepted assumptions were not preserved");
 }
 

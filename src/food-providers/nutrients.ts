@@ -43,7 +43,9 @@ export function scaleNutrients(
     factor: number,
 ): NutrientValues {
     if (!Number.isFinite(factor) || factor < 0) {
-        throw new RangeError("Nutrient scale factor must be finite and nonnegative");
+        throw new RangeError(
+            "Nutrient scale factor must be finite and nonnegative",
+        );
     }
     const scaled: NutrientValues = {};
     for (const key of NUTRIENT_KEYS) {
@@ -61,7 +63,8 @@ export function addNutrients(values: NutrientValues[]): NutrientValues {
         for (const key of NUTRIENT_KEYS) {
             const value = nutrients[key];
             if (value !== undefined) {
-                totals[key] = Math.round(((totals[key] ?? 0) + value) * 100) / 100;
+                totals[key] =
+                    Math.round(((totals[key] ?? 0) + value) * 100) / 100;
             }
         }
     }
@@ -69,13 +72,10 @@ export function addNutrients(values: NutrientValues[]): NutrientValues {
 }
 
 export function nutrientCompleteness(nutrients: NutrientValues): number {
-    const core: NutrientKey[] = [
-        "calories",
-        "protein_g",
-        "carbs_g",
-        "fat_g",
-    ];
-    const corePresent = core.filter((key) => nutrients[key] !== undefined).length;
+    const core: NutrientKey[] = ["calories", "protein_g", "carbs_g", "fat_g"];
+    const corePresent = core.filter(
+        (key) => nutrients[key] !== undefined,
+    ).length;
     const optionalKeys = NUTRIENT_KEYS.filter((key) => !core.includes(key));
     const optionalPresent = optionalKeys.filter(
         (key) => nutrients[key] !== undefined,

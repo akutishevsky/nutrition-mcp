@@ -150,7 +150,7 @@ async function selectClient(tx: SQL, clientId: string): Promise<ClientRow> {
             client_id,
             client_secret_hash,
             client_name,
-            redirect_uris,
+            array_to_json(redirect_uris) as redirect_uris,
             token_endpoint_auth_method::text as token_endpoint_auth_method
         from munch.oauth_clients
         where client_id = ${clientId}
@@ -186,8 +186,10 @@ export async function registerOAuthClient(input: {
                 ${secret?.hash ?? null},
                 ${clientName},
                 (
-                    select array_agg(value)
-                    from jsonb_array_elements_text(${redirectUrisJson}::jsonb)
+                    select array_agg(item.value order by item.ordinality)
+                    from jsonb_array_elements_text(
+                        (${redirectUrisJson}::text)::jsonb
+                    ) with ordinality as item(value, ordinality)
                 ),
                 ${authMethod}
             )
@@ -420,7 +422,7 @@ export async function issueAuthorizationCode(
     });
 }
 
-function createTokenPair(familyId = randomUUID()): InternalTokenPair {
+function createTokenPair(familyId: string = randomUUID()): InternalTokenPair {
     return {
         familyId,
         access: issueOpaqueToken(32),
@@ -501,7 +503,7 @@ export async function exchangeAuthorizationCode(input: {
                 client.client_id,
                 client.client_secret_hash,
                 client.client_name,
-                client.redirect_uris,
+                array_to_json(client.redirect_uris) as redirect_uris,
                 client.token_endpoint_auth_method::text as token_endpoint_auth_method
             from munch.oauth_authorization_codes code
             join munch.oauth_clients client on client.client_id = code.client_id
@@ -575,7 +577,7 @@ export async function rotateRefreshToken(input: {
                 client.client_id,
                 client.client_secret_hash,
                 client.client_name,
-                client.redirect_uris,
+                array_to_json(client.redirect_uris) as redirect_uris,
                 client.token_endpoint_auth_method::text as token_endpoint_auth_method
             from munch.oauth_refresh_tokens refresh
             join munch.oauth_clients client on client.client_id = refresh.client_id

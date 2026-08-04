@@ -16,11 +16,15 @@ describe("OAuth redirect URI validation", () => {
     });
 
     test("rejects insecure remote, credentialed, and fragment URIs", () => {
-        expect(() => validateRedirectUri("http://example.com/callback")).toThrow();
+        expect(() =>
+            validateRedirectUri("http://example.com/callback"),
+        ).toThrow();
         expect(() =>
             validateRedirectUri("https://user:pass@example.com/callback"),
         ).toThrow();
-        expect(() => validateRedirectUri("https://example.com/callback#x")).toThrow();
+        expect(() =>
+            validateRedirectUri("https://example.com/callback#x"),
+        ).toThrow();
     });
 
     test("uses exact registered URI matching", () => {

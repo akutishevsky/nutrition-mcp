@@ -1,10 +1,7 @@
 import type { Context, Next } from "hono";
 import { resourceMetadataUrl } from "../discovery.js";
 import { maskIp } from "../net.js";
-import {
-    clearAuthFailures,
-    noteAuthFailure,
-} from "../rate-limit.js";
+import { clearAuthFailures, noteAuthFailure } from "../rate-limit.js";
 import { resolveAccessToken } from "./repository.js";
 
 function clientIp(c: Context): string {
