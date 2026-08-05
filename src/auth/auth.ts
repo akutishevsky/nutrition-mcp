@@ -210,6 +210,13 @@ function createMunchBetterAuth() {
                 allowDynamicClientRegistration: true,
                 allowUnauthenticatedClientRegistration: true,
                 allowPublicClientPrelogin: true,
+                // Hono serves the external issuer-insertion alias through
+                // registerDiscoveryRoutes. Better Auth cannot observe that
+                // framework-level route and otherwise logs a false warning on
+                // the first OAuth request.
+                silenceWarnings: {
+                    oauthAuthServerConfig: true,
+                },
                 validAudiences: [munchMcpResourceUrl(config.baseUrl)],
                 scopes: [...MUNCH_OAUTH_SCOPES],
                 clientRegistrationDefaultScopes: [
