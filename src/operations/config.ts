@@ -35,7 +35,6 @@ export function configurationIssues(): ConfigurationIssue[] {
     const issues: ConfigurationIssue[] = [];
     const production = process.env.NODE_ENV === "production";
     const railwayAuth = present("MUNCH_RAILWAY_AUTH_ENABLED") === "true";
-    const railwayData = present("MUNCH_RAILWAY_DATA_ENABLED") === "true";
     const authBackend = present("MUNCH_AUTH_BACKEND") || "custom";
     if (authBackend !== "custom" && authBackend !== "better_auth") {
         issues.push({
@@ -43,19 +42,10 @@ export function configurationIssues(): ConfigurationIssue[] {
             message: "Authentication backend must be custom or better_auth",
         });
     }
-
-    if (railwayAuth !== railwayData) {
+    if (authBackend === "custom" && !railwayAuth) {
         issues.push({
             key: "MUNCH_RAILWAY_AUTH_ENABLED",
-            message:
-                "Railway authentication and data flags must be enabled or disabled together",
-        });
-    }
-    if (authBackend === "better_auth" && !(railwayAuth && railwayData)) {
-        issues.push({
-            key: "MUNCH_AUTH_BACKEND",
-            message:
-                "Better Auth requires Railway authentication and Railway data to be enabled together",
+            message: "Custom authentication requires Railway OAuth",
         });
     }
 
@@ -124,32 +114,23 @@ export function configurationIssues(): ConfigurationIssue[] {
         });
     }
 
+    requireValue(issues, "DATABASE_URL");
     requireValue(issues, "STRIPE_SECRET_KEY");
     requireValue(issues, "STRIPE_WEBHOOK_SECRET");
     requireValue(issues, "STRIPE_PRICE_ID");
     requireValue(issues, "OFF_USER_AGENT");
-
-    if (railwayAuth && railwayData) {
-        requireValue(issues, "DATABASE_URL");
-        requireValue(
-            issues,
-            "USDA_FDC_API_KEY",
-            "USDA_FDC_API_KEY is required because the USDA provider is enabled",
-        );
-        const pool = Number(present("MUNCH_DB_POOL_SIZE") || 10);
-        if (!Number.isInteger(pool) || pool < 1 || pool > 50) {
-            issues.push({
-                key: "MUNCH_DB_POOL_SIZE",
-                message: "Database pool size must be an integer from 1 to 50",
-            });
-        }
-    } else {
-        requireValue(issues, "SUPABASE_URL");
-        requireValue(issues, "SUPABASE_SECRET_KEY");
-        requireValue(issues, "OAUTH_CLIENT_ID");
-        requireValue(issues, "OAUTH_CLIENT_SECRET");
+    requireValue(
+        issues,
+        "USDA_FDC_API_KEY",
+        "USDA_FDC_API_KEY is required because the USDA provider is enabled",
+    );
+    const pool = Number(present("MUNCH_DB_POOL_SIZE") || 10);
+    if (!Number.isInteger(pool) || pool < 1 || pool > 50) {
+        issues.push({
+            key: "MUNCH_DB_POOL_SIZE",
+            message: "Database pool size must be an integer from 1 to 50",
+        });
     }
-
     return issues;
 }
 

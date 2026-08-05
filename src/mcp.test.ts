@@ -28,7 +28,7 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import * as actualSupabase from "./supabase.js";
+import * as actualStorage from "./storage.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
     buildDailyBuckets,
@@ -36,7 +36,7 @@ import {
     computeWeeklyDigest,
     type DailyBucket,
 } from "./insights.js";
-import type { Meal, NutritionGoals } from "./supabase.js";
+import type { Meal, NutritionGoals } from "./storage.js";
 
 function meal(over: Partial<Meal> = {}): Meal {
     return {
@@ -442,7 +442,7 @@ describe("alcohol opt-in gating", () => {
 });
 
 // The insights module renders an alcohol line purely from the data, because it
-// stays free of Supabase and so cannot see the per-user opt-in. gateAlcohol is
+// stays free of Railway PostgreSQL and so cannot see the per-user opt-in. gateAlcohol is
 // where that flag reaches it, so these assert the end result rather than the
 // zeroing: no alcohol wording in either narrative when tracking is off.
 describe("gateAlcohol", () => {
@@ -742,7 +742,7 @@ describe("structuredContent literals satisfy their schemas", () => {
 // their handler — read or write one profile column, then pick a sentence — and
 // a mutation audit found that inverting either tool's enabled state failed
 // nothing. So the tools below are registered on a real McpServer and driven
-// through a real client over an in-memory transport, with only ./supabase.js
+// through a real client over an in-memory transport, with only ./storage.js
 // stubbed. That also puts the input schemas under test end-to-end, which is the
 // only way to prove a bad argument is rejected BEFORE the handler runs.
 //
@@ -751,7 +751,7 @@ describe("structuredContent literals satisfy their schemas", () => {
 // break every other suite) and restored in afterAll. Same pattern as
 // middleware.test.ts.
 
-const PROFILE_BASE: actualSupabase.Profile = {
+const PROFILE_BASE: actualStorage.Profile = {
     user_id: "u1",
     timezone: "UTC",
     preferred_weight_unit: null,
@@ -782,20 +782,16 @@ function storedMeal(input: Record<string, unknown>): Meal {
 }
 
 const db = {
-    profile: null as actualSupabase.Profile | null,
+    profile: null as actualStorage.Profile | null,
     goals: null as NutritionGoals | null,
     meals: [] as Meal[],
     inserted: [] as Record<string, unknown>[],
     profilePatches: [] as Record<string, unknown>[],
 };
 
-mock.module("./supabase.js", () => ({
-    ...actualSupabase,
-    // analytics.ts persists every tool call through getSupabase(); swallow it
-    // so a test never depends on Supabase env vars being present.
-    getSupabase: () => ({
-        from: () => ({ insert: async () => ({ error: null }) }),
-    }),
+mock.module("./storage.js", () => ({
+    ...actualStorage,
+    insertToolAnalytics: async () => undefined,
     getProfile: async () => db.profile,
     getUserTimezone: async () => db.profile?.timezone ?? "UTC",
     getNutritionGoals: async () => db.goals,
@@ -832,13 +828,13 @@ mock.module("./supabase.js", () => ({
         db.profile = {
             ...(db.profile ?? { ...PROFILE_BASE, user_id: userId }),
             ...patch,
-        } as actualSupabase.Profile;
+        } as actualStorage.Profile;
         return db.profile;
     },
 }));
 
 afterAll(() => {
-    mock.module("./supabase.js", () => actualSupabase);
+    mock.module("./storage.js", () => actualStorage);
 });
 
 beforeEach(() => {

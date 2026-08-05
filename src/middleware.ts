@@ -15,7 +15,7 @@ import {
     getBanState,
     noteAuthFailure,
 } from "./rate-limit.js";
-import { getUserIdByToken } from "./supabase.js";
+import { getUserIdByToken } from "./storage.js";
 
 // Declare the context variables this middleware sets. Without it, c.get/c.set on
 // an untyped `new Hono()` app types its keys as `never`, so index.ts cannot read
@@ -137,7 +137,7 @@ export const authenticateBearer = async (c: Context, next: Next) => {
 
         if (lookup.status === "unavailable") {
             // We could not verify the token, so this is not the client's fault:
-            // answer 401 as before, but record no strike. Otherwise a Supabase
+            // answer 401 as before, but record no strike. Otherwise a Railway PostgreSQL
             // outage would ban every active user and outlast the outage itself.
             c.header(
                 "WWW-Authenticate",

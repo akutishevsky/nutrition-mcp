@@ -22,7 +22,7 @@
 
 import { getWidgetHtml, WIDGET_TEMPLATES } from "../src/widgets.js";
 import { runImport } from "../src/import.js";
-import type { MealInput, MealInsertResult } from "../src/supabase.js";
+import type { MealInput, MealInsertResult } from "../src/storage.js";
 
 // In-memory stand-in for insertMeal, mirroring its dedup contract, so the harness
 // can execute the REAL bulk_import_meals logic instead of returning canned data.

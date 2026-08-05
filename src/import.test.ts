@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { z } from "zod";
-import type { MealInput, MealInsertResult, Meal } from "./supabase.js";
+import type { MealInput, MealInsertResult, Meal } from "./storage.js";
 import {
     serializeImportResult,
     BULK_IMPORT_OUTPUT_SCHEMA,

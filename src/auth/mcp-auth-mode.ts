@@ -1,4 +1,4 @@
-export type McpAuthMode = "better-auth" | "railway" | "inherited";
+export type McpAuthMode = "better-auth" | "railway";
 
 export function resolveMcpAuthMode(
     betterAuthEnabled: boolean,
@@ -6,5 +6,5 @@ export function resolveMcpAuthMode(
 ): McpAuthMode {
     if (betterAuthEnabled) return "better-auth";
     if (railwayAuthEnabled) return "railway";
-    return "inherited";
+    throw new Error("Munch requires Better Auth or Railway OAuth");
 }

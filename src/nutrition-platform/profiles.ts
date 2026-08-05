@@ -87,7 +87,8 @@ export async function getAlcoholTrackingEnabled(
 export function preferredDrinkUnitFromProfile(
     profile: Profile | null | undefined,
 ): DrinkUnit | null {
-    return profile?.preferred_drink_unit ?? null;
+    const unit = profile?.preferred_drink_unit;
+    return isDrinkUnit(unit) ? unit : null;
 }
 
 export async function getPreferredDrinkUnit(

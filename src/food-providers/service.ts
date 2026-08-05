@@ -1,4 +1,4 @@
-import { cacheFood, getCachedFood } from "../supabase.js";
+import { cacheFood, getCachedFood } from "../storage.js";
 import {
     createCacheEnvelope,
     foodCacheKey,

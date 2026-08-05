@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
     mealIdempotencyKey as upstreamMealIdempotencyKey,
     type MealInput as UpstreamMealInput,
-} from "../supabase.js";
+} from "../storage.js";
 import { mealIdempotencyKey } from "./meals.js";
 
 describe("Railway nutrition compatibility", () => {

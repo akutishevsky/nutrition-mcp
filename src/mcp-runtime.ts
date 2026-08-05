@@ -12,7 +12,7 @@ import {
     getProfile,
     preferredDrinkUnitFromProfile,
     widgetsEnabledFromProfile,
-} from "./supabase.js";
+} from "./storage.js";
 
 const MUNCH_SERVER_INSTRUCTIONS = `Munch stores and retrieves factual food, serving, macro, meal, hydration, weight, recipe, planning, and grocery data. Nutrition values are estimates and Munch does not provide medical or dietary advice. Do not ask Munch to determine what a user should eat, set a calorie target, diagnose a condition, or judge whether a food is healthy. ChatGPT may reason from the factual data under its own policies.
 

@@ -40,13 +40,11 @@
         "format:check": "bunx prettier --check .",
         "typecheck": "bun run scripts/typecheck.ts",
         "brand:check": "bun run scripts/brand-check.ts",
-        "auth:schema": "bunx auth@1.6.25 generate --config src/auth/auth.ts --output .better-auth-schema.sql --yes",
-        "generate-oauth-creds": "echo \"OAUTH_CLIENT_ID=$(openssl rand -hex 16)\" && echo \"OAUTH_CLIENT_SECRET=$(openssl rand -hex 32)\""
+        "auth:schema": "bunx auth@1.6.25 generate --config src/auth/auth.ts --output .better-auth-schema.sql --yes"
     },
     "dependencies": {
         "@better-auth/oauth-provider": "1.6.25",
         "@modelcontextprotocol/sdk": "^1.29.0",
-        "@supabase/supabase-js": "^2.110.5",
         "better-auth": "1.6.25",
         "hono": "^4.12.30",
         "pg": "8.16.3",

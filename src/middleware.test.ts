@@ -8,20 +8,20 @@ import {
     spyOn,
 } from "bun:test";
 import { Hono } from "hono";
-import * as actualSupabase from "./supabase.js";
+import * as actualStorage from "./storage.js";
 
-// middleware.ts only reaches Supabase to resolve a bearer token, so stubbing
+// middleware.ts only reaches Railway PostgreSQL to resolve a bearer token, so stubbing
 // that one export is enough to exercise the whole auth path offline. Counting
 // the calls also lets us prove a banned IP is shed *before* any token lookup.
 //
 // mock.module swaps the module for the whole test *process*, not just this
 // file, so the real exports must be spread back in — replacing the module
-// wholesale breaks every other suite that imports getSupabase/signInUser — and
+// wholesale breaks every other suite that imports getRailway PostgreSQL/signInUser — and
 // restored afterwards so no later file sees the stub.
 let tokenLookups = 0;
 let supabaseAvailable = true;
-mock.module("./supabase.js", () => ({
-    ...actualSupabase,
+mock.module("./storage.js", () => ({
+    ...actualStorage,
     getUserIdByToken: async (token: string) => {
         tokenLookups++;
         if (!supabaseAvailable) return { status: "unavailable" };
@@ -31,7 +31,7 @@ mock.module("./supabase.js", () => ({
     },
 }));
 afterAll(() => {
-    mock.module("./supabase.js", () => actualSupabase);
+    mock.module("./storage.js", () => actualStorage);
 });
 
 const { authenticateBearer, banRepeatAuthFailures, rateLimit } =
@@ -122,7 +122,7 @@ test("a banned IP is shed without a token lookup", async () => {
 
     for (let i = 0; i < 25; i++) await app.fetch(from("4.4.4.4", "bad-token"));
 
-    // Shedding happens ahead of authenticateBearer, so the Supabase round trip
+    // Shedding happens ahead of authenticateBearer, so the Railway PostgreSQL round trip
     // the ban is meant to save is genuinely never made.
     expect(lookupsBeforeBan).toBe(20);
     expect(tokenLookups).toBe(20);

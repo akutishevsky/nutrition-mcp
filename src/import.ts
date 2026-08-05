@@ -1,8 +1,8 @@
 // Bulk meal import: row validation, timestamp resolution, per-row idempotency
 // keys, batch integrity checks, and the insert orchestration.
 //
-// All of this is deliberately free of Supabase access so it can be unit-tested
-// with plain fixtures (the export.ts / search.ts convention) — getSupabase()
+// All of this is deliberately free of Railway PostgreSQL access so it can be unit-tested
+// with plain fixtures (the export.ts / search.ts convention) — getRailway PostgreSQL()
 // has no injection seam. src/mcp.ts is a thin adapter that supplies `insert`
 // and `existingKeys`.
 //
@@ -21,7 +21,7 @@
 //      resolveLoggedAt asserts the round trip rather than trusting the math.
 
 import { z } from "zod";
-import type { MealInput, MealInsertResult } from "./supabase.js";
+import type { MealInput, MealInsertResult } from "./storage.js";
 import { dateInTz, zonedHourUtc, zonedWallClockToUtc } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
 import { toStoredInteger } from "./units.js";

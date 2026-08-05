@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase.js";
+import { insertToolAnalytics } from "./storage.js";
 
 interface AnalyticsRecord {
     user_id: string;
@@ -33,14 +33,13 @@ function categorizeError(error: unknown): string {
     if (msg.includes("required") || msg.includes("missing"))
         return "missing_required_param";
     if (
-        msg.includes("supabase") ||
         msg.includes("failed to insert") ||
         msg.includes("failed to get") ||
         msg.includes("failed to delete") ||
         msg.includes("failed to update") ||
         msg.includes("failed to search")
     )
-        return "supabase_error";
+        return "database_error";
     if (
         msg.includes("network") ||
         msg.includes("fetch") ||
@@ -71,17 +70,12 @@ function calculateDateRangeDays(
 }
 
 function persistAnalytics(record: AnalyticsRecord): void {
-    getSupabase()
-        .from("tool_analytics")
-        .insert(record)
-        .then(({ error }) => {
-            if (error) {
-                console.warn(
-                    `Failed to persist analytics for ${record.tool_name}:`,
-                    error.message,
-                );
-            }
-        });
+    void insertToolAnalytics(record).catch((error) => {
+        console.warn(
+            `Failed to persist analytics for ${record.tool_name}:`,
+            error instanceof Error ? error.message : String(error),
+        );
+    });
 }
 
 /**

@@ -51,7 +51,6 @@
         "src/structured-meals/index.ts",
         "src/structured-meals/repository.ts",
         "src/structured-meals/types.ts",
-        "src/storage.ts",
-        "src/supabase.ts"
+        "src/storage.ts"
     ]
 }

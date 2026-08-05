@@ -6,11 +6,11 @@ import {
     preferredDrinkUnitFromProfile,
     type MealInput,
     type Profile,
-} from "./supabase.js";
+} from "./storage.js";
 import { rowContentDigest } from "./import.js";
 
 // Every export exercised here is pure: no test in this file constructs a
-// Supabase client, and none touches the network or the database.
+// Railway PostgreSQL client, and none touches the network or the database.
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const LOGGED_AT = "2026-03-14T12:00:00.000Z";

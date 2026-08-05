@@ -6,7 +6,7 @@ import {
     computeWeightTrend,
     type DailyBucket,
 } from "./insights.js";
-import type { Meal, NutritionGoals, WeightEntry } from "./supabase.js";
+import type { Meal, NutritionGoals, WeightEntry } from "./storage.js";
 
 function entry(logged_at: string, weight_g: number): WeightEntry {
     return {

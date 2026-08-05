@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { buildMealsCsv } from "./export.js";
-import type { Meal } from "./supabase.js";
+import type { Meal } from "./storage.js";
 
 function meal(overrides: Partial<Meal> = {}): Meal {
     return {

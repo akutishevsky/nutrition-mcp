@@ -5,7 +5,7 @@ import {
     groupMealVariations,
     formatMealSearchResults,
 } from "./search.js";
-import type { Meal } from "./supabase.js";
+import type { Meal } from "./storage.js";
 
 function meal(overrides: Partial<Meal> = {}): Meal {
     return {

@@ -7,7 +7,7 @@
 // back to LLM estimation, so the lookup is always additive, never a hard
 // dependency for logging a meal.
 
-import { getSupabase } from "./supabase.js";
+import { cacheFood, getCachedFood as readCachedFood } from "./storage.js";
 import { gramsFromDrink, formatAlcohol, type DrinkUnit } from "./alcohol.js";
 
 const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
@@ -227,33 +227,18 @@ export async function fetchProductFromOFF(
 }
 
 // ---------- Cache ----------
-// All cache access is best-effort: any failure (missing table, no Supabase
+// All cache access is best-effort: any failure (missing table, no Railway PostgreSQL
 // config, transient error) is swallowed and treated as a miss so a cache
 // problem can never break a lookup.
 
 async function getCachedFood(
     source: string,
     sourceId: string,
-    ttlMs: number,
+    _ttlMs: number,
 ): Promise<FoodResult | null> {
     try {
-        const { data, error } = await getSupabase()
-            .from("food_cache")
-            .select("payload, fetched_at")
-            .eq("source", source)
-            .eq("source_id", sourceId)
-            .maybeSingle();
-        if (error || !data) return null;
-        const ageMs = Date.now() - new Date(data.fetched_at).getTime();
-        if (ageMs > ttlMs) return null;
-        const payload = data.payload as FoodResult;
-        // Rows cached before fiber/sugar/alcohol shipped have no such keys, and
-        // stay servable for the whole TTL after deploy. Deserialized they would
-        // be `undefined`, not `null` — and an undefined field is an ABSENT one
-        // once it reaches a structuredContent literal, which for a .nullable()
-        // (hence *required*) schema field is a validation failure rather than a
-        // null. Backfill explicitly so a cache hit and a fresh fetch are always
-        // the same shape.
+        const payload = await readCachedFood<FoodResult>(source, sourceId);
+        if (!payload) return null;
         return {
             ...payload,
             fiber_g: payload.fiber_g ?? null,
@@ -271,17 +256,9 @@ async function putCachedFood(
     payload: FoodResult,
 ): Promise<void> {
     try {
-        await getSupabase().from("food_cache").upsert(
-            {
-                source,
-                source_id: sourceId,
-                payload,
-                fetched_at: new Date().toISOString(),
-            },
-            { onConflict: "source,source_id" },
-        );
+        await cacheFood(source, sourceId, payload);
     } catch {
-        // best-effort; ignore
+        // Best-effort cache writes never block a food lookup.
     }
 }
 

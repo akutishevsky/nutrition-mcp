@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import type { MealInput } from "./supabase.js";
+import type { MealInput } from "./storage.js";
 import { runImport, resolveLoggedAt } from "./import.js";
 import {
     parseCsv,

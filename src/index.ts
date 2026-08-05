@@ -15,12 +15,11 @@ import {
     rateLimit,
 } from "./middleware.js";
 import { maskIp } from "./net.js";
-import { createOAuthRouter } from "./oauth.js";
 import { authenticatePlatformBearer } from "./oauth-platform/middleware.js";
 import { createPlatformOAuthRouter } from "./oauth-platform/routes.js";
 import { validateStartupConfiguration } from "./operations/config.js";
 import { createOperationsRouter } from "./operations/routes.js";
-import { getLandingStats, type LandingStats } from "./supabase.js";
+import { getLandingStats, type LandingStats } from "./storage.js";
 import { warmWidgets } from "./widgets.js";
 
 validateStartupConfiguration();
@@ -114,8 +113,6 @@ if (!betterAuthEnabled && railwayAuthEnabled) {
         c.header("Pragma", "no-cache");
     });
     app.route("/", createPlatformOAuthRouter());
-} else if (!betterAuthEnabled) {
-    app.route("/", createOAuthRouter());
 }
 
 app.all("/mcp", banRepeatAuthFailures, mcpAuthenticator, rateLimit, handleMcp);

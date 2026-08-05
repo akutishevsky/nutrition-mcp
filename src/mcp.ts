@@ -36,7 +36,7 @@ import {
     type NutritionGoals,
     type WaterEntry,
     type WeightEntry,
-} from "./supabase.js";
+} from "./storage.js";
 import { withAnalytics } from "./analytics.js";
 import type { MunchCapabilities } from "./billing/capabilities.js";
 import {
@@ -280,7 +280,7 @@ export function rangeAverages(
     };
 }
 
-// insights.ts is deliberately free of Supabase, so it cannot know about the
+// insights.ts is deliberately free of Railway PostgreSQL, so it cannot know about the
 // per-user opt-in: it renders an alcohol line whenever the data contains any
 // (see hasAlcohol there). Zeroing the series is how the flag reaches it — both
 // computeTrends and computeWeeklyDigest suppress alcohol on an all-zero series,

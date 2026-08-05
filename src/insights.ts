@@ -3,7 +3,7 @@ import type {
     NutritionGoals,
     WaterEntry,
     WeightEntry,
-} from "./supabase.js";
+} from "./storage.js";
 import { dateInTz, hourInTz } from "./tz.js";
 import { formatWeight, fromGrams, type WeightUnit } from "./units.js";
 
@@ -244,7 +244,7 @@ function nonEmpty(b: DailyBucket): boolean {
  * flat zero, and averages / a std dev / a CV over all-zero data are noise —
  * the same instinct as the widget hiding the water bar until water is tracked.
  * (Note this is data-driven only; the per-user alcohol_tracking_enabled flag
- * lives in mcp.ts, since this module stays free of Supabase.) */
+ * lives in mcp.ts, since this module stays free of Railway PostgreSQL.) */
 function hasAlcohol(values: number[]): boolean {
     return values.some((v) => v > 0);
 }

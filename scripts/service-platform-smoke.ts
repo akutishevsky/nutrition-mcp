@@ -1,7 +1,5 @@
 #!/usr/bin/env bun
 
-process.env.MUNCH_RAILWAY_DATA_ENABLED = "true";
-
 const { consumeLoginChallenge, createLoginChallenge } =
     await import("../src/accounts/repository.js");
 const { exportMeals, getRailwayExportFile } = await import("../src/export.js");
@@ -16,9 +14,6 @@ if (!process.env.DATABASE_URL) {
         "DATABASE_URL is required for the service-platform smoke test",
     );
 }
-if (!storage.railwayDataEnabled) {
-    throw new Error("Railway storage selector did not activate");
-}
 
 const challenge = await createLoginChallenge(
     `service-${crypto.randomUUID()}@example.test`,
@@ -29,7 +24,7 @@ if (!session) {
 }
 
 const meal = await storage.insertMeal(challenge.userId, {
-    description: "Service selector smoke meal",
+    description: "Service facilities smoke meal",
     meal_type: "lunch",
     calories: 640,
     protein_g: 35,
@@ -96,7 +91,10 @@ if (stats.countries.length !== 0) {
     throw new Error("Railway landing statistics exposed geographic breakdowns");
 }
 
-const exported = await exportMeals(challenge.userId, "https://munch.example");
+const exported = await exportMeals(challenge.userId);
+if (!exported.url) {
+    throw new Error("Railway export did not return a download URL");
+}
 const exportUrl = new URL(exported.url);
 if (exportUrl.pathname !== "/exports/download") {
     throw new Error("Railway export used an unexpected download route");
@@ -108,7 +106,7 @@ if (!token) {
 const file = await getRailwayExportFile(token);
 if (
     !file ||
-    !file.content.includes("Service selector smoke meal") ||
+    !file.content.includes("Service facilities smoke meal") ||
     !file.fileName.startsWith("munch-meals-")
 ) {
     throw new Error("Railway CSV export could not be retrieved");
@@ -140,4 +138,4 @@ if (!serviceMealReadDenied) {
 }
 
 await closePlatformDatabase();
-console.log("Munch Railway service facilities and selector smoke test passed.");
+console.log("Munch Railway service facilities smoke test passed.");

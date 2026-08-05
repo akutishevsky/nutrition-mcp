@@ -6,7 +6,7 @@ import { getSubscriptionSnapshot } from "../billing/repository.js";
 import { getRailwayExportFile } from "../export.js";
 import { listHouseholdMembers } from "../households/repository.js";
 import { listSavedFoods } from "../saved-foods/repository.js";
-import { deleteAllUserData, getProfile, upsertProfile } from "../supabase.js";
+import { deleteAllUserData, getProfile, upsertProfile } from "../storage.js";
 import { listOAuthConnections, revokeOAuthConnection } from "./repository.js";
 
 function escapeHtml(value: unknown): string {

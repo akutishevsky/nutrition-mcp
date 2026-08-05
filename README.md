@@ -41,7 +41,7 @@ The fork currently inherits the upstream Nutrition MCP feature set, including:
 - MCP Apps widgets for summaries, goals, trends, imports, and confirmation;
 - OAuth-based remote MCP access.
 
-Until the Railway/PostgreSQL migration is complete, some inherited implementation details still refer to Supabase and the original project. These are being replaced through staged, tested pull requests.
+Munch uses Railway PostgreSQL as its sole persistence layer.
 
 ## Planned Munch additions
 
