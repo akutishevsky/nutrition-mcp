@@ -35,7 +35,7 @@ if (!normalizedHomepage.includes("$4.99")) {
 }
 if (
     !normalizedHomepage.includes("Nutrition MCP") ||
-    !normalizedHomepage.includes("Alexander Kutishevsky")
+    !normalizedHomepage.includes("Anton Kutishevskyi")
 ) {
     throw new Error("Homepage is missing upstream attribution");
 }

@@ -11,6 +11,10 @@ const forbidden = [
 
 const allowedPaths = new Set(["LICENSE", "NOTICE.md", "README.md"]);
 
+// The upstream-attribution line in the homepage footer links to the original
+// project, so the bare domain is allowed there — and only there.
+const allowedValues = new Map([["public/index.html", ["nutrition-mcp.com"]]]);
+
 const roots = ["public", "src"];
 const failures: string[] = [];
 
@@ -21,6 +25,7 @@ for (const root of roots) {
         if (allowedPaths.has(path)) continue;
         const text = await Bun.file(path).text();
         for (const value of forbidden) {
+            if (allowedValues.get(path)?.includes(value)) continue;
             if (text.includes(value)) failures.push(`${path}: ${value}`);
         }
     }
