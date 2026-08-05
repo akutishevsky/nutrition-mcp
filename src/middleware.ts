@@ -1,7 +1,21 @@
+import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
 import type { Context, Next } from "hono";
-import { getUserIdByToken } from "./supabase.js";
+import { getMunchBetterAuth } from "./auth/auth.js";
+import {
+    betterAuthIsEnabled,
+    getBetterAuthRuntimeConfig,
+} from "./auth/config.js";
+import { munchMcpResourceUrl } from "./auth/oauth-scopes.js";
+import { oauthIssuerUrl, resourceMetadataUrl } from "./discovery.js";
 import { maskIp } from "./net.js";
-import { resourceMetadataUrl } from "./discovery.js";
+import {
+    checkAuthRateLimit,
+    checkRateLimit,
+    clearAuthFailures,
+    getBanState,
+    noteAuthFailure,
+} from "./rate-limit.js";
+import { getUserIdByToken } from "./supabase.js";
 
 // Declare the context variables this middleware sets. Without it, c.get/c.set on
 // an untyped `new Hono()` app types its keys as `never`, so index.ts cannot read
@@ -13,19 +27,43 @@ declare module "hono" {
         suppressAccessLog: boolean;
     }
 }
-import {
-    checkRateLimit,
-    checkAuthRateLimit,
-    noteAuthFailure,
-    clearAuthFailures,
-    getBanState,
-} from "./rate-limit.js";
 
-// Best-effort client IP for rate limiting. Behind DigitalOcean's proxy the real
-// IP is the first entry of x-forwarded-for; fall back to x-real-ip. "unknown"
-// only applies when no proxy header is present (e.g. direct local requests), in
-// which case those callers share a single bucket — acceptable since production
-// always sits behind the proxy.
+type BetterAuthResourceActions = ReturnType<
+    ReturnType<typeof oauthProviderResourceClient>["getActions"]
+>;
+
+let betterAuthResourceActions: BetterAuthResourceActions | undefined;
+
+function getBetterAuthResourceActions(): BetterAuthResourceActions {
+    betterAuthResourceActions ??=
+        oauthProviderResourceClient(getMunchBetterAuth()).getActions();
+    return betterAuthResourceActions;
+}
+
+async function verifyBetterAuthMcpToken(token: string): Promise<string> {
+    const config = getBetterAuthRuntimeConfig();
+    const payload = await getBetterAuthResourceActions().verifyAccessToken(
+        token,
+        {
+            verifyOptions: {
+                audience: munchMcpResourceUrl(config.baseUrl),
+                issuer: oauthIssuerUrl(config.baseUrl),
+            },
+            scopes: ["nutrition.read"],
+            jwksUrl: `${config.baseUrl}/api/auth/jwks`,
+        },
+    );
+
+    if (typeof payload.sub !== "string" || payload.sub.length === 0) {
+        throw new Error("Better Auth access token has no subject");
+    }
+    return payload.sub;
+}
+
+// Best-effort client IP for rate limiting. Behind Railway's proxy the real IP
+// is the first entry of x-forwarded-for; fall back to x-real-ip. "unknown" only
+// applies when no proxy header is present (for example direct local requests),
+// in which case those callers share a single bucket.
 function getClientIp(c: Context): string {
     const forwardedFor = c.req.header("x-forwarded-for");
     if (forwardedFor) {
@@ -52,8 +90,8 @@ function rejectUnauthenticated(
     const ip = getClientIp(c);
     const ban = noteAuthFailure(ip);
     // Reaching here means the ban guard let the request through, so a banned
-    // result is necessarily a *newly* tripped ban — log the transition once
-    // rather than on every suppressed request that follows.
+    // result is necessarily a newly tripped ban. Log the transition once rather
+    // than on every suppressed request that follows.
     if (ban.banned) {
         console.log(
             `[ban] ${maskIp(c.req.header("x-forwarded-for"))} repeated auth failures on ${c.req.path} — shedding for ${ban.retryAfterSeconds}s`,
@@ -79,31 +117,49 @@ export const authenticateBearer = async (c: Context, next: Next) => {
     }
 
     const token = authHeader.substring(7);
-    const lookup = await getUserIdByToken(token);
+    let userId: string;
 
-    if (lookup.status === "unavailable") {
-        // We could not verify the token, so this is not the client's fault:
-        // answer 401 as before, but record no strike. Otherwise a Supabase
-        // outage would ban every active user and outlast the outage itself.
-        c.header(
-            "WWW-Authenticate",
-            `Bearer resource_metadata="${resourceMetadataUrl(getBaseUrl(c))}"`,
-        );
-        return c.json(
-            {
-                error: "invalid_token",
-                error_description: "Unable to verify token, try again",
-            },
-            401,
-        );
-    }
+    if (betterAuthIsEnabled()) {
+        try {
+            userId = await verifyBetterAuthMcpToken(token);
+        } catch (error) {
+            console.warn("Better Auth MCP bearer verification failed", {
+                errorName: error instanceof Error ? error.name : "unknown",
+            });
+            return rejectUnauthenticated(
+                c,
+                "invalid_token",
+                "Token is invalid, expired, missing required scope, or not issued for this MCP resource",
+            );
+        }
+    } else {
+        const lookup = await getUserIdByToken(token);
 
-    if (lookup.status === "invalid") {
-        return rejectUnauthenticated(
-            c,
-            "invalid_token",
-            "Token is invalid or expired",
-        );
+        if (lookup.status === "unavailable") {
+            // We could not verify the token, so this is not the client's fault:
+            // answer 401 as before, but record no strike. Otherwise a Supabase
+            // outage would ban every active user and outlast the outage itself.
+            c.header(
+                "WWW-Authenticate",
+                `Bearer resource_metadata="${resourceMetadataUrl(getBaseUrl(c))}"`,
+            );
+            return c.json(
+                {
+                    error: "invalid_token",
+                    error_description: "Unable to verify token, try again",
+                },
+                401,
+            );
+        }
+
+        if (lookup.status === "invalid") {
+            return rejectUnauthenticated(
+                c,
+                "invalid_token",
+                "Token is invalid or expired",
+            );
+        }
+        userId = lookup.userId;
     }
 
     // A success clears the IP's strike count. This is what keeps a shared egress
@@ -112,7 +168,7 @@ export const authenticateBearer = async (c: Context, next: Next) => {
     clearAuthFailures(getClientIp(c));
 
     c.set("accessToken", token);
-    c.set("userId", lookup.userId);
+    c.set("userId", userId);
     await next();
 };
 

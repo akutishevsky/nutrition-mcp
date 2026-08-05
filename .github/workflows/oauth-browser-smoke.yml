@@ -32,6 +32,7 @@ jobs:
             MUNCH_APP_BASE_URL: https://munch.example
             NODE_ENV: test
             MUNCH_AUTH_BACKEND: better_auth
+            MUNCH_RAILWAY_DATA_ENABLED: "true"
             BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
             RESEND_API_KEY: re_test_schema
             MUNCH_EMAIL_FROM: Munch <support@munch.example>
