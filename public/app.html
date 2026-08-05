@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width,initial-scale=1,viewport-fit=cover"
+        />
+        <meta name="robots" content="noindex,nofollow" />
+        <meta name="referrer" content="no-referrer" />
+        <meta name="theme-color" content="#f6f8f6" />
+        <title>Munch</title>
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="stylesheet" href="/styles.css" />
+        <link rel="stylesheet" href="/app-overrides.css" />
+    </head>
+    <body class="app-page">
+        <a class="skip-link" href="#app-content">Skip to content</a>
+        <div class="app-shell">
+            <aside class="app-sidebar">
+                <a class="brand" href="/app"
+                    ><img
+                        class="brand-logo"
+                        src="/brand/munch-mark.svg"
+                        alt=""
+                    /><span>Munch</span></a
+                >
+                <nav class="app-nav" aria-label="Application navigation">
+                    <a data-route="today" href="/app"
+                        ><span class="nav-icon">◉</span><span>Today</span></a
+                    >
+                    <a data-route="log" href="/app/log"
+                        ><span class="nav-icon">▤</span><span>Food Log</span></a
+                    >
+                    <a data-route="insights" href="/app/insights"
+                        ><span class="nav-icon">↗</span><span>Insights</span></a
+                    >
+                    <a data-route="foods" href="/app/foods"
+                        ><span class="nav-icon">⌕</span><span>Foods</span></a
+                    >
+                    <a data-route="recipes" href="/app/recipes"
+                        ><span class="nav-icon">◇</span><span>Recipes</span></a
+                    >
+                    <a data-route="plan" href="/app/plan"
+                        ><span class="nav-icon">□</span
+                        ><span>Meal Plan</span></a
+                    >
+                    <a data-route="groceries" href="/app/groceries"
+                        ><span class="nav-icon">✓</span
+                        ><span>Groceries</span></a
+                    >
+                    <a data-route="household" href="/app/household"
+                        ><span class="nav-icon">⌂</span
+                        ><span>Household</span></a
+                    >
+                </nav>
+                <div class="sidebar-bottom">
+                    <nav class="app-nav" aria-label="Account navigation">
+                        <a data-route="settings" href="/app/settings"
+                            ><span class="nav-icon">⚙</span
+                            ><span>Settings</span></a
+                        >
+                        <a href="/help"
+                            ><span class="nav-icon">?</span><span>Help</span></a
+                        >
+                    </nav>
+                </div>
+            </aside>
+            <main class="app-main">
+                <header class="app-topbar">
+                    <div>
+                        <p class="section-kicker" id="page-kicker">Munch</p>
+                        <h1 id="page-title">Today</h1>
+                    </div>
+                    <div class="topbar-actions">
+                        <button
+                            class="button button-secondary button-small"
+                            id="refresh-button"
+                            type="button"
+                        >
+                            Refresh
+                        </button>
+                        <button
+                            class="button button-primary button-small"
+                            id="quick-action"
+                            type="button"
+                        >
+                            Use with ChatGPT
+                        </button>
+                    </div>
+                </header>
+                <div class="app-content" id="app-content" tabindex="-1">
+                    <div class="loading-state">
+                        <div>
+                            <div
+                                class="skeleton"
+                                style="width: 180px; height: 18px"
+                            ></div>
+                            <div
+                                class="skeleton spacer-top"
+                                style="width: 280px; height: 54px"
+                            ></div>
+                            <p class="spacer-top">
+                                Loading your Munch workspace…
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+            <a data-route="today" href="/app"
+                ><span>◉</span><span>Today</span></a
+            >
+            <a data-route="log" href="/app/log"
+                ><span>▤</span><span>Log</span></a
+            >
+            <a data-route="plan" href="/app/plan"
+                ><span>□</span><span>Plan</span></a
+            >
+            <a data-route="groceries" href="/app/groceries"
+                ><span>✓</span><span>Groceries</span></a
+            >
+            <a data-route="settings" href="/app/settings"
+                ><span>•••</span><span>More</span></a
+            >
+        </nav>
+        <div
+            class="toast-region"
+            id="toast-region"
+            aria-live="polite"
+            aria-atomic="true"
+        ></div>
+        <dialog id="app-dialog"></dialog>
+        <script type="module" src="/app.js"></script>
+        <script type="module" src="/app-patches.js"></script>
+    </body>
+</html>

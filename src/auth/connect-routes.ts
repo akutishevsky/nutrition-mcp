@@ -13,16 +13,17 @@ function escapeHtml(value: string): string {
         .replaceAll("'", "&#39;");
 }
 
-function shell(title: string, body: string): string {
+function shell(title: string, body: string, step?: string): string {
     return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><title>${escapeHtml(title)} — Munch</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css"></head>
-<body class="auth-page"><div class="auth-layout"><aside class="auth-brand-panel"><a class="brand" href="/"><img class="brand-logo" src="/brand/munch-mark-white.svg" alt=""><span>Munch</span></a><div class="auth-brand-copy"><p class="eyebrow">Secure ChatGPT connection</p><h1>Food and macro memory for <span>ChatGPT.</span></h1><p>Sign in, approve the requested permissions, and return to ChatGPT.</p></div></aside><main class="auth-main"><section class="auth-card">${body}</section></main></div></body></html>`;
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#176b3a"><title>${escapeHtml(title)} — Munch</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css"></head>
+<body class="auth-page"><main class="auth-main"><section class="auth-card"><a class="brand" href="/" aria-label="Munch home"><img class="brand-logo" src="/brand/munch-mark.svg" alt=""><span>Munch</span></a>${step ? `<p class="section-kicker spacer-top">${escapeHtml(step)}</p>` : ""}${body}</section></main></body></html>`;
 }
 
 function privateHtml(c: Context, html: string) {
     c.header("Cache-Control", "no-store, private");
     c.header("Pragma", "no-cache");
     c.header("Referrer-Policy", "no-referrer");
+    c.header("X-Robots-Tag", "noindex, nofollow");
     return c.html(html);
 }
 
@@ -35,10 +36,9 @@ export function boundedOAuthQuery(value: unknown): string | undefined {
 }
 
 /**
- * Better Auth sends the signed authorization transaction directly on the
- * consent-page query string. Preserve that byte-for-byte for oauth2Consent;
- * rebuilding URLSearchParams can reorder repeated ba_param fields or alter the
- * signature representation.
+ * Better Auth signs the authorization transaction exactly as received. Preserve
+ * the query byte-for-byte; rebuilding URLSearchParams can reorder repeated
+ * values or change the signature representation.
  */
 export function signedOAuthQuery(requestUrl: string): string | undefined {
     const url = new URL(requestUrl);
@@ -80,7 +80,8 @@ export function createBetterAuthConnectRouter(): Hono {
             c,
             shell(
                 "Sign in",
-                `<p class="section-kicker">Munch account</p><h1>Sign in with your email</h1><p>We will send a single-use link. If this email is new, your Munch account will be created automatically.</p><form class="auth-form" method="post" action="/connect/request"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}">${oauthQuery ? `<input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}">` : ""}<div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="320"></div><button class="button button-primary" type="submit">Send magic link</button></form><p class="auth-footnote">No password is created or stored.</p>`,
+                `<h1>Connect Munch to ChatGPT</h1><p>Use your email to continue. We will send a secure, single-use sign-in link.</p><form class="auth-form" method="post" action="/connect/request"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}">${oauthQuery ? `<input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}">` : ""}<label class="field" for="email"><span>Email address</span><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required maxlength="320"></label><button class="button button-primary" type="submit">Send sign-in link</button></form><p class="auth-footnote">No password is created or stored.</p>`,
+                "Secure connection",
             ),
         );
     });
@@ -97,7 +98,8 @@ export function createBetterAuthConnectRouter(): Hono {
                 c,
                 shell(
                     "Sign-in problem",
-                    `<h1>Enter a valid email address.</h1><div class="portal-actions"><a class="button button-primary" href="/connect/sign-in?${retry.toString()}">Try again</a></div>`,
+                    `<h1>Enter a valid email address.</h1><p>Check the address and try again.</p><div class="auth-actions"><a class="button button-primary" href="/connect/sign-in?${retry.toString()}">Try again</a></div>`,
+                    "Email needed",
                 ),
             );
         }
@@ -130,7 +132,8 @@ export function createBetterAuthConnectRouter(): Hono {
             c,
             shell(
                 "Check your email",
-                `<p class="section-kicker">Magic link sent</p><h1>Check your email</h1><p>If the address can receive Munch email, a single-use sign-in link is on the way. It expires automatically.</p><div class="portal-actions"><a class="button button-secondary" href="/">Return home</a></div>`,
+                `<h1>Check your email</h1><p>If the address can receive Munch email, a single-use sign-in link is on the way. It expires automatically.</p><div class="auth-status" role="status"><span aria-hidden="true">✓</span><span>You can close this tab after opening the email.</span></div>`,
+                "Magic link sent",
             ),
         );
     });
@@ -144,7 +147,8 @@ export function createBetterAuthConnectRouter(): Hono {
             c,
             shell(
                 "Confirm sign in",
-                `<p class="section-kicker">One final step</p><h1>Continue signing in</h1><p>Press the button below to use this single-use link. This confirmation prevents automated email scanners from consuming it.</p><form class="auth-form" method="post" action="/connect/confirm"><input type="hidden" name="token" value="${escapeHtml(token)}"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}"><button class="button button-primary" type="submit">Continue signing in</button></form>`,
+                `<h1>Continue signing in</h1><p>Confirm this single-use link to continue. This extra step prevents automated email scanners from using it first.</p><form class="auth-form" method="post" action="/connect/confirm"><input type="hidden" name="token" value="${escapeHtml(token)}"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}"><button class="button button-primary" type="submit">Continue signing in</button></form>`,
+                "One final step",
             ),
         );
     });
@@ -158,10 +162,7 @@ export function createBetterAuthConnectRouter(): Hono {
         try {
             return await getMunchBetterAuth().api.magicLinkVerify({
                 headers: c.req.raw.headers,
-                query: {
-                    token,
-                    callbackURL: returnTo,
-                },
+                query: { token, callbackURL: returnTo },
                 asResponse: true,
             });
         } catch (error) {
@@ -218,7 +219,8 @@ export function createBetterAuthConnectRouter(): Hono {
             c,
             shell(
                 "Authorize Munch",
-                `<p class="section-kicker">Approve ChatGPT access</p><h1>Connect ${escapeHtml(clientName)}</h1><p>This client is requesting access to your Munch account. It will not receive billing credentials or unrelated ChatGPT conversations.</p><ul class="consent-scope-list">${scopeItems}</ul><form class="consent-actions" method="post" action="/connect/consent"><input type="hidden" name="client_id" value="${escapeHtml(clientId)}"><input type="hidden" name="scope" value="${escapeHtml(scope)}"><input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}"><button class="button button-primary" type="submit" name="decision" value="approve">Approve connection</button><button class="button button-quiet" type="submit" name="decision" value="deny">Deny</button></form><p class="auth-footnote">You can revoke this connection later from your Munch account.</p>`,
+                `<h1>Connect ${escapeHtml(clientName)}</h1><p>ChatGPT is requesting the permissions listed below. It does not receive unrelated ChatGPT conversations.</p><ul class="consent-scope-list">${scopeItems}</ul><form class="consent-actions" method="post" action="/connect/consent"><input type="hidden" name="client_id" value="${escapeHtml(clientId)}"><input type="hidden" name="scope" value="${escapeHtml(scope)}"><input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}"><button class="button button-primary" type="submit" name="decision" value="approve">Approve connection</button><button class="button button-quiet" type="submit" name="decision" value="deny">Deny</button></form><p class="auth-footnote">You can revoke this connection later from your Munch account.</p>`,
+                "Review permissions",
             ),
         );
     });
@@ -251,11 +253,7 @@ export function createBetterAuthConnectRouter(): Hono {
         try {
             return await auth.api.oauth2Consent({
                 headers: c.req.raw.headers,
-                body: {
-                    accept,
-                    scope,
-                    oauth_query: oauthQuery,
-                },
+                body: { accept, scope, oauth_query: oauthQuery },
                 asResponse: true,
             });
         } catch (error) {
@@ -268,7 +266,8 @@ export function createBetterAuthConnectRouter(): Hono {
             c,
             shell(
                 "Connection problem",
-                `<p class="section-kicker">Connection unavailable</p><h1>This Munch connection cannot be completed.</h1><p>The sign-in or authorization request may have expired. Return to ChatGPT and press Connect again.</p><div class="portal-actions"><a class="button button-primary" href="/connect/sign-in">Sign in to Munch</a><a class="button button-secondary" href="/">Return home</a></div>`,
+                `<h1>This connection could not be completed.</h1><p>The sign-in or authorization request may have expired. Return to ChatGPT and choose Connect again.</p><div class="auth-actions"><a class="button button-primary" href="/connect/sign-in">Try signing in again</a></div>`,
+                "Connection unavailable",
             ),
         ),
     );

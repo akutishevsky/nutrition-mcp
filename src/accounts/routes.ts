@@ -35,8 +35,8 @@ function loginErrorPage(message: string): string {
         .replaceAll("'", "&#39;");
 
     return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign-in problem — Munch</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css"></head>
-<body class="auth-page"><main class="auth-main"><section class="auth-card"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">M</span><span>Munch</span></a><h1 class="spacer-top">This sign-in link cannot be used.</h1><p>${safeMessage}</p><div class="hero-actions"><a class="button button-primary" href="/account/login">Request a new link</a><a class="button button-secondary" href="/">Return home</a></div></section></main></body></html>`;
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Sign-in problem — Munch</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css"></head>
+<body class="auth-page"><main class="auth-main"><section class="auth-card"><a class="brand" href="/"><img class="brand-logo" src="/brand/munch-mark.svg" alt=""><span>Munch</span></a><p class="section-kicker spacer-top">Sign-in problem</p><h1>This sign-in link cannot be used.</h1><p>${safeMessage}</p><div class="auth-actions"><a class="button button-primary" href="/account/login?return_to=/app">Request a new link</a><a class="button button-secondary" href="/">Return home</a></div></section></main></body></html>`;
 }
 
 export function createAccountRouter(): Hono {
@@ -45,9 +45,8 @@ export function createAccountRouter(): Hono {
     account.use("/account/login/request", rateLimitAuth);
     account.use("/account/login/consume", rateLimitAuth);
 
-    // The legacy portal page owns the account controls. Inject the meal-history
-    // panel after it has rendered so the portal and MCP read from the same user
-    // and Railway PostgreSQL row without duplicating the account page.
+    // Keep the legacy portal available during the measured cutover. The new
+    // product workspace is the default destination and owns normal navigation.
     account.use("/account/portal", async (c, next) => {
         const pathname = new URL(c.req.url).pathname;
         if (c.req.method !== "GET" || pathname !== "/account/portal") {
@@ -76,7 +75,7 @@ export function createAccountRouter(): Hono {
         if (betterAuthIsEnabled()) {
             const returnTo = safeLocalRedirectPath(
                 c.req.query("return_to"),
-                "/account/portal",
+                "/app",
             );
             return c.redirect(
                 `/connect/sign-in?return_to=${encodeURIComponent(returnTo)}`,
@@ -91,7 +90,7 @@ export function createAccountRouter(): Hono {
             return c.json(
                 {
                     error: "legacy_login_disabled",
-                    loginUrl: "/connect/sign-in",
+                    loginUrl: "/connect/sign-in?return_to=/app",
                 },
                 410,
             );
@@ -110,8 +109,8 @@ export function createAccountRouter(): Hono {
 
         const returnTo =
             typeof body.returnTo === "string"
-                ? safeLocalRedirectPath(body.returnTo)
-                : undefined;
+                ? safeLocalRedirectPath(body.returnTo, "/app")
+                : "/app";
 
         try {
             const challenge = await createLoginChallenge(body.email);
@@ -164,7 +163,7 @@ export function createAccountRouter(): Hono {
 
         setWebSessionCookie(c, session);
         return c.redirect(
-            safeLocalRedirectPath(c.req.query("return_to"), "/account/portal"),
+            safeLocalRedirectPath(c.req.query("return_to"), "/app"),
             303,
         );
     });
@@ -181,8 +180,8 @@ export function createAccountRouter(): Hono {
             },
             subscription,
             entitlement,
-            portalUrl: "/account/portal",
-            mealHistoryUrl: "/account/portal/meals",
+            portalUrl: "/app/settings",
+            mealHistoryUrl: "/app/log",
         });
     });
 
@@ -196,9 +195,6 @@ export function createAccountRouter(): Hono {
         },
     );
 
-    // Register the complete JSON account export before the legacy portal router's
-    // meal-only CSV endpoint. Conversational CSV export remains available through
-    // the MCP tool; the account portal exports the user's full accessible dataset.
     account.route("/", createAccountExportRouter());
     account.route("/", createMealHistoryRouter());
     account.route("/", createPortalRouter());

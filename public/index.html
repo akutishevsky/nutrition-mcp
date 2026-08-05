@@ -3,19 +3,19 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Munch — Persistent nutrition for ChatGPT</title>
+        <title>Munch — Nutrition tracking for ChatGPT and beyond</title>
         <meta
             name="description"
-            content="Give ChatGPT secure, structured nutrition memory with meal logging, verified food data, trends, water, weight, export, and account controls."
+            content="Log meals through ChatGPT, then review structured food data, goals, trends, recipes, meal plans, groceries, and household activity in Munch."
         />
-        <meta name="theme-color" content="#0B8F4D" />
+        <meta name="theme-color" content="#176b3a" />
         <meta
             property="og:title"
-            content="Munch — Persistent nutrition for ChatGPT"
+            content="Munch — Nutrition tracking for ChatGPT and beyond"
         />
         <meta
             property="og:description"
-            content="ChatGPT provides the conversation. Munch provides the nutrition memory, data, and tools."
+            content="Chat naturally in ChatGPT. Munch keeps the nutrition data structured, reviewable, and available across conversations."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://munch.business/" />
@@ -30,140 +30,204 @@
                 "@type": "SoftwareApplication",
                 "name": "Munch",
                 "applicationCategory": "HealthApplication",
-                "operatingSystem": "ChatGPT and compatible MCP clients",
-                "offers": {
-                    "@type": "Offer",
-                    "price": "4.99",
-                    "priceCurrency": "USD"
-                },
-                "description": "A persistent nutrition data and tool layer for ChatGPT."
+                "operatingSystem": "Web and ChatGPT",
+                "offers": [
+                    {
+                        "@type": "Offer",
+                        "name": "Free",
+                        "price": "0",
+                        "priceCurrency": "USD"
+                    },
+                    {
+                        "@type": "Offer",
+                        "name": "Premium",
+                        "price": "4.99",
+                        "priceCurrency": "USD"
+                    }
+                ],
+                "description": "Structured nutrition tracking, food provenance, planning, and household tools designed to work with ChatGPT."
             }
         </script>
     </head>
     <body class="site-shell">
+        <a class="skip-link" href="#main">Skip to content</a>
         <header class="site-header">
             <div class="container nav-inner">
-                <a class="brand" href="/" aria-label="Munch home"
-                    ><img
+                <a class="brand" href="/" aria-label="Munch home">
+                    <img
                         class="brand-logo"
                         src="/brand/munch-mark.svg"
                         alt=""
-                    /><span>Munch</span></a
-                >
+                    />
+                    <span>Munch</span>
+                </a>
                 <button
                     class="nav-toggle"
                     id="nav-toggle"
                     type="button"
                     aria-label="Open navigation"
                     aria-expanded="false"
+                    aria-controls="nav-links"
                 >
-                    ☰
+                    <span></span><span></span><span></span>
                 </button>
                 <nav
                     class="nav-links"
                     id="nav-links"
                     aria-label="Primary navigation"
                 >
-                    <a href="#how">How it works</a
-                    ><a href="#features">Features</a
-                    ><a href="#privacy">Privacy</a><a href="#pricing">Pricing</a
-                    ><a href="/account/login">Sign in</a>
+                    <a href="#features">Features</a>
+                    <a href="#workflow">How it works</a>
+                    <a href="#privacy">Privacy</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="/help">Help</a>
+                    <a href="/account/login?return_to=/app">Sign in</a>
                     <a
                         class="button button-primary button-small"
-                        href="/account/login?return_to=/account/portal"
-                        >Start free trial</a
+                        href="/connect/sign-in?return_to=/app"
+                        >Get Munch</a
                     >
                 </nav>
             </div>
         </header>
 
-        <main>
-            <section class="hero">
+        <main id="main">
+            <section class="hero hero-product">
                 <div class="container hero-grid">
-                    <div>
-                        <p class="eyebrow">Persistent nutrition for ChatGPT</p>
+                    <div class="hero-copy">
+                        <p class="eyebrow">Nutrition that survives the chat</p>
                         <h1>
-                            Give ChatGPT a nutrition history that
-                            <span>actually persists.</span>
+                            Track food through ChatGPT.
+                            <span>Keep the data organized in Munch.</span>
                         </h1>
                         <p class="hero-lead">
-                            ChatGPT handles the conversation and reasoning.
-                            Munch supplies structured food and macro data,
-                            recent meal memory, verified food search, and tools
-                            ChatGPT can call when you ask.
+                            Log meals naturally, verify foods and barcodes, and
+                            let Munch preserve the structured record. Review
+                            your day, goals, trends, recipes, plans, groceries,
+                            and household activity from any screen.
                         </p>
                         <div class="hero-actions">
                             <a
-                                class="button button-primary"
-                                href="/account/login?return_to=/account/portal"
-                                >Connect free</a
-                            ><a class="button button-secondary" href="#pricing"
-                                >Compare plans</a
+                                class="button button-primary button-large"
+                                href="/connect/sign-in?return_to=/app"
+                                >Add Munch to ChatGPT</a
+                            >
+                            <a
+                                class="button button-secondary button-large"
+                                href="#workflow"
+                                >See how it works</a
                             >
                         </div>
-                        <div class="hero-proof">
-                            <span class="proof-pill">Permanent free tier</span
-                            ><span class="proof-pill">No card required</span
-                            ><span class="proof-pill"
-                                >No advertising analytics</span
-                            >
-                        </div>
+                        <ul class="hero-proof" aria-label="Product highlights">
+                            <li>Permanent free tier</li>
+                            <li>Source-aware nutrition</li>
+                            <li>Export and deletion controls</li>
+                        </ul>
                     </div>
                     <div
-                        class="demo-wrap"
-                        aria-label="Example Munch conversation"
+                        class="product-demo"
+                        aria-label="Munch product preview"
                     >
-                        <div class="demo-card">
-                            <div class="demo-top">
-                                <div class="demo-user">
-                                    <span class="demo-avatar">M</span>Munch
+                        <div class="demo-chat">
+                            <div class="demo-window-head">
+                                <span class="demo-avatar">M</span>
+                                <div>
+                                    <strong>Munch in ChatGPT</strong
+                                    ><small>Connected</small>
                                 </div>
                                 <span
                                     class="status-dot"
-                                    title="Connected"
+                                    aria-label="Connected"
                                 ></span>
                             </div>
                             <div class="chat">
                                 <div class="bubble bubble-user">
-                                    Log a peanut butter sandwich and a green
-                                    apple for lunch.
+                                    Log my usual peanut butter sandwich and a
+                                    green apple for lunch.
                                 </div>
                                 <div class="bubble bubble-munch">
-                                    Lunch logged from your saved sandwich and a
-                                    verified apple result.
-                                    <div class="nutrition-card">
-                                        <div class="nutrition-head">
-                                            <div>
-                                                <div class="kcal">510</div>
-                                                <p>calories</p>
-                                            </div>
-                                            <span class="proof-pill"
-                                                >USDA + saved food</span
-                                            >
+                                    I found your saved sandwich. For the apple,
+                                    is this about one medium apple?
+                                </div>
+                                <div class="bubble bubble-user">Yes.</div>
+                                <div class="bubble bubble-munch">
+                                    Lunch logged.
+                                    <div class="nutrition-card compact">
+                                        <div>
+                                            <strong>510</strong
+                                            ><span>kcal</span>
                                         </div>
-                                        <div class="macro-row">
-                                            <div class="macro">
-                                                <strong>16g</strong
-                                                ><span>protein</span>
-                                            </div>
-                                            <div class="macro">
-                                                <strong>71g</strong
-                                                ><span>carbs</span>
-                                            </div>
-                                            <div class="macro">
-                                                <strong>20g</strong
-                                                ><span>fat</span>
-                                            </div>
+                                        <div>
+                                            <strong>16g</strong
+                                            ><span>protein</span>
+                                        </div>
+                                        <div>
+                                            <strong>71g</strong
+                                            ><span>carbs</span>
+                                        </div>
+                                        <div>
+                                            <strong>20g</strong><span>fat</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="bubble bubble-user">
-                                    How much protein do I have left today?
+                            </div>
+                        </div>
+                        <div class="demo-dashboard">
+                            <div class="demo-dashboard-head">
+                                <div>
+                                    <small>Today</small
+                                    ><strong>Wednesday, August 5</strong>
                                 </div>
-                                <div class="bubble bubble-munch">
-                                    You have 54 grams remaining based on your
-                                    current goal and everything Munch has logged
-                                    today.
+                                <span class="source-chip source-saved"
+                                    >Synced</span
+                                >
+                            </div>
+                            <div class="demo-metrics">
+                                <div class="metric-tile primary">
+                                    <span>Calories</span><strong>1,420</strong
+                                    ><small>of 2,200 kcal</small>
+                                    <div class="progress">
+                                        <span style="width: 65%"></span>
+                                    </div>
+                                </div>
+                                <div class="metric-tile">
+                                    <span>Protein</span><strong>96g</strong
+                                    ><small>64g remaining</small>
+                                </div>
+                                <div class="metric-tile">
+                                    <span>Water</span><strong>1.6L</strong
+                                    ><small>3 entries</small>
+                                </div>
+                            </div>
+                            <div class="demo-meal-list">
+                                <div class="demo-meal-row">
+                                    <span class="meal-dot breakfast"></span>
+                                    <div>
+                                        <strong>Breakfast</strong
+                                        ><small
+                                            >Coffee, creatine, oatmeal</small
+                                        >
+                                    </div>
+                                    <span>410 kcal</span>
+                                </div>
+                                <div class="demo-meal-row selected">
+                                    <span class="meal-dot lunch"></span>
+                                    <div>
+                                        <strong>Lunch</strong
+                                        ><small>Sandwich and green apple</small>
+                                    </div>
+                                    <span>510 kcal</span>
+                                </div>
+                                <div class="demo-source-row">
+                                    <span class="source-chip source-saved"
+                                        >Saved food</span
+                                    >
+                                    <span class="source-chip source-usda"
+                                        >USDA</span
+                                    >
+                                    <span class="confidence-chip"
+                                        >High confidence</span
+                                    >
                                 </div>
                             </div>
                         </div>
@@ -171,249 +235,393 @@
                 </div>
             </section>
 
-            <section class="section section-soft" id="how">
-                <div class="container">
-                    <div class="section-head center">
-                        <p class="section-kicker">Simple by design</p>
-                        <h2>Nutrition tracking in three steps</h2>
+            <section
+                class="section product-strip"
+                aria-label="Munch capabilities"
+            >
+                <div class="container product-strip-grid">
+                    <div>
+                        <strong>Meals</strong><span>Structured history</span>
                     </div>
-                    <div class="steps">
-                        <article class="step">
-                            <h3>Connect Munch</h3>
+                    <div>
+                        <strong>Foods</strong><span>USDA and barcode data</span>
+                    </div>
+                    <div>
+                        <strong>Insights</strong
+                        ><span>Goals, trends, patterns</span>
+                    </div>
+                    <div>
+                        <strong>Planning</strong
+                        ><span>Recipes and calendars</span>
+                    </div>
+                    <div>
+                        <strong>Household</strong
+                        ><span>Shared groceries and plans</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="workflow">
+                <div class="container">
+                    <div class="section-head center narrow">
+                        <p class="section-kicker">One connected workflow</p>
+                        <h2>Conversation in. Structured product out.</h2>
+                        <p class="section-copy">
+                            ChatGPT handles the natural-language interaction.
+                            Munch handles the durable nutrition record and the
+                            interfaces needed to inspect it later.
+                        </p>
+                    </div>
+                    <div class="workflow-grid">
+                        <article class="workflow-card">
+                            <span class="workflow-number">1</span>
+                            <h3>Tell ChatGPT what happened</h3>
                             <p>
-                                Authorize your Munch account from ChatGPT or
-                                another compatible MCP client.
+                                Describe a meal, share a food photo, use a
+                                barcode, ask for your usual, or import
+                                historical entries.
                             </p>
                         </article>
-                        <article class="step">
-                            <h3>Talk normally</h3>
+                        <article class="workflow-card">
+                            <span class="workflow-number">2</span>
+                            <h3>Confirm the important details</h3>
                             <p>
-                                Describe food, share a photo, scan a barcode, or
-                                ask ChatGPT to use a verified result.
+                                Munch keeps portions, sources, confidence, and
+                                assumptions explicit instead of hiding uncertain
+                                estimates.
                             </p>
                         </article>
-                        <article class="step">
-                            <h3>Ask about progress</h3>
+                        <article class="workflow-card">
+                            <span class="workflow-number">3</span>
+                            <h3>Review and use the record</h3>
                             <p>
-                                Review meals, macros, hydration, weight, saved
-                                foods, and trends through the conversation.
+                                Open Munch to inspect your day, edit entries,
+                                compare trends, reuse foods, plan meals, and
+                                shop from shared lists.
                             </p>
                         </article>
                     </div>
                 </div>
             </section>
 
-            <section class="section" id="features">
-                <div class="container">
-                    <div class="section-head">
-                        <p class="section-kicker">What Munch adds</p>
+            <section class="section section-soft" id="features">
+                <div class="container feature-showcase">
+                    <div class="feature-copy">
+                        <p class="section-kicker">Daily tracking</p>
                         <h2>
-                            The structured layer ChatGPT does not provide by
-                            itself
+                            A food log designed around meals—not database rows.
                         </h2>
-                        <p class="section-copy">
-                            Munch does not try to replace ChatGPT. It gives
-                            ChatGPT durable nutrition context and specialized
-                            tools.
+                        <p>
+                            Breakfast, lunch, dinner, and snacks stay grouped.
+                            Expand a meal to see individual foods, portions,
+                            nutrients, notes, assumptions, and source
+                            provenance.
                         </p>
+                        <ul class="check-list">
+                            <li>Daily calories and macro progress</li>
+                            <li>Water and weight alongside food</li>
+                            <li>
+                                Food-level USDA, Open Food Facts, saved,
+                                restaurant, and estimate badges
+                            </li>
+                            <li>Edit, move, duplicate, and delete controls</li>
+                        </ul>
                     </div>
-                    <div class="feature-grid">
-                        <article class="feature-card">
-                            <div class="feature-icon">01</div>
-                            <h3>Persistent meal history</h3>
-                            <p>
-                                Meals remain available across conversations
-                                instead of disappearing with one chat.
-                            </p>
+                    <div class="ui-preview food-log-preview">
+                        <div class="preview-toolbar">
+                            <button aria-label="Previous day">‹</button
+                            ><strong>Today</strong
+                            ><button aria-label="Next day">›</button>
+                        </div>
+                        <div class="preview-summary">
+                            <div>
+                                <span>Calories</span><strong>1,420</strong
+                                ><small>65%</small>
+                            </div>
+                            <div>
+                                <span>Protein</span><strong>96g</strong
+                                ><small>60%</small>
+                            </div>
+                            <div>
+                                <span>Carbs</span><strong>174g</strong
+                                ><small>58%</small>
+                            </div>
+                            <div>
+                                <span>Fat</span><strong>49g</strong
+                                ><small>70%</small>
+                            </div>
+                        </div>
+                        <article class="preview-meal">
+                            <header>
+                                <div>
+                                    <span class="meal-dot lunch"></span
+                                    ><strong>Lunch</strong
+                                    ><small>12:34 PM</small>
+                                </div>
+                                <strong>510 kcal</strong>
+                            </header>
+                            <div class="preview-food">
+                                <div>
+                                    <strong>Peanut butter sandwich</strong
+                                    ><small>1 sandwich · saved food</small>
+                                </div>
+                                <span>415</span>
+                            </div>
+                            <div class="preview-food">
+                                <div>
+                                    <strong>Green apple</strong
+                                    ><small>1 medium · USDA</small>
+                                </div>
+                                <span>95</span>
+                            </div>
+                            <footer>
+                                <span class="source-chip source-saved"
+                                    >Saved food</span
+                                ><span class="source-chip source-usda"
+                                    >USDA</span
+                                >
+                            </footer>
                         </article>
-                        <article class="feature-card">
-                            <div class="feature-icon">02</div>
-                            <h3>Verified food search</h3>
-                            <p>
-                                Search USDA FoodData Central and Open Food
-                                Facts, including barcode records.
-                            </p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="container feature-showcase reverse">
+                    <div class="feature-copy">
+                        <p class="section-kicker">Food intelligence</p>
+                        <h2>Verified when possible. Labeled when estimated.</h2>
+                        <p>
+                            Search USDA FoodData Central and Open Food Facts,
+                            inspect household portions, save confirmed foods,
+                            and retain immutable source snapshots for later use.
+                        </p>
+                        <div class="source-legend">
+                            <span class="source-chip source-usda">USDA</span>
+                            <span class="source-chip source-off"
+                                >Open Food Facts</span
+                            >
+                            <span class="source-chip source-restaurant"
+                                >Published restaurant</span
+                            >
+                            <span class="source-chip source-estimate"
+                                >Estimated</span
+                            >
+                        </div>
+                    </div>
+                    <div class="ui-preview search-preview">
+                        <div class="search-box">
+                            Search foods or enter a barcode
+                        </div>
+                        <article class="search-result selected">
+                            <div class="result-icon">US</div>
+                            <div>
+                                <strong>Apple, raw, with skin</strong
+                                ><small>USDA FoodData Central · generic</small>
+                            </div>
+                            <span>95 kcal</span>
                         </article>
-                        <article class="feature-card">
-                            <div class="feature-icon">03</div>
-                            <h3>Saved foods and usuals</h3>
-                            <p>
-                                Reuse foods and meals you have already
-                                confirmed.
-                            </p>
+                        <article class="search-result">
+                            <div class="result-icon">OF</div>
+                            <div>
+                                <strong>Organic green apple slices</strong
+                                ><small>Open Food Facts · branded</small>
+                            </div>
+                            <span>80 kcal</span>
                         </article>
-                        <article class="feature-card">
-                            <div class="feature-icon">04</div>
-                            <h3>Transparent estimates</h3>
-                            <p>
-                                Uncertain meals can remain drafts with sources
-                                and assumptions shown before saving.
-                            </p>
-                        </article>
-                        <article class="feature-card">
-                            <div class="feature-icon">05</div>
-                            <h3>Long-term context</h3>
-                            <p>
-                                Track calories, macros, water, weight, goals,
-                                and trends over time.
-                            </p>
-                        </article>
-                        <article class="feature-card">
-                            <div class="feature-icon">06</div>
-                            <h3>Portable and deletable</h3>
-                            <p>
-                                Export your history, revoke connections, or
-                                permanently delete the account.
-                            </p>
-                        </article>
+                        <div class="portion-panel">
+                            <strong>Choose a portion</strong>
+                            <div>
+                                <span>1 medium apple</span
+                                ><strong>182 g</strong>
+                            </div>
+                            <div>
+                                <span>1 cup sliced</span><strong>109 g</strong>
+                            </div>
+                            <div>
+                                <span>100 grams</span><strong>100 g</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section class="section section-soft">
-                <div class="container source-grid">
-                    <div>
-                        <p class="section-kicker">Food data provenance</p>
-                        <h2>
-                            Verified when possible. Transparent when estimated.
-                        </h2>
-                        <p class="section-copy">
-                            Munch prioritizes structured nutrition data and your
-                            confirmed history. ChatGPT may assist with
-                            estimates, but the source and assumptions remain
-                            visible.
+                <div class="container">
+                    <div class="section-head center narrow">
+                        <p class="section-kicker">
+                            More than a calorie counter
                         </p>
+                        <h2>The product surfaces already behind Munch.</h2>
                     </div>
-                    <div class="source-stack">
-                        <article class="source-card">
-                            <div class="source-badge">US</div>
-                            <div>
-                                <strong>USDA FoodData Central</strong
-                                ><small
-                                    >Generic foods, portions, and branded
-                                    records</small
-                                >
-                            </div>
-                            <span class="source-check">✓</span>
+                    <div class="capability-grid">
+                        <article class="capability-card">
+                            <span class="capability-icon">◎</span>
+                            <h3>Goals and progress</h3>
+                            <p>
+                                Track user-entered calorie, macro, water, and
+                                target-weight values without turning estimates
+                                into medical advice.
+                            </p>
                         </article>
-                        <article class="source-card">
-                            <div class="source-badge">OF</div>
-                            <div>
-                                <strong>Open Food Facts</strong
-                                ><small
-                                    >Packaged foods and barcode lookup</small
-                                >
-                            </div>
-                            <span class="source-check">✓</span>
+                        <article class="capability-card">
+                            <span class="capability-icon">↗</span>
+                            <h3>Trends and patterns</h3>
+                            <p>
+                                Review rolling averages, variability, streaks,
+                                weekday differences, meal timing, and weight
+                                movement.
+                            </p>
                         </article>
-                        <article class="source-card">
-                            <div class="source-badge">ME</div>
-                            <div>
-                                <strong>Your confirmed history</strong
-                                ><small
-                                    >Saved foods and meals you have
-                                    approved</small
-                                >
-                            </div>
-                            <span class="source-check">✓</span>
+                        <article class="capability-card">
+                            <span class="capability-icon">▤</span>
+                            <h3>Saved foods</h3>
+                            <p>
+                                Reuse confirmed foods with the original provider
+                                snapshot, portion choices, usage count, and
+                                recency.
+                            </p>
                         </article>
-                        <article class="source-card">
-                            <div class="source-badge">AI</div>
-                            <div>
-                                <strong>AI-assisted estimate</strong
-                                ><small
-                                    >Used when stronger structured data is
-                                    unavailable</small
-                                >
-                            </div>
-                            <span class="source-check">!</span>
+                        <article class="capability-card">
+                            <span class="capability-icon">◇</span>
+                            <h3>Recipe library</h3>
+                            <p>
+                                Store ingredients, instructions, servings,
+                                provenance, immutable revisions, and per-serving
+                                nutrition.
+                            </p>
+                        </article>
+                        <article class="capability-card">
+                            <span class="capability-icon">□</span>
+                            <h3>Meal calendar</h3>
+                            <p>
+                                Plan personal or household meals by date and
+                                meal slot without confusing planned food with
+                                logged food.
+                            </p>
+                        </article>
+                        <article class="capability-card">
+                            <span class="capability-icon">✓</span>
+                            <h3>Grocery lists</h3>
+                            <p>
+                                Build explicit shopping lists from recipes or
+                                direct requests, then use a phone-friendly
+                                shopping mode.
+                            </p>
+                        </article>
+                        <article class="capability-card">
+                            <span class="capability-icon">⌂</span>
+                            <h3>Households</h3>
+                            <p>
+                                Share recipes, plans, and groceries while
+                                keeping personal meals, hydration, weight, and
+                                goals private.
+                            </p>
+                        </article>
+                        <article class="capability-card">
+                            <span class="capability-icon">⇄</span>
+                            <h3>Import and export</h3>
+                            <p>
+                                Import history with dry-run reconciliation and
+                                download private, time-limited exports or delete
+                                the account.
+                            </p>
                         </article>
                     </div>
                 </div>
             </section>
 
             <section class="section" id="privacy">
-                <div class="container">
-                    <div class="section-head center">
-                        <p class="section-kicker">Clear data boundaries</p>
+                <div class="container privacy-panel">
+                    <div>
+                        <p class="section-kicker">Clear system boundaries</p>
                         <h2>
-                            Munch does not train models on your nutrition data.
+                            Your nutrition data is a product record, not ad
+                            inventory.
                         </h2>
-                        <p class="section-copy">
-                            Munch stores the information needed to provide your
-                            account and nutrition tools. It does not sell
-                            nutrition data, use it for advertising, or use it to
-                            train a Munch AI model.
+                        <p>
+                            Munch stores the information needed to provide the
+                            service. It does not sell nutrition records, use
+                            advertising trackers, or train a separate Munch
+                            model on your data.
                         </p>
-                    </div>
-                    <div class="trust-grid">
-                        <article class="trust-card">
-                            <h3>What Munch controls</h3>
-                            <p>
-                                Account isolation, nutrition storage,
-                                food-source requests, OAuth connections, Stripe
-                                entitlement state, exports, deletion, and
-                                restricted production access.
-                            </p>
-                        </article>
-                        <article class="trust-card">
-                            <h3>What ChatGPT controls</h3>
-                            <p>
-                                Your conversation is processed by OpenAI before
-                                or while ChatGPT calls Munch. OpenAI's
-                                retention, training, and privacy choices are
-                                governed by your ChatGPT plan and settings—not
-                                by Munch.
-                            </p>
-                        </article>
-                    </div>
-                    <div class="hero-actions" style="justify-content: center">
-                        <a class="button button-secondary" href="/privacy"
-                            >Read the full privacy policy</a
+                        <a class="text-link" href="/privacy"
+                            >Read the privacy policy →</a
                         >
+                    </div>
+                    <div class="boundary-grid">
+                        <article>
+                            <strong>Munch controls</strong>
+                            <p>
+                                Account isolation, Railway PostgreSQL storage,
+                                food-source requests, authorized connections,
+                                exports, deletion, and website billing state.
+                            </p>
+                        </article>
+                        <article>
+                            <strong>OpenAI controls</strong>
+                            <p>
+                                ChatGPT conversation processing, retention, and
+                                model-improvement choices under the user’s
+                                OpenAI account and settings.
+                            </p>
+                        </article>
                     </div>
                 </div>
             </section>
 
             <section class="section section-soft" id="pricing">
                 <div class="container">
-                    <div class="section-head center">
-                        <p class="section-kicker">Free and Premium</p>
-                        <h2>Start with permanent food and macro tools.</h2>
-                        <p class="section-copy">
-                            Free covers individual food search, logging, recent
-                            history, and data controls. Premium adds persistent
-                            recipe, planning, grocery, and household workflows.
-                        </p>
+                    <div class="section-head center narrow">
+                        <p class="section-kicker">Straightforward pricing</p>
+                        <h2>
+                            Use the nutrition core free. Add the planning
+                            workspace when needed.
+                        </h2>
                     </div>
                     <div class="pricing-grid">
                         <article class="pricing-card">
-                            <p>Free</p>
-                            <div class="price">$0 <small>/ month</small></div>
+                            <div class="pricing-head">
+                                <div>
+                                    <p>Free</p>
+                                    <div class="price">
+                                        $0 <small>/ month</small>
+                                    </div>
+                                </div>
+                                <span class="pricing-badge"
+                                    >Always available</span
+                                >
+                            </div>
                             <ul class="pricing-list">
                                 <li>Food and barcode search with provenance</li>
                                 <li>Meal logging, editing, and deletion</li>
-                                <li>Daily calories and macro summaries</li>
+                                <li>
+                                    Daily calories, macros, water, and weight
+                                </li>
                                 <li>30 days of conversational history</li>
                                 <li>Up to 25 saved foods</li>
                                 <li>
-                                    Export, revocation, and account deletion
+                                    Import, export, connection, and deletion
+                                    controls
                                 </li>
                             </ul>
                             <a
                                 class="button button-secondary"
-                                href="/account/login?return_to=/account/portal"
-                                >Connect free</a
+                                href="/connect/sign-in?return_to=/app"
+                                >Get Munch</a
                             >
-                            <p class="tiny spacer-top">
-                                Permanent access. No payment information
-                                required.
-                            </p>
                         </article>
-                        <article class="pricing-card">
-                            <p>Premium · 30-day trial</p>
-                            <div class="price">
-                                $4.99 <small>/ month after trial</small>
+                        <article class="pricing-card featured">
+                            <div class="pricing-head">
+                                <div>
+                                    <p>Premium</p>
+                                    <div class="price">
+                                        $4.99 <small>/ month</small>
+                                    </div>
+                                </div>
+                                <span class="pricing-badge"
+                                    >Complete workspace</span
+                                >
                             </div>
                             <ul class="pricing-list">
                                 <li>Everything in Free</li>
@@ -421,12 +629,9 @@
                                     Unlimited personal history and saved foods
                                 </li>
                                 <li>
-                                    Structured recipe book and nutrition
-                                    arithmetic
+                                    Structured recipes and nutrition arithmetic
                                 </li>
-                                <li>
-                                    Meal calendar and grocery-list workflows
-                                </li>
+                                <li>Meal calendar and grocery workflows</li>
                                 <li>
                                     Shared household recipes, plans, and
                                     groceries
@@ -435,113 +640,76 @@
                             </ul>
                             <a
                                 class="button button-primary"
-                                href="/account/login?return_to=/account/portal"
-                                >Start Premium trial</a
+                                href="/account/login?return_to=/app/settings/billing"
+                                >Get Premium</a
                             >
                             <p class="tiny spacer-top">
-                                Purchased and managed on Munch through Stripe.
-                                ChatGPT connection does not require Premium.
+                                Purchased and managed on the Munch website.
                             </p>
                         </article>
                     </div>
                 </div>
             </section>
 
-            <section class="section section-dark">
-                <div class="container connect-panel">
-                    <div class="connect-grid">
-                        <div>
-                            <p class="section-kicker">Built for ChatGPT</p>
-                            <h2>
-                                Connect once, then use Munch through
-                                conversation.
-                            </h2>
-                            <p class="section-copy">
-                                Official ChatGPT marketplace distribution is the
-                                target. During early access, Munch can also be
-                                authorized as a compatible MCP connection.
-                            </p>
-                        </div>
-                        <div>
-                            <p><strong>MCP endpoint</strong></p>
-                            <div class="endpoint spacer-top">
-                                <code id="mcp-endpoint"
-                                    >https://munch.business/mcp</code
-                                ><button
-                                    class="button button-primary button-small"
-                                    id="copy-endpoint"
-                                    type="button"
-                                >
-                                    Copy
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section section-soft">
-                <div class="narrow">
-                    <div class="credit-card">
-                        <div class="credit-mark">OSS</div>
-                        <div>
-                            <h3>Built from strong open-source foundations</h3>
-                            <p>
-                                Munch began as a fork of Nutrition MCP, created
-                                by Alexander Kutishevsky. Munch preserves the
-                                original MIT license and attribution while
-                                operating as an independent hosted product.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section">
-                <div class="narrow">
+            <section class="section faq-section">
+                <div class="container">
                     <div class="section-head center">
                         <p class="section-kicker">Questions</p>
-                        <h2>Frequently asked</h2>
+                        <h2>What to know before connecting</h2>
                     </div>
-                    <div class="faq">
+                    <div class="faq-grid">
                         <details>
                             <summary>Does Munch replace ChatGPT?</summary>
                             <p>
-                                No. ChatGPT supplies the language, reasoning,
-                                photo interpretation, recipe ideas, and
-                                planning. Munch supplies persistent nutrition
-                                records and callable tools.
+                                No. ChatGPT handles conversation and reasoning.
+                                Munch supplies persistent nutrition data and
+                                specialized tools.
                             </p>
                         </details>
                         <details>
-                            <summary>Does Munch train on my data?</summary>
+                            <summary>Is the free tier permanent?</summary>
                             <p>
-                                No. Munch does not train a model on nutrition
-                                records. OpenAI separately controls how ChatGPT
-                                conversation data is handled according to the
-                                user's plan and settings.
+                                Yes. Core food search, meal logging, daily
+                                summaries, recent history, and account data
+                                controls remain available without Premium.
                             </p>
                         </details>
                         <details>
                             <summary>
-                                Is payment required during the trial?
+                                Does Munch calculate what I should eat?
                             </summary>
                             <p>
-                                Stripe collects payment information when the
-                                trial starts. The subscription begins charging
-                                $4.99 per month after seven days unless
-                                canceled.
+                                No. Goals are user-entered. Nutrition figures
+                                and AI-assisted estimates can be incomplete and
+                                are not medical or dietary advice.
                             </p>
                         </details>
                         <details>
-                            <summary>Is Munch medical advice?</summary>
+                            <summary>What is shared with a household?</summary>
                             <p>
-                                No. Munch is a consumer wellness product. Food
-                                data and estimates can be incomplete or
-                                inaccurate.
+                                Only household recipes, planned meals,
+                                groceries, names, roles, and related
+                                attribution. Personal meals, water, weight,
+                                goals, and saved foods remain private.
                             </p>
                         </details>
                     </div>
+                </div>
+            </section>
+
+            <section class="section final-cta">
+                <div class="container final-cta-inner">
+                    <div>
+                        <p class="section-kicker">Ready to use it</p>
+                        <h2>
+                            Connect Munch, log naturally, and keep the record.
+                        </h2>
+                    </div>
+                    <a
+                        class="button button-light button-large"
+                        href="/connect/sign-in?return_to=/app"
+                        >Add Munch to ChatGPT</a
+                    >
                 </div>
             </section>
         </main>
@@ -557,19 +725,21 @@
                         /><span>Munch</span></a
                     >
                     <p class="footer-note">
-                        Persistent nutrition tools and memory for ChatGPT.
+                        Structured nutrition tracking designed to work with
+                        ChatGPT.
+                    </p>
+                    <p class="tiny">
+                        Munch began as a fork of Nutrition MCP by Alexander
+                        Kutishevsky and preserves the upstream MIT license and
+                        notices.
                     </p>
                 </div>
                 <nav class="footer-links" aria-label="Footer navigation">
-                    <a href="/tools">Tools</a><a href="/privacy">Privacy</a
-                    ><a href="/terms">Terms</a
-                    ><a href="/account/login">Sign in</a
-                    ><a
-                        href="https://github.com/michaelhmiv/Munch"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >GitHub</a
-                    >
+                    <a href="/app">App</a><a href="/help">Help</a
+                    ><a href="/privacy">Privacy</a><a href="/terms">Terms</a
+                    ><a href="/security">Security</a
+                    ><a href="/open-source">Open-source notices</a
+                    ><a href="https://github.com/michaelhmiv/Munch">GitHub</a>
                 </nav>
             </div>
         </footer>
@@ -577,36 +747,17 @@
             (function () {
                 const toggle = document.getElementById("nav-toggle");
                 const links = document.getElementById("nav-links");
-                toggle?.addEventListener("click", () => {
-                    const open = links.getAttribute("data-open") === "true";
-                    links.setAttribute("data-open", String(!open));
+                if (!toggle || !links) return;
+                toggle.addEventListener("click", () => {
+                    const open =
+                        toggle.getAttribute("aria-expanded") === "true";
                     toggle.setAttribute("aria-expanded", String(!open));
+                    links.classList.toggle("is-open", !open);
                 });
-                links
-                    ?.querySelectorAll("a")
-                    .forEach((link) =>
-                        link.addEventListener("click", () =>
-                            links.setAttribute("data-open", "false"),
-                        ),
-                    );
-                const endpoint = document.getElementById("mcp-endpoint");
-                if (endpoint)
-                    endpoint.textContent = window.location.origin + "/mcp";
-                document
-                    .getElementById("copy-endpoint")
-                    ?.addEventListener("click", async function () {
-                        const value = endpoint?.textContent || "";
-                        try {
-                            await navigator.clipboard.writeText(value);
-                            this.textContent = "Copied";
-                            setTimeout(() => (this.textContent = "Copy"), 1600);
-                        } catch {
-                            window.prompt(
-                                "Copy the Munch MCP endpoint:",
-                                value,
-                            );
-                        }
-                    });
+                links.addEventListener("click", () => {
+                    toggle.setAttribute("aria-expanded", "false");
+                    links.classList.remove("is-open");
+                });
             })();
         </script>
     </body>

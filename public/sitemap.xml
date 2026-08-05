@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url><loc>https://munch-production-de3a.up.railway.app/</loc><lastmod>2026-08-03</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
-    <url><loc>https://munch-production-de3a.up.railway.app/tools</loc><lastmod>2026-08-03</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://munch-production-de3a.up.railway.app/privacy</loc><lastmod>2026-08-03</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
-    <url><loc>https://munch-production-de3a.up.railway.app/terms</loc><lastmod>2026-08-03</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
-    <url><loc>https://munch-production-de3a.up.railway.app/account/login</loc><lastmod>2026-08-03</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>
+    <url><loc>https://munch.business/</loc><lastmod>2026-08-05</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+    <url><loc>https://munch.business/help</loc><lastmod>2026-08-05</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://munch.business/tools</loc><lastmod>2026-08-05</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://munch.business/privacy</loc><lastmod>2026-08-05</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
+    <url><loc>https://munch.business/terms</loc><lastmod>2026-08-05</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
+    <url><loc>https://munch.business/security</loc><lastmod>2026-08-05</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
+    <url><loc>https://munch.business/open-source</loc><lastmod>2026-08-05</lastmod><changefreq>yearly</changefreq><priority>0.4</priority></url>
 </urlset>

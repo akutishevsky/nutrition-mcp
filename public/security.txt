@@ -1,0 +1,5 @@
+Contact: mailto:security@munch.business
+Canonical: https://munch.business/.well-known/security.txt
+Policy: https://munch.business/security
+Preferred-Languages: en
+Expires: 2027-08-05T00:00:00.000Z

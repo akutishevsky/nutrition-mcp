@@ -3,98 +3,75 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <meta name="referrer" content="no-referrer" />
         <title>Sign in to Munch</title>
         <meta
             name="description"
-            content="Sign in to manage your Munch subscription, ChatGPT connections, preferences, exports, and account controls."
+            content="Use a secure, single-use email link to sign in to Munch."
         />
-        <meta name="theme-color" content="#0B8F4D" />
+        <meta name="theme-color" content="#176b3a" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/styles.css" />
     </head>
     <body class="auth-page">
-        <div class="auth-layout">
-            <aside class="auth-brand-panel">
-                <a class="brand" href="/"
+        <main class="auth-main">
+            <section class="auth-card" aria-labelledby="login-title">
+                <a class="brand" href="/" aria-label="Munch home"
                     ><img
                         class="brand-logo"
                         src="/brand/munch-mark.svg"
                         alt=""
                     /><span>Munch</span></a
                 >
-                <div class="auth-brand-copy">
-                    <p class="eyebrow">Persistent nutrition for ChatGPT</p>
-                    <h1>
-                        Connect your nutrition history to
-                        <span>the conversation.</span>
-                    </h1>
-                    <p>
-                        Munch stores structured nutrition records and gives
-                        ChatGPT the tools to use them when you ask.
-                    </p>
-                </div>
-                <p class="tiny">
-                    Munch does not train models on your nutrition data. OpenAI
-                    separately controls ChatGPT conversation processing.
+                <p class="section-kicker spacer-top">Secure sign in</p>
+                <h1 id="login-title">Continue to Munch</h1>
+                <p>
+                    Enter your email and we will send a secure, single-use
+                    sign-in link. No password is created or stored.
                 </p>
-            </aside>
-            <main class="auth-main">
-                <section class="auth-card" aria-labelledby="login-title">
-                    <a class="brand" href="/"
-                        ><img
-                            class="brand-logo"
-                            src="/brand/munch-mark.svg"
-                            alt=""
-                        /><span>Munch</span></a
-                    >
-                    <h1 id="login-title" class="spacer-top">
-                        Sign in to Munch
-                    </h1>
-                    <p>
-                        Enter your email and we will send a secure, single-use
-                        sign-in link.
-                    </p>
-                    <p
-                        id="message"
-                        class="message-bar"
-                        role="status"
-                        aria-live="polite"
-                    ></p>
-                    <form id="login-form" class="auth-form">
-                        <label class="field"
-                            >Email address<input
-                                id="email"
-                                name="email"
-                                type="email"
-                                autocomplete="email"
-                                maxlength="320"
-                                required
-                        /></label>
-                        <button class="button button-primary" type="submit">
-                            Send sign-in link
-                        </button>
-                    </form>
-                    <p class="auth-footnote">
-                        By continuing, you agree to the
-                        <a href="/terms">Terms</a> and acknowledge the
-                        <a href="/privacy">Privacy Policy</a>. A subscription
-                        starts with a 30-day free trial and costs $4.99/month
-                        afterward.
-                    </p>
-                    <p class="auth-footnote"><a href="/">← Back to Munch</a></p>
-                </section>
-            </main>
-        </div>
+                <p
+                    id="message"
+                    class="message-bar"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+                <form id="login-form" class="auth-form">
+                    <label class="field" for="email"
+                        ><span>Email address</span
+                        ><input
+                            id="email"
+                            name="email"
+                            type="email"
+                            inputmode="email"
+                            autocomplete="email"
+                            maxlength="320"
+                            required
+                    /></label>
+                    <button class="button button-primary" type="submit">
+                        Send sign-in link
+                    </button>
+                </form>
+                <p class="auth-footnote">
+                    By continuing, you agree to the
+                    <a href="/terms">Terms</a> and acknowledge the
+                    <a href="/privacy">Privacy Policy</a>.
+                </p>
+                <p class="auth-footnote"><a href="/">Return to Munch</a></p>
+            </section>
+        </main>
         <script>
             (function () {
                 const form = document.getElementById("login-form");
                 const message = document.getElementById("message");
                 const params = new URLSearchParams(location.search);
-                const returnTo = params.get("return_to") || "/account/portal";
+                const returnTo = params.get("return_to") || "/app";
                 form.addEventListener("submit", async (event) => {
                     event.preventDefault();
                     const button = form.querySelector("button");
                     button.disabled = true;
+                    button.setAttribute("aria-busy", "true");
+                    message.className = "message-bar is-visible";
                     message.textContent = "Sending your sign-in link…";
                     try {
                         const response = await fetch("/account/login/request", {
@@ -124,8 +101,10 @@
                             message.after(link);
                         }
                     } catch (error) {
+                        message.classList.add("message-error");
                         message.textContent = error.message;
                         button.disabled = false;
+                        button.removeAttribute("aria-busy");
                     }
                 });
             })();

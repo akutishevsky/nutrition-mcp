@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Security — Munch</title>
+        <meta
+            name="description"
+            content="Security practices, reporting guidance, and product boundaries for Munch."
+        />
+        <link rel="canonical" href="https://munch.business/security" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body>
+        <header class="site-header">
+            <div class="container nav-inner">
+                <a class="brand" href="/"
+                    ><img
+                        class="brand-logo"
+                        src="/brand/munch-mark.svg"
+                        alt=""
+                    /><span>Munch</span></a
+                >
+                <nav class="nav-links">
+                    <a href="/help">Help</a><a href="/privacy">Privacy</a
+                    ><a href="/terms">Terms</a
+                    ><a href="/account/login?return_to=/app">Sign in</a>
+                </nav>
+            </div>
+        </header>
+        <main>
+            <section class="legal-hero">
+                <div class="container">
+                    <p class="section-kicker">Responsible operation</p>
+                    <h1>Security at Munch</h1>
+                    <p class="section-copy">
+                        How Munch protects authentication, nutrition records,
+                        household data, and authorized ChatGPT connections.
+                    </p>
+                </div>
+            </section>
+            <div class="container legal-layout">
+                <nav class="legal-nav" aria-label="Security sections">
+                    <a href="#report">Report an issue</a
+                    ><a href="#controls">Controls</a
+                    ><a href="#data">Data boundaries</a
+                    ><a href="#limitations">Limitations</a>
+                </nav>
+                <article class="legal-content">
+                    <section id="report">
+                        <h2>Report a security issue</h2>
+                        <div class="notice">
+                            Send suspected vulnerabilities privately to
+                            <a href="mailto:security@munch.business"
+                                >security@munch.business</a
+                            >. Do not include sensitive nutrition data,
+                            credentials, access tokens, or private user
+                            information in a public GitHub issue.
+                        </div>
+                        <p>
+                            Please include the affected URL or component,
+                            reproduction steps, expected and observed behavior,
+                            and the practical impact. Munch does not authorize
+                            destructive testing, social engineering,
+                            denial-of-service testing, access to other users'
+                            records, or retention of data obtained during
+                            testing.
+                        </p>
+                    </section>
+                    <section id="controls">
+                        <h2>Implemented controls</h2>
+                        <ul>
+                            <li>HTTPS and secure production cookies</li>
+                            <li>
+                                Passwordless, expiring, single-use sign-in links
+                            </li>
+                            <li>
+                                OAuth authorization with signed transactions and
+                                PKCE
+                            </li>
+                            <li>Revocable access and refresh-token families</li>
+                            <li>
+                                Forced PostgreSQL row-level security for
+                                personal and household records
+                            </li>
+                            <li>
+                                Same-origin protections for website mutations
+                            </li>
+                            <li>Rate limiting and bounded request bodies</li>
+                            <li>Verified Stripe webhook signatures</li>
+                            <li>Hashed invitation and export tokens</li>
+                            <li>Private, time-limited exports</li>
+                            <li>
+                                Sanitized user-facing errors and bounded
+                                operational logging
+                            </li>
+                        </ul>
+                    </section>
+                    <section id="data">
+                        <h2>Data and system boundaries</h2>
+                        <p>
+                            Munch stores application data on Railway PostgreSQL
+                            and uses Railway to run the service. Resend delivers
+                            sign-in messages. Stripe handles website payment
+                            methods and invoices. USDA FoodData Central and Open
+                            Food Facts receive food-search or barcode requests
+                            when used. ChatGPT conversation processing is
+                            controlled separately by OpenAI.
+                        </p>
+                        <p>
+                            Personal meal, hydration, weight, goal, and
+                            saved-food records are isolated from other users.
+                            Household sharing is limited to explicitly shared
+                            recipes, meal plans, groceries, membership names,
+                            roles, and related attribution.
+                        </p>
+                    </section>
+                    <section id="limitations">
+                        <h2>Limitations</h2>
+                        <p>
+                            No internet service can guarantee absolute security.
+                            Munch does not claim zero-knowledge storage,
+                            end-to-end encryption, HIPAA-covered clinical
+                            operation, or immunity from provider, software,
+                            configuration, or human failure. Nutrition values
+                            and model-assisted estimates are not medical advice.
+                        </p>
+                    </section>
+                </article>
+            </div>
+        </main>
+        <footer class="site-footer">
+            <div class="container footer-grid">
+                <div>
+                    <a class="brand" href="/"
+                        ><img
+                            class="brand-logo"
+                            src="/brand/munch-mark.svg"
+                            alt=""
+                        /><span>Munch</span></a
+                    >
+                </div>
+                <nav class="footer-links">
+                    <a href="/">Home</a><a href="/privacy">Privacy</a
+                    ><a href="/terms">Terms</a
+                    ><a href="/open-source">Open source</a>
+                </nav>
+            </div>
+        </footer>
+    </body>
+</html>

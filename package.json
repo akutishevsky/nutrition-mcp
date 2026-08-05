@@ -40,6 +40,7 @@
         "format:check": "bunx prettier --check .",
         "typecheck": "bun run scripts/typecheck.ts",
         "brand:check": "bun run scripts/brand-check.ts",
+        "commerce:check": "bun scripts/commerce-boundary-check.ts",
         "auth:schema": "bunx auth@1.6.25 generate --config src/auth/auth.ts --output .better-auth-schema.sql --yes"
     },
     "dependencies": {

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { createAccountRouter } from "./accounts/routes.js";
+import { createAppRouter } from "./app/routes.js";
 import { betterAuthIsEnabled } from "./auth/config.js";
 import { resolveMcpAuthMode } from "./auth/mcp-auth-mode.js";
 import { registerBetterAuthRoutes } from "./auth/routes.js";
@@ -80,7 +81,7 @@ app.use(
                 ) ?? [];
             return allowed.includes(origin) ? origin : null;
         },
-        allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+        allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowHeaders: [
             "Content-Type",
             "Authorization",
@@ -105,6 +106,7 @@ registerDiscoveryRoutes(app);
 registerBetterAuthRoutes(app);
 app.route("/", createAccountRouter());
 app.route("/", createBillingRouter());
+app.route("/", createAppRouter());
 
 if (!betterAuthEnabled && railwayAuthEnabled) {
     app.use("/token", async (c, next) => {
@@ -202,6 +204,12 @@ app.get("/llms.txt", async (c) =>
         "Content-Type": "text/plain; charset=utf-8",
     }),
 );
+app.get("/.well-known/security.txt", async (c) =>
+    c.body(await Bun.file("./public/security.txt").text(), 200, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=86400",
+    }),
+);
 
 app.get("/", async (c) => c.html(await Bun.file("./public/index.html").text()));
 app.get("/privacy", async (c) =>
@@ -216,6 +224,24 @@ app.get("/tools", async (c) =>
     c.html(await Bun.file("./public/tools.html").text()),
 );
 app.get("/tools/", (c) => c.redirect("/tools", 301));
+app.get("/help", async (c) =>
+    c.html(await Bun.file("./public/help.html").text()),
+);
+app.get("/help/", (c) => c.redirect("/help", 301));
+app.get("/help/connect-chatgpt", async (c) =>
+    c.html(await Bun.file("./public/help-connect.html").text()),
+);
+app.get("/help/connect-chatgpt/", (c) =>
+    c.redirect("/help/connect-chatgpt", 301),
+);
+app.get("/security", async (c) =>
+    c.html(await Bun.file("./public/security.html").text()),
+);
+app.get("/security/", (c) => c.redirect("/security", 301));
+app.get("/open-source", async (c) =>
+    c.html(await Bun.file("./public/open-source.html").text()),
+);
+app.get("/open-source/", (c) => c.redirect("/open-source", 301));
 
 const LEGACY_PUBLIC_ROUTES = [
     "/alternatives",
@@ -234,6 +260,18 @@ for (const route of LEGACY_PUBLIC_ROUTES) {
 app.get("/styles.css", async (c) =>
     c.body(await Bun.file("./public/styles.css").text(), 200, {
         "Content-Type": "text/css",
+    }),
+);
+app.get("/app-overrides.css", async (c) =>
+    c.body(await Bun.file("./public/app-overrides.css").text(), 200, {
+        "Content-Type": "text/css",
+        "Cache-Control": "no-cache",
+    }),
+);
+app.get("/app-patches.js", async (c) =>
+    c.body(await Bun.file("./public/app-patches.js").text(), 200, {
+        "Content-Type": "text/javascript; charset=utf-8",
+        "Cache-Control": "no-cache",
     }),
 );
 app.get("/favicon.ico", async (c) => {
