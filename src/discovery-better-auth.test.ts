@@ -16,13 +16,15 @@ function fetchDiscovery(app: Hono, path: string) {
     });
 }
 
-test("serves OAuth metadata at paths derived from the Better Auth issuer", async () => {
+test("serves OAuth and OpenID-compatible metadata at paths derived from the Better Auth issuer", async () => {
     const app = new Hono();
     registerDiscoveryRoutes(app);
 
     for (const path of [
         `/.well-known/oauth-authorization-server${BETTER_AUTH_ISSUER_PATH}`,
         `${BETTER_AUTH_ISSUER_PATH}/.well-known/oauth-authorization-server`,
+        `/.well-known/openid-configuration${BETTER_AUTH_ISSUER_PATH}`,
+        `${BETTER_AUTH_ISSUER_PATH}/.well-known/openid-configuration`,
     ]) {
         const response = await fetchDiscovery(app, path);
         expect(response.status, `${path} must not 404`).toBe(200);

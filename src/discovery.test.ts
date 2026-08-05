@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { Hono } from "hono";
 import {
+    BETTER_AUTH_ISSUER_PATH,
     MCP_PATH,
     registerDiscoveryRoutes,
     resourceMetadataUrl,
@@ -39,6 +40,13 @@ const AUTHORIZATION_SERVER_PATHS = [
     "/.well-known/oauth-authorization-server/mcp",
     "/mcp/.well-known/oauth-authorization-server",
 ];
+const OPENID_COMPATIBILITY_PATHS = [
+    "/.well-known/openid-configuration",
+    "/.well-known/openid-configuration/mcp",
+    "/mcp/.well-known/openid-configuration",
+    `/.well-known/openid-configuration${BETTER_AUTH_ISSUER_PATH}`,
+    `${BETTER_AUTH_ISSUER_PATH}/.well-known/openid-configuration`,
+];
 
 test("every discovery URL a client may derive from /mcp is served", async () => {
     const app = buildTestApp();
@@ -47,9 +55,11 @@ test("every discovery URL a client may derive from /mcp is served", async () => 
         "/.well-known/oauth-authorization-server",
         ...PROTECTED_RESOURCE_PATHS,
         ...AUTHORIZATION_SERVER_PATHS,
+        ...OPENID_COMPATIBILITY_PATHS,
     ]) {
         const res = await fetchDiscovery(app, path);
         expect(res.status, `${path} must not 404`).toBe(200);
+        expect(res.headers.get("content-type")).toContain("application/json");
     }
 });
 
@@ -84,7 +94,10 @@ test("authorization-server metadata is identical on every route it is served fro
     );
     expect(canonical.issuer).toBe(ORIGIN);
     expect(canonical.token_endpoint).toBe(`${ORIGIN}/token`);
-    for (const path of AUTHORIZATION_SERVER_PATHS) {
+    for (const path of [
+        ...AUTHORIZATION_SERVER_PATHS,
+        ...OPENID_COMPATIBILITY_PATHS,
+    ]) {
         expect(
             await json(app, path),
             `${path} matches the canonical doc`,
@@ -111,6 +124,7 @@ test("the authenticated /mcp route does not swallow its well-known aliases", asy
     for (const path of [
         `${MCP_PATH}/.well-known/oauth-protected-resource`,
         `${MCP_PATH}/.well-known/oauth-authorization-server`,
+        `${MCP_PATH}/.well-known/openid-configuration`,
     ]) {
         const res = await fetchDiscovery(app, path);
         expect(

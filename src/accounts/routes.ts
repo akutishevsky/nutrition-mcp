@@ -6,6 +6,10 @@ import { getSubscriptionSnapshot } from "../billing/repository.js";
 import { createHouseholdLifecycleRouter } from "../households/lifecycle-routes.js";
 import { createHouseholdRouter } from "../households/routes.js";
 import { rateLimitAuth } from "../middleware.js";
+import {
+    createMealHistoryRouter,
+    injectMealHistoryIntoPortal,
+} from "../portal/meal-history.js";
 import { createPortalRouter } from "../portal/routes.js";
 import { requireSameOrigin } from "./csrf.js";
 import { deliverLoginLink } from "./login-delivery.js";
@@ -40,6 +44,33 @@ export function createAccountRouter(): Hono {
 
     account.use("/account/login/request", rateLimitAuth);
     account.use("/account/login/consume", rateLimitAuth);
+
+    // The legacy portal page owns the account controls. Inject the meal-history
+    // panel after it has rendered so the portal and MCP read from the same user
+    // and Railway PostgreSQL row without duplicating the account page.
+    account.use("/account/portal", async (c, next) => {
+        const pathname = new URL(c.req.url).pathname;
+        if (c.req.method !== "GET" || pathname !== "/account/portal") {
+            await next();
+            return;
+        }
+
+        await next();
+        if (
+            c.res.status !== 200 ||
+            !c.res.headers.get("content-type")?.includes("text/html")
+        ) {
+            return;
+        }
+
+        const status = c.res.status;
+        const headers = new Headers(c.res.headers);
+        const html = await c.res.text();
+        c.res = new Response(injectMealHistoryIntoPortal(html), {
+            status,
+            headers,
+        });
+    });
 
     account.get("/account/login", async (c) => {
         if (betterAuthIsEnabled()) {
@@ -151,6 +182,7 @@ export function createAccountRouter(): Hono {
             subscription,
             entitlement,
             portalUrl: "/account/portal",
+            mealHistoryUrl: "/account/portal/meals",
         });
     });
 
@@ -168,6 +200,7 @@ export function createAccountRouter(): Hono {
     // meal-only CSV endpoint. Conversational CSV export remains available through
     // the MCP tool; the account portal exports the user's full accessible dataset.
     account.route("/", createAccountExportRouter());
+    account.route("/", createMealHistoryRouter());
     account.route("/", createPortalRouter());
     account.route("/", createHouseholdRouter());
     account.route("/", createHouseholdLifecycleRouter());

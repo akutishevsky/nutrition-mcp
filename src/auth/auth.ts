@@ -167,6 +167,12 @@ function createMunchBetterAuth() {
         advanced: {
             cookiePrefix: "munch",
             useSecureCookies: config.production,
+            // Railway's edge overwrites X-Real-IP with the client address. Read
+            // only that trusted single-value header instead of accepting a
+            // client-controlled X-Forwarded-For chain for auth rate limiting.
+            ipAddress: {
+                ipAddressHeaders: ["x-real-ip"],
+            },
             database: {
                 generateId: "uuid",
             },

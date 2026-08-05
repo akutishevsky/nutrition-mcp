@@ -781,7 +781,7 @@ export function rowContentDigest(userId: string, input: MealInput): string {
     // now on, so the keys a user's next import produces would no longer match
     // the keys their previous import wrote, and re-importing an already-imported
     // file would create a full set of duplicates instead of a clean no-op.
-    // deriveIdempotencyKey in src/supabase.ts is frozen for the same reason and
+    // deriveIdempotencyKey in src/storage.ts is frozen for the same reason and
     // must stay in step with this one.
     //
     // The accepted cost: two meals differing ONLY in fiber/sugar/alcohol collapse
@@ -1063,7 +1063,7 @@ function resultRow(
  * hosts drop the structuredContent that carries it.
  *
  * `on_error: "abort"` is validation-scoped. Writes are not transactional —
- * there is no transaction available through supabase-js here — so once writing
+ * the storage adapter does not expose a transaction boundary here — so once writing
  * begins, a database failure leaves earlier rows saved. Remaining rows are
  * reported as not_attempted rather than silently omitted.
  */

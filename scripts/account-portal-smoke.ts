@@ -5,8 +5,7 @@ process.env.MUNCH_RAILWAY_AUTH_ENABLED = "true";
 process.env.MUNCH_APP_BASE_URL = "https://munch.example";
 
 const { Hono } = await import("hono");
-const { createAccountExportRouter } =
-    await import("../src/account-export-routes.js");
+const { createAccountRouter } = await import("../src/accounts/routes.js");
 const { consumeLoginChallenge, createLoginChallenge } =
     await import("../src/accounts/repository.js");
 const { MUNCH_SESSION_COOKIE } = await import("../src/accounts/session.js");
@@ -26,7 +25,6 @@ const {
 const { codeChallengeForVerifier } =
     await import("../src/oauth-platform/pkce.js");
 const { closePlatformDatabase } = await import("../src/platform/database.js");
-const { createPortalRouter } = await import("../src/portal/routes.js");
 const { listOAuthConnections, revokeOAuthConnection } =
     await import("../src/portal/repository.js");
 const storage = await import("../src/storage.js");
@@ -105,7 +103,7 @@ if (
 }
 
 await storage.upsertProfile(userId, {
-    timezone: "UTC",
+    timezone: "America/New_York",
     preferred_weight_unit: "kg",
 });
 await storage.insertMeal(userId, {
@@ -117,10 +115,19 @@ await storage.insertMeal(userId, {
     fat_g: 18,
     logged_at: "2026-08-03T18:00:00.000Z",
 });
+await storage.insertMeal(userId, {
+    description: "Portal zero calorie boundary meal",
+    meal_type: "snack",
+    calories: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    logged_at: "2026-08-05T03:30:00.000Z",
+    notes: "This instant is August 4 at 11:30 p.m. in America/New_York.",
+});
 
 const app = new Hono();
-app.route("/", createAccountExportRouter());
-app.route("/", createPortalRouter());
+app.route("/", createAccountRouter());
 const cookie = `${MUNCH_SESSION_COOKIE}=${owner.session.sessionToken}`;
 const portalResponse = await app.request(
     "https://munch.example/account/portal",
@@ -140,17 +147,91 @@ if (
     !portalHtml.includes("Transfer ownership") ||
     !portalHtml.includes("Dissolve household") ||
     !portalHtml.includes("Export complete account data") ||
-    !portalHtml.includes("Premium · ChatGPT access active")
+    !portalHtml.includes("Premium · ChatGPT access active") ||
+    !portalHtml.includes('id="meal-history-card"') ||
+    !portalHtml.includes("Zero-calorie entries are included")
 ) {
-    throw new Error("Portal HTML omitted account or household controls");
+    throw new Error("Portal HTML omitted account, household, or meal controls");
 }
 if (portalResponse.headers.get("cache-control") !== "private, no-store") {
     throw new Error("Portal response was cacheable");
 }
 
+const boundaryResponse = await app.request(
+    "https://munch.example/account/portal/meals?date=2026-08-04",
+    { headers: { cookie } },
+);
+if (boundaryResponse.status !== 200) {
+    throw new Error(`Portal meal history returned ${boundaryResponse.status}`);
+}
+const boundary = (await boundaryResponse.json()) as {
+    date: string;
+    timezone: string;
+    meals: Array<{
+        description: string;
+        calories: number | null;
+        logged_at: string;
+    }>;
+};
+const zeroMeal = boundary.meals.find(
+    (meal) => meal.description === "Portal zero calorie boundary meal",
+);
+if (
+    boundary.date !== "2026-08-04" ||
+    boundary.timezone !== "America/New_York" ||
+    zeroMeal?.calories !== 0 ||
+    zeroMeal.logged_at !== "2026-08-05T03:30:00.000Z"
+) {
+    throw new Error(
+        "Portal meal history changed timestamps, lost zero calories, or used the wrong local day",
+    );
+}
+const adjacentResponse = await app.request(
+    "https://munch.example/account/portal/meals?date=2026-08-05",
+    { headers: { cookie } },
+);
+const adjacent = (await adjacentResponse.json()) as {
+    meals: Array<{ description: string }>;
+};
+if (
+    adjacent.meals.some(
+        (meal) => meal.description === "Portal zero calorie boundary meal",
+    )
+) {
+    throw new Error(
+        "Timezone grouping duplicated the meal onto an adjacent day",
+    );
+}
+if (
+    boundaryResponse.headers.get("cache-control") !== "private, no-store" ||
+    (
+        await app.request(
+            "https://munch.example/account/portal/meals?date=2026-02-30",
+            { headers: { cookie } },
+        )
+    ).status !== 400
+) {
+    throw new Error("Portal meal endpoint caching or date validation failed");
+}
+
+const stylesheet = await app.request(
+    "https://munch.example/portal-controls.css",
+);
+if (
+    stylesheet.status !== 200 ||
+    !stylesheet.headers.get("content-type")?.includes("text/css")
+) {
+    throw new Error("Portal controls stylesheet is not publicly reachable");
+}
+
 const unauthorized = await app.request("https://munch.example/account/portal");
-if (unauthorized.status !== 401) {
-    throw new Error("Portal allowed access without a web session");
+const unauthorizedMeals = await app.request(
+    "https://munch.example/account/portal/meals?date=2026-08-04",
+);
+if (unauthorized.status !== 401 || unauthorizedMeals.status !== 401) {
+    throw new Error(
+        "Portal or meal history allowed access without a web session",
+    );
 }
 
 const preferences = await app.request(
@@ -230,5 +311,6 @@ if (
 
 await closePlatformDatabase();
 console.log(
-    "Munch account portal, household controls, complete export, preferences, and OAuth connection smoke test passed.",
+    "Munch account portal, timezone-aware zero-calorie meal history, household controls, complete export, preferences, and OAuth connection smoke test passed.",
 );
+process.exit(0);

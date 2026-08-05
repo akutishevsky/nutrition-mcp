@@ -10,21 +10,21 @@ import {
 import { Hono } from "hono";
 import * as actualStorage from "./storage.js";
 
-// middleware.ts only reaches Railway PostgreSQL to resolve a bearer token, so stubbing
+// middleware.ts only reaches the database to resolve a bearer token, so stubbing
 // that one export is enough to exercise the whole auth path offline. Counting
 // the calls also lets us prove a banned IP is shed *before* any token lookup.
 //
 // mock.module swaps the module for the whole test *process*, not just this
 // file, so the real exports must be spread back in — replacing the module
-// wholesale breaks every other suite that imports getRailway PostgreSQL/signInUser — and
+// wholesale breaks every other suite that imports getthe database/signInUser — and
 // restored afterwards so no later file sees the stub.
 let tokenLookups = 0;
-let supabaseAvailable = true;
+let databaseAvailable = true;
 mock.module("./storage.js", () => ({
     ...actualStorage,
     getUserIdByToken: async (token: string) => {
         tokenLookups++;
-        if (!supabaseAvailable) return { status: "unavailable" };
+        if (!databaseAvailable) return { status: "unavailable" };
         return token === "valid-token"
             ? { status: "valid", userId: "user-1" }
             : { status: "invalid" };
@@ -68,7 +68,7 @@ const from = (ip: string, token?: string) =>
 beforeEach(() => {
     _resetBuckets();
     tokenLookups = 0;
-    supabaseAvailable = true;
+    databaseAvailable = true;
 });
 afterEach(() => _resetBuckets());
 
@@ -122,7 +122,7 @@ test("a banned IP is shed without a token lookup", async () => {
 
     for (let i = 0; i < 25; i++) await app.fetch(from("4.4.4.4", "bad-token"));
 
-    // Shedding happens ahead of authenticateBearer, so the Railway PostgreSQL round trip
+    // Shedding happens ahead of authenticateBearer, so the the database round trip
     // the ban is meant to save is genuinely never made.
     expect(lookupsBeforeBan).toBe(20);
     expect(tokenLookups).toBe(20);
@@ -148,7 +148,7 @@ test("a success resets strikes, so a shared IP is never banned", async () => {
 
 test("a token lookup outage never bans anyone", async () => {
     const { app } = buildApp();
-    supabaseAvailable = false;
+    databaseAvailable = false;
 
     // Every token looks unverifiable while the database is down. If those
     // counted as strikes, the outage would ban the entire active user base and
@@ -159,7 +159,7 @@ test("a token lookup outage never bans anyone", async () => {
         );
     }
 
-    supabaseAvailable = true;
+    databaseAvailable = true;
     expect((await app.fetch(from("3.3.3.3", "valid-token"))).status).toBe(200);
 });
 

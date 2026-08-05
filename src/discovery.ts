@@ -63,6 +63,7 @@ export function authorizationServerMetadata(baseUrl: string) {
             jwks_uri: `${baseUrl}/api/auth/jwks`,
             grant_types_supported: ["authorization_code", "refresh_token"],
             response_types_supported: ["code"],
+            response_modes_supported: ["query"],
             code_challenge_methods_supported: ["S256"],
             token_endpoint_auth_methods_supported: [
                 "none",
@@ -80,6 +81,7 @@ export function authorizationServerMetadata(baseUrl: string) {
         registration_endpoint: `${baseUrl}/register`,
         grant_types_supported: ["authorization_code", "refresh_token"],
         response_types_supported: ["code"],
+        response_modes_supported: ["query"],
         code_challenge_methods_supported: ["S256"],
         token_endpoint_auth_methods_supported: ["none", "client_secret_post"],
     };
@@ -95,10 +97,9 @@ export function authorizationServerMetadata(baseUrl: string) {
 //   .../.well-known/<suffix>/mcp   path *insertion* — RFC 8414 §3.1, RFC 9728
 //                                  §3.1, and what the MCP spec and the TS SDK
 //                                  actually request first.
-//   /mcp/.well-known/<suffix>      path *appending* — spec-mandated only for
-//                                  openid-configuration, but observed from
-//                                  clients that hand-roll the OAuth suffix. A
-//                                  tolerant alias; cheap, and it unsticks them.
+//   /mcp/.well-known/<suffix>      path *appending* — observed from clients that
+//                                  hand-roll the OAuth suffix. A tolerant alias;
+//                                  cheap, and it unsticks them.
 //   /.well-known/<suffix>          the root fallback, kept for clients that
 //                                  probe the origin.
 //
@@ -106,6 +107,11 @@ export function authorizationServerMetadata(baseUrl: string) {
 // clients may also derive `/.well-known/oauth-authorization-server/api/auth`
 // from the advertised issuer. Better Auth itself probes that URL and warns when
 // it is absent. Serve both insertion and appending variants.
+//
+// ChatGPT also probes OpenID Connect discovery paths while negotiating an OAuth
+// connector, even though Munch only relies on OAuth authorization semantics.
+// Return the same endpoint metadata at those compatibility aliases so discovery
+// cannot fail before dynamic client registration or tool listing begins.
 //
 // Deliberately NOT rate-limited: these are static JSON documents with no user
 // data and are required to bootstrap OAuth before a client has credentials.
@@ -156,6 +162,24 @@ export function registerDiscoveryRoutes(app: Hono): void {
     );
     app.get(
         `${BETTER_AUTH_ISSUER_PATH}/.well-known/oauth-authorization-server`,
+        authorizationServer,
+    );
+
+    app.get("/.well-known/openid-configuration", authorizationServer);
+    app.get(
+        `/.well-known/openid-configuration${MCP_PATH}`,
+        authorizationServer,
+    );
+    app.get(
+        `${MCP_PATH}/.well-known/openid-configuration`,
+        authorizationServer,
+    );
+    app.get(
+        `/.well-known/openid-configuration${BETTER_AUTH_ISSUER_PATH}`,
+        authorizationServer,
+    );
+    app.get(
+        `${BETTER_AUTH_ISSUER_PATH}/.well-known/openid-configuration`,
         authorizationServer,
     );
 }
