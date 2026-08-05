@@ -3911,6 +3911,8 @@ export function registerTools(
                     };
                 },
                 { userId },
+                undefined,
+                { persistSuccess: !confirm },
             );
         },
     );

@@ -94,6 +94,10 @@ export async function withAnalytics<T>(
     args?: Record<string, unknown>,
     options?: {
         outcome?: (result: T) => { success: boolean; errorCategory?: string };
+        // A successful destructive action may remove the user row that owns
+        // tool_events. Skip only the success insert in that case; failures are
+        // still persisted because the user remains available for diagnosis.
+        persistSuccess?: boolean;
     },
 ): Promise<T> {
     const start = performance.now();
@@ -118,18 +122,20 @@ export async function withAnalytics<T>(
             );
         }
 
-        persistAnalytics({
-            user_id: context.userId,
-            tool_name: toolName,
-            success: outcome.success,
-            duration_ms: durationMs,
-            error_category: outcome.success
-                ? undefined
-                : (outcome.errorCategory ?? "unknown"),
-            date_range_days: dateRangeDays,
-            mcp_session_id: context.sessionId,
-            invoked_at: invokedAt,
-        });
+        if (options?.persistSuccess !== false) {
+            persistAnalytics({
+                user_id: context.userId,
+                tool_name: toolName,
+                success: outcome.success,
+                duration_ms: durationMs,
+                error_category: outcome.success
+                    ? undefined
+                    : (outcome.errorCategory ?? "unknown"),
+                date_range_days: dateRangeDays,
+                mcp_session_id: context.sessionId,
+                invoked_at: invokedAt,
+            });
+        }
 
         return result;
     } catch (error) {

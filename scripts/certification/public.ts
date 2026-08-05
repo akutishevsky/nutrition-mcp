@@ -7,17 +7,6 @@ if (!input) {
 const baseUrl = new URL(input).origin;
 const expectedResource = `${baseUrl}/mcp`;
 
-async function fetchJson(path: string): Promise<Record<string, unknown>> {
-    const response = await fetch(`${baseUrl}${path}`, {
-        headers: { accept: "application/json" },
-        redirect: "manual",
-    });
-    if (!response.ok) {
-        throw new Error(`${path} returned ${response.status}`);
-    }
-    return (await response.json()) as Record<string, unknown>;
-}
-
 async function expectStatus(path: string, status: number): Promise<Response> {
     const response = await fetch(`${baseUrl}${path}`, {
         headers: { accept: "application/json" },
@@ -27,6 +16,15 @@ async function expectStatus(path: string, status: number): Promise<Response> {
         throw new Error(`${path} returned ${response.status}; expected ${status}`);
     }
     return response;
+}
+
+async function fetchJson(path: string): Promise<Record<string, unknown>> {
+    const response = await expectStatus(path, 200);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("application/json")) {
+        throw new Error(`${path} returned ${contentType || "no content type"}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
 }
 
 await expectStatus("/health/live", 200);
@@ -40,14 +38,24 @@ if (protectedResource.resource !== expectedResource) {
 }
 if (
     !Array.isArray(protectedResource.authorization_servers) ||
-    protectedResource.authorization_servers[0] !== baseUrl
+    typeof protectedResource.authorization_servers[0] !== "string"
 ) {
-    throw new Error("Protected-resource authorization server is incorrect");
+    throw new Error("Protected-resource authorization server is missing");
+}
+const authorizationServer = protectedResource.authorization_servers[0];
+const authorizationServerUrl = new URL(authorizationServer);
+if (authorizationServerUrl.origin !== baseUrl) {
+    throw new Error("Protected-resource authorization server is cross-origin");
 }
 
 const authorization = await fetchJson(
     "/.well-known/oauth-authorization-server/mcp",
 );
+if (authorization.issuer !== authorizationServer) {
+    throw new Error(
+        `Authorization issuer ${String(authorization.issuer)} does not match ${authorizationServer}`,
+    );
+}
 for (const key of [
     "authorization_endpoint",
     "token_endpoint",
@@ -64,19 +72,46 @@ if (
     throw new Error("OAuth metadata does not require/support PKCE S256");
 }
 
+for (const path of [
+    "/.well-known/openid-configuration",
+    "/.well-known/openid-configuration/api/auth",
+    "/api/auth/.well-known/openid-configuration",
+    "/.well-known/oauth-authorization-server/api/auth",
+    "/api/auth/.well-known/oauth-authorization-server",
+]) {
+    const metadata = await fetchJson(path);
+    if (metadata.issuer !== authorizationServer) {
+        throw new Error(`${path} advertises the wrong issuer`);
+    }
+}
+
 const unauthorized = await expectStatus("/mcp", 401);
 const challenge = unauthorized.headers.get("www-authenticate") ?? "";
 if (!challenge.includes("oauth-protected-resource/mcp")) {
     throw new Error("MCP 401 does not advertise path-aware resource metadata");
 }
 
+const stylesheet = await expectStatus("/portal-controls.css", 200);
+if (!(stylesheet.headers.get("content-type") ?? "").startsWith("text/css")) {
+    throw new Error("Portal stylesheet has the wrong MIME type");
+}
+if (!(await stylesheet.text()).includes("portal-")) {
+    throw new Error("Portal stylesheet body is incomplete");
+}
+
+await expectStatus("/account/portal/meals?date=2026-08-05", 401);
+
 console.log(
     JSON.stringify({
         ok: true,
         baseUrl,
         resource: expectedResource,
+        issuer: authorizationServer,
         authorizationEndpoint: authorization.authorization_endpoint,
         tokenEndpoint: authorization.token_endpoint,
         registrationEndpoint: authorization.registration_endpoint,
+        compatibilityDiscovery: true,
+        portalStylesheet: true,
+        mealHistoryRequiresAuthentication: true,
     }),
 );

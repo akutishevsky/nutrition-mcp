@@ -169,6 +169,9 @@ jobs:
       - name: Exercise account portal, preferences, exports, and connections
         run: bun scripts/account-portal-smoke.ts
 
+      - name: Exercise disposable MCP account deletion and cascade cleanup
+        run: bun scripts/account-deletion-smoke.ts
+
       - name: Exercise readiness endpoints and maintenance
         run: bun scripts/operations-smoke.ts
 
