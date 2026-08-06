@@ -1,5 +1,7 @@
 # Nutrition MCP
 
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.akutishevsky%2Fnutrition-mcp.svg)](https://mcptoplist.com/server/io.github.akutishevsky%2Fnutrition-mcp)
+
 A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber and total sugar, log water and body weight, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
 
 [Help me pay for the servers on Patreon][patreon]
