@@ -437,14 +437,18 @@ export async function searchMeals(
     return merged.slice(0, limit);
 }
 
-export async function deleteMeal(userId: string, id: string): Promise<void> {
-    const { error } = await getSupabase()
+/** True when a row matched and was deleted; false when the id is unknown or
+ *  belongs to another user — the handler must not claim success either way. */
+export async function deleteMeal(userId: string, id: string): Promise<boolean> {
+    const { data, error } = await getSupabase()
         .from("meals")
         .delete()
         .eq("id", id)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .select("id");
 
     if (error) throw new Error(`Failed to delete meal: ${error.message}`);
+    return (data?.length ?? 0) > 0;
 }
 
 export async function updateMeal(
@@ -826,14 +830,20 @@ export async function getWaterInRange(
     return (data as WaterEntry[]) ?? [];
 }
 
-export async function deleteWater(userId: string, id: string): Promise<void> {
-    const { error } = await getSupabase()
+/** True when a row matched and was deleted; see deleteMeal. */
+export async function deleteWater(
+    userId: string,
+    id: string,
+): Promise<boolean> {
+    const { data, error } = await getSupabase()
         .from("water_log")
         .delete()
         .eq("id", id)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .select("id");
 
     if (error) throw new Error(`Failed to delete water: ${error.message}`);
+    return (data?.length ?? 0) > 0;
 }
 
 // ---------- Weight log ----------

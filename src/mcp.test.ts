@@ -867,6 +867,9 @@ const db = {
     meals: [] as Meal[],
     inserted: [] as Record<string, unknown>[],
     profilePatches: [] as Record<string, unknown>[],
+    // Ids the delete stubs consider to exist. Deleting one removes it, so a
+    // second delete of the same id reports "not found" like the real table.
+    rowIds: new Set<string>(),
 };
 
 mock.module("./supabase.js", () => ({
@@ -896,6 +899,13 @@ mock.module("./supabase.js", () => ({
         db.meals = [saved];
         return saved;
     },
+    deleteMeal: async (_userId: string, id: string) => {
+        const before = db.meals.length;
+        db.meals = db.meals.filter((m) => m.id !== id);
+        return db.meals.length < before;
+    },
+    deleteWater: async (_userId: string, id: string) => db.rowIds.delete(id),
+    deleteWeight: async (_userId: string, id: string) => db.rowIds.delete(id),
     countMeals: async () => db.meals.length,
     existingIdempotencyKeys: async () => new Set<string>(),
     getPreferredWeightUnit: async () =>
@@ -927,6 +937,7 @@ beforeEach(() => {
     db.meals = [];
     db.inserted = [];
     db.profilePatches = [];
+    db.rowIds = new Set<string>();
 });
 
 interface ToolResult {
@@ -1430,4 +1441,63 @@ describe("bulk_import_meals surfaces hidden alcohol", () => {
             expect(text).toContain("set_alcohol_tracking");
         });
     });
+});
+
+// ---------- delete tools report what actually happened ----------
+
+// A delete that matched no row (stale id, typo, or an id belonging to another
+// user — filtered out by the `user_id` eq) used to still print "deleted", so
+// the model told the user the entry was gone while it kept showing up in every
+// summary and total. Each handler must branch on whether a row matched.
+describe("delete tools distinguish deleted from not-found", () => {
+    const cases: {
+        tool: string;
+        id: string;
+        seed: (id: string) => void;
+        deleted: string;
+        notFound: string;
+    }[] = [
+        {
+            tool: "delete_meal",
+            id: "m1",
+            seed: (id) => {
+                db.meals = [storedMeal({ id })];
+            },
+            deleted: "Meal m1 deleted.",
+            notFound: "No meal found with id m1.",
+        },
+        {
+            tool: "delete_water",
+            id: "w1",
+            seed: (id) => db.rowIds.add(id),
+            deleted: "Water entry w1 deleted.",
+            notFound: "No water entry found with id w1.",
+        },
+        {
+            tool: "delete_weight",
+            id: "k1",
+            seed: (id) => db.rowIds.add(id),
+            deleted: "Weight entry k1 deleted.",
+            notFound: "No weight entry found with id k1.",
+        },
+    ];
+
+    for (const c of cases) {
+        test(`${c.tool} confirms a row it removed`, async () => {
+            c.seed(c.id);
+            await withTools(null, async (call) => {
+                expect(textOf(await call(c.tool, { id: c.id }))).toBe(
+                    c.deleted,
+                );
+            });
+        });
+
+        test(`${c.tool} does not claim success for an unknown id`, async () => {
+            await withTools(null, async (call) => {
+                const text = textOf(await call(c.tool, { id: c.id }));
+                expect(text).toBe(c.notFound);
+                expect(text).not.toContain("deleted.");
+            });
+        });
+    }
 });

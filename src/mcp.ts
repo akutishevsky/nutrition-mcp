@@ -2401,10 +2401,15 @@ export function registerTools(
             return withAnalytics(
                 "delete_meal",
                 async () => {
-                    await deleteMeal(userId, id);
+                    const deleted = await deleteMeal(userId, id);
                     return {
                         content: [
-                            { type: "text", text: `Meal ${id} deleted.` },
+                            {
+                                type: "text",
+                                text: deleted
+                                    ? `Meal ${id} deleted.`
+                                    : `No meal found with id ${id}.`,
+                            },
                         ],
                     };
                 },
@@ -2682,12 +2687,14 @@ export function registerTools(
             return withAnalytics(
                 "delete_water",
                 async () => {
-                    await deleteWater(userId, id);
+                    const deleted = await deleteWater(userId, id);
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Water entry ${id} deleted.`,
+                                text: deleted
+                                    ? `Water entry ${id} deleted.`
+                                    : `No water entry found with id ${id}.`,
                             },
                         ],
                     };
