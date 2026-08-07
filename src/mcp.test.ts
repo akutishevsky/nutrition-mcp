@@ -13,6 +13,7 @@ import {
     hasActiveTarget,
     nutrientPresence,
     rangeAverages,
+    loggedDayAverageNote,
     startImportPayload,
     alcoholHiddenNote,
     registerTools,
@@ -39,7 +40,7 @@ import {
     computeWeeklyDigest,
     type DailyBucket,
 } from "./insights.js";
-import type { Meal, NutritionGoals } from "./supabase.js";
+import type { Meal, NutritionGoals, WaterEntry } from "./supabase.js";
 
 function meal(over: Partial<Meal> = {}): Meal {
     return {
@@ -598,9 +599,133 @@ describe("summary and trends agree on the same window", () => {
         expect(trendAvg("Sugar", "30d")).toBe(round1(summary.averages.sugar_g));
     });
 
-    test("calories still divide by every day in both", () => {
+    // NOT a test of the two calorie denominators — this fixture logs all 30 of
+    // its 30 days, so "per logged day" and "per calendar day" are the same
+    // divisor and the divergence issue #70 reported cannot appear here. What it
+    // does prove is that a fully-logged window makes them coincide, and that
+    // neither side then apologises for a gap it doesn't have. The gap case is
+    // pinned in the next block.
+    test("a fully-logged window: both denominators coincide, silently", () => {
+        expect(byDate.size).toBe(30);
         expect(round1(summary.averages.calories)).toBe(600);
         expect(trendAvg("Calories", "30d")).toBe(600);
+        expect(trendsText).not.toContain("calendar-day average");
+        expect(loggedDayAverageNote(byDate.size, 30)).toBe("");
+    });
+});
+
+// ---------- Regression pin for issue #70 ----------
+//
+// The two tools report different daily figures for the same window, and BOTH
+// are right: rangeAverages divides by the days the user actually logged ("what
+// does a day I eat look like?"), computeTrends divides by every calendar day
+// in the window ("what am I averaging this month?"). #70 was never that one of
+// them miscounts — it was that neither said which it was, so 2000 kcal in the
+// summary and 1000 kcal in trends read as a bug. The fix is disclosure on both
+// sides, not one shared denominator: changing either divisor would rewrite the
+// figures users' history is built on. So this block pins both numbers AND both
+// notes; dropping either note, or quietly unifying the denominators, fails here.
+describe("logged-day and calendar-day averages diverge, and both say so (#70)", () => {
+    const END = "2026-07-26";
+    const START = "2026-06-27"; // 30 calendar days inclusive
+    const DAYS_IN_RANGE = 30;
+    const LOGGED_DAYS = 15;
+    const dayAt = (i: number) => {
+        const d = new Date(`${START}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + i);
+        return d.toISOString().slice(0, 10);
+    };
+
+    // Every other day logged — 15 of 30 — at a flat 2000 kcal / 100 g protein /
+    // 200 g carbs / 80 g fat / 2000 ml water. A flat value on exactly half the
+    // days makes the divergence exactly 2x on every nutrient, which is the
+    // widest it can be and the shape the issue described. fiber/sugar/alcohol
+    // stay null: they have their own covered-days denominator (tested above)
+    // and would only confuse this pin.
+    const meals: Meal[] = [];
+    const water: WaterEntry[] = [];
+    for (let i = 0; i < DAYS_IN_RANGE; i += 2) {
+        meals.push(
+            meal({
+                id: `d-${i}`,
+                logged_at: `${dayAt(i)}T12:00:00.000Z`,
+                calories: 2000,
+                protein_g: 100,
+                carbs_g: 200,
+                fat_g: 80,
+                fiber_g: null,
+                sugar_g: null,
+                alcohol_g: null,
+            }),
+        );
+        water.push({
+            id: `w-${i}`,
+            user_id: "u1",
+            amount_ml: 2000,
+            logged_at: `${dayAt(i)}T12:00:00.000Z`,
+            notes: null,
+            created_at: `${dayAt(i)}T12:00:00.000Z`,
+            idempotency_key: null,
+        });
+    }
+
+    // The summary's own aggregation: group by local date, then rangeAverages
+    // over only the dates that exist (byDate never holds an unlogged day).
+    const byDate = new Map<string, Meal[]>();
+    for (const m of meals) {
+        const date = m.logged_at.slice(0, 10);
+        byDate.set(date, [...(byDate.get(date) ?? []), m]);
+    }
+    const summary = rangeAverages(
+        [...byDate.entries()].sort().map(([, dayMeals]) => {
+            const totals = sumMeals(dayMeals);
+            totals.water_ml = 2000;
+            return { meals: dayMeals, totals };
+        }),
+    );
+
+    const trendsText = computeTrends(
+        buildDailyBuckets(meals, water, START, END, "UTC"),
+        null,
+    );
+
+    test("the summary averages over the 15 logged days", () => {
+        expect(byDate.size).toBe(LOGGED_DAYS);
+        expect(summary.averages.calories).toBe(2000);
+        expect(summary.averages.protein_g).toBe(100);
+        expect(summary.averages.carbs_g).toBe(200);
+        expect(summary.averages.fat_g).toBe(80);
+        expect(summary.averages.water_ml).toBe(2000);
+    });
+
+    // Same data, half the figure, because the 15 unlogged days count as zeros.
+    test("trends averages the same nutrients over all 30 calendar days", () => {
+        expect(trendsText).toContain("30d avg: 1000 kcal");
+        expect(trendsText).toContain("30d avg: 50g"); // protein
+        expect(trendsText).toContain("30d avg: 100g"); // carbs
+        expect(trendsText).toContain("30d avg: 40g"); // fat
+        expect(trendsText).toContain("30d avg: 1000 ml");
+    });
+
+    test("every trends figure carries the calendar-day note", () => {
+        for (const line of [
+            "30d avg: 1000 kcal",
+            "30d avg: 50g",
+            "30d avg: 100g",
+            "30d avg: 40g",
+            "30d avg: 1000 ml",
+        ]) {
+            expect(trendsText).toContain(
+                `${line} (calendar-day average; ${LOGGED_DAYS} of ${DAYS_IN_RANGE} days logged)`,
+            );
+        }
+    });
+
+    test("the summary note names the same two numbers, the other way round", () => {
+        const note = loggedDayAverageNote(LOGGED_DAYS, DAYS_IN_RANGE);
+        expect(note).toContain(`${LOGGED_DAYS} of the ${DAYS_IN_RANGE} days`);
+        expect(note).toContain("per logged day");
+        expect(note).toContain("get_trends");
     });
 });
 
@@ -866,6 +991,7 @@ const db = {
     profile: null as actualSupabase.Profile | null,
     goals: null as NutritionGoals | null,
     meals: [] as Meal[],
+    water: [] as WaterEntry[],
     inserted: [] as Record<string, unknown>[],
     profilePatches: [] as Record<string, unknown>[],
     // Ids the delete stubs consider to exist. Deleting one removes it, so a
@@ -896,6 +1022,12 @@ mock.module("./supabase.js", () => ({
     getNutritionGoals: async () => db.goals,
     getMealsByDate: async () => db.meals,
     getWaterByDate: async () => [],
+    // The range readers behind get_nutrition_summary. They ignore the dates and
+    // hand back whatever the test staged: the fixtures below already sit inside
+    // the window they ask for, and filtering here would only re-implement the
+    // query under test.
+    getMealsInRange: async () => db.meals,
+    getWaterInRange: async () => db.water,
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
         db.inserted.push(input);
         const saved = storedMeal(input);
@@ -947,6 +1079,7 @@ beforeEach(() => {
     db.profile = { ...PROFILE_BASE };
     db.goals = null;
     db.meals = [];
+    db.water = [];
     db.inserted = [];
     db.profilePatches = [];
     db.rowIds = new Set<string>();
@@ -956,6 +1089,7 @@ beforeEach(() => {
 
 interface ToolResult {
     content: { type: string; text: string }[];
+    structuredContent?: Record<string, unknown>;
     isError?: boolean;
 }
 
@@ -1563,5 +1697,133 @@ describe("delete_account analytics", () => {
         const rows = rowsFor("get_timezone");
         expect(rows).toHaveLength(1);
         expect(rows[0]!.user_id).toBe("u1");
+    });
+});
+
+// ---------- the summary states its own denominator (issue #70) ----------
+//
+// The unit-level pin above proves the two aggregations legitimately disagree.
+// This proves get_nutrition_summary SAYS so, which is the actual fix: the
+// calendar length of the window rides on the wire next to logged_days, and the
+// text warns the model that get_trends will print a smaller figure for the same
+// days. Neither is reachable from a pure function — both are assembled in the
+// handler — so this goes through the real tool.
+describe("get_nutrition_summary discloses its logged-day denominator", () => {
+    const START = "2026-06-27";
+    const END = "2026-07-26"; // 30 calendar days inclusive
+    const dayAt = (i: number) => {
+        const d = new Date(`${START}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + i);
+        return d.toISOString().slice(0, 10);
+    };
+
+    /** `step` 2 logs every other day (15 of 30), `step` 1 logs all 30. */
+    function stage(step: number): void {
+        db.meals = [];
+        db.water = [];
+        for (let i = 0; i < 30; i += step) {
+            db.meals.push(
+                meal({
+                    id: `d-${i}`,
+                    logged_at: `${dayAt(i)}T12:00:00.000Z`,
+                    calories: 2000,
+                    protein_g: 100,
+                    carbs_g: 200,
+                    fat_g: 80,
+                    fiber_g: null,
+                    sugar_g: null,
+                    alcohol_g: null,
+                }),
+            );
+            db.water.push({
+                id: `w-${i}`,
+                user_id: "u1",
+                amount_ml: 2000,
+                logged_at: `${dayAt(i)}T12:00:00.000Z`,
+                notes: null,
+                created_at: `${dayAt(i)}T12:00:00.000Z`,
+                idempotency_key: null,
+            });
+        }
+    }
+
+    interface SummaryPayload {
+        logged_days: number;
+        days_in_range: number;
+        averages: Record<string, number>;
+    }
+
+    const summarize = async (call: CallTool) =>
+        call("get_nutrition_summary", { start_date: START, end_date: END });
+
+    test("a half-logged window reports 15 logged days out of 30 in range", async () => {
+        stage(2);
+        await withTools(null, async (call) => {
+            const r = await summarize(call);
+            const sc = r.structuredContent as unknown as SummaryPayload;
+            expect(sc.logged_days).toBe(15);
+            expect(sc.days_in_range).toBe(30);
+            // Per LOGGED day — the same 2000 kcal a user sees on any one of the
+            // days they ate, not the 1000 get_trends reports for the month.
+            expect(sc.averages.calories).toBe(2000);
+            expect(sc.averages.protein_g).toBe(100);
+            expect(sc.averages.carbs_g).toBe(200);
+            expect(sc.averages.fat_g).toBe(80);
+            expect(sc.averages.water_ml).toBe(2000);
+        });
+    });
+
+    test("...and the text tells the model which denominator that was", async () => {
+        stage(2);
+        await withTools(null, async (call) => {
+            const text = textOf(await summarize(call));
+            expect(text).toContain(
+                "Daily averages are per logged day — 15 of the 30 days in range.",
+            );
+            expect(text).toContain(
+                "get_trends averages over all 30 calendar days instead",
+            );
+        });
+    });
+
+    // No gap, nothing to disclose: the note would be noise on what is the
+    // common case for anyone logging daily.
+    test("a fully-logged window stays silent about the denominator", async () => {
+        stage(1);
+        await withTools(null, async (call) => {
+            const r = await summarize(call);
+            const sc = r.structuredContent as unknown as SummaryPayload;
+            expect(sc.logged_days).toBe(30);
+            expect(sc.days_in_range).toBe(30);
+            expect(sc.averages.calories).toBe(2000);
+            expect(textOf(r)).not.toContain("per logged day");
+        });
+    });
+
+    // days_in_range is a declared outputSchema field, so the early return for a
+    // window with nothing in it has to carry it too or the SDK rejects the
+    // result outright.
+    test("an empty range still reports the size of the window", async () => {
+        await withTools(null, async (call) => {
+            const r = await summarize(call);
+            const sc = r.structuredContent as unknown as SummaryPayload;
+            expect(r.isError).toBeFalsy();
+            expect(sc.logged_days).toBe(0);
+            expect(sc.days_in_range).toBe(30);
+        });
+    });
+
+    // A single-day range is 1 day, not 0 — an off-by-one here would make the
+    // note read "1 of the 0 days in range" on the most ordinary query there is.
+    test("a single-day range spans one day", async () => {
+        stage(1);
+        await withTools(null, async (call) => {
+            const r = (await call("get_nutrition_summary", {
+                start_date: START,
+                end_date: START,
+            })) as ToolResult;
+            const sc = r.structuredContent as unknown as SummaryPayload;
+            expect(sc.days_in_range).toBe(1);
+        });
     });
 });

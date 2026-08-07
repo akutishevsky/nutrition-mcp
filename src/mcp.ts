@@ -55,6 +55,7 @@ import {
     computeWeightTrend,
     dayCarries,
     coveredDailyAverage,
+    dateDiffDays,
     type DailyBucket,
 } from "./insights.js";
 import {
@@ -243,6 +244,16 @@ export function nutrientPresence(meals: Meal[]): NutrientPresence {
 // for a nutrient is excluded from both its numerator and its denominator. A
 // nutrient nobody recorded reports 0 over 0 days, which callers must render as
 // "not recorded" rather than as a genuine zero.
+//
+// LOGGED days, deliberately — and that is where this parts company with
+// get_trends, which divides the same nutrients by every CALENDAR day in the
+// window. Both are right for their own question ("what does a day I eat look
+// like?" vs. "what am I averaging over the month?"), so issue #70 was closed by
+// DISCLOSING the divergence rather than unifying it: a 15-of-30-days window
+// legitimately reads 2000 kcal here and 1000 kcal there. Each side now names
+// its own denominator in its text output (loggedDayAverageNote below, and the
+// calendar-day note in insights.ts). Silently switching either one would
+// rewrite the figures every existing user's history is built on.
 export function rangeAverages(
     perDay: Array<{ meals: Meal[]; totals: DailyTotals }>,
 ): {
@@ -279,6 +290,20 @@ export function rangeAverages(
             alcohol_g: alcohol.days,
         },
     };
+}
+
+/** The model-facing half of the #70 fix: says out loud that these averages
+ *  divide by logged days, and that get_trends will therefore print a smaller
+ *  number for the same window. Empty when the window is fully logged — the two
+ *  denominators coincide there, so the note would be pure noise on the common
+ *  path. Pure and exported so the exact shipped wording is testable without
+ *  standing up the whole tool. */
+export function loggedDayAverageNote(
+    loggedDays: number,
+    daysInRange: number,
+): string {
+    if (loggedDays >= daysInRange) return "";
+    return `\n\n(Daily averages are per logged day — ${loggedDays} of the ${daysInRange} days in range. get_trends averages over all ${daysInRange} calendar days instead, so its daily figures will be lower.)`;
 }
 
 // insights.ts is deliberately free of Supabase, so it cannot know about the
@@ -1845,6 +1870,12 @@ export function registerTools(
                 start_date: z.string(),
                 end_date: z.string(),
                 logged_days: z.number(),
+                // The calendar length of the window, so a consumer can see the
+                // denominator behind `averages` for itself: these are per
+                // LOGGED day, while get_trends divides the same nutrients by
+                // all `days_in_range` days (issue #70). Without both numbers a
+                // client cannot tell a full month from a fortnight of gaps.
+                days_in_range: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
                 goals: GOALS_ITEM.nullable(),
                 averages: TOTALS_ITEM,
@@ -1874,6 +1905,15 @@ export function registerTools(
             return withAnalytics(
                 "get_nutrition_summary",
                 async () => {
+                    // Sized with insights.ts's own arithmetic (the function
+                    // buildDailyBuckets lays its buckets out with), so the two
+                    // tools cannot disagree about how long a window is. Clamped
+                    // because a reversed range would otherwise report 0 or less
+                    // days and make the note read as nonsense.
+                    const daysInRange = Math.max(
+                        1,
+                        dateDiffDays(start_date, end_date) + 1,
+                    );
                     const tz = await getUserTimezone(userId);
                     const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, start_date, end_date, tz),
@@ -1895,6 +1935,7 @@ export function registerTools(
                                 start_date,
                                 end_date,
                                 logged_days: 0,
+                                days_in_range: daysInRange,
                                 drink_unit: alcohol,
                                 goals: goalsPayload,
                                 averages: totalsPayloadOf(
@@ -1994,6 +2035,7 @@ export function registerTools(
 
                     const footer =
                         coverageNote +
+                        loggedDayAverageNote(days.length, daysInRange) +
                         (goals
                             ? ""
                             : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)");
@@ -2009,6 +2051,7 @@ export function registerTools(
                             start_date,
                             end_date,
                             logged_days: days.length,
+                            days_in_range: daysInRange,
                             drink_unit: alcohol,
                             goals: goalsPayload,
                             averages,

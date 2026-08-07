@@ -47,7 +47,11 @@ function addDays(date: string, days: number): string {
     return d.toISOString().slice(0, 10);
 }
 
-function dateDiffDays(start: string, end: string): number {
+/** Whole calendar days from `start` to `end`, both YYYY-MM-DD. Exported so
+ * mcp.ts can size a range in calendar days with the same arithmetic that
+ * buildDailyBuckets uses to lay them out — the summary and trends must not
+ * disagree about how long a window is. */
+export function dateDiffDays(start: string, end: string): number {
     const a = new Date(`${start}T00:00:00Z`).getTime();
     const b = new Date(`${end}T00:00:00Z`).getTime();
     return Math.round((b - a) / (1000 * 60 * 60 * 24));
@@ -151,6 +155,12 @@ interface Trailing {
     /** Days that counted, and calendar days the window actually spans. */
     days: number;
     window: number;
+    /** Calendar days in the window carrying any log at all (nonEmpty). For a
+     * full series this is what makes the denominator visible — `days` equals
+     * `window` there by construction, so it is the only number that can tell a
+     * 30-of-30 average apart from a 15-of-30 one. Informational for a covered
+     * series, whose own note already names its narrower denominator. */
+    loggedDays: number;
 }
 
 interface StatSeries {
@@ -163,21 +173,28 @@ interface StatSeries {
 }
 
 /** A nutrient that has always been summed with `?? 0`: every day in the window
- * counts, exactly as before. */
+ * counts, exactly as before. The denominator is therefore CALENDAR days — an
+ * unlogged day is a real zero, which is the right question for "how much am I
+ * eating per day", and the wrong one for "how much do I eat on a day I eat".
+ * mcp.ts's `rangeAverages` deliberately answers the second with a logged-day
+ * denominator, so the same window can legitimately yield two figures 2x apart;
+ * each side therefore has to say which it is. Ours is said by `loggedDays`,
+ * which formatStatLine turns into a note whenever the window has gaps. */
 function fullSeries(
     buckets: DailyBucket[],
     field: keyof DailyBucket,
 ): StatSeries {
-    const daily = buckets.map((b) => b[field] as number);
     return {
-        values: daily,
+        values: buckets.map((b) => b[field] as number),
         trailing: WINDOWS.map((n) => {
-            const slice = daily.slice(-n);
+            const slice = buckets.slice(-n);
+            const values = slice.map((b) => b[field] as number);
             return {
                 n,
-                avg: slice.length > 0 ? mean(slice) : null,
-                days: slice.length,
+                avg: values.length > 0 ? mean(values) : null,
+                days: values.length,
                 window: slice.length,
+                loggedDays: slice.filter(nonEmpty).length,
             };
         }),
         partial: false,
@@ -201,6 +218,7 @@ function coveredSeries(
                 avg: values.length > 0 ? mean(values) : null,
                 days: values.length,
                 window: slice.length,
+                loggedDays: slice.filter(nonEmpty).length,
             };
         }),
         partial: true,
@@ -265,7 +283,17 @@ type StatDirection = "floor" | "ceiling";
 
 /** Renders one nutrient's block. Returns null when a partial nutrient has no
  * data anywhere in the window — the caller drops the section rather than
- * printing an average of nothing as "0g" next to a target. */
+ * printing an average of nothing as "0g" next to a target.
+ *
+ * Every trailing average states its denominator whenever that denominator is
+ * not the obvious one: a partial nutrient names the days it found data on, a
+ * full nutrient names the days that were logged at all out of the calendar
+ * window it divided by. Silence means "no gaps", so the common fully-logged
+ * line is unchanged. This exists because get_nutrition_summary's rangeAverages
+ * divides the same nutrients by LOGGED days on purpose (issue #70): a model
+ * narrating both in one chat would otherwise report two contradictory "average
+ * daily calories" with nothing to reconcile them. The fix is disclosure on
+ * both sides, not one shared denominator — the two answer different questions. */
 function formatStatLine(
     label: string,
     unit: string,
@@ -286,10 +314,15 @@ function formatStatLine(
             parts.push(`  ${t.n}d avg: no data`);
             continue;
         }
-        const note =
-            t.days < t.window
+        // At most one note: the narrower denominator is the informative one, and
+        // a partial nutrient's "days with data" already implies the gap.
+        const note = partial
+            ? t.days < t.window
                 ? ` (${t.days} of ${t.window} days with data)`
-                : "";
+                : ""
+            : t.loggedDays < t.window
+              ? ` (calendar-day average; ${t.loggedDays} of ${t.window} days logged)`
+              : "";
         parts.push(`  ${t.n}d avg: ${round(t.avg)}${unit}${note}`);
     }
     if (targetApplies(target, direction)) {
@@ -733,7 +766,17 @@ export function computeWeeklyDigest(
         `Logged ${logged.length}/${buckets.length} days, ${totalMeals} meals total.`,
     );
     lines.push("");
-    lines.push("Daily averages:");
+    // Calories/protein/carbs/fat/water below divide by every day in the week,
+    // logged or not; only the partial nutrients carry their own "over N days"
+    // note. On a week with gaps say so once in the header rather than on five
+    // rows — the "Logged X/N days" line above supplies the count but does not
+    // claim to be these averages' denominator. A fully-logged week has nothing
+    // to disclose and keeps the original header.
+    lines.push(
+        logged.length < buckets.length
+            ? `Daily averages (per calendar day; ${logged.length} of ${buckets.length} days logged):`
+            : "Daily averages:",
+    );
     // `noun` is "target" for a floor and "limit" for a ceiling (sugar, alcohol);
     // calling a sugar cap a "target" invites reading the shortfall as a shortfall.
     const line = (

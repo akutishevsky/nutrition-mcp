@@ -15,6 +15,14 @@
   alcohol average only over the days that recorded them — see avgOf below —
   matching the tool's text output).
 
+  The denominator is EVERY CALENDAR DAY in the window, not just the logged ones:
+  these rings answer "how am I doing across this stretch of time?", so a skipped
+  day pulls the average down. That deliberately differs from the
+  get_nutrition_summary dashboard, whose hero rings divide by logged days only
+  and answer "how does a day I actually log look?" (issue #70). Both are correct
+  for their question and both name their denominator on screen — keep the
+  section title below explicit if you touch it.
+
   Data arrives as the `structuredContent` of the get_trends tool result; the
   shared bridge (shared/bridge.js) reads it across host conventions and calls
   render(). Standalone preview uses the SAMPLE below.
@@ -303,7 +311,7 @@
           </header>
           <div class="seg" role="tablist" aria-label="Trend window">${seg}</div>
           ${chart}
-          <div class="section-title">${range}-day average vs goal</div>
+          <div class="section-title">${range}-day average (all calendar days) vs goal</div>
           ${panel}`;
             }
 

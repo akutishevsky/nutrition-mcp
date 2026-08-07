@@ -172,6 +172,12 @@ function hostPage(widget: string, params: URLSearchParams): string {
             start_date: "2026-07-09",
             end_date: "2026-07-15",
             logged_days: days.length,
+            // 2026-07-09 → 2026-07-15 is 7 calendar days and all 7 are logged,
+            // so this previews the no-gap caption. The gappy branch (where the
+            // header reads "15 of 30 days logged") is pinned by
+            // public/widgets/summary-caption.test.ts; edit both dates together
+            // if you want to eyeball it here.
+            days_in_range: days.length,
             goals,
             averages: {
                 calories: 2076,

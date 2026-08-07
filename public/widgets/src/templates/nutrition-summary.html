@@ -41,6 +41,7 @@
                 start_date: "2026-07-05",
                 end_date: "2026-07-07",
                 logged_days: 3,
+                days_in_range: 3,
                 goals: {
                     calories: 2200,
                     protein_g: 160,
@@ -298,6 +299,20 @@
           </div>`;
             }
 
+            // "3 days logged", or "15 of 30 days logged" when the payload also
+            // says how wide the window was. `days_in_range` is OPTIONAL — a host
+            // replaying a tool result from before it existed has no such field,
+            // and older payloads must render exactly as they always did, so it
+            // is only used when it is a real number larger than logged_days.
+            function loggedDaysCaption(data) {
+                const logged = data.logged_days;
+                const span = Number(data.days_in_range);
+                const plural = logged === 1 ? "" : "s";
+                return Number.isFinite(span) && span > logged
+                    ? `${logged} of ${span} days logged`
+                    : `${logged} day${plural} logged`;
+            }
+
             function render(data) {
                 const root = document.getElementById("root");
                 if (
@@ -316,9 +331,15 @@
                     .slice()
                     .sort((a, b) => (a.date < b.date ? -1 : 1));
                 const multi = days.length > 1;
-                const heroLabel = multi ? "Daily average" : "Total";
+                // Name the denominator: this average divides by the days that
+                // actually have a log, while the trends widget's rings divide
+                // by every calendar day in the window. Same macros, different
+                // number — labelling both is the fix for issue #70.
+                const heroLabel = multi
+                    ? "Daily average (logged days)"
+                    : "Total";
                 const range = multi
-                    ? `${data.start_date} → ${data.end_date} · ${data.logged_days} day${data.logged_days === 1 ? "" : "s"} logged`
+                    ? `${data.start_date} → ${data.end_date} · ${loggedDaysCaption(data)}`
                     : days[0].date;
 
                 // Calories hero + protein/carbs/fat row + water bar + alcohol

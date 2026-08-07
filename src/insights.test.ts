@@ -389,3 +389,94 @@ test("computeWeeklyDigest reports a zero-limit nutrient held at zero as clear", 
     const out = computeWeeklyDigest(buckets, goals({ daily_sugar_g: 0 }));
     expect(out).toContain("  Sugar: 0g / 0g limit (clear)");
 });
+
+// ---------- the calendar-day denominator is stated (issue #70) ----------
+//
+// get_trends divides calories/protein/carbs/fat/water by every day in the
+// window; get_nutrition_summary divides the same nutrients by logged days.
+// Both are right for their own question, so the trends side must say which one
+// it answered — otherwise the two figures differ 2x with nothing to reconcile.
+
+/** `days` consecutive days from 2026-06-01 where only the LAST `loggedDays`
+ * carry a meal; the rest are genuine gaps (no meals, no water). */
+function gappyBuckets(
+    days: number,
+    loggedDays: number,
+    fields: Partial<Meal> = {},
+): DailyBucket[] {
+    const start = new Date("2026-06-01T00:00:00Z");
+    const meals: Meal[] = [];
+    for (let i = days - loggedDays; i < days; i++) {
+        const d = new Date(start);
+        d.setUTCDate(d.getUTCDate() + i);
+        meals.push(meal(`${d.toISOString().slice(0, 10)}T12:00:00Z`, fields));
+    }
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + days - 1);
+    return buildDailyBuckets(
+        meals,
+        [],
+        "2026-06-01",
+        end.toISOString().slice(0, 10),
+        "UTC",
+    );
+}
+
+test("computeTrends states the calendar-day denominator when the window has gaps", () => {
+    // 30 calendar days, 15 of them logged at 2000 kcal: 30000/30 = 1000.
+    const buckets = gappyBuckets(30, 15, { calories: 2000 });
+    const out = computeTrends(buckets, goals());
+    expect(out).toContain(
+        "  30d avg: 1000 kcal (calendar-day average; 15 of 30 days logged)",
+    );
+    // The summary's logged-day figure for the same window would be 2000; the
+    // note is the only thing that keeps the two from reading as a contradiction.
+    expect(out).not.toContain("  30d avg: 1000 kcal\n");
+});
+
+test("computeTrends adds no denominator note when every day is logged", () => {
+    const buckets = gappyBuckets(30, 30, { calories: 2000 });
+    const out = computeTrends(buckets, goals());
+    expect(out).toContain("  30d avg: 2000 kcal");
+    expect(out).not.toContain("calendar-day average");
+    expect(out).not.toContain("days logged)");
+});
+
+test("computeTrends notes the gap only on the windows that have one", () => {
+    // Last 7 days solid, nothing before them: 7d is clean, 30d is 7 of 30.
+    const buckets = gappyBuckets(30, 7, { calories: 2100 });
+    const out = computeTrends(buckets, goals());
+    expect(out).toContain("  7d avg: 2100 kcal\n");
+    expect(out).not.toContain("7d avg: 2100 kcal (calendar-day average");
+    expect(out).toContain(
+        "  14d avg: 1050 kcal (calendar-day average; 7 of 14 days logged)",
+    );
+    expect(out).toContain(
+        "  30d avg: 490 kcal (calendar-day average; 7 of 30 days logged)",
+    );
+});
+
+test("computeTrends keeps the partial-nutrient note when the window also has gaps", () => {
+    // Only one note per line, and for fiber it is the narrower "days with data".
+    const buckets = gappyBuckets(30, 10, { fiber_g: 30 });
+    const out = computeTrends(buckets, goals());
+    expect(out).toContain("  30d avg: 30g (10 of 30 days with data)");
+    expect(out).not.toContain("30g (10 of 30 days with data) (calendar-day");
+    expect(out).not.toContain("30d avg: 30g (calendar-day average");
+});
+
+test("computeWeeklyDigest states the calendar-day denominator on a gappy week", () => {
+    const buckets = gappyBuckets(7, 3, { calories: 2100 });
+    const out = computeWeeklyDigest(buckets, goals());
+    expect(out).toContain(
+        "Daily averages (per calendar day; 3 of 7 days logged):",
+    );
+    expect(out).toContain("  Calories: 900 kcal");
+});
+
+test("computeWeeklyDigest keeps the plain header on a fully logged week", () => {
+    const buckets = gappyBuckets(7, 7, { calories: 2100 });
+    const out = computeWeeklyDigest(buckets, goals());
+    expect(out).toContain("Daily averages:");
+    expect(out).not.toContain("per calendar day");
+});
