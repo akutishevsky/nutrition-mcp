@@ -39,7 +39,7 @@ import {
     type WaterEntry,
     type WeightEntry,
 } from "./supabase.js";
-import { withAnalytics } from "./analytics.js";
+import { DELETED_ACCOUNT_ANALYTICS_ID, withAnalytics } from "./analytics.js";
 import {
     todayInTz,
     validateTz,
@@ -3874,7 +3874,13 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                // deleteAllUserData wipes tool_analytics before anything else,
+                // so the row withAnalytics writes once this handler settles
+                // must not carry the id it just erased. Only the cancelled path
+                // (nothing deleted) still belongs to the real user.
+                {
+                    userId: confirm ? DELETED_ACCOUNT_ANALYTICS_ID : userId,
+                },
             );
         },
     );

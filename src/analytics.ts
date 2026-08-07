@@ -11,6 +11,19 @@ interface AnalyticsRecord {
     invoked_at: string;
 }
 
+/**
+ * Identity recorded for a tool call that wipes the caller's own analytics rows.
+ *
+ * `delete_account` deletes `tool_analytics` as its *first* step, but
+ * `withAnalytics` persists its row *after* the handler resolves — and
+ * `tool_analytics.user_id` is a plain varchar with no FK, so that insert
+ * succeeds and resurrects a row for a user the tool just promised was gone.
+ * Recording the deletion under a sentinel keeps the operational signal (how
+ * often deletions run, how long they take, whether they failed) while retaining
+ * no identifier for the deleted account.
+ */
+export const DELETED_ACCOUNT_ANALYTICS_ID = "[deleted]";
+
 interface AnalyticsContext {
     userId: string;
     sessionId?: string;

@@ -31,6 +31,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import * as actualSupabase from "./supabase.js";
+import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
     buildDailyBuckets,
@@ -870,15 +871,26 @@ const db = {
     // Ids the delete stubs consider to exist. Deleting one removes it, so a
     // second delete of the same id reports "not found" like the real table.
     rowIds: new Set<string>(),
+    analyticsRows: [] as Record<string, unknown>[],
+    accountWipes: 0,
 };
 
 mock.module("./supabase.js", () => ({
     ...actualSupabase,
-    // analytics.ts persists every tool call through getSupabase(); swallow it
-    // so a test never depends on Supabase env vars being present.
+    // analytics.ts persists every tool call through getSupabase(); intercept it
+    // so a test never depends on Supabase env vars being present, and so the
+    // rows it would have written can be asserted on.
     getSupabase: () => ({
-        from: () => ({ insert: async () => ({ error: null }) }),
+        from: (table: string) => ({
+            insert: async (row: Record<string, unknown>) => {
+                if (table === "tool_analytics") db.analyticsRows.push(row);
+                return { error: null };
+            },
+        }),
     }),
+    deleteAllUserData: async () => {
+        db.accountWipes += 1;
+    },
     getProfile: async () => db.profile,
     getUserTimezone: async () => db.profile?.timezone ?? "UTC",
     getNutritionGoals: async () => db.goals,
@@ -938,6 +950,8 @@ beforeEach(() => {
     db.inserted = [];
     db.profilePatches = [];
     db.rowIds = new Set<string>();
+    db.analyticsRows = [];
+    db.accountWipes = 0;
 });
 
 interface ToolResult {
@@ -1500,4 +1514,54 @@ describe("delete tools distinguish deleted from not-found", () => {
             });
         });
     }
+});
+
+// ---------- delete_account leaves no trace of the deleted user ----------
+
+// deleteAllUserData deletes tool_analytics first, then withAnalytics inserts a
+// fresh row once the handler resolves. tool_analytics.user_id is a plain
+// varchar with no FK, so that insert succeeds and puts the just-deleted user's
+// id straight back into the table the tool promised it had emptied. The row
+// itself is still worth keeping — it must simply not be attributable.
+describe("delete_account analytics", () => {
+    const rowsFor = (tool: string) =>
+        db.analyticsRows.filter((r) => r.tool_name === tool);
+
+    test("a completed deletion is recorded under the sentinel, not the user", async () => {
+        await withTools(null, async (call) => {
+            expect(
+                textOf(await call("delete_account", { confirm: true })),
+            ).toContain("permanently deleted");
+        });
+
+        expect(db.accountWipes).toBe(1);
+        const rows = rowsFor("delete_account");
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.user_id).toBe(DELETED_ACCOUNT_ANALYTICS_ID);
+        expect(rows[0]!.success).toBe(true);
+        expect(db.analyticsRows.some((r) => r.user_id === "u1")).toBe(false);
+    });
+
+    test("a cancelled deletion stays attributed to the user", async () => {
+        await withTools(null, async (call) => {
+            expect(
+                textOf(await call("delete_account", { confirm: false })),
+            ).toContain("cancelled");
+        });
+
+        expect(db.accountWipes).toBe(0);
+        const rows = rowsFor("delete_account");
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.user_id).toBe("u1");
+    });
+
+    test("other tools still record the real user id", async () => {
+        await withTools(null, async (call) => {
+            await call("get_timezone");
+        });
+
+        const rows = rowsFor("get_timezone");
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.user_id).toBe("u1");
+    });
 });
