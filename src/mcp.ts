@@ -46,7 +46,8 @@ import {
     validateTz,
     shiftLocalDate,
     dateInTz,
-    validateLoggedAt,
+    LoggedAtError,
+    resolveWriteLoggedAt,
 } from "./tz.js";
 import {
     buildDailyBuckets,
@@ -915,6 +916,61 @@ function formatWeightEntry(entry: WeightEntry, unit: WeightUnit): string {
     return `- ${formatWeight(entry.weight_g, unit)} at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""} [id: ${entry.id}]`;
 }
 
+// Shared `logged_at` description for every manual write tool. The three forms
+// and the "don't convert to UTC yourself" rule are the whole point: a model
+// knows the wall-clock time the user just said, but not the zone's historical
+// offset for that date, and guessing it lands the entry on the wrong day.
+const LOGGED_AT_FORMS =
+    'Accepts a full ISO 8601 timestamp with an offset or Z ("2026-01-05T08:30:00+02:00"), an offset-less local time ("2026-01-05T08:30"), or a bare date ("2026-01-05", anchored at local noon). Offset-less values are resolved in the user\'s saved timezone, so pass the local time exactly as the user gives it and do NOT convert it to UTC yourself.';
+
+// Resolve a caller-supplied `logged_at` to an absolute instant before it
+// reaches the timestamptz column. Without this an offset-less string is read in
+// the database session's zone (UTC), so a Kyiv user's 21:00 lands at midnight
+// on the NEXT day and the tool's own progress line contradicts itself. The
+// profile row is fetched rather than just the timezone because its absence is
+// the only reliable "never configured" signal, and resolving in a defaulted UTC
+// is the same silent mis-filing one level up. That signal is imperfect — the
+// other set_* tools upsert a profile whose timezone defaults to UTC — so it
+// under-warns rather than over-warns.
+//
+// The unset-timezone hint has to be attached on the failure path too: read as
+// UTC, an offset-less local time from a user east of UTC can resolve to a
+// future instant and be rejected, and "logged_at is in the future" on its own
+// names the wrong cause and gives the caller nothing to act on.
+async function resolveWriteTimestamp(
+    userId: string,
+    raw: string | undefined,
+): Promise<{ iso: string | undefined; note: string }> {
+    if (raw === undefined) return { iso: undefined, note: "" };
+    const profile = await getProfile(userId);
+    const unsetTzNote = (value: string) =>
+        `${JSON.stringify(value)} carries no UTC offset and this account has no timezone set, so it was read as UTC. Set one with set_timezone.`;
+
+    let resolved;
+    try {
+        resolved = resolveWriteLoggedAt(
+            raw,
+            profile?.timezone ?? "UTC",
+            Date.now(),
+        );
+    } catch (err) {
+        if (
+            err instanceof LoggedAtError &&
+            err.usedProfileTimezone &&
+            profile === null
+        ) {
+            throw new Error(`${err.message} ${unsetTzNote(raw)}`);
+        }
+        throw err;
+    }
+
+    const note =
+        resolved.usedProfileTimezone && profile === null
+            ? `\n\nNote: ${unsetTzNote(raw)} Then re-check this entry.`
+            : "";
+    return { iso: resolved.instant.toISOString(), note };
+}
+
 // Resolve the unit to use when WRITING a weight value: an explicit unit wins,
 // otherwise the user's saved preference. If neither exists, refuse rather than
 // guess — silently assuming kg for someone who meant lb is exactly the mis-log
@@ -1101,7 +1157,9 @@ export function registerTools(
                     .string()
                     .optional()
                     .describe(
-                        "ISO 8601 timestamp (defaults to now). If you don't know the current date or time, ask the user before calling this tool.",
+                        "When this actually happened (defaults to now). " +
+                            LOGGED_AT_FORMS +
+                            " If you don't know the current date or time, ask the user before calling this tool.",
                     ),
                 notes: z.string().optional().describe("Additional notes"),
                 idempotency_key: z
@@ -1123,10 +1181,14 @@ export function registerTools(
             return withAnalytics(
                 "log_meal",
                 async () => {
-                    const { meal, deduplicated } = await insertMeal(
+                    const { iso, note } = await resolveWriteTimestamp(
                         userId,
-                        args,
+                        args.logged_at,
                     );
+                    const { meal, deduplicated } = await insertMeal(userId, {
+                        ...args,
+                        logged_at: iso,
+                    });
                     const header = deduplicated
                         ? "Meal already logged (idempotent retry):"
                         : "Meal logged:";
@@ -1147,7 +1209,7 @@ export function registerTools(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
-                                )}`,
+                                )}${note}`,
                             },
                         ],
                         structuredContent,
@@ -2513,7 +2575,10 @@ export function registerTools(
                     .describe(
                         "Grams of pure ethanol — NOT the drink's volume and NOT its ABV. Compute it rather than estimating: grams = millilitres x (ABV% / 100) x 0.789 (a 330 ml 5% beer = 13 g).",
                     ),
-                logged_at: z.string().optional(),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe("When the meal was eaten. " + LOGGED_AT_FORMS),
                 notes: z.string().optional(),
             },
             outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
@@ -2526,7 +2591,14 @@ export function registerTools(
             return withAnalytics(
                 "update_meal",
                 async () => {
-                    const meal = await updateMeal(userId, id, fields);
+                    const { iso, note } = await resolveWriteTimestamp(
+                        userId,
+                        fields.logged_at,
+                    );
+                    const meal = await updateMeal(userId, id, {
+                        ...fields,
+                        logged_at: iso,
+                    });
                     const { progressSection, structuredContent } =
                         await buildMealProgress(
                             userId,
@@ -2542,7 +2614,7 @@ export function registerTools(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
-                                )}`,
+                                )}${note}`,
                             },
                         ],
                         structuredContent,
@@ -2574,7 +2646,9 @@ export function registerTools(
                     .string()
                     .optional()
                     .describe(
-                        "ISO 8601 timestamp (defaults to now). If you don't know the current date or time, ask the user before calling this tool.",
+                        "When this actually happened (defaults to now). " +
+                            LOGGED_AT_FORMS +
+                            " If you don't know the current date or time, ask the user before calling this tool.",
                     ),
                 notes: z
                     .string()
@@ -2594,10 +2668,14 @@ export function registerTools(
             return withAnalytics(
                 "log_water",
                 async () => {
-                    const { entry, deduplicated } = await insertWater(
+                    const { iso, note } = await resolveWriteTimestamp(
                         userId,
-                        args,
+                        args.logged_at,
                     );
+                    const { entry, deduplicated } = await insertWater(userId, {
+                        ...args,
+                        logged_at: iso,
+                    });
                     const prefix = deduplicated
                         ? "Already logged (idempotent retry)"
                         : "Water logged";
@@ -2605,7 +2683,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${prefix}: ${entry.amount_ml} ml at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}`,
+                                text: `${prefix}: ${entry.amount_ml} ml at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
                             },
                         ],
                     };
@@ -2782,7 +2860,9 @@ export function registerTools(
                     .string()
                     .optional()
                     .describe(
-                        "ISO 8601 timestamp (defaults to now). If you don't know the current date or time, ask the user before calling this tool.",
+                        "When this actually happened (defaults to now). " +
+                            LOGGED_AT_FORMS +
+                            " If you don't know the current date or time, ask the user before calling this tool.",
                     ),
                 notes: z
                     .string()
@@ -2804,8 +2884,10 @@ export function registerTools(
             return withAnalytics(
                 "log_weight",
                 async () => {
-                    if (args.logged_at !== undefined)
-                        validateLoggedAt(args.logged_at, Date.now());
+                    const { iso, note } = await resolveWriteTimestamp(
+                        userId,
+                        args.logged_at,
+                    );
                     const unit = await resolveWriteWeightUnit(
                         userId,
                         args.unit,
@@ -2814,7 +2896,7 @@ export function registerTools(
                     assertPlausibleWeight(weight_g, unit);
                     const { entry, deduplicated } = await insertWeight(userId, {
                         weight_g,
-                        logged_at: args.logged_at,
+                        logged_at: iso,
                         notes: args.notes,
                         idempotency_key: args.idempotency_key,
                     });
@@ -2825,7 +2907,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${prefix}: ${formatWeight(entry.weight_g, unit)} at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}`,
+                                text: `${prefix}: ${formatWeight(entry.weight_g, unit)} at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
                             },
                         ],
                     };
@@ -3187,7 +3269,12 @@ export function registerTools(
                     .describe(
                         "Unit of the weight value. Defaults to the user's preferred weight unit.",
                     ),
-                logged_at: z.string().optional().describe("ISO 8601 timestamp"),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "When the weight was measured. " + LOGGED_AT_FORMS,
+                    ),
                 notes: z.string().optional(),
             },
         },
@@ -3195,8 +3282,10 @@ export function registerTools(
             return withAnalytics(
                 "update_weight",
                 async () => {
-                    if (logged_at !== undefined)
-                        validateLoggedAt(logged_at, Date.now());
+                    const { iso, note } = await resolveWriteTimestamp(
+                        userId,
+                        logged_at,
+                    );
                     const patch: {
                         weight_g?: number;
                         logged_at?: string;
@@ -3218,14 +3307,14 @@ export function registerTools(
                             (await getPreferredWeightUnit(userId)) ??
                             "kg";
                     }
-                    if (logged_at !== undefined) patch.logged_at = logged_at;
+                    if (iso !== undefined) patch.logged_at = iso;
                     if (notes !== undefined) patch.notes = notes;
                     const entry = await updateWeight(userId, id, patch);
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Weight updated:\n${formatWeightEntry(entry, displayUnit)}`,
+                                text: `Weight updated:\n${formatWeightEntry(entry, displayUnit)}${note}`,
                             },
                         ],
                     };
@@ -3800,7 +3889,7 @@ export function registerTools(
         {
             title: "Set Timezone",
             description:
-                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). This controls which calendar day meals and water are grouped into — e.g. a meal logged at 11pm in LA counts on that LA day, not the next UTC day. If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
+                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). This controls which calendar day meals and water are grouped into — e.g. a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and it is also how a logged_at with no UTC offset is placed on write, which is permanent: correcting the timezone later re-buckets nothing that is already stored. If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,

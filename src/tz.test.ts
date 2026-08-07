@@ -10,7 +10,8 @@ import {
     zonedHourUtc,
     zonedWallClockToUtc,
     shiftLocalDate,
-    validateLoggedAt,
+    parseLoggedAt,
+    resolveWriteLoggedAt,
 } from "./tz.js";
 
 test("dateInTz maps an instant to the local calendar day", () => {
@@ -175,22 +176,135 @@ test("shiftLocalDate does calendar arithmetic across month boundaries", () => {
     expect(shiftLocalDate("2024-03-01", -1)).toBe("2024-02-29");
 });
 
-test("validateLoggedAt accepts past/now and rejects future & invalid", () => {
+// Issue #68: the manual write tools used to hand `logged_at` straight to a
+// timestamptz column, where an offset-less string is read in the session zone
+// (UTC). A Kyiv user logging 21:00 got 00:00 the NEXT day, and the tool's own
+// progress line said so.
+test("resolveWriteLoggedAt reads an offset-less time in the profile timezone", () => {
     const now = Date.parse("2026-07-02T12:00:00Z");
-    // past and present are fine
-    expect(() => validateLoggedAt("2026-07-01T12:00:00Z", now)).not.toThrow();
-    expect(() => validateLoggedAt("2026-07-02T12:00:00Z", now)).not.toThrow();
-    // within the 5-minute skew tolerance
-    expect(() => validateLoggedAt("2026-07-02T12:04:00Z", now)).not.toThrow();
-    // beyond tolerance -> future
-    expect(() => validateLoggedAt("2026-07-02T12:30:00Z", now)).toThrow(
+    // Kyiv is +03:00 in July.
+    expect(
+        resolveWriteLoggedAt(
+            "2026-07-01T21:00:00",
+            "Europe/Kyiv",
+            now,
+        ).instant.toISOString(),
+    ).toBe("2026-07-01T18:00:00.000Z");
+    // ...and +02:00 in January, which is why the offset cannot be stamped by a
+    // caller that only knows today's.
+    expect(
+        resolveWriteLoggedAt(
+            "2026-01-05T08:30",
+            "Europe/Kyiv",
+            now,
+        ).instant.toISOString(),
+    ).toBe("2026-01-05T06:30:00.000Z");
+    // A value that names its own offset is timezone-independent.
+    const absolute = resolveWriteLoggedAt(
+        "2026-07-01T21:00:00+02:00",
+        "Europe/Kyiv",
+        now,
+    );
+    expect(absolute.instant.toISOString()).toBe("2026-07-01T19:00:00.000Z");
+    expect(absolute.usedProfileTimezone).toBe(false);
+});
+
+test("resolveWriteLoggedAt anchors a bare date at local noon", () => {
+    const now = Date.parse("2026-07-02T12:00:00Z");
+    // Midnight would fall on the PREVIOUS local day for every negative-offset
+    // zone; noon has half a day of slack on either side.
+    const la = resolveWriteLoggedAt("2026-07-01", "America/Los_Angeles", now);
+    expect(la.instant.toISOString()).toBe("2026-07-01T19:00:00.000Z");
+    expect(dateInTz(la.instant, "America/Los_Angeles")).toBe("2026-07-01");
+    expect(la.fromBareDate).toBe(true);
+});
+
+test("resolveWriteLoggedAt bounds the future by clock time, but a bare date by calendar day", () => {
+    const now = Date.parse("2026-07-02T12:00:00Z");
+    // An explicit time is a claim about a clock that has already ticked.
+    expect(() =>
+        resolveWriteLoggedAt("2026-07-02T12:00:00Z", "UTC", now),
+    ).not.toThrow();
+    expect(() =>
+        resolveWriteLoggedAt("2026-07-02T12:04:00Z", "UTC", now),
+    ).not.toThrow(); // within the 5-minute skew tolerance
+    expect(() =>
+        resolveWriteLoggedAt("2026-07-02T12:30:00Z", "UTC", now),
+    ).toThrow(/future/);
+    expect(() =>
+        resolveWriteLoggedAt("2027-01-01T00:00:00Z", "UTC", now),
+    ).toThrow(/future/);
+
+    // A bare date's noon is an anchor for an unknown time, not a claim, so
+    // today logged in the morning must not be rejected as "in the future"...
+    const morning = Date.parse("2026-07-02T05:00:00Z");
+    expect(() =>
+        resolveWriteLoggedAt("2026-07-02", "UTC", morning),
+    ).not.toThrow();
+    // ...while a genuinely future calendar day still is.
+    expect(() => resolveWriteLoggedAt("2026-07-03", "UTC", morning)).toThrow(
         /future/,
     );
-    expect(() => validateLoggedAt("2027-01-01T00:00:00Z", now)).toThrow(
-        /future/,
-    );
-    // unparseable
-    expect(() => validateLoggedAt("not-a-date", now)).toThrow(/Invalid/);
+    // "Today" is the user's today: 05:00Z is already 2026-07-02 in Kyiv but
+    // still 2026-07-01 in Los Angeles.
+    expect(() =>
+        resolveWriteLoggedAt("2026-07-02", "America/Los_Angeles", morning),
+    ).toThrow(/future/);
+});
+
+test("resolveWriteLoggedAt accepts fractional seconds on the offset-less form", () => {
+    // A model that truncates its own toISOString() emits exactly this shape.
+    // The offset-carrying branch has always taken fractional seconds, so
+    // rejecting them here was an arbitrary split between the two forms.
+    const now = Date.parse("2026-07-02T12:00:00Z");
+    expect(
+        resolveWriteLoggedAt(
+            "2026-07-01T21:00:00.123",
+            "Europe/Kyiv",
+            now,
+        ).instant.toISOString(),
+    ).toBe("2026-07-01T18:00:00.000Z");
+});
+
+test("resolveWriteLoggedAt rejects what it cannot place", () => {
+    const now = Date.parse("2026-07-02T12:00:00Z");
+    for (const bad of [
+        "not-a-date",
+        "2026-13-01",
+        "2026-02-30",
+        "2026-1-5",
+        "07/02/2026",
+        "",
+    ]) {
+        expect(() => resolveWriteLoggedAt(bad, "UTC", now)).toThrow(
+            /logged_at is invalid/,
+        );
+    }
+    // Samoa skipped 2011-12-30 entirely; without the round-trip assertion this
+    // would silently land on the 31st.
+    expect(() =>
+        resolveWriteLoggedAt("2011-12-30", "Pacific/Apia", now),
+    ).toThrow(/does not exist in timezone/);
+});
+
+test("parseLoggedAt is the single resolver both write paths share", () => {
+    // Same string, same instant, whether it arrives via log_meal or
+    // bulk_import_meals. Every read path buckets by dateInTz, so a split here
+    // would file the same meal on two different days depending on which door
+    // the user happened to use.
+    const viaCore = parseLoggedAt("2026-01-05 08:30:00", "Europe/Kyiv");
+    expect(viaCore.ok).toBe(true);
+    if (viaCore.ok) {
+        expect(viaCore.value.instant.toISOString()).toBe(
+            "2026-01-05T06:30:00.000Z",
+        );
+        expect(viaCore.value.usedProfileTimezone).toBe(true);
+        expect(viaCore.value.localDate).toBe("2026-01-05");
+    }
+    expect(parseLoggedAt(undefined, "UTC")).toEqual({
+        ok: false,
+        reason: "missing",
+    });
 });
 
 test("validateTz accepts IANA names and rejects junk", () => {

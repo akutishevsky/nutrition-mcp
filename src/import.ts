@@ -22,7 +22,7 @@
 
 import { z } from "zod";
 import type { MealInput, MealInsertResult } from "./supabase.js";
-import { dateInTz, zonedHourUtc, zonedWallClockToUtc } from "./tz.js";
+import { LOGGED_AT_FIX, loggedAtFailureReason, parseLoggedAt } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
 import { toStoredInteger } from "./units.js";
 
@@ -330,24 +330,6 @@ export function normalizeSourceId(raw: string | undefined): string | null {
 
 // ---------- Timestamp resolution ----------
 
-const BARE_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const LOCAL_DATETIME_RE =
-    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/;
-const OFFSET_DATETIME_RE =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})$/;
-
-/** Reject calendar dates that Date.UTC would silently roll over (2026-13-01
- *  becomes 2027-01-01, 2026-02-30 becomes 2026-03-02). */
-function isRealCalendarDate(y: number, mo: number, d: number): boolean {
-    if (mo < 1 || mo > 12 || d < 1 || d > 31) return false;
-    const probe = new Date(Date.UTC(y, mo - 1, d));
-    return (
-        probe.getUTCFullYear() === y &&
-        probe.getUTCMonth() === mo - 1 &&
-        probe.getUTCDate() === d
-    );
-}
-
 function badTimestamp(
     raw: string | undefined,
     reason: string,
@@ -362,9 +344,6 @@ function badTimestamp(
     };
 }
 
-const TIMESTAMP_FIX =
-    'Use "YYYY-MM-DD" for a date with no known time, "YYYY-MM-DDTHH:mm" for a local time, or a full ISO 8601 string with an offset such as "2026-01-05T08:30:00+02:00".';
-
 export interface ResolvedTimestamp {
     iso: string;
     fromBareDate: boolean;
@@ -377,127 +356,52 @@ export interface ResolvedTimestamp {
 /**
  * Resolve a caller-supplied timestamp to a UTC instant.
  *
- * Three accepted forms:
- *   - `YYYY-MM-DD`                -> local noon in `tz` (noon maximizes the
- *                                    slack before any offset change could move
- *                                    the calendar day)
- *   - `YYYY-MM-DD[T ]HH:mm[:ss]`  -> that local wall clock in `tz`
- *   - full ISO 8601 with Z/offset -> taken as the absolute instant it names
+ * The placement rules live in `parseLoggedAt` (src/tz.ts) and are shared with
+ * the manual write tools, so the same string means the same instant whichever
+ * door it comes through. What is import-specific and stays here: the per-row
+ * `RowError` shaping, the "every row must be dated" rule, and the
+ * 20-years-past / 48-hours-future backfill window (a manual entry is a claim
+ * about a clock that has already ticked and gets a much tighter future bound).
  *
- * Offset-less local time is accepted deliberately: no fitness export carries an
- * offset, so requiring one forces the caller to compute the zone's historical
- * offset for each past date, which fails silently and per row. The server
- * already knows the timezone, so it resolves it here.
+ * Note this is NOT about dedupe across the two routes: the importer stamps an
+ * explicit `import:<basis>:<ordinal>` key on every row, so it never reaches the
+ * `auto:<digest>` derivation log_meal uses and the two key namespaces are
+ * structurally disjoint. What is shared is the calendar day the entry lands on.
  */
 export function resolveLoggedAt(
     raw: string | undefined,
     tz: string,
     nowMs: number,
 ): { ok: true; value: ResolvedTimestamp } | { ok: false; error: RowError } {
-    if (raw === undefined || raw.trim() === "") {
+    const parsed = parseLoggedAt(raw, tz);
+    if (!parsed.ok) {
+        if (parsed.reason === "missing") {
+            return {
+                ok: false,
+                error: badTimestamp(
+                    raw,
+                    "a bulk import must date every row, or every undated row would land on today",
+                    LOGGED_AT_FIX,
+                ),
+            };
+        }
         return {
             ok: false,
             error: badTimestamp(
-                raw,
-                "a bulk import must date every row, or every undated row would land on today",
-                TIMESTAMP_FIX,
-            ),
-        };
-    }
-    const text = raw.trim();
-
-    let instant: Date;
-    let fromBareDate = false;
-    let expectedDate: string | null = null;
-
-    const bare = BARE_DATE_RE.exec(text);
-    const local = LOCAL_DATETIME_RE.exec(text);
-    const offset = OFFSET_DATETIME_RE.exec(text);
-
-    if (bare) {
-        const [y, mo, d] = [Number(bare[1]), Number(bare[2]), Number(bare[3])];
-        if (!isRealCalendarDate(y, mo, d)) {
-            return {
-                ok: false,
-                error: badTimestamp(
-                    text,
-                    "that calendar date does not exist (a day/month swap is the usual cause)",
-                    TIMESTAMP_FIX,
-                ),
-            };
-        }
-        instant = zonedHourUtc(text, tz, 12);
-        fromBareDate = true;
-        expectedDate = text;
-    } else if (local) {
-        const y = Number(local[1]);
-        const mo = Number(local[2]);
-        const d = Number(local[3]);
-        const hh = Number(local[4]);
-        const mi = Number(local[5]);
-        const se = Number(local[6] ?? 0);
-        if (!isRealCalendarDate(y, mo, d) || hh > 23 || mi > 59 || se > 59) {
-            return {
-                ok: false,
-                error: badTimestamp(
-                    text,
-                    "that local date or time does not exist",
-                    TIMESTAMP_FIX,
-                ),
-            };
-        }
-        instant = zonedWallClockToUtc(y, mo, d, hh, mi, se, tz).instant;
-        expectedDate = `${local[1]}-${local[2]}-${local[3]}`;
-    } else if (offset) {
-        const y = Number(offset[1]);
-        const mo = Number(offset[2]);
-        const d = Number(offset[3]);
-        if (!isRealCalendarDate(y, mo, d)) {
-            return {
-                ok: false,
-                error: badTimestamp(
-                    text,
-                    "that calendar date does not exist",
-                    TIMESTAMP_FIX,
-                ),
-            };
-        }
-        instant = new Date(text);
-    } else {
-        return {
-            ok: false,
-            error: badTimestamp(text, "unrecognized format", TIMESTAMP_FIX),
-        };
-    }
-
-    if (Number.isNaN(instant.getTime())) {
-        return {
-            ok: false,
-            error: badTimestamp(text, "could not be parsed", TIMESTAMP_FIX),
-        };
-    }
-
-    // The round trip is the property every read path depends on. A handful of
-    // (date, zone) pairs are calendar days that never existed in that zone —
-    // dateline shifts such as Pacific/Apia 2011-12-30 — and this is what turns
-    // those into an explicit error instead of a row on the wrong day.
-    if (expectedDate !== null && dateInTz(instant, tz) !== expectedDate) {
-        return {
-            ok: false,
-            error: badTimestamp(
-                text,
-                `that local date does not exist in timezone ${tz}`,
-                TIMESTAMP_FIX,
+                raw!.trim(),
+                loggedAtFailureReason(parsed.reason, tz),
+                LOGGED_AT_FIX,
             ),
         };
     }
 
+    const { instant, fromBareDate, usedProfileTimezone } = parsed.value;
     const t = instant.getTime();
     if (t < nowMs - MAX_PAST_MS) {
         return {
             ok: false,
             error: badTimestamp(
-                text,
+                raw!.trim(),
                 "more than 20 years in the past",
                 "Check for a two-digit or mis-parsed year.",
             ),
@@ -507,7 +411,7 @@ export function resolveLoggedAt(
         return {
             ok: false,
             error: badTimestamp(
-                text,
+                raw!.trim(),
                 "more than 48 hours in the future",
                 "Check for a day/month swap or a mis-parsed year.",
             ),
@@ -519,7 +423,7 @@ export function resolveLoggedAt(
         value: {
             iso: instant.toISOString(),
             fromBareDate,
-            usedProfileTimezone: expectedDate !== null,
+            usedProfileTimezone,
         },
     };
 }

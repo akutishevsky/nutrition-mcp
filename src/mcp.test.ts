@@ -40,7 +40,13 @@ import {
     computeWeeklyDigest,
     type DailyBucket,
 } from "./insights.js";
-import type { Meal, NutritionGoals, WaterEntry } from "./supabase.js";
+import type {
+    Meal,
+    NutritionGoals,
+    WaterEntry,
+    WeightEntry,
+} from "./supabase.js";
+import { dateInTz } from "./tz.js";
 
 function meal(over: Partial<Meal> = {}): Meal {
     return {
@@ -993,6 +999,12 @@ const db = {
     meals: [] as Meal[],
     water: [] as WaterEntry[],
     inserted: [] as Record<string, unknown>[],
+    // Same capture as `inserted`, for the non-meal write paths. Each one
+    // resolves logged_at independently, so each needs its own witness.
+    mealUpdates: [] as Record<string, unknown>[],
+    waterInserted: [] as Record<string, unknown>[],
+    weightInserted: [] as Record<string, unknown>[],
+    weightUpdates: [] as Record<string, unknown>[],
     profilePatches: [] as Record<string, unknown>[],
     // Ids the delete stubs consider to exist. Deleting one removes it, so a
     // second delete of the same id reports "not found" like the real table.
@@ -1039,9 +1051,62 @@ mock.module("./supabase.js", () => ({
         id: string,
         fields: Record<string, unknown>,
     ) => {
+        db.mealUpdates.push(fields);
         const saved = storedMeal({ ...fields, id });
         db.meals = [saved];
         return saved;
+    },
+    insertWater: async (_userId: string, input: Record<string, unknown>) => {
+        db.waterInserted.push(input);
+        return {
+            entry: {
+                id: "w1",
+                user_id: "u1",
+                amount_ml: (input.amount_ml as number) ?? 0,
+                logged_at:
+                    (input.logged_at as string | undefined) ??
+                    "2026-08-07T00:00:00.000Z",
+                notes: (input.notes as string | undefined) ?? null,
+                created_at: "2026-08-07T00:00:00.000Z",
+                idempotency_key: null,
+            } as WaterEntry,
+            deduplicated: false,
+        };
+    },
+    insertWeight: async (_userId: string, input: Record<string, unknown>) => {
+        db.weightInserted.push(input);
+        return {
+            entry: {
+                id: "k1",
+                user_id: "u1",
+                weight_g: (input.weight_g as number) ?? 0,
+                logged_at:
+                    (input.logged_at as string | undefined) ??
+                    "2026-08-07T00:00:00.000Z",
+                notes: (input.notes as string | undefined) ?? null,
+                created_at: "2026-08-07T00:00:00.000Z",
+                idempotency_key: null,
+            } as WeightEntry,
+            deduplicated: false,
+        };
+    },
+    updateWeight: async (
+        _userId: string,
+        id: string,
+        fields: Record<string, unknown>,
+    ) => {
+        db.weightUpdates.push(fields);
+        return {
+            id,
+            user_id: "u1",
+            weight_g: (fields.weight_g as number | undefined) ?? 70_000,
+            logged_at:
+                (fields.logged_at as string | undefined) ??
+                "2026-08-07T00:00:00.000Z",
+            notes: (fields.notes as string | undefined) ?? null,
+            created_at: "2026-08-07T00:00:00.000Z",
+            idempotency_key: null,
+        } as WeightEntry;
     },
     deleteMeal: async (_userId: string, id: string) => {
         const before = db.meals.length;
@@ -1083,6 +1148,10 @@ beforeEach(() => {
     db.meals = [];
     db.water = [];
     db.inserted = [];
+    db.mealUpdates = [];
+    db.waterInserted = [];
+    db.weightInserted = [];
+    db.weightUpdates = [];
     db.profilePatches = [];
     db.rowIds = new Set<string>();
     db.analyticsRows = [];
@@ -1898,6 +1967,377 @@ describe("get_nutrition_summary discloses its logged-day denominator", () => {
             })) as ToolResult;
             const sc = r.structuredContent as unknown as SummaryPayload;
             expect(sc.days_in_range).toBe(1);
+        });
+    });
+});
+
+// ---------- every write path places logged_at in the user's timezone ----------
+
+// Issue #68. Before this, an offset-less `logged_at` went straight into a
+// timestamptz column, where Postgres reads it in the session zone (UTC). A Kyiv
+// user's 21:00 dinner landed at 21:00Z — midnight the NEXT day locally — so the
+// meal vanished from "today" and reappeared on tomorrow's summary, and a bare
+// date became UTC midnight, which for every negative-offset zone is the
+// PREVIOUS local day. bulk_import_meals had resolved these correctly for
+// months; the manual tools had no resolution at all. These tests drive the real
+// tools end-to-end and assert on the value handed to the DB layer, because the
+// echoed text alone cannot tell a correct instant from a mislabelled one.
+describe("manual write tools resolve logged_at in the profile timezone", () => {
+    const oatmeal = {
+        description: "Oatmeal",
+        meal_type: "breakfast",
+        calories: 300,
+    };
+    const loggedAtOf = (row: Record<string, unknown> | undefined) =>
+        row?.logged_at as string | undefined;
+
+    // The core case: 08:30 in Kyiv is 05:30Z in July (UTC+3). Storing the raw
+    // string instead files the meal three hours late.
+    test("an offset-less local time is read as wall-clock time in the saved zone", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            await call("log_meal", {
+                ...oatmeal,
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(loggedAtOf(db.inserted[0])).toBe("2026-07-20T05:30:00.000Z");
+        });
+    });
+
+    // The offset must come from the DATE being logged, not from today. Kyiv is
+    // UTC+2 in January and UTC+3 in July, so a backfilled winter meal resolved
+    // with the current offset would sit an hour off — enough to cross midnight
+    // for anything logged late in the evening.
+    test("a backfilled winter date uses that date's offset, not today's", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            await call("log_meal", {
+                ...oatmeal,
+                logged_at: "2026-01-15T08:30",
+            });
+            expect(loggedAtOf(db.inserted[0])).toBe("2026-01-15T06:30:00.000Z");
+        });
+    });
+
+    // A date with no time is anchored at local NOON, not local midnight: noon
+    // leaves ~12 hours of slack before any offset change could drag the row
+    // onto an adjacent calendar day.
+    test("a bare date anchors at local noon and reads back as the same day", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            await call("log_meal", { ...oatmeal, logged_at: "2026-07-20" });
+            const stored = loggedAtOf(db.inserted[0])!;
+            expect(stored).toBe("2026-07-20T09:00:00.000Z");
+            expect(dateInTz(stored, "Europe/Kyiv")).toBe("2026-07-20");
+        });
+    });
+
+    // The exact shape of the bug, in the zone that shows it: UTC midnight on
+    // 2026-07-20 is 17:00 on 2026-07-19 in Los Angeles, so the old behaviour
+    // filed a bare date one day EARLY for every user west of Greenwich.
+    test("a bare date in a negative-offset zone does not slip to the previous day", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "America/Los_Angeles" };
+        await withTools(null, async (call) => {
+            await call("log_meal", { ...oatmeal, logged_at: "2026-07-20" });
+            const stored = loggedAtOf(db.inserted[0])!;
+            expect(stored).toBe("2026-07-20T19:00:00.000Z");
+            expect(dateInTz(stored, "America/Los_Angeles")).toBe("2026-07-20");
+            // The value the old code would have written, for contrast.
+            expect(
+                dateInTz("2026-07-20T00:00:00.000Z", "America/Los_Angeles"),
+            ).toBe("2026-07-19");
+        });
+    });
+
+    // A value that carries its own offset already names an instant. Applying
+    // the profile zone on top of it would shift a correct timestamp.
+    test("a value carrying its own offset is untouched by the profile timezone", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            await call("log_meal", {
+                ...oatmeal,
+                logged_at: "2026-07-20T08:30:00Z",
+            });
+            await call("log_meal", {
+                ...oatmeal,
+                logged_at: "2026-07-20T08:30:00+05:00",
+            });
+            expect(loggedAtOf(db.inserted[0])).toBe("2026-07-20T08:30:00.000Z");
+            expect(loggedAtOf(db.inserted[1])).toBe("2026-07-20T03:30:00.000Z");
+        });
+    });
+
+    // Same offset-carrying string, opposite hemisphere of the prime meridian:
+    // the profile zone must make no difference at all.
+    test("two profiles resolve the same offset-carrying value identically", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            await call("log_meal", {
+                ...oatmeal,
+                logged_at: "2026-07-20T08:30:00+05:00",
+            });
+        });
+        const kyiv = loggedAtOf(db.inserted[0]);
+        db.inserted = [];
+        db.profile = { ...PROFILE_BASE, timezone: "America/Los_Angeles" };
+        await withTools(null, async (call) => {
+            await call("log_meal", {
+                ...oatmeal,
+                logged_at: "2026-07-20T08:30:00+05:00",
+            });
+        });
+        expect(loggedAtOf(db.inserted[0])).toBe(kyiv!);
+    });
+
+    // The resolver must stay out of the way when the caller said nothing:
+    // insertMeal derives its own "now" AND folds logged_at into the content
+    // digest, so substituting a value here would change the idempotency key.
+    test("an omitted logged_at reaches the DB layer as undefined", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", oatmeal);
+            expect(r.isError).toBeFalsy();
+            expect(db.inserted).toHaveLength(1);
+            expect(loggedAtOf(db.inserted[0])).toBeUndefined();
+            expect(textOf(r)).not.toContain("set_timezone");
+        });
+    });
+
+    // log_meal, update_meal and log_water validated logged_at not at all, so
+    // junk was handed to Postgres and came back as a raw cast error (or, worse,
+    // parsed into something plausible). The handler throws, and withAnalytics
+    // turns that into an isError result rather than rejecting the call.
+    test("log_meal rejects a logged_at it cannot place on the timeline", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                ...oatmeal,
+                logged_at: "yesterday evening",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("logged_at is invalid");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    // Read as UTC, an ordinary same-day local time from a user east of UTC
+    // resolves into the future and is rejected — a call that used to succeed.
+    // "logged_at is in the future" alone names the wrong cause, so the failure
+    // path has to carry the same unset-timezone hint the success path does.
+    test("a future-looking local time on an unconfigured account blames the timezone", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const soon = new Date(Date.now() + 2 * 60 * 60 * 1000)
+                .toISOString()
+                .slice(0, 19);
+            const r = await call("log_meal", { ...oatmeal, logged_at: soon });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("in the future");
+            expect(textOf(r)).toContain("set_timezone");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    // An unparseable value was never placed anywhere, so the timezone had
+    // nothing to do with it and the hint would only misdirect.
+    test("an unparseable value on an unconfigured account does not blame the timezone", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                ...oatmeal,
+                logged_at: "yesterday evening",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).not.toContain("set_timezone");
+        });
+    });
+
+    // A day/month swap ("20/07" mapped to month 20) is the realistic version of
+    // the same mistake, and it must not roll over into a valid 2027 date.
+    test("log_water rejects a calendar date that does not exist", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_water", {
+                amount_ml: 250,
+                logged_at: "2026-20-07",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("logged_at is invalid");
+            expect(db.waterInserted).toHaveLength(0);
+        });
+    });
+
+    // update_meal took the third route with no validation at all, and it can
+    // move an already-correct entry, so a bad value there is a silent
+    // corruption rather than a failed write.
+    test("update_meal resolves a moved timestamp in the saved zone", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: "m1",
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(loggedAtOf(db.mealUpdates[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+        });
+    });
+
+    // No profiles row is the only reliable "timezone was never configured"
+    // signal — a defaulted "UTC" column is indistinguishable from a user who
+    // genuinely chose UTC. Falling back silently would file the entry hours off
+    // with nothing on screen to explain it, so the tool has to say so.
+    test("a never-configured timezone warns that the value was read as UTC", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("log_meal", {
+                    ...oatmeal,
+                    logged_at: "2026-07-20T08:30:00",
+                }),
+            );
+            expect(text).toContain("set_timezone");
+            expect(text).toContain("no timezone set");
+            expect(loggedAtOf(db.inserted[0])).toBe("2026-07-20T08:30:00.000Z");
+        });
+    });
+
+    // The warning is about a missing setting, not about the timestamp form: a
+    // value carrying its own offset never consulted the timezone, so nagging
+    // about it would be noise on every single call.
+    test("no warning when the value carried its own offset, even with no profile", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("log_meal", {
+                    ...oatmeal,
+                    logged_at: "2026-07-20T08:30:00Z",
+                }),
+            );
+            expect(text).not.toContain("set_timezone");
+        });
+    });
+
+    // And a configured profile must stay quiet, or the note fires on every
+    // ordinary log for every user who has done nothing wrong.
+    test("no warning when the profile has a timezone", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("log_meal", {
+                    ...oatmeal,
+                    logged_at: "2026-07-20T08:30:00",
+                }),
+            );
+            expect(text).not.toContain("set_timezone");
+        });
+    });
+
+    // Water is bucketed into local days the same way meals are, so an
+    // unresolved offset-less time moves a late-evening glass onto tomorrow's
+    // hydration total.
+    test("log_water resolves an offset-less time the same way", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const r = await call("log_water", {
+                amount_ml: 250,
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(loggedAtOf(db.waterInserted[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+        });
+    });
+
+    // Weight is ordered by logged_at to pick "latest", so a few hours of drift
+    // can reorder two readings taken on the same day.
+    test("log_weight resolves an offset-less time the same way", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const r = await call("log_weight", {
+                weight: 70,
+                unit: "kg",
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(loggedAtOf(db.weightInserted[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+        });
+    });
+
+    // update_weight builds a patch object, and only a defined logged_at may
+    // appear in it — resolving must not smuggle an undefined key into an update
+    // that was only meant to change the notes.
+    test("update_weight resolves an offset-less time and omits an absent one", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            await call("update_weight", {
+                id: "k1",
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(loggedAtOf(db.weightUpdates[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+            await call("update_weight", { id: "k1", notes: "morning" });
+            expect(db.weightUpdates[1]).not.toHaveProperty("logged_at");
+        });
+    });
+
+    // The point of the whole change. The two routes do NOT dedupe against each
+    // other — the importer stamps `import:` keys and log_meal derives `auto:`
+    // ones — so both copies are stored either way. What must not differ is
+    // where they land: before the fix the same string went in hours apart, so
+    // the hand-logged meal and the imported one could sit on different local
+    // days and every read path disagreed with itself.
+    test("log_meal and bulk_import_meals resolve the same string identically", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        const LOCAL = "2026-07-20T08:30:00";
+        await withTools(null, async (call) => {
+            await call("log_meal", { ...oatmeal, logged_at: LOCAL });
+            await call("bulk_import_meals", {
+                meals: [
+                    {
+                        source_line: 1,
+                        description: "Oatmeal",
+                        logged_at: LOCAL,
+                        calories: 300,
+                    },
+                ],
+                expected_row_count: 1,
+                dry_run: false,
+            });
+            expect(db.inserted).toHaveLength(2);
+            expect(loggedAtOf(db.inserted[1])).toBe(
+                loggedAtOf(db.inserted[0])!,
+            );
+            expect(loggedAtOf(db.inserted[0])).toBe("2026-07-20T05:30:00.000Z");
+        });
+    });
+
+    // Same invariant for the bare-date form, where the two routes could most
+    // easily disagree: one anchoring at noon and the other at midnight would
+    // put the manual entry and the imported one on different local days.
+    test("log_meal and bulk_import_meals anchor a bare date identically", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "America/Los_Angeles" };
+        await withTools(null, async (call) => {
+            await call("log_meal", { ...oatmeal, logged_at: "2026-07-20" });
+            await call("bulk_import_meals", {
+                meals: [
+                    {
+                        source_line: 1,
+                        description: "Oatmeal",
+                        logged_at: "2026-07-20",
+                        calories: 300,
+                    },
+                ],
+                expected_row_count: 1,
+                dry_run: false,
+            });
+            expect(loggedAtOf(db.inserted[1])).toBe(
+                loggedAtOf(db.inserted[0])!,
+            );
+            expect(loggedAtOf(db.inserted[0])).toBe("2026-07-20T19:00:00.000Z");
         });
     });
 });
