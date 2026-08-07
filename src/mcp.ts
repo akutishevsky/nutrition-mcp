@@ -34,6 +34,7 @@ import {
     getProfile,
     countMeals,
     existingIdempotencyKeys,
+    existingMealIds,
     type Meal,
     type NutritionGoals,
     type WaterEntry,
@@ -574,6 +575,12 @@ const IMPORT_ROW_SCHEMA = z.object({
         .optional()
         .describe(
             "Optional label echoed back in the result so you can match errors to your own rows.",
+        ),
+    source_id: z
+        .string()
+        .optional()
+        .describe(
+            "The value of the 'id' column when the file is an export from THIS server (export_meals writes it). Always pass it through: it is how a re-imported backup is recognized as the user's existing meals instead of being duplicated. Ignored for files from other apps.",
         ),
 });
 
@@ -1229,7 +1236,7 @@ export function registerTools(
                 MAX_ROWS_PER_CALL +
                 " rows per call: split larger files by date range, keeping all rows for one calendar date in the same call. If a single calendar date alone has more than " +
                 MAX_ROWS_PER_CALL +
-                " rows, that date has to be split across more than one call — the row cap is a hard server-side limit and wins over the same-call grouping. Doing so loosens deduplication for that date only: two rows in it that are byte-identical (same description, meal_type, calories, protein_g, carbs_g, fat_g, notes and logged_at) may collapse into one if they land in different calls, so prefer keeping duplicate-looking rows together in one call when you have to split.",
+                " rows, that date has to be split across more than one call — the row cap is a hard server-side limit and wins over the same-call grouping. Doing so loosens deduplication for that date only: two rows in it that are byte-identical (same description, meal_type, calories, protein_g, carbs_g, fat_g, notes and logged_at) may collapse into one if they land in different calls, so prefer keeping duplicate-looking rows together in one call when you have to split. If the file is an export from THIS server (its header starts with an id column), map that column to source_id on every row — that is what makes restoring a backup a no-op instead of doubling the user's history.",
             inputSchema: {
                 meals: z
                     .array(IMPORT_ROW_SCHEMA)
@@ -1348,6 +1355,7 @@ export function registerTools(
                         insert: (input) => insertMeal(userId, input),
                         existingKeys: (keys) =>
                             existingIdempotencyKeys(userId, keys),
+                        existingMealIds: (ids) => existingMealIds(userId, ids),
                     });
 
                     // Same discovery problem as log_meal, one rung louder: a

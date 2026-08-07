@@ -247,6 +247,13 @@
                 { key: "notes", label: "Notes" },
                 { key: "time", label: "Time (separate column)" },
                 { key: "deleted", label: "Deleted flag" },
+                // Only meaningful in this app's own export, where it is the
+                // meal's id and is what lets a restored backup be recognized
+                // instead of duplicated. Offered like any other field so it can
+                // be re-pointed or unset; a foreign app's id column maps here
+                // harmlessly, because the server ignores anything that is not
+                // one of this user's meal ids.
+                { key: "source_id", label: "Meal id (from our export)" },
             ];
             // Header aliases for the exports surveyed. Matched with
             // normalizeHeader from csv.ts, so "Fat (g)" and "fat_g" both hit.
@@ -334,6 +341,12 @@
                 ],
                 notes: ["note", "notes", "comment", "kommentar"],
                 deleted: ["deleted"],
+                // Deliberately narrow. "meal_id" and "entry_id" are NOT here:
+                // a foreign app's identifier under one of those names would be
+                // sent and then dropped server-side anyway, and each extra
+                // alias is another chance to bind this to a column that is not
+                // an id at all. Our own export writes exactly "id".
+                source_id: ["id"],
             };
 
             // Columns that hold ADDED sugar rather than total sugar. The server
@@ -662,6 +675,10 @@
                             ? num(r, m.alcohol_g)
                             : undefined,
                         notes: cell(r, m.notes),
+                        // Passed through untouched. The server decides whether
+                        // it names one of this user's meals; the widget must
+                        // not, because it cannot see their history.
+                        source_id: cell(r, m.source_id),
                     });
                 }
                 S.rows = rows;

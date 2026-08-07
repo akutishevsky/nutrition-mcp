@@ -331,6 +331,41 @@ export async function existingIdempotencyKeys(
     );
 }
 
+/** Postgres casts every element of an `in (...)` list against the column type,
+ *  so one non-uuid id would fail the entire lookup — and with it the whole
+ *  import — rather than simply not matching. Filter before querying. */
+const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Which of `ids` are meals this user already has. An export of this server's
+ * own data carries each meal's id, so a re-import can recognize the meals it
+ * describes instead of writing a second copy of every one of them.
+ *
+ * Scoped by user_id, so another user's id is reported as absent and the row
+ * imports as a new meal — never as a match against a row they cannot see.
+ */
+export async function existingMealIds(
+    userId: string,
+    ids: string[],
+): Promise<Set<string>> {
+    const uuids = ids.filter((id) => UUID_RE.test(id));
+    if (uuids.length === 0) return new Set();
+
+    const { data, error } = await getSupabase()
+        .from("meals")
+        .select("id")
+        .eq("user_id", userId)
+        .in("id", uuids);
+
+    if (error) {
+        throw new Error(`Failed to check existing meals: ${error.message}`);
+    }
+    return new Set(
+        ((data as { id: string }[]) ?? []).map((r) => r.id.toLowerCase()),
+    );
+}
+
 /**
  * Fetch pages via `fetchPage(from, to)` (inclusive, 0-indexed) until a page
  * comes back shorter than `pageSize`. A plain unbounded select silently caps

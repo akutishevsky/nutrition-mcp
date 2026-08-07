@@ -93,6 +93,11 @@ export interface ImportRow {
     notes?: string;
     /** Caller-chosen correlation label. Echoed back; never used as a key. */
     client_row_id?: string;
+    /** The meal's id in the file it came from — this server's own CSV export
+     *  writes it in the `id` column. Unlike client_row_id this IS a key: a row
+     *  that names an existing meal is that meal, not a copy of it, so it is
+     *  reported as deduplicated instead of written again. */
+    source_id?: string;
 }
 
 export interface RowError {
@@ -106,6 +111,8 @@ export interface RowError {
 
 export interface ResolvedRow {
     input: MealInput;
+    /** Normalized `source_id`, or null when the row carried none we can use. */
+    source_id: string | null;
     meal_type_inferred: boolean;
     description_synthesized: boolean;
     logged_at_from_bare_date: boolean;
@@ -298,6 +305,27 @@ export interface ImportDeps {
     /** Which of these idempotency keys already exist, so a dry run can predict
      *  deduplication instead of promising creates that won't happen. */
     existingKeys(keys: string[]): Promise<Set<string>>;
+    /** Which of these ids name meals the user already has. Import keys and the
+     *  `auto:` keys log_meal writes live in different namespaces and hash
+     *  different renderings of the same meal, so a content digest can never
+     *  recognize an exported meal on the way back in — the id can. */
+    existingMealIds(ids: string[]): Promise<Set<string>>;
+}
+
+/** Shape of a meal id in this server's own export: a Postgres uuid. Only a
+ *  value of this shape can name an existing meal, so anything else found in an
+ *  `id` column — a foreign app's row counter, a barcode — is dropped rather
+ *  than rejected. Those files must still import, and passing a non-uuid to the
+ *  id lookup would fail the whole batch on a Postgres cast error. */
+const MEAL_SOURCE_ID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Lower-cased so a hand-edited file with upper-case uuids still matches both
+ *  the stored id and the key a previous import wrote. */
+export function normalizeSourceId(raw: string | undefined): string | null {
+    if (raw === undefined) return null;
+    const text = raw.trim().toLowerCase();
+    return MEAL_SOURCE_ID_RE.test(text) ? text : null;
 }
 
 // ---------- Timestamp resolution ----------
@@ -755,6 +783,7 @@ export function validateRow(
         client_row_id: clientRowId,
         resolved: {
             input,
+            source_id: normalizeSourceId(row.source_id),
             meal_type_inferred: mealTypeInferred,
             description_synthesized: descriptionSynthesized,
             logged_at_from_bare_date: ts.value.fromBareDate,
@@ -806,8 +835,18 @@ export function rowContentDigest(userId: string, input: MealInput): string {
  * one. Replaying the same payload regenerates the same ordinals, so a re-import
  * still dedupes completely.
  *
- * Returns the count of rows that duplicated an earlier row's content — worth
- * surfacing, since it usually means the caller's parser emitted a row twice.
+ * A row that carries a usable `source_id` keys on that id instead of on its
+ * content. The id survives everything the content digest does not: the export
+ * renders `logged_at` as second-precision local wall time and the importer
+ * re-resolves it, so the two digests of one meal differ by construction. Keying
+ * on the id also keeps two meals that happen to be identical apart.
+ *
+ * The `src:` marker cannot collide with a content digest, which is always 64
+ * hex characters.
+ *
+ * Returns the count of rows that duplicated an earlier row in this batch —
+ * worth surfacing, since it usually means the caller's parser emitted a row
+ * twice, or that a hand-edited file repeated an id.
  */
 export function assignIdempotencyKeys(
     userId: string,
@@ -816,11 +855,14 @@ export function assignIdempotencyKeys(
     const seen = new Map<string, number>();
     let duplicateRowsInFile = 0;
     for (const row of rows) {
-        const digest = rowContentDigest(userId, row.input);
-        const ordinal = seen.get(digest) ?? 0;
-        seen.set(digest, ordinal + 1);
+        const basis =
+            row.source_id !== null
+                ? `src:${row.source_id}`
+                : rowContentDigest(userId, row.input);
+        const ordinal = seen.get(basis) ?? 0;
+        seen.set(basis, ordinal + 1);
         if (ordinal > 0) duplicateRowsInFile++;
-        row.input.idempotency_key = `import:${digest}:${ordinal}`;
+        row.input.idempotency_key = `import:${basis}:${ordinal}`;
     }
     return { duplicateRowsInFile };
 }
@@ -1189,7 +1231,27 @@ export async function runImport(
     }
 
     const keys = okRows.map((v) => v.resolved.input.idempotency_key!);
-    const existing = await deps.existingKeys(keys);
+    const sourceIds = [
+        ...new Set(
+            okRows
+                .map((v) => v.resolved.source_id)
+                .filter((id): id is string => id !== null),
+        ),
+    ];
+    const [existing, existingIds] = await Promise.all([
+        deps.existingKeys(keys),
+        deps.existingMealIds(sourceIds),
+    ]);
+
+    /** The id of the meal this row already IS, when it names one the user still
+     *  has. Such a row is never written: its meal predates the export, so
+     *  inserting would duplicate it under a fresh id. Checked identically on
+     *  both paths so a dry run predicts exactly what the real run does. */
+    const storedIdFor = (v: (typeof okRows)[number]): string | null =>
+        v.resolved.source_id !== null && existingIds.has(v.resolved.source_id)
+            ? v.resolved.source_id
+            : null;
+    let matchedBySourceId = 0;
 
     const byIndex = new Map<number, ImportResultRow>();
     for (const v of validations) {
@@ -1199,9 +1261,14 @@ export async function runImport(
     if (dryRun) {
         for (const v of okRows) {
             const key = v.resolved.input.idempotency_key!;
-            if (existing.has(key)) {
+            const storedId = storedIdFor(v);
+            if (storedId !== null) matchedBySourceId++;
+            if (storedId !== null || existing.has(key)) {
                 summary.deduplicated++;
-                byIndex.set(v.index, resultRow(v, "would_deduplicate", null));
+                byIndex.set(
+                    v.index,
+                    resultRow(v, "would_deduplicate", storedId),
+                );
             } else {
                 summary.would_create++;
                 byIndex.set(v.index, resultRow(v, "would_create", null));
@@ -1213,6 +1280,13 @@ export async function runImport(
             if (aborted) {
                 summary.not_attempted++;
                 byIndex.set(v.index, resultRow(v, "not_attempted", null));
+                continue;
+            }
+            const storedId = storedIdFor(v);
+            if (storedId !== null) {
+                matchedBySourceId++;
+                summary.deduplicated++;
+                byIndex.set(v.index, resultRow(v, "deduplicated", storedId));
                 continue;
             }
             try {
@@ -1244,6 +1318,14 @@ export async function runImport(
                 if (onError === "abort") aborted = true;
             }
         }
+    }
+
+    // Worth stating plainly: a user restoring a backup sees created: 0 and
+    // needs to know that means "already there", not "nothing happened".
+    if (matchedBySourceId > 0) {
+        warnings.push(
+            `${matchedBySourceId} row(s) are meals you already have — they were matched by the id in the file and left untouched, not written again.`,
+        );
     }
 
     const landed =

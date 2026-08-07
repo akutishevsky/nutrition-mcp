@@ -29,13 +29,20 @@ import type { MealInput, MealInsertResult } from "../src/supabase.js";
 // That is what makes an end-to-end widget run meaningful: the same validation,
 // idempotency keys and per-row report a client would get.
 const store = new Map<string, MealInput & { id: string }>();
+const byId = new Map<string, MealInput & { id: string }>();
 let mealSeq = 0;
+// Uuid-shaped, because the importer only honours a source_id that could name a
+// real meal — "harness-1" ids would make an export re-import look like it
+// deduped nothing, which is exactly the bug this flow now guards against.
+const harnessMealId = (n: number) =>
+    `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 async function fakeInsert(input: MealInput): Promise<MealInsertResult> {
     const key = input.idempotency_key!;
     const existing = store.get(key);
     if (existing) return { meal: existing as never, deduplicated: true };
-    const meal = { id: `harness-${++mealSeq}`, ...input };
+    const meal = { id: harnessMealId(++mealSeq), ...input };
     store.set(key, meal);
+    byId.set(meal.id, meal);
     return { meal: meal as never, deduplicated: false };
 }
 
@@ -455,11 +462,15 @@ Bun.serve({
                 async existingKeys(keys) {
                     return new Set(keys.filter((k) => store.has(k)));
                 },
+                async existingMealIds(ids) {
+                    return new Set(ids.filter((id) => byId.has(id)));
+                },
             });
             return Response.json(result);
         }
         if (url.pathname === "/tool/reset" && req.method === "POST") {
             store.clear();
+            byId.clear();
             mealSeq = 0;
             return Response.json({ ok: true, cleared: true });
         }

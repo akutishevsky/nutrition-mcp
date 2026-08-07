@@ -33,8 +33,14 @@ function makeStore(
     } = {},
 ) {
     const byKey = new Map<string, Meal>();
+    const byId = new Map<string, Meal>();
     const inserted: MealInput[] = [];
     let counter = 0;
+    // Real meal ids are Postgres uuids, and the importer only treats a
+    // uuid-shaped source_id as capable of naming a meal — a fake minting
+    // "meal-1" would make every source_id test vacuously pass.
+    const nextId = () =>
+        `11111111-1111-4111-8111-${String(++counter).padStart(12, "0")}`;
     const deps: ImportDeps = {
         userId: "user-1",
         tz: TZ,
@@ -46,7 +52,7 @@ function makeStore(
             const existing = byKey.get(key);
             if (existing) return { meal: existing, deduplicated: true };
             const meal = {
-                id: `meal-${++counter}`,
+                id: nextId(),
                 user_id: "user-1",
                 logged_at: input.logged_at!,
                 meal_type: input.meal_type,
@@ -59,14 +65,18 @@ function makeStore(
                 idempotency_key: key,
             } as Meal;
             byKey.set(key, meal);
+            byId.set(meal.id, meal);
             inserted.push({ ...input });
             return { meal, deduplicated: false };
         },
         async existingKeys(keys: string[]) {
             return new Set(keys.filter((k) => byKey.has(k)));
         },
+        async existingMealIds(ids: string[]) {
+            return new Set(ids.filter((id) => byId.has(id)));
+        },
     };
-    return { deps, inserted, byKey };
+    return { deps, inserted, byKey, byId };
 }
 
 function row(over: Partial<ImportRow> & { source_line: number }): ImportRow {
@@ -1014,4 +1024,173 @@ test("buildSummaryText explains a batch-gate failure that has no per-row results
     );
     expect(text).toContain("integrity check");
     expect(text).toContain("expected_row_count");
+});
+
+// ---------- source_id: export -> re-import (issue #69) ----------
+
+/** A meal as log_meal would have written it: an `auto:` key over a content
+ *  digest the importer can neither reproduce nor query. */
+function loggedMeal(id: string, over: Partial<Meal> = {}): Meal {
+    return {
+        id,
+        user_id: "user-1",
+        logged_at: "2026-01-15T06:30:00.000Z",
+        meal_type: "breakfast",
+        description: "Oatmeal",
+        calories: 300,
+        protein_g: null,
+        carbs_g: null,
+        fat_g: null,
+        notes: null,
+        idempotency_key: "auto:0123456789abcdef",
+        ...over,
+    } as Meal;
+}
+
+const EXPORTED_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+
+test("a row naming a meal the user already has is deduplicated, not written", async () => {
+    const { deps, inserted, byId, byKey } = makeStore();
+    const meal = loggedMeal(EXPORTED_ID);
+    byId.set(meal.id, meal);
+    byKey.set(meal.idempotency_key!, meal);
+
+    // The content deliberately does NOT match the stored meal: the export
+    // renders second-precision local wall time and the importer re-resolves
+    // it, so the digests differ by construction. Only the id can recognize it.
+    const result = await runImport(
+        args([
+            row({
+                source_line: 2,
+                source_id: EXPORTED_ID,
+                logged_at: "2026-01-15 08:30:00",
+                calories: 301,
+            }),
+        ]),
+        deps,
+    );
+
+    expect(result.summary.created).toBe(0);
+    expect(result.summary.deduplicated).toBe(1);
+    expect(result.status).toBe("success");
+    expect(inserted).toHaveLength(0);
+    // The report points at the meal the user already has, not at nothing.
+    expect(result.results[0]!.status).toBe("deduplicated");
+    expect(result.results[0]!.meal_id).toBe(EXPORTED_ID);
+    expect(result.warnings.some((w) => /already have/.test(w))).toBe(true);
+});
+
+test("a dry run predicts source_id dedup instead of promising creates", async () => {
+    const { deps, inserted, byId } = makeStore();
+    byId.set(EXPORTED_ID, loggedMeal(EXPORTED_ID));
+
+    const dry = await runImport(
+        args([row({ source_line: 2, source_id: EXPORTED_ID })], {
+            dry_run: true,
+        }),
+        deps,
+    );
+
+    // The whole failure in #69: this reported would_create: 1 with no warning.
+    expect(dry.summary.would_create).toBe(0);
+    expect(dry.summary.deduplicated).toBe(1);
+    expect(dry.results[0]!.status).toBe("would_deduplicate");
+    // Dry and real agree on the id, so the preview names the same meal.
+    expect(dry.results[0]!.meal_id).toBe(EXPORTED_ID);
+    expect(inserted).toHaveLength(0);
+});
+
+test("re-importing an export of meals since deleted stays idempotent", async () => {
+    const { deps, inserted } = makeStore();
+    // Nothing seeded: the user wiped their history, so no id matches and the
+    // rows must actually be written.
+    const rows = [
+        row({ source_line: 2, source_id: EXPORTED_ID }),
+        row({
+            source_line: 3,
+            source_id: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+            description: "Toast",
+            calories: 120,
+        }),
+    ];
+    const first = await runImport(args(rows), deps);
+    expect(first.summary.created).toBe(2);
+
+    // Restoring the same file twice must not double it. The new meals carry
+    // fresh uuids, so the id lookup cannot catch this — the `import:src:` key
+    // written by the first run is what does.
+    const second = await runImport(args(rows), deps);
+    expect(second.summary.created).toBe(0);
+    expect(second.summary.deduplicated).toBe(2);
+    expect(inserted).toHaveLength(2);
+});
+
+test("an id column from another app is ignored rather than failing the row", async () => {
+    const { deps, inserted } = makeStore();
+    // Lose It! and friends number their rows; a bare integer names no meal here
+    // and must not reach the uuid-typed id lookup either.
+    const result = await runImport(
+        args([
+            row({ source_line: 2, source_id: "148203" }),
+            row({ source_line: 3, source_id: "", description: "Toast" }),
+        ]),
+        deps,
+    );
+
+    expect(result.summary.created).toBe(2);
+    expect(result.summary.failed).toBe(0);
+    expect(inserted).toHaveLength(2);
+    // Keyed on content, exactly as before source_id existed.
+    for (const input of inserted) {
+        expect(input.idempotency_key).toMatch(/^import:[0-9a-f]{64}:0$/);
+    }
+});
+
+test("source_id keys are id-scoped, and a repeated id still imports twice", () => {
+    const rows = [
+        validateRow(
+            row({ source_line: 2, source_id: EXPORTED_ID.toUpperCase() }),
+            0,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        ),
+        validateRow(
+            row({ source_line: 3, source_id: EXPORTED_ID }),
+            1,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        ),
+        validateRow(
+            row({ source_line: 4, description: "Toast" }),
+            2,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        ),
+    ].map((v) => {
+        if (!v.ok) throw new Error("fixture row failed validation");
+        return v.resolved;
+    });
+
+    const { duplicateRowsInFile } = assignIdempotencyKeys("user-1", rows);
+
+    // Case-folded, so a hand-edited file with upper-case uuids matches.
+    expect(rows[0]!.input.idempotency_key).toBe(`import:src:${EXPORTED_ID}:0`);
+    // A repeated id is a broken file, not a merge instruction: the ordinal
+    // keeps the second row importable, exactly as for repeated content.
+    expect(rows[1]!.input.idempotency_key).toBe(`import:src:${EXPORTED_ID}:1`);
+    expect(duplicateRowsInFile).toBe(1);
+    // A row without an id is untouched by any of this.
+    expect(rows[2]!.input.idempotency_key).toMatch(/^import:[0-9a-f]{64}:0$/);
+});
+
+test("another user's meal id is not treated as already-present", async () => {
+    const { deps, inserted } = makeStore();
+    // The fake mirrors existingMealIds' user scoping by simply not holding the
+    // id; the row must import as a new meal rather than silently vanish.
+    const result = await runImport(
+        args([row({ source_line: 2, source_id: EXPORTED_ID })]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(inserted).toHaveLength(1);
 });

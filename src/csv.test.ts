@@ -1,6 +1,8 @@
 import { test, expect } from "bun:test";
 import type { MealInput } from "./supabase.js";
 import { runImport, resolveLoggedAt } from "./import.js";
+import { buildMealsCsv } from "./export.js";
+import type { Meal } from "./supabase.js";
 import {
     parseCsv,
     decodeBytes,
@@ -460,6 +462,9 @@ test("a parsed export feeds straight into runImport", async () => {
             async existingKeys() {
                 return new Set<string>();
             },
+            async existingMealIds() {
+                return new Set<string>();
+            },
         },
     );
 
@@ -832,4 +837,159 @@ test("toKcal rounds a kcal column too", () => {
     expect(toKcal(388.54, "kcal")).toBe(389);
     expect(toKcal(219.88, "kcal")).toBe(220);
     expect(toKcal(0.4, "kcal")).toBe(0);
+});
+
+// ---------- export -> re-import round trip (issue #69) ----------
+
+/** Meals as log_meal wrote them: real uuids, `auto:` keys over a digest the
+ *  importer neither shares nor can query. */
+const STORED: Meal[] = [
+    {
+        id: "aaaaaaaa-1111-4111-8111-000000000001",
+        user_id: "user-1",
+        logged_at: "2026-01-15T06:30:00.000Z",
+        meal_type: "breakfast",
+        description: "Oatmeal",
+        calories: 300,
+        protein_g: 12,
+        carbs_g: 45,
+        fat_g: 8,
+        notes: null,
+        idempotency_key: "auto:1111111111111111",
+    },
+    {
+        id: "aaaaaaaa-1111-4111-8111-000000000002",
+        user_id: "user-1",
+        logged_at: "2026-01-15T11:00:00.000Z",
+        meal_type: "lunch",
+        description: "Rice, cooked",
+        calories: 400,
+        protein_g: 10,
+        carbs_g: 80,
+        fat_g: 2,
+        notes: "tasty",
+        idempotency_key: "auto:2222222222222222",
+    },
+    {
+        id: "aaaaaaaa-1111-4111-8111-000000000003",
+        user_id: "user-1",
+        logged_at: "2026-01-16T17:00:00.000Z",
+        meal_type: "dinner",
+        description: "Soup",
+        calories: 250,
+        protein_g: 8,
+        carbs_g: 30,
+        fat_g: 6,
+        notes: null,
+        idempotency_key: "auto:3333333333333333",
+    },
+] as Meal[];
+
+/** Parse an export the way the widget does and hand the rows to runImport
+ *  against a store that already holds `STORED`. `mapId` controls whether the
+ *  `id` column is carried through, which is the entire fix. */
+async function reimportOwnExport(mapId: boolean) {
+    const csv = buildMealsCsv(STORED, "Europe/Kyiv");
+    const t = parseCsv(csv);
+    const col = (aliases: string[]) => findColumn(t.headers, aliases);
+    const str = (row: string[], i: number) =>
+        i < 0 || isBlankCell(row[i]) ? undefined : row[i]!.trim();
+    const num = (row: string[], i: number) => {
+        if (i < 0) return undefined;
+        const v = parseNumber(row[i], t.decimalSeparator);
+        return v === null ? undefined : v;
+    };
+    const c = {
+        id: mapId ? col(["id"]) : -1,
+        logged_at: col(["logged_at"]),
+        meal_type: col(["meal_type"]),
+        description: col(["description"]),
+        calories: col(["calories"]),
+        protein_g: col(["protein_g"]),
+        carbs_g: col(["carbs_g"]),
+        fat_g: col(["fat_g"]),
+        notes: col(["notes"]),
+    };
+
+    const meals = t.rows.map((row, i) => ({
+        source_line: t.sourceLines[i]!,
+        source_id: str(row, c.id),
+        logged_at: str(row, c.logged_at),
+        meal_type: str(row, c.meal_type),
+        description: str(row, c.description),
+        calories: num(row, c.calories),
+        protein_g: num(row, c.protein_g),
+        carbs_g: num(row, c.carbs_g),
+        fat_g: num(row, c.fat_g),
+        notes: str(row, c.notes),
+    }));
+
+    const byId = new Map(STORED.map((m) => [m.id, m]));
+    const byKey = new Set(STORED.map((m) => m.idempotency_key!));
+    const inserted: MealInput[] = [];
+    const result = await runImport(
+        {
+            meals,
+            expected_row_count: meals.length,
+            expected_total_kcal: meals.reduce(
+                (a, m) => a + (m.calories ?? 0),
+                0,
+            ),
+        },
+        {
+            userId: "user-1",
+            tz: "Europe/Kyiv",
+            tzConfigured: true,
+            nowMs: Date.parse("2026-07-25T12:00:00Z"),
+            async insert(input) {
+                inserted.push(input);
+                return {
+                    meal: { id: `new-${inserted.length}`, ...input } as never,
+                    deduplicated: false,
+                };
+            },
+            async existingKeys(keys) {
+                return new Set(keys.filter((k) => byKey.has(k)));
+            },
+            async existingMealIds(ids) {
+                return new Set(ids.filter((id) => byId.has(id)));
+            },
+        },
+    );
+    return { result, inserted, csv, t };
+}
+
+test("re-importing this server's own export duplicates nothing", async () => {
+    // Issue #69: "export as a backup, then restore it" doubled the whole
+    // history, and the dry run promised a clean 300 creates first.
+    const { result, inserted } = await reimportOwnExport(true);
+
+    expect(result.status).toBe("success");
+    expect(result.summary.created).toBe(0);
+    expect(result.summary.deduplicated).toBe(3);
+    expect(inserted).toHaveLength(0);
+    // Every row points back at the meal it already is.
+    expect(result.results.map((r) => r.meal_id)).toEqual(
+        STORED.map((m) => m.id),
+    );
+    expect(result.results.every((r) => r.status === "deduplicated")).toBe(true);
+    expect(result.warnings.some((w) => /already have/.test(w))).toBe(true);
+});
+
+test("without the id column that same file is indistinguishable from new meals", async () => {
+    // The negative control that keeps the test above honest: the content digest
+    // alone cannot recognize these rows, because the export renders logged_at as
+    // local wall time and log_meal hashed the instant under an `auto:` key.
+    const { result, inserted } = await reimportOwnExport(false);
+
+    expect(result.summary.created).toBe(3);
+    expect(inserted).toHaveLength(3);
+});
+
+test("the export's id column is what the importer's source_id alias matches", () => {
+    // Guards the header contract in both directions: export.ts must keep
+    // writing `id` first, and the widget's ALIASES entry maps exactly that.
+    const t = parseCsv(buildMealsCsv(STORED, "UTC"));
+    expect(findColumn(t.headers, ["id"])).toBe(0);
+    expect(t.rows[0]![0]).toBe(STORED[0]!.id);
 });

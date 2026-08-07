@@ -1052,6 +1052,8 @@ mock.module("./supabase.js", () => ({
     deleteWeight: async (_userId: string, id: string) => db.rowIds.delete(id),
     countMeals: async () => db.meals.length,
     existingIdempotencyKeys: async () => new Set<string>(),
+    existingMealIds: async (_userId: string, ids: string[]) =>
+        new Set(ids.filter((id) => db.meals.some((m) => m.id === id))),
     getPreferredWeightUnit: async () =>
         db.profile?.preferred_weight_unit ?? null,
     upsertNutritionGoals: async (
@@ -1587,6 +1589,78 @@ describe("bulk_import_meals surfaces hidden alcohol", () => {
             expect(text).toContain("would be saved");
             expect(text).not.toContain("Alcohol saved with these meals");
             expect(text).toContain("set_alcohol_tracking");
+        });
+    });
+});
+
+// ---------- restoring an export is a no-op, not a second copy ----------
+
+// Issue #69. The server-side dedup is unit-tested in import.test.ts; what this
+// pins is the wiring, and specifically the one link that fails SILENTLY:
+// IMPORT_ROW_SCHEMA is a plain z.object, so zod strips any key it does not
+// declare. Drop source_id from that schema and every test in import.test.ts
+// still passes while the fix stops working in production.
+describe("bulk_import_meals honours the id column of our own export", () => {
+    const EXPORTED_ID = "aaaaaaaa-1111-4111-8111-000000000001";
+
+    const call = (
+        c: CallTool,
+        meals: Record<string, unknown>[],
+        extra: Record<string, unknown> = {},
+    ) =>
+        c("bulk_import_meals", {
+            meals,
+            expected_row_count: meals.length,
+            dry_run: false,
+            ...extra,
+        });
+
+    const exportedRow = {
+        source_line: 2,
+        source_id: EXPORTED_ID,
+        description: "Oatmeal",
+        // Wall-clock form, exactly as export.ts renders it.
+        logged_at: "2026-07-20 08:30:00",
+        meal_type: "breakfast",
+        calories: 300,
+    };
+
+    test("a row naming an existing meal is deduplicated, not inserted", async () => {
+        db.meals = [meal({ id: EXPORTED_ID })];
+        await withTools(null, async (c) => {
+            const r = await call(c, [exportedRow]);
+            const sc = r.structuredContent as unknown as {
+                summary: { created: number; deduplicated: number };
+                results: { status: string; meal_id: string | null }[];
+            };
+            expect(sc.summary.created).toBe(0);
+            expect(sc.summary.deduplicated).toBe(1);
+            expect(sc.results[0]!.status).toBe("deduplicated");
+            expect(sc.results[0]!.meal_id).toBe(EXPORTED_ID);
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("a dry run says so up front", async () => {
+        db.meals = [meal({ id: EXPORTED_ID })];
+        await withTools(null, async (c) => {
+            const r = await call(c, [exportedRow], { dry_run: true });
+            const sc = r.structuredContent as unknown as {
+                summary: { would_create: number; deduplicated: number };
+            };
+            expect(sc.summary.would_create).toBe(0);
+            expect(sc.summary.deduplicated).toBe(1);
+        });
+    });
+
+    test("an id the user does not have imports normally", async () => {
+        await withTools(null, async (c) => {
+            const r = await call(c, [exportedRow]);
+            const sc = r.structuredContent as unknown as {
+                summary: { created: number };
+            };
+            expect(sc.summary.created).toBe(1);
+            expect(db.inserted).toHaveLength(1);
         });
     });
 });
