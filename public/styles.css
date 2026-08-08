@@ -919,29 +919,70 @@ html:has(body.landing) {
 
 /* ---------- stats ---------- */
 .stat-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.5rem 1rem;
     text-align: center;
 }
-.stat {
+.odo-hero {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    align-items: center;
+    gap: 0.5rem;
 }
-.stat-num {
+/* Odometer. One reel per digit: a strip of stacked 0-9 cycles clipped to a
+   single cell, slid so the cell on show is the final digit. --cell is the unit
+   for both the clip height and the travel, so they can never drift apart.
+   Reels are laid out as flex items, which is why the tracking is carried by
+   letter-spacing inside each cell rather than by margins between them. */
+.odo {
+    --cell: 1.08em;
+    display: inline-flex;
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: clamp(2rem, 4.5vw, 3.4rem);
+    font-size: clamp(2.5rem, 6.4vw, 6rem);
     line-height: 1;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.045em;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
 }
-.stat-cap {
-    font-size: 0.85rem;
-    font-weight: 400;
+.odo-reel {
+    display: block;
+    height: var(--cell);
+    overflow: hidden;
+}
+/* Travel is a percentage of the strip's own height, not `n * var(--cell)`:
+   changing an unregistered custom property inside calc() does not reliably
+   start a transition, so the reels snapped instead of rolling. A percentage is
+   an ordinary transform change, and it stays in register when the clamped
+   font-size — and with it --cell — changes on resize. */
+.odo-strip {
+    display: block;
+    transform: translateY(0);
+    transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.odo-strip span,
+.odo-sep {
+    display: block;
+    height: var(--cell);
+    line-height: var(--cell);
+}
+.odo-cap {
+    font-size: 0.95rem;
     color: var(--ink-2);
+}
+.odo-rest {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem clamp(1.25rem, 3vw, 2.5rem);
+    margin-top: clamp(1.5rem, 3vw, 2.25rem);
+    font-size: 0.95rem;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+}
+.odo-rest b {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
 }
 
 /* ---------- world map ---------- */
@@ -1980,9 +2021,6 @@ html:has(body.landing) {
     }
 }
 @media (max-width: 720px) {
-    .stat-row {
-        grid-template-columns: repeat(3, 1fr);
-    }
     .features-grid,
     .steps3,
     .compare,
@@ -2001,9 +2039,6 @@ html:has(body.landing) {
     }
 }
 @media (max-width: 460px) {
-    .stat-row {
-        grid-template-columns: repeat(2, 1fr);
-    }
     .seg label {
         font-size: 0.75rem;
         gap: 0.3rem;
@@ -2017,6 +2052,10 @@ html:has(body.landing) {
     .tz-halo,
     .msg {
         animation: none;
+    }
+    /* belt and braces: setOdometer() also renders the plain number instead */
+    .odo-strip {
+        transition: none;
     }
 }
 
