@@ -373,8 +373,11 @@ describe("timezoneLevels", () => {
         // The whole point of the change: with one radius for everything the map
         // said nothing. 1 of 273 must not read the same as 38 of 273.
         const levels = timezoneLevels({ big: 38, small: 1, rest: 234 });
+        // Asserted as exact levels rather than `big > small`: under
+        // noUncheckedIndexedAccess a lookup is number | undefined, and
+        // toBeGreaterThan would not accept that as its argument.
         expect(levels.small).toBe(1);
-        expect(levels.big).toBeGreaterThan(levels.small);
+        expect(levels.big).toBe(TZ_LEVEL_THRESHOLDS.length + 1);
     });
 
     test("levels are shares, not ranks — scaling everything changes nothing", () => {
