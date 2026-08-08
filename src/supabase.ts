@@ -1293,6 +1293,53 @@ export interface LandingStats {
     // IANA names of every distinct timezone in use — drives the landing-page
     // world map. Aggregate-only; no per-user data.
     timezone_list: string[];
+    // IANA name -> 1..5, that timezone's share of all profiles. Sizes each dot
+    // on the world map. Levels, never counts: see timezoneLevels().
+    timezone_levels: Record<string, number>;
+}
+
+// What the SQL function actually returns. `timezone_counts` is exact and stays
+// inside the process — it is bucketed before anything is served.
+interface RawLandingStats extends Omit<LandingStats, "timezone_levels"> {
+    timezone_counts?: Record<string, number>;
+}
+
+// Share of all profiles at which a timezone moves up a level. Geometric, not
+// evenly spaced, because the real distribution is long-tailed: at 273 profiles
+// the largest timezone held 14% while 27 timezones held one profile each. Even
+// cuts would drop ~80% of dots into level 1 and the map would show no gradient
+// at all. Doubling at each step keeps every bucket populated.
+export const TZ_LEVEL_THRESHOLDS = [0.01, 0.02, 0.04, 0.08] as const;
+
+// The level whose radius matches the single size every dot used to be drawn at.
+// Used only when the DB has no counts to bucket — see getLandingStats.
+export const LEGACY_TZ_LEVEL = 3;
+
+// Buckets exact per-timezone counts into 1..5 by share of the total.
+//
+// This is the privacy boundary for the world map. /api/stats is public and
+// unauthenticated, and most timezones have a single profile — publishing the
+// counts would amount to "exactly one person uses this app in Pacific/Apia".
+// A level only narrows a timezone to a range, and the widest range (level 1)
+// is also the one nearly every small timezone lands in.
+export function timezoneLevels(
+    counts: Record<string, number>,
+): Record<string, number> {
+    const entries = Object.entries(counts).filter(
+        ([, n]) => typeof n === "number" && n > 0,
+    );
+    const total = entries.reduce((sum, [, n]) => sum + n, 0);
+    const levels: Record<string, number> = {};
+    if (total <= 0) return levels;
+    for (const [tz, n] of entries) {
+        const share = n / total;
+        let level = 1;
+        for (const threshold of TZ_LEVEL_THRESHOLDS) {
+            if (share >= threshold) level++;
+        }
+        levels[tz] = level;
+    }
+    return levels;
 }
 
 // Aggregate-only totals for the public landing page. Backed by the
@@ -1301,7 +1348,19 @@ export interface LandingStats {
 export async function getLandingStats(): Promise<LandingStats> {
     const { data, error } = await getSupabase().rpc("public_landing_stats");
     if (error) throw new Error(`Failed to get landing stats: ${error.message}`);
-    return data as LandingStats;
+    const { timezone_counts, ...rest } = data as RawLandingStats;
+    const timezone_levels = timezoneLevels(timezone_counts ?? {});
+    // Deploy-order safety. The app and the database ship separately, so this
+    // code can be live before the migration that adds `timezone_counts` has
+    // run. Without a fallback the map would render its land grid and not a
+    // single active dot; instead every timezone gets the level whose radius is
+    // the size they were all drawn at before, which looks exactly like today.
+    if (Object.keys(timezone_levels).length === 0) {
+        for (const tz of rest.timezone_list ?? []) {
+            timezone_levels[tz] = LEGACY_TZ_LEVEL;
+        }
+    }
+    return { ...rest, timezone_levels };
 }
 
 // ---------- Registered clients ----------

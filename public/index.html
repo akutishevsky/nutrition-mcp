@@ -3137,8 +3137,30 @@
                 // UTC-equivalent zones all resolve to the map center [500,250]
                 // (lon 0, lat 0 — open ocean), so plotting them drops a bogus
                 // dot in the middle of the map. Skip them.
-                var UTC_TZS = { UTC: 1, "Etc/UTC": 1, "Etc/GMT": 1 };
-                function buildMap(mapData, activeTzs) {
+                // gen-map-data.ts parks all of these on null island, so every
+                // one of them has to be skipped — GMT and Etc/Greenwich were
+                // missing here, and a profile on either would have drawn a dot
+                // in the middle of the Atlantic.
+                var UTC_TZS = {
+                    UTC: 1,
+                    "Etc/UTC": 1,
+                    "Etc/GMT": 1,
+                    GMT: 1,
+                    "Etc/Greenwich": 1,
+                };
+                // [halo, core] radius per level. Radii step by roughly √2 in
+                // area terms rather than linearly, because a circle is read by
+                // its area: doubling the radius would look like four times the
+                // share. Level 3 is the old fixed size, so a typical dot is
+                // unchanged and only the extremes move.
+                var TZ_RADII = [
+                    [5.5, 2.0],
+                    [7.0, 2.5],
+                    [9.0, 3.2],
+                    [11.5, 3.9],
+                    [14.5, 4.7],
+                ];
+                function buildMap(mapData, tzLevels) {
                     var svg = document.getElementById("world-svg");
                     if (!svg || !mapData) return;
                     var landFrag = document.createDocumentFragment();
@@ -3151,28 +3173,49 @@
                         landFrag.appendChild(c);
                     });
                     svg.appendChild(landFrag);
+                    function sizeDot(dot, level) {
+                        var r = TZ_RADII[level - 1];
+                        dot.halo.setAttribute("r", r[0]);
+                        dot.core.setAttribute("r", r[1]);
+                        dot.level = level;
+                    }
                     var seen = {};
-                    (activeTzs || []).forEach(function (tz, i) {
+                    var plotted = 0;
+                    Object.keys(tzLevels || {}).forEach(function (tz) {
                         if (UTC_TZS[tz]) return;
                         var pt = mapData.tz[tz];
                         if (!pt) return;
+                        var level = Math.min(
+                            TZ_RADII.length,
+                            Math.max(1, Math.round(tzLevels[tz]) || 1),
+                        );
+                        // Alias spellings (Europe/Kiev vs Europe/Kyiv) project
+                        // to the same coordinates and so share one dot. Keep
+                        // the larger level rather than whichever name came
+                        // first, so the dot is never smaller than the busiest
+                        // zone standing on it.
                         var k = pt[0] + "," + pt[1];
-                        if (seen[k]) return;
-                        seen[k] = true;
+                        if (seen[k]) {
+                            if (level > seen[k].level) sizeDot(seen[k], level);
+                            return;
+                        }
                         var halo = document.createElementNS(SVGNS, "circle");
                         halo.setAttribute("cx", pt[0]);
                         halo.setAttribute("cy", pt[1]);
-                        halo.setAttribute("r", "9");
                         halo.setAttribute("class", "tz-halo");
                         if (!reduceMotion)
-                            halo.style.animationDelay = (i % 6) * 0.45 + "s";
+                            halo.style.animationDelay =
+                                (plotted % 6) * 0.45 + "s";
                         var core = document.createElementNS(SVGNS, "circle");
                         core.setAttribute("cx", pt[0]);
                         core.setAttribute("cy", pt[1]);
-                        core.setAttribute("r", "3.2");
                         core.setAttribute("class", "tz-core");
+                        var dot = { halo: halo, core: core, level: 0 };
+                        sizeDot(dot, level);
+                        seen[k] = dot;
                         svg.appendChild(halo);
                         svg.appendChild(core);
+                        plotted++;
                     });
                 }
 
@@ -3189,7 +3232,7 @@
                     .then(function (res) {
                         var stats = res[0];
                         setStats(stats);
-                        buildMap(res[1], stats.timezone_list);
+                        buildMap(res[1], stats.timezone_levels);
                     })
                     .catch(function () {
                         var row = document.getElementById("stat-row");

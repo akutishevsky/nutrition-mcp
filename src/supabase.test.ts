@@ -5,6 +5,8 @@ import {
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
     fetchAllPages,
+    timezoneLevels,
+    TZ_LEVEL_THRESHOLDS,
     type MealInput,
     type Profile,
 } from "./supabase.js";
@@ -341,5 +343,80 @@ describe("fetchAllPages", () => {
         const { fetchPage } = paged(rows);
         const result = await fetchAllPages(fetchPage, 5);
         expect(result.map((r) => r.id)).toEqual(rows.map((r) => r.id));
+    });
+});
+
+describe("timezoneLevels", () => {
+    // Sizes the landing-page world map, and is the privacy boundary in front of
+    // the exact per-timezone counts: /api/stats is public and unauthenticated,
+    // so only these buckets are ever served.
+
+    test("never leaks a count — only levels 1..5 come out", () => {
+        const levels = timezoneLevels({
+            "Europe/Berlin": 38,
+            "America/New_York": 11,
+            "Pacific/Apia": 1,
+        });
+        for (const value of Object.values(levels)) {
+            expect(Number.isInteger(value)).toBe(true);
+            expect(value).toBeGreaterThanOrEqual(1);
+            expect(value).toBeLessThanOrEqual(TZ_LEVEL_THRESHOLDS.length + 1);
+        }
+        expect(Object.keys(levels).sort()).toEqual([
+            "America/New_York",
+            "Europe/Berlin",
+            "Pacific/Apia",
+        ]);
+    });
+
+    test("a lone profile and the busiest timezone land in different buckets", () => {
+        // The whole point of the change: with one radius for everything the map
+        // said nothing. 1 of 273 must not read the same as 38 of 273.
+        const levels = timezoneLevels({ big: 38, small: 1, rest: 234 });
+        expect(levels.small).toBe(1);
+        expect(levels.big).toBeGreaterThan(levels.small);
+    });
+
+    test("levels are shares, not ranks — scaling everything changes nothing", () => {
+        const small = timezoneLevels({ a: 1, b: 2, c: 4, d: 8, e: 85 });
+        const large = timezoneLevels({
+            a: 100,
+            b: 200,
+            c: 400,
+            d: 800,
+            e: 8500,
+        });
+        expect(large).toEqual(small);
+    });
+
+    test("threshold boundaries are inclusive", () => {
+        // 1 in 100 is exactly the first threshold (0.01) and must step up.
+        const levels = timezoneLevels({ edge: 1, rest: 99 });
+        expect(levels.edge).toBe(2);
+        // a hair under stays at level 1
+        const under = timezoneLevels({ edge: 1, rest: 100 });
+        expect(under.edge).toBe(1);
+    });
+
+    test("the largest possible share saturates at the top level", () => {
+        const levels = timezoneLevels({ only: 5 });
+        expect(levels.only).toBe(TZ_LEVEL_THRESHOLDS.length + 1);
+    });
+
+    test("no profiles yields no dots rather than a divide by zero", () => {
+        expect(timezoneLevels({})).toEqual({});
+        expect(timezoneLevels({ a: 0 })).toEqual({});
+    });
+
+    test("zero and malformed counts are dropped, not plotted at level 1", () => {
+        // A timezone with no profiles must not appear on the map at all, and a
+        // non-numeric value from the DB must not poison the total.
+        const levels = timezoneLevels({
+            real: 10,
+            empty: 0,
+            negative: -3,
+            junk: undefined as unknown as number,
+        });
+        expect(Object.keys(levels)).toEqual(["real"]);
     });
 });
