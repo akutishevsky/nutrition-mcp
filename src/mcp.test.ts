@@ -3266,6 +3266,28 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
         });
     });
 
+    // The most common call shape of all: no logged_at, because "I just ate
+    // this" never carries one. Found live — a meal logged this way with no
+    // profile timezone produced no warning, silently defeating #99's entire
+    // point for the overwhelming majority of real calls.
+    test("still warns when logged_at is omitted entirely and the timezone is unset", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: null };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("log_meal", oatmeal));
+            expect(text).toContain("set_timezone");
+            expect(text).toContain("no timezone set");
+            expect(loggedAtOf(db.inserted[0])).toBeUndefined();
+        });
+    });
+
+    test("no warning when logged_at is omitted and the timezone is configured", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("log_meal", oatmeal));
+            expect(text).not.toContain("set_timezone");
+        });
+    });
+
     // Water is bucketed into local days the same way meals are, so an
     // unresolved offset-less time moves a late-evening glass onto tomorrow's
     // hydration total.

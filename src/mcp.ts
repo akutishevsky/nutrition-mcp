@@ -1112,15 +1112,30 @@ function formatClockLine(tz: string): string {
 // UTC, an offset-less local time from a user east of UTC can resolve to a
 // future instant and be rejected, and "logged_at is in the future" on its own
 // names the wrong cause and gives the caller nothing to act on.
+//
+// It also has to fire when `raw` is omitted entirely — by far the most common
+// call shape, since "I just ate this" never carries a logged_at. The instant
+// itself doesn't need the timezone (the DB stamps "now" either way), but every
+// read path still buckets the entry into a local day using the same unset
+// profile, so staying silent here left the migration's whole warning
+// unreachable in practice (found live: a meal logged with no logged_at and no
+// profile timezone produced no warning at all).
 async function resolveWriteTimestamp(
     userId: string,
     raw: string | undefined,
 ): Promise<{ iso: string | undefined; note: string }> {
-    if (raw === undefined) return { iso: undefined, note: "" };
     const profile = await getProfile(userId);
     const tz = timezoneFromProfile(profile);
     const unsetTzNote = (value: string) =>
         `${JSON.stringify(value)} carries no UTC offset and this account has no timezone set, so it was read as UTC. Set one with set_timezone.`;
+
+    if (raw === undefined) {
+        const note =
+            tz === null
+                ? "\n\nNote: this account has no timezone set, so today's date is being read in UTC — set one with set_timezone."
+                : "";
+        return { iso: undefined, note };
+    }
 
     let resolved;
     try {
