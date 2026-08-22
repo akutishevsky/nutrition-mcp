@@ -1,5 +1,4 @@
 import { test, expect } from "bun:test";
-import { z } from "zod";
 import type { MealInput, MealInsertResult, Meal } from "./supabase.js";
 import {
     serializeImportResult,
@@ -1120,7 +1119,7 @@ test("serialized output validates against the declared outputSchema on every pat
     // make a field optional, so an absent RowError.field must serialize to an
     // explicit null or strict clients reject the whole result. CI runs no
     // typecheck, so this test is what catches it.
-    const schema = z.object(BULK_IMPORT_OUTPUT_SCHEMA);
+    const schema = BULK_IMPORT_OUTPUT_SCHEMA;
 
     const scenarios: Record<string, () => Promise<unknown>> = {
         async success() {

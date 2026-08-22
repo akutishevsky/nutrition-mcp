@@ -235,7 +235,7 @@ const IMPORT_ERROR_SCHEMA = z
     })
     .nullable();
 
-export const BULK_IMPORT_OUTPUT_SCHEMA = {
+export const BULK_IMPORT_OUTPUT_SCHEMA = z.object({
     status: z.enum(["success", "partial_success", "failed"]),
     dry_run: z.boolean(),
     summary: z.object({
@@ -273,7 +273,7 @@ export const BULK_IMPORT_OUTPUT_SCHEMA = {
             error: IMPORT_ERROR_SCHEMA,
         }),
     ),
-};
+});
 
 /**
  * Render an ImportResult as structuredContent.

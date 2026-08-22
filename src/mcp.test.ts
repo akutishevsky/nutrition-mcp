@@ -30,11 +30,21 @@ import {
     MAX_GOAL_G,
     MAX_GOAL_MG,
     gateAlcohol,
+    handleMcp,
 } from "./mcp.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import {
+    Client,
+    StreamableHTTPClientTransport,
+    type VersionNegotiationMode,
+} from "@modelcontextprotocol/client";
+import { Hono } from "hono";
+import { McpServer, InMemoryTransport } from "@modelcontextprotocol/server";
 import * as actualSupabase from "./supabase.js";
+
+// Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
+// in place, so restoring from the live `actualSupabase` afterwards would hand
+// the next file the mock again. Restore from this copy.
+const realSupabase = { ...actualSupabase };
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
@@ -51,6 +61,7 @@ import type {
     WeightEntry,
 } from "./supabase.js";
 import { dateInTz, formatLocalDateTime, weekdayInTz } from "./tz.js";
+import { getWidgetHtml } from "./widgets.js";
 
 function meal(over: Partial<Meal> = {}): Meal {
     return {
@@ -1073,9 +1084,9 @@ describe("start_meal_import payload", () => {
 
     test("the payload satisfies the declared outputSchema either way", () => {
         for (const alcohol of ["us", null] as const) {
-            const parsed = z
-                .object(START_IMPORT_OUTPUT_SCHEMA)
-                .parse(startImportPayload({ ...base, alcohol }));
+            const parsed = START_IMPORT_OUTPUT_SCHEMA.parse(
+                startImportPayload({ ...base, alcohol }),
+            );
             expect(parsed.import_tool_name).toBe("bulk_import_meals");
             expect(parsed.tz).toBe("Europe/Kyiv");
             expect(parsed.max_rows_per_call).toBeGreaterThan(0);
@@ -1420,6 +1431,7 @@ const db = {
     rowIds: new Set<string>(),
     analyticsRows: [] as Record<string, unknown>[],
     accountWipes: 0,
+    profileReads: [] as string[],
 };
 
 mock.module("./supabase.js", () => ({
@@ -1438,7 +1450,10 @@ mock.module("./supabase.js", () => ({
     deleteAllUserData: async () => {
         db.accountWipes += 1;
     },
-    getProfile: async () => db.profile,
+    getProfile: async (userId: string) => {
+        db.profileReads.push(userId);
+        return db.profile;
+    },
     getUserTimezone: async () => db.profile?.timezone ?? "UTC",
     getNutritionGoals: async () => db.goals,
     getMealsByDate: async () => db.meals,
@@ -1548,7 +1563,7 @@ mock.module("./supabase.js", () => ({
 }));
 
 afterAll(() => {
-    mock.module("./supabase.js", () => actualSupabase);
+    mock.module("./supabase.js", () => realSupabase);
 });
 
 beforeEach(() => {
@@ -1565,6 +1580,7 @@ beforeEach(() => {
     db.rowIds = new Set<string>();
     db.analyticsRows = [];
     db.accountWipes = 0;
+    db.profileReads = [];
 });
 
 interface ToolResult {
@@ -3636,6 +3652,506 @@ describe("export_all_data is on the tool surface", () => {
             destructiveHint: false,
             idempotentHint: false,
             openWorldHint: false,
+        });
+    });
+});
+
+// ---------- /mcp over HTTP: both protocol eras ----------
+//
+// Kept in this file rather than its own: mock.module is process-wide, and a
+// separate file with its own mock/restore of ./supabase.js broke
+// middleware.test.ts's mock on Linux CI even with a snapshot-based restore.
+// Sharing this file's single mock window is what proved green; see the
+// restore note on the afterAll above for the mechanism.
+
+// The production route minus auth: authenticateBearer's only output is the
+// userId variable, which is what handleMcp hands to the server factory.
+function appFor(userId: string) {
+    const app = new Hono();
+    app.all("/mcp", (c) => {
+        c.set("userId", userId);
+        return handleMcp(c);
+    });
+    return app;
+}
+
+// The SDK's mode is wider ({ pin: string }); this endpoint only ever serves the
+// one modern revision, so narrow the pin rather than hand-writing a twin of the
+// exported union.
+type EraMode = Extract<VersionNegotiationMode, string> | { pin: "2026-07-28" };
+
+// One factory backs both legs, so everything a tool call touches — the tool
+// surface, the ui:// resources, the structuredContent, the authInfo the factory
+// reads the user out of — must answer identically whichever era asked. The
+// legacy leg is the one every production client (the Claude connector included)
+// is on today, so a test that only ever pins the modern revision leaves the
+// deployed path uncovered.
+const ERAS: EraMode[] = ["legacy", { pin: "2026-07-28" }];
+
+// Drive the real handler in-process: the URL is never dialled. Extra headers
+// stand in for what a proxy in front of us would add.
+async function withHttpClient<T>(
+    userId: string,
+    mode: EraMode,
+    run: (client: Client) => Promise<T>,
+    headers: Record<string, string> = {},
+): Promise<T> {
+    const app = appFor(userId);
+    const transport = new StreamableHTTPClientTransport(
+        new URL("http://test.local/mcp"),
+        {
+            fetch: async (url, init) => {
+                const req = new Request(String(url), init);
+                for (const [k, v] of Object.entries(headers))
+                    req.headers.set(k, v);
+                return app.request(req);
+            },
+        },
+    );
+    const client = new Client(
+        { name: "t", version: "0" },
+        { versionNegotiation: { mode } },
+    );
+    await client.connect(transport);
+    try {
+        return await run(client);
+    } finally {
+        await client.close();
+    }
+}
+
+// A raw JSON-RPC POST with the headers the v2 entry is strict about.
+function rpc(
+    app: Hono,
+    body: Record<string, unknown>,
+    headers: Record<string, string> = {},
+) {
+    return app.request("http://x/mcp", {
+        method: "POST",
+        headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            ...headers,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", ...body }),
+    });
+}
+
+// The legacy leg answers over SSE; pull the single JSON-RPC frame out.
+async function sseFrame(r: Response): Promise<Record<string, unknown>> {
+    const line = (await r.text())
+        .split("\n")
+        .find((l) => l.startsWith("data:"));
+    return JSON.parse(line?.slice(5) ?? "{}") as Record<string, unknown>;
+}
+
+describe("/mcp serves the 2026-07-28 revision", () => {
+    test("a negotiating client lands on the modern era", async () => {
+        await withHttpClient("u1", "auto", async (client) => {
+            expect(client.getProtocolEra()).toBe("modern");
+            expect(client.getServerVersion()?.name).toBe("nutrition-mcp");
+        });
+    });
+
+    test("a pinned 2026-07-28 client connects without fallback", async () => {
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            expect(client.getProtocolEra()).toBe("modern");
+        });
+    });
+
+    test("the server is built per request for the authenticated user", async () => {
+        // Two users, then the first again: a per-user cache would read each
+        // profile once, so the third read is what proves per-request.
+        for (const user of ["user-a", "user-b", "user-a"]) {
+            await withHttpClient(user, { pin: "2026-07-28" }, (client) =>
+                client.listTools(),
+            );
+        }
+        // One read per user per connection, from the tools/list alone:
+        // connect()'s server/discover probe is answered from the bare server,
+        // which never touches the profile.
+        expect(db.profileReads).toEqual(["user-a", "user-b", "user-a"]);
+    });
+
+    // server/discover is the first request every negotiating client sends and
+    // its response — supportedVersions, capabilities, instructions — contains
+    // nothing a tool registration produces. Paying a Supabase round-trip for it
+    // made the probe the request that failed first under rate pressure.
+    test("server/discover costs no profile read and still answers in full", async () => {
+        const r = await rpc(
+            appFor("u1"),
+            {
+                id: 3,
+                method: "server/discover",
+                params: {
+                    _meta: {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                },
+            },
+            {
+                "mcp-protocol-version": "2026-07-28",
+                "mcp-method": "server/discover",
+            },
+        );
+        expect(r.status).toBe(200);
+        expect(db.profileReads).toEqual([]);
+        const body = (await r.json()) as {
+            result?: {
+                supportedVersions?: string[];
+                capabilities?: Record<string, unknown>;
+                instructions?: string;
+            };
+        };
+        expect(body.result?.supportedVersions).toContain("2026-07-28");
+
+        // ...and advertises exactly what the fully-registered server does. Both
+        // paths build from one literal; this is the assertion that would catch
+        // them drifting apart.
+        const init = await sseFrame(
+            await rpc(appFor("u1"), {
+                id: 4,
+                method: "initialize",
+                params: {
+                    protocolVersion: "2025-11-25",
+                    capabilities: {},
+                    clientInfo: { name: "c", version: "0" },
+                },
+            }),
+        );
+        const full = init.result as {
+            capabilities: Record<string, unknown>;
+            instructions: string;
+        };
+        expect(body.result?.capabilities).toEqual(full.capabilities);
+        expect(body.result?.instructions).toBe(full.instructions);
+        expect(full.instructions.length).toBeGreaterThan(0);
+    });
+});
+
+// The product surface, driven end to end over BOTH legs. Everything in here is
+// era-agnostic by construction (one server factory), so a difference between
+// the two columns is a bug in the handler, not in the tools.
+describe("/mcp serves one tool surface on both protocol eras", () => {
+    test.each(ERAS)(
+        "list_changed is not advertised (%p) — nothing could deliver it",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const caps = client.getServerCapabilities();
+                expect(caps?.tools).toEqual({ listChanged: false });
+                expect(caps?.resources).toEqual({ listChanged: false });
+            });
+        },
+    );
+
+    test.each(ERAS)(
+        "tools/list carries the MCP Apps links and output schemas (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { tools } = await client.listTools();
+                expect(tools.length).toBeGreaterThan(30);
+                const logMeal = tools.find((t) => t.name === "log_meal");
+                expect(logMeal?._meta?.ui).toEqual({
+                    resourceUri: "ui://widget/meal-logged.html",
+                });
+                expect(logMeal?.outputSchema?.type).toBe("object");
+            });
+        },
+    );
+
+    test.each(ERAS)("tools/call returns text content (%p)", async (mode) => {
+        await withHttpClient("u1", mode, async (client) => {
+            const r = await client.callTool({
+                name: "get_timezone",
+                arguments: {},
+            });
+            expect(r.isError).toBeFalsy();
+            expect((r.content as { type: string }[])[0]?.type).toBe("text");
+        });
+    });
+
+    // structuredContent is what every widget paints from, and start_meal_import
+    // is the tool where an empty one leaves the iframe stuck on its loading
+    // state. Parsing the exported schema (rather than eyeballing a field) is
+    // what proves the payload the wire carried still satisfies what the tool
+    // declares — including the nullable fields that must be present-and-null.
+    test.each(ERAS)(
+        "structuredContent satisfies the declared outputSchema (%p)",
+        async (mode) => {
+            // Not UTC: that is both PROFILE_BASE's zone and the null-profile
+            // fallback, so only a distinct zone proves the profile was read
+            // for THIS user on this leg.
+            db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+            await withHttpClient("u1", mode, async (client) => {
+                const r = await client.callTool({
+                    name: "start_meal_import",
+                    arguments: {},
+                });
+                expect(r.isError).toBeFalsy();
+                const sc = START_IMPORT_OUTPUT_SCHEMA.parse(
+                    r.structuredContent,
+                );
+                expect(sc.tz).toBe("Europe/Kyiv");
+                expect(sc.tz_configured).toBe(true);
+                expect(sc.import_tool_name).toBe("bulk_import_meals");
+            });
+        },
+    );
+
+    // A widget is only usable if the resource read hands back the assembled,
+    // fully-inlined document under the mcp-app mime type: the iframe CSP is
+    // deny-all, so anything left un-inlined simply never loads.
+    test.each(ERAS)(
+        "ui:// widgets read as the assembled mcp-app document (%p)",
+        async (mode) => {
+            const assembled = await getWidgetHtml("meal-logged");
+            await withHttpClient("u1", mode, async (client) => {
+                const res = await client.readResource({
+                    uri: "ui://widget/meal-logged.html",
+                });
+                const c = res.contents[0] as {
+                    mimeType?: string;
+                    text?: string;
+                };
+                expect(c.mimeType).toBe("text/html;profile=mcp-app");
+                expect(c.text).toBe(assembled);
+                // Spot-check the served bytes directly too, so a resource that
+                // starts serving a template instead of the assembly fails here
+                // and not only in widgets.test.ts.
+                expect(c.text?.trimStart().startsWith("<!doctype html>")).toBe(
+                    true,
+                );
+                expect(c.text).toContain("function initWidget(config)");
+                expect(c.text).not.toMatch(/\/\*@include/);
+                expect(c.text).not.toMatch(/<script[^>]+src=/);
+            });
+        },
+    );
+
+    test.each(ERAS)(
+        "input validation errors are in-band, not transport failures (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const r = await client.callTool({
+                    name: "log_meal",
+                    arguments: { description: "x", meal_type: "brunch" },
+                });
+                expect(r.isError).toBe(true);
+            });
+        },
+    );
+
+    // The tool that writes: a legacy tools/call has to reach insertMeal with
+    // the user the bearer middleware authenticated, not with whoever the
+    // previous request was for.
+    test.each(ERAS)(
+        "a write reaches the DB for the authenticated user (%p)",
+        async (mode) => {
+            await withHttpClient("mode-user", mode, async (client) => {
+                const r = await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "eggs",
+                        meal_type: "breakfast",
+                        calories: 200,
+                    },
+                });
+                expect(r.isError).toBeFalsy();
+            });
+            expect(db.inserted).toHaveLength(1);
+            expect(db.inserted[0]?.description).toBe("eggs");
+            // authInfo.extra.userId is the single identity carrier on both
+            // legs; every profile read of this exchange must name that user.
+            expect(new Set(db.profileReads)).toEqual(new Set(["mode-user"]));
+        },
+    );
+});
+
+describe("/mcp still serves 2025-era clients unchanged", () => {
+    test("a legacy client completes initialize and lists tools", async () => {
+        await withHttpClient("u1", "legacy", async (client) => {
+            expect(client.getProtocolEra()).toBe("legacy");
+            expect(client.getServerVersion()?.name).toBe("nutrition-mcp");
+            expect(client.getServerCapabilities()?.tools).toBeDefined();
+            const { tools } = await client.listTools();
+            expect(tools.find((t) => t.name === "log_meal")?._meta?.ui).toEqual(
+                { resourceUri: "ui://widget/meal-logged.html" },
+            );
+        });
+    });
+
+    // The legacy leg keeps nothing between requests either: a fresh transport
+    // and a fresh server per POST is what makes a deploy invisible to the
+    // connector clients that are all on this leg today.
+    test("every legacy request builds its own server", async () => {
+        await withHttpClient("legacy-user", "legacy", async (client) => {
+            const before = db.profileReads.length;
+            await client.listTools();
+            await client.listTools();
+            expect(db.profileReads.length).toBe(before + 2);
+        });
+        expect(new Set(db.profileReads)).toEqual(new Set(["legacy-user"]));
+    });
+
+    // The factory serves the tool-less bare server for the two identity-only
+    // methods, gated on `ctx.era === "modern"` because the legacy fallback
+    // ignores Mcp-Method entirely. Without that gate a legacy client whose
+    // proxy (or whose own header bug) sent a stray Mcp-Method would have been
+    // answered by a server with no tools registered at all.
+    test("a stray Mcp-Method header cannot strip the tools off a legacy request", async () => {
+        await withHttpClient(
+            "u1",
+            "legacy",
+            async (client) => {
+                expect(client.getProtocolEra()).toBe("legacy");
+                const { tools } = await client.listTools();
+                expect(tools.length).toBeGreaterThan(30);
+                // The bare server reads no profile, so a profile read is the
+                // direct witness that the full-server branch was taken —
+                // dropping the era guard makes this the first assertion to go.
+                expect(db.profileReads.length).toBeGreaterThan(0);
+            },
+            { "mcp-method": "server/discover" },
+        );
+    });
+
+    test("legacy initialize answers in-band and issues no session id", async () => {
+        const r = await rpc(appFor("u1"), {
+            id: 1,
+            method: "initialize",
+            params: {
+                protocolVersion: "2025-11-25",
+                capabilities: {},
+                clientInfo: { name: "c", version: "0" },
+            },
+        });
+        expect(r.status).toBe(200);
+        expect(r.headers.get("mcp-session-id")).toBeNull();
+        const frame = await sseFrame(r);
+        expect(frame.error).toBeUndefined();
+        expect(
+            (frame.result as { protocolVersion: string }).protocolVersion,
+        ).toBe("2025-11-25");
+    });
+});
+
+describe("/mcp transport posture", () => {
+    test.each(["GET", "DELETE"])(
+        "%s is refused with 405 and no SSE stream",
+        async (method) => {
+            const r = await appFor("u1").request("http://x/mcp", { method });
+            expect(r.status).toBe(405);
+            expect(r.headers.get("allow")).toBe("POST");
+        },
+    );
+
+    test("subscriptions/listen is refused without opening a stream", async () => {
+        const r = await rpc(
+            appFor("u1"),
+            {
+                id: 7,
+                method: "subscriptions/listen",
+                params: {
+                    notifications: { tools: true },
+                    _meta: {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                },
+            },
+            {
+                "mcp-protocol-version": "2026-07-28",
+                "mcp-method": "subscriptions/listen",
+            },
+        );
+        expect(r.headers.get("content-type")).not.toContain(
+            "text/event-stream",
+        );
+        const body = (await r.json()) as {
+            id?: unknown;
+            error?: { code: number };
+        };
+        expect(body.id).toBe(7);
+        // -32603 "Subscription limit reached" is the SDK's own maxSubscriptions
+        // refusal, and it is now the only one: a hand-rolled -32601 pre-check
+        // used to answer first off the Mcp-Method header alone, so the endpoint
+        // reported two different codes for one condition.
+        expect(body.error?.code).toBe(-32603);
+    });
+
+    // What the pre-check got wrong. A client that puts the listen method in the
+    // header but calls a tool in the body has a header bug, and the SDK says so
+    // (-32020, HTTP 400). The pre-check answered 200 "Method not found" echoing
+    // the tools/call id, which reads as "this tool does not exist".
+    test("a Mcp-Method that disagrees with the body is a header error, not a missing method", async () => {
+        const r = await rpc(
+            appFor("u1"),
+            {
+                id: 8,
+                method: "tools/call",
+                params: {
+                    name: "get_timezone",
+                    arguments: {},
+                    _meta: {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                },
+            },
+            {
+                "mcp-protocol-version": "2026-07-28",
+                "mcp-method": "subscriptions/listen",
+                "mcp-name": "get_timezone",
+            },
+        );
+        expect(r.status).toBe(400);
+        const body = (await r.json()) as {
+            error?: { code: number; message: string };
+        };
+        expect(body.error?.code).toBe(-32020);
+        expect(body.error?.message).toContain("headers and body disagree");
+    });
+
+    // The SDK's 415 gate runs before the body is read; the pre-check sat in
+    // front of it and answered 200 to a POST that never had a valid body.
+    test("a non-JSON Content-Type is refused 415 before anything is parsed", async () => {
+        const r = await appFor("u1").request("http://x/mcp", {
+            method: "POST",
+            headers: {
+                "content-type": "text/plain",
+                "mcp-method": "subscriptions/listen",
+            },
+            body: "not json",
+        });
+        expect(r.status).toBe(415);
+    });
+
+    test("the icon URL follows the forwarding headers", async () => {
+        await withHttpClient(
+            "u1",
+            { pin: "2026-07-28" },
+            async (client) => {
+                expect(client.getServerVersion()?.icons?.[0]?.src).toBe(
+                    "https://nutrition-mcp.com/favicon.ico",
+                );
+            },
+            {
+                "x-forwarded-proto": "https",
+                "x-forwarded-host": "nutrition-mcp.com",
+            },
+        );
+    });
+
+    // With no forwarding headers the icon falls back to the request's own
+    // origin — the same fallback getBaseUrl gives the OAuth metadata URLs. It
+    // used to be a hardcoded "http://localhost", so one request could advertise
+    // an icon on one host and its resource metadata on another.
+    test("with no forwarding headers the icon URL is the request origin", async () => {
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            expect(client.getServerVersion()?.icons?.[0]?.src).toBe(
+                "http://test.local/favicon.ico",
+            );
         });
     });
 });
