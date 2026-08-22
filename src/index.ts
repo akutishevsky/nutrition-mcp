@@ -114,6 +114,15 @@ app.use(
 // client sees the 503 rather than an opaque CORS error) and is still access
 // logged. OPTIONS preflights never reach it: cors() answers those itself.
 let shuttingDown = false;
+
+// Exported for src/index.test.ts. The gate's entire value is WHERE it sits — it
+// must run before authenticateBearer and before the /mcp route, which only the
+// real `app` can demonstrate. The test flips the flag directly rather than
+// calling shutdown(), which would exit the test runner.
+export function setShuttingDownForTest(value: boolean): void {
+    shuttingDown = value;
+}
+
 app.use("*", async (c, next) => {
     if (!shuttingDown) return next();
     const path = new URL(c.req.url).pathname;
@@ -317,14 +326,26 @@ app.onError((_err, c) => {
 
 const port = parseInt(process.env.PORT || "8080");
 
-console.log(`Nutrition MCP server listening on 0.0.0.0:${port}`);
+// Boot side effects run only when this file IS the entrypoint. src/index.test.ts
+// imports `app` to pin the shutdown gate's position in the middleware chain, and
+// an import must not start the export-sweep interval (which would hit Supabase
+// on a timer and hold the test process open) or register signal handlers.
+// `bun run src/index.ts` still takes this branch — verified: import.meta.main is
+// true for the entrypoint and false under `bun test`.
+if (import.meta.main) {
+    console.log(`Nutrition MCP server listening on 0.0.0.0:${port}`);
 
-// Assemble every MCP Apps widget from its source partials up front, so a broken
-// @include/partial fails fast at boot rather than on a client's first tool call.
-await warmWidgets();
+    // Assemble every MCP Apps widget from its source partials up front, so a
+    // broken @include/partial fails fast at boot rather than on a client's
+    // first tool call.
+    await warmWidgets();
 
-// Periodically delete expired meal-export files from the storage bucket.
-startExportCleanup();
+    // Periodically delete expired meal-export files from the storage bucket.
+    startExportCleanup();
+
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+}
 
 // Exit cleanly on shutdown signals (e.g. deploys). /mcp is stateless — no
 // server-side sessions are held — so the only thing worth sequencing is the
@@ -352,8 +373,9 @@ function shutdown(signal: string): void {
         .catch((err) => console.error("Error closing MCP handler:", err))
         .finally(() => process.exit(0));
 }
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
+// Exported for src/index.test.ts, which drives the real route table through
+// app.request(). Bun serves from the default export below.
+export { app };
 
 export default {
     port,
