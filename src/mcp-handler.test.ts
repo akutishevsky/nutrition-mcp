@@ -1,8 +1,18 @@
 import { test, expect, describe, mock, afterAll } from "bun:test";
+import { Hono } from "hono";
+import {
+    Client,
+    StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import * as actualSupabase from "./supabase.js";
+import { handleMcp } from "./mcp.js";
 
 // mock.module is process-wide (see mcp.test.ts) — spread the real module back
 // in and restore it in afterAll so the other suites keep their real exports.
+// The snapshot is taken BEFORE the mock is installed: Bun patches a mocked
+// module's namespace in place, so restoring from the live namespace after the
+// fact would hand the next suite the mock again.
+const realSupabase = { ...actualSupabase };
 const profile: actualSupabase.Profile = {
     user_id: "u1",
     timezone: "Europe/Kyiv",
@@ -15,19 +25,14 @@ const profile: actualSupabase.Profile = {
 };
 const seenUserIds: string[] = [];
 mock.module("./supabase.js", () => ({
-    ...actualSupabase,
+    ...realSupabase,
     getProfile: async (userId: string) => {
         seenUserIds.push(userId);
         return profile;
     },
     getTimezone: async () => "Europe/Kyiv",
 }));
-afterAll(() => mock.module("./supabase.js", () => actualSupabase));
-
-const { Hono } = await import("hono");
-const { handleMcp } = await import("./mcp.js");
-const { Client, StreamableHTTPClientTransport } =
-    await import("@modelcontextprotocol/client");
+afterAll(() => mock.module("./supabase.js", () => realSupabase));
 
 // The production route minus auth: authenticateBearer's only output is the
 // userId variable, which is what handleMcp hands to the server factory.
