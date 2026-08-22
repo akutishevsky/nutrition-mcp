@@ -2,6 +2,7 @@ import type { Context, Next } from "hono";
 import { getUserIdByToken } from "./supabase.js";
 import { maskIp } from "./net.js";
 import { resourceMetadataUrl } from "./discovery.js";
+import { getBaseUrl } from "./url.js";
 
 // Declare the context variables this middleware sets. Without it, c.get/c.set on
 // an untyped `new Hono()` app types its keys as `never`, so index.ts cannot read
@@ -33,13 +34,6 @@ function getClientIp(c: Context): string {
         if (first) return first;
     }
     return c.req.header("x-real-ip")?.trim() || "unknown";
-}
-
-function getBaseUrl(c: Context): string {
-    const proto = c.req.header("x-forwarded-proto") || "http";
-    const host = c.req.header("x-forwarded-host") || c.req.header("host");
-    if (host) return `${proto}://${host}`;
-    return new URL(c.req.url).origin;
 }
 
 // Shared 401 path. Every rejection also counts a strike against the client IP so

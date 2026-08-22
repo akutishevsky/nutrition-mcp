@@ -35,6 +35,7 @@ import {
 import {
     Client,
     StreamableHTTPClientTransport,
+    type VersionNegotiationMode,
 } from "@modelcontextprotocol/client";
 import { Hono } from "hono";
 import { McpServer, InMemoryTransport } from "@modelcontextprotocol/server";
@@ -60,6 +61,7 @@ import type {
     WeightEntry,
 } from "./supabase.js";
 import { dateInTz, formatLocalDateTime, weekdayInTz } from "./tz.js";
+import { getWidgetHtml } from "./widgets.js";
 
 function meal(over: Partial<Meal> = {}): Meal {
     return {
@@ -3673,7 +3675,18 @@ function appFor(userId: string) {
     return app;
 }
 
-type EraMode = "auto" | "legacy" | { pin: "2026-07-28" };
+// The SDK's mode is wider ({ pin: string }); this endpoint only ever serves the
+// one modern revision, so narrow the pin rather than hand-writing a twin of the
+// exported union.
+type EraMode = Extract<VersionNegotiationMode, string> | { pin: "2026-07-28" };
+
+// One factory backs both legs, so everything a tool call touches — the tool
+// surface, the ui:// resources, the structuredContent, the authInfo the factory
+// reads the user out of — must answer identically whichever era asked. The
+// legacy leg is the one every production client (the Claude connector included)
+// is on today, so a test that only ever pins the modern revision leaves the
+// deployed path uncovered.
+const ERAS: EraMode[] = ["legacy", { pin: "2026-07-28" }];
 
 // Drive the real handler in-process: the URL is never dialled. Extra headers
 // stand in for what a proxy in front of us would add.
@@ -3740,74 +3753,9 @@ describe("/mcp serves the 2026-07-28 revision", () => {
         });
     });
 
-    test.each(["legacy", { pin: "2026-07-28" }] as const)(
-        "list_changed is not advertised (%p) — nothing could deliver it",
-        async (mode) => {
-            await withHttpClient("u1", mode, async (client) => {
-                const caps = client.getServerCapabilities();
-                expect(caps?.tools).toEqual({ listChanged: false });
-                expect(caps?.resources).toEqual({ listChanged: false });
-            });
-        },
-    );
-
     test("a pinned 2026-07-28 client connects without fallback", async () => {
         await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
             expect(client.getProtocolEra()).toBe("modern");
-        });
-    });
-
-    test("tools/list carries the MCP Apps links and output schemas", async () => {
-        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
-            const { tools } = await client.listTools();
-            expect(tools.length).toBeGreaterThan(30);
-            const logMeal = tools.find((t) => t.name === "log_meal");
-            expect(logMeal?._meta?.ui).toEqual({
-                resourceUri: "ui://widget/meal-logged.html",
-            });
-            expect(logMeal?.outputSchema?.type).toBe("object");
-        });
-    });
-
-    test("tools/call returns content and widgets read as mcp-app HTML", async () => {
-        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
-            const r = await client.callTool({
-                name: "get_timezone",
-                arguments: {},
-            });
-            expect(r.isError).toBeFalsy();
-            expect((r.content as { type: string }[])[0]?.type).toBe("text");
-            const res = await client.readResource({
-                uri: "ui://widget/meal-logged.html",
-            });
-            expect(res.contents[0]?.mimeType).toBe("text/html;profile=mcp-app");
-        });
-    });
-
-    test("start_meal_import carries the profile timezone to the widget", async () => {
-        // Not UTC: that is both PROFILE_BASE's zone and the null-profile
-        // fallback, so only a distinct zone proves the profile was read.
-        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
-        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
-            const r = await client.callTool({
-                name: "start_meal_import",
-                arguments: {},
-            });
-            expect(r.isError).toBeFalsy();
-            const sc = r.structuredContent as Record<string, unknown>;
-            expect(sc.tz).toBe("Europe/Kyiv");
-            expect(sc.tz_configured).toBe(true);
-            expect(sc.import_tool_name).toBe("bulk_import_meals");
-        });
-    });
-
-    test("input validation errors are in-band, not transport failures", async () => {
-        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
-            const r = await client.callTool({
-                name: "log_meal",
-                arguments: { description: "x", meal_type: "brunch" },
-            });
-            expect(r.isError).toBe(true);
         });
     });
 
@@ -3819,17 +3767,205 @@ describe("/mcp serves the 2026-07-28 revision", () => {
                 client.listTools(),
             );
         }
-        // connect() is a server/discover probe plus the tools/list: each one
-        // is its own request and therefore its own factory run.
-        expect(db.profileReads).toEqual([
-            "user-a",
-            "user-a",
-            "user-b",
-            "user-b",
-            "user-a",
-            "user-a",
-        ]);
+        // One read per user per connection, from the tools/list alone:
+        // connect()'s server/discover probe is answered from the bare server,
+        // which never touches the profile.
+        expect(db.profileReads).toEqual(["user-a", "user-b", "user-a"]);
     });
+
+    // server/discover is the first request every negotiating client sends and
+    // its response — supportedVersions, capabilities, instructions — contains
+    // nothing a tool registration produces. Paying a Supabase round-trip for it
+    // made the probe the request that failed first under rate pressure.
+    test("server/discover costs no profile read and still answers in full", async () => {
+        const r = await rpc(
+            appFor("u1"),
+            {
+                id: 3,
+                method: "server/discover",
+                params: {
+                    _meta: {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                },
+            },
+            {
+                "mcp-protocol-version": "2026-07-28",
+                "mcp-method": "server/discover",
+            },
+        );
+        expect(r.status).toBe(200);
+        expect(db.profileReads).toEqual([]);
+        const body = (await r.json()) as {
+            result?: {
+                supportedVersions?: string[];
+                capabilities?: Record<string, unknown>;
+                instructions?: string;
+            };
+        };
+        expect(body.result?.supportedVersions).toContain("2026-07-28");
+
+        // ...and advertises exactly what the fully-registered server does. Both
+        // paths build from one literal; this is the assertion that would catch
+        // them drifting apart.
+        const init = await sseFrame(
+            await rpc(appFor("u1"), {
+                id: 4,
+                method: "initialize",
+                params: {
+                    protocolVersion: "2025-11-25",
+                    capabilities: {},
+                    clientInfo: { name: "c", version: "0" },
+                },
+            }),
+        );
+        const full = init.result as {
+            capabilities: Record<string, unknown>;
+            instructions: string;
+        };
+        expect(body.result?.capabilities).toEqual(full.capabilities);
+        expect(body.result?.instructions).toBe(full.instructions);
+        expect(full.instructions.length).toBeGreaterThan(0);
+    });
+});
+
+// The product surface, driven end to end over BOTH legs. Everything in here is
+// era-agnostic by construction (one server factory), so a difference between
+// the two columns is a bug in the handler, not in the tools.
+describe("/mcp serves one tool surface on both protocol eras", () => {
+    test.each(ERAS)(
+        "list_changed is not advertised (%p) — nothing could deliver it",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const caps = client.getServerCapabilities();
+                expect(caps?.tools).toEqual({ listChanged: false });
+                expect(caps?.resources).toEqual({ listChanged: false });
+            });
+        },
+    );
+
+    test.each(ERAS)(
+        "tools/list carries the MCP Apps links and output schemas (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { tools } = await client.listTools();
+                expect(tools.length).toBeGreaterThan(30);
+                const logMeal = tools.find((t) => t.name === "log_meal");
+                expect(logMeal?._meta?.ui).toEqual({
+                    resourceUri: "ui://widget/meal-logged.html",
+                });
+                expect(logMeal?.outputSchema?.type).toBe("object");
+            });
+        },
+    );
+
+    test.each(ERAS)("tools/call returns text content (%p)", async (mode) => {
+        await withHttpClient("u1", mode, async (client) => {
+            const r = await client.callTool({
+                name: "get_timezone",
+                arguments: {},
+            });
+            expect(r.isError).toBeFalsy();
+            expect((r.content as { type: string }[])[0]?.type).toBe("text");
+        });
+    });
+
+    // structuredContent is what every widget paints from, and start_meal_import
+    // is the tool where an empty one leaves the iframe stuck on its loading
+    // state. Parsing the exported schema (rather than eyeballing a field) is
+    // what proves the payload the wire carried still satisfies what the tool
+    // declares — including the nullable fields that must be present-and-null.
+    test.each(ERAS)(
+        "structuredContent satisfies the declared outputSchema (%p)",
+        async (mode) => {
+            // Not UTC: that is both PROFILE_BASE's zone and the null-profile
+            // fallback, so only a distinct zone proves the profile was read
+            // for THIS user on this leg.
+            db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+            await withHttpClient("u1", mode, async (client) => {
+                const r = await client.callTool({
+                    name: "start_meal_import",
+                    arguments: {},
+                });
+                expect(r.isError).toBeFalsy();
+                const sc = START_IMPORT_OUTPUT_SCHEMA.parse(
+                    r.structuredContent,
+                );
+                expect(sc.tz).toBe("Europe/Kyiv");
+                expect(sc.tz_configured).toBe(true);
+                expect(sc.import_tool_name).toBe("bulk_import_meals");
+            });
+        },
+    );
+
+    // A widget is only usable if the resource read hands back the assembled,
+    // fully-inlined document under the mcp-app mime type: the iframe CSP is
+    // deny-all, so anything left un-inlined simply never loads.
+    test.each(ERAS)(
+        "ui:// widgets read as the assembled mcp-app document (%p)",
+        async (mode) => {
+            const assembled = await getWidgetHtml("meal-logged");
+            await withHttpClient("u1", mode, async (client) => {
+                const res = await client.readResource({
+                    uri: "ui://widget/meal-logged.html",
+                });
+                const c = res.contents[0] as {
+                    mimeType?: string;
+                    text?: string;
+                };
+                expect(c.mimeType).toBe("text/html;profile=mcp-app");
+                expect(c.text).toBe(assembled);
+                // Spot-check the served bytes directly too, so a resource that
+                // starts serving a template instead of the assembly fails here
+                // and not only in widgets.test.ts.
+                expect(c.text?.trimStart().startsWith("<!doctype html>")).toBe(
+                    true,
+                );
+                expect(c.text).toContain("function initWidget(config)");
+                expect(c.text).not.toMatch(/\/\*@include/);
+                expect(c.text).not.toMatch(/<script[^>]+src=/);
+            });
+        },
+    );
+
+    test.each(ERAS)(
+        "input validation errors are in-band, not transport failures (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const r = await client.callTool({
+                    name: "log_meal",
+                    arguments: { description: "x", meal_type: "brunch" },
+                });
+                expect(r.isError).toBe(true);
+            });
+        },
+    );
+
+    // The tool that writes: a legacy tools/call has to reach insertMeal with
+    // the user the bearer middleware authenticated, not with whoever the
+    // previous request was for.
+    test.each(ERAS)(
+        "a write reaches the DB for the authenticated user (%p)",
+        async (mode) => {
+            await withHttpClient("mode-user", mode, async (client) => {
+                const r = await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "eggs",
+                        meal_type: "breakfast",
+                        calories: 200,
+                    },
+                });
+                expect(r.isError).toBeFalsy();
+            });
+            expect(db.inserted).toHaveLength(1);
+            expect(db.inserted[0]?.description).toBe("eggs");
+            // authInfo.extra.userId is the single identity carrier on both
+            // legs; every profile read of this exchange must name that user.
+            expect(new Set(db.profileReads)).toEqual(new Set(["mode-user"]));
+        },
+    );
 });
 
 describe("/mcp still serves 2025-era clients unchanged", () => {
@@ -3843,6 +3979,41 @@ describe("/mcp still serves 2025-era clients unchanged", () => {
                 { resourceUri: "ui://widget/meal-logged.html" },
             );
         });
+    });
+
+    // The legacy leg keeps nothing between requests either: a fresh transport
+    // and a fresh server per POST is what makes a deploy invisible to the
+    // connector clients that are all on this leg today.
+    test("every legacy request builds its own server", async () => {
+        await withHttpClient("legacy-user", "legacy", async (client) => {
+            const before = db.profileReads.length;
+            await client.listTools();
+            await client.listTools();
+            expect(db.profileReads.length).toBe(before + 2);
+        });
+        expect(new Set(db.profileReads)).toEqual(new Set(["legacy-user"]));
+    });
+
+    // The factory serves the tool-less bare server for the two identity-only
+    // methods, gated on `ctx.era === "modern"` because the legacy fallback
+    // ignores Mcp-Method entirely. Without that gate a legacy client whose
+    // proxy (or whose own header bug) sent a stray Mcp-Method would have been
+    // answered by a server with no tools registered at all.
+    test("a stray Mcp-Method header cannot strip the tools off a legacy request", async () => {
+        await withHttpClient(
+            "u1",
+            "legacy",
+            async (client) => {
+                expect(client.getProtocolEra()).toBe("legacy");
+                const { tools } = await client.listTools();
+                expect(tools.length).toBeGreaterThan(30);
+                // The bare server reads no profile, so a profile read is the
+                // direct witness that the full-server branch was taken —
+                // dropping the era guard makes this the first assertion to go.
+                expect(db.profileReads.length).toBeGreaterThan(0);
+            },
+            { "mcp-method": "server/discover" },
+        );
     });
 
     test("legacy initialize answers in-band and issues no session id", async () => {
@@ -3902,7 +4073,58 @@ describe("/mcp transport posture", () => {
             error?: { code: number };
         };
         expect(body.id).toBe(7);
-        expect(body.error?.code).toBe(-32601);
+        // -32603 "Subscription limit reached" is the SDK's own maxSubscriptions
+        // refusal, and it is now the only one: a hand-rolled -32601 pre-check
+        // used to answer first off the Mcp-Method header alone, so the endpoint
+        // reported two different codes for one condition.
+        expect(body.error?.code).toBe(-32603);
+    });
+
+    // What the pre-check got wrong. A client that puts the listen method in the
+    // header but calls a tool in the body has a header bug, and the SDK says so
+    // (-32020, HTTP 400). The pre-check answered 200 "Method not found" echoing
+    // the tools/call id, which reads as "this tool does not exist".
+    test("a Mcp-Method that disagrees with the body is a header error, not a missing method", async () => {
+        const r = await rpc(
+            appFor("u1"),
+            {
+                id: 8,
+                method: "tools/call",
+                params: {
+                    name: "get_timezone",
+                    arguments: {},
+                    _meta: {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                },
+            },
+            {
+                "mcp-protocol-version": "2026-07-28",
+                "mcp-method": "subscriptions/listen",
+                "mcp-name": "get_timezone",
+            },
+        );
+        expect(r.status).toBe(400);
+        const body = (await r.json()) as {
+            error?: { code: number; message: string };
+        };
+        expect(body.error?.code).toBe(-32020);
+        expect(body.error?.message).toContain("headers and body disagree");
+    });
+
+    // The SDK's 415 gate runs before the body is read; the pre-check sat in
+    // front of it and answered 200 to a POST that never had a valid body.
+    test("a non-JSON Content-Type is refused 415 before anything is parsed", async () => {
+        const r = await appFor("u1").request("http://x/mcp", {
+            method: "POST",
+            headers: {
+                "content-type": "text/plain",
+                "mcp-method": "subscriptions/listen",
+            },
+            body: "not json",
+        });
+        expect(r.status).toBe(415);
     });
 
     test("the icon URL follows the forwarding headers", async () => {
@@ -3919,5 +4141,17 @@ describe("/mcp transport posture", () => {
                 "x-forwarded-host": "nutrition-mcp.com",
             },
         );
+    });
+
+    // With no forwarding headers the icon falls back to the request's own
+    // origin — the same fallback getBaseUrl gives the OAuth metadata URLs. It
+    // used to be a hardcoded "http://localhost", so one request could advertise
+    // an icon on one host and its resource metadata on another.
+    test("with no forwarding headers the icon URL is the request origin", async () => {
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            expect(client.getServerVersion()?.icons?.[0]?.src).toBe(
+                "http://test.local/favicon.ico",
+            );
+        });
     });
 });

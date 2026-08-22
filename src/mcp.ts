@@ -1,8 +1,11 @@
 import {
     createMcpHandler,
     McpServer,
+    ProtocolError,
+    JSONRPC_VERSION,
     type McpRequestContext,
 } from "@modelcontextprotocol/server";
+import { getBaseUrl } from "./url.js";
 import { z } from "zod";
 import type { Context } from "hono";
 import {
@@ -4384,14 +4387,12 @@ export function registerTools(
     );
 }
 
-// Build a fresh McpServer with this user's tools registered. `baseUrl` is the
-// public origin the client reached us on (from the forwarding headers), used
-// only to advertise the server icon.
-async function buildMcpServer(
-    baseUrl: string,
-    userId: string,
-): Promise<McpServer> {
-    const server = new McpServer(
+// The bare server: identity, capabilities and instructions, no tools. Shared
+// by both factory paths so the surface a `server/discover` probe is answered
+// from cannot drift from the one a tools/call is served by — the two responses
+// come from the same literal.
+function newMcpServer(baseUrl: string): McpServer {
+    return new McpServer(
         {
             name: "nutrition-mcp",
             version: "1.25.0",
@@ -4416,6 +4417,16 @@ async function buildMcpServer(
             instructions: SERVER_INSTRUCTIONS,
         },
     );
+}
+
+// The full server: the bare one plus this user's tools registered. `baseUrl` is
+// the public origin the client reached us on (from the forwarding headers),
+// used only to advertise the server icon.
+async function buildMcpServer(
+    baseUrl: string,
+    userId: string,
+): Promise<McpServer> {
+    const server = newMcpServer(baseUrl);
 
     // ONE `select * from profiles` for all three display preferences. The
     // getWidgetsEnabled / getAlcoholTrackingEnabled / getPreferredDrinkUnit
@@ -4437,14 +4448,26 @@ async function buildMcpServer(
     return server;
 }
 
-function baseUrlOf(req: Request | undefined): string {
-    const proto = req?.headers.get("x-forwarded-proto") || "http";
-    const host =
-        req?.headers.get("x-forwarded-host") ||
-        req?.headers.get("host") ||
-        "localhost";
-    return `${proto}://${host}`;
-}
+// The two modern-era methods the SDK answers from server identity and
+// capabilities alone, without ever consulting a tool handler: `server/discover`
+// (supportedVersions + capabilities + instructions) and `subscriptions/listen`
+// (refused outright below, but the SDK still reads getCapabilities() and the
+// serverInfo off the instance before refusing). Both are served from
+// newMcpServer, skipping a Supabase profile read and ~38 tool registrations.
+// server/discover is the FIRST request every negotiating client sends, so under
+// Supabase pressure it was the probe that failed — for a response that contains
+// nothing a registration produces.
+//
+// Safe only because a modern request cannot reach the factory with a header
+// that disagrees with its body: classification rejects a Mcp-Method that names
+// a different method than the body does, and validateStandardRequestHeaders
+// rejects an absent one — both with -32020 / HTTP 400, both before the factory
+// runs. Those checks exist on the modern leg only — the legacy fallback ignores
+// the header entirely — hence the era guard.
+const IDENTITY_ONLY_METHODS = new Set([
+    "server/discover",
+    "subscriptions/listen",
+]);
 
 // Dual-era /mcp entry. createMcpHandler serves the 2026-07-28 revision
 // (per-request `_meta` envelope, `server/discover` instead of `initialize`, no
@@ -4470,20 +4493,62 @@ const mcpHandler = createMcpHandler(
                 "mcp: request reached the handler without a userId",
             );
         }
-        return buildMcpServer(baseUrlOf(ctx.requestInfo), userId);
+        // requestInfo is set on both HTTP legs; the fallback only covers a
+        // non-HTTP embedding of this factory (e.g. serveStdio), which never
+        // reaches production.
+        const baseUrl = ctx.requestInfo
+            ? getBaseUrl(ctx.requestInfo)
+            : "http://localhost";
+
+        const mcpMethod = ctx.requestInfo?.headers.get("mcp-method") ?? "";
+        if (ctx.era === "modern" && IDENTITY_ONLY_METHODS.has(mcpMethod)) {
+            return newMcpServer(baseUrl);
+        }
+
+        return buildMcpServer(baseUrl, userId);
     },
     {
         legacy: "stateless",
-        // Belt-and-braces behind the Mcp-Method pre-check in handleMcp: even
-        // if a subscriptions/listen slipped past it, the SDK answers
-        // "Subscription limit reached" instead of holding a stream open.
+        // The 2026-07-28 revision replaces the GET stream with POST
+        // subscriptions/listen, which would otherwise be served as a long-lived
+        // SSE stream — the same deploy-severed connection the 405 in handleMcp
+        // exists to refuse, and one whose cap is per process, not per user.
+        // Nothing here is subscribable anyway (listChanged is false), so the
+        // limit is zero and the SDK answers every listen with -32603
+        // "Subscription limit reached" without opening a stream. This is the
+        // only refusal: a pre-check in handleMcp used to answer -32601 off the
+        // Mcp-Method header alone, which pre-empted the SDK's 415 Content-Type
+        // gate and its -32020 header/body cross-check (so a client that sent
+        // the header on a tools/call POST was told the TOOL did not exist) and
+        // disagreed with this code. IDENTITY_ONLY_METHODS keeps what that
+        // pre-check was actually worth — the factory stays cheap for a listen.
         maxSubscriptions: 0,
-        // Message only. The SDK reports every routine client rejection here
-        // (header mismatch, missing envelope, unsupported revision) as a fresh
-        // Error with a stack; the [req] access line already records the 400,
-        // so a full trace per malformed request would be noise that embeds
-        // client-controlled header values.
-        onerror: (err) => console.error(`[mcp] ${err.message}`),
+        // A stack for anything that might be ours, one line for what is not.
+        // The SDK routes server-factory throws — a Supabase outage inside
+        // getProfile, a bad icon URL, a bug in registerTools — solely to
+        // onerror on BOTH legs, so a message-only line here left on-call with
+        // no idea what failed. A ProtocolError is by construction a rejection
+        // the SDK is already answering on the wire with a typed JSON-RPC error
+        // (unsupported revision, missing capability, header/body mismatch), and
+        // the [req] access line already records its status, so those keep the
+        // one-line form. Everything else logs its stack; the SDK also reports
+        // some routine rejections as plain Errors, and their stacks are noise
+        // we accept rather than risk swallowing a real fault.
+        //
+        // Never interpolated raw: the SDK's rejection messages embed
+        // client-controlled header values verbatim (the Mcp-Name path decodes a
+        // client-supplied base64 blob with a non-sanitizing TextDecoder), so a
+        // raw message could carry newlines and forge fake "[req] 200 …" access
+        // log lines. JSON.stringify escapes newlines and control characters,
+        // and covers the stack too — which contains the same message.
+        onerror: (err) =>
+            console.error(
+                `[mcp] ${JSON.stringify(
+                    err instanceof ProtocolError
+                        ? err.message
+                        : (err.stack ?? err.message),
+                )}`,
+            ),
     },
 );
 
@@ -4491,21 +4556,29 @@ const mcpHandler = createMcpHandler(
 // restart/deploy can never strand a connected client.
 //
 // Only POST (JSON-RPC request/response) is served. We reject GET and DELETE
-// ourselves with 405 — the handler would too, but with a bare text body — so a
-// GET never opens a long-lived standalone SSE stream, the one piece of state a
-// deploy still severs. Since stateless mode never pushes server-initiated
-// messages, that stream carries nothing; the only thing it does is die on every
-// restart and leave some clients (observed: a Claude connector) wedged in a
-// "connected but no tools" state. Refusing the stream (spec-allowed: a server
+// ourselves with 405 so a GET never opens a long-lived standalone SSE stream,
+// the one piece of state a deploy still severs. The handler's legacy fallback
+// answers 405 too, with its own JSON-RPC error ("Method not allowed."), but
+// without an `Allow` header — which is what this adds, alongside a message that
+// tells the client why rather than just that. Since stateless mode never pushes
+// server-initiated messages, that stream carries nothing; the only thing it does
+// is die on every restart and leave some clients (observed: a Claude connector)
+// wedged in a "connected but no tools" state. Refusing the stream (spec-allowed: a server
 // MAY return 405 when it offers no SSE stream at this endpoint) means the client
 // holds nothing that a deploy can break, so updates become truly invisible.
 export const handleMcp = async (c: Context) => {
     if (c.req.method !== "POST") {
         return c.json(
             {
-                jsonrpc: "2.0",
+                jsonrpc: JSONRPC_VERSION,
                 id: null,
                 error: {
+                    // The SDK's own 405 uses -32000 for exactly this; matching
+                    // it keeps one wire code for "wrong HTTP method here"
+                    // whichever leg answers. There is no exported constant for
+                    // -32000 (the named ones are PARSE_ERROR, INVALID_REQUEST,
+                    // METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR) and
+                    // none of them means this.
                     code: -32000,
                     message:
                         "Method Not Allowed: this endpoint serves POST only and offers no SSE stream",
@@ -4516,46 +4589,23 @@ export const handleMcp = async (c: Context) => {
         );
     }
 
-    // The 2026-07-28 revision replaces the GET stream with POST
-    // subscriptions/listen, which the handler would serve as a long-lived SSE
-    // stream — the same deploy-severed connection the 405 above exists to
-    // refuse, and one whose cap is per process, not per user. Nothing here is
-    // subscribable anyway (listChanged is false), so refuse it up front. The
-    // SDK requires Mcp-Method to match the body on modern requests, so the
-    // header is a trustworthy discriminator and the body need not be parsed.
-    if (c.req.header("mcp-method") === "subscriptions/listen") {
-        // Echo the request id so a conforming client correlates the error to
-        // its pending call instead of waiting for a timeout. The body has
-        // already passed bodyLimit; a non-JSON body simply gets id: null.
-        let id: unknown = null;
-        try {
-            const body = (await c.req.json()) as { id?: unknown };
-            if (typeof body.id === "string" || typeof body.id === "number")
-                id = body.id;
-        } catch {
-            // fall through with id: null
-        }
-        return c.json({
-            jsonrpc: "2.0",
-            id,
-            error: {
-                code: -32601,
-                message:
-                    "Method not found: this endpoint is stateless and offers no subscription streams",
-            },
-        });
-    }
-
     const userId = c.get("userId") as string;
 
     // The handler never derives auth from headers: authInfo is pass-through,
-    // and the only consumer is our own factory above. The real bearer token is
-    // deliberately NOT forwarded — nothing downstream needs it, and keeping it
-    // out of the SDK's context means no handler or error path can echo it.
+    // and the only consumer is our own factory above. `extra.userId` is the
+    // single authoritative carrier — the SDK-designated slot for application
+    // data, which the factory reads behind a typeof guard because `extra` is
+    // untyped. clientId is left blank on purpose: it is an OAuth field the SDK
+    // documents as "the client ID associated with this token", not an
+    // app-identity slot, and carrying the user id in both places left no way to
+    // tell which one a future reader (or a future SDK feature) should trust.
+    // Nothing on the serve path reads it. The real bearer token is deliberately
+    // NOT forwarded either — nothing downstream needs it, and keeping it out of
+    // the SDK's context means no handler or error path can echo it.
     return mcpHandler.fetch(c.req.raw, {
         authInfo: {
             token: "",
-            clientId: userId,
+            clientId: "",
             scopes: [],
             extra: { userId },
         },
