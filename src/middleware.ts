@@ -12,6 +12,10 @@ declare module "hono" {
         userId: string;
         accessToken: string;
         suppressAccessLog: boolean;
+        // The protocol era /mcp actually negotiated for this request, set by
+        // handleMcp and read by the access log in index.ts. Optional: requests
+        // refused before the SDK builds a server never carry one.
+        mcpEra: "legacy" | "modern";
     }
 }
 import {
