@@ -31,9 +31,8 @@ import {
     MAX_GOAL_MG,
     gateAlcohol,
 } from "./mcp.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client } from "@modelcontextprotocol/client";
+import { McpServer, InMemoryTransport } from "@modelcontextprotocol/server";
 import * as actualSupabase from "./supabase.js";
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
@@ -1073,9 +1072,9 @@ describe("start_meal_import payload", () => {
 
     test("the payload satisfies the declared outputSchema either way", () => {
         for (const alcohol of ["us", null] as const) {
-            const parsed = z
-                .object(START_IMPORT_OUTPUT_SCHEMA)
-                .parse(startImportPayload({ ...base, alcohol }));
+            const parsed = START_IMPORT_OUTPUT_SCHEMA.parse(
+                startImportPayload({ ...base, alcohol }),
+            );
             expect(parsed.import_tool_name).toBe("bulk_import_meals");
             expect(parsed.tz).toBe("Europe/Kyiv");
             expect(parsed.max_rows_per_call).toBeGreaterThan(0);
