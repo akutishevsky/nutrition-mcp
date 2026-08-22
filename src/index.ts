@@ -7,7 +7,7 @@ import {
     rateLimit,
     banRepeatAuthFailures,
 } from "./middleware.js";
-import { handleMcp } from "./mcp.js";
+import { handleMcp, closeMcpHandler } from "./mcp.js";
 import { startExportCleanup } from "./export.js";
 import { getLandingStats, type LandingStats } from "./supabase.js";
 import { registerDiscoveryRoutes } from "./discovery.js";
@@ -84,6 +84,10 @@ app.use(
             "Authorization",
             "Mcp-Session-Id",
             "Mcp-Protocol-Version",
+            // 2026-07-28 routing headers (SEP-2243). Mcp-Param-* cannot be
+            // allow-listed by prefix; browser clients skip mirroring them.
+            "Mcp-Method",
+            "Mcp-Name",
             "Last-Event-ID",
             "Accept",
         ],
@@ -278,13 +282,14 @@ await warmWidgets();
 startExportCleanup();
 
 // Exit cleanly on shutdown signals (e.g. deploys). /mcp is stateless — no
-// server-side sessions are held, so there is nothing to tear down; just exit.
+// server-side sessions are held. closeMcpHandler only aborts 2026-era
+// exchanges that happen to be mid-flight; it is best-effort before exit.
 let shuttingDown = false;
 function shutdown(signal: string): void {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`Received ${signal}, shutting down...`);
-    process.exit(0);
+    void closeMcpHandler().finally(() => process.exit(0));
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));

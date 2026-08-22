@@ -1,6 +1,7 @@
 import {
+    createMcpHandler,
     McpServer,
-    WebStandardStreamableHTTPServerTransport,
+    type McpRequestContext,
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { Context } from "hono";
@@ -4383,13 +4384,13 @@ export function registerTools(
     );
 }
 
-// Build a fresh McpServer with this user's tools registered.
-async function buildMcpServer(c: Context, userId: string): Promise<McpServer> {
-    const proto = c.req.header("x-forwarded-proto") || "http";
-    const host =
-        c.req.header("x-forwarded-host") || c.req.header("host") || "localhost";
-    const baseUrl = `${proto}://${host}`;
-
+// Build a fresh McpServer with this user's tools registered. `baseUrl` is the
+// public origin the client reached us on (from the forwarding headers), used
+// only to advertise the server icon.
+async function buildMcpServer(
+    baseUrl: string,
+    userId: string,
+): Promise<McpServer> {
     const server = new McpServer(
         {
             name: "nutrition-mcp",
@@ -4402,7 +4403,16 @@ async function buildMcpServer(c: Context, userId: string): Promise<McpServer> {
             ],
         },
         {
-            capabilities: { tools: {}, resources: {} },
+            // listChanged is explicitly false: v2 would advertise true by
+            // default, but /mcp is stateless and refuses the SSE stream, so
+            // there is never a channel to deliver a list_changed notification
+            // on. Advertising it would invite hosts to wait for one (the
+            // 2026-07-28 conformance suite warns on exactly this). A tool
+            // surface change (set_widget_display) is picked up on reconnect.
+            capabilities: {
+                tools: { listChanged: false },
+                resources: { listChanged: false },
+            },
             instructions: SERVER_INSTRUCTIONS,
         },
     );
@@ -4427,16 +4437,54 @@ async function buildMcpServer(c: Context, userId: string): Promise<McpServer> {
     return server;
 }
 
-// Stateless: /mcp holds no per-session state. Every request builds a brand-new
-// transport + McpServer and tears it down when the response completes (the SDK
-// forbids reusing a stateless transport). Because nothing is kept in-process, a
-// restart/deploy can never strand a connected client — there is no session to
-// lose, and therefore no reconnect step for a client to wedge on.
+function baseUrlOf(req: Request | undefined): string {
+    const proto = req?.headers.get("x-forwarded-proto") || "http";
+    const host =
+        req?.headers.get("x-forwarded-host") ||
+        req?.headers.get("host") ||
+        "localhost";
+    return `${proto}://${host}`;
+}
+
+// Dual-era /mcp entry. createMcpHandler serves the 2026-07-28 revision
+// (per-request `_meta` envelope, `server/discover` instead of `initialize`, no
+// protocol-level sessions) and, with the default `legacy: "stateless"`, still
+// answers 2025-era traffic through exactly the idiom handleMcp used to hand-roll:
+// a fresh transport with `sessionIdGenerator: undefined` plus a fresh McpServer
+// from this same factory, torn down when the response completes. One factory
+// backs both eras, so the tool surface cannot drift between them. Nothing is
+// kept in-process between requests on either leg, which is what keeps deploys
+// invisible to clients — there is no session to lose.
+//
+// The factory has no Hono context: the authenticated user arrives through the
+// `authInfo` pass-through (`extra.userId`, set in handleMcp from the bearer
+// middleware's verdict) and the public origin comes from the raw request.
+const mcpHandler = createMcpHandler(
+    async (ctx: McpRequestContext) => {
+        const userId = ctx.authInfo?.extra?.userId;
+        if (typeof userId !== "string" || userId.length === 0) {
+            // handleMcp always sets it; reaching here means the /mcp route was
+            // wired without authenticateBearer, which must fail loudly rather
+            // than serve an anonymous server.
+            throw new Error(
+                "mcp: request reached the handler without a userId",
+            );
+        }
+        return buildMcpServer(baseUrlOf(ctx.requestInfo), userId);
+    },
+    {
+        legacy: "stateless",
+        onerror: (err) => console.error("[mcp]", err),
+    },
+);
+
+// Stateless: /mcp holds no per-session state on either protocol era, so a
+// restart/deploy can never strand a connected client.
 //
 // Only POST (JSON-RPC request/response) is served. We reject GET and DELETE
-// with 405 instead of delegating to the transport, because a GET would open a
-// long-lived standalone SSE stream — and that stream is the one piece of state
-// a deploy still severs. Since stateless mode never pushes server-initiated
+// ourselves with 405 — the handler would too, but with a bare text body — so a
+// GET never opens a long-lived standalone SSE stream, the one piece of state a
+// deploy still severs. Since stateless mode never pushes server-initiated
 // messages, that stream carries nothing; the only thing it does is die on every
 // restart and leave some clients (observed: a Claude connector) wedged in a
 // "connected but no tools" state. Refusing the stream (spec-allowed: a server
@@ -4461,11 +4509,18 @@ export const handleMcp = async (c: Context) => {
 
     const userId = c.get("userId") as string;
 
-    const transport = new WebStandardStreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
+    // The handler never derives auth from headers: authInfo is pass-through,
+    // and the only consumer is our own factory above.
+    return mcpHandler.fetch(c.req.raw, {
+        authInfo: {
+            token: (c.get("accessToken") as string | undefined) ?? "",
+            clientId: userId,
+            scopes: [],
+            extra: { userId },
+        },
     });
-    const server = await buildMcpServer(c, userId);
-    await server.connect(transport);
-
-    return transport.handleRequest(c.req.raw);
 };
+
+// Aborts any in-flight 2026-era exchanges on shutdown. The legacy leg holds
+// nothing between requests, so there is nothing of it to close.
+export const closeMcpHandler = (): Promise<void> => mcpHandler.close();
