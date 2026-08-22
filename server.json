@@ -3,7 +3,7 @@
     "name": "io.github.akutishevsky/nutrition-mcp",
     "title": "Nutrition MCP",
     "description": "Personal nutrition tracking — log meals, track macros, review history, import from another app.",
-    "version": "1.25.0",
+    "version": "1.26.0",
     "websiteUrl": "https://nutrition-mcp.com/",
     "repository": {
         "url": "https://github.com/akutishevsky/nutrition-mcp",
