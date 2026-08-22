@@ -33,8 +33,14 @@ app.use("*", async (c, next) => {
     if (c.get("suppressAccessLog")) return;
     const ms = Math.round(performance.now() - start);
     const ip = maskIp(c.req.header("x-forwarded-for"));
+    // /mcp serves two protocol eras from one endpoint, and the only way to know
+    // when the 2025-11-25 leg can be retired is to count who still uses it.
+    // handleMcp publishes the era the SDK actually negotiated (not a guess from
+    // headers); requests refused before the factory runs carry none, and simply
+    // omit the field.
+    const era = c.get("mcpEra");
     console.log(
-        `[req] ${c.req.method} ${path} ${c.res.status} ${ms}ms ip=${ip}`,
+        `[req] ${c.req.method} ${path} ${c.res.status} ${ms}ms ip=${ip}${era ? ` era=${era}` : ""}`,
     );
 });
 

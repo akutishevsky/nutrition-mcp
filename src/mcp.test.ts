@@ -4155,3 +4155,88 @@ describe("/mcp transport posture", () => {
         });
     });
 });
+
+// The access log in src/index.ts prints `era=…` from what handleMcp publishes on
+// the Hono context. It is the instrument for retiring the 2025-11-25 leg: when
+// nothing has logged era=legacy for a sustained window, flipping the SDK's
+// `legacy: "reject"` is safe. A guess derived from request headers would not be
+// trustworthy enough to make that call, so this asserts the value comes from the
+// era the SDK actually negotiated.
+describe("/mcp records the negotiated era for the access log", () => {
+    // Same wiring as appFor, plus the read the access log performs after the
+    // route resolves.
+    function recordingApp(userId: string, seen: (entry: string) => void) {
+        const app = new Hono();
+        app.all("/mcp", async (c) => {
+            c.set("userId", userId);
+            const res = await handleMcp(c);
+            seen(`${c.req.method}:${c.get("mcpEra") ?? "-"}`);
+            return res;
+        });
+        return app;
+    }
+
+    // Each entry is "METHOD:era" so the assertions can distinguish a request
+    // the SDK served from one this endpoint refused before the SDK saw it.
+    async function traceFor(mode: EraMode): Promise<string[]> {
+        const seen: string[] = [];
+        const app = recordingApp("era-user", (era) => seen.push(era));
+        const transport = new StreamableHTTPClientTransport(
+            new URL("http://test.local/mcp"),
+            { fetch: async (url, init) => app.request(String(url), init) },
+        );
+        const client = new Client(
+            { name: "t", version: "0" },
+            { versionNegotiation: { mode } },
+        );
+        await client.connect(transport);
+        try {
+            await client.listTools();
+        } finally {
+            await client.close();
+        }
+        return seen;
+    }
+
+    test("every served 2025-era request is recorded as legacy", async () => {
+        const seen = await traceFor("legacy");
+        const posts = seen.filter((s) => s.startsWith("POST:"));
+        // initialize, notifications/initialized (the 202) and tools/list. The
+        // 202 matters most: it is the marker that identifies a legacy client in
+        // the log, so it must carry the era like any other request.
+        expect(posts.length).toBeGreaterThanOrEqual(3);
+        expect(new Set(posts)).toEqual(new Set(["POST:legacy"]));
+    });
+
+    test("every served 2026-era request is recorded as modern", async () => {
+        const seen = await traceFor({ pin: "2026-07-28" });
+        const posts = seen.filter((s) => s.startsWith("POST:"));
+        expect(posts.length).toBeGreaterThan(0);
+        expect(new Set(posts)).toEqual(new Set(["POST:modern"]));
+    });
+
+    test("the refused GET stream carries no era, not a guessed one", async () => {
+        // A 2025-era client opens the standalone SSE stream with GET, which
+        // handleMcp answers 405 before the SDK runs — so nothing negotiates an
+        // era and the access log must omit the field.
+        const seen = await traceFor("legacy");
+        const gets = seen.filter((s) => s.startsWith("GET:"));
+        expect(gets.length).toBeGreaterThan(0);
+        expect(new Set(gets)).toEqual(new Set(["GET:-"]));
+    });
+
+    test("a request refused before the factory carries no era", async () => {
+        // 415: the SDK rejects on Content-Type before reading the body, so no
+        // server is built and nothing stamps the trace. Inventing an era here
+        // would corrupt the very count the legacy retirement decision rests on.
+        const seen: string[] = [];
+        const app = recordingApp("era-user", (era) => seen.push(era));
+        const r = await app.request("http://test.local/mcp", {
+            method: "POST",
+            headers: { "content-type": "text/plain" },
+            body: "not json",
+        });
+        expect(r.status).toBe(415);
+        expect(seen).toEqual(["POST:-"]);
+    });
+});

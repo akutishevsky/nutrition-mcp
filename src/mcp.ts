@@ -4482,8 +4482,23 @@ const IDENTITY_ONLY_METHODS = new Set([
 // The factory has no Hono context: the authenticated user arrives through the
 // `authInfo` pass-through (`extra.userId`, set in handleMcp from the bearer
 // middleware's verdict) and the public origin comes from the raw request.
+// Observability only, and the instrument that makes retiring the legacy leg a
+// measurable decision rather than a guess. The negotiated era is decided inside
+// the SDK and surfaces in exactly one place — `ctx.era` on the factory context —
+// so handleMcp passes a mutable holder down through the `authInfo` pass-through
+// for the factory to stamp on the way through. When no request has logged
+// era=legacy for a sustained window, flipping `legacy: "reject"` is safe.
+//
+// Requests refused before the factory runs (415, header/body mismatch,
+// unsupported revision) never get stamped, and log without an era rather than a
+// guessed one.
+export type McpEraTrace = { era?: "legacy" | "modern" };
+
 const mcpHandler = createMcpHandler(
     async (ctx: McpRequestContext) => {
+        const trace = ctx.authInfo?.extra?.trace as McpEraTrace | undefined;
+        if (trace) trace.era = ctx.era;
+
         const userId = ctx.authInfo?.extra?.userId;
         if (typeof userId !== "string" || userId.length === 0) {
             // handleMcp always sets it; reaching here means the /mcp route was
@@ -4602,14 +4617,21 @@ export const handleMcp = async (c: Context) => {
     // Nothing on the serve path reads it. The real bearer token is deliberately
     // NOT forwarded either — nothing downstream needs it, and keeping it out of
     // the SDK's context means no handler or error path can echo it.
-    return mcpHandler.fetch(c.req.raw, {
+    const trace: McpEraTrace = {};
+    const response = await mcpHandler.fetch(c.req.raw, {
         authInfo: {
             token: "",
             clientId: "",
             scopes: [],
-            extra: { userId },
+            extra: { userId, trace },
         },
     });
+
+    // Published for the access log in src/index.ts, which runs outermost and
+    // reads this after next() resolves. Set after fetch resolves, which is
+    // after the factory has run even when the response body is still streaming.
+    if (trace.era) c.set("mcpEra", trace.era);
+    return response;
 };
 
 // Aborts any in-flight 2026-era exchanges on shutdown. The legacy leg holds
