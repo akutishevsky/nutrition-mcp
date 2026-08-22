@@ -1,5 +1,17 @@
 import { test, expect, describe, afterEach } from "bun:test";
-import { app, setShuttingDownForTest } from "./index.js";
+
+// index.ts calls createOAuthRouter() at module scope, and that throws when the
+// OAuth env is unset (src/oauth.ts). Bun auto-loads .env, so a static import
+// here passes on a dev machine and fails on CI, which has no .env — that is
+// exactly how this file first went red on Linux while green on macOS.
+//
+// The defaults have to be set BEFORE index.js is evaluated, and a static import
+// would hoist above these lines, so the import is dynamic. Same values as
+// src/oauth.test.ts, and ||= so a real .env still wins.
+process.env.OAUTH_CLIENT_ID ||= "test-client-id";
+process.env.OAUTH_CLIENT_SECRET ||= "test-client-secret";
+
+const { app, setShuttingDownForTest } = await import("./index.js");
 
 // The shutdown gate (src/index.ts) exists because closing the MCP handler while
 // Bun.serve keeps accepting turns every in-flight POST /mcp into a 500 that a
