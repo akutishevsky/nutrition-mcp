@@ -217,7 +217,11 @@ describe("/mcp transport posture", () => {
         expect(r.headers.get("content-type")).not.toContain(
             "text/event-stream",
         );
-        const body = (await r.json()) as { error?: { code: number } };
+        const body = (await r.json()) as {
+            id?: unknown;
+            error?: { code: number };
+        };
+        expect(body.id).toBe(7);
         expect(body.error?.code).toBe(-32601);
     });
 

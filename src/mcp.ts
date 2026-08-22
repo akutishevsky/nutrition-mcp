@@ -4524,9 +4524,20 @@ export const handleMcp = async (c: Context) => {
     // SDK requires Mcp-Method to match the body on modern requests, so the
     // header is a trustworthy discriminator and the body need not be parsed.
     if (c.req.header("mcp-method") === "subscriptions/listen") {
+        // Echo the request id so a conforming client correlates the error to
+        // its pending call instead of waiting for a timeout. The body has
+        // already passed bodyLimit; a non-JSON body simply gets id: null.
+        let id: unknown = null;
+        try {
+            const body = (await c.req.json()) as { id?: unknown };
+            if (typeof body.id === "string" || typeof body.id === "number")
+                id = body.id;
+        } catch {
+            // fall through with id: null
+        }
         return c.json({
             jsonrpc: "2.0",
-            id: null,
+            id,
             error: {
                 code: -32601,
                 message:
@@ -4538,10 +4549,12 @@ export const handleMcp = async (c: Context) => {
     const userId = c.get("userId") as string;
 
     // The handler never derives auth from headers: authInfo is pass-through,
-    // and the only consumer is our own factory above.
+    // and the only consumer is our own factory above. The real bearer token is
+    // deliberately NOT forwarded — nothing downstream needs it, and keeping it
+    // out of the SDK's context means no handler or error path can echo it.
     return mcpHandler.fetch(c.req.raw, {
         authInfo: {
-            token: (c.get("accessToken") as string | undefined) ?? "",
+            token: "",
             clientId: userId,
             scopes: [],
             extra: { userId },

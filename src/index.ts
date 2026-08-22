@@ -289,7 +289,12 @@ function shutdown(signal: string): void {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`Received ${signal}, shutting down...`);
-    void closeMcpHandler().finally(() => process.exit(0));
+    // Bounded: a close that stalls on a wedged exchange must not outlive the
+    // platform's grace period and turn a clean stop into a SIGKILL.
+    void Promise.race([
+        closeMcpHandler(),
+        new Promise((r) => setTimeout(r, 2000)),
+    ]).finally(() => process.exit(0));
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
