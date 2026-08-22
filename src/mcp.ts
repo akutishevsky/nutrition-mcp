@@ -6,6 +6,7 @@ import {
     type McpRequestContext,
 } from "@modelcontextprotocol/server";
 import { getBaseUrl } from "./url.js";
+import { formatClientId } from "./client-id.js";
 import { z } from "zod";
 import type { Context } from "hono";
 import {
@@ -1290,7 +1291,19 @@ export function registerTools(
     userId: string,
     widgetsEnabled: boolean,
     alcohol: AlcoholDisplay,
+    // Optional so the many direct callers in mcp.test.ts keep working: they
+    // exercise tool behaviour, not analytics attribution, and a row with no era
+    // is exactly what a non-HTTP embedding should record.
+    protocolEra?: "legacy" | "modern",
 ) {
+    // One context for all 38 tools. clientInfo is a getter, not a value: at
+    // registration time the SDK has not yet resolved who is calling, and on the
+    // modern leg it backfills the identity per request before dispatch.
+    const analytics = {
+        userId,
+        protocolEra,
+        clientInfo: () => server.server.getClientVersion(),
+    };
     // Link a tool to its widget only when this user has widgets enabled. Because
     // buildMcpServer registers tools per request, this makes widget display a
     // per-user setting: with widgets off, tools/list advertises no UI link, so
@@ -1460,7 +1473,7 @@ export function registerTools(
                         structuredContent,
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -1529,7 +1542,7 @@ export function registerTools(
                         structuredContent,
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -1702,7 +1715,7 @@ export function registerTools(
                         structuredContent: serializeImportResult(result),
                     };
                 },
-                { userId },
+                analytics,
                 undefined,
                 {
                     // Nothing landed means the call really failed, even though
@@ -1792,7 +1805,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
                 { barcode },
             );
         },
@@ -1835,7 +1848,7 @@ export function registerTools(
                         .join("\n\n---\n\n");
                     return { content: [{ type: "text", text }] };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -1876,7 +1889,7 @@ export function registerTools(
                         .join("\n\n---\n\n");
                     return { content: [{ type: "text", text }] };
                 },
-                { userId },
+                analytics,
                 { date },
             );
         },
@@ -1950,7 +1963,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
                 { start_date, end_date },
             );
         },
@@ -2032,7 +2045,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
                 { days: days ?? 365 },
             );
         },
@@ -2408,7 +2421,7 @@ export function registerTools(
                         },
                     };
                 },
-                { userId },
+                analytics,
                 { start_date, end_date },
             );
         },
@@ -2600,7 +2613,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -2635,7 +2648,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -2777,7 +2790,7 @@ export function registerTools(
                         },
                     };
                 },
-                { userId },
+                analytics,
                 { date: date ?? "today" },
             );
         },
@@ -2814,7 +2827,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -2923,7 +2936,7 @@ export function registerTools(
                         structuredContent,
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -2991,7 +3004,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3043,7 +3056,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3094,7 +3107,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
                 { date },
             );
         },
@@ -3131,7 +3144,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3215,7 +3228,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3269,7 +3282,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3322,7 +3335,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
                 { date },
             );
         },
@@ -3405,7 +3418,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
                 { start_date, end_date },
             );
         },
@@ -3541,7 +3554,7 @@ export function registerTools(
                         },
                     };
                 },
-                { userId },
+                analytics,
                 { days: days ?? 30 },
             );
         },
@@ -3622,7 +3635,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3658,7 +3671,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3707,7 +3720,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3741,7 +3754,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3784,7 +3797,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3818,7 +3831,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3890,7 +3903,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -3931,7 +3944,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -4034,7 +4047,7 @@ export function registerTools(
                         },
                     };
                 },
-                { userId },
+                analytics,
                 { days: days ?? 30 },
             );
         },
@@ -4099,7 +4112,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
                 { days: days ?? 30 },
             );
         },
@@ -4156,7 +4169,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -4240,7 +4253,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -4282,7 +4295,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -4326,7 +4339,7 @@ export function registerTools(
                         ],
                     };
                 },
-                { userId },
+                analytics,
             );
         },
     );
@@ -4380,6 +4393,7 @@ export function registerTools(
                 // must not carry the id it just erased. Only the cancelled path
                 // (nothing deleted) still belongs to the real user.
                 {
+                    ...analytics,
                     userId: confirm ? DELETED_ACCOUNT_ANALYTICS_ID : userId,
                 },
             );
@@ -4425,6 +4439,7 @@ function newMcpServer(baseUrl: string): McpServer {
 async function buildMcpServer(
     baseUrl: string,
     userId: string,
+    protocolEra?: "legacy" | "modern",
 ): Promise<McpServer> {
     const server = newMcpServer(baseUrl);
 
@@ -4444,6 +4459,7 @@ async function buildMcpServer(
         userId,
         widgetsEnabledFromProfile(profile),
         alcoholTrackingEnabledFromProfile(profile) ? (drinkUnit ?? "us") : null,
+        protocolEra,
     );
     return server;
 }
@@ -4501,33 +4517,6 @@ export type McpEraTrace = {
     server?: McpServer;
 };
 
-// Client name and version are client-supplied strings that go straight into a
-// log line, which is the injection surface finding #3 was about — a raw value
-// could carry newlines and forge "[req] …" entries. Strip everything outside
-// printable ASCII, collapse whitespace so a value cannot fake a field break, and
-// cap the length so a long name cannot push the real fields off the line.
-function logSafeClient(
-    info:
-        | {
-              name?: string;
-              version?: string;
-          }
-        | undefined,
-): string | undefined {
-    const clean = (value: string) =>
-        value
-            // Non-printables become "_" rather than vanishing: a deleted
-            // newline silently welds the text on either side of it together,
-            // which hides what the client actually sent.
-            .replace(/[^\x20-\x7E]/g, "_")
-            .replace(/\s+/g, "_")
-            .slice(0, 40);
-    const name = info?.name ? clean(info.name) : "";
-    if (!name) return undefined;
-    const version = info?.version ? clean(info.version) : "";
-    return version ? `${name}/${version}` : name;
-}
-
 const mcpHandler = createMcpHandler(
     async (ctx: McpRequestContext) => {
         const trace = ctx.authInfo?.extra?.trace as McpEraTrace | undefined;
@@ -4556,7 +4545,7 @@ const mcpHandler = createMcpHandler(
             return bare;
         }
 
-        const server = await buildMcpServer(baseUrl, userId);
+        const server = await buildMcpServer(baseUrl, userId, ctx.era);
         if (trace) trace.server = server;
         return server;
     },
@@ -4669,7 +4658,7 @@ export const handleMcp = async (c: Context) => {
     // reads this after next() resolves. Set after fetch resolves, which is
     // after the factory has run even when the response body is still streaming.
     if (trace.era) c.set("mcpEra", trace.era);
-    const client = logSafeClient(trace.server?.server.getClientVersion());
+    const client = formatClientId(trace.server?.server.getClientVersion());
     if (client) c.set("mcpClient", client);
     return response;
 };

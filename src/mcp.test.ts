@@ -4305,6 +4305,54 @@ describe("/mcp records the negotiated era for the access log", () => {
         expect(client).toBe(`${"x".repeat(40)}/${"y".repeat(40)}`);
     });
 
+    // The access log is a ring buffer holding well under an hour at production
+    // volume, so it cannot answer "has anyone used legacy in the last 30 days".
+    // tool_analytics can, and only if the era actually reaches the row.
+    test.each(ERAS)(
+        "the era reaches the tool_analytics row (%p)",
+        async (mode) => {
+            db.analyticsRows = [];
+            await withHttpClient("u1", mode, (client) =>
+                client.callTool({ name: "get_current_time", arguments: {} }),
+            );
+            const rows = db.analyticsRows.filter(
+                (r) => r.tool_name === "get_current_time",
+            );
+            expect(rows.length).toBe(1);
+            expect(rows[0]?.protocol_era).toBe(
+                mode === "legacy" ? "legacy" : "modern",
+            );
+        },
+    );
+
+    test("a modern tool call records the client that made it", async () => {
+        db.analyticsRows = [];
+        await withHttpClient("u1", { pin: "2026-07-28" }, (client) =>
+            client.callTool({ name: "get_current_time", arguments: {} }),
+        );
+        const row = db.analyticsRows.find(
+            (r) => r.tool_name === "get_current_time",
+        );
+        // withHttpClient's client identifies itself as { name: "t", version: "0" }.
+        expect(row?.client_name).toBe("t/0");
+    });
+
+    test("a legacy tool call records the era but not the client", async () => {
+        db.analyticsRows = [];
+        await withHttpClient("u1", "legacy", (client) =>
+            client.callTool({ name: "get_current_time", arguments: {} }),
+        );
+        const row = db.analyticsRows.find(
+            (r) => r.tool_name === "get_current_time",
+        );
+        // Documents the limitation instead of hiding it: on the stateless legacy
+        // leg a tool call is a separate request from `initialize`, and only
+        // `initialize` carries clientInfo. The era — the field the retirement
+        // decision actually rests on — is still recorded.
+        expect(row?.protocol_era).toBe("legacy");
+        expect(row?.client_name).toBeUndefined();
+    });
+
     test("a request refused before the factory carries no era", async () => {
         // 415: the SDK rejects on Content-Type before reading the body, so no
         // server is built and nothing stamps the trace. Inventing an era here
