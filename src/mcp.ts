@@ -4474,7 +4474,16 @@ const mcpHandler = createMcpHandler(
     },
     {
         legacy: "stateless",
-        onerror: (err) => console.error("[mcp]", err),
+        // Belt-and-braces behind the Mcp-Method pre-check in handleMcp: even
+        // if a subscriptions/listen slipped past it, the SDK answers
+        // "Subscription limit reached" instead of holding a stream open.
+        maxSubscriptions: 0,
+        // Message only. The SDK reports every routine client rejection here
+        // (header mismatch, missing envelope, unsupported revision) as a fresh
+        // Error with a stack; the [req] access line already records the 400,
+        // so a full trace per malformed request would be noise that embeds
+        // client-controlled header values.
+        onerror: (err) => console.error(`[mcp] ${err.message}`),
     },
 );
 
@@ -4505,6 +4514,25 @@ export const handleMcp = async (c: Context) => {
             405,
             { Allow: "POST" },
         );
+    }
+
+    // The 2026-07-28 revision replaces the GET stream with POST
+    // subscriptions/listen, which the handler would serve as a long-lived SSE
+    // stream — the same deploy-severed connection the 405 above exists to
+    // refuse, and one whose cap is per process, not per user. Nothing here is
+    // subscribable anyway (listChanged is false), so refuse it up front. The
+    // SDK requires Mcp-Method to match the body on modern requests, so the
+    // header is a trustworthy discriminator and the body need not be parsed.
+    if (c.req.header("mcp-method") === "subscriptions/listen") {
+        return c.json({
+            jsonrpc: "2.0",
+            id: null,
+            error: {
+                code: -32601,
+                message:
+                    "Method not found: this endpoint is stateless and offers no subscription streams",
+            },
+        });
     }
 
     const userId = c.get("userId") as string;

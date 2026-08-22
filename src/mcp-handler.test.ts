@@ -194,6 +194,33 @@ describe("/mcp transport posture", () => {
         }
     });
 
+    test("subscriptions/listen is refused without opening a stream", async () => {
+        const envelope = {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+        };
+        const r = await appFor("u1").request("http://x/mcp", {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+                accept: "application/json, text/event-stream",
+                "mcp-protocol-version": "2026-07-28",
+                "mcp-method": "subscriptions/listen",
+            },
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 7,
+                method: "subscriptions/listen",
+                params: { notifications: { tools: true }, _meta: envelope },
+            }),
+        });
+        expect(r.headers.get("content-type")).not.toContain(
+            "text/event-stream",
+        );
+        const body = (await r.json()) as { error?: { code: number } };
+        expect(body.error?.code).toBe(-32601);
+    });
+
     test("the icon URL follows the forwarding headers", async () => {
         const app = appFor("u1");
         const transport = new StreamableHTTPClientTransport(
