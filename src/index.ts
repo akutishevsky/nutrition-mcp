@@ -39,8 +39,13 @@ app.use("*", async (c, next) => {
     // headers); requests refused before the factory runs carry none, and simply
     // omit the field.
     const era = c.get("mcpEra");
+    // Which client is on which era. The era alone cannot tell a Claude surface
+    // from a third-party MCP client sharing an IP range, and that is the
+    // question the legacy retirement actually turns on. Absent when the
+    // protocol did not carry it — see the note on mcpClient in middleware.ts.
+    const client = c.get("mcpClient");
     console.log(
-        `[req] ${c.req.method} ${path} ${c.res.status} ${ms}ms ip=${ip}${era ? ` era=${era}` : ""}`,
+        `[req] ${c.req.method} ${path} ${c.res.status} ${ms}ms ip=${ip}${era ? ` era=${era}` : ""}${client ? ` client=${client}` : ""}`,
     );
 });
 
