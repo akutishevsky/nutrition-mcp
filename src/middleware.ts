@@ -16,6 +16,10 @@ declare module "hono" {
         // handleMcp and read by the access log in index.ts. Optional: requests
         // refused before the SDK builds a server never carry one.
         mcpEra: "legacy" | "modern";
+        // Sanitized "name/version" of the MCP client, when the protocol carried
+        // it. Modern requests carry it in the envelope every time; 2025-era
+        // requests only on `initialize`.
+        mcpClient: string;
     }
 }
 import {

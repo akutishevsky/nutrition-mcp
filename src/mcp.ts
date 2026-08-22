@@ -4492,7 +4492,41 @@ const IDENTITY_ONLY_METHODS = new Set([
 // Requests refused before the factory runs (415, header/body mismatch,
 // unsupported revision) never get stamped, and log without an era rather than a
 // guessed one.
-export type McpEraTrace = { era?: "legacy" | "modern" };
+export type McpEraTrace = {
+    era?: "legacy" | "modern";
+    // The server built for this request, kept so handleMcp can read the client
+    // identity the SDK resolved. Only readable AFTER the exchange: on the modern
+    // leg the envelope backfills it per request, on the legacy leg only
+    // `initialize` carries clientInfo at all.
+    server?: McpServer;
+};
+
+// Client name and version are client-supplied strings that go straight into a
+// log line, which is the injection surface finding #3 was about — a raw value
+// could carry newlines and forge "[req] …" entries. Strip everything outside
+// printable ASCII, collapse whitespace so a value cannot fake a field break, and
+// cap the length so a long name cannot push the real fields off the line.
+function logSafeClient(
+    info:
+        | {
+              name?: string;
+              version?: string;
+          }
+        | undefined,
+): string | undefined {
+    const clean = (value: string) =>
+        value
+            // Non-printables become "_" rather than vanishing: a deleted
+            // newline silently welds the text on either side of it together,
+            // which hides what the client actually sent.
+            .replace(/[^\x20-\x7E]/g, "_")
+            .replace(/\s+/g, "_")
+            .slice(0, 40);
+    const name = info?.name ? clean(info.name) : "";
+    if (!name) return undefined;
+    const version = info?.version ? clean(info.version) : "";
+    return version ? `${name}/${version}` : name;
+}
 
 const mcpHandler = createMcpHandler(
     async (ctx: McpRequestContext) => {
@@ -4517,10 +4551,14 @@ const mcpHandler = createMcpHandler(
 
         const mcpMethod = ctx.requestInfo?.headers.get("mcp-method") ?? "";
         if (ctx.era === "modern" && IDENTITY_ONLY_METHODS.has(mcpMethod)) {
-            return newMcpServer(baseUrl);
+            const bare = newMcpServer(baseUrl);
+            if (trace) trace.server = bare;
+            return bare;
         }
 
-        return buildMcpServer(baseUrl, userId);
+        const server = await buildMcpServer(baseUrl, userId);
+        if (trace) trace.server = server;
+        return server;
     },
     {
         legacy: "stateless",
@@ -4631,6 +4669,8 @@ export const handleMcp = async (c: Context) => {
     // reads this after next() resolves. Set after fetch resolves, which is
     // after the factory has run even when the response body is still streaming.
     if (trace.era) c.set("mcpEra", trace.era);
+    const client = logSafeClient(trace.server?.server.getClientVersion());
+    if (client) c.set("mcpClient", client);
     return response;
 };
 

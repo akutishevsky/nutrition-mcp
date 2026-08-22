@@ -4170,7 +4170,9 @@ describe("/mcp records the negotiated era for the access log", () => {
         app.all("/mcp", async (c) => {
             c.set("userId", userId);
             const res = await handleMcp(c);
-            seen(`${c.req.method}:${c.get("mcpEra") ?? "-"}`);
+            seen(
+                `${c.req.method}:${c.get("mcpEra") ?? "-"}:${c.get("mcpClient") ?? "-"}`,
+            );
             return res;
         });
         return app;
@@ -4178,17 +4180,22 @@ describe("/mcp records the negotiated era for the access log", () => {
 
     // Each entry is "METHOD:era" so the assertions can distinguish a request
     // the SDK served from one this endpoint refused before the SDK saw it.
-    async function traceFor(mode: EraMode): Promise<string[]> {
+    async function traceFor(
+        mode: EraMode,
+        identity: { name: string; version: string } = {
+            name: "t",
+            version: "0",
+        },
+    ): Promise<string[]> {
         const seen: string[] = [];
         const app = recordingApp("era-user", (era) => seen.push(era));
         const transport = new StreamableHTTPClientTransport(
             new URL("http://test.local/mcp"),
             { fetch: async (url, init) => app.request(String(url), init) },
         );
-        const client = new Client(
-            { name: "t", version: "0" },
-            { versionNegotiation: { mode } },
-        );
+        const client = new Client(identity, {
+            versionNegotiation: { mode },
+        });
         await client.connect(transport);
         try {
             await client.listTools();
@@ -4200,19 +4207,23 @@ describe("/mcp records the negotiated era for the access log", () => {
 
     test("every served 2025-era request is recorded as legacy", async () => {
         const seen = await traceFor("legacy");
-        const posts = seen.filter((s) => s.startsWith("POST:"));
+        const eras = seen
+            .filter((s) => s.startsWith("POST:"))
+            .map((s) => s.split(":")[1]);
         // initialize, notifications/initialized (the 202) and tools/list. The
         // 202 matters most: it is the marker that identifies a legacy client in
         // the log, so it must carry the era like any other request.
-        expect(posts.length).toBeGreaterThanOrEqual(3);
-        expect(new Set(posts)).toEqual(new Set(["POST:legacy"]));
+        expect(eras.length).toBeGreaterThanOrEqual(3);
+        expect(new Set(eras)).toEqual(new Set(["legacy"]));
     });
 
     test("every served 2026-era request is recorded as modern", async () => {
         const seen = await traceFor({ pin: "2026-07-28" });
-        const posts = seen.filter((s) => s.startsWith("POST:"));
-        expect(posts.length).toBeGreaterThan(0);
-        expect(new Set(posts)).toEqual(new Set(["POST:modern"]));
+        const eras = seen
+            .filter((s) => s.startsWith("POST:"))
+            .map((s) => s.split(":")[1]);
+        expect(eras.length).toBeGreaterThan(0);
+        expect(new Set(eras)).toEqual(new Set(["modern"]));
     });
 
     test("the refused GET stream carries no era, not a guessed one", async () => {
@@ -4220,9 +4231,78 @@ describe("/mcp records the negotiated era for the access log", () => {
         // handleMcp answers 405 before the SDK runs — so nothing negotiates an
         // era and the access log must omit the field.
         const seen = await traceFor("legacy");
-        const gets = seen.filter((s) => s.startsWith("GET:"));
+        const gets = seen
+            .filter((s) => s.startsWith("GET:"))
+            .map((s) => s.split(":")[1]);
         expect(gets.length).toBeGreaterThan(0);
-        expect(new Set(gets)).toEqual(new Set(["GET:-"]));
+        expect(new Set(gets)).toEqual(new Set(["-"]));
+    });
+
+    test("a 2026-era client is named on every request, from the envelope", async () => {
+        const seen = await traceFor(
+            { pin: "2026-07-28" },
+            {
+                name: "acme-client",
+                version: "9.9.9",
+            },
+        );
+        const clients = seen
+            .filter((s) => s.startsWith("POST:"))
+            .map((s) => s.split(":")[2]);
+        expect(clients.length).toBeGreaterThan(0);
+        // The modern envelope carries clientInfo on every request, so unlike the
+        // legacy leg there is no request that knows the era but not the client.
+        expect(new Set(clients)).toEqual(new Set(["acme-client/9.9.9"]));
+    });
+
+    test("a 2025-era client is named on initialize, the only request that carries it", async () => {
+        const seen = await traceFor("legacy", {
+            name: "acme-client",
+            version: "9.9.9",
+        });
+        const clients = seen
+            .filter((s) => s.startsWith("POST:"))
+            .map((s) => s.split(":")[2]);
+        // Documents a real limitation rather than papering over it: on the
+        // stateless legacy leg every request builds a fresh server and only
+        // `initialize` carries clientInfo, so the rest log no client. One named
+        // request per connection is still enough to answer who is on this leg.
+        expect(clients).toContain("acme-client/9.9.9");
+        expect(clients).toContain("-");
+    });
+
+    test("a client name cannot forge a log line", async () => {
+        // Same injection surface as the SDK error messages: this value is
+        // client-supplied and goes straight into the access line.
+        const seen = await traceFor(
+            { pin: "2026-07-28" },
+            {
+                name: "evil\n[req] POST /mcp 200 1ms ip=9.9.9.9",
+                version: "1.0",
+            },
+        );
+        const clients = seen
+            .filter((s) => s.startsWith("POST:"))
+            .map((s) => s.split(":")[2]);
+        for (const c of clients) {
+            expect(c).not.toContain("\n");
+            expect(c).not.toContain(" ");
+        }
+        expect(clients[0]).toBe("evil_[req]_POST_/mcp_200_1ms_ip=9.9.9.9/1.0");
+    });
+
+    test("an over-long client name cannot push the real fields off the line", async () => {
+        const seen = await traceFor(
+            { pin: "2026-07-28" },
+            {
+                name: "x".repeat(500),
+                version: "y".repeat(500),
+            },
+        );
+        const client = seen
+            .filter((s) => s.startsWith("POST:"))
+            .map((s) => s.split(":")[2])[0];
+        expect(client).toBe(`${"x".repeat(40)}/${"y".repeat(40)}`);
     });
 
     test("a request refused before the factory carries no era", async () => {
@@ -4237,6 +4317,6 @@ describe("/mcp records the negotiated era for the access log", () => {
             body: "not json",
         });
         expect(r.status).toBe(415);
-        expect(seen).toEqual(["POST:-"]);
+        expect(seen).toEqual(["POST:-:-"]);
     });
 });
