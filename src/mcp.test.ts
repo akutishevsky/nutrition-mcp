@@ -39,6 +39,11 @@ import {
 import { Hono } from "hono";
 import { McpServer, InMemoryTransport } from "@modelcontextprotocol/server";
 import * as actualSupabase from "./supabase.js";
+
+// Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
+// in place, so restoring from the live `actualSupabase` afterwards would hand
+// the next file the mock again. Restore from this copy.
+const realSupabase = { ...actualSupabase };
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
@@ -1556,7 +1561,7 @@ mock.module("./supabase.js", () => ({
 }));
 
 afterAll(() => {
-    mock.module("./supabase.js", () => actualSupabase);
+    mock.module("./supabase.js", () => realSupabase);
 });
 
 beforeEach(() => {
@@ -3651,11 +3656,11 @@ describe("export_all_data is on the tool surface", () => {
 
 // ---------- /mcp over HTTP: both protocol eras ----------
 //
-// These live here rather than in their own file on purpose: mock.module is
-// process-wide, and a second mock/restore cycle of ./supabase.js in another
-// file broke middleware.test.ts's own mock on Linux CI (the third mock.module
-// of the same path no longer reached an already-loaded consumer). One mock
-// window per process for this module, shared by everything that needs it.
+// Kept in this file rather than its own: mock.module is process-wide, and a
+// separate file with its own mock/restore of ./supabase.js broke
+// middleware.test.ts's mock on Linux CI even with a snapshot-based restore.
+// Sharing this file's single mock window is what proved green; see the
+// restore note on the afterAll above for the mechanism.
 
 // The production route minus auth: authenticateBearer's only output is the
 // userId variable, which is what handleMcp hands to the server factory.
@@ -3663,23 +3668,31 @@ function appFor(userId: string) {
     const app = new Hono();
     app.all("/mcp", (c) => {
         c.set("userId", userId);
-        c.set("accessToken", "tok");
         return handleMcp(c);
     });
     return app;
 }
 
-// Drive the real handler in-process: the URL is never dialled.
-async function connect(
+type EraMode = "auto" | "legacy" | { pin: "2026-07-28" };
+
+// Drive the real handler in-process: the URL is never dialled. Extra headers
+// stand in for what a proxy in front of us would add.
+async function withHttpClient<T>(
     userId: string,
-    mode: "auto" | "legacy" | { pin: "2026-07-28" },
-) {
+    mode: EraMode,
+    run: (client: Client) => Promise<T>,
+    headers: Record<string, string> = {},
+): Promise<T> {
     const app = appFor(userId);
     const transport = new StreamableHTTPClientTransport(
         new URL("http://test.local/mcp"),
         {
-            fetch: async (url, init) =>
-                app.request(new Request(String(url), init)),
+            fetch: async (url, init) => {
+                const req = new Request(String(url), init);
+                for (const [k, v] of Object.entries(headers))
+                    req.headers.set(k, v);
+                return app.request(req);
+            },
         },
     );
     const client = new Client(
@@ -3687,161 +3700,200 @@ async function connect(
         { versionNegotiation: { mode } },
     );
     await client.connect(transport);
-    return client;
+    try {
+        return await run(client);
+    } finally {
+        await client.close();
+    }
+}
+
+// A raw JSON-RPC POST with the headers the v2 entry is strict about.
+function rpc(
+    app: Hono,
+    body: Record<string, unknown>,
+    headers: Record<string, string> = {},
+) {
+    return app.request("http://x/mcp", {
+        method: "POST",
+        headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            ...headers,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", ...body }),
+    });
+}
+
+// The legacy leg answers over SSE; pull the single JSON-RPC frame out.
+async function sseFrame(r: Response): Promise<Record<string, unknown>> {
+    const line = (await r.text())
+        .split("\n")
+        .find((l) => l.startsWith("data:"));
+    return JSON.parse(line?.slice(5) ?? "{}") as Record<string, unknown>;
 }
 
 describe("/mcp serves the 2026-07-28 revision", () => {
     test("a negotiating client lands on the modern era", async () => {
-        const client = await connect("u1", "auto");
-        expect(client.getProtocolEra()).toBe("modern");
-        expect(client.getServerVersion()?.name).toBe("nutrition-mcp");
-        await client.close();
+        await withHttpClient("u1", "auto", async (client) => {
+            expect(client.getProtocolEra()).toBe("modern");
+            expect(client.getServerVersion()?.name).toBe("nutrition-mcp");
+        });
     });
 
-    test("list_changed is not advertised on either era — nothing could deliver it", async () => {
-        for (const mode of ["legacy", { pin: "2026-07-28" }] as const) {
-            const client = await connect("u1", mode);
-            const caps = client.getServerCapabilities();
-            expect(caps?.tools).toEqual({ listChanged: false });
-            expect(caps?.resources).toEqual({ listChanged: false });
-            await client.close();
-        }
-    });
+    test.each(["legacy", { pin: "2026-07-28" }] as const)(
+        "list_changed is not advertised (%p) — nothing could deliver it",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const caps = client.getServerCapabilities();
+                expect(caps?.tools).toEqual({ listChanged: false });
+                expect(caps?.resources).toEqual({ listChanged: false });
+            });
+        },
+    );
 
     test("a pinned 2026-07-28 client connects without fallback", async () => {
-        const client = await connect("u1", { pin: "2026-07-28" });
-        expect(client.getProtocolEra()).toBe("modern");
-        await client.close();
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            expect(client.getProtocolEra()).toBe("modern");
+        });
     });
 
     test("tools/list carries the MCP Apps links and output schemas", async () => {
-        const client = await connect("u1", { pin: "2026-07-28" });
-        const { tools } = await client.listTools();
-        expect(tools.length).toBeGreaterThan(30);
-        const logMeal = tools.find((t) => t.name === "log_meal");
-        expect(logMeal?._meta?.ui).toEqual({
-            resourceUri: "ui://widget/meal-logged.html",
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            const { tools } = await client.listTools();
+            expect(tools.length).toBeGreaterThan(30);
+            const logMeal = tools.find((t) => t.name === "log_meal");
+            expect(logMeal?._meta?.ui).toEqual({
+                resourceUri: "ui://widget/meal-logged.html",
+            });
+            expect(logMeal?.outputSchema?.type).toBe("object");
         });
-        expect(logMeal?.outputSchema?.type).toBe("object");
-        await client.close();
     });
 
     test("tools/call returns content and widgets read as mcp-app HTML", async () => {
-        const client = await connect("u1", { pin: "2026-07-28" });
-        const r = await client.callTool({
-            name: "get_timezone",
-            arguments: {},
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            const r = await client.callTool({
+                name: "get_timezone",
+                arguments: {},
+            });
+            expect(r.isError).toBeFalsy();
+            expect((r.content as { type: string }[])[0]?.type).toBe("text");
+            const res = await client.readResource({
+                uri: "ui://widget/meal-logged.html",
+            });
+            expect(res.contents[0]?.mimeType).toBe("text/html;profile=mcp-app");
         });
-        expect(r.isError).toBeFalsy();
-        expect((r.content as { type: string }[])[0]?.type).toBe("text");
-        const res = await client.readResource({
-            uri: "ui://widget/meal-logged.html",
-        });
-        expect(res.contents[0]?.mimeType).toBe("text/html;profile=mcp-app");
-        await client.close();
     });
 
-    test("start_meal_import returns structuredContent the client validates", async () => {
-        const client = await connect("u1", { pin: "2026-07-28" });
-        const r = await client.callTool({
-            name: "start_meal_import",
-            arguments: {},
+    test("start_meal_import carries the profile timezone to the widget", async () => {
+        // Not UTC: that is both PROFILE_BASE's zone and the null-profile
+        // fallback, so only a distinct zone proves the profile was read.
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            const r = await client.callTool({
+                name: "start_meal_import",
+                arguments: {},
+            });
+            expect(r.isError).toBeFalsy();
+            const sc = r.structuredContent as Record<string, unknown>;
+            expect(sc.tz).toBe("Europe/Kyiv");
+            expect(sc.tz_configured).toBe(true);
+            expect(sc.import_tool_name).toBe("bulk_import_meals");
         });
-        expect(r.isError).toBeFalsy();
-        const sc = r.structuredContent as Record<string, unknown>;
-        expect(sc.tz).toBe("UTC");
-        expect(sc.import_tool_name).toBe("bulk_import_meals");
-        await client.close();
     });
 
     test("input validation errors are in-band, not transport failures", async () => {
-        const client = await connect("u1", { pin: "2026-07-28" });
-        const r = await client.callTool({
-            name: "log_meal",
-            arguments: { description: "x", meal_type: "brunch" },
+        await withHttpClient("u1", { pin: "2026-07-28" }, async (client) => {
+            const r = await client.callTool({
+                name: "log_meal",
+                arguments: { description: "x", meal_type: "brunch" },
+            });
+            expect(r.isError).toBe(true);
         });
-        expect(r.isError).toBe(true);
-        await client.close();
     });
 
     test("the server is built per request for the authenticated user", async () => {
-        db.profileReads = [];
-        const a = await connect("user-a", { pin: "2026-07-28" });
-        await a.listTools();
-        await a.close();
-        const b = await connect("user-b", { pin: "2026-07-28" });
-        await b.listTools();
-        await b.close();
-        expect(db.profileReads).toContain("user-a");
-        expect(db.profileReads).toContain("user-b");
+        // Two users, then the first again: a per-user cache would read each
+        // profile once, so the third read is what proves per-request.
+        for (const user of ["user-a", "user-b", "user-a"]) {
+            await withHttpClient(user, { pin: "2026-07-28" }, (client) =>
+                client.listTools(),
+            );
+        }
+        // connect() is a server/discover probe plus the tools/list: each one
+        // is its own request and therefore its own factory run.
+        expect(db.profileReads).toEqual([
+            "user-a",
+            "user-a",
+            "user-b",
+            "user-b",
+            "user-a",
+            "user-a",
+        ]);
     });
 });
 
 describe("/mcp still serves 2025-era clients unchanged", () => {
     test("a legacy client completes initialize and lists tools", async () => {
-        const client = await connect("u1", "legacy");
-        expect(client.getProtocolEra()).toBe("legacy");
-        expect(client.getServerVersion()?.name).toBe("nutrition-mcp");
-        expect(client.getServerCapabilities()?.tools).toBeDefined();
-        const { tools } = await client.listTools();
-        expect(tools.find((t) => t.name === "log_meal")?._meta?.ui).toEqual({
-            resourceUri: "ui://widget/meal-logged.html",
+        await withHttpClient("u1", "legacy", async (client) => {
+            expect(client.getProtocolEra()).toBe("legacy");
+            expect(client.getServerVersion()?.name).toBe("nutrition-mcp");
+            expect(client.getServerCapabilities()?.tools).toBeDefined();
+            const { tools } = await client.listTools();
+            expect(tools.find((t) => t.name === "log_meal")?._meta?.ui).toEqual(
+                { resourceUri: "ui://widget/meal-logged.html" },
+            );
         });
-        await client.close();
     });
 
-    test("legacy initialize issues no session id", async () => {
-        const r = await appFor("u1").request("http://x/mcp", {
-            method: "POST",
-            headers: {
-                "content-type": "application/json",
-                accept: "application/json, text/event-stream",
+    test("legacy initialize answers in-band and issues no session id", async () => {
+        const r = await rpc(appFor("u1"), {
+            id: 1,
+            method: "initialize",
+            params: {
+                protocolVersion: "2025-11-25",
+                capabilities: {},
+                clientInfo: { name: "c", version: "0" },
             },
-            body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: 1,
-                method: "initialize",
-                params: {
-                    protocolVersion: "2025-11-25",
-                    capabilities: {},
-                    clientInfo: { name: "c", version: "0" },
-                },
-            }),
         });
         expect(r.status).toBe(200);
         expect(r.headers.get("mcp-session-id")).toBeNull();
+        const frame = await sseFrame(r);
+        expect(frame.error).toBeUndefined();
+        expect(
+            (frame.result as { protocolVersion: string }).protocolVersion,
+        ).toBe("2025-11-25");
     });
 });
 
 describe("/mcp transport posture", () => {
-    test("GET and DELETE are refused with 405 and no SSE stream", async () => {
-        for (const method of ["GET", "DELETE"]) {
+    test.each(["GET", "DELETE"])(
+        "%s is refused with 405 and no SSE stream",
+        async (method) => {
             const r = await appFor("u1").request("http://x/mcp", { method });
             expect(r.status).toBe(405);
             expect(r.headers.get("allow")).toBe("POST");
-        }
-    });
+        },
+    );
 
     test("subscriptions/listen is refused without opening a stream", async () => {
-        const envelope = {
-            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-            "io.modelcontextprotocol/clientCapabilities": {},
-        };
-        const r = await appFor("u1").request("http://x/mcp", {
-            method: "POST",
-            headers: {
-                "content-type": "application/json",
-                accept: "application/json, text/event-stream",
+        const r = await rpc(
+            appFor("u1"),
+            {
+                id: 7,
+                method: "subscriptions/listen",
+                params: {
+                    notifications: { tools: true },
+                    _meta: {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                },
+            },
+            {
                 "mcp-protocol-version": "2026-07-28",
                 "mcp-method": "subscriptions/listen",
             },
-            body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: 7,
-                method: "subscriptions/listen",
-                params: { notifications: { tools: true }, _meta: envelope },
-            }),
-        });
+        );
         expect(r.headers.get("content-type")).not.toContain(
             "text/event-stream",
         );
@@ -3854,26 +3906,18 @@ describe("/mcp transport posture", () => {
     });
 
     test("the icon URL follows the forwarding headers", async () => {
-        const app = appFor("u1");
-        const transport = new StreamableHTTPClientTransport(
-            new URL("http://test.local/mcp"),
+        await withHttpClient(
+            "u1",
+            { pin: "2026-07-28" },
+            async (client) => {
+                expect(client.getServerVersion()?.icons?.[0]?.src).toBe(
+                    "https://nutrition-mcp.com/favicon.ico",
+                );
+            },
             {
-                fetch: async (url, init) => {
-                    const req = new Request(String(url), init);
-                    req.headers.set("x-forwarded-proto", "https");
-                    req.headers.set("x-forwarded-host", "nutrition-mcp.com");
-                    return app.request(req);
-                },
+                "x-forwarded-proto": "https",
+                "x-forwarded-host": "nutrition-mcp.com",
             },
         );
-        const client = new Client(
-            { name: "t", version: "0" },
-            { versionNegotiation: { mode: { pin: "2026-07-28" } } },
-        );
-        await client.connect(transport);
-        expect(client.getServerVersion()?.icons?.[0]?.src).toBe(
-            "https://nutrition-mcp.com/favicon.ico",
-        );
-        await client.close();
     });
 });
