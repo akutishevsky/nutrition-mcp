@@ -10,6 +10,10 @@ import {
 import { Hono } from "hono";
 import * as actualSupabase from "./supabase.js";
 
+// Snapshot before mocking — restoring from the live namespace is a no-op
+// because Bun patches it in place (see mcp.test.ts).
+const realSupabase = { ...actualSupabase };
+
 // middleware.ts only reaches Supabase to resolve a bearer token, so stubbing
 // that one export is enough to exercise the whole auth path offline. Counting
 // the calls also lets us prove a banned IP is shed *before* any token lookup.
@@ -31,7 +35,7 @@ mock.module("./supabase.js", () => ({
     },
 }));
 afterAll(() => {
-    mock.module("./supabase.js", () => actualSupabase);
+    mock.module("./supabase.js", () => realSupabase);
 });
 
 const { authenticateBearer, banRepeatAuthFailures, rateLimit } =
