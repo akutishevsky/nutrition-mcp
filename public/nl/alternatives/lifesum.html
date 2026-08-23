@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="nl">
+    <head>
+        <title>
+            MCP-server voor Lifesum? Houd je voeding bij in Claude en ChatGPT
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="Geen MCP-server voor Lifesum? Nutrition MCP logt maaltijden en macro's in Claude of ChatGPT — gratis, open source, en importeert je CSV-export."
+        />
+        <meta
+            property="og:title"
+            content="MCP-server voor Lifesum? Houd je voeding bij in Claude en ChatGPT"
+        />
+        <meta
+            property="og:description"
+            content="Lifesum heeft geen MCP-server. Nutrition MCP is een gratis, open source alternatief dat maaltijden, macro's en gewicht logt in Claude of ChatGPT — en importeert je Lifesum-geschiedenis vanuit een CSV-export."
+        />
+        <meta property="og:type" content="article" />
+        <meta
+            property="og:url"
+            content="https://nutrition-mcp.com/nl/lifesum-mcp"
+        />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
+        <meta
+            name="twitter:title"
+            content="MCP-server voor Lifesum? Houd je voeding bij in Claude en ChatGPT"
+        />
+        <meta
+            name="twitter:description"
+            content="Lifesum heeft geen MCP-server. Nutrition MCP is een gratis, open source alternatief dat maaltijden, macro's en gewicht logt in Claude of ChatGPT — en importeert je Lifesum-geschiedenis vanuit een CSV-export."
+        />
+        <link rel="canonical" href="https://nutrition-mcp.com/nl/lifesum-mcp" />
+        <link
+            rel="alternate"
+            hreflang="en"
+            href="https://nutrition-mcp.com/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="de"
+            href="https://nutrition-mcp.com/de/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="es"
+            href="https://nutrition-mcp.com/es/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="fr"
+            href="https://nutrition-mcp.com/fr/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="nl"
+            href="https://nutrition-mcp.com/nl/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="pl"
+            href="https://nutrition-mcp.com/pl/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="it"
+            href="https://nutrition-mcp.com/it/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="uk"
+            href="https://nutrition-mcp.com/uk/lifesum-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="x-default"
+            href="https://nutrition-mcp.com/lifesum-mcp"
+        />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="de_DE" />
+        <meta property="og:locale:alternate" content="es_ES" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="pl_PL" />
+        <meta property="og:locale:alternate" content="it_IT" />
+        <meta property="og:locale:alternate" content="uk_UA" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#fbfbf9" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Nutrition MCP",
+                        "item": "https://nutrition-mcp.com"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Alternatives",
+                        "item": "https://nutrition-mcp.com/nl/alternatives"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "Lifesum MCP",
+                        "item": "https://nutrition-mcp.com/nl/lifesum-mcp"
+                    }
+                ]
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "Heeft Lifesum een MCP-server?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Nee. Lifesum biedt geen Model Context Protocol (MCP)-server aan, dus er is geen officiële manier om het te verbinden met Claude, ChatGPT of andere AI-assistenten. Nutrition MCP is een gratis, open source alternatief dat vanaf de grond af is gebouwd als MCP-server, zodat je maaltijden en macro's rechtstreeks in je AI kunt loggen."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Hoe verbind ik Lifesum met Claude?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Er is geen officiële Lifesum-connector voor Claude, omdat Lifesum geen MCP-server of publieke MCP-integratie heeft. De dichtstbijzijnde optie is Nutrition MCP, een gratis MCP-server: voeg https://nutrition-mcp.com/mcp toe als custom connector in Claude, log in, en begin met loggen via een gesprek."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Beoordeelt Nutrition MCP mijn eten zoals Lifesum's voedselbeoordelingen?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Nee — er is geen badge of numerieke score. In plaats daarvan kun je je AI vragen “is dit een goede keuze voor mijn doelen?” en een contextueel antwoord krijgen dat de afwegingen uitlegt, in plaats van een vaste beoordeling van het voedingsmiddel zelf."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is Nutrition MCP gratis zonder een abonnement zoals Lifesum Premium?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Ja. Nutrition MCP is volledig gratis en open source, zonder premium-laag — terwijl Lifesum dieetplannen en een deel van de trackingfuncties achter een Premium-abonnement plaatst. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is Nutrition MCP een goed Lifesum-alternatief?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Als je calorieën, macro's — vezels, totale suikers en cafeïne inbegrepen — water en gewicht wilt bijhouden zonder een aparte app te openen of een voedseldatabase te doorzoeken, dan wel. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto, of scan je een barcode, en je AI logt het — volledig gratis en open source."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Kan ik mijn Lifesum-gegevens importeren?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Ja, met handmatige kolomkoppeling. Vraag om te importeren en er opent een importvenster in de chat: je kiest je Lifesum-CSV-export, die wordt in je browser verwerkt in plaats van door de AI gelezen, en je wijst de kolommen zelf aan naar datum, voedsel, maaltijd, calorieën en macro's — vezels, totale suikers en cafeïne inbegrepen. Lifesum is geen van de vier exports die aan de kolomnaam worden herkend, dus die koppeling is een eenmalige handmatige stap, al vullen kopteksten die de koppelaar al kent zichzelf in. Europese bestanden met puntkomma's, komma's als decimaalteken, datums in DD/MM/JJJJ en kilojoules worden allemaal opgevangen, en hetzelfde bestand opnieuw importeren maakt nooit dubbele regels aan. In clients zonder in-chat-panelen kun je in plaats daarvan je export plakken."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Leest de AI mijn exportbestand wanneer ik importeer?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Niet wanneer de importer opent. Die verwerkt de CSV in je browser en laat je zien wat wordt toegevoegd voordat er iets wordt geschreven: hoeveel maaltijden, het caloriegetal, alles wat gemarkeerd moest worden, en de regels zelf — bij een lang bestand worden de eerste getoond plus een telling van de rest, in plaats van elke regel. Alleen de regels die je bevestigt worden verzonden, en die gaan als gestructureerde gegevens in plaats van via het antwoord van de AI, dus er kan onderweg geen regel verkeerd worden overgetypt of verzonnen. Elke regel draagt ook een inhoudelijke vingerafdruk, dus dezelfde import nogmaals uitvoeren meldt die maaltijden als al gelogd in plaats van ze te dupliceren. Als je client geen in-chat-panelen kan tonen, is het alternatief om de export te plakken — op dat pad leest de AI het wel, dus geef de voorkeur aan de importer wanneer je de keuze hebt."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is Nutrition MCP gratis?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Ja. Nutrition MCP is volledig gratis, zonder premium-laag, advertenties of functies achter een betaalmuur — in tegenstelling tot apps die sommige functies achter een abonnement plaatsen. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden."
+                        }
+                    }
+                ]
+            }
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+        <a class="skip" href="#main">Naar de inhoud</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a
+                    class="brand"
+                    href="/nl"
+                    aria-label="Nutrition MCP startpagina"
+                >
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/nl#how">Hoe het werkt</a>
+                    <a href="/nl#install">Installeren</a>
+                    <a href="/nl/tools">Tools</a>
+                    <a href="/nl#try">Voorbeelden</a>
+                    <a href="/nl#stats">Live statistieken</a>
+                    <a href="/nl#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="GitHub-repository"
+                        title="GitHub"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="Taal wijzigen"
+                            title="Taal"
+                        >
+                            <span class="lang-code">NL</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+                            <a
+                                href="https://nutrition-mcp.com/lifesum-mcp"
+                                lang="en"
+                                hreflang="en"
+                                >English</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/de/lifesum-mcp"
+                                lang="de"
+                                hreflang="de"
+                                >Deutsch</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/es/lifesum-mcp"
+                                lang="es"
+                                hreflang="es"
+                                >Español</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/fr/lifesum-mcp"
+                                lang="fr"
+                                hreflang="fr"
+                                >Français</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/nl/lifesum-mcp"
+                                lang="nl"
+                                hreflang="nl"
+                                aria-current="page"
+                                >Nederlands</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/pl/lifesum-mcp"
+                                lang="pl"
+                                hreflang="pl"
+                                >Polski</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/it/lifesum-mcp"
+                                lang="it"
+                                hreflang="it"
+                                >Italiano</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/uk/lifesum-mcp"
+                                lang="uk"
+                                hreflang="uk"
+                                >Українська</a
+                            >
+                        </div>
+                    </details>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="Schakel naar donkere modus"
+                        title="Schakel naar donkere modus"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/nl#install"
+                        >Verbind</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Menu openen"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/nl#how">Hoe het werkt <small>3 stappen</small></a>
+                <a href="/nl#install"
+                    >Installeren <small>binnen een minuut</small></a
+                >
+                <a href="/nl/tools">Tools <small>38 tools</small></a>
+                <a href="/nl#try">Voorbeelden <small>live demo's</small></a>
+                <a href="/nl#stats"
+                    >Live statistieken <small>sinds je dit opende</small></a
+                >
+                <a href="/nl#faq">FAQ</a>
+                <a href="/nl/alternatives"
+                    >Alternatieven <small>van app wisselen</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/nl#support">Steun</a>
+                <a href="/nl#contact">Contact</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/nl/privacy">Privacy</a>
+                <a href="/nl/terms">Voorwaarden</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/nl#install"
+                    >Verbind binnen een minuut</a
+                >
+            </div>
+        </div>
+
+        <main id="main">
+            <!-- Hero -->
+            <section class="hero">
+                <div class="container">
+                    <nav class="crumb" aria-label="Breadcrumb">
+                        <a href="/nl">Home</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <a href="/nl/alternatives">Alternatieven</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <span>Lifesum</span>
+                    </nav>
+                    <div class="hero-copy hero-copy-wide">
+                        <p class="eyebrow">Lifesum-alternatief</p>
+                        <h1 class="hero-title">
+                            Op zoek naar een <em>Lifesum MCP</em>-server?
+                        </h1>
+                        <p class="lead">
+                            Lifesum heeft die niet — dus je kunt het niet
+                            gebruiken binnen Claude of ChatGPT. Nutrition MCP
+                            doet hetzelfde via een gesprek, en het is gratis en
+                            open source.
+                        </p>
+                        <div class="hero-actions">
+                            <a class="btn btn-primary" href="#switch"
+                                >Verbind binnen een minuut</a
+                            >
+                            <a class="btn btn-secondary" href="#compare"
+                                >Bekijk de vergelijking</a
+                            >
+                        </div>
+                    </div>
+                    <div class="translation-notice">
+                        <p>
+                            Deze pagina is met AI vertaald vanuit het Engels en
+                            is niet door een mens gecontroleerd.
+                            <a href="/lifesum-mcp"
+                                >Origineel in het Engels lezen</a
+                            >
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- The honest answer -->
+            <section class="section band" id="answer">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Het korte antwoord</p>
+                        <h2 class="section-title">
+                            Nee, Lifesum heeft geen MCP-server.
+                        </h2>
+                        <p class="section-sub">
+                            Het Model Context Protocol (MCP) is de open
+                            standaard waarmee AI-assistenten zoals Claude en
+                            ChatGPT verbinding kunnen maken met externe tools.
+                            Lifesum publiceert geen MCP-server, dus er is geen
+                            officiële manier om er vanuit je AI eten in te
+                            loggen. Als je zocht op &ldquo;Lifesum MCP&rdquo; of
+                            &ldquo;Lifesum verbinden met Claude,&rdquo; ben je
+                            eigenlijk op zoek naar een voedingstracker die
+                            <em>binnen</em> je AI leeft — dat is precies wat
+                            Nutrition MCP is.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- What you get instead -->
+            <section class="section" id="instead">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Wat je in plaats daarvan krijgt</p>
+                        <h2 class="section-title">
+                            Dezelfde tracking, gewoon door te praten
+                        </h2>
+                    </div>
+                    <div class="features-grid" data-reveal="stagger">
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-utensils"></i
+                            ></span>
+                            <h3>Maaltijden in gewone taal</h3>
+                            <p>
+                                Zeg &ldquo;havermout met banaan en
+                                pindakaas&rdquo; — je AI schat de calorieën en
+                                macro's, vezels, totale suikers en cafeïne
+                                inbegrepen, en logt het. Geen database om te
+                                doorzoeken.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-barcode"></i
+                            ></span>
+                            <h3>Barcode scannen — gratis</h3>
+                            <p>
+                                Stuur de barcode van een product en haal de
+                                labelmacro's op bij Open Food Facts — vezels en
+                                suiker ook, waar het label die vermeldt. Geen
+                                Premium-abonnement nodig om het te ontgrendelen.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-weight-scale"></i
+                            ></span>
+                            <h3>Gewicht &amp; doelen</h3>
+                            <p>
+                                Log je lichaamsgewicht in kg of lb, stel doelen
+                                in voor calorieën, macro's, vezels, suiker,
+                                cafeïne en water — vezels een streefwaarde om te
+                                halen, suiker en cafeïne limieten om onder te
+                                blijven — en volg trends richting een
+                                streefgewicht. Alcoholregistratie is er ook,
+                                opt-in en standaard uit tenzij je het aanzet.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>Overzichten &amp; trends</h3>
+                            <p>
+                                Vraag om dagelijkse totalen, wekelijkse trends,
+                                reeksen en terugkerende maaltijdpatronen —
+                                gewoon in de chat.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-file-csv"></i
+                            ></span>
+                            <h3>
+                                Importeer &amp; behoud eigenaarschap van je
+                                gegevens
+                            </h3>
+                            <p>
+                                Importeer je maaltijdgeschiedenis uit de
+                                CSV-export van een andere app — verwerkt in je
+                                browser, niet door de AI. Haal alles weer op
+                                wanneer je maar wilt: één ZIP met je maaltijden,
+                                water, gewicht, doelen en profiel als
+                                CSV-bestanden. Maaltijden zijn voorlopig het
+                                enige onderdeel dat je weer kunt importeren. Of
+                                verwijder je account, net zo eenvoudig.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-code-branch"></i
+                            ></span>
+                            <h3>Open source &amp; gratis</h3>
+                            <p>
+                                MIT-gelicentieerd en zelf te hosten — geen
+                                advertenties, geen betaalmuur, geen upsell.
+                                Controleer de code, of host je eigen instantie.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison -->
+            <section class="section band" id="compare">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Lifesum vs. Nutrition MCP</p>
+                        <h2 class="section-title">Hoe ze zich verhouden</h2>
+                    </div>
+                    <div class="compare">
+                        <div class="compare-col">
+                            <h3 class="compare-h compare-h-old">Lifesum</h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Geen
+                                    MCP-server — werkt niet binnen Claude of
+                                    ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Log
+                                    voedingsmiddelen door zijn database één voor
+                                    één te doorzoeken
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Sommige
+                                    functies, zoals dieetplannen, vereisen een
+                                    betaald abonnement
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Weer een
+                                    app en abonnement om te beheren
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="compare-col compare-col-new">
+                            <h3 class="compare-h compare-h-new">
+                                Nutrition MCP
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Gebouwd als MCP-server — werkt binnen Claude
+                                    &amp; ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Omschrijf maaltijden in gewone taal;
+                                    calorieën, macro's, vezels, suiker &amp;
+                                    cafeïne worden voor je geschat
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Barcode scannen, trends, CSV-import &amp;
+                                    -export — allemaal gratis
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Geen aparte app, geen advertenties, open
+                                    source
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="note compare-note">
+                        Lifesum combineert tracking met gestructureerde
+                        dieetplannen. Nutrition MCP is een lichtere, gratis
+                        manier om calorieën, macro's en gewicht te loggen door
+                        met je AI te praten.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Moving from X (per-app, unique content) -->
+            <section class="section" id="moving">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Overstappen van Lifesum</p>
+                        <h2 class="section-title">
+                            Beoordelingen waar je gewoon naar kunt vragen
+                        </h2>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            Lifesum leunt op structuur en feedback —
+                            dieetplannen, recepten en het
+                            voedselbeoordelingssysteem dat scoort wat je eet.
+                            Nutrition MCP geeft je eten geen badge als cijfer,
+                            dus als die scorelus je motiveert, heeft Lifesum
+                            daar een streepje voor.
+                        </p>
+                        <p>
+                            De ruil is flexibiliteit: in plaats van een vaste
+                            beoordeling kun je je AI vragen “is dit een goede
+                            keuze voor mijn doelen?” en een echt antwoord in
+                            context krijgen. Loggen is één zin, trends en een
+                            streefgewicht zitten er standaard bij, en geen
+                            premium-laag blokkeert de nuttige onderdelen.
+                        </p>
+                        <p>
+                            Een badge vertelt je dat een voedingsmiddel 3 van de
+                            5 scoorde; een gesprek vertelt je waarom, en wat je
+                            eraan kunt doen — “vervang de helft van de rijst
+                            door groenten en dit past in je dag.” Het is het
+                            verschil tussen een score en een coach, en omdat
+                            Lifesum dieetplannen en een deel van de tracking
+                            achter Premium plaatst, is dit van de twee de gratis
+                            optie.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bring your history (per-app, unique content) -->
+            <section class="section band" id="import">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Je Lifesum-geschiedenis</p>
+                        <h2 class="section-title">Niets om over te typen</h2>
+                        <p class="section-sub">
+                            Vraag om te importeren en er opent direct een
+                            importvenster in de chat: kies je export, koppel de
+                            kolommen, bekijk een preview van wat wordt
+                            toegevoegd en bevestig. Het bestand wordt in je
+                            browser gelezen — de AI ziet de regels nooit. In
+                            clients zonder in-chat-panelen plak je je export in
+                            plaats daarvan.
+                        </p>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            Van tracker wisselen betekent je geschiedenis
+                            meenemen, en je hoeft er geen regel van over te
+                            typen. Vraag om te importeren en er opent een
+                            importvenster in de chat: je kiest je
+                            Lifesum-CSV-export, die wordt in je browser
+                            verwerkt, en je wijst de kolommen aan naar datum,
+                            voedsel, maaltijd, calorieën, eiwit, koolhydraten,
+                            vet, vezels, totale suikers en cafeïne. De
+                            kopteksten van Lifesum worden niet op naam herkend
+                            zoals die van MyFitnessPal, Cronometer, Lose It! en
+                            MacroFactor, dus die koppeling is een eenmalige
+                            handmatige stap — daarna bekijk je een preview van
+                            wat wordt toegevoegd en bevestig je.
+                        </p>
+                        <p>
+                            Niets verschuilt zich achter een aanname. De
+                            koppelaar toont je eigen bestand — de echte
+                            kopteksten, echte cellen, en een lopende telling van
+                            de regels die worden aangemaakt — dus een kolom die
+                            naar het verkeerde veld wijst, is zichtbaar voordat
+                            er iets wordt geschreven in plaats van pas achteraf
+                            ontdekt te worden. Aangehaalde velden, regeleinden
+                            binnen een cel, bijna-lege waarden en totaalregels
+                            worden allemaal opgevangen, en omdat het bestand in
+                            je browser wordt gelezen, ziet de AI nooit een regel
+                            die hij verkeerd zou kunnen overtypen.
+                        </p>
+                        <p>
+                            Europese exports worden ondersteund: een bestand met
+                            puntkomma's en komma's als decimaalteken wordt
+                            correct gelezen, datums in DD/MM/JJJJ worden omgezet
+                            zodra je de volgorde hebt bevestigd, en kilojoules
+                            worden kilocalorieën, met de eenheid getoond naast
+                            een uitgewerkt voorbeeld uit je eigen eerste regel.
+                            Gelokaliseerde kopteksten helpen ook — de Kalorien,
+                            Kohlenhydrate, Ballaststoffe of Koffein van een
+                            Duitse export vullen zichzelf in, en vezels, suiker
+                            en cafeïne worden ook herkend in het Spaans, Frans,
+                            Italiaans en Nederlands — dus de handmatige
+                            koppeling is meestal korter dan het klinkt. Voer de
+                            import twee keer uit en niets verdubbelt — elke
+                            regel draagt een inhoudelijke vingerafdruk, dus
+                            herhalingen worden gemeld als al gelogd.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How to switch -->
+            <section class="section" id="switch">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Hoe je overstapt</p>
+                        <h2 class="section-title">Verbind binnen een minuut</h2>
+                        <p class="section-sub">
+                            Werkt met elke MCP-client die OAuth 2.0 met PKCE
+                            ondersteunt. Bij de eerste verbinding maak je een
+                            account aan met Google of een e-mailadres en
+                            wachtwoord.
+                        </p>
+                    </div>
+                    <div class="card install-card">
+                        <ol class="steps">
+                            <li>
+                                Open <strong>Claude</strong> (web of desktop) en
+                                klik op <strong>Customize</strong> →
+                                <strong>Connectors</strong>.
+                            </li>
+                            <li>
+                                Klik op <strong>+</strong>, daarna op
+                                <strong>Add custom connector</strong>, en geef
+                                het een naam zoals <strong>Nutrition</strong>.
+                            </li>
+                            <li>
+                                Plak
+                                <span class="copy-url"
+                                    ><code>https://nutrition-mcp.com/mcp</code
+                                    ><button
+                                        class="copy-mini"
+                                        type="button"
+                                        data-copy="https://nutrition-mcp.com/mcp"
+                                        aria-label="Serverlink kopiëren"
+                                    >
+                                        <i class="fa-solid fa-copy"></i></button
+                                ></span>
+                                in het veld
+                                <strong>Remote MCP server URL</strong> en klik
+                                op <strong>Add</strong>.
+                            </li>
+                            <li>
+                                Klik op <strong>Connect</strong>, log in, en
+                                begin met loggen door te zeggen wat je hebt
+                                gegeten.
+                            </li>
+                        </ol>
+                        <p class="note">
+                            Gebruik je liever ChatGPT of een andere client? De
+                            <a href="/nl#install"
+                                >volledige installatiehandleiding</a
+                            >
+                            behandelt ChatGPT, Cursor, VS Code, Claude Code en
+                            meer.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section band" id="faq">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">FAQ</p>
+                        <h2 class="section-title">Lifesum &amp; MCP-vragen</h2>
+                    </div>
+                    <div class="faq">
+                        <details>
+                            <summary>Heeft Lifesum een MCP-server?</summary>
+                            <p>
+                                Nee. Lifesum biedt geen Model Context Protocol
+                                (MCP)-server aan, dus er is geen officiële
+                                manier om het te verbinden met Claude, ChatGPT
+                                of andere AI-assistenten. Nutrition MCP is een
+                                gratis, open source alternatief dat vanaf de
+                                grond af is gebouwd als MCP-server, zodat je
+                                maaltijden en macro's rechtstreeks in je AI kunt
+                                loggen.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Hoe verbind ik Lifesum met Claude?
+                            </summary>
+                            <p>
+                                Er is geen officiële Lifesum-connector voor
+                                Claude, omdat Lifesum geen MCP-server of
+                                publieke MCP-integratie heeft. De
+                                dichtstbijzijnde optie is Nutrition MCP, een
+                                gratis MCP-server: voeg
+                                https://nutrition-mcp.com/mcp toe als custom
+                                connector in Claude, log in, en begin met loggen
+                                via een gesprek.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Beoordeelt Nutrition MCP mijn eten zoals
+                                Lifesum's voedselbeoordelingen?
+                            </summary>
+                            <p>
+                                Nee — er is geen badge of numerieke score. In
+                                plaats daarvan kun je je AI vragen “is dit een
+                                goede keuze voor mijn doelen?” en een
+                                contextueel antwoord krijgen dat de afwegingen
+                                uitlegt, in plaats van een vaste beoordeling van
+                                het voedingsmiddel zelf.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Is Nutrition MCP gratis zonder een abonnement
+                                zoals Lifesum Premium?
+                            </summary>
+                            <p>
+                                Ja. Nutrition MCP is volledig gratis en open
+                                source, zonder premium-laag — terwijl Lifesum
+                                dieetplannen en een deel van de trackingfuncties
+                                achter een Premium-abonnement plaatst. Je hebt
+                                alleen een Claude- of ChatGPT-account nodig om
+                                te verbinden.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Is Nutrition MCP een goed Lifesum-alternatief?
+                            </summary>
+                            <p>
+                                Als je calorieën, macro's — vezels, totale
+                                suikers en cafeïne inbegrepen — water en gewicht
+                                wilt bijhouden zonder een aparte app te openen
+                                of een voedseldatabase te doorzoeken, dan wel.
+                                In plaats van door een database te tikken,
+                                omschrijf je in gewone taal wat je hebt gegeten,
+                                stuur je een foto, of scan je een barcode, en je
+                                AI logt het — volledig gratis en open source.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Kan ik mijn Lifesum-gegevens importeren?
+                            </summary>
+                            <p>
+                                Ja, met handmatige kolomkoppeling. Vraag om te
+                                importeren en er opent een importvenster in de
+                                chat: je kiest je Lifesum-CSV-export, die wordt
+                                in je browser verwerkt in plaats van door de AI
+                                gelezen, en je wijst de kolommen zelf aan naar
+                                datum, voedsel, maaltijd, calorieën en macro's —
+                                vezels, totale suikers en cafeïne inbegrepen.
+                                Lifesum is geen van de vier exports die aan de
+                                kolomnaam worden herkend, dus die koppeling is
+                                een eenmalige handmatige stap, al vullen
+                                kopteksten die de koppelaar al kent zichzelf in.
+                                Europese bestanden met puntkomma's, komma's als
+                                decimaalteken, datums in DD/MM/JJJJ en
+                                kilojoules worden allemaal opgevangen, en
+                                hetzelfde bestand opnieuw importeren maakt nooit
+                                dubbele regels aan. In clients zonder
+                                in-chat-panelen kun je in plaats daarvan je
+                                export plakken.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Leest de AI mijn exportbestand wanneer ik
+                                importeer?
+                            </summary>
+                            <p>
+                                Niet wanneer de importer opent. Die verwerkt de
+                                CSV in je browser en laat je zien wat wordt
+                                toegevoegd voordat er iets wordt geschreven:
+                                hoeveel maaltijden, het caloriegetal, alles wat
+                                gemarkeerd moest worden, en de regels zelf — bij
+                                een lang bestand worden de eerste getoond plus
+                                een telling van de rest, in plaats van elke
+                                regel. Alleen de regels die je bevestigt worden
+                                verzonden, en die gaan als gestructureerde
+                                gegevens in plaats van via het antwoord van de
+                                AI, dus er kan onderweg geen regel verkeerd
+                                worden overgetypt of verzonnen. Elke regel
+                                draagt ook een inhoudelijke vingerafdruk, dus
+                                dezelfde import nogmaals uitvoeren meldt die
+                                maaltijden als al gelogd in plaats van ze te
+                                dupliceren. Als je client geen in-chat-panelen
+                                kan tonen, is het alternatief om de export te
+                                plakken — op dat pad leest de AI het wel, dus
+                                geef de voorkeur aan de importer wanneer je de
+                                keuze hebt.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Is Nutrition MCP gratis?</summary>
+                            <p>
+                                Ja. Nutrition MCP is volledig gratis, zonder
+                                premium-laag, advertenties of functies achter
+                                een betaalmuur — in tegenstelling tot apps die
+                                sommige functies achter een abonnement plaatsen.
+                                Je hebt alleen een Claude- of ChatGPT-account
+                                nodig om te verbinden.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Closing CTA -->
+            <section class="section cta">
+                <div class="container cta-inner" data-reveal>
+                    <h2 class="cta-title">
+                        Houd je voeding bij in de AI die je al gebruikt.
+                    </h2>
+                    <p class="cta-sub">
+                        Gratis en open source — geen Lifesum-account, geen app
+                        om te openen.
+                    </p>
+                    <div class="cta-actions">
+                        <a class="btn btn-on-accent" href="#switch"
+                            >Snel installeren</a
+                        >
+                        <a class="btn btn-ghost-accent" href="/nl/alternatives"
+                            >Andere alternatieven</a
+                        >
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="disclaimer-band">
+            <div class="container">
+                <p class="page-disclaimer">
+                    Lifesum is een handelsmerk van de betreffende eigenaar.
+                    Nutrition MCP is een onafhankelijk open source-project en is
+                    niet verbonden aan, goedgekeurd door, of gesponsord door
+                    Lifesum. Vergelijkingen zijn gebaseerd op publiek
+                    beschikbare informatie op het moment van schrijven en kunnen
+                    veranderen.
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/nl/tools">Tools</a>
+                    <a href="/nl/alternatives">Alternatieven</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Hoe ik dit heb gebouwd</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Demo</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">Contact</a>
+                    <a href="/nl/privacy">Privacybeleid</a>
+                    <a href="/nl/terms">Gebruiksvoorwaarden</a>
+                </nav>
+                <p class="footer-note">
+                    Gratis en open source. Voedingswaarden zijn schattingen,
+                    geen medisch advies.
+                </p>
+            </div>
+        </footer>
+
+        <script src="/site.js" defer></script>
+    </body>
+</html>

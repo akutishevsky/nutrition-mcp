@@ -13,6 +13,14 @@ import {
 } from "./supabase.js";
 import { getBaseUrl } from "./url.js";
 import { rateLimitAuth } from "./middleware.js";
+import {
+    HTML_LANG,
+    LOCALE_NAMES,
+    SITE_LOCALES,
+    TRANSLATION_NOTICE,
+    type SiteLocale,
+} from "./routes.js";
+import { LOGIN_ERRORS, type LoginErrors } from "./copy/login.js";
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
@@ -24,6 +32,11 @@ interface OAuthSession {
     // Raw nonce for an in-flight Google sign-in; the hashed form is sent to
     // Google and the raw value is handed to signInWithIdToken on callback.
     googleNonce?: string;
+    // Chosen once when the session is created (or via the switcher, which
+    // re-enters /authorize — see authorizeUrl) and reused for every
+    // re-render of this same flow (a password or Google-sign-in failure)
+    // so an error doesn't silently snap the page back to English.
+    locale: SiteLocale;
 }
 
 // In-memory session store (sessions are short-lived, 10min TTL)
@@ -57,17 +70,119 @@ function escapeHtml(str: string): string {
         .replace(/"/g, "&quot;");
 }
 
+// Every locale (English implicit) whose translated login page actually
+// exists on disk right now — checked here rather than importing
+// src/copy/login.ts's LOGIN keys, matching how src/index.ts's locale
+// routes work: a locale is "available" when its file is present, not when
+// a data object claims it should be.
+async function availableLoginLocales(): Promise<SiteLocale[]> {
+    const checks = await Promise.all(
+        SITE_LOCALES.map(async (l) => {
+            const path =
+                l === "en" ? "./public/login.html" : `./public/${l}/login.html`;
+            return (await Bun.file(path).exists()) ? l : null;
+        }),
+    );
+    return checks.filter((l): l is SiteLocale => l !== null);
+}
+
+// Reconstructs the /authorize URL that started this session, in a given
+// locale, from the session's own stored fields — used both to re-enter the
+// flow from the language switcher (a fresh GET /authorize mints a new
+// session, which is fine: nothing has been submitted yet at the point
+// someone is choosing a language) and nowhere else. Not exported: this is
+// deliberately the *only* place a session's fields get serialized back
+// into a URL, so a field added to OAuthSession later doesn't get forgotten
+// in a second, drifting copy of this logic.
+function authorizeUrl(session: OAuthSession, locale: SiteLocale): string {
+    const params = new URLSearchParams({
+        response_type: "code",
+        client_id: session.clientId,
+        redirect_uri: session.redirectUri,
+        state: session.state,
+    });
+    if (session.codeChallenge)
+        params.set("code_challenge", session.codeChallenge);
+    if (locale !== "en") params.set("locale", locale);
+    return `/authorize?${params.toString()}`;
+}
+
+async function renderLangSwitcher(
+    session: OAuthSession,
+    locale: SiteLocale,
+): Promise<string> {
+    const available = await availableLoginLocales();
+    const items = available
+        .map((l) => {
+            const active = l === locale;
+            return `                            <a
+                                href="${escapeHtml(authorizeUrl(session, l))}"
+                                lang="${HTML_LANG[l]}"
+                                hreflang="${HTML_LANG[l]}"${active ? '\n                                aria-current="page"' : ""}
+                                >${escapeHtml(LOCALE_NAMES[l])}</a
+                            >`;
+        })
+        .join("\n");
+    return `<details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="Change language"
+                            title="Language"
+                        >
+                            <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+${items}
+                        </div>
+                    </details>`;
+}
+
+// "This page is machine-translated" disclosure, linking back to THIS same
+// in-flight flow in English (via authorizeUrl, same reasoning as the
+// switcher above — a fixed site link would drop the user at the marketing
+// homepage instead of back at their login attempt). Empty for English
+// itself, and empty (not a half-translated banner) for a locale
+// TRANSLATION_NOTICE hasn't reached yet.
+function renderTranslationNotice(
+    session: OAuthSession,
+    locale: SiteLocale,
+): string {
+    if (locale === "en") return "";
+    const notice = TRANSLATION_NOTICE[locale];
+    if (!notice) return "";
+    return `<div class="translation-notice">
+                            <p>
+                                ${escapeHtml(notice.text)}
+                                <a href="${escapeHtml(authorizeUrl(session, "en"))}">${escapeHtml(notice.linkText)}</a>
+                            </p>
+                        </div>`;
+}
+
 export async function renderLoginPage(
     sessionId: string,
+    session: OAuthSession,
     error?: string,
 ): Promise<string> {
-    const template = await Bun.file("./public/login.html").text();
+    const locale = session.locale;
+    const file =
+        locale === "en"
+            ? "./public/login.html"
+            : `./public/${locale}/login.html`;
+    const template = await Bun.file(file).text();
     const errorHtml = error
         ? `<div class="error-banner">${escapeHtml(error)}</div>`
         : "";
     return template
         .replaceAll("{{SESSION_ID}}", escapeHtml(sessionId))
-        .replaceAll("{{ERROR}}", errorHtml);
+        .replaceAll("{{ERROR}}", errorHtml)
+        .replaceAll(
+            "{{LANG_SWITCHER}}",
+            await renderLangSwitcher(session, locale),
+        )
+        .replaceAll(
+            "{{TRANSLATION_NOTICE}}",
+            renderTranslationNotice(session, locale),
+        );
 }
 
 // Mint an authorization code for the now-authenticated user and redirect back to
@@ -172,19 +287,30 @@ export function createOAuthRouter() {
 
         cleanExpiredSessions();
 
+        // The language switcher re-enters here with ?locale=xx (see
+        // authorizeUrl) — an unsupported or untranslated value falls back
+        // to English rather than 400ing, since a client could in principle
+        // send one too and this is display-only, not a security control.
+        const requestedLocale = c.req.query("locale");
+        const available = await availableLoginLocales();
+        const locale: SiteLocale =
+            available.find((l) => l === requestedLocale) ?? "en";
+
         // Store session and show login page
         const sessionId = crypto.randomUUID();
+        const session: OAuthSession = {
+            state,
+            redirectUri,
+            codeChallenge,
+            clientId: reqClientId,
+            locale,
+        };
         sessions.set(sessionId, {
-            session: {
-                state,
-                redirectUri,
-                codeChallenge,
-                clientId: reqClientId,
-            },
+            session,
             expiresAt: Date.now() + SESSION_TTL_MS,
         });
 
-        return c.html(await renderLoginPage(sessionId));
+        return c.html(await renderLoginPage(sessionId, session));
     });
 
     // Login/register endpoint — user submits email + password
@@ -216,7 +342,10 @@ export function createOAuthRouter() {
         } catch (err: unknown) {
             const message =
                 err instanceof Error ? err.message : "Authentication failed";
-            return c.html(await renderLoginPage(sessionId, message), 400);
+            return c.html(
+                await renderLoginPage(sessionId, entry.session, message),
+                400,
+            );
         }
 
         return finishAuthorization(c, sessionId, entry.session, userId);
@@ -287,16 +416,23 @@ export function createOAuthRouter() {
             return c.json({ error: "session_expired" }, 400);
         }
 
-        // Surface user-cancelled / denied consent without treating it as a crash.
-        const renderError = async (message: string) => {
+        // Surface user-cancelled / denied consent without treating it as a
+        // crash. Translated via LOGIN_ERRORS in the session's own locale
+        // (falling back to English if that locale's errors aren't
+        // translated yet) rather than a raw message, so every call site
+        // below gets the right language for free.
+        const renderError = async (kind: keyof LoginErrors) => {
             entry.session.googleNonce = undefined;
-            return c.html(await renderLoginPage(sessionId, message), 400);
+            const message = (LOGIN_ERRORS[entry.session.locale] ??
+                LOGIN_ERRORS.en!)[kind];
+            return c.html(
+                await renderLoginPage(sessionId, entry.session, message),
+                400,
+            );
         };
 
         if (c.req.query("error")) {
-            return renderError(
-                "Google sign-in was cancelled. Please try again.",
-            );
+            return renderError("googleCancelled");
         }
 
         const code = c.req.query("code");
@@ -304,7 +440,7 @@ export function createOAuthRouter() {
         // googleNonce is only set by /authorize/google, so its absence means this
         // callback didn't originate from a flow we started.
         if (!code || !rawNonce) {
-            return renderError("Google sign-in failed. Please try again.");
+            return renderError("googleFailed");
         }
 
         const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -333,12 +469,12 @@ export function createOAuthRouter() {
             );
 
             if (!tokenRes.ok) {
-                return renderError("Google sign-in failed. Please try again.");
+                return renderError("googleFailed");
             }
 
             const tokenData = (await tokenRes.json()) as { id_token?: string };
             if (!tokenData.id_token) {
-                return renderError("Google sign-in failed. Please try again.");
+                return renderError("googleFailed");
             }
 
             const userId = await signInWithGoogleIdToken(
@@ -348,7 +484,7 @@ export function createOAuthRouter() {
 
             return finishAuthorization(c, sessionId, entry.session, userId);
         } catch {
-            return renderError("Google sign-in failed. Please try again.");
+            return renderError("googleFailed");
         }
     });
 

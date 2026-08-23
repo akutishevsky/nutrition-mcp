@@ -1,0 +1,2759 @@
+<!doctype html>
+<html lang="pl">
+    <head>
+        <title>Katalog narzędzi: wszystkie 38 narzędzi — Nutrition MCP</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="Wszystkie 38 narzędzi, które serwer Nutrition MCP daje Twojemu AI — zapisuj posiłki, skanuj kody kreskowe, importuj historię z innej aplikacji, śledź wodę i wagę, ustawiaj cele i przeglądaj trendy. Pełny opis wraz z przykładowymi poleceniami."
+        />
+        <link rel="canonical" href="https://nutrition-mcp.com/pl/tools" />
+        <link
+            rel="alternate"
+            hreflang="en"
+            href="https://nutrition-mcp.com/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="de"
+            href="https://nutrition-mcp.com/de/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="es"
+            href="https://nutrition-mcp.com/es/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="fr"
+            href="https://nutrition-mcp.com/fr/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="nl"
+            href="https://nutrition-mcp.com/nl/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="pl"
+            href="https://nutrition-mcp.com/pl/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="it"
+            href="https://nutrition-mcp.com/it/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="uk"
+            href="https://nutrition-mcp.com/uk/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="x-default"
+            href="https://nutrition-mcp.com/tools"
+        />
+        <meta property="og:locale" content="pl_PL" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="de_DE" />
+        <meta property="og:locale:alternate" content="es_ES" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="nl_NL" />
+        <meta property="og:locale:alternate" content="it_IT" />
+        <meta property="og:locale:alternate" content="uk_UA" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#fbfbf9" />
+        <meta
+            property="og:title"
+            content="Katalog narzędzi: wszystkie 38 narzędzi — Nutrition MCP"
+        />
+        <meta
+            property="og:description"
+            content="Wszystkie 38 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV do przenoszenia historii z innej aplikacji — z opisami i przykładowymi poleceniami."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://nutrition-mcp.com/pl/tools" />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+        <style>
+            /* Tools reference — page-specific layout on top of the shared
+               "Nutrition Facts" tokens in styles.css. Everything here reads
+               from the shared tokens; nothing is hardcoded per theme. */
+
+            /* ---- hero: a section-head ledger row, left-aligned ---- */
+            .tools-hero {
+                padding: clamp(2.5rem, 6vw, 4.5rem) 0 0;
+            }
+            .tools-hero .container {
+                max-width: 1080px;
+            }
+            .tools-hero .section-head {
+                margin-bottom: 0;
+                padding-bottom: clamp(1.5rem, 3vw, 2.25rem);
+            }
+            .tools-hero .lead {
+                margin-bottom: 0;
+            }
+            .tools-hero .count-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-top: 1.25rem;
+                padding: 0.4rem 0.85rem;
+                border-radius: 999px;
+                border: 1px solid var(--line);
+                background: var(--surface);
+                color: var(--ink-2);
+                font-family: var(--font-mono);
+                font-size: 0.78rem;
+                letter-spacing: 0.02em;
+                justify-self: start;
+            }
+            .tools-hero .count-pill i {
+                color: var(--accent);
+                font-size: 0.85em;
+            }
+            .tools-hero .count-pill b {
+                color: var(--ink);
+                font-weight: 500;
+            }
+            @media (min-width: 900px) {
+                .tools-hero .count-pill {
+                    grid-column: 2;
+                }
+            }
+
+            .tools-main {
+                padding: 1.5rem 0 clamp(4rem, 8vw, 6.5rem);
+            }
+            .tools-main .container {
+                max-width: 1080px;
+            }
+
+            /* ---- tool groups: each head is a ledger entry ---- */
+            .tool-group {
+                margin-top: clamp(3rem, 6vw, 4.5rem);
+            }
+            .tool-group:first-child {
+                margin-top: 1.5rem;
+            }
+            .tool-group-head {
+                display: flex;
+                align-items: flex-start;
+                gap: 1rem;
+                padding-top: 1.1rem;
+                border-top: 3px solid var(--rule);
+                margin-bottom: 1.5rem;
+            }
+            .tool-group-icon {
+                flex: none;
+                width: 40px;
+                height: 40px;
+                display: grid;
+                place-items: center;
+                border-radius: 12px;
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+                font-size: 0.95rem;
+                margin-top: 0.15rem;
+            }
+            .tool-group-head h2 {
+                font-family: var(--font-display);
+                font-weight: 700;
+                font-variation-settings: "opsz" 96;
+                letter-spacing: -0.025em;
+                line-height: 1.05;
+                font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+                margin: 0;
+                color: var(--ink);
+                text-wrap: balance;
+            }
+            .tool-group-head p {
+                margin: 0.35rem 0 0;
+                color: var(--ink-2);
+                font-size: 0.95rem;
+                max-width: 60ch;
+                text-wrap: pretty;
+            }
+
+            /* ---- cards: cells of one ruled grid ---- */
+            .tool-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 1px;
+                background: var(--line);
+                border: 1px solid var(--line);
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+            }
+            @media (min-width: 900px) {
+                .tool-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+            .tool-card {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                background: var(--surface);
+                padding: 1.25rem 1.35rem 1.2rem;
+                scroll-margin-top: calc(var(--head-h) + 76px);
+                transition: background 0.2s ease;
+            }
+            .tool-card:hover {
+                background: var(--surface-2);
+            }
+            .tool-card:target {
+                background: var(--accent-soft);
+            }
+            .tool-head {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-bottom: 0.7rem;
+            }
+            .tool-name {
+                font-family: var(--font-mono);
+                font-size: 0.95rem;
+                font-weight: 500;
+                letter-spacing: -0.01em;
+                color: var(--ink);
+                background: transparent;
+                border: 0;
+                padding: 0;
+                border-radius: 0;
+                margin-right: 0.25rem;
+                overflow-wrap: anywhere;
+            }
+            /* styles.css owns a floating, animated .chip for the landing hero;
+               the card badges reset that here. */
+            .tool-head .chip {
+                position: static;
+                opacity: 1;
+                animation: none;
+                box-shadow: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                font-family: var(--font-mono);
+                font-size: 0.66rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                line-height: 1;
+                padding: 0.3rem 0.55rem;
+                border-radius: 999px;
+                border: 1px solid transparent;
+                white-space: nowrap;
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+            }
+            /* One accent family, graded by weight: filled for writes, outlined
+               for reads, dashed for the "has a widget" hint. */
+            .tool-head .chip i {
+                width: auto;
+                height: auto;
+                border-radius: 0;
+                background: transparent;
+                align-self: center;
+            }
+            .tool-head .chip-log,
+            .tool-head .chip-edit,
+            .tool-head .chip-setting,
+            .tool-head .chip-lookup {
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+            }
+            .tool-head .chip-view {
+                background: transparent;
+                color: var(--ink-2);
+                border-color: var(--line);
+            }
+            .tool-head .chip-remove {
+                background: transparent;
+                color: var(--ink);
+                border-color: var(--ink);
+            }
+            .tool-head .chip-widget {
+                background: transparent;
+                color: var(--ink-2);
+                border: 1px dashed var(--line);
+            }
+            .tool-desc {
+                margin: 0;
+                color: var(--ink-2);
+                font-size: 0.95rem;
+                line-height: 1.55;
+                text-wrap: pretty;
+            }
+
+            /* ---- parameters: hairline rows, name left / description right ---- */
+            .tool-params {
+                margin-top: 1rem;
+            }
+            .tool-params-label,
+            .tool-ex-label {
+                display: block;
+                font-family: var(--font-mono);
+                font-size: 0.68rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--ink-3);
+                padding-bottom: 0.4rem;
+                border-bottom: 1px solid var(--rule);
+                margin-bottom: 0;
+            }
+            .tool-params ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+            .tool-params li {
+                position: relative;
+                padding: 0.5rem 0 0.5rem 10rem;
+                border-bottom: 1px solid var(--line-2);
+                font-size: 0.86rem;
+                color: var(--ink-2);
+                line-height: 1.5;
+                min-height: 2.4rem;
+            }
+            .tool-params li > code:first-child {
+                position: absolute;
+                left: 0;
+                top: 0.5rem;
+                width: 9.5rem;
+                font-family: var(--font-mono);
+                font-size: 0.8rem;
+                color: var(--ink);
+                background: transparent;
+                border: 0;
+                padding: 0;
+                border-radius: 0;
+                overflow-wrap: anywhere;
+                line-height: 1.5;
+            }
+            .tool-params code {
+                font-family: var(--font-mono);
+                font-size: 0.8rem;
+                color: var(--ink);
+            }
+            .param-req,
+            .param-opt {
+                display: inline-block;
+                font-family: var(--font-mono);
+                font-size: 0.6rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                line-height: 1;
+                padding: 0.2rem 0.4rem;
+                border-radius: 999px;
+                margin: 0 0.15rem 0 0;
+                vertical-align: 0.1em;
+                border: 1px solid transparent;
+            }
+            .param-req {
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+            }
+            .param-opt {
+                background: transparent;
+                color: var(--ink-3);
+                border-color: var(--line);
+            }
+            @media (max-width: 640px) {
+                .tool-params li {
+                    padding-left: 0;
+                }
+                .tool-params li > code:first-child {
+                    position: static;
+                    display: block;
+                    width: auto;
+                    margin-bottom: 0.2rem;
+                }
+            }
+
+            /* ---- example phrase ---- */
+            .tool-ex {
+                margin-top: auto;
+                padding-top: 1rem;
+            }
+            .tool-ex > p:not(.tool-ex-photo) {
+                margin: 0;
+                position: relative;
+                padding: 0.6rem 0 0 1.35rem;
+                color: var(--ink);
+                font-family: var(--font-display);
+                font-variation-settings: "opsz" 24;
+                font-weight: 500;
+                font-size: 1rem;
+                line-height: 1.45;
+                text-wrap: pretty;
+            }
+            .tool-ex > p:not(.tool-ex-photo)::before {
+                content: "\201C";
+                position: absolute;
+                left: 0;
+                top: 0.45rem;
+                font-family: var(--font-display);
+                font-size: 1.5rem;
+                line-height: 1;
+                color: var(--accent);
+            }
+            /* Alternate input hint: this tool also accepts a photo, not just a
+               typed phrase. */
+            .tool-ex-photo {
+                margin: 0.5rem 0 0 1.35rem;
+                display: flex;
+                align-items: baseline;
+                gap: 0.45rem;
+                font-size: 0.86rem;
+                line-height: 1.45;
+                color: var(--ink-2);
+            }
+            .tool-ex-photo i {
+                color: var(--accent);
+                font-size: 0.9em;
+                position: relative;
+                top: 1px;
+            }
+
+            /* ---- sticky category jump-bar with scrollspy ----
+               Sits directly under the site header (top: var(--head-h), which
+               shrinks to 56px once scrolled) and shares its frosted ground;
+               the active pill tracks the section in view. */
+            html {
+                scroll-behavior: smooth;
+            }
+            .tool-group {
+                scroll-margin-top: calc(var(--head-h) + 70px);
+            }
+            .cat-nav {
+                position: sticky;
+                top: var(--head-h);
+                z-index: 30;
+                background: color-mix(in srgb, var(--bg) 84%, transparent);
+                -webkit-backdrop-filter: saturate(160%) blur(14px);
+                backdrop-filter: saturate(160%) blur(14px);
+                border-top: 1px solid var(--line);
+                border-bottom: 1px solid var(--line);
+                transition: top 0.3s var(--ease-out);
+            }
+            .cat-nav .container {
+                max-width: 1080px;
+            }
+            .cat-nav-scroll {
+                display: flex;
+                gap: 0.5rem;
+                overflow-x: auto;
+                padding: 0.6rem 2px;
+                scrollbar-width: none;
+            }
+            .cat-nav-scroll::-webkit-scrollbar {
+                display: none;
+            }
+            .cat-pill {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.45rem;
+                min-height: 36px;
+                padding: 0.4rem 1rem;
+                border-radius: 999px;
+                border: 1px solid var(--line);
+                background: transparent;
+                color: var(--ink);
+                font-size: 0.9rem;
+                font-weight: 600;
+                letter-spacing: -0.01em;
+                text-decoration: none;
+                white-space: nowrap;
+                transition:
+                    background 0.2s ease,
+                    border-color 0.2s ease,
+                    color 0.2s ease;
+            }
+            .cat-pill i {
+                font-size: 0.85em;
+                color: var(--ink-2);
+            }
+            .cat-pill:hover {
+                border-color: var(--ink);
+            }
+            .cat-pill:focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: 2px;
+            }
+            .cat-pill.active {
+                background: var(--ink);
+                border-color: var(--ink);
+                color: var(--bg);
+            }
+            .cat-pill.active i {
+                color: inherit;
+            }
+        </style>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-tools.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+
+        <a class="skip" href="#main">Przejdź do treści</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a
+                    class="brand"
+                    href="/pl"
+                    aria-label="Nutrition MCP — strona główna"
+                >
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/pl#how">Jak to działa</a>
+                    <a href="/pl#install">Instalacja</a>
+                    <a href="/pl/tools" aria-current="page">Narzędzia</a>
+                    <a href="/pl#try">Przykłady</a>
+                    <a href="/pl#stats">Statystyki na żywo</a>
+                    <a href="/pl#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Repozytorium na GitHub"
+                        title="GitHub"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="Zmień język"
+                            title="Język"
+                        >
+                            <span class="lang-code">PL</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+                            <a
+                                href="https://nutrition-mcp.com/tools"
+                                lang="en"
+                                hreflang="en"
+                                >English</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/de/tools"
+                                lang="de"
+                                hreflang="de"
+                                >Deutsch</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/es/tools"
+                                lang="es"
+                                hreflang="es"
+                                >Español</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/fr/tools"
+                                lang="fr"
+                                hreflang="fr"
+                                >Français</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/nl/tools"
+                                lang="nl"
+                                hreflang="nl"
+                                >Nederlands</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/pl/tools"
+                                lang="pl"
+                                hreflang="pl"
+                                aria-current="page"
+                                >Polski</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/it/tools"
+                                lang="it"
+                                hreflang="it"
+                                >Italiano</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/uk/tools"
+                                lang="uk"
+                                hreflang="uk"
+                                >Українська</a
+                            >
+                        </div>
+                    </details>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="Przełącz na tryb ciemny"
+                        title="Przełącz na tryb ciemny"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/pl#install"
+                        >Połącz</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Otwórz menu"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/pl#how">Jak to działa <small>3 kroki</small></a>
+                <a href="/pl#install"
+                    >Instalacja <small>poniżej minuty</small></a
+                >
+                <a href="/pl/tools" aria-current="page"
+                    >Narzędzia <small>38 narzędzi</small></a
+                >
+                <a href="/pl#try">Przykłady <small>przykłady na żywo</small></a>
+                <a href="/pl#stats"
+                    >Statystyki na żywo <small>od otwarcia strony</small></a
+                >
+                <a href="/pl#faq">FAQ</a>
+                <a href="/pl/alternatives"
+                    >Alternatywy <small>zmiana aplikacji</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/pl#support">Wsparcie</a>
+                <a href="/pl#contact">Kontakt</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/pl/privacy">Prywatność</a>
+                <a href="/pl/terms">Regulamin</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/pl#install"
+                    >Połącz się w minutę</a
+                >
+            </div>
+        </div>
+
+        <main id="main">
+            <section class="tools-hero">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Dokumentacja</p>
+                        <h1 class="section-title">
+                            Wszystko, co potrafi Twój AI
+                        </h1>
+                        <p class="lead section-sub">
+                            Nigdy nie wywołujesz tych narzędzi bezpośrednio — po
+                            prostu mówisz, a asystent sam wybiera właściwe. Oto
+                            pełny zestaw udostępniany przez serwer Nutrition
+                            MCP, wraz z opisem działania i przykładowym
+                            poleceniem, które je uruchamia.
+                        </p>
+                        <span class="count-pill"
+                            ><i
+                                class="fa-solid fa-wrench"
+                                aria-hidden="true"
+                            ></i
+                            ><b>38 narzędzi</b> w 7 obszarach</span
+                        >
+                    </div>
+
+                    <div class="translation-notice">
+                        <p>
+                            Ta strona została przetłumaczona przez sztuczną
+                            inteligencję z języka angielskiego i nie została
+                            sprawdzona przez człowieka.
+                            <a href="/tools"
+                                >Przeczytaj oryginał po angielsku</a
+                            >
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <nav class="cat-nav" aria-label="Jump to a tool category">
+                <div class="container">
+                    <div class="cat-nav-scroll" role="list">
+                        <a class="cat-pill" href="#logging-food-meals"
+                            ><i
+                                class="fa-solid fa-utensils"
+                                aria-hidden="true"
+                            ></i>
+                            Zapisywanie</a
+                        >
+                        <a class="cat-pill" href="#reviewing-your-meals"
+                            ><i
+                                class="fa-solid fa-clock-rotate-left"
+                                aria-hidden="true"
+                            ></i>
+                            Przegląd</a
+                        >
+                        <a class="cat-pill" href="#water"
+                            ><i
+                                class="fa-solid fa-droplet"
+                                aria-hidden="true"
+                            ></i>
+                            Woda</a
+                        >
+                        <a class="cat-pill" href="#weight"
+                            ><i
+                                class="fa-solid fa-weight-scale"
+                                aria-hidden="true"
+                            ></i>
+                            Waga</a
+                        >
+                        <a class="cat-pill" href="#goals-progress"
+                            ><i
+                                class="fa-solid fa-bullseye"
+                                aria-hidden="true"
+                            ></i>
+                            Cele</a
+                        >
+                        <a class="cat-pill" href="#insights-trends"
+                            ><i
+                                class="fa-solid fa-chart-line"
+                                aria-hidden="true"
+                            ></i>
+                            Analizy</a
+                        >
+                        <a class="cat-pill" href="#settings-account"
+                            ><i class="fa-solid fa-gear" aria-hidden="true"></i>
+                            Ustawienia</a
+                        >
+                    </div>
+                </div>
+            </nav>
+
+            <div class="tools-main">
+                <div class="container">
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="logging-food-meals"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-utensils"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Zapisywanie jedzenia i posiłków</h2>
+                                <p>
+                                    Podstawa wszystkiego — zapisz, co
+                                    zjadłeś/aś, jakkolwiek to opiszesz.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="log_meal">
+                                <div class="tool-head">
+                                    <code class="tool-name">log_meal</code>
+                                    <span class="chip chip-log">Zapis</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Interaktywny widok</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Zapisz, co zjadłeś/aś, wraz z kaloriami i
+                                    makroskładnikami — a także błonnikiem,
+                                    cukrami ogółem, alkoholem i kofeiną, jeśli
+                                    te wartości są dostępne. Opisz to zwykłym
+                                    językiem — AI szacuje wartości, dopytuje o
+                                    wielkość porcji, gdy nie jest jasna, i może
+                                    wcześniej pobrać dane z etykiety na
+                                    podstawie kodu kreskowego albo z internetu.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>description</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Co zostało zjedzone
+                                        </li>
+                                        <li>
+                                            <code>meal_type</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — śniadanie, obiad, kolacja lub
+                                            przekąska
+                                        </li>
+                                        <li>
+                                            <code>calories</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Łączna liczba kalorii
+                                        </li>
+                                        <li>
+                                            <code>protein_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Białko w gramach
+                                        </li>
+                                        <li>
+                                            <code>carbs_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Węglowodany w gramach
+                                        </li>
+                                        <li>
+                                            <code>fat_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Tłuszcz w gramach
+                                        </li>
+                                        <li>
+                                            <code>fiber_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Błonnik pokarmowy w gramach. AI ma
+                                            polecenie uzupełniać tę wartość przy
+                                            każdym posiłku, szacując ją ze
+                                            składników, gdy brak danych z
+                                            etykiety — bo puste pole to nie to
+                                            samo co zero: wyklucza cały dzień ze
+                                            średniej spożycia błonnika
+                                        </li>
+                                        <li>
+                                            <code>sugar_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — <b>Łączna</b> zawartość cukrów w
+                                            gramach — wartość, którą etykieta
+                                            podaje pod hasłem „Cukry", wliczając
+                                            cukier naturalnie występujący w
+                                            owocach i mleku, a nie tylko cukier
+                                            dodany. Uzupełniane przy każdym
+                                            posiłku na tych samych zasadach co
+                                            błonnik
+                                        </li>
+                                        <li>
+                                            <code>alcohol_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Gramy <b>czystego etanolu</b>, a
+                                            nie objętość napoju ani jego
+                                            zawartość alkoholu (ABV) — AI
+                                            wylicza to na podstawie ilości i
+                                            mocy trunku (330 ml piwa 5% to 13 g)
+                                        </li>
+                                        <li>
+                                            <code>caffeine_mg</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Kofeina w <b>miligramach</b>, nie
+                                            w gramach — to jedyne pole tutaj
+                                            podawane nie w gramach, bo tak
+                                            podaje się ją na każdej etykiecie i
+                                            w każdych wytycznych (parzona kawa
+                                            to ok. 95 mg, espresso 63 mg, puszka
+                                            coli 34 mg). Kofeina nie dodaje
+                                            kalorii. W przeciwieństwie do
+                                            błonnika i cukru wysyła się ją tylko
+                                            dla produktów, które faktycznie
+                                            zawierają kofeinę — zapisane 0
+                                            umieściłoby wiersz kofeiny na panelu
+                                            dla składnika, którego w ogóle nie
+                                            spożywasz
+                                        </li>
+                                        <li>
+                                            <code>logged_at</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Kiedy to zjadłeś/aś, jeśli nie
+                                            teraz — pozwala zapisać coś z
+                                            opóźnieniem
+                                        </li>
+                                        <li>
+                                            <code>notes</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dodatkowe notatki
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Zapisz burrito bowl z kurczakiem i
+                                        dodatkowym guacamole na obiad
+                                    </p>
+                                    <p class="tool-ex-photo">
+                                        <i
+                                            class="fa-solid fa-camera"
+                                            aria-hidden="true"
+                                        ></i>
+                                        …albo po prostu zrób zdjęcie swojego
+                                        talerza — AI nazywa każde danie, szacuje
+                                        porcje w codziennych miarach (szklanka,
+                                        garść), sprawdza, jak zapisywałeś/aś to
+                                        wcześniej, i potwierdza z Tobą przed
+                                        zapisaniem.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="lookup_barcode">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >lookup_barcode</code
+                                    >
+                                    <span class="chip chip-lookup"
+                                        >Wyszukiwanie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Pobierz z Open Food Facts dane odżywcze z
+                                    etykiety produktu paczkowanego na podstawie
+                                    kodu kreskowego (8–14 cyfr EAN/UPC). Możesz
+                                    wpisać cyfry albo odczytać je ze zdjęcia
+                                    opakowania; wynik można potem zapisać,
+                                    przeliczony na zjedzoną ilość.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Zeskanuj ten kod kreskowy: 3017620422003
+                                    </p>
+                                    <p class="tool-ex-photo">
+                                        <i
+                                            class="fa-solid fa-camera"
+                                            aria-hidden="true"
+                                        ></i>
+                                        …albo wyślij zdjęcie opakowania — AI
+                                        odczyta z niego cyfry kodu kreskowego.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="start_meal_import">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >start_meal_import</code
+                                    >
+                                    <span class="chip chip-log">Import</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Interaktywny widok</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Otwórz w czacie importer, który przeniesie
+                                    Twoją historię z innej aplikacji — wybierz
+                                    plik wyeksportowany z MyFitnessPal,
+                                    Cronometer, Lose It! lub MacroFactor,
+                                    dopasuj jego kolumny do kalorii,
+                                    makroskładników, błonnika, cukru i kofeiny —
+                                    a także alkoholu, jeśli włączyłeś/aś jego
+                                    śledzenie — i sprawdź, co zostanie dodane,
+                                    zanim potwierdzisz. Plik jest odczytywany w
+                                    Twojej przeglądarce, nic nie zostaje
+                                    zapisane przed zaakceptowaniem podglądu, a
+                                    ponowny import tego samego pliku nie tworzy
+                                    duplikatów.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Zaimportuj moją historię posiłków z
+                                        MyFitnessPal
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="bulk_import_meals">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >bulk_import_meals</code
+                                    >
+                                    <span class="chip chip-log">Import</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Dodaj naraz partię wcześniejszych posiłków —
+                                    do 50 na raz — zamiast zapisywać je jeden po
+                                    drugim. Powyższy importer korzysta właśnie z
+                                    tego narzędzia, a AI może użyć go
+                                    bezpośrednio dla danych posiłków wklejonych
+                                    do czatu. Każdy wiersz jest najpierw
+                                    sprawdzany, a to, co się nie zgadza, jest
+                                    zgłaszane wiersz po wierszu, więc ponowne
+                                    wysłanie tych samych wierszy jest bezpieczne
+                                    i nie zduplikuje tego, co już zapisano.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>meals</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Wiersze do zaimportowania, w
+                                            kolejności z pliku źródłowego (1–50
+                                            na wywołanie). Każdy wiersz może
+                                            zawierać czas, typ posiłku, opis,
+                                            notatki oraz te same wartości co
+                                            zapisany posiłek:
+                                            <code>calories</code>,
+                                            <code>protein_g</code>,
+                                            <code>carbs_g</code>,
+                                            <code>fat_g</code>,
+                                            <code>fiber_g</code>,
+                                            <code>sugar_g</code> (cukry ogółem),
+                                            <code>alcohol_g</code> (gramy
+                                            czystego etanolu) i
+                                            <code>caffeine_mg</code> (miligramy,
+                                            nie gramy)
+                                        </li>
+                                        <li>
+                                            <code>expected_row_count</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Ile wierszy zawiera to wywołanie,
+                                            policzone z pliku źródłowego, żeby
+                                            wychwycić pominięty wiersz
+                                        </li>
+                                        <li>
+                                            <code>expected_total_kcal</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Suma kalorii z pliku źródłowego,
+                                            porównywana z tym, co faktycznie
+                                            przychodzi
+                                        </li>
+                                        <li>
+                                            <code>dry_run</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Zgłoś, co by się stało, bez
+                                            zapisywania czegokolwiek
+                                        </li>
+                                        <li>
+                                            <code>on_error</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Zaimportuj poprawne wiersze i
+                                            zgłoś resztę, albo nie zapisuj
+                                            niczego, jeśli jakikolwiek wiersz
+                                            zawiedzie
+                                        </li>
+                                        <li>
+                                            <code>source_app</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Z jakiej aplikacji pochodzi plik
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Oto posiłki z zeszłego tygodnia wklejone
+                                        z mojej starej aplikacji — dodaj je
+                                        wszystkie
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="update_meal">
+                                <div class="tool-head">
+                                    <code class="tool-name">update_meal</code>
+                                    <span class="chip chip-edit">Edycja</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Interaktywny widok</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Zmień szczegóły posiłku, który już
+                                    zapisałeś/aś — jego opis, dowolny
+                                    makroskładnik, błonnik, cukier, alkohol lub
+                                    kofeinę, godzinę albo notatki. Tak też
+                                    uzupełnia się brakujące dane: jeśli posiłek
+                                    trafił do bazy bez błonnika czy cukru,
+                                    serwer to sygnalizuje, a AI uzupełnia to
+                                    tutaj.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — UUID posiłku do zaktualizowania
+                                        </li>
+                                        <li>
+                                            <code>description</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>calories</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>protein_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>carbs_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>fat_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>fiber_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>sugar_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Cukry ogółem, nie cukier dodany
+                                        </li>
+                                        <li>
+                                            <code>alcohol_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Gramy czystego etanolu, nie
+                                            objętość napoju
+                                        </li>
+                                        <li>
+                                            <code>caffeine_mg</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Miligramy, nie gramy
+                                        </li>
+                                        <li>
+                                            <code>logged_at</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>notes</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Właściwie ten obiad miał 600 kalorii,
+                                        nie 500 — popraw to
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_meal">
+                                <div class="tool-head">
+                                    <code class="tool-name">delete_meal</code>
+                                    <span class="chip chip-remove"
+                                        >Usuwanie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Usuń wpis posiłku zapisany przez pomyłkę.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — UUID posiłku do usunięcia
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Usuń przekąskę, którą zapisałem/am dziś
+                                        po południu
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="reviewing-your-meals"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-clock-rotate-left"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Przegląd posiłków</h2>
+                                <p>
+                                    Wróć do tego, co już zapisałeś/aś — jeden
+                                    dzień albo cały zakres naraz.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="search_meals">
+                                <div class="tool-head">
+                                    <code class="tool-name">search_meals</code>
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Przeszukaj swoje wcześniejsze posiłki po
+                                    słowie kluczowym i zobacz je pogrupowane w
+                                    powtarzające się warianty — jak często dany
+                                    posiłek był zapisywany, kiedy ostatnio i
+                                    jakie są jego typowe kalorie. Dzięki temu AI
+                                    sprawdza zdjęcie Twojego talerza w
+                                    kontekście tego, jak faktycznie
+                                    zapisywałeś/aś ten posiłek wcześniej, i
+                                    dzięki temu działa polecenie „zapisz moje
+                                    zwykłe śniadanie”.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>queries</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Alternatywne słowa kluczowe
+                                            dotyczące jedzenia, w dowolnym
+                                            języku, w którym zapisywałeś/aś
+                                            posiłki
+                                        </li>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Jak daleko wstecz szukać
+                                            (domyślnie rok)
+                                        </li>
+                                        <li>
+                                            <code>limit</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Maksymalna liczba wpisów do
+                                            analizy
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Zapisz moje zwykłe śniadanie</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_meals_today">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meals_today</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz każdy posiłek zapisany dzisiaj.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Co dzisiaj zjadłem/am?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_meals_by_date">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meals_by_date</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz wszystkie posiłki zapisane w
+                                    konkretnym dniu.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data w formacie RRRR-MM-DD
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Pokaż mi wszystko, co zjadłem/am 4 lipca
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_meals_by_date_range"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meals_by_date_range</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Pobierz naraz wszystkie posiłki z zadanego
+                                    zakresu dat — przydatne przy przeglądaniu
+                                    tygodnia albo miesiąca.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>start_date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data początkowa (RRRR-MM-DD)
+                                        </li>
+                                        <li>
+                                            <code>end_date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data końcowa (RRRR-MM-DD)
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Pokaż moje posiłki od poniedziałku do
+                                        piątku
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="export_all_data">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >export_all_data</code
+                                    >
+                                    <span class="chip chip-view">Eksport</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Wyeksportuj wszystko, co śledzisz, jako
+                                    jeden plik ZIP — meals.csv, water.csv,
+                                    weight.csv, goals.csv, profile.csv oraz
+                                    README.txt z wyjaśnieniem kolumn i jednostek
+                                    — pod tym samym prywatnym linkiem, ważnym
+                                    przez 60 minut. Na razie tylko posiłki można
+                                    zaimportować z powrotem.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Wyeksportuj wszystkie moje dane —
+                                        posiłki, wodę, wagę i cele
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="tool-group" data-reveal id="water">
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-droplet"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Woda</h2>
+                                <p>Śledź nawodnienie razem z jedzeniem.</p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="log_water">
+                                <div class="tool-head">
+                                    <code class="tool-name">log_water</code>
+                                    <span class="chip chip-log">Zapis</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zapisz nawodnienie. Podaj ilość w dowolnej
+                                    jednostce — szklankach, uncjach, litrach — a
+                                    zostanie przeliczona na mililitry.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>amount_ml</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Ilość w mililitrach (liczba
+                                            całkowita, &gt; 0).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Właśnie wypiłem/am butelkę wody 500 ml
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_water_today">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_water_today</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz dzisiejszą łączną ilość wypitej wody
+                                    i każdy wpis.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Ile wody wypiłem/am dzisiaj?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_water_by_date">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_water_by_date</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz sumę wody i wpisy z konkretnego dnia.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data w formacie RRRR-MM-DD
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Ile wypiłem/am wczoraj?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_water">
+                                <div class="tool-head">
+                                    <code class="tool-name">delete_water</code>
+                                    <span class="chip chip-remove"
+                                        >Usuwanie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Usuń wpis wody dodany przez pomyłkę.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — UUID wpisu wody do usunięcia
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Usuń ten ostatni wpis wody</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="tool-group" data-reveal id="weight">
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-weight-scale"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Waga</h2>
+                                <p>
+                                    Zapisuj ważenia, przeglądaj je i obserwuj
+                                    trend w kierunku celu.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="log_weight">
+                                <div class="tool-head">
+                                    <code class="tool-name">log_weight</code>
+                                    <span class="chip chip-log">Zapis</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zapisz pomiar masy ciała w kg lub lb. Kilka
+                                    ważeń dziennie nie jest problemem, a serwer
+                                    przechowuje wartość w jednej, wewnętrznej
+                                    jednostce, więc Twoja preferencja jednostki
+                                    nigdy nie zniekształca liczby.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>weight</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Wartość masy ciała, w jednostce
+                                            `unit` (&gt; 0).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Zapisz moją wagę — 74,2 kg dziś rano</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="update_weight">
+                                <div class="tool-head">
+                                    <code class="tool-name">update_weight</code>
+                                    <span class="chip chip-edit">Edycja</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Popraw istniejące ważenie — wartość,
+                                    znacznik czasu albo notatki.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — UUID wpisu wagi do zaktualizowania
+                                        </li>
+                                        <li>
+                                            <code>weight</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Nowa wartość wagi, w jednostce
+                                            `unit`.
+                                        </li>
+                                        <li>
+                                            <code>logged_at</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Znacznik czasu w formacie ISO 8601
+                                        </li>
+                                        <li>
+                                            <code>notes</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Popraw dzisiejsze poranne ważenie na
+                                        73,8 kg
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_weight">
+                                <div class="tool-head">
+                                    <code class="tool-name">delete_weight</code>
+                                    <span class="chip chip-remove"
+                                        >Usuwanie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">Usuń wpis wagi.</p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — UUID wpisu wagi do usunięcia
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Usuń dzisiejszy wpis wagi</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_today">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_today</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz dzisiejsze ważenia, w preferowanej
+                                    przez Ciebie jednostce.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Ile dziś ważyłem/am?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_by_date">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_by_date</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz swoje ważenia z konkretnego dnia.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data w formacie RRRR-MM-DD
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Ile ważyłem/am pierwszego dnia miesiąca?
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_weight_by_date_range"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_by_date_range</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Pobierz wszystkie ważenia z zadanego zakresu
+                                    dat, pogrupowane dniami wraz ze średnią dla
+                                    każdego dnia.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>start_date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data początkowa (RRRR-MM-DD)
+                                        </li>
+                                        <li>
+                                            <code>end_date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data końcowa (RRRR-MM-DD)
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Pokaż moje ważenia z ostatnich dwóch
+                                        tygodni
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_trends">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_trends</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Interaktywny widok</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz trend swojej wagi w wybranym okresie:
+                                    ostatni pomiar, całkowitą zmianę, średnie
+                                    kroczące 7/14/30-dniowe, minimum/maksimum
+                                    oraz postęp w kierunku wagi docelowej.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Długość okresu w dniach (domyślnie
+                                            30, maksymalnie 365).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Jak wygląda trend mojej wagi w tym
+                                        miesiącu?
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="set_weight_unit">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_weight_unit</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Ustawienie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Wybierz, czy waga ma być pokazywana i
+                                    wprowadzana w kg czy w lb. Zapisane wartości
+                                    pozostają bez zmian — zmienia się tylko
+                                    wyświetlanie i domyślne parsowanie.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Od teraz pokazuj moją wagę w funtach</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_unit">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_unit</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Sprawdź, jakiej jednostki wagi obecnie
+                                    używasz.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Jakiej jednostki wagi używam?</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="tool-group" data-reveal id="goals-progress">
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-bullseye"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Cele i postępy</h2>
+                                <p>
+                                    Ustaw cele i sprawdzaj, jak wypada każdy
+                                    dzień.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="set_nutrition_goals">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_nutrition_goals</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Ustawienie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Ustaw dzienne cele dotyczące kalorii,
+                                    makroskładników, błonnika, cukru, alkoholu,
+                                    kofeiny i wody, a także opcjonalną docelową
+                                    masę ciała. Kalorie, białko, węglowodany,
+                                    tłuszcz, błonnik i woda to cele do
+                                    osiągnięcia; cukier, alkohol i kofeina to
+                                    limity, których nie należy przekraczać, a
+                                    postęp jest opisywany odpowiednio do tego.
+                                    Aktualizowane są tylko wskazane pola; reszta
+                                    pozostaje bez zmian.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>daily_calories</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny cel kaloryczny (kcal).
+                                            Null, aby wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_protein_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny cel białka (gramy). Null,
+                                            aby wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_carbs_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny cel węglowodanów (gramy).
+                                            Null, aby wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_fat_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny cel tłuszczu (gramy).
+                                            Null, aby wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_fiber_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny cel błonnika (gramy),
+                                            minimum do osiągnięcia. Null, aby
+                                            wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_sugar_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny limit cukrów
+                                            <b>ogółem</b> (gramy), maksimum,
+                                            którego nie należy przekraczać.
+                                            Cukry ogółem obejmują cukier
+                                            naturalnie występujący w owocach i
+                                            mleku, więc publiczne wytyczne
+                                            dotyczące cukru dodanego podają
+                                            znacznie niższą liczbę. Null, aby
+                                            wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_alcohol_g</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny limit alkoholu w gramach
+                                            <b>czystego etanolu</b>, maksimum,
+                                            którego nie należy przekraczać.
+                                            Jeden standardowy drink w USA to 14
+                                            g, jedna jednostka brytyjska to 7,9
+                                            g. Null, aby wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_caffeine_mg</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Dzienny limit kofeiny w
+                                            <b>miligramach</b>, maksimum,
+                                            którego nie należy przekraczać.
+                                            Górna granica EFSA i FDA dla
+                                            zdrowych dorosłych to 400 mg
+                                            dziennie (mniej więcej cztery
+                                            parzone kawy), a 200 mg w ciąży. 0
+                                            to realny limit oznaczający
+                                            całkowity brak. Null, aby wyczyścić.
+                                        </li>
+                                        <li>
+                                            <code>daily_water_ml</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>target_weight</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Ustaw moje cele na 2200 kalorii, 160 g
+                                        białka i docelową wagę 75 kg
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_nutrition_goals">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_nutrition_goals</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz swoje aktualne dzienne cele
+                                    kaloryczne i makroskładnikowe, ewentualny
+                                    cel błonnika oraz limit cukru czy kofeiny, a
+                                    jeśli śledzisz alkohol — również jego limit.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Jakie są moje dzienne cele?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_goal_progress">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_goal_progress</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Interaktywny widok</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz, jak dzisiejsze spożycie wypada na
+                                    tle Twoich celów — pierścienie spożycia
+                                    względem celu oraz postęp wagi ciała.
+                                    Dotknij pierścienia makroskładnika, żeby
+                                    zobaczyć, które posiłki się na niego
+                                    złożyły.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Jak mi dzisiaj idzie względem moich
+                                        celów?
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_nutrition_summary"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_nutrition_summary</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Interaktywny widok</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Pobierz dzienne sumy odżywcze z zadanego
+                                    zakresu dat jako interaktywny panel: kafelki
+                                    makroskładników względem celów oraz podział
+                                    dzień po dniu.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>start_date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data początkowa (RRRR-MM-DD)
+                                        </li>
+                                        <li>
+                                            <code>end_date</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Data końcowa (RRRR-MM-DD)
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Podsumuj mi ten ostatni tydzień</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="insights-trends"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-chart-line"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Analizy i trendy</h2>
+                                <p>
+                                    Gotowe zestawienia, dzięki którym AI
+                                    dostrzega wzorce bez liczenia od nowa.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="get_trends">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_trends</code>
+                                    <span class="chip chip-view">Podgląd</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Interaktywny widok</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Kroczące średnie 7/14/30-dniowe, zmienność,
+                                    serie kolejnych dni z wpisami, podział na
+                                    dni tygodnia oraz Twoje najlepsze i
+                                    najgorsze dni pod względem kalorii i każdego
+                                    makroskładnika — policzone z góry, więc AI
+                                    może po prostu je opisać.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Długość okresu w dniach (domyślnie
+                                            30, maksymalnie 365).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Jakie są moje trendy kaloryczne i
+                                        makroskładnikowe w ostatnich 30 dniach?
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_meal_patterns">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meal_patterns</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Pokaż wzorce zachowań: jak często jesz każdy
+                                    typ posiłku, efekt śniadania,
+                                    wysokokaloryczne obiady, późne kolacje, dni
+                                    robocze kontra weekend oraz dni odstające.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Długość okresu w dniach (domyślnie
+                                            30, minimum 7, maksymalnie 365).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Czy widać jakieś wzorce w moim jedzeniu
+                                        — na przykład późne kolacje albo
+                                        pomijanie śniadań?
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="settings-account"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-gear"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Ustawienia i konto</h2>
+                                <p>
+                                    Preferencje, które dbają o dokładność
+                                    danych, plus pełna kontrola nad Twoimi
+                                    danymi.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="set_timezone">
+                                <div class="tool-head">
+                                    <code class="tool-name">set_timezone</code>
+                                    <span class="chip chip-setting"
+                                        >Ustawienie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Ustaw swoją strefę czasową IANA, żeby dni
+                                    zmieniały się o Twojej lokalnej północy —
+                                    posiłek zapisany o 23:00 liczy się do tego
+                                    dnia, nie do kolejnego dnia UTC.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Jestem w Berlinie — ustaw moją strefę
+                                        czasową
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_timezone">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_timezone</code>
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Sprawdź, jaka strefa czasowa jest u Ciebie
+                                    ustawiona, wraz z aktualną lokalną datą i
+                                    godziną (domyślnie UTC, jeśli nie
+                                    ustawiono).
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Jaka strefa czasowa jest u mnie
+                                        ustawiona?
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_current_time">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_current_time</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Sprawdź aktualną datę i godzinę w Twojej
+                                    strefie czasowej, a także moment w czasie
+                                    UTC. Niektóre aplikacje nie mówią
+                                    asystentowi, która jest godzina, więc dzięki
+                                    temu narzędziu wie, co oznacza „dziś rano"
+                                    albo „dzisiaj", bez pytania Cię o to
+                                    (domyślnie UTC, jeśli strefa czasowa nie
+                                    jest ustawiona).
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Która jest teraz u mnie godzina?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="set_widget_display">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_widget_display</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Ustawienie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Włącz lub wyłącz wizualne widżety w czacie —
+                                    panele, pierścienie celów i wykresy trendów.
+                                    Gdy są wyłączone, te same narzędzia
+                                    odpowiadają wyłącznie tekstem i danymi.
+                                    Domyślnie włączone; zmiana dotyczy nowych
+                                    rozmów.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>enabled</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — true, aby pokazywać widżety, false
+                                            dla odpowiedzi tylko tekstowych
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Wyłącz widżety</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_widget_display">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_widget_display</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Sprawdź, czy wizualne widżety w czacie są
+                                    obecnie włączone.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Czy widżety są włączone?</p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="set_alcohol_tracking"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_alcohol_tracking</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Ustawienie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Włącz lub wyłącz śledzenie alkoholu i
+                                    wybierz, czy drinki mają być liczone w
+                                    standardowych drinkach amerykańskich czy
+                                    jednostkach brytyjskich. Domyślnie jest
+                                    wyłączone, więc musisz o to poprosić.
+                                    Ponowne wyłączenie ukrywa alkohol z
+                                    posiłków, celów i postępów oraz sprawia, że
+                                    importer plików przestaje odczytywać kolumnę
+                                    alkoholu — nic, co już zapisano, nie zostaje
+                                    usunięte, Twój eksport CSV nadal to zawiera,
+                                    a wszystko pojawia się z powrotem po
+                                    ponownym włączeniu. Zmiana obowiązuje od
+                                    kolejnej wiadomości, bez potrzeby restartu
+                                    czegokolwiek.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>enabled</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — true, aby pokazywać alkohol w
+                                            posiłkach, celach i postępach,
+                                            false, aby go ukryć
+                                        </li>
+                                        <li>
+                                            <code>drink_unit</code>
+                                            <span class="param-opt"
+                                                >opcjonalne</span
+                                            >
+                                            — Który standardowy drink pokazywać
+                                            obok gramów: <code>us</code> (14 g
+                                            na drinka) lub <code>uk</code> (7,9
+                                            g na jednostkę). Domyślnie
+                                            <code>us</code>; faktycznie
+                                            przechowywane są gramy czystego
+                                            etanolu.
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>
+                                        Zacznij śledzić moje picie, w
+                                        jednostkach brytyjskich
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_alcohol_tracking"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_alcohol_tracking</code
+                                    >
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Sprawdź, czy śledzenie alkoholu jest
+                                    włączone i w jakim standardowym drinku
+                                    pokazywane są Twoje gramy.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Czy śledzę alkohol?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_account">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >delete_account</code
+                                    >
+                                    <span class="chip chip-remove"
+                                        >Usuwanie</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Trwale usuń swoje konto i wszystkie
+                                    powiązane dane. To działanie jest
+                                    nieodwracalne — AI zawsze najpierw
+                                    potwierdza to z Tobą.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Usuń moje konto i wszystkie moje dane</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/pl/tools" aria-current="page">Narzędzia</a>
+                    <a href="/pl/alternatives">Alternatywy</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Jak to zbudowałem</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Demo</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">Kontakt</a>
+                    <a href="/pl/privacy">Polityka prywatności</a>
+                    <a href="/pl/terms">Regulamin</a>
+                </nav>
+                <p class="footer-note">
+                    Darmowy i open source. Wartości odżywcze są szacunkowe, nie
+                    stanowią porady medycznej.
+                </p>
+            </div>
+        </footer>
+
+        <script>
+            // Category jump-bar: highlight the pill for the section in view, and
+            // keep the active pill scrolled into view on narrow screens.
+            (function () {
+                var pills = Array.prototype.slice.call(
+                    document.querySelectorAll(".cat-pill"),
+                );
+                if (!pills.length) return;
+                var scroller = document.querySelector(".cat-nav-scroll");
+                var groups = pills.map(function (p) {
+                    return document.querySelector(p.getAttribute("href"));
+                });
+                var OFFSET = 140; // 64px header + ~58px bar + breathing room
+                var raf = 0;
+                function update() {
+                    raf = 0;
+                    var idx = 0;
+                    for (var i = 0; i < groups.length; i++) {
+                        if (
+                            groups[i] &&
+                            groups[i].getBoundingClientRect().top - OFFSET <= 1
+                        )
+                            idx = i;
+                    }
+                    // Snap to the last category once scrolled to the bottom.
+                    if (
+                        window.innerHeight + window.scrollY >=
+                        document.documentElement.scrollHeight - 4
+                    )
+                        idx = groups.length - 1;
+                    for (var j = 0; j < pills.length; j++)
+                        pills[j].classList.toggle("active", j === idx);
+                    var active = pills[idx];
+                    if (active && scroller) {
+                        var pr = active.getBoundingClientRect();
+                        var sr = scroller.getBoundingClientRect();
+                        scroller.scrollLeft +=
+                            pr.left + pr.width / 2 - (sr.left + sr.width / 2);
+                    }
+                }
+                function onScroll() {
+                    if (!raf) raf = requestAnimationFrame(update);
+                }
+                window.addEventListener("scroll", onScroll, { passive: true });
+                window.addEventListener("resize", onScroll);
+                pills.forEach(function (p) {
+                    p.addEventListener("click", function () {
+                        setTimeout(update, 60);
+                    });
+                });
+                update();
+            })();
+        </script>
+        <script src="/site.js" defer></script>
+    </body>
+</html>

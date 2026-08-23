@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <title>
+            Yazio MCP-Server? Ernährung in Claude &amp; ChatGPT verfolgen
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="Kein MCP-Server für Yazio? Nutrition MCP protokolliert Mahlzeiten und Makros in Claude oder ChatGPT — kostenlos, quelloffen, und importiert deinen CSV-Export."
+        />
+        <meta
+            property="og:title"
+            content="Yazio MCP-Server? Ernährung in Claude &amp; ChatGPT verfolgen"
+        />
+        <meta
+            property="og:description"
+            content="Yazio hat keinen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die Mahlzeiten, Makros und Gewicht in Claude oder ChatGPT protokolliert — und importiert deinen Yazio-Verlauf aus einem CSV-Export."
+        />
+        <meta property="og:type" content="article" />
+        <meta
+            property="og:url"
+            content="https://nutrition-mcp.com/de/yazio-mcp"
+        />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
+        <meta
+            name="twitter:title"
+            content="Yazio MCP-Server? Ernährung in Claude &amp; ChatGPT verfolgen"
+        />
+        <meta
+            name="twitter:description"
+            content="Yazio hat keinen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die Mahlzeiten, Makros und Gewicht in Claude oder ChatGPT protokolliert — und importiert deinen Yazio-Verlauf aus einem CSV-Export."
+        />
+        <link rel="canonical" href="https://nutrition-mcp.com/de/yazio-mcp" />
+        <link
+            rel="alternate"
+            hreflang="en"
+            href="https://nutrition-mcp.com/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="de"
+            href="https://nutrition-mcp.com/de/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="es"
+            href="https://nutrition-mcp.com/es/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="fr"
+            href="https://nutrition-mcp.com/fr/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="nl"
+            href="https://nutrition-mcp.com/nl/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="pl"
+            href="https://nutrition-mcp.com/pl/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="it"
+            href="https://nutrition-mcp.com/it/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="uk"
+            href="https://nutrition-mcp.com/uk/yazio-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="x-default"
+            href="https://nutrition-mcp.com/yazio-mcp"
+        />
+        <meta property="og:locale" content="de_DE" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="es_ES" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="nl_NL" />
+        <meta property="og:locale:alternate" content="pl_PL" />
+        <meta property="og:locale:alternate" content="it_IT" />
+        <meta property="og:locale:alternate" content="uk_UA" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#fbfbf9" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Nutrition MCP",
+                        "item": "https://nutrition-mcp.com"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Alternatives",
+                        "item": "https://nutrition-mcp.com/de/alternatives"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "Yazio MCP",
+                        "item": "https://nutrition-mcp.com/de/yazio-mcp"
+                    }
+                ]
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "Hat Yazio einen MCP-Server?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Nein. Yazio bietet keinen Model Context Protocol (MCP) Server an, es gibt also keinen offiziellen Weg, es mit Claude, ChatGPT oder anderen KI-Assistenten zu verbinden. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die von Grund auf als MCP-Server gebaut wurde, sodass du Mahlzeiten und Makros direkt in deiner KI erfassen kannst."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Wie verbinde ich Yazio mit Claude?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Es gibt keinen offiziellen Yazio-Connector für Claude, weil Yazio weder einen MCP-Server noch eine öffentliche MCP-Integration hat. Die nächstliegende Option ist Nutrition MCP, ein kostenloser MCP-Server: Füge https://nutrition-mcp.com/mcp als benutzerdefinierten Connector in Claude hinzu, melde dich an, und erfasse im Gespräch."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Enthält Nutrition MCP Ernährungspläne wie Yazio PRO?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Nein. Yazios strukturierte Ernährungspläne, Rezepte und Fasten-Tools sind seine Stärke, und Nutrition MCP versucht nicht, sie zu ersetzen — es übernimmt die Erfassungs-Hälfte. Viele Leute folgen weiter ihrem Yazio- (oder jedem anderen) Plan und erfassen hier einfach kostenlos dagegen."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Kann ich Mahlzeiten schneller erfassen als mit Yazios Datenbanksuche?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Meistens ja. Statt Yazios Datenbank für jede Zutat zu durchsuchen und Portionen einzustellen, beschreibst du das fertige Gericht einmal — „eine Schüssel Müsli mit Joghurt und Beeren\" —, und deine KI schätzt und erfasst die Makros in einem einzigen Schritt."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Ist Nutrition MCP eine gute Yazio-Alternative?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Wenn du Kalorien, Makros — inklusive Ballaststoffe, Gesamtzucker und Koffein —, Wasser und Gewicht erfassen willst, ohne eine separate App zu öffnen oder eine Lebensmitteldatenbank zu durchsuchen, dann ja. Statt dich durch eine Datenbank zu tippen, beschreibst du in normaler Sprache, was du gegessen hast, schickst ein Foto oder scannst einen Barcode, und deine KI erfasst es — komplett kostenlos und quelloffen."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Kann ich meine Yazio-Daten importieren?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Ja, mit manueller Spaltenzuordnung. Bitte um den Import, und im Chat öffnet sich ein Importer: Du wählst deinen Yazio-CSV-Export, er wird in deinem Browser geparst statt von der KI gelesen, und du zeigst seine Spalten selbst auf Datum, Lebensmittel, Mahlzeit, Kalorien und Makros — Ballaststoffe, Gesamtzucker und Koffein eingeschlossen. Yazio gehört nicht zu den vier Exporten, die per Spaltenname erkannt werden, diese Zuordnung ist also ein einmaliger manueller Schritt, auch wenn Überschriften, die der Mapper schon kennt (auf Deutsch, und für Ballaststoffe, Zucker und Koffein auch auf Spanisch, Französisch, Italienisch und Niederländisch), sich von selbst ausfüllen. Semikolon-getrennte europäische Dateien mit Komma-Dezimalstellen, Daten im Format TT.MM.JJJJ und Kilojoule werden alle behandelt, und ein erneuter Import derselben Datei erzeugt nie Duplikate. In Clients ohne In-Chat-Panels kannst du deinen Export stattdessen einfügen."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Liest die KI meine Exportdatei, wenn ich importiere?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Nicht, wenn sich der Importer öffnet. Er parst die CSV in deinem Browser und zeigt dir, was hinzugefügt wird, bevor irgendetwas geschrieben wird: wie viele Mahlzeiten, die Kalorien-Summe, alles, was er markieren musste, und die Zeilen selbst — bei einer langen Datei werden die ersten davon plus eine Anzahl der restlichen gelistet statt jeder Zeile. Nur die Zeilen, die du bestätigst, werden gesendet, und zwar als strukturierte Daten statt über die Antwort der KI, sodass keine Zeile unterwegs vertippt oder erfunden werden kann. Jede Zeile trägt außerdem einen Inhalts-Fingerabdruck, sodass ein erneuter Lauf derselben Datei diese Mahlzeiten als bereits erfasst meldet, statt sie zu verdoppeln. Kann dein Client keine In-Chat-Panels anzeigen, ist der Fallback, den Export einzufügen — die KI liest ihn auf diesem Weg tatsächlich, bevorzuge also den Importer, wenn du die Wahl hast."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Ist Nutrition MCP kostenlos?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Ja. Nutrition MCP ist komplett kostenlos, ohne Premium-Stufe, Werbung oder Bezahlschranken — anders als Apps, die manche Funktionen hinter ein Abo packen. Du brauchst nur ein Claude- oder ChatGPT-Konto, um dich zu verbinden."
+                        }
+                    }
+                ]
+            }
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+        <a class="skip" href="#main">Zum Inhalt springen</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a
+                    class="brand"
+                    href="/de"
+                    aria-label="Nutrition MCP Startseite"
+                >
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/de#how">So funktioniert's</a>
+                    <a href="/de#install">Installieren</a>
+                    <a href="/de/tools">Werkzeuge</a>
+                    <a href="/de#try">Beispiele</a>
+                    <a href="/de#stats">Live-Statistiken</a>
+                    <a href="/de#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="GitHub-Repository"
+                        title="GitHub"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="Sprache ändern"
+                            title="Sprache"
+                        >
+                            <span class="lang-code">DE</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+                            <a
+                                href="https://nutrition-mcp.com/yazio-mcp"
+                                lang="en"
+                                hreflang="en"
+                                >English</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/de/yazio-mcp"
+                                lang="de"
+                                hreflang="de"
+                                aria-current="page"
+                                >Deutsch</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/es/yazio-mcp"
+                                lang="es"
+                                hreflang="es"
+                                >Español</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/fr/yazio-mcp"
+                                lang="fr"
+                                hreflang="fr"
+                                >Français</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/nl/yazio-mcp"
+                                lang="nl"
+                                hreflang="nl"
+                                >Nederlands</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/pl/yazio-mcp"
+                                lang="pl"
+                                hreflang="pl"
+                                >Polski</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/it/yazio-mcp"
+                                lang="it"
+                                hreflang="it"
+                                >Italiano</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/uk/yazio-mcp"
+                                lang="uk"
+                                hreflang="uk"
+                                >Українська</a
+                            >
+                        </div>
+                    </details>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="In den Dunkelmodus wechseln"
+                        title="In den Dunkelmodus wechseln"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/de#install"
+                        >Verbinden</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Menü öffnen"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/de#how"
+                    >So funktioniert's <small>3 Schritte</small></a
+                >
+                <a href="/de#install"
+                    >Installieren <small>unter einer Minute</small></a
+                >
+                <a href="/de/tools">Werkzeuge <small>38 Werkzeuge</small></a>
+                <a href="/de#try">Beispiele <small>Live-Demos</small></a>
+                <a href="/de#stats"
+                    >Live-Statistiken <small>seit dem Öffnen</small></a
+                >
+                <a href="/de#faq">FAQ</a>
+                <a href="/de/alternatives"
+                    >Alternativen <small>App-Wechsel</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/de#support">Unterstützung</a>
+                <a href="/de#contact">Kontakt</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/de/privacy">Datenschutz</a>
+                <a href="/de/terms">Bedingungen</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/de#install"
+                    >In einer Minute verbinden</a
+                >
+            </div>
+        </div>
+
+        <main id="main">
+            <!-- Hero -->
+            <section class="hero">
+                <div class="container">
+                    <nav class="crumb" aria-label="Breadcrumb">
+                        <a href="/de">Startseite</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <a href="/de/alternatives">Alternativen</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <span>Yazio</span>
+                    </nav>
+                    <div class="hero-copy hero-copy-wide">
+                        <p class="eyebrow">Yazio-Alternative</p>
+                        <h1 class="hero-title">
+                            Auf der Suche nach einem <em>Yazio MCP</em>-Server?
+                        </h1>
+                        <p class="lead">
+                            Yazio hat keinen — du kannst es also nicht in Claude
+                            oder ChatGPT nutzen. Nutrition MCP erledigt dieselbe
+                            Aufgabe im Gespräch, und das kostenlos und
+                            quelloffen.
+                        </p>
+                        <div class="hero-actions">
+                            <a class="btn btn-primary" href="#switch"
+                                >In unter einer Minute verbinden</a
+                            >
+                            <a class="btn btn-secondary" href="#compare"
+                                >Zum Vergleich</a
+                            >
+                        </div>
+                    </div>
+                    <div class="translation-notice">
+                        <p>
+                            Diese Seite wurde mit KI aus dem Englischen
+                            übersetzt und wurde nicht von einer Person
+                            überprüft.
+                            <a href="/yazio-mcp">Original auf Englisch lesen</a>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- The honest answer -->
+            <section class="section band" id="answer">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Die kurze Antwort</p>
+                        <h2 class="section-title">
+                            Nein, Yazio hat keinen MCP-Server.
+                        </h2>
+                        <p class="section-sub">
+                            Das Model Context Protocol (MCP) ist der offene
+                            Standard, der es KI-Assistenten wie Claude und
+                            ChatGPT erlaubt, sich mit externen Werkzeugen zu
+                            verbinden. Yazio veröffentlicht keinen MCP-Server,
+                            es gibt also keinen offiziellen Weg, darüber aus
+                            deiner KI heraus Essen zu erfassen. Wenn du nach
+                            „Yazio MCP" oder „Yazio mit Claude verbinden"
+                            gesucht hast, bist du eigentlich auf der Suche nach
+                            einem Ernährungs-Tracker, der
+                            <em>direkt in</em> deiner KI lebt — genau das ist
+                            Nutrition MCP.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- What you get instead -->
+            <section class="section" id="instead">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Was du stattdessen bekommst</p>
+                        <h2 class="section-title">
+                            Dasselbe Tracking, einfach durch Reden
+                        </h2>
+                    </div>
+                    <div class="features-grid" data-reveal="stagger">
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-utensils"></i
+                            ></span>
+                            <h3>Mahlzeiten in normaler Sprache</h3>
+                            <p>
+                                Sag „Haferflocken mit Banane und Erdnussbutter"
+                                — deine KI schätzt Kalorien und Makros,
+                                inklusive Ballaststoffe, Gesamtzucker und
+                                Koffein, und erfasst es. Keine Datenbanksuche.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-barcode"></i
+                            ></span>
+                            <h3>Barcode scannen — kostenlos</h3>
+                            <p>
+                                Schick einen Produkt-Barcode und hol die
+                                Etikett-Makros von Open Food Facts — auch
+                                Ballaststoffe und Zucker, wenn das Etikett sie
+                                listet. Kein Premium-Abo nötig, um es
+                                freizuschalten.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-weight-scale"></i
+                            ></span>
+                            <h3>Gewicht &amp; Ziele</h3>
+                            <p>
+                                Erfasse dein Körpergewicht in kg oder lb, leg
+                                Ziele für Kalorien, Makros, Ballaststoffe,
+                                Zucker, Koffein und Wasser fest — Ballaststoffe
+                                als Zielwert, den du erreichen willst, Zucker
+                                und Koffein als Grenzwerte, die du
+                                unterschreiten willst — und verfolge Trends zu
+                                einem Zielgewicht. Alkohol-Tracking gibt es
+                                auch, opt-in und standardmäßig ausgeschaltet,
+                                bis du es aktivierst.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>Übersichten &amp; Trends</h3>
+                            <p>
+                                Frag nach Tagessummen, Wochentrends, Serien und
+                                wiederkehrenden Essgewohnheiten — direkt im
+                                Chat.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-file-csv"></i
+                            ></span>
+                            <h3>Import &amp; Eigentum an deinen Daten</h3>
+                            <p>
+                                Importier deine Mahlzeiten-Historie aus dem
+                                CSV-Export einer anderen App — geparst in deinem
+                                Browser, nicht von der KI. Nimm jederzeit alles
+                                wieder mit heraus: ein ZIP mit deinen
+                                Mahlzeiten, Wasser, Gewicht, Zielen und deinem
+                                Profil als CSV-Dateien. Mahlzeiten sind bisher
+                                der einzige Teil, der wieder importiert werden
+                                kann. Oder lösch dein Konto, genauso einfach.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-code-branch"></i
+                            ></span>
+                            <h3>Quelloffen &amp; kostenlos</h3>
+                            <p>
+                                MIT-lizenziert und selbst hostbar — keine
+                                Werbung, keine Bezahlschranke, kein Upselling.
+                                Prüf den Code oder betreib deine eigene Instanz.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison -->
+            <section class="section band" id="compare">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Yazio vs. Nutrition MCP</p>
+                        <h2 class="section-title">
+                            Wie sie im Vergleich abschneiden
+                        </h2>
+                    </div>
+                    <div class="compare">
+                        <div class="compare-col">
+                            <h3 class="compare-h compare-h-old">Yazio</h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Kein
+                                    MCP-Server — läuft nicht in Claude oder
+                                    ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Für jedes
+                                    erfasste Lebensmittel die Datenbank
+                                    durchsuchen
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Manche
+                                    Funktionen, wie Ernährungspläne, brauchen
+                                    einen Bezahl-PRO-Plan
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Eine
+                                    separate App und ein Konto zu verwalten
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="compare-col compare-col-new">
+                            <h3 class="compare-h compare-h-new">
+                                Nutrition MCP
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Als MCP-Server gebaut — läuft direkt in
+                                    Claude &amp; ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Mahlzeiten in normaler Sprache beschreiben;
+                                    Kalorien, Makros, Ballaststoffe, Zucker
+                                    &amp; Koffein werden für dich geschätzt
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Barcode-Scan, Trends, CSV-Import &amp;
+                                    -Export — alles kostenlos
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Keine separate App, keine Werbung,
+                                    quelloffen
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="note compare-note">
+                        Yazio ist ein ausgereifter Tracker mit guten
+                        Ernährungsplänen. Nutrition MCP konzentriert sich auf
+                        müheloses konversationelles Erfassen direkt in Claude
+                        oder ChatGPT — kostenlos und quelloffen.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Moving from X (per-app, unique content) -->
+            <section class="section" id="moving">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Wechsel von Yazio</p>
+                        <h2 class="section-title">
+                            Pläne auf der einen Seite, Erfassen auf der anderen
+                        </h2>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            Yazio kombiniert Tracking mit strukturierten
+                            Ernährungsplänen, Rezepten und Fasten-Tools, poliert
+                            für ein europäisches Publikum. Wenn ein geführter
+                            Plan dich auf Kurs hält, macht Yazio das gut, und
+                            Nutrition MCP versucht das gar nicht erst — es ist
+                            keine Ernährungsplan-App.
+                        </p>
+                        <p>
+                            Was es tut, ist die Erfassungs-Hälfte mühelos zu
+                            machen. Statt Yazios Datenbank für jede Zutat zu
+                            durchsuchen, beschreibst du das Gericht, und deine
+                            KI übernimmt die Makros — und beantwortet im selben
+                            Atemzug „wie steht's heute bei mir?". Kombinier es
+                            mit welchem Essensplan auch immer du schon befolgst.
+                        </p>
+                        <p>
+                            Das macht die beiden eigentlich komplementär statt
+                            konkurrierend. Folg weiter einem Yazio-Plan, oder
+                            jedem Plan, für die „was esse ich"-Seite; nutze
+                            Nutrition MCP für die „bin ich auf Kurs
+                            geblieben"-Seite, im Gespräch erfasst und kostenlos.
+                            Der einzige Ort, an dem es nicht hilft, sind
+                            Fasten-Timer — das ist Yazios Terrain, nicht das
+                            eines Ernährungsprotokolls.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bring your history (per-app, unique content) -->
+            <section class="section band" id="import">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Deine Yazio-Historie</p>
+                        <h2 class="section-title">
+                            Bring das Protokoll mit, ordne die Spalten zu
+                        </h2>
+                        <p class="section-sub">
+                            Bitte um den Import, und ein Importer öffnet sich
+                            direkt im Chat: Wähl deinen Export, ordne die
+                            Spalten zu, sieh eine Vorschau, was hinzugefügt
+                            wird, und bestätige. Die Datei wird in deinem
+                            Browser gelesen — die KI sieht die Zeilen nie. In
+                            Clients ohne In-Chat-Panels fügst du deinen Export
+                            stattdessen ein.
+                        </p>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            Deine Yazio-Historie kann mitkommen, auch wenn du
+                            etwas Arbeit selbst erledigst. Bitte um den Import,
+                            und im Chat öffnet sich ein Importer-Panel: Du
+                            wählst deinen CSV-Export, er wird in deinem Browser
+                            geparst, und du zeigst seine Spalten selbst auf
+                            Datum, Lebensmittel, Mahlzeit, Kalorien, Protein,
+                            Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und
+                            Koffein. Vier App-Exporte — MyFitnessPal,
+                            Cronometer, Lose It! und MacroFactor — werden anhand
+                            ihrer Spaltennamen erkannt; Yazio gehört nicht dazu,
+                            rechne also damit, diese Zuordnung einmal
+                            einzurichten. Alles danach läuft gleich: eine
+                            Vorschau, was hinzugefügt wird, dann deine
+                            Bestätigung.
+                        </p>
+                        <p>
+                            Die europäischen Eigenheiten, an denen die meisten
+                            Importer scheitern, werden behandelt. Eine
+                            Semikolon-getrennte Datei, deren Zahlen
+                            Komma-Dezimalstellen verwenden — die Form, die Excel
+                            in einer deutschen oder österreichischen Locale
+                            erzeugt —, wird korrekt gelesen, statt dass das
+                            Trennzeichen für ein Dezimaltrennzeichen gehalten
+                            oder jeder Makro-Wert um das Tausendfache verzerrt
+                            wird. Die Überschriften, die der Mapper kennt, sind
+                            auch nicht nur englisch: Ein deutscher Export mit
+                            Datum, Kalorien, Eiweiss, Kohlenhydrate,
+                            Ballaststoffe, Zucker und Koffein wird vollständig
+                            erkannt, und Ballaststoffe, Zucker und Koffein
+                            werden auch auf Spanisch, Französisch, Italienisch
+                            und Niederländisch zugeordnet — fibra, sucres,
+                            zuccheri, suikers, cafeína, caffeina —, sodass eine
+                            lokalisierte Datei oft schon teilweise zugeordnet
+                            ankommt und dir weniger Spalten von Hand bleiben. In
+                            Anführungszeichen gesetzte Felder, Zeilenumbrüche
+                            innerhalb einer Zelle, halbleere Werte und
+                            vereinzelte Summenzeilen werden ebenfalls behandelt,
+                            und die KI liest die Datei nie, es kann also keine
+                            Zahl unterwegs vertippt werden.
+                        </p>
+                        <p>
+                            Daten und Energie werden bestätigt statt geraten.
+                            Eine Spalte im Format TT.MM.JJJJ wird tagesbasiert
+                            gelesen, und wo die Werte sich tatsächlich nicht
+                            eindeutig klären lassen — 05/06 als Mai oder Juni —,
+                            zeigt dir der Importer seine Lesart neben einer
+                            Zeile aus deiner eigenen Datei, damit du sie
+                            korrigieren kannst. Ist die Energiespalte in
+                            Kilojoule, wird sie in Kilokalorien umgerechnet, mit
+                            der Einheit als Kontrolle neben einem
+                            durchgerechneten Beispiel. Ein erneuter Import
+                            derselben Datei fügt nichts hinzu: Jede Zeile trägt
+                            einen Inhalts-Fingerabdruck, sodass Wiederholungen
+                            als bereits erfasst zurückkommen.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How to switch -->
+            <section class="section" id="switch">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">So wechselst du</p>
+                        <h2 class="section-title">
+                            In unter einer Minute verbinden
+                        </h2>
+                        <p class="section-sub">
+                            Funktioniert mit jedem MCP-Client, der OAuth 2.0 mit
+                            PKCE unterstützt. Bei der ersten Verbindung
+                            erstellst du ein Konto mit Google oder einer
+                            E-Mail-Adresse und einem Passwort.
+                        </p>
+                    </div>
+                    <div class="card install-card">
+                        <ol class="steps">
+                            <li>
+                                Öffne <strong>Claude</strong> (Web oder Desktop)
+                                und klick auf <strong>Customize</strong> →
+                                <strong>Connectors</strong>.
+                            </li>
+                            <li>
+                                Klick auf <strong>+</strong>, dann auf
+                                <strong>Add custom connector</strong>, und gib
+                                ihm einen Namen wie <strong>Nutrition</strong>.
+                            </li>
+                            <li>
+                                Füge
+                                <span class="copy-url"
+                                    ><code>https://nutrition-mcp.com/mcp</code
+                                    ><button
+                                        class="copy-mini"
+                                        type="button"
+                                        data-copy="https://nutrition-mcp.com/mcp"
+                                        aria-label="Server-URL kopieren"
+                                    >
+                                        <i class="fa-solid fa-copy"></i></button
+                                ></span>
+                                in das Feld
+                                <strong>Remote MCP server URL</strong> ein und
+                                klick auf <strong>Add</strong>.
+                            </li>
+                            <li>
+                                Klick auf <strong>Connect</strong>, melde dich
+                                an, und leg los, indem du sagst, was du gegessen
+                                hast.
+                            </li>
+                        </ol>
+                        <p class="note">
+                            Nutzt du stattdessen ChatGPT oder einen anderen
+                            Client? Die
+                            <a href="/de#install"
+                                >vollständige Installationsanleitung</a
+                            >
+                            deckt ChatGPT, Cursor, VS Code, Claude Code und mehr
+                            ab.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section band" id="faq">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">FAQ</p>
+                        <h2 class="section-title">Yazio &amp; MCP-Fragen</h2>
+                    </div>
+                    <div class="faq">
+                        <details>
+                            <summary>Hat Yazio einen MCP-Server?</summary>
+                            <p>
+                                Nein. Yazio bietet keinen Model Context Protocol
+                                (MCP) Server an, es gibt also keinen offiziellen
+                                Weg, es mit Claude, ChatGPT oder anderen
+                                KI-Assistenten zu verbinden. Nutrition MCP ist
+                                eine kostenlose, quelloffene Alternative, die
+                                von Grund auf als MCP-Server gebaut wurde,
+                                sodass du Mahlzeiten und Makros direkt in deiner
+                                KI erfassen kannst.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Wie verbinde ich Yazio mit Claude?
+                            </summary>
+                            <p>
+                                Es gibt keinen offiziellen Yazio-Connector für
+                                Claude, weil Yazio weder einen MCP-Server noch
+                                eine öffentliche MCP-Integration hat. Die
+                                nächstliegende Option ist Nutrition MCP, ein
+                                kostenloser MCP-Server: Füge
+                                https://nutrition-mcp.com/mcp als
+                                benutzerdefinierten Connector in Claude hinzu,
+                                melde dich an, und erfasse im Gespräch.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Enthält Nutrition MCP Ernährungspläne wie Yazio
+                                PRO?
+                            </summary>
+                            <p>
+                                Nein. Yazios strukturierte Ernährungspläne,
+                                Rezepte und Fasten-Tools sind seine Stärke, und
+                                Nutrition MCP versucht nicht, sie zu ersetzen —
+                                es übernimmt die Erfassungs-Hälfte. Viele Leute
+                                folgen weiter ihrem Yazio- (oder jedem anderen)
+                                Plan und erfassen hier einfach kostenlos
+                                dagegen.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Kann ich Mahlzeiten schneller erfassen als mit
+                                Yazios Datenbanksuche?
+                            </summary>
+                            <p>
+                                Meistens ja. Statt Yazios Datenbank für jede
+                                Zutat zu durchsuchen und Portionen einzustellen,
+                                beschreibst du das fertige Gericht einmal —
+                                „eine Schüssel Müsli mit Joghurt und Beeren" —,
+                                und deine KI schätzt und erfasst die Makros in
+                                einem einzigen Schritt.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Ist Nutrition MCP eine gute Yazio-Alternative?
+                            </summary>
+                            <p>
+                                Wenn du Kalorien, Makros — inklusive
+                                Ballaststoffe, Gesamtzucker und Koffein —,
+                                Wasser und Gewicht erfassen willst, ohne eine
+                                separate App zu öffnen oder eine
+                                Lebensmitteldatenbank zu durchsuchen, dann ja.
+                                Statt dich durch eine Datenbank zu tippen,
+                                beschreibst du in normaler Sprache, was du
+                                gegessen hast, schickst ein Foto oder scannst
+                                einen Barcode, und deine KI erfasst es —
+                                komplett kostenlos und quelloffen.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Kann ich meine Yazio-Daten importieren?
+                            </summary>
+                            <p>
+                                Ja, mit manueller Spaltenzuordnung. Bitte um den
+                                Import, und im Chat öffnet sich ein Importer: Du
+                                wählst deinen Yazio-CSV-Export, er wird in
+                                deinem Browser geparst statt von der KI gelesen,
+                                und du zeigst seine Spalten selbst auf Datum,
+                                Lebensmittel, Mahlzeit, Kalorien und Makros —
+                                Ballaststoffe, Gesamtzucker und Koffein
+                                eingeschlossen. Yazio gehört nicht zu den vier
+                                Exporten, die per Spaltenname erkannt werden,
+                                diese Zuordnung ist also ein einmaliger
+                                manueller Schritt, auch wenn Überschriften, die
+                                der Mapper schon kennt (auf Deutsch, und für
+                                Ballaststoffe, Zucker und Koffein auch auf
+                                Spanisch, Französisch, Italienisch und
+                                Niederländisch), sich von selbst ausfüllen.
+                                Semikolon-getrennte europäische Dateien mit
+                                Komma-Dezimalstellen, Daten im Format TT.MM.JJJJ
+                                und Kilojoule werden alle behandelt, und ein
+                                erneuter Import derselben Datei erzeugt nie
+                                Duplikate. In Clients ohne In-Chat-Panels kannst
+                                du deinen Export stattdessen einfügen.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Liest die KI meine Exportdatei, wenn ich
+                                importiere?
+                            </summary>
+                            <p>
+                                Nicht, wenn sich der Importer öffnet. Er parst
+                                die CSV in deinem Browser und zeigt dir, was
+                                hinzugefügt wird, bevor irgendetwas geschrieben
+                                wird: wie viele Mahlzeiten, die Kalorien-Summe,
+                                alles, was er markieren musste, und die Zeilen
+                                selbst — bei einer langen Datei werden die
+                                ersten davon plus eine Anzahl der restlichen
+                                gelistet statt jeder Zeile. Nur die Zeilen, die
+                                du bestätigst, werden gesendet, und zwar als
+                                strukturierte Daten statt über die Antwort der
+                                KI, sodass keine Zeile unterwegs vertippt oder
+                                erfunden werden kann. Jede Zeile trägt außerdem
+                                einen Inhalts-Fingerabdruck, sodass ein erneuter
+                                Lauf derselben Datei diese Mahlzeiten als
+                                bereits erfasst meldet, statt sie zu verdoppeln.
+                                Kann dein Client keine In-Chat-Panels anzeigen,
+                                ist der Fallback, den Export einzufügen — die KI
+                                liest ihn auf diesem Weg tatsächlich, bevorzuge
+                                also den Importer, wenn du die Wahl hast.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Ist Nutrition MCP kostenlos?</summary>
+                            <p>
+                                Ja. Nutrition MCP ist komplett kostenlos, ohne
+                                Premium-Stufe, Werbung oder Bezahlschranken —
+                                anders als Apps, die manche Funktionen hinter
+                                ein Abo packen. Du brauchst nur ein Claude- oder
+                                ChatGPT-Konto, um dich zu verbinden.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Closing CTA -->
+            <section class="section cta">
+                <div class="container cta-inner" data-reveal>
+                    <h2 class="cta-title">
+                        Erfasse deine Ernährung in der KI, die du schon nutzt.
+                    </h2>
+                    <p class="cta-sub">
+                        Kostenlos und quelloffen — kein Yazio-Konto, keine App
+                        zu öffnen.
+                    </p>
+                    <div class="cta-actions">
+                        <a class="btn btn-on-accent" href="#switch"
+                            >Schnell installieren</a
+                        >
+                        <a class="btn btn-ghost-accent" href="/de/alternatives"
+                            >Weitere Alternativen</a
+                        >
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="disclaimer-band">
+            <div class="container">
+                <p class="page-disclaimer">
+                    Yazio ist eine Marke des jeweiligen Eigentümers. Nutrition
+                    MCP ist ein unabhängiges, quelloffenes Projekt und steht in
+                    keiner Verbindung zu Yazio, wird von ihm nicht unterstützt
+                    oder gesponsert. Die Vergleiche spiegeln öffentlich
+                    verfügbare Informationen zum Zeitpunkt der Erstellung wider
+                    und können sich ändern.
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/de/tools">Werkzeuge</a>
+                    <a href="/de/alternatives">Alternativen</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Wie ich das gebaut habe</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Demo</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">Kontakt</a>
+                    <a href="/de/privacy">Datenschutzerklärung</a>
+                    <a href="/de/terms">Nutzungsbedingungen</a>
+                </nav>
+                <p class="footer-note">
+                    Kostenlos und quelloffen. Ernährungswerte sind Schätzungen,
+                    kein medizinischer Rat.
+                </p>
+            </div>
+        </footer>
+
+        <script src="/site.js" defer></script>
+    </body>
+</html>

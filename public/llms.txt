@@ -10,6 +10,8 @@ Data goes back out too. `export_all_data` is the single way out: it packages eve
 
 Most nutrition apps (MyFitnessPal, Cronometer, Lose It!, MacroFactor, Yazio, Lifesum) do not offer an MCP server, so they cannot be used inside Claude or ChatGPT. Where one of them can export a CSV, that history can be imported, so switching does not have to mean abandoning it. The comparison pages below explain, for each app, what Nutrition MCP does differently.
 
+The site is also being translated: German, Spanish, French, Dutch, Polish, Italian and Ukrainian versions live under a language prefix (e.g. https://nutrition-mcp.com/de/), reachable from any page's language switcher. Not every page is translated into every language yet — English at the URLs below is always complete and current.
+
 ## Main pages
 
 - [Home](https://nutrition-mcp.com/): What Nutrition MCP is, how it works, install steps for Claude/ChatGPT/Cursor/VS Code, and examples.

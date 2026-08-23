@@ -13,6 +13,7 @@ import { getLandingStats, type LandingStats } from "./supabase.js";
 import { registerDiscoveryRoutes } from "./discovery.js";
 import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
+import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
 
 const app = new Hono();
 
@@ -57,7 +58,7 @@ app.use("*", async (c, next) => {
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.github.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://api.github.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com; frame-ancestors 'none'",
         );
     }
     c.header("Referrer-Policy", "no-referrer");
@@ -195,7 +196,10 @@ app.all(
 
 // Aggregate landing-page stats, cached in-memory so page views don't each hit
 // the DB. The numbers move slowly, so a stale value for a few minutes is fine.
-const STATS_TTL_MS = 5 * 60 * 1000;
+// The landing page polls this every 5 s to show totals ticking up live, so the
+// server-side TTL is the same 5 s: one aggregate RPC per interval at most,
+// however many tabs are open. The RPC is a handful of sums over a small table.
+const STATS_TTL_MS = 5 * 1000;
 let statsCache: { data: LandingStats; expiresAt: number } | null = null;
 
 app.get("/api/stats", async (c) => {
@@ -207,7 +211,7 @@ app.get("/api/stats", async (c) => {
             };
         }
         return c.json(statsCache.data, 200, {
-            "Cache-Control": "public, max-age=300",
+            "Cache-Control": "public, max-age=5",
         });
     } catch (err) {
         console.error("Failed to load landing stats:", err);
@@ -289,16 +293,10 @@ app.get("/tools/", (c) => c.redirect("/tools", 301));
 // SEO comparison / "alternative to X" landing pages. Each targets long-tail
 // queries like "myfitnesspal mcp" or "connect myfitnesspal to claude" and is a
 // static HTML file under public/alternatives. Kept data-driven so adding a page
-// is one entry here plus the file and a sitemap.xml line.
-const ALT_PAGES: Record<string, string> = {
-    "/alternatives": "alternatives/index.html",
-    "/myfitnesspal-mcp": "alternatives/myfitnesspal.html",
-    "/cronometer-mcp": "alternatives/cronometer.html",
-    "/lose-it-mcp": "alternatives/lose-it.html",
-    "/macrofactor-mcp": "alternatives/macrofactor.html",
-    "/yazio-mcp": "alternatives/yazio.html",
-    "/lifesum-mcp": "alternatives/lifesum.html",
-};
+// is one entry here plus the file and a sitemap.xml line. ALT_PAGES itself now
+// lives in src/routes.ts — a module with no Supabase/side-effecting imports —
+// so tests can import it directly instead of regex-scraping it out of this
+// file's source text.
 for (const [path, file] of Object.entries(ALT_PAGES)) {
     app.get(path, async (c) =>
         c.html(await Bun.file(`./public/${file}`).text()),
@@ -308,10 +306,37 @@ for (const [path, file] of Object.entries(ALT_PAGES)) {
     app.get(`${path}/`, (c) => c.redirect(path, 301));
 }
 
+// Every page above, again under each translated locale's /{locale} prefix
+// (public/{locale}/... instead of public/...) — same route/redirect shape as
+// the ALT_PAGES loop just above. English stays unprefixed at the routes
+// already registered above; it's also the x-default hreflang target (see
+// scripts/site-partials.ts's localeHead()). Not every locale has every page
+// generated yet — a missing file 500s via the error handler below rather
+// than silently 404ing, which is deliberate: a locale page that should exist
+// but doesn't is a bug to notice, not a page that was never meant to be there.
+for (const locale of LOCALES) {
+    for (const [suffix, file] of Object.entries(PAGE_ROUTES)) {
+        const path = `/${locale}${suffix}`;
+        app.get(path, async (c) =>
+            c.html(await Bun.file(`./public/${locale}/${file}`).text()),
+        );
+        app.get(`${path}/`, (c) => c.redirect(path, 301));
+    }
+}
+
 // CSS
 app.get("/styles.css", async (c) => {
     const file = Bun.file("./public/styles.css");
     return c.body(await file.text(), 200, { "Content-Type": "text/css" });
+});
+
+// Shared site script: theme toggle, header, mobile menu, scroll effects.
+// Every public page loads it, so it is served from one place like the CSS.
+app.get("/site.js", async (c) => {
+    const file = Bun.file("./public/site.js");
+    return c.body(await file.text(), 200, {
+        "Content-Type": "text/javascript; charset=utf-8",
+    });
 });
 
 // Favicon endpoint

@@ -1,0 +1,2726 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <title>
+            Довідник інструментів: усі 38 інструментів — Nutrition MCP
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="Усі 38 інструментів, які сервер Nutrition MCP дає твоєму ШІ — записувати прийоми їжі, сканувати штрихкоди, імпортувати історію з іншого застосунку, відстежувати воду й вагу, встановлювати цілі та переглядати тренди. Повний довідник з описами та прикладами запитів."
+        />
+        <link rel="canonical" href="https://nutrition-mcp.com/uk/tools" />
+        <link
+            rel="alternate"
+            hreflang="en"
+            href="https://nutrition-mcp.com/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="de"
+            href="https://nutrition-mcp.com/de/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="es"
+            href="https://nutrition-mcp.com/es/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="fr"
+            href="https://nutrition-mcp.com/fr/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="nl"
+            href="https://nutrition-mcp.com/nl/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="pl"
+            href="https://nutrition-mcp.com/pl/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="it"
+            href="https://nutrition-mcp.com/it/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="uk"
+            href="https://nutrition-mcp.com/uk/tools"
+        />
+        <link
+            rel="alternate"
+            hreflang="x-default"
+            href="https://nutrition-mcp.com/tools"
+        />
+        <meta property="og:locale" content="uk_UA" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="de_DE" />
+        <meta property="og:locale:alternate" content="es_ES" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="nl_NL" />
+        <meta property="og:locale:alternate" content="pl_PL" />
+        <meta property="og:locale:alternate" content="it_IT" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#fbfbf9" />
+        <meta
+            property="og:title"
+            content="Довідник інструментів: усі 38 інструментів — Nutrition MCP"
+        />
+        <meta
+            property="og:description"
+            content="Усі 38 інструментів, які сервер Nutrition MCP дає твоєму ШІ, включно з імпортером CSV для історії з іншого застосунку — з описами та прикладами запитів."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://nutrition-mcp.com/uk/tools" />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+        <style>
+            /* Tools reference — page-specific layout on top of the shared
+               "Nutrition Facts" tokens in styles.css. Everything here reads
+               from the shared tokens; nothing is hardcoded per theme. */
+
+            /* ---- hero: a section-head ledger row, left-aligned ---- */
+            .tools-hero {
+                padding: clamp(2.5rem, 6vw, 4.5rem) 0 0;
+            }
+            .tools-hero .container {
+                max-width: 1080px;
+            }
+            .tools-hero .section-head {
+                margin-bottom: 0;
+                padding-bottom: clamp(1.5rem, 3vw, 2.25rem);
+            }
+            .tools-hero .lead {
+                margin-bottom: 0;
+            }
+            .tools-hero .count-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-top: 1.25rem;
+                padding: 0.4rem 0.85rem;
+                border-radius: 999px;
+                border: 1px solid var(--line);
+                background: var(--surface);
+                color: var(--ink-2);
+                font-family: var(--font-mono);
+                font-size: 0.78rem;
+                letter-spacing: 0.02em;
+                justify-self: start;
+            }
+            .tools-hero .count-pill i {
+                color: var(--accent);
+                font-size: 0.85em;
+            }
+            .tools-hero .count-pill b {
+                color: var(--ink);
+                font-weight: 500;
+            }
+            @media (min-width: 900px) {
+                .tools-hero .count-pill {
+                    grid-column: 2;
+                }
+            }
+
+            .tools-main {
+                padding: 1.5rem 0 clamp(4rem, 8vw, 6.5rem);
+            }
+            .tools-main .container {
+                max-width: 1080px;
+            }
+
+            /* ---- tool groups: each head is a ledger entry ---- */
+            .tool-group {
+                margin-top: clamp(3rem, 6vw, 4.5rem);
+            }
+            .tool-group:first-child {
+                margin-top: 1.5rem;
+            }
+            .tool-group-head {
+                display: flex;
+                align-items: flex-start;
+                gap: 1rem;
+                padding-top: 1.1rem;
+                border-top: 3px solid var(--rule);
+                margin-bottom: 1.5rem;
+            }
+            .tool-group-icon {
+                flex: none;
+                width: 40px;
+                height: 40px;
+                display: grid;
+                place-items: center;
+                border-radius: 12px;
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+                font-size: 0.95rem;
+                margin-top: 0.15rem;
+            }
+            .tool-group-head h2 {
+                font-family: var(--font-display);
+                font-weight: 700;
+                font-variation-settings: "opsz" 96;
+                letter-spacing: -0.025em;
+                line-height: 1.05;
+                font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+                margin: 0;
+                color: var(--ink);
+                text-wrap: balance;
+            }
+            .tool-group-head p {
+                margin: 0.35rem 0 0;
+                color: var(--ink-2);
+                font-size: 0.95rem;
+                max-width: 60ch;
+                text-wrap: pretty;
+            }
+
+            /* ---- cards: cells of one ruled grid ---- */
+            .tool-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 1px;
+                background: var(--line);
+                border: 1px solid var(--line);
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+            }
+            @media (min-width: 900px) {
+                .tool-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+            .tool-card {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                background: var(--surface);
+                padding: 1.25rem 1.35rem 1.2rem;
+                scroll-margin-top: calc(var(--head-h) + 76px);
+                transition: background 0.2s ease;
+            }
+            .tool-card:hover {
+                background: var(--surface-2);
+            }
+            .tool-card:target {
+                background: var(--accent-soft);
+            }
+            .tool-head {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-bottom: 0.7rem;
+            }
+            .tool-name {
+                font-family: var(--font-mono);
+                font-size: 0.95rem;
+                font-weight: 500;
+                letter-spacing: -0.01em;
+                color: var(--ink);
+                background: transparent;
+                border: 0;
+                padding: 0;
+                border-radius: 0;
+                margin-right: 0.25rem;
+                overflow-wrap: anywhere;
+            }
+            /* styles.css owns a floating, animated .chip for the landing hero;
+               the card badges reset that here. */
+            .tool-head .chip {
+                position: static;
+                opacity: 1;
+                animation: none;
+                box-shadow: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                font-family: var(--font-mono);
+                font-size: 0.66rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                line-height: 1;
+                padding: 0.3rem 0.55rem;
+                border-radius: 999px;
+                border: 1px solid transparent;
+                white-space: nowrap;
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+            }
+            /* One accent family, graded by weight: filled for writes, outlined
+               for reads, dashed for the "has a widget" hint. */
+            .tool-head .chip i {
+                width: auto;
+                height: auto;
+                border-radius: 0;
+                background: transparent;
+                align-self: center;
+            }
+            .tool-head .chip-log,
+            .tool-head .chip-edit,
+            .tool-head .chip-setting,
+            .tool-head .chip-lookup {
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+            }
+            .tool-head .chip-view {
+                background: transparent;
+                color: var(--ink-2);
+                border-color: var(--line);
+            }
+            .tool-head .chip-remove {
+                background: transparent;
+                color: var(--ink);
+                border-color: var(--ink);
+            }
+            .tool-head .chip-widget {
+                background: transparent;
+                color: var(--ink-2);
+                border: 1px dashed var(--line);
+            }
+            .tool-desc {
+                margin: 0;
+                color: var(--ink-2);
+                font-size: 0.95rem;
+                line-height: 1.55;
+                text-wrap: pretty;
+            }
+
+            /* ---- parameters: hairline rows, name left / description right ---- */
+            .tool-params {
+                margin-top: 1rem;
+            }
+            .tool-params-label,
+            .tool-ex-label {
+                display: block;
+                font-family: var(--font-mono);
+                font-size: 0.68rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--ink-3);
+                padding-bottom: 0.4rem;
+                border-bottom: 1px solid var(--rule);
+                margin-bottom: 0;
+            }
+            .tool-params ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+            .tool-params li {
+                position: relative;
+                padding: 0.5rem 0 0.5rem 10rem;
+                border-bottom: 1px solid var(--line-2);
+                font-size: 0.86rem;
+                color: var(--ink-2);
+                line-height: 1.5;
+                min-height: 2.4rem;
+            }
+            .tool-params li > code:first-child {
+                position: absolute;
+                left: 0;
+                top: 0.5rem;
+                width: 9.5rem;
+                font-family: var(--font-mono);
+                font-size: 0.8rem;
+                color: var(--ink);
+                background: transparent;
+                border: 0;
+                padding: 0;
+                border-radius: 0;
+                overflow-wrap: anywhere;
+                line-height: 1.5;
+            }
+            .tool-params code {
+                font-family: var(--font-mono);
+                font-size: 0.8rem;
+                color: var(--ink);
+            }
+            .param-req,
+            .param-opt {
+                display: inline-block;
+                font-family: var(--font-mono);
+                font-size: 0.6rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                line-height: 1;
+                padding: 0.2rem 0.4rem;
+                border-radius: 999px;
+                margin: 0 0.15rem 0 0;
+                vertical-align: 0.1em;
+                border: 1px solid transparent;
+            }
+            .param-req {
+                background: var(--accent-soft);
+                color: var(--accent-hover);
+            }
+            .param-opt {
+                background: transparent;
+                color: var(--ink-3);
+                border-color: var(--line);
+            }
+            @media (max-width: 640px) {
+                .tool-params li {
+                    padding-left: 0;
+                }
+                .tool-params li > code:first-child {
+                    position: static;
+                    display: block;
+                    width: auto;
+                    margin-bottom: 0.2rem;
+                }
+            }
+
+            /* ---- example phrase ---- */
+            .tool-ex {
+                margin-top: auto;
+                padding-top: 1rem;
+            }
+            .tool-ex > p:not(.tool-ex-photo) {
+                margin: 0;
+                position: relative;
+                padding: 0.6rem 0 0 1.35rem;
+                color: var(--ink);
+                font-family: var(--font-display);
+                font-variation-settings: "opsz" 24;
+                font-weight: 500;
+                font-size: 1rem;
+                line-height: 1.45;
+                text-wrap: pretty;
+            }
+            .tool-ex > p:not(.tool-ex-photo)::before {
+                content: "\201C";
+                position: absolute;
+                left: 0;
+                top: 0.45rem;
+                font-family: var(--font-display);
+                font-size: 1.5rem;
+                line-height: 1;
+                color: var(--accent);
+            }
+            /* Alternate input hint: this tool also accepts a photo, not just a
+               typed phrase. */
+            .tool-ex-photo {
+                margin: 0.5rem 0 0 1.35rem;
+                display: flex;
+                align-items: baseline;
+                gap: 0.45rem;
+                font-size: 0.86rem;
+                line-height: 1.45;
+                color: var(--ink-2);
+            }
+            .tool-ex-photo i {
+                color: var(--accent);
+                font-size: 0.9em;
+                position: relative;
+                top: 1px;
+            }
+
+            /* ---- sticky category jump-bar with scrollspy ----
+               Sits directly under the site header (top: var(--head-h), which
+               shrinks to 56px once scrolled) and shares its frosted ground;
+               the active pill tracks the section in view. */
+            html {
+                scroll-behavior: smooth;
+            }
+            .tool-group {
+                scroll-margin-top: calc(var(--head-h) + 70px);
+            }
+            .cat-nav {
+                position: sticky;
+                top: var(--head-h);
+                z-index: 30;
+                background: color-mix(in srgb, var(--bg) 84%, transparent);
+                -webkit-backdrop-filter: saturate(160%) blur(14px);
+                backdrop-filter: saturate(160%) blur(14px);
+                border-top: 1px solid var(--line);
+                border-bottom: 1px solid var(--line);
+                transition: top 0.3s var(--ease-out);
+            }
+            .cat-nav .container {
+                max-width: 1080px;
+            }
+            .cat-nav-scroll {
+                display: flex;
+                gap: 0.5rem;
+                overflow-x: auto;
+                padding: 0.6rem 2px;
+                scrollbar-width: none;
+            }
+            .cat-nav-scroll::-webkit-scrollbar {
+                display: none;
+            }
+            .cat-pill {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.45rem;
+                min-height: 36px;
+                padding: 0.4rem 1rem;
+                border-radius: 999px;
+                border: 1px solid var(--line);
+                background: transparent;
+                color: var(--ink);
+                font-size: 0.9rem;
+                font-weight: 600;
+                letter-spacing: -0.01em;
+                text-decoration: none;
+                white-space: nowrap;
+                transition:
+                    background 0.2s ease,
+                    border-color 0.2s ease,
+                    color 0.2s ease;
+            }
+            .cat-pill i {
+                font-size: 0.85em;
+                color: var(--ink-2);
+            }
+            .cat-pill:hover {
+                border-color: var(--ink);
+            }
+            .cat-pill:focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: 2px;
+            }
+            .cat-pill.active {
+                background: var(--ink);
+                border-color: var(--ink);
+                color: var(--bg);
+            }
+            .cat-pill.active i {
+                color: inherit;
+            }
+        </style>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-tools.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+
+        <a class="skip" href="#main">Перейти до вмісту</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a
+                    class="brand"
+                    href="/uk"
+                    aria-label="Головна сторінка Nutrition MCP"
+                >
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/uk#how">Як це працює</a>
+                    <a href="/uk#install">Підключення</a>
+                    <a href="/uk/tools" aria-current="page">Інструменти</a>
+                    <a href="/uk#try">Приклади</a>
+                    <a href="/uk#stats">Статистика наживо</a>
+                    <a href="/uk#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Репозиторій на GitHub"
+                        title="GitHub"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="Змінити мову"
+                            title="Мова"
+                        >
+                            <span class="lang-code">UK</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+                            <a
+                                href="https://nutrition-mcp.com/tools"
+                                lang="en"
+                                hreflang="en"
+                                >English</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/de/tools"
+                                lang="de"
+                                hreflang="de"
+                                >Deutsch</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/es/tools"
+                                lang="es"
+                                hreflang="es"
+                                >Español</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/fr/tools"
+                                lang="fr"
+                                hreflang="fr"
+                                >Français</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/nl/tools"
+                                lang="nl"
+                                hreflang="nl"
+                                >Nederlands</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/pl/tools"
+                                lang="pl"
+                                hreflang="pl"
+                                >Polski</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/it/tools"
+                                lang="it"
+                                hreflang="it"
+                                >Italiano</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/uk/tools"
+                                lang="uk"
+                                hreflang="uk"
+                                aria-current="page"
+                                >Українська</a
+                            >
+                        </div>
+                    </details>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="Увімкнути темну тему"
+                        title="Увімкнути темну тему"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/uk#install"
+                        >Підключити</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Відкрити меню"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/uk#how">Як це працює <small>3 кроки</small></a>
+                <a href="/uk#install"
+                    >Підключення <small>менш ніж за хвилину</small></a
+                >
+                <a href="/uk/tools" aria-current="page"
+                    >Інструменти <small>38 інструментів</small></a
+                >
+                <a href="/uk#try">Приклади <small>демо наживо</small></a>
+                <a href="/uk#stats"
+                    >Статистика наживо <small>з моменту відкриття</small></a
+                >
+                <a href="/uk#faq">FAQ</a>
+                <a href="/uk/alternatives"
+                    >Альтернативи <small>перехід з іншого застосунку</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/uk#support">Підтримка</a>
+                <a href="/uk#contact">Контакти</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/uk/privacy">Приватність</a>
+                <a href="/uk/terms">Умови</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/uk#install"
+                    >Підключи за хвилину</a
+                >
+            </div>
+        </div>
+
+        <main id="main">
+            <section class="tools-hero">
+                <div class="container">
+                    <div class="section-head">
+                        <p class="eyebrow">Довідник</p>
+                        <h1 class="section-title">Усе, що вміє твій ШІ</h1>
+                        <p class="lead section-sub">
+                            Ти ніколи не викликаєш ці інструменти напряму —
+                            просто говориш, а асистент сам обирає потрібний. Ось
+                            повний набір, який надає сервер Nutrition MCP: що
+                            робить кожен інструмент і фраза, яка його запускає.
+                        </p>
+                        <span class="count-pill"
+                            ><i
+                                class="fa-solid fa-wrench"
+                                aria-hidden="true"
+                            ></i
+                            ><b>38 інструментів</b> у 7 категоріях</span
+                        >
+                    </div>
+
+                    <div class="translation-notice">
+                        <p>
+                            Цю сторінку перекладено за допомогою ШІ з
+                            англійської, і її не перевіряла людина.
+                            <a href="/tools">Читати оригінал англійською</a>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <nav class="cat-nav" aria-label="Jump to a tool category">
+                <div class="container">
+                    <div class="cat-nav-scroll" role="list">
+                        <a class="cat-pill" href="#logging-food-meals"
+                            ><i
+                                class="fa-solid fa-utensils"
+                                aria-hidden="true"
+                            ></i>
+                            Запис</a
+                        >
+                        <a class="cat-pill" href="#reviewing-your-meals"
+                            ><i
+                                class="fa-solid fa-clock-rotate-left"
+                                aria-hidden="true"
+                            ></i>
+                            Перегляд</a
+                        >
+                        <a class="cat-pill" href="#water"
+                            ><i
+                                class="fa-solid fa-droplet"
+                                aria-hidden="true"
+                            ></i>
+                            Вода</a
+                        >
+                        <a class="cat-pill" href="#weight"
+                            ><i
+                                class="fa-solid fa-weight-scale"
+                                aria-hidden="true"
+                            ></i>
+                            Вага</a
+                        >
+                        <a class="cat-pill" href="#goals-progress"
+                            ><i
+                                class="fa-solid fa-bullseye"
+                                aria-hidden="true"
+                            ></i>
+                            Цілі</a
+                        >
+                        <a class="cat-pill" href="#insights-trends"
+                            ><i
+                                class="fa-solid fa-chart-line"
+                                aria-hidden="true"
+                            ></i>
+                            Аналітика</a
+                        >
+                        <a class="cat-pill" href="#settings-account"
+                            ><i class="fa-solid fa-gear" aria-hidden="true"></i>
+                            Налаштування</a
+                        >
+                    </div>
+                </div>
+            </nav>
+
+            <div class="tools-main">
+                <div class="container">
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="logging-food-meals"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-utensils"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Запис їжі та прийомів їжі</h2>
+                                <p>
+                                    Основний цикл — фіксуй усе, що з'їв, як би
+                                    ти це не описав.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="log_meal">
+                                <div class="tool-head">
+                                    <code class="tool-name">log_meal</code>
+                                    <span class="chip chip-log">Запис</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Інтерактивний віджет</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Запиши, що ти з'їв, разом із калоріями та
+                                    макронутрієнтами — а також клітковиною,
+                                    загальним цукром, алкоголем і кофеїном, коли
+                                    ці цифри відомі. Опиши це своїми словами —
+                                    ШІ сам оцінить показники, уточнить розмір
+                                    порції, якщо це неочевидно, і може спершу
+                                    підтягнути дані з етикетки за штрихкодом або
+                                    з інтернету.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>description</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Що було з'їдено
+                                        </li>
+                                        <li>
+                                            <code>meal_type</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — сніданок, обід, вечеря або перекус
+                                        </li>
+                                        <li>
+                                            <code>calories</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Загальна кількість калорій
+                                        </li>
+                                        <li>
+                                            <code>protein_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Білок у грамах
+                                        </li>
+                                        <li>
+                                            <code>carbs_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Вуглеводи у грамах
+                                        </li>
+                                        <li>
+                                            <code>fat_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Жири у грамах
+                                        </li>
+                                        <li>
+                                            <code>fiber_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Харчові волокна (клітковина) у
+                                            грамах. ШІ має заповнювати це поле
+                                            для кожного прийому їжі, оцінюючи за
+                                            складом, якщо даних з етикетки
+                                            немає, — бо порожнє значення це не
+                                            нуль: воно виключає весь день із
+                                            твого середнього показника
+                                            клітковини
+                                        </li>
+                                        <li>
+                                            <code>sugar_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — <b>Загальна</b> кількість цукру в
+                                            грамах — те число, яке на етикетці
+                                            стоїть під "Цукор", включно з
+                                            природним цукром у фруктах і молоці,
+                                            а не лише доданим. Заповнюється для
+                                            кожного прийому їжі за тим самим
+                                            принципом, що й клітковина
+                                        </li>
+                                        <li>
+                                            <code>alcohol_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Грами <b>чистого етанолу</b>, а не
+                                            об'єм напою чи його градус — ШІ
+                                            обчислює це з обсягу порції та
+                                            міцності (330 мл пива міцністю 5% —
+                                            це 13 г)
+                                        </li>
+                                        <li>
+                                            <code>caffeine_mg</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Кофеїн у <b>міліграмах</b>, а не
+                                            грамах — це єдине поле тут не в
+                                            грамах, бо саме так його вказують
+                                            усі етикетки та рекомендації
+                                            (заварена кава — приблизно 95 мг,
+                                            еспресо — 63 мг, банка коли — 34
+                                            мг). Кофеїн не додає калорій. На
+                                            відміну від клітковини й цукру, це
+                                            поле надсилається лише для того, що
+                                            справді містить кофеїн — записаний 0
+                                            додав би рядок кофеїну на твою
+                                            панель для нутрієнта, якого ти
+                                            взагалі не вживаєш
+                                        </li>
+                                        <li>
+                                            <code>logged_at</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Коли ти це з'їв, якщо не зараз —
+                                            дозволяє записати заднім числом
+                                        </li>
+                                        <li>
+                                            <code>notes</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Додаткові нотатки
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Запиши боул з куркою буріто з додатковим
+                                        гуакамоле на обід
+                                    </p>
+                                    <p class="tool-ex-photo">
+                                        <i
+                                            class="fa-solid fa-camera"
+                                            aria-hidden="true"
+                                        ></i>
+                                        …або просто сфотографуй свою тарілку —
+                                        ШІ назве кожну страву, оцінить порції у
+                                        звичних мірках (склянка, жменя),
+                                        перевірить, як ти записував це раніше, і
+                                        уточнить у тебе перед записом.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="lookup_barcode">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >lookup_barcode</code
+                                    >
+                                    <span class="chip chip-lookup">Пошук</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Отримай харчову інформацію з упаковки
+                                    продукту з Open Food Facts за штрихкодом
+                                    (EAN/UPC, 8–14 цифр). Можеш ввести цифри
+                                    вручну або зчитати їх із фото упаковки;
+                                    результат потім можна записати,
+                                    масштабувавши під з'їдену кількість.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Заскануй цей штрихкод: 3017620422003</p>
+                                    <p class="tool-ex-photo">
+                                        <i
+                                            class="fa-solid fa-camera"
+                                            aria-hidden="true"
+                                        ></i>
+                                        …або надішли фото упаковки — ШІ зчитає
+                                        цифри штрихкоду з нього.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="start_meal_import">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >start_meal_import</code
+                                    >
+                                    <span class="chip chip-log">Імпорт</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Інтерактивний віджет</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Відкрий імпортер прямо в чаті, щоб перенести
+                                    історію з іншого застосунку — обери файл,
+                                    який ти експортував з MyFitnessPal,
+                                    Cronometer, Lose It! або MacroFactor, зістав
+                                    його колонки з калоріями, макронутрієнтами,
+                                    клітковиною, цукром і кофеїном — а також
+                                    алкоголем, якщо ти ввімкнув його відстеження
+                                    — і перевір, що буде додано, перед
+                                    підтвердженням. Файл читається у твоєму
+                                    браузері, нічого не зберігається, доки ти не
+                                    підтвердиш попередній перегляд, а повторний
+                                    імпорт того самого файлу не створить
+                                    дублікатів.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Імпортуй мою історію прийомів їжі з
+                                        MyFitnessPal
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="bulk_import_meals">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >bulk_import_meals</code
+                                    >
+                                    <span class="chip chip-log">Імпорт</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Додай одразу пакет минулих прийомів їжі — до
+                                    50 за раз — замість того, щоб записувати їх
+                                    по одному. Імпортер вище записує саме через
+                                    цей інструмент, і ШІ може використовувати
+                                    його напряму для даних, які ти вставив у
+                                    чат. Кожен рядок спершу перевіряється, і
+                                    все, що не підходить, повідомляється рядок
+                                    за рядком, тож повторне надсилання тих самих
+                                    рядків безпечне й не задублює вже записане.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>meals</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Рядки для імпорту, у порядку
+                                            вихідного файлу (1–50 за виклик).
+                                            Кожен рядок може містити час, тип
+                                            прийому їжі, опис, нотатки та ті
+                                            самі числа, що й записаний прийом
+                                            їжі: <code>calories</code>,
+                                            <code>protein_g</code>,
+                                            <code>carbs_g</code>,
+                                            <code>fat_g</code>,
+                                            <code>fiber_g</code>,
+                                            <code>sugar_g</code> (загальний
+                                            цукор),
+                                            <code>alcohol_g</code> (грами
+                                            чистого етанолу) і
+                                            <code>caffeine_mg</code> (міліграми,
+                                            не грами)
+                                        </li>
+                                        <li>
+                                            <code>expected_row_count</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Скільки рядків містить цей виклик,
+                                            пораховано з вихідного файлу, щоб
+                                            виявити втрачений рядок
+                                        </li>
+                                        <li>
+                                            <code>expected_total_kcal</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Загальна кількість калорій з
+                                            вихідного файлу, звірена з тим, що
+                                            надійшло
+                                        </li>
+                                        <li>
+                                            <code>dry_run</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Показати, що станеться, нічого не
+                                            записуючи
+                                        </li>
+                                        <li>
+                                            <code>on_error</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Імпортувати коректні рядки й
+                                            повідомити про решту, або не
+                                            записувати нічого, якщо хоч один
+                                            рядок не пройде
+                                        </li>
+                                        <li>
+                                            <code>source_app</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — З якого застосунку цей файл
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Ось прийоми їжі за минулий тиждень,
+                                        вставлені зі старого застосунку — додай
+                                        їх усі
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="update_meal">
+                                <div class="tool-head">
+                                    <code class="tool-name">update_meal</code>
+                                    <span class="chip chip-edit"
+                                        >Редагування</span
+                                    >
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Інтерактивний віджет</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Зміни деталі вже записаного прийому їжі —
+                                    опис, будь-який макронутрієнт, клітковину,
+                                    цукор, алкоголь чи кофеїн, час або нотатки.
+                                    Так само заповнюються прогалини: якщо прийом
+                                    їжі був записаний без клітковини чи цукру,
+                                    сервер про це повідомляє, і ШІ доповнює дані
+                                    саме тут.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — UUID прийому їжі для оновлення
+                                        </li>
+                                        <li>
+                                            <code>description</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>calories</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>protein_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>carbs_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>fat_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>fiber_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>sugar_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Загальний цукор, а не доданий
+                                        </li>
+                                        <li>
+                                            <code>alcohol_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Грами чистого етанолу, а не об'єм
+                                            напою
+                                        </li>
+                                        <li>
+                                            <code>caffeine_mg</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Міліграми, а не грами
+                                        </li>
+                                        <li>
+                                            <code>logged_at</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>notes</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Взагалі-то той обід був на 600 калорій,
+                                        а не 500 — виправ
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_meal">
+                                <div class="tool-head">
+                                    <code class="tool-name">delete_meal</code>
+                                    <span class="chip chip-remove"
+                                        >Видалення</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Видали запис прийому їжі, який ти додав
+                                    помилково.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — UUID прийому їжі для видалення
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Видали перекус, який я записав сьогодні
+                                        вдень
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="reviewing-your-meals"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-clock-rotate-left"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Перегляд прийомів їжі</h2>
+                                <p>
+                                    Переглядай усе, що вже записав, — за один
+                                    день чи за цілий період.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="search_meals">
+                                <div class="tool-head">
+                                    <code class="tool-name">search_meals</code>
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Шукай минулі прийоми їжі за ключовим словом
+                                    і бачи їх згруповані за повторюваними
+                                    варіантами — як часто кожен записувався,
+                                    коли востаннє й типова кількість калорій.
+                                    Саме так ШІ звіряє фото твоєї тарілки з тим,
+                                    як ти вже записував цю страву раніше, і саме
+                                    так працює "запиши мій звичний сніданок".
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>queries</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Варіанти ключових слів для їжі,
+                                            будь-якою мовою, якою ти вів записи
+                                        </li>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Наскільки далеко шукати назад (за
+                                            замовчуванням рік)
+                                        </li>
+                                        <li>
+                                            <code>limit</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Максимальна кількість записів для
+                                            аналізу
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Запиши мій звичний сніданок</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_meals_today">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meals_today</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь усі прийоми їжі, які ти записав
+                                    сьогодні.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Що я їв сьогодні?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_meals_by_date">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meals_by_date</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь усі прийоми їжі, записані за
+                                    конкретний день.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата у форматі YYYY-MM-DD
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Покажи все, що я їв 4 липня</p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_meals_by_date_range"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meals_by_date_range</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Отримай усі прийоми їжі між двома датами за
+                                    один запит — зручно для перегляду тижня чи
+                                    місяця.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>start_date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата початку (YYYY-MM-DD)
+                                        </li>
+                                        <li>
+                                            <code>end_date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата закінчення (YYYY-MM-DD)
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Покажи список прийомів їжі з понеділка
+                                        по п'ятницю
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="export_all_data">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >export_all_data</code
+                                    >
+                                    <span class="chip chip-view">Експорт</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Експортуй усе, що ти відстежував, в один
+                                    ZIP-архів — meals.csv, water.csv,
+                                    weight.csv, goals.csv, profile.csv і
+                                    README.txt з поясненням колонок та одиниць
+                                    виміру — за приватним посиланням, дійсним 60
+                                    хвилин. Наразі назад імпортувати можна лише
+                                    прийоми їжі.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Експортуй усі мої дані — прийоми їжі,
+                                        воду, вагу та цілі
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="tool-group" data-reveal id="water">
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-droplet"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Вода</h2>
+                                <p>Відстежуй споживання води поруч із їжею.</p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="log_water">
+                                <div class="tool-head">
+                                    <code class="tool-name">log_water</code>
+                                    <span class="chip chip-log">Запис</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Запиши споживання води. Вкажи в будь-яких
+                                    одиницях — склянках, унціях, літрах — і це
+                                    автоматично конвертується в мілілітри.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>amount_ml</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Кількість у мілілітрах (ціле
+                                            число, &gt; 0).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Я щойно випив пляшку води на 500 мл</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_water_today">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_water_today</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь загальну кількість води за
+                                    сьогодні та кожен запис окремо.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Скільки води я випив сьогодні?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_water_by_date">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_water_by_date</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь загальну кількість води та записи
+                                    за конкретний день.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата у форматі YYYY-MM-DD
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Скільки я випив учора?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_water">
+                                <div class="tool-head">
+                                    <code class="tool-name">delete_water</code>
+                                    <span class="chip chip-remove"
+                                        >Видалення</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Видали запис про воду, доданий помилково.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — UUID запису про воду для видалення
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Видали останній запис про воду</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="tool-group" data-reveal id="weight">
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-weight-scale"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Вага</h2>
+                                <p>
+                                    Записуй зважування, переглядай їх і стеж за
+                                    трендом до цільової ваги.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="log_weight">
+                                <div class="tool-head">
+                                    <code class="tool-name">log_weight</code>
+                                    <span class="chip chip-log">Запис</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Запиши вимірювання ваги тіла в кг або
+                                    фунтах. Кілька зважувань на день — це
+                                    нормально, а сервер зберігає значення в
+                                    канонічному вигляді, тож твоя обрана одиниця
+                                    виміру ніколи не спотворює число.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>weight</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Значення ваги тіла, в `unit` (&gt;
+                                            0).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Запиши мою вагу — 74.2 кг цього ранку</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="update_weight">
+                                <div class="tool-head">
+                                    <code class="tool-name">update_weight</code>
+                                    <span class="chip chip-edit"
+                                        >Редагування</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Виправ наявне зважування — значення, час
+                                    запису або нотатки.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — UUID запису ваги для оновлення
+                                        </li>
+                                        <li>
+                                            <code>weight</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Нове значення ваги, в `unit`.
+                                        </li>
+                                        <li>
+                                            <code>logged_at</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Часова мітка у форматі ISO 8601
+                                        </li>
+                                        <li>
+                                            <code>notes</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Виправ ранкове зважування на 73.8 кг</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_weight">
+                                <div class="tool-head">
+                                    <code class="tool-name">delete_weight</code>
+                                    <span class="chip chip-remove"
+                                        >Видалення</span
+                                    >
+                                </div>
+                                <p class="tool-desc">Видали запис ваги.</p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>id</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — UUID запису ваги для видалення
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Видали сьогоднішній запис ваги</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_today">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_today</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь сьогоднішні зважування в обраній
+                                    тобою одиниці виміру.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Скільки я важив сьогодні?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_by_date">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_by_date</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь зважування за конкретний день.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата у форматі YYYY-MM-DD
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Яка була моя вага 1-го числа?</p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_weight_by_date_range"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_by_date_range</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Отримай усі зважування між двома датами,
+                                    згруповані по днях із середнім значенням за
+                                    кожен день.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>start_date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата початку (YYYY-MM-DD)
+                                        </li>
+                                        <li>
+                                            <code>end_date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата закінчення (YYYY-MM-DD)
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Покажи мої зважування за останні два
+                                        тижні
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_trends">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_trends</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Інтерактивний віджет</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь тренд ваги за період: останнє
+                                    значення, загальну зміну, ковзні середні за
+                                    7/14/30 днів, мінімум/максимум і прогрес до
+                                    цільової ваги.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Розмір вікна в днях (за
+                                            замовчуванням 30, максимум 365).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Як змінюється моя вага цього місяця?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="set_weight_unit">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_weight_unit</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Налаштування</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Обери, чи показувати й вводити вагу в кг чи
+                                    фунтах. Збережені значення не змінюються —
+                                    лише відображення та розпізнавання за
+                                    замовчуванням.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Відтепер показуй мою вагу у фунтах</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_weight_unit">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_weight_unit</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Перевір, яку одиницю виміру ваги ти зараз
+                                    використовуєш.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Яку одиницю виміру ваги я використовую?
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="tool-group" data-reveal id="goals-progress">
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-bullseye"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Цілі та прогрес</h2>
+                                <p>
+                                    Встановлюй цілі й дивись, як кожен день їм
+                                    відповідає.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="set_nutrition_goals">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_nutrition_goals</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Налаштування</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Встанови денні цілі по калоріях,
+                                    макронутрієнтах, клітковині, цукрі,
+                                    алкоголі, кофеїні та воді, а також
+                                    опціональну цільову вагу тіла. Калорії,
+                                    білок, вуглеводи, жири, клітковина та вода —
+                                    це цілі, яких треба досягти; цукор, алкоголь
+                                    і кофеїн — це ліміти, яких треба не
+                                    перевищувати, і формулювання прогресу
+                                    відповідає цьому. Оновлюються лише названі
+                                    поля; решта залишається без змін.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>daily_calories</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денна ціль по калоріях (ккал).
+                                            Null, щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_protein_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денна ціль по білку (грами). Null,
+                                            щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_carbs_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денна ціль по вуглеводах (грами).
+                                            Null, щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_fat_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денна ціль по жирах (грами). Null,
+                                            щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_fiber_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денна ціль по клітковині (грами),
+                                            мінімум, якого треба досягти. Null,
+                                            щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_sugar_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денний ліміт
+                                            <b>загального</b> цукру (грами),
+                                            максимум, який не варто
+                                            перевищувати. Загальний цукор
+                                            включає природний цукор у фруктах і
+                                            молоці, тому офіційні рекомендації
+                                            щодо доданого цукру дають значно
+                                            нижче число. Null, щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_alcohol_g</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денний ліміт алкоголю в грамах
+                                            <b>чистого етанолу</b>, максимум,
+                                            який не варто перевищувати. Одна
+                                            американська стандартна порція — 14
+                                            г, одна британська одиниця — 7.9 г.
+                                            Null, щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_caffeine_mg</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Денний ліміт кофеїну в
+                                            <b>міліграмах</b>, максимум, який не
+                                            варто перевищувати. Гранична межа
+                                            EFSA та FDA для здорових дорослих —
+                                            400 мг на день (приблизно чотири
+                                            чашки завареної кави), а під час
+                                            вагітності — 200 мг. 0 — це реальний
+                                            ліміт, що означає повну відмову.
+                                            Null, щоб очистити.
+                                        </li>
+                                        <li>
+                                            <code>daily_water_ml</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                        <li>
+                                            <code>target_weight</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Встанови мої цілі: 2200 калорій, 160 г
+                                        білка та цільову вагу 75 кг
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_nutrition_goals">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_nutrition_goals</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь свої поточні денні цілі по
+                                    калоріях і макронутрієнтах, ціль по
+                                    клітковині, ліміти цукру чи кофеїну, а якщо
+                                    відстежуєш алкоголь — і ліміт алкоголю.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Які в мене денні цілі?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_goal_progress">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_goal_progress</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Інтерактивний віджет</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь, як сьогоднішнє споживання
+                                    співвідноситься з твоїми цілями — кільця
+                                    споживання проти цілей плюс прогрес по вазі
+                                    тіла. Торкнись кільця макронутрієнта, щоб
+                                    побачити, які прийоми їжі до нього додали.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Як у мене справи з цілями сьогодні?</p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_nutrition_summary"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_nutrition_summary</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Інтерактивний віджет</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Отримай денні підсумки харчування за період
+                                    у вигляді інтерактивної панелі: плитки
+                                    макронутрієнтів проти цілей і розбивка по
+                                    днях.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>start_date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата початку (YYYY-MM-DD)
+                                        </li>
+                                        <li>
+                                            <code>end_date</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Дата закінчення (YYYY-MM-DD)
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Дай зведення за минулий тиждень</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="insights-trends"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-chart-line"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Аналітика та тренди</h2>
+                                <p>
+                                    Попередньо агрегований аналіз, щоб ШІ міг
+                                    помічати закономірності без обчислень.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="get_trends">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_trends</code>
+                                    <span class="chip chip-view">Перегляд</span>
+                                    <span class="chip chip-widget"
+                                        ><i
+                                            class="fa-solid fa-table-cells-large"
+                                            aria-hidden="true"
+                                        ></i>
+                                        Інтерактивний віджет</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Ковзні середні за 7/14/30 днів, мінливість,
+                                    серії безперервних записів, розбивка по днях
+                                    тижня, а також твої найкращі й найгірші дні
+                                    по калоріях і кожному макронутрієнту — усе
+                                    попередньо обчислено, щоб ШІ міг просто про
+                                    це розповісти.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Розмір вікна в днях (за
+                                            замовчуванням 30, максимум 365).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Які в мене тренди по калоріях і
+                                        макронутрієнтах за останні 30 днів?
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_meal_patterns">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_meal_patterns</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Виявляй поведінкові патерни: як часто ти їси
+                                    кожен тип прийому їжі, ефект сніданку,
+                                    калорійні обіди, пізні вечері, будні проти
+                                    вихідних та дні-винятки.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>days</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Розмір вікна в днях (за
+                                            замовчуванням 30, мінімум 7,
+                                            максимум 365).
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Чи є в мене якісь патерни харчування —
+                                        наприклад, пізні вечері чи пропущені
+                                        сніданки?
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section
+                        class="tool-group"
+                        data-reveal
+                        id="settings-account"
+                    >
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i
+                                    class="fa-solid fa-gear"
+                                    aria-hidden="true"
+                                ></i
+                            ></span>
+                            <div>
+                                <h2>Налаштування та акаунт</h2>
+                                <p>
+                                    Налаштування, які підтримують точність усіх
+                                    даних, і повний контроль над твоїми даними.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="tool-grid">
+                            <article class="tool-card" id="set_timezone">
+                                <div class="tool-head">
+                                    <code class="tool-name">set_timezone</code>
+                                    <span class="chip chip-setting"
+                                        >Налаштування</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Встанови свій IANA часовий пояс, щоб день
+                                    змінювався опівночі за твоїм місцевим часом
+                                    — прийом їжі, записаний об 11 вечора,
+                                    зарахується на цей день, а не на наступний
+                                    за UTC.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Я в Берліні — встанови мій часовий пояс
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_timezone">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_timezone</code>
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Перевір, який часовий пояс у тебе
+                                    налаштований, разом із поточною місцевою
+                                    датою та часом (за замовчуванням UTC, якщо
+                                    не встановлено).
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Який у мене встановлений часовий пояс?
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_current_time">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_current_time</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Перевір поточну дату й час у твоєму часовому
+                                    поясі, а також момент за UTC. Деякі
+                                    застосунки не повідомляють асистенту, котра
+                                    зараз година, тож саме так він розуміє, що
+                                    означає "сьогодні вранці" чи "сьогодні", не
+                                    питаючи в тебе (за замовчуванням UTC, якщо
+                                    часовий пояс не встановлено).
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Котра зараз у мене година?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="set_widget_display">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_widget_display</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Налаштування</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Увімкни або вимкни візуальні віджети в чаті
+                                    — панелі, кільця цілей і графіки трендів.
+                                    Коли вимкнено, ті самі інструменти
+                                    відповідають лише текстом і даними.
+                                    Увімкнено за замовчуванням; зміна
+                                    застосовується до нових розмов.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>enabled</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — true, щоб показувати віджети,
+                                            false — для відповідей лише текстом
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Вимкни віджети</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="get_widget_display">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_widget_display</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Перевір, чи увімкнені зараз візуальні
+                                    віджети в чаті.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Чи увімкнені віджети?</p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="set_alcohol_tracking"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >set_alcohol_tracking</code
+                                    >
+                                    <span class="chip chip-setting"
+                                        >Налаштування</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Увімкни або вимкни відстеження алкоголю та
+                                    обери, чи рахувати напої в американських
+                                    стандартних порціях, чи в британських
+                                    одиницях. За замовчуванням вимкнено, тож
+                                    треба увімкнути самому. Повторне вимкнення
+                                    приховує алкоголь із прийомів їжі, цілей і
+                                    прогресу та зупиняє читання колонки алкоголю
+                                    імпортером файлів — нічого з уже записаного
+                                    не видаляється, твій CSV-експорт і надалі
+                                    його включає, а він знову з'явиться, якщо ти
+                                    ввімкнеш опцію назад. Зміна діє з наступного
+                                    повідомлення, нічого перезапускати не треба.
+                                </p>
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>enabled</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — true, щоб показувати алкоголь у
+                                            прийомах їжі, цілях і прогресі,
+                                            false — щоб приховати
+                                        </li>
+                                        <li>
+                                            <code>drink_unit</code>
+                                            <span class="param-opt"
+                                                >необов'язковий</span
+                                            >
+                                            — Яку стандартну порцію показувати
+                                            поруч із грамами:
+                                            <code>us</code> (14 г на порцію) або
+                                            <code>uk</code> (7.9 г на одиницю).
+                                            За замовчуванням <code>us</code>;
+                                            насправді зберігаються грами чистого
+                                            етанолу.
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>
+                                        Почни відстежувати мій алкоголь у
+                                        британських одиницях
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article
+                                class="tool-card"
+                                id="get_alcohol_tracking"
+                            >
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >get_alcohol_tracking</code
+                                    >
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Перевір, чи увімкнено відстеження алкоголю і
+                                    в якій стандартній порції показуються твої
+                                    грами.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Чи відстежую я алкоголь?</p>
+                                </div>
+                            </article>
+
+                            <article class="tool-card" id="delete_account">
+                                <div class="tool-head">
+                                    <code class="tool-name"
+                                        >delete_account</code
+                                    >
+                                    <span class="chip chip-remove"
+                                        >Видалення</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Остаточно видали свій акаунт і всі пов'язані
+                                    дані. Це незворотна дія — ШІ завжди спершу
+                                    уточнює це в тебе.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Видали мій акаунт і всі мої дані</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/uk/tools" aria-current="page">Інструменти</a>
+                    <a href="/uk/alternatives">Альтернативи</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Як це зроблено</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Демо</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">Контакти</a>
+                    <a href="/uk/privacy">Політика приватності</a>
+                    <a href="/uk/terms">Умови використання</a>
+                </nav>
+                <p class="footer-note">
+                    Безкоштовний і з відкритим кодом. Харчові показники —
+                    оцінки, а не медична консультація.
+                </p>
+            </div>
+        </footer>
+
+        <script>
+            // Category jump-bar: highlight the pill for the section in view, and
+            // keep the active pill scrolled into view on narrow screens.
+            (function () {
+                var pills = Array.prototype.slice.call(
+                    document.querySelectorAll(".cat-pill"),
+                );
+                if (!pills.length) return;
+                var scroller = document.querySelector(".cat-nav-scroll");
+                var groups = pills.map(function (p) {
+                    return document.querySelector(p.getAttribute("href"));
+                });
+                var OFFSET = 140; // 64px header + ~58px bar + breathing room
+                var raf = 0;
+                function update() {
+                    raf = 0;
+                    var idx = 0;
+                    for (var i = 0; i < groups.length; i++) {
+                        if (
+                            groups[i] &&
+                            groups[i].getBoundingClientRect().top - OFFSET <= 1
+                        )
+                            idx = i;
+                    }
+                    // Snap to the last category once scrolled to the bottom.
+                    if (
+                        window.innerHeight + window.scrollY >=
+                        document.documentElement.scrollHeight - 4
+                    )
+                        idx = groups.length - 1;
+                    for (var j = 0; j < pills.length; j++)
+                        pills[j].classList.toggle("active", j === idx);
+                    var active = pills[idx];
+                    if (active && scroller) {
+                        var pr = active.getBoundingClientRect();
+                        var sr = scroller.getBoundingClientRect();
+                        scroller.scrollLeft +=
+                            pr.left + pr.width / 2 - (sr.left + sr.width / 2);
+                    }
+                }
+                function onScroll() {
+                    if (!raf) raf = requestAnimationFrame(update);
+                }
+                window.addEventListener("scroll", onScroll, { passive: true });
+                window.addEventListener("resize", onScroll);
+                pills.forEach(function (p) {
+                    p.addEventListener("click", function () {
+                        setTimeout(update, 60);
+                    });
+                });
+                update();
+            })();
+        </script>
+        <script src="/site.js" defer></script>
+    </body>
+</html>

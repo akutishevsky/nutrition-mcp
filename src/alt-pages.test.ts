@@ -1,37 +1,193 @@
 import { test, expect } from "bun:test";
+import { ALT_PAGES, PAGE_ROUTES, SITE_LOCALES, urlFor } from "./routes.js";
 
-// The SEO "alternative to X" routes are wired data-driven in index.ts via the
-// ALT_PAGES map, and each path is also listed in sitemap.xml. A typo in either
-// place ships a route that 500s at request time or a page Google never sees.
-// Parse the map straight from the source (no import — index.ts has top-level
-// side effects) and assert both stay consistent with what's on disk.
+// The SEO "alternative to X" routes, and every locale's version of every
+// page, are wired data-driven via src/routes.ts (imported directly here —
+// it has no Supabase/side-effecting imports, unlike src/index.ts, so this
+// no longer has to regex-scrape route data out of source text the way it
+// used to before that extraction).
 
-const src = await Bun.file("./src/index.ts").text();
-const block = src.match(/const ALT_PAGES[^}]*\}/s)?.[0] ?? "";
-const entries = [...block.matchAll(/"([^"]+)":\s*"([^"]+)"/g)].map((m) => ({
-    route: m[1],
-    file: m[2],
-}));
-
-test("ALT_PAGES is non-empty and parsed", () => {
-    expect(entries.length).toBeGreaterThan(0);
+test("ALT_PAGES is non-empty", () => {
+    expect(Object.keys(ALT_PAGES).length).toBeGreaterThan(0);
 });
 
-test("every ALT_PAGES route maps to a non-empty public file", async () => {
-    for (const { route, file } of entries) {
-        const f = Bun.file(`./public/${file}`);
-        expect(await f.exists(), `${route} -> public/${file} is missing`).toBe(
-            true,
-        );
-        expect(f.size, `public/${file} is empty`).toBeGreaterThan(0);
+test("PAGE_ROUTES includes every ALT_PAGES entry plus the standalone pages", () => {
+    for (const route of Object.keys(ALT_PAGES)) {
+        expect(PAGE_ROUTES).toHaveProperty(route);
+    }
+    for (const suffix of ["", "/tools", "/privacy", "/terms"]) {
+        expect(PAGE_ROUTES).toHaveProperty(suffix);
     }
 });
 
-test("every ALT_PAGES route is listed in sitemap.xml", async () => {
+// Not every locale has every page translated yet (see src/copy/legal.ts's
+// note on Partial<Record<...>> while translation is in progress) — so this
+// walks whatever actually exists on disk rather than asserting full 8x11
+// coverage, and checks that whatever DOES exist is wired consistently.
+// Tightening this to require full coverage is the natural final step once
+// every locale's content lands, matching src/copy/legal.ts's own note.
+async function fileFor(
+    locale: (typeof SITE_LOCALES)[number],
+    file: string,
+): Promise<string> {
+    return locale === "en" ? `./public/${file}` : `./public/${locale}/${file}`;
+}
+
+type Existing = {
+    locale: (typeof SITE_LOCALES)[number];
+    suffix: string;
+    path: string;
+};
+
+async function existingPages(): Promise<Existing[]> {
+    const out: Existing[] = [];
+    for (const [suffix, file] of Object.entries(PAGE_ROUTES)) {
+        for (const locale of SITE_LOCALES) {
+            const path = await fileFor(locale, file);
+            if (await Bun.file(path).exists())
+                out.push({ locale, suffix, path });
+        }
+    }
+    return out;
+}
+
+test("at least the English site exists for every page type", async () => {
+    const existing = await existingPages();
+    const enSuffixes = new Set(
+        existing.filter((e) => e.locale === "en").map((e) => e.suffix),
+    );
+    for (const suffix of Object.keys(PAGE_ROUTES)) {
+        expect(
+            enSuffixes.has(suffix),
+            `English is missing PAGE_ROUTES suffix "${suffix}"`,
+        ).toBe(true);
+    }
+});
+
+test("every existing page's file is non-empty", async () => {
+    const existing = await existingPages();
+    expect(existing.length).toBeGreaterThan(0);
+    for (const { path } of existing) {
+        expect(
+            (await Bun.file(path).exists()) && (await Bun.file(path).size) > 0,
+            path,
+        ).toBe(true);
+    }
+});
+
+test("every existing page is listed in sitemap.xml with the right locale URL", async () => {
+    const existing = await existingPages();
     const sitemap = await Bun.file("./public/sitemap.xml").text();
-    for (const { route } of entries) {
-        expect(sitemap, `${route} missing from sitemap.xml`).toContain(
-            `https://nutrition-mcp.com${route}`,
+    for (const { locale, suffix } of existing) {
+        const url = urlFor(locale, suffix);
+        expect(sitemap, `${url} missing from sitemap.xml`).toContain(
+            `<loc>${url}</loc>`,
         );
+    }
+});
+
+// Only pages produced by the scripts/gen-*.ts pipeline carry page-level
+// hreflang/canonical tags (scripts/site-partials.ts's localeHead()) —
+// public/index.html and public/tools.html are still the pre-i18n
+// hand-authored files (migrating them is separate follow-up work) and
+// correctly have none yet. They still get a sitemap entry with hreflang
+// annotations there (Google treats sitemap-level annotations as valid on
+// their own), which the "listed in sitemap.xml" test above already covers;
+// this narrower check is only about pages that claim page-level tags at
+// all — every generated file always carries scripts/site-partials.ts's
+// generatedBanner() HTML comment, which is what distinguishes them.
+async function isGenerated(path: string): Promise<boolean> {
+    const html = await Bun.file(path).text();
+    return /<!-- Generated by scripts\//.test(html);
+}
+
+// The single most common real-world hreflang bug: page A links to page B as
+// an alternate, but B doesn't link back to A ("no return tags" in Search
+// Console). Checked against the actual rendered HTML's <link rel="alternate
+// hreflang> tags, not just the sitemap — a generator bug that only broke the
+// per-page tags (scripts/site-partials.ts's localeHead()) while leaving the
+// sitemap correct would otherwise slip through.
+test("hreflang is fully reciprocal across every generated page", async () => {
+    const all = await existingPages();
+    const existing = [];
+    for (const page of all) {
+        if (await isGenerated(page.path)) existing.push(page);
+    }
+    const bySuffix = new Map<string, Existing[]>();
+    for (const e of existing) {
+        const list = bySuffix.get(e.suffix) ?? [];
+        list.push(e);
+        bySuffix.set(e.suffix, list);
+    }
+
+    for (const [suffix, pages] of bySuffix) {
+        const expectedUrls = new Set(
+            pages.map((p) => urlFor(p.locale, suffix)),
+        );
+        for (const page of pages) {
+            const html = await Bun.file(page.path).text();
+            // Prettier line-wraps a <link> tag's attributes across multiple
+            // lines once it overflows the print width, so this can't assume
+            // a single line — match the whole tag body first (non-greedy,
+            // across newlines), then pull hreflang/href out of it.
+            const hrefs = new Set(
+                [...html.matchAll(/<link\s+([\s\S]*?)\/>/g)]
+                    .map((m) => m[1]!)
+                    .filter(
+                        (attrs) =>
+                            /rel="alternate"/.test(attrs) &&
+                            /hreflang=/.test(attrs),
+                    )
+                    .map((attrs) => attrs.match(/href="([^"]+)"/)?.[1])
+                    .filter((href): href is string => !!href),
+            );
+            for (const url of expectedUrls) {
+                expect(
+                    hrefs.has(url),
+                    `${page.path} is missing a reciprocal hreflang link to ${url}`,
+                ).toBe(true);
+            }
+        }
+    }
+});
+
+test("every existing page has a self-referencing canonical, not canonical-to-English", async () => {
+    const existing = await existingPages();
+    for (const { locale, suffix, path } of existing) {
+        const html = await Bun.file(path).text();
+        const canonical = [...html.matchAll(/<link\s+([\s\S]*?)\/>/g)]
+            .map((m) => m[1]!)
+            .find((attrs) => /rel="canonical"/.test(attrs))
+            ?.match(/href="([^"]+)"/)?.[1];
+        expect(canonical, `${path} has no canonical tag`).toBe(
+            urlFor(locale, suffix),
+        );
+    }
+});
+
+// Every AI-translated page discloses that and links back to the English
+// original (scripts/site-partials.ts's translationNotice(), added after a
+// German page shipped without it) — and English itself must never carry
+// the notice, since there's nothing to disclose about itself. Scoped to
+// generated pages for the same reason the hreflang/canonical checks above
+// are: a page not yet on the generator pipeline has no mechanism to emit
+// this at all, which is a known, separate gap (see CLAUDE.md), not this
+// guard's job to catch.
+test("every generated non-English page discloses it's AI-translated; English never does", async () => {
+    const all = await existingPages();
+    for (const page of all) {
+        if (!(await isGenerated(page.path))) continue;
+        const html = await Bun.file(page.path).text();
+        if (page.locale === "en") {
+            expect(
+                html,
+                `${page.path} is English but carries a translation notice`,
+            ).not.toContain('class="translation-notice"');
+        } else {
+            expect(
+                html,
+                `${page.path} is missing the translation-notice disclosure`,
+            ).toContain('class="translation-notice"');
+        }
     }
 });
