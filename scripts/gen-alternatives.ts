@@ -337,7 +337,7 @@ const HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleap
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
             rel="stylesheet"
         />
         <link
@@ -369,48 +369,127 @@ const THEME_PREPAINT = `        <script>
             })();
         </script>`;
 
-const NAV = `        <header class="nav">
-            <a class="nav-brand" href="/">
-                <span class="nav-mark" aria-hidden="true"
-                    ><i class="fa-solid fa-apple-whole"></i
-                ></span>
-                <span>Nutrition&nbsp;MCP</span>
-            </a>
-            <div class="nav-right">
-                <nav class="nav-links">
+/**
+ * Shared site header + mobile menu, identical to public/index.html. site.js
+ * owns the theme toggle, menu and scroll state. `current` marks the matching
+ * .site-menu link with aria-current="page" (the hub has no desktop nav entry).
+ */
+function nav(current?: string): string {
+    const html = `        <a class="skip" href="#main">Skip to content</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a class="brand" href="/" aria-label="Nutrition MCP home">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
                     <a href="/#how">How it works</a>
                     <a href="/#install">Install</a>
+                    <a href="/tools">Tools</a>
                     <a href="/#try">Examples</a>
-                    <a href="/alternatives">Alternatives</a>
+                    <a href="/#stats">Live stats</a>
                     <a href="/#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
                     <a
+                        class="icon-btn head-gh"
                         href="https://github.com/akutishevsky/nutrition-mcp"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >GitHub</a
+                        aria-label="GitHub repository"
+                        title="GitHub"
                     >
-                </nav>
-                <button
-                    class="theme-toggle"
-                    type="button"
-                    id="theme-toggle"
-                    aria-label="Toggle dark mode"
-                    title="Toggle dark mode"
-                >
-                    <i class="fa-solid fa-moon" aria-hidden="true"></i>
-                </button>
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="Switch to dark mode"
+                        title="Switch to dark mode"
+                    >
+                        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                        </svg>
+                        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="4" />
+                            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                        </svg>
+                    </button>
+                    <a class="btn btn-primary btn-sm head-cta" href="/#install"
+                        >Connect</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Open menu"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
             </div>
-        </header>`;
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/#how">How it works <small>3 steps</small></a>
+                <a href="/#install">Install <small>under a minute</small></a>
+                <a href="/tools">Tools <small>38 tools</small></a>
+                <a href="/#try">Examples <small>live demos</small></a>
+                <a href="/#stats">Live stats <small>since you opened</small></a>
+                <a href="/#faq">FAQ</a>
+                <a href="/alternatives">Alternatives <small>switching apps</small></a>
+            </nav>
+            <div class="menu-secondary">
+                <a href="/#support">Support</a>
+                <a href="/#contact">Contact</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/#install">Connect in a minute</a>
+            </div>
+        </div>`;
+    if (!current) return html;
+    return html.replace(
+        `<a href="${current}">`,
+        `<a href="${current}" aria-current="page">`,
+    );
+}
 
 const FOOTER = `        <footer class="footer">
             <div class="footer-inner">
-                <span class="footer-brand"
-                    ><i class="fa-solid fa-apple-whole" aria-hidden="true"></i>
-                    Nutrition MCP</span
-                >
-                <nav class="footer-links">
-                    <a href="/">Home</a>
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/tools">Tools</a>
                     <a href="/alternatives">Alternatives</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >How I built this</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Demo</a
+                    >
                     <a
                         href="https://github.com/akutishevsky/nutrition-mcp"
                         target="_blank"
@@ -421,92 +500,15 @@ const FOOTER = `        <footer class="footer">
                     <a href="/privacy">Privacy Policy</a>
                     <a href="/terms">Terms of Service</a>
                 </nav>
+                <p class="footer-note">
+                    Free and open source. Nutrition figures are estimates, not
+                    medical advice.
+                </p>
             </div>
         </footer>`;
 
-const THEME_SCRIPT_BODY = `                var themeBtn = document.getElementById("theme-toggle");
-                if (themeBtn) {
-                    var themeIcon = themeBtn.querySelector("i");
-                    var metaTheme = document.querySelector(
-                        'meta[name="theme-color"]',
-                    );
-                    var darkQuery = window.matchMedia(
-                        "(prefers-color-scheme: dark)",
-                    );
-                    function effectiveTheme() {
-                        var override = document.body.getAttribute("data-theme");
-                        if (override) return override;
-                        return darkQuery.matches ? "dark" : "light";
-                    }
-                    function syncUI() {
-                        var dark = effectiveTheme() === "dark";
-                        if (themeIcon)
-                            themeIcon.className = dark
-                                ? "fa-solid fa-sun"
-                                : "fa-solid fa-moon";
-                        var label = dark
-                            ? "Switch to light mode"
-                            : "Switch to dark mode";
-                        themeBtn.setAttribute("aria-label", label);
-                        themeBtn.setAttribute("title", label);
-                        if (metaTheme)
-                            metaTheme.setAttribute(
-                                "content",
-                                dark ? "#161617" : "#4a7c59",
-                            );
-                    }
-                    themeBtn.addEventListener("click", function () {
-                        var next =
-                            effectiveTheme() === "dark" ? "light" : "dark";
-                        document.body.setAttribute("data-theme", next);
-                        try {
-                            localStorage.setItem("theme", next);
-                        } catch (e) {}
-                        syncUI();
-                    });
-                    darkQuery.addEventListener("change", function () {
-                        if (!document.body.getAttribute("data-theme")) syncUI();
-                    });
-                    syncUI();
-                }`;
-
-const COPY_SCRIPT_BODY = `                document.querySelectorAll(".copy-mini").forEach(function (btn) {
-                    var icon = btn.querySelector("i");
-                    btn.addEventListener("click", function () {
-                        var text = btn.getAttribute("data-copy");
-                        function ok() {
-                            btn.classList.add("copied");
-                            if (icon) icon.className = "fa-solid fa-check";
-                            setTimeout(function () {
-                                btn.classList.remove("copied");
-                                if (icon) icon.className = "fa-solid fa-copy";
-                            }, 1500);
-                        }
-                        function fallback() {
-                            try {
-                                var ta = document.createElement("textarea");
-                                ta.value = text;
-                                ta.style.position = "absolute";
-                                ta.style.left = "-9999px";
-                                document.body.appendChild(ta);
-                                ta.select();
-                                document.execCommand("copy");
-                                document.body.removeChild(ta);
-                                ok();
-                            } catch (e) {}
-                        }
-                        if (
-                            navigator.clipboard &&
-                            navigator.clipboard.writeText
-                        ) {
-                            navigator.clipboard
-                                .writeText(text)
-                                .then(ok, fallback);
-                        } else {
-                            fallback();
-                        }
-                    });
-                });`;
+// Theme toggle, menu, reveals and copy buttons all live in /site.js now.
+const SITE_SCRIPT = `        <script src="/site.js" defer></script>`;
 
 const GENERATED_BANNER = `        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->`;
 
@@ -525,7 +527,7 @@ function disclaimerBand(text: string): string {
 
 // The "What you get instead" feature grid describes Nutrition MCP, so it's the
 // same on every page.
-const FEATURES = `                    <div class="features-grid">
+const FEATURES = `                    <div class="features-grid" data-reveal="stagger">
                         <article class="card feature">
                             <span class="feature-icon" aria-hidden="true"
                                 ><i class="fa-solid fa-utensils"></i
@@ -796,7 +798,7 @@ function renderApp(app: App): string {
         <link rel="canonical" href="${url}" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#4a7c59" />
+        <meta name="theme-color" content="#fbfbf9" />
 ${jsonLd(breadcrumb)}
 ${jsonLd(faqSchema)}
 ${HEAD_ASSETS}
@@ -804,9 +806,9 @@ ${HEAD_ASSETS}
     <body class="landing">
 ${GENERATED_BANNER}
 ${THEME_PREPAINT}
-${NAV}
+${nav()}
 
-        <main>
+        <main id="main">
             <!-- Hero -->
             <section class="hero">
                 <div class="container">
@@ -842,7 +844,7 @@ ${NAV}
 
             <!-- The honest answer -->
             <section class="section band" id="answer">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">The short answer</p>
                         <h2 class="section-title">
@@ -866,7 +868,7 @@ ${NAV}
 
             <!-- What you get instead -->
             <section class="section" id="instead">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">What you get instead</p>
                         <h2 class="section-title">
@@ -879,7 +881,7 @@ ${FEATURES}
 
             <!-- Comparison -->
             <section class="section band" id="compare">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">${esc(app.name)} vs. Nutrition MCP</p>
                         <h2 class="section-title">How they stack up</h2>
@@ -910,7 +912,7 @@ ${pros}
 
             <!-- Moving from X (per-app, unique content) -->
             <section class="section" id="moving">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Moving from ${esc(app.name)}</p>
                         <h2 class="section-title">
@@ -927,7 +929,7 @@ ${app.migrate.body
 
             <!-- Bring your history (per-app, unique content) -->
             <section class="section band" id="import">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Your ${esc(app.name)} history</p>
                         <h2 class="section-title">
@@ -952,7 +954,7 @@ ${app.importSection.body
 
             <!-- How to switch -->
             <section class="section" id="switch">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">How to switch</p>
                         <h2 class="section-title">Connect in under a minute</h2>
@@ -968,7 +970,7 @@ ${INSTALL}
 
             <!-- FAQ -->
             <section class="section band" id="faq">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">FAQ</p>
                         <h2 class="section-title">
@@ -983,7 +985,7 @@ ${faqDetails}
 
             <!-- Closing CTA -->
             <section class="section cta">
-                <div class="container cta-inner">
+                <div class="container cta-inner" data-reveal>
                     <h2 class="cta-title">
                         Track nutrition inside the AI you already use.
                     </h2>
@@ -1007,15 +1009,7 @@ ${disclaimerBand(`${esc(app.name)} is a trademark of its respective owner. Nutri
 
 ${FOOTER}
 
-        <script>
-            (function () {
-                // ---------- theme toggle (dark / light, default = system) ----------
-${THEME_SCRIPT_BODY}
-
-                // ---------- copy-URL buttons ----------
-${COPY_SCRIPT_BODY}
-            })();
-        </script>
+${SITE_SCRIPT}
     </body>
 </html>
 `;
@@ -1084,16 +1078,16 @@ function renderHub(): string {
         <link rel="canonical" href="${url}" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#4a7c59" />
+        <meta name="theme-color" content="#fbfbf9" />
 ${jsonLd(breadcrumb)}
 ${HEAD_ASSETS}
     </head>
     <body class="landing">
 ${GENERATED_BANNER}
 ${THEME_PREPAINT}
-${NAV}
+${nav("/alternatives")}
 
-        <main>
+        <main id="main">
             <section class="hero">
                 <div class="container">
                     <nav class="crumb" aria-label="Breadcrumb">
@@ -1126,7 +1120,7 @@ ${NAV}
             </section>
 
             <section class="section band" id="apps">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Switching from…</p>
                         <h2 class="section-title">Pick your current app</h2>
@@ -1136,7 +1130,7 @@ ${NAV}
                             existing history, into your AI.
                         </p>
                     </div>
-                    <div class="features-grid">
+                    <div class="features-grid" data-reveal="stagger">
 ${cards}
                     </div>
                     <p class="note compare-note">
@@ -1151,7 +1145,7 @@ ${cards}
             </section>
 
             <section class="section" id="import">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Bringing your history</p>
                         <h2 class="section-title">
@@ -1203,7 +1197,7 @@ ${cards}
             </section>
 
             <section class="section cta">
-                <div class="container cta-inner">
+                <div class="container cta-inner" data-reveal>
                     <h2 class="cta-title">
                         Track nutrition inside the AI you already use.
                     </h2>
@@ -1231,11 +1225,7 @@ ${disclaimerBand(`${APPS.map((a) => esc(a.name)).join(", ")}, and other product 
 
 ${FOOTER}
 
-        <script>
-            (function () {
-${THEME_SCRIPT_BODY}
-            })();
-        </script>
+${SITE_SCRIPT}
     </body>
 </html>
 `;
