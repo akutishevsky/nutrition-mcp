@@ -57,7 +57,7 @@ app.use("*", async (c, next) => {
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.github.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://api.github.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com; frame-ancestors 'none'",
         );
     }
     c.header("Referrer-Policy", "no-referrer");
@@ -195,7 +195,10 @@ app.all(
 
 // Aggregate landing-page stats, cached in-memory so page views don't each hit
 // the DB. The numbers move slowly, so a stale value for a few minutes is fine.
-const STATS_TTL_MS = 5 * 60 * 1000;
+// The landing page polls this every 5 s to show totals ticking up live, so the
+// server-side TTL is the same 5 s: one aggregate RPC per interval at most,
+// however many tabs are open. The RPC is a handful of sums over a small table.
+const STATS_TTL_MS = 5 * 1000;
 let statsCache: { data: LandingStats; expiresAt: number } | null = null;
 
 app.get("/api/stats", async (c) => {
@@ -207,7 +210,7 @@ app.get("/api/stats", async (c) => {
             };
         }
         return c.json(statsCache.data, 200, {
-            "Cache-Control": "public, max-age=300",
+            "Cache-Control": "public, max-age=5",
         });
     } catch (err) {
         console.error("Failed to load landing stats:", err);
@@ -312,6 +315,15 @@ for (const [path, file] of Object.entries(ALT_PAGES)) {
 app.get("/styles.css", async (c) => {
     const file = Bun.file("./public/styles.css");
     return c.body(await file.text(), 200, { "Content-Type": "text/css" });
+});
+
+// Shared site script: theme toggle, header, mobile menu, scroll effects.
+// Every public page loads it, so it is served from one place like the CSS.
+app.get("/site.js", async (c) => {
+    const file = Bun.file("./public/site.js");
+    return c.body(await file.text(), 200, {
+        "Content-Type": "text/javascript; charset=utf-8",
+    });
 });
 
 // Favicon endpoint
