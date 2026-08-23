@@ -247,6 +247,12 @@
         <loc>https://nutrition-mcp.com/privacy</loc>
         <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
         <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
         <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
         <lastmod>2026-07-23</lastmod>
         <changefreq>yearly</changefreq>
@@ -256,6 +262,102 @@
         <loc>https://nutrition-mcp.com/de/privacy</loc>
         <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
         <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/es/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/fr/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/nl/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/pl/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/it/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/uk/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/privacy" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/privacy" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/privacy" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/privacy" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/privacy" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/privacy" />
         <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
         <lastmod>2026-07-23</lastmod>
         <changefreq>yearly</changefreq>
@@ -265,6 +367,12 @@
         <loc>https://nutrition-mcp.com/terms</loc>
         <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
         <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
         <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
         <lastmod>2026-07-23</lastmod>
         <changefreq>yearly</changefreq>
@@ -274,6 +382,102 @@
         <loc>https://nutrition-mcp.com/de/terms</loc>
         <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
         <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/es/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/fr/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/nl/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/pl/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/it/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/uk/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="es" href="https://nutrition-mcp.com/es/terms" />
+        <xhtml:link rel="alternate" hreflang="fr" href="https://nutrition-mcp.com/fr/terms" />
+        <xhtml:link rel="alternate" hreflang="nl" href="https://nutrition-mcp.com/nl/terms" />
+        <xhtml:link rel="alternate" hreflang="pl" href="https://nutrition-mcp.com/pl/terms" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://nutrition-mcp.com/it/terms" />
+        <xhtml:link rel="alternate" hreflang="uk" href="https://nutrition-mcp.com/uk/terms" />
         <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
         <lastmod>2026-07-23</lastmod>
         <changefreq>yearly</changefreq>

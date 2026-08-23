@@ -19,6 +19,12 @@
 // rest of the site's copy dictionaries are built around.
 
 import type { SiteLocale } from "../routes.js";
+import { PRIVACY_ES, TERMS_ES } from "./legal.es.js";
+import { PRIVACY_FR, TERMS_FR } from "./legal.fr.js";
+import { PRIVACY_NL, TERMS_NL } from "./legal.nl.js";
+import { PRIVACY_PL, TERMS_PL } from "./legal.pl.js";
+import { PRIVACY_IT, TERMS_IT } from "./legal.it.js";
+import { PRIVACY_UK, TERMS_UK } from "./legal.uk.js";
 
 export type LegalBlock =
     { type: "p"; html: string } | { type: "ul"; items: string[] };
@@ -556,9 +562,21 @@ const TERMS_DE: LegalDoc = {
 export const PRIVACY: Partial<Record<SiteLocale, LegalDoc>> = {
     en: PRIVACY_EN,
     de: PRIVACY_DE,
+    es: PRIVACY_ES,
+    fr: PRIVACY_FR,
+    nl: PRIVACY_NL,
+    pl: PRIVACY_PL,
+    it: PRIVACY_IT,
+    uk: PRIVACY_UK,
 };
 
 export const TERMS: Partial<Record<SiteLocale, LegalDoc>> = {
     en: TERMS_EN,
     de: TERMS_DE,
+    es: TERMS_ES,
+    fr: TERMS_FR,
+    nl: TERMS_NL,
+    pl: TERMS_PL,
+    it: TERMS_IT,
+    uk: TERMS_UK,
 };
