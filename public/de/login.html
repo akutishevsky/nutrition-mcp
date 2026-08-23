@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
     <head>
-        <title>Nutrition MCP — Sign in to connect</title>
+        <title>Nutrition MCP — Anmelden, um zu verbinden</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <link rel="icon" href="/favicon.ico" />
@@ -98,17 +98,17 @@
         <a class="skip" href="#main">Skip to content</a>
         <header class="site-head" id="site-head">
             <div class="head-inner">
-                <a class="brand" href="/" aria-label="Nutrition MCP home">
+                <a class="brand" href="/de" aria-label="Nutrition MCP home">
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     <span>Nutrition&nbsp;MCP</span>
                 </a>
                 <nav class="head-nav" aria-label="Primary">
-                    <a href="/#how">How it works</a>
-                    <a href="/#install">Install</a>
-                    <a href="/tools">Tools</a>
-                    <a href="/#try">Examples</a>
-                    <a href="/#stats">Live stats</a>
-                    <a href="/#faq">FAQ</a>
+                    <a href="/de#how">How it works</a>
+                    <a href="/de#install">Install</a>
+                    <a href="/de/tools">Tools</a>
+                    <a href="/de#try">Examples</a>
+                    <a href="/de#stats">Live stats</a>
+                    <a href="/de#faq">FAQ</a>
                 </nav>
                 <div class="head-tools">
                     <a
@@ -167,7 +167,9 @@
                             />
                         </svg>
                     </button>
-                    <a class="btn btn-primary btn-sm head-cta" href="/#install"
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/de#install"
                         >Connect</a
                     >
                     <button
@@ -185,30 +187,32 @@
         </header>
         <div class="site-menu" id="site-menu" hidden>
             <nav aria-label="Menu">
-                <a href="/#how">How it works <small>3 steps</small></a>
-                <a href="/#install">Install <small>under a minute</small></a>
-                <a href="/tools">Tools <small>38 tools</small></a>
-                <a href="/#try">Examples <small>live demos</small></a>
-                <a href="/#stats">Live stats <small>since you opened</small></a>
-                <a href="/#faq">FAQ</a>
-                <a href="/alternatives"
+                <a href="/de#how">How it works <small>3 steps</small></a>
+                <a href="/de#install">Install <small>under a minute</small></a>
+                <a href="/de/tools">Tools <small>38 tools</small></a>
+                <a href="/de#try">Examples <small>live demos</small></a>
+                <a href="/de#stats"
+                    >Live stats <small>since you opened</small></a
+                >
+                <a href="/de#faq">FAQ</a>
+                <a href="/de/alternatives"
                     >Alternatives <small>switching apps</small></a
                 >
             </nav>
             <div class="menu-secondary">
-                <a href="/#support">Support</a>
-                <a href="/#contact">Contact</a>
+                <a href="/de#support">Support</a>
+                <a href="/de#contact">Contact</a>
                 <a
                     href="https://github.com/akutishevsky/nutrition-mcp"
                     target="_blank"
                     rel="noopener noreferrer"
                     >GitHub</a
                 >
-                <a href="/privacy">Privacy</a>
-                <a href="/terms">Terms</a>
+                <a href="/de/privacy">Privacy</a>
+                <a href="/de/terms">Terms</a>
             </div>
             <div class="menu-foot">
-                <a class="btn btn-primary" href="/#install"
+                <a class="btn btn-primary" href="/de#install"
                     >Connect in a minute</a
                 >
             </div>
@@ -221,7 +225,7 @@
                         <div class="auth-head">
                             <span class="auth-mark" aria-hidden="true">🍏</span>
                             <h1 class="auth-title">Nutrition MCP</h1>
-                            <p class="auth-sub">Sign in to connect</p>
+                            <p class="auth-sub">Anmelden, um zu verbinden</p>
                         </div>
 
                         {{ERROR}}
@@ -234,11 +238,11 @@
                                 class="fa-brands fa-google auth-btn-google-icon"
                                 aria-hidden="true"
                             ></i>
-                            Continue with Google
+                            Weiter mit Google
                         </a>
 
                         <div class="auth-divider">
-                            <span>or use email</span>
+                            <span>oder E-Mail verwenden</span>
                         </div>
 
                         <form method="POST" action="/approve" class="auth-form">
@@ -248,7 +252,7 @@
                                 value="{{SESSION_ID}}"
                             />
                             <div class="auth-field">
-                                <label for="email">Email</label>
+                                <label for="email">E-Mail</label>
                                 <input
                                     type="email"
                                     id="email"
@@ -258,7 +262,7 @@
                                 />
                             </div>
                             <div class="auth-field">
-                                <label for="password">Password</label>
+                                <label for="password">Passwort</label>
                                 <input
                                     type="password"
                                     id="password"
@@ -274,30 +278,35 @@
                                 value="login"
                                 class="auth-btn auth-btn-secondary"
                             >
-                                Continue
+                                Weiter
                             </button>
                             <p class="auth-note">
-                                By continuing you confirm you're at least 16 and
-                                agree to the
-                                <a href="/terms" target="_blank" rel="noopener"
-                                    >Terms of Service</a
-                                >
-                                and
+                                Mit dem Fortfahren bestätigst du, mindestens 16
+                                Jahre alt zu sein, und stimmst den
                                 <a
-                                    href="/privacy"
+                                    href="/de/terms"
                                     target="_blank"
                                     rel="noopener"
-                                    >Privacy Policy</a
-                                >.
+                                    >Nutzungsbedingungen</a
+                                >
+                                und der
+                                <a
+                                    href="/de/privacy"
+                                    target="_blank"
+                                    rel="noopener"
+                                    >Datenschutzerklärung</a
+                                >
+                                zu.
                             </p>
                             <p class="auth-note">
-                                New here? Just enter your email and password —
-                                an account will be created automatically.
+                                Neu hier? Gib einfach deine E-Mail-Adresse und
+                                ein Passwort ein — ein Konto wird automatisch
+                                erstellt.
                             </p>
                             <p class="auth-note">
-                                After successful connection in your client, save
-                                your password somewhere and close this browser
-                                tab.
+                                Speichere dein Passwort nach erfolgreicher
+                                Verbindung in deinem Client an einem sicheren
+                                Ort und schließe diesen Browser-Tab.
                             </p>
                         </form>
                     </div>
@@ -312,8 +321,8 @@
                     Nutrition MCP
                 </span>
                 <nav class="footer-links" aria-label="Footer">
-                    <a href="/tools">Tools</a>
-                    <a href="/alternatives">Alternatives</a>
+                    <a href="/de/tools">Tools</a>
+                    <a href="/de/alternatives">Alternatives</a>
                     <a
                         href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
                         target="_blank"
@@ -333,8 +342,8 @@
                         >GitHub</a
                     >
                     <a href="mailto:anton@nutrition-mcp.com">Contact</a>
-                    <a href="/privacy">Privacy Policy</a>
-                    <a href="/terms">Terms of Service</a>
+                    <a href="/de/privacy">Privacy Policy</a>
+                    <a href="/de/terms">Terms of Service</a>
                 </nav>
                 <p class="footer-note">
                     Free and open source. Nutrition figures are estimates, not
