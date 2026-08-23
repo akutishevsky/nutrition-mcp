@@ -1360,6 +1360,28 @@ body.is-dark .btn-primary:hover,
     }
 }
 
+/* ---------- translation notice (scripts/site-partials.ts's
+   translationNotice()) — neutral/informational, not accent-branded like a
+   CTA: this is a disclosure, not an action to take. ---------- */
+.translation-notice {
+    padding: 0.85rem 1.1rem;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+}
+.translation-notice p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--ink-2);
+}
+.translation-notice a {
+    color: var(--accent-hover);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+}
+
 /* ---------- stats: the Nutrition Facts panel (the signature) ---------- */
 .facts {
     max-width: 720px;

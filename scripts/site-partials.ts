@@ -16,6 +16,7 @@ import {
     OG_LOCALE,
     SITE,
     SITE_LOCALES,
+    TRANSLATION_NOTICE,
     hashPath,
     pathFor,
     urlFor,
@@ -27,6 +28,26 @@ export { SITE };
 /** Minimal HTML-entity escaping for text interpolated into element bodies. */
 export function esc(s: string): string {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * The "this page is machine-translated" banner — empty string on English
+ * (nothing to disclose) or a locale TRANSLATION_NOTICE hasn't reached yet
+ * (silently omitting rather than showing a half-translated notice; every
+ * shipped translation should have one before it ships, but a missing entry
+ * degrading to "no notice" is safer than the alternative). `suffix` is the
+ * page's PAGE_ROUTES key, used to link back to the *same* page in English.
+ */
+export function translationNotice(locale: SiteLocale, suffix: string): string {
+    if (locale === "en") return "";
+    const notice = TRANSLATION_NOTICE[locale];
+    if (!notice) return "";
+    return `                    <div class="translation-notice">
+                        <p>
+                            ${esc(notice.text)}
+                            <a href="${pathFor("en", suffix)}">${esc(notice.linkText)}</a>
+                        </p>
+                    </div>`;
 }
 
 export function jsonLd(obj: unknown): string {

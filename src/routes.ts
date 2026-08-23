@@ -25,6 +25,28 @@ export const LOCALE_NAMES: Record<SiteLocale, string> = {
     uk: "Українська",
 };
 
+/**
+ * The disclosure shown on every translated (non-English) page — AI
+ * translation, no human review pass, with a link back to the English
+ * original of the *same* page (built by the caller via
+ * `pathFor("en", suffix)`, not embedded here, since this map has no access
+ * to which page it's rendering on). Keyed by `Locale`, not `SiteLocale`:
+ * English structurally can never have a notice about itself, so the type
+ * itself rules out ever needing an `en` entry here.
+ *
+ * `Partial` for the same reason `src/copy/legal.ts`'s `PRIVACY`/`TERMS`
+ * are: translation lands one locale at a time. Tighten to the full
+ * `Record<Locale, ...>` alongside those once every locale is present.
+ */
+export const TRANSLATION_NOTICE: Partial<
+    Record<Locale, { text: string; linkText: string }>
+> = {
+    de: {
+        text: "Diese Seite wurde mit KI aus dem Englischen übersetzt und wurde nicht von einer Person überprüft.",
+        linkText: "Original auf Englisch lesen",
+    },
+};
+
 /** IETF BCP 47 tag for `<html lang>` — a bare 2-letter code for every locale
  * here, since none needs a region qualifier (no en-US vs en-GB split, etc). */
 export const HTML_LANG: Record<SiteLocale, string> = {
