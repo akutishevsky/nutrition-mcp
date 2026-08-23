@@ -127,6 +127,18 @@ export function nav(
     locale: SiteLocale,
     suffix: string,
     currentSuffix?: string,
+    opts?: {
+        /**
+         * The static per-locale switcher below links to `urlFor(l, suffix)`
+         * — wrong for a page that isn't really "at" a locale-prefixed URL
+         * (public/login.html is rendered per in-flight OAuth session, not
+         * routed by path). When true, the whole <details class="lang-switch">
+         * block is replaced with a literal "{{LANG_SWITCHER}}" token for the
+         * caller to substitute at request time (see renderLangSwitcher in
+         * src/oauth.ts) instead of at generation time.
+         */
+        dynamicSwitcher?: boolean;
+    },
 ): string {
     const p = (id: string) => pathFor(locale, id);
     const h = (id: string) => hashPath(locale, id);
@@ -169,7 +181,10 @@ export function nav(
                             />
                         </svg>
                     </a>
-                    <details class="lang-switch">
+${
+    opts?.dynamicSwitcher
+        ? "                    {{LANG_SWITCHER}}"
+        : `                    <details class="lang-switch">
                         <summary
                             class="icon-btn"
                             aria-label="Change language"
@@ -180,7 +195,8 @@ export function nav(
                         <div class="lang-menu" aria-label="Choose a language">
 ${switcherItems}
                         </div>
-                    </details>
+                    </details>`
+}
                     <button
                         class="icon-btn theme-toggle"
                         type="button"
