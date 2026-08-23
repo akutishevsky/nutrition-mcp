@@ -1,69 +1,114 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset
+    xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+>
     <url>
-        <loc>https://nutrition-mcp.com/</loc>
+        <loc>https://nutrition-mcp.com</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com" />
         <lastmod>2026-07-25</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
         <loc>https://nutrition-mcp.com/tools</loc>
-        <lastmod>2026-07-25</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://nutrition-mcp.com/alternatives</loc>
-        <lastmod>2026-07-25</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.7</priority>
-    </url>
-    <url>
-        <loc>https://nutrition-mcp.com/myfitnesspal-mcp</loc>
-        <lastmod>2026-07-25</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://nutrition-mcp.com/cronometer-mcp</loc>
-        <lastmod>2026-07-25</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://nutrition-mcp.com/lose-it-mcp</loc>
-        <lastmod>2026-07-25</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://nutrition-mcp.com/macrofactor-mcp</loc>
-        <lastmod>2026-07-25</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://nutrition-mcp.com/yazio-mcp</loc>
-        <lastmod>2026-07-25</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://nutrition-mcp.com/lifesum-mcp</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/tools" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/tools" />
         <lastmod>2026-07-25</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
         <loc>https://nutrition-mcp.com/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/de/privacy</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/privacy" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/privacy" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/privacy" />
         <lastmod>2026-07-23</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
     <url>
         <loc>https://nutrition-mcp.com/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
         <lastmod>2026-07-23</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/de/terms</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/terms" />
+        <xhtml:link rel="alternate" hreflang="de" href="https://nutrition-mcp.com/de/terms" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/terms" />
+        <lastmod>2026-07-23</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/alternatives</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/alternatives" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/alternatives" />
+        <lastmod>2026-08-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/myfitnesspal-mcp</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/myfitnesspal-mcp" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/myfitnesspal-mcp" />
+        <lastmod>2026-08-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/cronometer-mcp</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/cronometer-mcp" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/cronometer-mcp" />
+        <lastmod>2026-08-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/lose-it-mcp</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/lose-it-mcp" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/lose-it-mcp" />
+        <lastmod>2026-08-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/macrofactor-mcp</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/macrofactor-mcp" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/macrofactor-mcp" />
+        <lastmod>2026-08-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/yazio-mcp</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/yazio-mcp" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/yazio-mcp" />
+        <lastmod>2026-08-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://nutrition-mcp.com/lifesum-mcp</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://nutrition-mcp.com/lifesum-mcp" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://nutrition-mcp.com/lifesum-mcp" />
+        <lastmod>2026-08-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
     </url>
 </urlset>
