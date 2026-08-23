@@ -216,6 +216,7 @@ const altPageJobs = (
 // by hand when you change one, the same as the rest of this file already
 // asks for GITHUB_LINKS_RULE / DOMAIN_RULE etc.
 const RULES_BY_FILENAME: Record<string, Rule[]> = {
+    "login.html": [...ANALYTICS_RULES, DOMAIN_RULE],
     "privacy.html": [...ANALYTICS_RULES, DOMAIN_RULE],
     "terms.html": [
         ...ANALYTICS_RULES,
