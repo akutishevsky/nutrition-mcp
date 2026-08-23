@@ -1,208 +1,17 @@
-// Typed content for the landing page (public/index.html), rendered by
-// scripts/gen-index.ts. Extracted from the previously hand-authored
-// public/index.html so English and every future translation go through the
-// same generator instead of a hand-authored English file sitting next to
-// generated ones (see CLAUDE.md's "Public site" section, and
-// src/copy/legal.ts for the pattern this follows).
+// French (fr) translation of the landing page content — see src/copy/index.ts
+// for the authoritative shape (`IndexDoc`) and the full doc comments on what
+// each field means and why the decorative chat-widget blocks are stored as
+// one trusted HTML block per message rather than split field-by-field.
 //
-// `Html`-suffixed fields carry trusted inline markup (<strong>, <a href>,
-// <em>, <q>, the decorative chat-widget preview markup) — same trust level
-// as the rest of the scripts/gen-*.ts family: developer-authored constants,
-// not visitor input, so nothing here is HTML-escaped on the way out. Plain
-// fields (no `Html` suffix) are plain text and get run through esc() by the
-// generator.
-//
-// Design choice worth flagging: the hero's decorative chat demo and the
-// "Try saying" carousel's seven example exchanges are each stored as ONE
-// trusted HTML block per message (see `heroChatHtml` and `TrySlide.aiHtml`)
-// rather than exploded into one field per widget label ("Protein", "Calories
-// today", ...). Those labels are illustrative UI chrome mimicking the real
-// in-chat widgets (see public/widgets/STYLE_GUIDE.md), not sentence-level
-// prose that reorders per language, and they repeat near-identically across
-// eight widget instances — typing each one separately would multiply the
-// same handful of words dozens of times for no translation benefit. The
-// genuinely sentence-level prose (what the user typed, the assistant's
-// concluding sentence) lives inside these same HTML blocks, extracted
-// verbatim, exactly the way src/copy/legal.ts inlines prose inside trusted
-// HTML `<li>`/`<p>` strings. A future translation edits the HTML directly,
-// same as it would for any legal.ts block.
-//
-// INDEX is `Partial<Record<SiteLocale, IndexDoc>>`, not the full `Record`,
-// while translation is still in progress — see legal.ts's PRIVACY/TERMS for
-// why. This pass is English-only: no other locale entry exists yet.
+// Terminology kept consistent with tools.fr.ts and alternatives.fr.ts:
+// protein → protéines, carbs → glucides, fat → lipides, fiber → fibres,
+// (total) sugar → sucres (totaux), alcohol → alcool (grammes d'éthanol pur),
+// caffeine → caféine, meal → repas, water → eau, weigh-in → pesée,
+// goals → objectifs, timezone → fuseau horaire, export → exporter/export,
+// widget → widget. Informal "tu" register throughout, matching the English
+// source's direct, plain-spoken address to the reader.
 
-import type { SiteLocale } from "../routes.js";
-import { INDEX_DE } from "./index.de.js";
-import { INDEX_ES } from "./index.es.js";
-import { INDEX_FR } from "./index.fr.js";
-import { INDEX_NL } from "./index.nl.js";
-import { INDEX_PL } from "./index.pl.js";
-import { INDEX_IT } from "./index.it.js";
-import { INDEX_UK } from "./index.uk.js";
-
-/** One FAQ entry. `visibleHtml` is what a human reads in the <details>.
- * `jsonLdText` is optional: when omitted, the generator derives the
- * JSON-LD `Answer.text` by stripping tags out of `visibleHtml`, which is
- * exactly right for every FAQ answer that contains no markup of its own
- * (or whose only markup is an inline link whose surrounding words already
- * read as one sentence, e.g. "Can I self-host it?"). Two entries carry an
- * explicit override because the current page's JSON-LD and visible copy
- * already diverge in wording (pre-existing, not introduced by this
- * extraction) — see the "Does it work with ChatGPT?" entry below. */
-export interface FaqEntry {
-    question: string;
-    visibleHtml: string;
-    jsonLdText?: string;
-}
-
-export interface TrySlide {
-    /** One example exchange's full `.mini-chat` content — trusted HTML,
-     * verbatim: the user's message, the typing indicator, any decorative
-     * widget preview, and the assistant's concluding sentence. Kept as one
-     * block rather than split into user/assistant fields because two of
-     * the seven slides lead with a decorative photo/barcode SVG before the
-     * user message, so there is no single fixed shape the generator could
-     * safely reassemble from separate fields without duplicating markup. */
-    html: string;
-}
-
-export interface FeatureCard {
-    /** Font Awesome icon class, e.g. "fa-solid fa-utensils" — not prose,
-     * kept here only so each card's icon travels with its text. */
-    icon: string;
-    title: string;
-    body: string;
-}
-
-export interface IndexDoc {
-    title: string;
-    metaDescription: string;
-    ogDescription: string;
-    keywords: string;
-
-    chatChrome: {
-        brand: string;
-        status: string;
-        inputPlaceholder: string;
-    };
-
-    hero: {
-        eyebrow: string;
-        titleBeforeEm: string;
-        titleEm: string;
-        titleAfterEm: string;
-        lead: string;
-        ctaPrimary: string;
-        ctaSecondary: string;
-        /** Floating macro chips beside the demo card — trusted HTML. */
-        chipsHtml: string;
-        /** The decorative chat demo's message thread — trusted HTML. */
-        chatHtml: string;
-    };
-
-    how: {
-        eyebrow: string;
-        title: string;
-        steps: { title: string; body: string }[];
-    };
-
-    install: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        claude: { steps: string[]; note: string };
-        chatgpt: { steps: string[] };
-        other: { note: string };
-    };
-
-    onboarding: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        steps: string[];
-        note: string;
-        toolsCta: { heading: string; body: string; arrow: string };
-    };
-
-    try: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        slides: TrySlide[];
-        prevLabel: string;
-        nextLabel: string;
-        exampleLabel: string;
-    };
-
-    stats: {
-        eyebrow: string;
-        title: string;
-        factsTitle: string;
-        servingPrefix: string;
-        servingBold: string;
-        liveLabel: string;
-        calLabel: string;
-        calSmall: string;
-        calCaption: string;
-        rowFoodLogs: string;
-        rowProtein: string;
-        rowCarbs: string;
-        rowFat: string;
-        foot: string;
-        mapPrefix: string;
-        mapSuffix: string;
-        mapAriaLabel: string;
-    };
-
-    features: {
-        eyebrow: string;
-        title: string;
-        cards: FeatureCard[];
-    };
-
-    why: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        oldHeading: string;
-        oldItems: string[];
-        newHeading: string;
-        newItems: string[];
-        /** Trusted HTML — contains a link to /alternatives marked with
-         * data-link="alternatives" for the generator to localize. */
-        noteHtml: string;
-    };
-
-    trust: { label: string; small: string }[];
-
-    support: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        free: { tier: string; price: string; desc: string; cta: string };
-        paid: { tier: string; price: string; desc: string; cta: string };
-    };
-
-    cta: {
-        title: string;
-        sub: string;
-        primary: string;
-        secondary: string;
-    };
-
-    contact: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        cta: string;
-    };
-
-    faqSection: {
-        eyebrow: string;
-        title: string;
-    };
-    faq: FaqEntry[];
-}
+import type { IndexDoc } from "./index.js";
 
 const HERO_CHIPS_HTML_PLACEHOLDER = `
                             <span class="chip chip-1"
@@ -211,15 +20,15 @@ const HERO_CHIPS_HTML_PLACEHOLDER = `
                             >
                             <span class="chip chip-2"
                                 ><i style="--c: #8b5cf6"></i
-                                ><b>20 g</b> protein</span
+                                ><b>20 g</b> protéines</span
                             >
                             <span class="chip chip-3"
                                 ><i style="--c: #10b981"></i
-                                ><b>30 g</b> carbs</span
+                                ><b>30 g</b> glucides</span
                             >
                             <span class="chip chip-4"
                                 ><i style="--c: #0ea5e9"></i
-                                ><b>500 ml</b> water</span
+                                ><b>500 ml</b> d'eau</span
                             >`;
 const HERO_CHAT_HTML_PLACEHOLDER = `
                                 <div class="cw-header">
@@ -227,24 +36,24 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                         ><i class="fa-solid fa-apple-whole"></i
                                     ></span>
                                     <span class="cw-title">Nutrition MCP</span>
-                                    <span class="cw-status">online</span>
+                                    <span class="cw-status">en ligne</span>
                                 </div>
                                 <div class="cw-body">
                                     <div class="chat-thread">
                                         <div class="msg msg-user">
-                                            Two eggs, whole-wheat toast, and a
-                                            coffee for breakfast
+                                            Deux œufs, du pain complet grillé
+                                            et un café pour le petit-déjeuner
                                         </div>
 
                                         <div class="msg msg-ai">
                                             <div class="wdg">
                                                 <div class="wdg-head">
                                                     <div class="wdg-title">
-                                                        Meal logged
+                                                        Repas enregistré
                                                     </div>
                                                     <div class="wdg-sub">
-                                                        Two eggs, toast &amp;
-                                                        coffee · breakfast
+                                                        Deux œufs, toast et
+                                                        café · petit-déjeuner
                                                     </div>
                                                     <div
                                                         class="wdg-meta wdg-kcal"
@@ -288,7 +97,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     class="wdg-callab"
                                                                 >
                                                                     Calories
-                                                                    today
+                                                                    aujourd'hui
                                                                 </div>
                                                                 <div
                                                                     class="wdg-calline"
@@ -307,7 +116,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         1,760
                                                                         kcal
-                                                                        left
+                                                                        restants
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -324,7 +133,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Protein</span
+                                                                            >Protéines</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -356,7 +165,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Carbs</span
+                                                                            >Glucides</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -388,7 +197,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Fat</span
+                                                                            >Lipides</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -424,7 +233,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Sugar</span
+                                                                            >Sucre</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -459,7 +268,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Caffeine</span
+                                                                            >Caféine</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -482,7 +291,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-mcap"
                                                                     >
-                                                                        limit
+                                                                        limite
                                                                         400 mg
                                                                     </div>
                                                                 </div>
@@ -494,7 +303,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Fiber</span
+                                                                            >Fibres</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -525,30 +334,31 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                 class="wdg-mhint"
                                                                 aria-hidden="true"
                                                             >
-                                                                Tap a metric for
-                                                                the meals behind
-                                                                it
+                                                                Touche une valeur pour
+                                                                voir les repas
+                                                                concernés
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            Done — added that to breakfast: two
-                                            eggs, toast, and a coffee. That's
-                                            about 340 kcal (20g protein, 30g
-                                            carbs, 15g fat, 3.4g fiber), plus
-                                            95mg of caffeine from the coffee.
+                                            Ajouté au petit-déjeuner : deux
+                                            œufs, du pain grillé et un café.
+                                            Ça fait environ 340 kcal (20g de
+                                            protéines, 30g de glucides, 15g de
+                                            lipides, 3.4g de fibres), plus
+                                            95mg de caféine grâce au café.
                                         </div>
 
                                         <div class="msg msg-user">
-                                            How's my weight trending?
+                                            Comment évolue mon poids ?
                                         </div>
 
                                         <div class="msg msg-ai">
                                             <div class="wdg">
                                                 <div class="wdg-head wdg-mid">
                                                     <div class="wdg-title">
-                                                        Weight
+                                                        Poids
                                                     </div>
                                                     <div
                                                         class="wdg-seg"
@@ -571,7 +381,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                 <div class="wdg-wmain">
                                                     <div class="wdg-wnow">
                                                         <div class="wdg-wtag">
-                                                            Latest
+                                                            Dernier relevé
                                                         </div>
                                                         <div class="wdg-wval">
                                                             74.5<span
@@ -587,14 +397,15 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                 );
                                                             "
                                                         >
-                                                            −0.6 kg since 5 Jul
+                                                            −0.6 kg depuis le 5
+                                                            juil.
                                                         </div>
                                                     </div>
                                                     <svg
                                                         class="wdg-wchart"
                                                         viewBox="0 0 300 62"
                                                         role="img"
-                                                        aria-label="Weight from 5 Jul to 11 Jul, latest 74.5 kg"
+                                                        aria-label="Poids du 5 juil. au 11 juil., dernier relevé 74.5 kg"
                                                     >
                                                         <line
                                                             class="wdg-goalline"
@@ -662,24 +473,25 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                 </div>
                                                 <div class="wdg-sec wdg-wfoot">
                                                     <span
-                                                        >7 weigh-ins · 5 Jul →
-                                                        11 Jul</span
+                                                        >7 pesées · 5 juil. →
+                                                        11 juil.</span
                                                     >
                                                     <span
-                                                        ><b>Target 73.0 kg</b> ·
-                                                        1.5 kg to lose</span
+                                                        ><b>Objectif 73.0 kg</b> ·
+                                                        1.5 kg à perdre</span
                                                     >
                                                 </div>
                                             </div>
-                                            You're down 0.6 kg this week and 1.5
-                                            kg from your 73 kg goal — your 7-day
-                                            average is trending down nicely.
+                                            Tu as perdu 0.6 kg cette semaine,
+                                            à 1.5 kg de ton objectif de 73 kg
+                                            — ta moyenne sur 7 jours est en
+                                            baisse, bon rythme.
                                         </div>
                                     </div>
                                 </div>
                                 <div class="cw-input">
                                     <span class="cw-field"
-                                        >Message Nutrition…</span
+                                        >Message à Nutrition…</span
                                     >
                                     <span class="cw-send"
                                         ><i class="fa-solid fa-arrow-up"></i
@@ -687,8 +499,8 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                 </div>`;
 const SLIDE_1_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Log a chicken burrito bowl for
-                                                lunch
+                                                Ajoute un burrito bowl au
+                                                poulet pour le déjeuner
                                             </div>
                                             <div
                                                 class="typing"
@@ -701,11 +513,11 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                 <div class="wdg">
                                                     <div class="wdg-head">
                                                         <div class="wdg-title">
-                                                            Meal logged
+                                                            Repas enregistré
                                                         </div>
                                                         <div class="wdg-sub">
-                                                            Chicken burrito bowl
-                                                            · lunch
+                                                            Burrito bowl au
+                                                            poulet · déjeuner
                                                         </div>
                                                         <div
                                                             class="wdg-meta wdg-kcal"
@@ -751,7 +563,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         class="wdg-callab"
                                                                     >
                                                                         Calories
-                                                                        today
+                                                                        aujourd'hui
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calline"
@@ -770,7 +582,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             1,110
                                                                             kcal
-                                                                            left
+                                                                            restants
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -789,7 +601,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Protein</span
+                                                                                >Protéines</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -821,7 +633,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Carbs</span
+                                                                                >Glucides</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -853,7 +665,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fat</span
+                                                                                >Lipides</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -889,7 +701,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Sugar</span
+                                                                                >Sucre</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -912,7 +724,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
+                                                                            limite
                                                                             45 g
                                                                         </div>
                                                                     </div>
@@ -924,7 +736,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Caffeine</span
+                                                                                >Caféine</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -947,7 +759,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
+                                                                            limite
                                                                             400
                                                                             mg
                                                                         </div>
@@ -960,7 +772,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fiber</span
+                                                                                >Fibres</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -983,7 +795,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            of
+                                                                            sur
                                                                             30 g
                                                                         </div>
                                                                     </div>
@@ -992,10 +804,10 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                     class="wdg-mhint"
                                                                     aria-hidden="true"
                                                                 >
-                                                                    Tap a metric
-                                                                    for the
-                                                                    meals behind
-                                                                    it
+                                                                    Touche une valeur
+                                                                    pour voir les
+                                                                    repas
+                                                                    concernés
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1012,7 +824,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         );
                                                                     "
                                                                 ></span
-                                                                >Water</span
+                                                                >Eau</span
                                                             >
                                                             <div
                                                                 class="wdg-mbar"
@@ -1038,11 +850,12 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                         </div>
                                                     </div>
                                                 </div>
-                                                Got it — added a chicken burrito
-                                                bowl to lunch, about 650 kcal
-                                                (42g protein, 68g carbs, 22g
-                                                fat) and 12g of fiber from the
-                                                beans.
+                                                Ajouté un burrito bowl au
+                                                poulet au déjeuner, environ
+                                                650 kcal (42g de protéines,
+                                                68g de glucides, 22g de
+                                                lipides) et 12g de fibres
+                                                grâce aux haricots.
                                             </div>`;
 const SLIDE_2_HTML_PLACEHOLDER = `
                                             <div
@@ -1053,7 +866,7 @@ const SLIDE_2_HTML_PLACEHOLDER = `
                                                     viewBox="0 0 220 150"
                                                     class="chat-photo"
                                                     role="img"
-                                                    aria-label="Photo of a dinner plate"
+                                                    aria-label="Photo d'une assiette de dîner"
                                                 >
                                                     <rect
                                                         width="220"
@@ -1201,7 +1014,8 @@ const SLIDE_2_HTML_PLACEHOLDER = `
                                                 </svg>
                                             </div>
                                             <div class="msg msg-user">
-                                                Here's my dinner — what's in it?
+                                                Voici mon dîner — qu'est-ce
+                                                qu'il y a dedans ?
                                             </div>
                                             <div
                                                 class="typing"
@@ -1211,10 +1025,12 @@ const SLIDE_2_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                Looks like grilled salmon with
-                                                rice and broccoli — logged to
-                                                dinner, around 540 kcal (38g
-                                                protein, 45g carbs, 20g fat).
+                                                On dirait du saumon grillé
+                                                avec du riz et des brocolis —
+                                                enregistré au dîner, environ
+                                                540 kcal (38g de protéines,
+                                                45g de glucides, 20g de
+                                                lipides).
                                             </div>`;
 const SLIDE_3_HTML_PLACEHOLDER = `
                                             <div
@@ -1225,7 +1041,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                     viewBox="0 0 220 150"
                                                     class="chat-photo"
                                                     role="img"
-                                                    aria-label="Photo of a product barcode"
+                                                    aria-label="Photo d'un code-barres de produit"
                                                 >
                                                     <rect
                                                         width="220"
@@ -1426,7 +1242,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                 </svg>
                                             </div>
                                             <div class="msg msg-user">
-                                                Log this
+                                                Enregistre ça
                                             </div>
                                             <div
                                                 class="typing"
@@ -1436,22 +1252,23 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai step-ask">
-                                                Found it — Chobani Greek yogurt,
-                                                1 cup: 120 kcal, 15g protein.
-                                                Which meal is this?
+                                                Trouvé — yaourt grec Chobani,
+                                                1 tasse : 120 kcal, 15g de
+                                                protéines. C'est pour quel
+                                                repas ?
                                                 <div class="meal-pick">
                                                     <span class="meal-chip"
-                                                        >Breakfast</span
+                                                        >Petit-déjeuner</span
                                                     >
                                                     <span class="meal-chip"
-                                                        >Lunch</span
+                                                        >Déjeuner</span
                                                     >
                                                     <span class="meal-chip"
-                                                        >Dinner</span
+                                                        >Dîner</span
                                                     >
                                                     <span
                                                         class="meal-chip meal-pick-target"
-                                                        >Snack</span
+                                                        >Collation</span
                                                     >
                                                 </div>
                                             </div>
@@ -1459,12 +1276,12 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                 <div class="wdg">
                                                     <div class="wdg-head">
                                                         <div class="wdg-title">
-                                                            Meal logged
+                                                            Repas enregistré
                                                         </div>
                                                         <div class="wdg-sub">
-                                                            Chobani Greek
-                                                            yogurt, 1 cup ·
-                                                            snack
+                                                            Yaourt grec
+                                                            Chobani, 1 tasse ·
+                                                            collation
                                                         </div>
                                                         <div
                                                             class="wdg-meta wdg-kcal"
@@ -1510,7 +1327,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         class="wdg-callab"
                                                                     >
                                                                         Calories
-                                                                        today
+                                                                        aujourd'hui
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calline"
@@ -1529,7 +1346,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             560
                                                                             kcal
-                                                                            left
+                                                                            restants
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -1548,7 +1365,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Protein</span
+                                                                                >Protéines</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1580,7 +1397,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Carbs</span
+                                                                                >Glucides</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1612,7 +1429,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fat</span
+                                                                                >Lipides</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1648,7 +1465,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Sugar</span
+                                                                                >Sucre</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1671,7 +1488,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
+                                                                            limite
                                                                             45 g
                                                                         </div>
                                                                     </div>
@@ -1683,7 +1500,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Caffeine</span
+                                                                                >Caféine</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1706,7 +1523,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
+                                                                            limite
                                                                             400
                                                                             mg
                                                                         </div>
@@ -1719,7 +1536,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fiber</span
+                                                                                >Fibres</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1742,7 +1559,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            of
+                                                                            sur
                                                                             30 g
                                                                         </div>
                                                                     </div>
@@ -1751,21 +1568,23 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                     class="wdg-mhint"
                                                                     aria-hidden="true"
                                                                 >
-                                                                    Tap a metric
-                                                                    for the
-                                                                    meals behind
-                                                                    it
+                                                                    Touche une valeur
+                                                                    pour voir les
+                                                                    repas
+                                                                    concernés
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                Logged to snacks — 120 kcal, 15g
-                                                protein, 9g sugar.
+                                                Enregistré en collation — 120
+                                                kcal, 15g de protéines, 9g de
+                                                sucre.
                                             </div>`;
 const SLIDE_4_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Set my timezone to New York
+                                                Mets mon fuseau horaire sur
+                                                New York
                                             </div>
                                             <div
                                                 class="typing"
@@ -1775,14 +1594,16 @@ const SLIDE_4_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                Done — your days now roll over
-                                                at midnight Eastern, so today's
-                                                totals stay accurate wherever
-                                                you are.
+                                                Fait — tes journées basculent
+                                                maintenant à minuit heure de
+                                                l'Est, tes totaux du jour
+                                                restent donc justes où que tu
+                                                sois.
                                             </div>`;
 const SLIDE_5_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                How am I doing on protein today?
+                                                Où j'en suis avec les
+                                                protéines aujourd'hui ?
                                             </div>
                                             <div
                                                 class="typing"
@@ -1792,14 +1613,15 @@ const SLIDE_5_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                You're at 118g of your 150g goal
-                                                — 32g to go. A cup of Greek
-                                                yogurt or a chicken breast would
-                                                get you there.
+                                                Tu es à 118g sur ton objectif
+                                                de 150g — encore 32g. Une
+                                                tasse de yaourt grec ou un
+                                                blanc de poulet et c'est fait.
                                             </div>`;
 const SLIDE_6_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Show my trends this week
+                                                Montre mes tendances cette
+                                                semaine
                                             </div>
                                             <div
                                                 class="typing"
@@ -1814,7 +1636,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                         class="wdg-head wdg-mid"
                                                     >
                                                         <div class="wdg-title">
-                                                            Trends
+                                                            Tendances
                                                         </div>
                                                         <div
                                                             class="wdg-seg"
@@ -1839,18 +1661,18 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                             <span
                                                                 class="wdg-ctitle"
                                                                 >Calories /
-                                                                day</span
+                                                                jour</span
                                                             >
                                                             <span
                                                                 class="wdg-cmeta"
-                                                                >7/7 days
-                                                                logged</span
+                                                                >7/7 jours
+                                                                enregistrés</span
                                                             >
                                                         </div>
                                                         <svg
                                                             viewBox="0 0 480 54"
                                                             role="img"
-                                                            aria-label="Calories per day over the last 7 days"
+                                                            aria-label="Calories par jour sur les 7 derniers jours"
                                                         >
                                                             <line
                                                                 class="wdg-axis"
@@ -1966,9 +1788,9 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-callab"
                                                                     >
-                                                                        7-day
-                                                                        avg ·
-                                                                        all days
+                                                                        Moy.
+                                                                        7 j ·
+                                                                        tous les jours
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calline"
@@ -1987,7 +1809,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             120
                                                                             kcal
-                                                                            under
+                                                                            sous l'objectif
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -2006,7 +1828,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Protein</span
+                                                                                >Protéines</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2038,7 +1860,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Carbs</span
+                                                                                >Glucides</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2070,7 +1892,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fat</span
+                                                                                >Lipides</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2106,7 +1928,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Sugar</span
+                                                                                >Sucre</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2129,7 +1951,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
+                                                                            limite
                                                                             45 g
                                                                         </div>
                                                                     </div>
@@ -2141,7 +1963,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Caffeine</span
+                                                                                >Caféine</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2164,7 +1986,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
+                                                                            limite
                                                                             400
                                                                             mg
                                                                         </div>
@@ -2177,7 +1999,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fiber</span
+                                                                                >Fibres</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2200,7 +2022,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            of
+                                                                            sur
                                                                             30 g
                                                                         </div>
                                                                     </div>
@@ -2220,7 +2042,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         );
                                                                     "
                                                                 ></span
-                                                                >Water</span
+                                                                >Eau</span
                                                             >
                                                             <div
                                                                 class="wdg-mbar"
@@ -2246,16 +2068,17 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                         </div>
                                                     </div>
                                                 </div>
-                                                You're averaging 1,980 kcal a
-                                                day — 120 under goal, with sugar
-                                                and caffeine both comfortably
-                                                inside your limits. Fiber is
-                                                averaging 26.8 g, just short of
-                                                your 30 g goal.
+                                                Tu es à 1,980 kcal en moyenne
+                                                par jour — 120 sous l'objectif,
+                                                avec le sucre et la caféine
+                                                bien dans leurs limites. Les
+                                                fibres sont en moyenne à
+                                                26.8 g, juste sous ton
+                                                objectif de 30 g.
                                             </div>`;
 const SLIDE_7_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Log my weight, 74.5 kg
+                                                Enregistre mon poids, 74.5 kg
                                             </div>
                                             <div
                                                 class="typing"
@@ -2270,7 +2093,7 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                         class="wdg-head wdg-mid"
                                                     >
                                                         <div class="wdg-title">
-                                                            Weight
+                                                            Poids
                                                         </div>
                                                         <div
                                                             class="wdg-seg"
@@ -2295,7 +2118,7 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                             <div
                                                                 class="wdg-wtag"
                                                             >
-                                                                Latest
+                                                                Dernier relevé
                                                             </div>
                                                             <div
                                                                 class="wdg-wval"
@@ -2313,15 +2136,16 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                                     );
                                                                 "
                                                             >
-                                                                −0.6 kg since 5
-                                                                Jul
+                                                                −0.6 kg
+                                                                depuis le 5
+                                                                juil.
                                                             </div>
                                                         </div>
                                                         <svg
                                                             class="wdg-wchart"
                                                             viewBox="0 0 300 62"
                                                             role="img"
-                                                            aria-label="Weight from 5 Jul to 11 Jul, latest 74.5 kg"
+                                                            aria-label="Poids du 5 juil. au 11 juil., dernier relevé 74.5 kg"
                                                         >
                                                             <line
                                                                 class="wdg-goalline"
@@ -2391,128 +2215,129 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                         class="wdg-sec wdg-wfoot"
                                                     >
                                                         <span
-                                                            >7 weigh-ins · 5 Jul
-                                                            → 11 Jul</span
+                                                            >7 pesées · 5
+                                                            juil. → 11
+                                                            juil.</span
                                                         >
                                                         <span
                                                             ><b
-                                                                >Target 73.0
+                                                                >Objectif 73.0
                                                                 kg</b
                                                             >
-                                                            · 1.5 kg to
-                                                            lose</span
+                                                            · 1.5 kg à
+                                                            perdre</span
                                                         >
                                                     </div>
                                                 </div>
-                                                Logged — you're trending toward
-                                                your goal.
+                                                Enregistré — tu te rapproches
+                                                de ton objectif.
                                             </div>`;
 
-const INDEX_EN: IndexDoc = {
-    title: "Nutrition MCP — AI Meal & Macro Tracker for Claude & ChatGPT",
+export const INDEX_FR: IndexDoc = {
+    title: "Nutrition MCP — Suivi IA des repas et macros pour Claude et ChatGPT",
     metaDescription:
-        "Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, calorie counting, weight tracking, and diet tracking.",
+        "Suis tes repas, macros, poids et historique nutritionnel en conversant avec Claude ou ChatGPT. Serveur MCP gratuit pour enregistrer tes repas, scanner des codes-barres, compter les calories, suivre ton poids et ton alimentation grâce à l'IA.",
     ogDescription:
-        "Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, and weight tracking.",
+        "Suis tes repas, macros, poids et historique nutritionnel en conversant avec Claude ou ChatGPT. Serveur MCP gratuit pour enregistrer tes repas, scanner des codes-barres et suivre ton poids grâce à l'IA.",
     keywords:
-        "nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, weight tracker, weight log, AI nutrition, Model Context Protocol",
+        "suivi nutritionnel, suivi des repas, serveur MCP, Claude AI, ChatGPT, compteur de calories, suivi des macros, scanner de codes-barres, journal alimentaire, suivi de régime, suivi du poids, carnet de poids, nutrition IA, Model Context Protocol",
 
     chatChrome: {
         brand: "Nutrition MCP",
-        status: "online",
-        inputPlaceholder: "Message Nutrition…",
+        status: "en ligne",
+        inputPlaceholder: "Message à Nutrition…",
     },
 
     hero: {
-        eyebrow: "Free · Open source · OAuth 2.0",
-        titleBeforeEm: "Track your nutrition by ",
-        titleEm: "talking",
-        titleAfterEm: " to your AI.",
-        lead: "Connect Claude or ChatGPT, then just say what you ate. Calories and macros, logged automatically.",
-        ctaPrimary: "Quick install",
-        ctaSecondary: "Support",
+        eyebrow: "Gratuit · Open source · OAuth 2.0",
+        titleBeforeEm: "Suis ta nutrition en ",
+        titleEm: "parlant",
+        titleAfterEm: " à ton IA.",
+        lead: "Connecte Claude ou ChatGPT, puis dis simplement ce que tu as mangé. Calories et macros, enregistrées automatiquement.",
+        ctaPrimary: "Installation rapide",
+        ctaSecondary: "Soutenir",
         chipsHtml: HERO_CHIPS_HTML_PLACEHOLDER,
         chatHtml: HERO_CHAT_HTML_PLACEHOLDER,
     },
 
     how: {
-        eyebrow: "How it works",
-        title: "Three steps. No app to learn.",
+        eyebrow: "Comment ça marche",
+        title: "Trois étapes. Aucune app à apprendre.",
         steps: [
             {
-                title: "Connect once",
-                body: "Works with any AI client that supports remote MCP servers — Claude, ChatGPT, and more. No install, no API keys.",
+                title: "Connecte-toi une fois",
+                body: "Fonctionne avec n'importe quel client IA compatible avec les serveurs MCP distants — Claude, ChatGPT, et d'autres. Aucune installation, aucune clé API.",
             },
             {
-                title: "Just say what you ate",
-                body: "Describe it in plain language — or send a photo of your meal, a screenshot from a delivery app, or a barcode (it looks the product up online). Macros logged automatically.",
+                title: "Dis simplement ce que tu as mangé",
+                body: "Décris-le en langage courant — ou envoie une photo de ton repas, une capture d'une app de livraison, ou un code-barres (le produit est recherché en ligne). Macros enregistrées automatiquement.",
             },
             {
-                title: "Track & review",
-                body: "Ask for daily summaries, weekly trends, goal progress, or export everything you've logged as CSV files — completely free.",
+                title: "Suis et consulte",
+                body: "Demande des résumés quotidiens, des tendances hebdomadaires, ta progression vers tes objectifs, ou exporte tout ce que tu as enregistré en fichiers CSV — entièrement gratuit.",
             },
         ],
     },
 
     install: {
-        eyebrow: "Quick install",
-        title: "Connect in under a minute",
-        sub: "Works with any MCP client that supports OAuth 2.0 with PKCE. On first connect you create an account with Google or an email and password; sign in the same way to keep your data.",
+        eyebrow: "Installation rapide",
+        title: "Connecte-toi en moins d'une minute",
+        sub: "Fonctionne avec tout client MCP compatible OAuth 2.0 avec PKCE. À la première connexion, tu crées un compte avec Google ou un e-mail et un mot de passe ; connecte-toi de la même façon pour retrouver tes données.",
         claude: {
             steps: [
-                "Open <strong>Claude</strong> (web or desktop) and click <strong>Customize</strong> in the top-left corner.",
-                "Click <strong>Connectors</strong>.",
-                "Click <strong>+</strong>, then <strong>Add custom connector</strong>.",
-                "Give it a name, for example <strong>Nutrition</strong>.",
-                'Paste <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span> into the <strong>Remote MCP server URL</strong> field.',
-                "Click <strong>Add</strong>.",
-                "Click <strong>Connect</strong> — the login page opens; continue with Google or sign in with an email and password.",
-                "Done. It works right away and shows up in your iOS and Android apps automatically.",
+                "Ouvre <strong>Claude</strong> (web ou bureau) et clique sur <strong>Personnaliser</strong> en haut à gauche.",
+                "Clique sur <strong>Connecteurs</strong>.",
+                "Clique sur <strong>+</strong>, puis <strong>Ajouter un connecteur personnalisé</strong>.",
+                "Donne-lui un nom, par exemple <strong>Nutrition</strong>.",
+                'Colle <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copier l\'URL du serveur"><i class="fa-solid fa-copy"></i></button></span> dans le champ <strong>URL du serveur MCP distant</strong>.',
+                "Clique sur <strong>Ajouter</strong>.",
+                "Clique sur <strong>Connecter</strong> — la page de connexion s'ouvre ; continue avec Google ou connecte-toi avec un e-mail et un mot de passe.",
+                "C'est fait. Ça fonctionne immédiatement et apparaît automatiquement dans tes apps iOS et Android.",
             ],
-            note: "Works on every Claude plan. The free plan allows one connected MCP server at a time.",
+            note: "Fonctionne sur tous les forfaits Claude. Le forfait gratuit permet un serveur MCP connecté à la fois.",
         },
         chatgpt: {
             steps: [
-                "Open <strong>ChatGPT on the web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.",
-                "Click <strong>Create app</strong> at the bottom of the popup. If you don't see it, turn on <strong>Developer mode</strong> in <strong>Advanced settings</strong>.",
-                "Give it a name, for example <strong>Nutrition</strong>.",
-                'For <strong>Connection</strong>, paste <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span>.',
-                "For <strong>Authentication</strong>, choose <strong>OAuth</strong> — leave everything else as it is.",
-                'Check <strong>"I understand and want to continue"</strong>.',
-                "Click <strong>Create</strong>.",
-                "Click <strong>Sign in with Nutrition</strong> — the login page opens; continue with Google or sign in with an email and password.",
-                "Done. It works right away and shows up in your iOS and Android apps automatically.",
+                "Ouvre <strong>ChatGPT sur le web</strong> → <strong>Paramètres</strong> → <strong>Applications</strong>.",
+                "Clique sur <strong>Créer une application</strong> en bas de la fenêtre. Si tu ne le vois pas, active le <strong>Mode développeur</strong> dans <strong>Paramètres avancés</strong>.",
+                "Donne-lui un nom, par exemple <strong>Nutrition</strong>.",
+                'Pour <strong>Connexion</strong>, colle <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copier l\'URL du serveur"><i class="fa-solid fa-copy"></i></button></span>.',
+                "Pour <strong>Authentification</strong>, choisis <strong>OAuth</strong> — laisse tout le reste tel quel.",
+                "Coche <strong>« I understand and want to continue »</strong>.",
+                "Clique sur <strong>Créer</strong>.",
+                "Clique sur <strong>Se connecter avec Nutrition</strong> — la page de connexion s'ouvre ; continue avec Google ou connecte-toi avec un e-mail et un mot de passe.",
+                "C'est fait. Ça fonctionne immédiatement et apparaît automatiquement dans tes apps iOS et Android.",
             ],
         },
         other: {
-            note: "Add the config above to your client (Cursor, VS Code, Claude Code, and more). Windsurf uses <code>serverUrl</code> instead of <code>url</code>. In Claude Code, run <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Your client handles the OAuth login automatically.",
+            note: "Ajoute la config ci-dessus à ton client (Cursor, VS Code, Claude Code, et d'autres). Windsurf utilise <code>serverUrl</code> au lieu de <code>url</code>. Dans Claude Code, exécute <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Ton client gère la connexion OAuth automatiquement.",
         },
     },
 
     onboarding: {
-        eyebrow: "Onboarding",
-        title: "Set up once — or just start talking",
-        sub: "This is completely optional — Nutrition MCP works the moment you connect. If you want, these two quick steps make it more accurate, but you can skip straight to logging.",
+        eyebrow: "Prise en main",
+        title: "Configure une fois — ou commence direct à parler",
+        sub: "C'est entièrement facultatif — Nutrition MCP fonctionne dès que tu te connectes. Si tu veux, ces deux étapes rapides le rendent plus précis, mais tu peux aussi passer directement à l'enregistrement.",
         steps: [
-            '<strong>Set your timezone</strong> — so days roll over at your local midnight and today\'s totals stay accurate wherever you are. <span class="step-say">Just say <q>Set my timezone to New York</q>.</span>',
-            '<strong>Set your goals</strong> — daily calorie, macro, and water targets, plus an optional target weight and your preferred weight unit (kg or lb), to track your progress against. <span class="step-say">Just say <q>Set my daily goal to 2,000 calories and 150g of protein</q>.</span>',
-            '<strong>Start logging</strong> — just say what you ate, send a photo or scan a barcode. That\'s it. <span class="step-say">Just say <q>I had oatmeal with berries for breakfast</q>.</span>',
+            '<strong>Définis ton fuseau horaire</strong> — pour que tes journées basculent à minuit heure locale et que les totaux du jour restent justes où que tu sois. <span class="step-say">Dis simplement <q>Mets mon fuseau horaire sur New York</q>.</span>',
+            '<strong>Définis tes objectifs</strong> — cibles quotidiennes de calories, macros et eau, plus un poids cible facultatif et ton unité de poids préférée (kg ou lb), pour suivre ta progression. <span class="step-say">Dis simplement <q>Mets mon objectif quotidien à 2 000 calories et 150g de protéines</q>.</span>',
+            "<strong>Commence à enregistrer</strong> — dis simplement ce que tu as mangé, envoie une photo ou scanne un code-barres. C'est tout. <span class=\"step-say\">Dis simplement <q>J'ai pris du porridge avec des fruits rouges au petit-déjeuner</q>.</span>",
         ],
-        note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
+        note: "Tout ceci est facultatif. Tu peux le faire maintenant, plus tard, ou jamais — commence simplement à enregistrer et règle ça quand tu veux.",
         toolsCta: {
-            heading: "Curious what it can actually do?",
-            body: "Browse all 38 tools — logging, barcodes, water, weight, goals, and trends — with a description and an example prompt for each.",
-            arrow: "Explore the tools",
+            heading: "Curieux de voir tout ce que ça peut faire ?",
+            body: "Parcours les 38 outils — enregistrement, codes-barres, eau, poids, objectifs et tendances — avec une description et un exemple de formulation pour chacun.",
+            arrow: "Explorer les outils",
         },
     },
 
     try: {
-        eyebrow: "Try saying",
-        title: "Just talk to it.",
-        sub: "A few of the things you can do — just by talking.",
-        prevLabel: "Previous example",
-        nextLabel: "Next example",
-        exampleLabel: "Example",
+        eyebrow: "Essaie de dire",
+        title: "Il te suffit de lui parler.",
+        sub: "Quelques exemples de ce que tu peux faire — juste en parlant.",
+        prevLabel: "Exemple précédent",
+        nextLabel: "Exemple suivant",
+        exampleLabel: "Exemple",
         slides: [
             { html: SLIDE_1_HTML_PLACEHOLDER },
             { html: SLIDE_2_HTML_PLACEHOLDER },
@@ -2525,155 +2350,162 @@ const INDEX_EN: IndexDoc = {
     },
 
     stats: {
-        eyebrow: "Tracked so far, together",
-        title: "A growing global food log",
-        factsTitle: "Nutrition Facts",
-        servingPrefix: "Serving size ",
-        servingBold: "everyone, so far",
-        liveLabel: "Live",
+        eyebrow: "Suivi jusqu'ici, ensemble",
+        title: "Un journal alimentaire mondial en pleine croissance",
+        factsTitle: "Valeurs nutritionnelles",
+        servingPrefix: "Portion ",
+        servingBold: "tout le monde, jusqu'ici",
+        liveLabel: "En direct",
         calLabel: "Calories ",
-        calSmall: "tracked, all time",
-        calCaption: "Calories tracked",
-        rowFoodLogs: "Food logs",
-        rowProtein: "Protein",
-        rowCarbs: "Carbohydrates",
-        rowFat: "Fat",
-        foot: "Totals across every account, updated as meals are logged. Individual data is never shown.",
-        mapPrefix: "Logged across",
-        mapSuffix: "timezones worldwide",
-        mapAriaLabel: "World map showing timezones where Nutrition MCP is used",
+        calSmall: "suivies, au total",
+        calCaption: "Calories suivies",
+        rowFoodLogs: "Repas enregistrés",
+        rowProtein: "Protéines",
+        rowCarbs: "Glucides",
+        rowFat: "Lipides",
+        foot: "Totaux tous comptes confondus, mis à jour à chaque repas enregistré. Les données individuelles ne sont jamais affichées.",
+        mapPrefix: "Enregistré dans",
+        mapSuffix: "fuseaux horaires à travers le monde",
+        mapAriaLabel:
+            "Carte du monde montrant les fuseaux horaires où Nutrition MCP est utilisé",
     },
 
     features: {
-        eyebrow: "Everything, just by chatting",
-        title: "What you can track",
+        eyebrow: "Tout, juste en discutant",
+        title: "Ce que tu peux suivre",
         cards: [
             {
                 icon: "fa-solid fa-utensils",
-                title: "Meals in plain language",
-                body: "Describe what you ate — your AI estimates calories, protein, carbs, fat, fiber, total sugar, and caffeine in milligrams and logs it.",
+                title: "Repas en langage courant",
+                body: "Décris ce que tu as mangé — ton IA estime les calories, protéines, glucides, lipides, fibres, sucres totaux et caféine en milligrammes, et l'enregistre.",
             },
             {
                 icon: "fa-solid fa-barcode",
-                title: "Scan a barcode",
-                body: "Snap or type a product barcode and pull macros, fiber, and sugar from Open Food Facts, scaled to how much you ate.",
+                title: "Scanne un code-barres",
+                body: "Prends en photo ou tape le code-barres d'un produit et récupère les macros, fibres et sucres depuis Open Food Facts, ajustés à la quantité que tu as mangée.",
             },
             {
                 icon: "fa-solid fa-bullseye",
-                title: "Goals & progress",
-                body: "Set daily calorie, macro, fiber, and water targets — plus sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
+                title: "Objectifs et progression",
+                body: "Définis des cibles quotidiennes de calories, macros, fibres et eau — plus des limites de sucre, caféine et alcool à ne pas dépasser — et suis ta progression en direct.",
             },
             {
                 icon: "fa-solid fa-chart-area",
-                title: "Summaries & trends",
-                body: "Daily and weekly breakdowns, 7/14/30-day trends, streaks, and recurring meal patterns.",
+                title: "Résumés et tendances",
+                body: "Bilans quotidiens et hebdomadaires, tendances sur 7/14/30 jours, séries et habitudes alimentaires récurrentes.",
             },
             {
                 icon: "fa-solid fa-glass-water",
-                title: "Water logging",
-                body: "Track hydration in milliliters alongside your meals and review it by day.",
+                title: "Suivi de l'eau",
+                body: "Suis ton hydratation en millilitres en plus de tes repas et consulte-la jour par jour.",
             },
             {
                 icon: "fa-solid fa-weight-scale",
-                title: "Weight tracking",
-                body: "Log your body weight in kg or lb, see 7/14/30-day trends, and track progress toward a target weight.",
+                title: "Suivi du poids",
+                body: "Enregistre ton poids en kg ou en lb, consulte les tendances sur 7/14/30 jours et suis ta progression vers un poids cible.",
             },
             {
                 icon: "fa-solid fa-clock-four",
-                title: "Timezone-aware",
-                body: "Days roll over in your local time, wherever you are in the world.",
+                title: "Adapté au fuseau horaire",
+                body: "Tes journées basculent à ton heure locale, où que tu sois dans le monde.",
             },
             {
                 icon: "fa-solid fa-file-import",
-                title: "Import from another app",
-                body: "Bring your meal history over from MyFitnessPal, Cronometer, Lose It!, or MacroFactor — or any other CSV, by mapping its columns yourself. You confirm what gets added before anything is saved.",
+                title: "Importer depuis une autre app",
+                body: "Récupère ton historique de repas depuis MyFitnessPal, Cronometer, Lose It! ou MacroFactor — ou n'importe quel autre CSV, en associant toi-même ses colonnes. Tu confirmes ce qui sera ajouté avant que rien ne soit enregistré.",
             },
             {
                 icon: "fa-solid fa-file-csv",
-                title: "Export & own your data",
-                body: "Take everything you have here — meals, water, weight, goals, and profile — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
+                title: "Exporte et garde le contrôle de tes données",
+                body: "Récupère tout ce que tu as ici — repas, eau, poids, objectifs et profil — dans un seul ZIP de fichiers CSV. Les repas sont pour l'instant la seule partie qui peut être réimportée. Supprime ton compte et tes données quand tu veux.",
             },
         ],
     },
 
     why: {
-        eyebrow: "Why Nutrition MCP",
-        title: "Talking beats tapping.",
-        sub: "Snap a barcode or just say what you ate — no database digging, no separate app to open.",
-        oldHeading: "Traditional apps",
+        eyebrow: "Pourquoi Nutrition MCP",
+        title: "Parler bat taper.",
+        sub: "Scanne un code-barres ou dis simplement ce que tu as mangé — pas de fouille dans une base de données, pas d'app séparée à ouvrir.",
+        oldHeading: "Apps traditionnelles",
         oldItems: [
-            "Search a database for every item",
-            "Fix wrong database entries by hand",
-            "Yet another app, account, and paywall",
-            "Tedious manual logging",
+            "Chercher chaque aliment dans une base de données",
+            "Corriger à la main les entrées erronées",
+            "Encore une app, un compte et un mur payant",
+            "Enregistrement manuel fastidieux",
         ],
         newHeading: "Nutrition MCP",
         newItems: [
-            "Describe meals in plain language",
-            "Calories & macros estimated for you",
-            "Works inside Claude or ChatGPT, free",
-            "Ask for trends, summaries, and goals",
+            "Décris tes repas en langage courant",
+            "Calories et macros estimées pour toi",
+            "Fonctionne dans Claude ou ChatGPT, gratuit",
+            "Demande tendances, résumés et objectifs",
         ],
         noteHtml:
-            'Switching from a specific app? See how Nutrition MCP compares to <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer, and other trackers</a>.',
+            'Tu viens d\'une app en particulier ? Découvre comment Nutrition MCP se compare à <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer et d\'autres trackers</a>.',
     },
 
     trust: [
-        { label: "Private by default", small: "Only you can see your data." },
-        { label: "Open source", small: "Audit or self-host it." },
         {
-            label: "Export anytime",
-            small: "Every table as CSV, in one ZIP.",
+            label: "Privé par défaut",
+            small: "Toi seul peux voir tes données.",
         },
-        { label: "Delete instantly", small: "Remove your account & data." },
+        { label: "Open source", small: "Audite-le ou héberge-le toi-même." },
+        {
+            label: "Exporte à tout moment",
+            small: "Chaque table en CSV, dans un seul ZIP.",
+        },
+        {
+            label: "Supprime instantanément",
+            small: "Retire ton compte et tes données.",
+        },
     ],
 
     support: {
-        eyebrow: "Support",
-        title: "Help keep it running.",
-        sub: "Nutrition MCP is free and ad-free. Patreon covers the server and database bills.",
+        eyebrow: "Soutien",
+        title: "Aide à le faire tourner.",
+        sub: "Nutrition MCP est gratuit et sans publicité. Patreon couvre les frais de serveur et de base de données.",
         free: {
-            tier: "Free member",
-            price: "$0",
-            desc: "Follow along — get news and updates about the server, new tools, and what's coming next.",
-            cta: "Follow on Patreon",
+            tier: "Membre gratuit",
+            price: "0 $",
+            desc: "Suis l'actualité — reçois les nouvelles et mises à jour sur le serveur, les nouveaux outils et ce qui arrive ensuite.",
+            cta: "Suivre sur Patreon",
         },
         paid: {
-            tier: "Paid member",
-            price: "Pay what you want",
-            desc: "Chip in for hosting and database costs so the server stays free and online for everyone.",
-            cta: "Become a supporter",
+            tier: "Membre payant",
+            price: "Paie ce que tu veux",
+            desc: "Contribue aux frais d'hébergement et de base de données pour que le serveur reste gratuit et en ligne pour tout le monde.",
+            cta: "Devenir soutien",
         },
     },
 
     cta: {
-        title: "Start tracking in under a minute.",
-        sub: "Free and open source — it works with the AI you already use.",
-        primary: "Quick install",
-        secondary: "Star on GitHub",
+        title: "Commence à suivre en moins d'une minute.",
+        sub: "Gratuit et open source — ça fonctionne avec l'IA que tu utilises déjà.",
+        primary: "Installation rapide",
+        secondary: "Star sur GitHub",
     },
 
     contact: {
         eyebrow: "Contact",
-        title: "Questions or feedback?",
-        sub: "Found a bug, want a feature, or just have a question? Email me directly — I read every message.",
-        cta: "Send an email",
+        title: "Des questions ou des retours ?",
+        sub: "Un bug trouvé, une fonctionnalité souhaitée, ou juste une question ? Écris-moi directement — je lis chaque message.",
+        cta: "Envoyer un e-mail",
     },
 
     faqSection: {
         eyebrow: "FAQ",
-        title: "Frequently asked questions",
+        title: "Questions fréquentes",
     },
     faq: [
         {
-            question: "What is Nutrition MCP?",
+            question: "Qu'est-ce que Nutrition MCP ?",
             visibleHtml:
-                "Nutrition MCP is a free Model Context Protocol (MCP) server that lets you track meals, calories, macros, and nutrition history through natural conversation with Claude or ChatGPT. Instead of typing into a traditional app, you tell your AI what you ate and it logs everything for you.",
+                "Nutrition MCP est un serveur Model Context Protocol (MCP) gratuit qui te permet de suivre tes repas, calories, macros et historique nutritionnel par simple conversation avec Claude ou ChatGPT. Plutôt que de taper dans une app traditionnelle, tu dis à ton IA ce que tu as mangé et elle enregistre tout pour toi.",
         },
         {
-            question: "What is the Model Context Protocol (MCP)?",
+            question: "Qu'est-ce que le Model Context Protocol (MCP) ?",
             visibleHtml:
-                "The Model Context Protocol is an open standard that lets AI assistants like Claude and ChatGPT connect to external tools and data sources. An MCP server provides specific capabilities — here, nutrition tracking — that the AI can use during a conversation. Think of it as a plugin system for AI assistants.",
+                "Le Model Context Protocol est un standard ouvert qui permet à des assistants IA comme Claude et ChatGPT de se connecter à des outils et sources de données externes. Un serveur MCP fournit des capacités précises — ici, le suivi nutritionnel — que l'IA peut utiliser pendant une conversation. Vois ça comme un système de plugins pour assistants IA.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -2681,58 +2513,47 @@ const INDEX_EN: IndexDoc = {
             // standalone by search engines, states it explicitly. This
             // mismatch predates this extraction — preserved verbatim rather
             // than silently reconciled.
-            question: "Does it work with ChatGPT?",
+            question: "Ça fonctionne avec ChatGPT ?",
             visibleHtml:
-                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL using OAuth, and sign in. It works on every ChatGPT plan.",
+                "Oui. Dans ChatGPT sur le web, ouvre Paramètres → Applications, crée une app personnalisée avec l'URL du serveur via OAuth, et connecte-toi. Ça fonctionne sur tous les forfaits ChatGPT.",
             jsonLdText:
-                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL https://nutrition-mcp.com/mcp using OAuth, and sign in. It works on every ChatGPT plan.",
+                "Oui. Dans ChatGPT sur le web, ouvre Paramètres → Applications, crée une app personnalisée avec l'URL du serveur https://nutrition-mcp.com/mcp via OAuth, et connecte-toi. Ça fonctionne sur tous les forfaits ChatGPT.",
         },
         {
-            question: "Which other clients are supported?",
+            question: "Quels autres clients sont pris en charge ?",
             visibleHtml:
-                "Any MCP client that supports OAuth 2.0 with PKCE — including Claude.ai, the Claude desktop and mobile apps, Claude Code, Cursor, Windsurf, and VS Code.",
+                "Tout client MCP compatible OAuth 2.0 avec PKCE — dont Claude.ai, les apps Claude bureau et mobile, Claude Code, Cursor, Windsurf et VS Code.",
         },
         {
-            question: "Can I self-host it?",
+            question: "Puis-je l'héberger moi-même ?",
             visibleHtml:
-                'Yes. Nutrition MCP is open source (MIT). You can run your own instance with your own Supabase project — the <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub repository</a> includes a full self-hosting guide and a Dockerfile.',
+                'Oui. Nutrition MCP est open source (MIT). Tu peux faire tourner ta propre instance avec ton propre projet Supabase — le <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">dépôt GitHub</a> inclut un guide d\'auto-hébergement complet et un Dockerfile.',
         },
         {
-            question: "Is Nutrition MCP free?",
+            question: "Nutrition MCP est-il gratuit ?",
             visibleHtml:
-                "Yes, it is completely free — no premium tiers, ads, or hidden costs. You just need a Claude or ChatGPT account to connect. Donations on Patreon help cover server costs.",
+                "Oui, c'est entièrement gratuit — pas de forfait premium, de publicité ni de frais cachés. Il te faut juste un compte Claude ou ChatGPT pour te connecter. Les dons sur Patreon aident à couvrir les frais de serveur.",
         },
         {
-            question: "What can I track?",
+            question: "Que puis-je suivre ?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, fiber, total sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol is tracked as well, in grams of pure ethanol, once you switch it on. You can also log your body weight in kg or lb and track trends toward a target weight. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protéines, glucides, lipides, fibres, sucres totaux et eau pour chaque entrée — décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool est suivi également, en grammes d'éthanol pur, une fois que tu l'actives. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Consulte des résumés quotidiens, interroge tes repas par période, modifie ou supprime des entrées passées, définis des objectifs et surveille les tendances dans le temps.",
         },
         {
-            question: "Does it track alcohol?",
+            question: "Est-ce que ça suit l'alcool ?",
             visibleHtml:
-                "Only if you turn it on — alcohol tracking is off by default. Switched on, drinks are recorded in grams of pure ethanol and shown as US standard drinks or UK units, whichever you prefer. Nothing infers alcohol for you: it comes from a drink you log or an alcohol column in a file you import. Switching it back off hides alcohol from your meals, goals, and summaries and stops the importer reading alcohol columns — it is not a delete switch, and your CSV export always includes what you logged.",
+                "Seulement si tu l'actives — le suivi de l'alcool est désactivé par défaut. Une fois activé, les boissons sont enregistrées en grammes d'éthanol pur et affichées en verres standards américains ou en unités britanniques, selon ta préférence. Rien n'est déduit automatiquement pour toi : ça vient d'une boisson que tu enregistres ou d'une colonne alcool dans un fichier que tu importes. Le désactiver à nouveau masque l'alcool de tes repas, objectifs et résumés et empêche l'importateur de lire les colonnes alcool — ce n'est pas un interrupteur de suppression, et ton export CSV inclut toujours ce que tu as enregistré.",
         },
         {
             question:
-                "Can I import my history from MyFitnessPal or another app?",
+                "Puis-je importer mon historique depuis MyFitnessPal ou une autre app ?",
             visibleHtml:
-                "Yes. Ask to import your history and an importer opens in the chat: you pick the CSV your old app exported, check how its columns map, and see what will be added before confirming. Exports from MyFitnessPal, Cronometer, Lose It!, and MacroFactor are recognised automatically, and any other CSV works by mapping the columns yourself. Your browser reads the file, so the AI never retypes your rows. In clients without in-chat panels you can paste your export instead — and importing the same file twice does not create duplicates.",
+                "Oui. Demande à importer ton historique et un importateur s'ouvre dans le chat : tu choisis le CSV exporté par ton ancienne app, tu vérifies comment ses colonnes sont associées, et tu vois ce qui sera ajouté avant de confirmer. Les exports de MyFitnessPal, Cronometer, Lose It! et MacroFactor sont reconnus automatiquement, et tout autre CSV fonctionne en associant toi-même les colonnes. Ton navigateur lit le fichier, donc l'IA ne retape jamais tes lignes. Dans les clients sans panneaux intégrés au chat, tu peux coller ton export à la place — et importer deux fois le même fichier ne crée pas de doublons.",
         },
         {
-            question: "Is my data private?",
+            question: "Mes données sont-elles privées ?",
             visibleHtml:
-                "Your data is stored securely and linked to your personal account. Only you can access your nutrition history through your authenticated session. Nutrition MCP does not sell or share your data, and you can delete your account and all data at any time.",
+                "Tes données sont stockées de façon sécurisée et liées à ton compte personnel. Toi seul peux accéder à ton historique nutritionnel via ta session authentifiée. Nutrition MCP ne vend ni ne partage tes données, et tu peux supprimer ton compte et toutes tes données à tout moment.",
         },
     ],
-};
-
-export const INDEX: Partial<Record<SiteLocale, IndexDoc>> = {
-    en: INDEX_EN,
-    de: INDEX_DE,
-    es: INDEX_ES,
-    fr: INDEX_FR,
-    nl: INDEX_NL,
-    pl: INDEX_PL,
-    it: INDEX_IT,
-    uk: INDEX_UK,
 };

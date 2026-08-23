@@ -45,6 +45,30 @@ export const TRANSLATION_NOTICE: Partial<
         text: "Diese Seite wurde mit KI aus dem Englischen übersetzt und wurde nicht von einer Person überprüft.",
         linkText: "Original auf Englisch lesen",
     },
+    es: {
+        text: "Esta página fue traducida con IA a partir del inglés y no ha sido revisada por una persona.",
+        linkText: "Leer el original en inglés",
+    },
+    fr: {
+        text: "Cette page a été traduite avec l'IA à partir de l'anglais et n'a pas été relue par une personne.",
+        linkText: "Lire l'original en anglais",
+    },
+    nl: {
+        text: "Deze pagina is met AI vertaald vanuit het Engels en is niet door een mens gecontroleerd.",
+        linkText: "Origineel in het Engels lezen",
+    },
+    pl: {
+        text: "Ta strona została przetłumaczona przez sztuczną inteligencję z języka angielskiego i nie została sprawdzona przez człowieka.",
+        linkText: "Przeczytaj oryginał po angielsku",
+    },
+    it: {
+        text: "Questa pagina è stata tradotta con l'IA dall'inglese e non è stata rivista da una persona.",
+        linkText: "Leggi l'originale in inglese",
+    },
+    uk: {
+        text: "Цю сторінку перекладено за допомогою ШІ з англійської, і її не перевіряла людина.",
+        linkText: "Читати оригінал англійською",
+    },
 };
 
 /** IETF BCP 47 tag for `<html lang>` — a bare 2-letter code for every locale

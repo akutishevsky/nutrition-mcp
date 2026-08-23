@@ -1,225 +1,31 @@
-// Typed content for the landing page (public/index.html), rendered by
-// scripts/gen-index.ts. Extracted from the previously hand-authored
-// public/index.html so English and every future translation go through the
-// same generator instead of a hand-authored English file sitting next to
-// generated ones (see CLAUDE.md's "Public site" section, and
-// src/copy/legal.ts for the pattern this follows).
-//
-// `Html`-suffixed fields carry trusted inline markup (<strong>, <a href>,
-// <em>, <q>, the decorative chat-widget preview markup) — same trust level
-// as the rest of the scripts/gen-*.ts family: developer-authored constants,
-// not visitor input, so nothing here is HTML-escaped on the way out. Plain
-// fields (no `Html` suffix) are plain text and get run through esc() by the
-// generator.
-//
-// Design choice worth flagging: the hero's decorative chat demo and the
-// "Try saying" carousel's seven example exchanges are each stored as ONE
-// trusted HTML block per message (see `heroChatHtml` and `TrySlide.aiHtml`)
-// rather than exploded into one field per widget label ("Protein", "Calories
-// today", ...). Those labels are illustrative UI chrome mimicking the real
-// in-chat widgets (see public/widgets/STYLE_GUIDE.md), not sentence-level
-// prose that reorders per language, and they repeat near-identically across
-// eight widget instances — typing each one separately would multiply the
-// same handful of words dozens of times for no translation benefit. The
-// genuinely sentence-level prose (what the user typed, the assistant's
-// concluding sentence) lives inside these same HTML blocks, extracted
-// verbatim, exactly the way src/copy/legal.ts inlines prose inside trusted
-// HTML `<li>`/`<p>` strings. A future translation edits the HTML directly,
-// same as it would for any legal.ts block.
-//
-// INDEX is `Partial<Record<SiteLocale, IndexDoc>>`, not the full `Record`,
-// while translation is still in progress — see legal.ts's PRIVACY/TERMS for
-// why. This pass is English-only: no other locale entry exists yet.
+// Ukrainian translation of IndexDoc for the landing page. See
+// src/copy/index.ts for the structural notes on Html-suffixed trusted
+// markup fields and why the decorative hero chat demo / "Try saying"
+// carousel are stored as whole HTML blocks rather than per-label fields.
+// The widget-chrome labels inside those HTML blocks (Protein, Carbs,
+// Water, "Meal logged", etc.) are translated in place, verbatim markup
+// otherwise untouched; aria-label / class / data-* attribute values are
+// left as-is per that file's guidance to keep markup and attributes
+// untranslated.
 
-import type { SiteLocale } from "../routes.js";
-import { INDEX_DE } from "./index.de.js";
-import { INDEX_ES } from "./index.es.js";
-import { INDEX_FR } from "./index.fr.js";
-import { INDEX_NL } from "./index.nl.js";
-import { INDEX_PL } from "./index.pl.js";
-import { INDEX_IT } from "./index.it.js";
-import { INDEX_UK } from "./index.uk.js";
-
-/** One FAQ entry. `visibleHtml` is what a human reads in the <details>.
- * `jsonLdText` is optional: when omitted, the generator derives the
- * JSON-LD `Answer.text` by stripping tags out of `visibleHtml`, which is
- * exactly right for every FAQ answer that contains no markup of its own
- * (or whose only markup is an inline link whose surrounding words already
- * read as one sentence, e.g. "Can I self-host it?"). Two entries carry an
- * explicit override because the current page's JSON-LD and visible copy
- * already diverge in wording (pre-existing, not introduced by this
- * extraction) — see the "Does it work with ChatGPT?" entry below. */
-export interface FaqEntry {
-    question: string;
-    visibleHtml: string;
-    jsonLdText?: string;
-}
-
-export interface TrySlide {
-    /** One example exchange's full `.mini-chat` content — trusted HTML,
-     * verbatim: the user's message, the typing indicator, any decorative
-     * widget preview, and the assistant's concluding sentence. Kept as one
-     * block rather than split into user/assistant fields because two of
-     * the seven slides lead with a decorative photo/barcode SVG before the
-     * user message, so there is no single fixed shape the generator could
-     * safely reassemble from separate fields without duplicating markup. */
-    html: string;
-}
-
-export interface FeatureCard {
-    /** Font Awesome icon class, e.g. "fa-solid fa-utensils" — not prose,
-     * kept here only so each card's icon travels with its text. */
-    icon: string;
-    title: string;
-    body: string;
-}
-
-export interface IndexDoc {
-    title: string;
-    metaDescription: string;
-    ogDescription: string;
-    keywords: string;
-
-    chatChrome: {
-        brand: string;
-        status: string;
-        inputPlaceholder: string;
-    };
-
-    hero: {
-        eyebrow: string;
-        titleBeforeEm: string;
-        titleEm: string;
-        titleAfterEm: string;
-        lead: string;
-        ctaPrimary: string;
-        ctaSecondary: string;
-        /** Floating macro chips beside the demo card — trusted HTML. */
-        chipsHtml: string;
-        /** The decorative chat demo's message thread — trusted HTML. */
-        chatHtml: string;
-    };
-
-    how: {
-        eyebrow: string;
-        title: string;
-        steps: { title: string; body: string }[];
-    };
-
-    install: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        claude: { steps: string[]; note: string };
-        chatgpt: { steps: string[] };
-        other: { note: string };
-    };
-
-    onboarding: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        steps: string[];
-        note: string;
-        toolsCta: { heading: string; body: string; arrow: string };
-    };
-
-    try: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        slides: TrySlide[];
-        prevLabel: string;
-        nextLabel: string;
-        exampleLabel: string;
-    };
-
-    stats: {
-        eyebrow: string;
-        title: string;
-        factsTitle: string;
-        servingPrefix: string;
-        servingBold: string;
-        liveLabel: string;
-        calLabel: string;
-        calSmall: string;
-        calCaption: string;
-        rowFoodLogs: string;
-        rowProtein: string;
-        rowCarbs: string;
-        rowFat: string;
-        foot: string;
-        mapPrefix: string;
-        mapSuffix: string;
-        mapAriaLabel: string;
-    };
-
-    features: {
-        eyebrow: string;
-        title: string;
-        cards: FeatureCard[];
-    };
-
-    why: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        oldHeading: string;
-        oldItems: string[];
-        newHeading: string;
-        newItems: string[];
-        /** Trusted HTML — contains a link to /alternatives marked with
-         * data-link="alternatives" for the generator to localize. */
-        noteHtml: string;
-    };
-
-    trust: { label: string; small: string }[];
-
-    support: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        free: { tier: string; price: string; desc: string; cta: string };
-        paid: { tier: string; price: string; desc: string; cta: string };
-    };
-
-    cta: {
-        title: string;
-        sub: string;
-        primary: string;
-        secondary: string;
-    };
-
-    contact: {
-        eyebrow: string;
-        title: string;
-        sub: string;
-        cta: string;
-    };
-
-    faqSection: {
-        eyebrow: string;
-        title: string;
-    };
-    faq: FaqEntry[];
-}
+import type { IndexDoc } from "./index.js";
 
 const HERO_CHIPS_HTML_PLACEHOLDER = `
                             <span class="chip chip-1"
                                 ><i style="--c: var(--cal)"></i
-                                ><b>+340</b> kcal</span
+                                ><b>+340</b> ккал</span
                             >
                             <span class="chip chip-2"
                                 ><i style="--c: #8b5cf6"></i
-                                ><b>20 g</b> protein</span
+                                ><b>20 г</b> білка</span
                             >
                             <span class="chip chip-3"
                                 ><i style="--c: #10b981"></i
-                                ><b>30 g</b> carbs</span
+                                ><b>30 г</b> вуглеводів</span
                             >
                             <span class="chip chip-4"
                                 ><i style="--c: #0ea5e9"></i
-                                ><b>500 ml</b> water</span
+                                ><b>500 мл</b> води</span
                             >`;
 const HERO_CHAT_HTML_PLACEHOLDER = `
                                 <div class="cw-header">
@@ -227,29 +33,27 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                         ><i class="fa-solid fa-apple-whole"></i
                                     ></span>
                                     <span class="cw-title">Nutrition MCP</span>
-                                    <span class="cw-status">online</span>
+                                    <span class="cw-status">онлайн</span>
                                 </div>
                                 <div class="cw-body">
                                     <div class="chat-thread">
                                         <div class="msg msg-user">
-                                            Two eggs, whole-wheat toast, and a
-                                            coffee for breakfast
+                                            Два яйця, цільнозерновий тост і кава на сніданок
                                         </div>
 
                                         <div class="msg msg-ai">
                                             <div class="wdg">
                                                 <div class="wdg-head">
                                                     <div class="wdg-title">
-                                                        Meal logged
+                                                        Прийом їжі додано
                                                     </div>
                                                     <div class="wdg-sub">
-                                                        Two eggs, toast &amp;
-                                                        coffee · breakfast
+                                                        Два яйця, тост і кава · сніданок
                                                     </div>
                                                     <div
                                                         class="wdg-meta wdg-kcal"
                                                     >
-                                                        +340 kcal
+                                                        +340 ккал
                                                     </div>
                                                 </div>
                                                 <div class="wdg-strip">
@@ -287,8 +91,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                 <div
                                                                     class="wdg-callab"
                                                                 >
-                                                                    Calories
-                                                                    today
+                                                                    Калорії сьогодні
                                                                 </div>
                                                                 <div
                                                                     class="wdg-calline"
@@ -305,9 +108,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-calleft"
                                                                     >
-                                                                        1,760
-                                                                        kcal
-                                                                        left
+                                                                        1 760 ккал залишилось
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -324,7 +125,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Protein</span
+                                                                            >Білки</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -356,7 +157,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Carbs</span
+                                                                            >Вуглеводи</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -388,7 +189,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Fat</span
+                                                                            >Жири</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -424,7 +225,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Sugar</span
+                                                                            >Цукор</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -447,8 +248,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-mcap"
                                                                     >
-                                                                        limit 45
-                                                                        g
+                                                                        ліміт 45 г
                                                                     </div>
                                                                 </div>
                                                                 <div
@@ -459,7 +259,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Caffeine</span
+                                                                            >Кофеїн</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -482,8 +282,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-mcap"
                                                                     >
-                                                                        limit
-                                                                        400 mg
+                                                                        ліміт 400 мг
                                                                     </div>
                                                                 </div>
                                                                 <div
@@ -494,7 +293,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     >
                                                                         <span
                                                                             class="wdg-mkey"
-                                                                            >Fiber</span
+                                                                            >Клітковина</span
                                                                         >
                                                                         <span
                                                                             class="wdg-mnum"
@@ -517,7 +316,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-mcap"
                                                                     >
-                                                                        of 30 g
+                                                                        з 30 г
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -525,30 +324,24 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                 class="wdg-mhint"
                                                                 aria-hidden="true"
                                                             >
-                                                                Tap a metric for
-                                                                the meals behind
-                                                                it
+                                                                Торкнись показника, щоб побачити прийоми їжі
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            Done — added that to breakfast: two
-                                            eggs, toast, and a coffee. That's
-                                            about 340 kcal (20g protein, 30g
-                                            carbs, 15g fat, 3.4g fiber), plus
-                                            95mg of caffeine from the coffee.
+                                            Готово — додав це до сніданку: два яйця, тост і кава. Це близько 340 ккал (20г білка, 30г вуглеводів, 15г жирів, 3.4г клітковини), а ще 95мг кофеїну з кави.
                                         </div>
 
                                         <div class="msg msg-user">
-                                            How's my weight trending?
+                                            Як змінюється моя вага?
                                         </div>
 
                                         <div class="msg msg-ai">
                                             <div class="wdg">
                                                 <div class="wdg-head wdg-mid">
                                                     <div class="wdg-title">
-                                                        Weight
+                                                        Вага
                                                     </div>
                                                     <div
                                                         class="wdg-seg"
@@ -571,12 +364,12 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                 <div class="wdg-wmain">
                                                     <div class="wdg-wnow">
                                                         <div class="wdg-wtag">
-                                                            Latest
+                                                            Останнє
                                                         </div>
                                                         <div class="wdg-wval">
                                                             74.5<span
                                                                 class="wdg-wunit"
-                                                                >kg</span
+                                                                >кг</span
                                                             >
                                                         </div>
                                                         <div
@@ -587,7 +380,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                 );
                                                             "
                                                         >
-                                                            −0.6 kg since 5 Jul
+                                                            −0.6 кг з 5 лип
                                                         </div>
                                                     </div>
                                                     <svg
@@ -662,24 +455,20 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                 </div>
                                                 <div class="wdg-sec wdg-wfoot">
                                                     <span
-                                                        >7 weigh-ins · 5 Jul →
-                                                        11 Jul</span
+                                                        >7 зважувань · 5 лип → 11 лип</span
                                                     >
                                                     <span
-                                                        ><b>Target 73.0 kg</b> ·
-                                                        1.5 kg to lose</span
+                                                        ><b>Ціль 73.0 кг</b> · залишилось 1.5 кг</span
                                                     >
                                                 </div>
                                             </div>
-                                            You're down 0.6 kg this week and 1.5
-                                            kg from your 73 kg goal — your 7-day
-                                            average is trending down nicely.
+                                            Цього тижня ти скинув 0.6 кг, і залишилось 1.5 кг до цілі в 73 кг — твоє середнє за 7 днів впевнено знижується.
                                         </div>
                                     </div>
                                 </div>
                                 <div class="cw-input">
                                     <span class="cw-field"
-                                        >Message Nutrition…</span
+                                        >Повідомлення Nutrition…</span
                                     >
                                     <span class="cw-send"
                                         ><i class="fa-solid fa-arrow-up"></i
@@ -687,8 +476,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                 </div>`;
 const SLIDE_1_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Log a chicken burrito bowl for
-                                                lunch
+                                                Запиши боул з куркою буріто на обід
                                             </div>
                                             <div
                                                 class="typing"
@@ -701,16 +489,15 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                 <div class="wdg">
                                                     <div class="wdg-head">
                                                         <div class="wdg-title">
-                                                            Meal logged
+                                                            Прийом їжі додано
                                                         </div>
                                                         <div class="wdg-sub">
-                                                            Chicken burrito bowl
-                                                            · lunch
+                                                            Боул з куркою буріто · обід
                                                         </div>
                                                         <div
                                                             class="wdg-meta wdg-kcal"
                                                         >
-                                                            +650 kcal
+                                                            +650 ккал
                                                         </div>
                                                     </div>
                                                     <div class="wdg-strip">
@@ -750,8 +537,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-callab"
                                                                     >
-                                                                        Calories
-                                                                        today
+                                                                        Калорії сьогодні
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calline"
@@ -768,9 +554,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calleft"
                                                                         >
-                                                                            1,110
-                                                                            kcal
-                                                                            left
+                                                                            1 110 ккал залишилось
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -789,7 +573,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Protein</span
+                                                                                >Білки</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -821,7 +605,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Carbs</span
+                                                                                >Вуглеводи</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -853,7 +637,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fat</span
+                                                                                >Жири</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -889,7 +673,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Sugar</span
+                                                                                >Цукор</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -912,8 +696,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
-                                                                            45 g
+                                                                            ліміт 45 г
                                                                         </div>
                                                                     </div>
                                                                     <div
@@ -924,7 +707,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Caffeine</span
+                                                                                >Кофеїн</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -947,9 +730,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
-                                                                            400
-                                                                            mg
+                                                                            ліміт 400 мг
                                                                         </div>
                                                                     </div>
                                                                     <div
@@ -960,7 +741,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fiber</span
+                                                                                >Клітковина</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -983,8 +764,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            of
-                                                                            30 g
+                                                                            з 30 г
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -992,10 +772,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                     class="wdg-mhint"
                                                                     aria-hidden="true"
                                                                 >
-                                                                    Tap a metric
-                                                                    for the
-                                                                    meals behind
-                                                                    it
+                                                                    Торкнись показника, щоб побачити прийоми їжі
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1012,7 +789,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                         );
                                                                     "
                                                                 ></span
-                                                                >Water</span
+                                                                >Вода</span
                                                             >
                                                             <div
                                                                 class="wdg-mbar"
@@ -1031,18 +808,13 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                 class="wdg-wnum"
                                                                 >1.2<span
                                                                     class="wdg-wsub"
-                                                                    >/2.5
-                                                                    L</span
+                                                                    >/2.5 л</span
                                                                 ></span
                                                             >
                                                         </div>
                                                     </div>
                                                 </div>
-                                                Got it — added a chicken burrito
-                                                bowl to lunch, about 650 kcal
-                                                (42g protein, 68g carbs, 22g
-                                                fat) and 12g of fiber from the
-                                                beans.
+                                                Готово — додав боул з куркою буріто до обіду, близько 650 ккал (42г білка, 68г вуглеводів, 22г жирів) і 12г клітковини з квасолі.
                                             </div>`;
 const SLIDE_2_HTML_PLACEHOLDER = `
                                             <div
@@ -1201,7 +973,7 @@ const SLIDE_2_HTML_PLACEHOLDER = `
                                                 </svg>
                                             </div>
                                             <div class="msg msg-user">
-                                                Here's my dinner — what's in it?
+                                                Ось моя вечеря — що в ній?
                                             </div>
                                             <div
                                                 class="typing"
@@ -1211,10 +983,7 @@ const SLIDE_2_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                Looks like grilled salmon with
-                                                rice and broccoli — logged to
-                                                dinner, around 540 kcal (38g
-                                                protein, 45g carbs, 20g fat).
+                                                Схоже на лосося на грилі з рисом і броколі — записав до вечері, приблизно 540 ккал (38г білка, 45г вуглеводів, 20г жирів).
                                             </div>`;
 const SLIDE_3_HTML_PLACEHOLDER = `
                                             <div
@@ -1426,7 +1195,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                 </svg>
                                             </div>
                                             <div class="msg msg-user">
-                                                Log this
+                                                Запиши це
                                             </div>
                                             <div
                                                 class="typing"
@@ -1436,22 +1205,20 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai step-ask">
-                                                Found it — Chobani Greek yogurt,
-                                                1 cup: 120 kcal, 15g protein.
-                                                Which meal is this?
+                                                Знайшов — грецький йогурт Chobani, 1 склянка: 120 ккал, 15г білка. Це який прийом їжі?
                                                 <div class="meal-pick">
                                                     <span class="meal-chip"
-                                                        >Breakfast</span
+                                                        >Сніданок</span
                                                     >
                                                     <span class="meal-chip"
-                                                        >Lunch</span
+                                                        >Обід</span
                                                     >
                                                     <span class="meal-chip"
-                                                        >Dinner</span
+                                                        >Вечеря</span
                                                     >
                                                     <span
                                                         class="meal-chip meal-pick-target"
-                                                        >Snack</span
+                                                        >Перекус</span
                                                     >
                                                 </div>
                                             </div>
@@ -1459,17 +1226,15 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                 <div class="wdg">
                                                     <div class="wdg-head">
                                                         <div class="wdg-title">
-                                                            Meal logged
+                                                            Прийом їжі додано
                                                         </div>
                                                         <div class="wdg-sub">
-                                                            Chobani Greek
-                                                            yogurt, 1 cup ·
-                                                            snack
+                                                            Грецький йогурт Chobani, 1 склянка · перекус
                                                         </div>
                                                         <div
                                                             class="wdg-meta wdg-kcal"
                                                         >
-                                                            +120 kcal
+                                                            +120 ккал
                                                         </div>
                                                     </div>
                                                     <div class="wdg-strip">
@@ -1509,8 +1274,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-callab"
                                                                     >
-                                                                        Calories
-                                                                        today
+                                                                        Калорії сьогодні
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calline"
@@ -1527,9 +1291,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calleft"
                                                                         >
-                                                                            560
-                                                                            kcal
-                                                                            left
+                                                                            560 ккал залишилось
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -1548,7 +1310,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Protein</span
+                                                                                >Білки</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1580,7 +1342,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Carbs</span
+                                                                                >Вуглеводи</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1612,7 +1374,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fat</span
+                                                                                >Жири</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1648,7 +1410,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Sugar</span
+                                                                                >Цукор</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1671,8 +1433,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
-                                                                            45 g
+                                                                            ліміт 45 г
                                                                         </div>
                                                                     </div>
                                                                     <div
@@ -1683,7 +1444,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Caffeine</span
+                                                                                >Кофеїн</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1706,9 +1467,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
-                                                                            400
-                                                                            mg
+                                                                            ліміт 400 мг
                                                                         </div>
                                                                     </div>
                                                                     <div
@@ -1719,7 +1478,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fiber</span
+                                                                                >Клітковина</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -1742,8 +1501,7 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            of
-                                                                            30 g
+                                                                            з 30 г
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -1751,21 +1509,17 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                     class="wdg-mhint"
                                                                     aria-hidden="true"
                                                                 >
-                                                                    Tap a metric
-                                                                    for the
-                                                                    meals behind
-                                                                    it
+                                                                    Торкнись показника, щоб побачити прийоми їжі
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                Logged to snacks — 120 kcal, 15g
-                                                protein, 9g sugar.
+                                                Записано до перекусів — 120 ккал, 15г білка, 9г цукру.
                                             </div>`;
 const SLIDE_4_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Set my timezone to New York
+                                                Встанови мій часовий пояс на Нью-Йорк
                                             </div>
                                             <div
                                                 class="typing"
@@ -1775,14 +1529,11 @@ const SLIDE_4_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                Done — your days now roll over
-                                                at midnight Eastern, so today's
-                                                totals stay accurate wherever
-                                                you are.
+                                                Готово — тепер твої дні змінюються опівночі за східним часом, тож сьогоднішні підсумки залишаються точними, де б ти не був.
                                             </div>`;
 const SLIDE_5_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                How am I doing on protein today?
+                                                Як у мене справи з білком сьогодні?
                                             </div>
                                             <div
                                                 class="typing"
@@ -1792,14 +1543,11 @@ const SLIDE_5_HTML_PLACEHOLDER = `
                                                 ><span></span>
                                             </div>
                                             <div class="msg msg-ai">
-                                                You're at 118g of your 150g goal
-                                                — 32g to go. A cup of Greek
-                                                yogurt or a chicken breast would
-                                                get you there.
+                                                У тебе 118г із цілі 150г — залишилось 32г. Склянка грецького йогурту або куряче філе допоможуть це закрити.
                                             </div>`;
 const SLIDE_6_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Show my trends this week
+                                                Покажи мої тренди за цей тиждень
                                             </div>
                                             <div
                                                 class="typing"
@@ -1814,7 +1562,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                         class="wdg-head wdg-mid"
                                                     >
                                                         <div class="wdg-title">
-                                                            Trends
+                                                            Тренди
                                                         </div>
                                                         <div
                                                             class="wdg-seg"
@@ -1838,13 +1586,11 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                         <div class="wdg-chead">
                                                             <span
                                                                 class="wdg-ctitle"
-                                                                >Calories /
-                                                                day</span
+                                                                >Калорії / день</span
                                                             >
                                                             <span
                                                                 class="wdg-cmeta"
-                                                                >7/7 days
-                                                                logged</span
+                                                                >7/7 днів записано</span
                                                             >
                                                         </div>
                                                         <svg
@@ -1966,9 +1712,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                     <div
                                                                         class="wdg-callab"
                                                                     >
-                                                                        7-day
-                                                                        avg ·
-                                                                        all days
+                                                                        середнє за 7 днів · усі дні
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calline"
@@ -1985,9 +1729,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calleft"
                                                                         >
-                                                                            120
-                                                                            kcal
-                                                                            under
+                                                                            120 ккал менше цілі
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -2006,7 +1748,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Protein</span
+                                                                                >Білки</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2038,7 +1780,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Carbs</span
+                                                                                >Вуглеводи</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2070,7 +1812,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fat</span
+                                                                                >Жири</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2106,7 +1848,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Sugar</span
+                                                                                >Цукор</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2129,8 +1871,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
-                                                                            45 g
+                                                                            ліміт 45 г
                                                                         </div>
                                                                     </div>
                                                                     <div
@@ -2141,7 +1882,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Caffeine</span
+                                                                                >Кофеїн</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2164,9 +1905,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            limit
-                                                                            400
-                                                                            mg
+                                                                            ліміт 400 мг
                                                                         </div>
                                                                     </div>
                                                                     <div
@@ -2177,7 +1916,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         >
                                                                             <span
                                                                                 class="wdg-mkey"
-                                                                                >Fiber</span
+                                                                                >Клітковина</span
                                                                             >
                                                                             <span
                                                                                 class="wdg-mnum"
@@ -2200,8 +1939,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-mcap"
                                                                         >
-                                                                            of
-                                                                            30 g
+                                                                            з 30 г
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -2220,7 +1958,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         );
                                                                     "
                                                                 ></span
-                                                                >Water</span
+                                                                >Вода</span
                                                             >
                                                             <div
                                                                 class="wdg-mbar"
@@ -2239,23 +1977,17 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                 class="wdg-wnum"
                                                                 >2.1<span
                                                                     class="wdg-wsub"
-                                                                    >/2.5
-                                                                    L</span
+                                                                    >/2.5 л</span
                                                                 ></span
                                                             >
                                                         </div>
                                                     </div>
                                                 </div>
-                                                You're averaging 1,980 kcal a
-                                                day — 120 under goal, with sugar
-                                                and caffeine both comfortably
-                                                inside your limits. Fiber is
-                                                averaging 26.8 g, just short of
-                                                your 30 g goal.
+                                                У середньому в тебе 1980 ккал на день — на 120 менше цілі, а цукор і кофеїн упевнено в межах лімітів. Клітковина в середньому 26.8 г, трохи не дотягує до цілі в 30 г.
                                             </div>`;
 const SLIDE_7_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
-                                                Log my weight, 74.5 kg
+                                                Запиши мою вагу, 74.5 кг
                                             </div>
                                             <div
                                                 class="typing"
@@ -2270,7 +2002,7 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                         class="wdg-head wdg-mid"
                                                     >
                                                         <div class="wdg-title">
-                                                            Weight
+                                                            Вага
                                                         </div>
                                                         <div
                                                             class="wdg-seg"
@@ -2295,14 +2027,14 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                             <div
                                                                 class="wdg-wtag"
                                                             >
-                                                                Latest
+                                                                Останнє
                                                             </div>
                                                             <div
                                                                 class="wdg-wval"
                                                             >
                                                                 74.5<span
                                                                     class="wdg-wunit"
-                                                                    >kg</span
+                                                                    >кг</span
                                                                 >
                                                             </div>
                                                             <div
@@ -2313,8 +2045,7 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                                     );
                                                                 "
                                                             >
-                                                                −0.6 kg since 5
-                                                                Jul
+                                                                −0.6 кг з 5 лип
                                                             </div>
                                                         </div>
                                                         <svg
@@ -2391,128 +2122,122 @@ const SLIDE_7_HTML_PLACEHOLDER = `
                                                         class="wdg-sec wdg-wfoot"
                                                     >
                                                         <span
-                                                            >7 weigh-ins · 5 Jul
-                                                            → 11 Jul</span
+                                                            >7 зважувань · 5 лип → 11 лип</span
                                                         >
                                                         <span
                                                             ><b
-                                                                >Target 73.0
-                                                                kg</b
+                                                                >Ціль 73.0 кг</b
                                                             >
-                                                            · 1.5 kg to
-                                                            lose</span
+                                                            · залишилось 1.5 кг</span
                                                         >
                                                     </div>
                                                 </div>
-                                                Logged — you're trending toward
-                                                your goal.
+                                                Записано — ти рухаєшся до своєї цілі.
                                             </div>`;
 
-const INDEX_EN: IndexDoc = {
-    title: "Nutrition MCP — AI Meal & Macro Tracker for Claude & ChatGPT",
-    metaDescription:
-        "Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, calorie counting, weight tracking, and diet tracking.",
-    ogDescription:
-        "Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, and weight tracking.",
+export const INDEX_UK: IndexDoc = {
+    title: `Nutrition MCP — ШІ-трекер прийомів їжі та макронутрієнтів для Claude і ChatGPT`,
+    metaDescription: `Відстежуй прийоми їжі, макронутрієнти, вагу та історію харчування через розмову з Claude чи ChatGPT. Безкоштовний MCP-сервер для запису їжі на основі ШІ, сканування штрихкодів, підрахунку калорій, відстеження ваги та харчування.`,
+    ogDescription: `Відстежуй прийоми їжі, макронутрієнти, вагу та історію харчування через розмову з Claude чи ChatGPT. Безкоштовний MCP-сервер для запису їжі на основі ШІ, сканування штрихкодів і відстеження ваги.`,
     keywords:
-        "nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, weight tracker, weight log, AI nutrition, Model Context Protocol",
+        "трекер харчування, трекер прийомів їжі, MCP сервер, Claude AI, ChatGPT, лічильник калорій, трекер макронутрієнтів, сканер штрихкодів, запис їжі, трекер дієти, трекер ваги, щоденник ваги, ШІ харчування, Model Context Protocol",
 
     chatChrome: {
         brand: "Nutrition MCP",
-        status: "online",
-        inputPlaceholder: "Message Nutrition…",
+        status: "онлайн",
+        inputPlaceholder: "Повідомлення Nutrition…",
     },
 
     hero: {
-        eyebrow: "Free · Open source · OAuth 2.0",
-        titleBeforeEm: "Track your nutrition by ",
-        titleEm: "talking",
-        titleAfterEm: " to your AI.",
-        lead: "Connect Claude or ChatGPT, then just say what you ate. Calories and macros, logged automatically.",
-        ctaPrimary: "Quick install",
-        ctaSecondary: "Support",
+        eyebrow: "Безкоштовно · Відкритий код · OAuth 2.0",
+        titleBeforeEm: `Відстежуй харчування, просто `,
+        titleEm: "розмовляючи",
+        titleAfterEm: ` зі своїм ШІ.`,
+        lead: `Підключи Claude чи ChatGPT, а тоді просто скажи, що ти з'їв. Калорії та макронутрієнти запишуться автоматично.`,
+        ctaPrimary: "Швидке підключення",
+        ctaSecondary: "Підтримати",
         chipsHtml: HERO_CHIPS_HTML_PLACEHOLDER,
         chatHtml: HERO_CHAT_HTML_PLACEHOLDER,
     },
 
     how: {
-        eyebrow: "How it works",
-        title: "Three steps. No app to learn.",
+        eyebrow: "Як це працює",
+        title: `Три кроки. Жодного застосунку вчити не треба.`,
         steps: [
             {
-                title: "Connect once",
-                body: "Works with any AI client that supports remote MCP servers — Claude, ChatGPT, and more. No install, no API keys.",
+                title: `Підключись один раз`,
+                body: `Працює з будь-яким ШІ-клієнтом, що підтримує віддалені MCP-сервери — Claude, ChatGPT та інші. Не треба нічого встановлювати чи отримувати API-ключі.`,
             },
             {
-                title: "Just say what you ate",
-                body: "Describe it in plain language — or send a photo of your meal, a screenshot from a delivery app, or a barcode (it looks the product up online). Macros logged automatically.",
+                title: `Просто скажи, що ти з'їв`,
+                body: `Опиши це звичайними словами — або надішли фото своєї страви, скриншот із застосунку доставки чи штрихкод (продукт буде знайдено онлайн). Макронутрієнти запишуться автоматично.`,
             },
             {
-                title: "Track & review",
-                body: "Ask for daily summaries, weekly trends, goal progress, or export everything you've logged as CSV files — completely free.",
+                title: `Відстежуй і переглядай`,
+                body: `Попроси денні зведення, тижневі тренди, прогрес по цілях, або експортуй усе, що записав, у CSV-файли — цілком безкоштовно.`,
             },
         ],
     },
 
     install: {
-        eyebrow: "Quick install",
-        title: "Connect in under a minute",
-        sub: "Works with any MCP client that supports OAuth 2.0 with PKCE. On first connect you create an account with Google or an email and password; sign in the same way to keep your data.",
+        eyebrow: "Швидке підключення",
+        title: `Підключись менш ніж за хвилину`,
+        sub: `Працює з будь-яким MCP-клієнтом, що підтримує OAuth 2.0 з PKCE. При першому підключенні ти створюєш акаунт через Google або через email і пароль; заходь так само, щоб зберегти свої дані.`,
         claude: {
             steps: [
-                "Open <strong>Claude</strong> (web or desktop) and click <strong>Customize</strong> in the top-left corner.",
-                "Click <strong>Connectors</strong>.",
-                "Click <strong>+</strong>, then <strong>Add custom connector</strong>.",
-                "Give it a name, for example <strong>Nutrition</strong>.",
-                'Paste <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span> into the <strong>Remote MCP server URL</strong> field.',
-                "Click <strong>Add</strong>.",
-                "Click <strong>Connect</strong> — the login page opens; continue with Google or sign in with an email and password.",
-                "Done. It works right away and shows up in your iOS and Android apps automatically.",
+                `Відкрий <strong>Claude</strong> (у браузері чи застосунку) і натисни <strong>Customize</strong> у верхньому лівому куті.`,
+                `Натисни <strong>Connectors</strong>.`,
+                `Натисни <strong>+</strong>, а тоді <strong>Add custom connector</strong>.`,
+                `Дай йому назву, наприклад <strong>Nutrition</strong>.`,
+                `Встав <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span> у поле <strong>Remote MCP server URL</strong>.`,
+                `Натисни <strong>Add</strong>.`,
+                `Натисни <strong>Connect</strong> — відкриється сторінка входу; продовж через Google або увійди через email і пароль.`,
+                `Готово. Усе запрацює одразу і автоматично з'явиться в застосунках для iOS та Android.`,
             ],
-            note: "Works on every Claude plan. The free plan allows one connected MCP server at a time.",
+            note: `Працює на будь-якому плані Claude. Безкоштовний план дозволяє підключити один MCP-сервер одночасно.`,
         },
         chatgpt: {
             steps: [
-                "Open <strong>ChatGPT on the web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.",
-                "Click <strong>Create app</strong> at the bottom of the popup. If you don't see it, turn on <strong>Developer mode</strong> in <strong>Advanced settings</strong>.",
-                "Give it a name, for example <strong>Nutrition</strong>.",
-                'For <strong>Connection</strong>, paste <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span>.',
-                "For <strong>Authentication</strong>, choose <strong>OAuth</strong> — leave everything else as it is.",
-                'Check <strong>"I understand and want to continue"</strong>.',
-                "Click <strong>Create</strong>.",
-                "Click <strong>Sign in with Nutrition</strong> — the login page opens; continue with Google or sign in with an email and password.",
-                "Done. It works right away and shows up in your iOS and Android apps automatically.",
+                `Відкрий <strong>ChatGPT on the web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.`,
+                `Натисни <strong>Create app</strong> внизу спливного вікна. Якщо не бачиш цієї кнопки, увімкни <strong>Developer mode</strong> в <strong>Advanced settings</strong>.`,
+                `Дай йому назву, наприклад <strong>Nutrition</strong>.`,
+                `У полі <strong>Connection</strong> встав <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span>.`,
+                `У полі <strong>Authentication</strong> обери <strong>OAuth</strong> — решту залиш без змін.`,
+                `Постав галочку <strong>"I understand and want to continue"</strong>.`,
+                `Натисни <strong>Create</strong>.`,
+                `Натисни <strong>Sign in with Nutrition</strong> — відкриється сторінка входу; продовж через Google або увійди через email і пароль.`,
+                `Готово. Усе запрацює одразу і автоматично з'явиться в застосунках для iOS та Android.`,
             ],
         },
         other: {
-            note: "Add the config above to your client (Cursor, VS Code, Claude Code, and more). Windsurf uses <code>serverUrl</code> instead of <code>url</code>. In Claude Code, run <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Your client handles the OAuth login automatically.",
+            note: `Додай конфігурацію вище до свого клієнта (Cursor, VS Code, Claude Code та інших). Windsurf використовує <code>serverUrl</code> замість <code>url</code>. У Claude Code виконай <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Твій клієнт сам обробить вхід через OAuth.`,
         },
     },
 
     onboarding: {
-        eyebrow: "Onboarding",
-        title: "Set up once — or just start talking",
-        sub: "This is completely optional — Nutrition MCP works the moment you connect. If you want, these two quick steps make it more accurate, but you can skip straight to logging.",
+        eyebrow: "Початок роботи",
+        title: `Налаштуй один раз — або просто почни говорити`,
+        sub: `Це повністю опціонально — Nutrition MCP працює одразу після підключення. Якщо хочеш, ці два швидкі кроки зроблять його точнішим, але можна одразу перейти до запису.`,
         steps: [
-            '<strong>Set your timezone</strong> — so days roll over at your local midnight and today\'s totals stay accurate wherever you are. <span class="step-say">Just say <q>Set my timezone to New York</q>.</span>',
-            '<strong>Set your goals</strong> — daily calorie, macro, and water targets, plus an optional target weight and your preferred weight unit (kg or lb), to track your progress against. <span class="step-say">Just say <q>Set my daily goal to 2,000 calories and 150g of protein</q>.</span>',
-            '<strong>Start logging</strong> — just say what you ate, send a photo or scan a barcode. That\'s it. <span class="step-say">Just say <q>I had oatmeal with berries for breakfast</q>.</span>',
+            `<strong>Встанови часовий пояс</strong> — щоб день змінювався опівночі за твоїм місцевим часом і сьогоднішні підсумки залишались точними, де б ти не був. <span class="step-say">Просто скажи <q>Встанови мій часовий пояс на Нью-Йорк</q>.</span>`,
+            `<strong>Встанови свої цілі</strong> — денні цілі по калоріях, макронутрієнтах і воді, а також опціональну цільову вагу й обрану одиницю виміру (кг чи фунти), щоб відстежувати прогрес. <span class="step-say">Просто скажи <q>Встанови мою денну ціль на 2000 калорій і 150г білка</q>.</span>`,
+            `<strong>Почни записувати</strong> — просто скажи, що ти з'їв, надішли фото чи заскануй штрихкод. Це все. <span class="step-say">Просто скажи <q>На сніданок я їв вівсянку з ягодами</q>.</span>`,
         ],
-        note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
+        note: `Усе це опціонально. Можеш зробити це зараз, пізніше або ніколи — просто почни записувати й налаштуй це, коли захочеш.`,
         toolsCta: {
-            heading: "Curious what it can actually do?",
-            body: "Browse all 38 tools — logging, barcodes, water, weight, goals, and trends — with a description and an example prompt for each.",
-            arrow: "Explore the tools",
+            heading: `Цікаво, що він насправді вміє?`,
+            body: `Переглянь усі 38 інструментів — запис, штрихкоди, вода, вага, цілі й тренди — з описом і прикладом запиту для кожного.`,
+            arrow: "Перейти до інструментів",
         },
     },
 
     try: {
-        eyebrow: "Try saying",
-        title: "Just talk to it.",
-        sub: "A few of the things you can do — just by talking.",
-        prevLabel: "Previous example",
-        nextLabel: "Next example",
-        exampleLabel: "Example",
+        eyebrow: "Спробуй сказати",
+        title: `Просто заговори з ним.`,
+        sub: `Кілька прикладів того, що можна зробити — просто розмовляючи.`,
+        prevLabel: "Попередній приклад",
+        nextLabel: "Наступний приклад",
+        exampleLabel: "Приклад",
         slides: [
             { html: SLIDE_1_HTML_PLACEHOLDER },
             { html: SLIDE_2_HTML_PLACEHOLDER },
@@ -2525,214 +2250,192 @@ const INDEX_EN: IndexDoc = {
     },
 
     stats: {
-        eyebrow: "Tracked so far, together",
-        title: "A growing global food log",
-        factsTitle: "Nutrition Facts",
-        servingPrefix: "Serving size ",
-        servingBold: "everyone, so far",
-        liveLabel: "Live",
-        calLabel: "Calories ",
-        calSmall: "tracked, all time",
-        calCaption: "Calories tracked",
-        rowFoodLogs: "Food logs",
-        rowProtein: "Protein",
-        rowCarbs: "Carbohydrates",
-        rowFat: "Fat",
-        foot: "Totals across every account, updated as meals are logged. Individual data is never shown.",
-        mapPrefix: "Logged across",
-        mapSuffix: "timezones worldwide",
-        mapAriaLabel: "World map showing timezones where Nutrition MCP is used",
+        eyebrow: "Відстежено разом, дотепер",
+        title: `Глобальний щоденник їжі, що зростає`,
+        factsTitle: "Харчова цінність",
+        servingPrefix: "Розмір порції ",
+        servingBold: "усі, дотепер",
+        liveLabel: "Наживо",
+        calLabel: "Калорії ",
+        calSmall: "відстежено за весь час",
+        calCaption: "Відстежено калорій",
+        rowFoodLogs: "Записів їжі",
+        rowProtein: "Білки",
+        rowCarbs: "Вуглеводи",
+        rowFat: "Жири",
+        foot: `Загальні суми з усіх акаунтів, оновлюються під час запису прийомів їжі. Дані окремих користувачів ніколи не показуються.`,
+        mapPrefix: "Записано в",
+        mapSuffix: "часових поясах світу",
+        mapAriaLabel:
+            "Карта світу з часовими поясами, де використовують Nutrition MCP",
     },
 
     features: {
-        eyebrow: "Everything, just by chatting",
-        title: "What you can track",
+        eyebrow: "Усе — просто через чат",
+        title: `Що можна відстежувати`,
         cards: [
             {
                 icon: "fa-solid fa-utensils",
-                title: "Meals in plain language",
-                body: "Describe what you ate — your AI estimates calories, protein, carbs, fat, fiber, total sugar, and caffeine in milligrams and logs it.",
+                title: `Прийоми їжі звичайними словами`,
+                body: `Опиши, що ти з'їв — твій ШІ оцінить калорії, білок, вуглеводи, жири, клітковину, загальний цукор і кофеїн у міліграмах та запише це.`,
             },
             {
                 icon: "fa-solid fa-barcode",
-                title: "Scan a barcode",
-                body: "Snap or type a product barcode and pull macros, fiber, and sugar from Open Food Facts, scaled to how much you ate.",
+                title: `Скануй штрихкод`,
+                body: `Сфотографуй або введи штрихкод продукту та отримай макронутрієнти, клітковину й цукор з Open Food Facts, масштабовані під з'їдену кількість.`,
             },
             {
                 icon: "fa-solid fa-bullseye",
-                title: "Goals & progress",
-                body: "Set daily calorie, macro, fiber, and water targets — plus sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
+                title: `Цілі й прогрес`,
+                body: `Встанови денні цілі по калоріях, макронутрієнтах, клітковині й воді — а також ліміти цукру, кофеїну й алкоголю — і перевіряй прогрес у режимі реального часу.`,
             },
             {
                 icon: "fa-solid fa-chart-area",
-                title: "Summaries & trends",
-                body: "Daily and weekly breakdowns, 7/14/30-day trends, streaks, and recurring meal patterns.",
+                title: `Зведення й тренди`,
+                body: `Денні й тижневі розбивки, тренди за 7/14/30 днів, серії записів та повторювані патерни харчування.`,
             },
             {
                 icon: "fa-solid fa-glass-water",
-                title: "Water logging",
-                body: "Track hydration in milliliters alongside your meals and review it by day.",
+                title: `Запис води`,
+                body: `Відстежуй споживання води в мілілітрах поруч із прийомами їжі та переглядай по днях.`,
             },
             {
                 icon: "fa-solid fa-weight-scale",
-                title: "Weight tracking",
-                body: "Log your body weight in kg or lb, see 7/14/30-day trends, and track progress toward a target weight.",
+                title: `Відстеження ваги`,
+                body: `Записуй вагу тіла в кг або фунтах, дивись тренди за 7/14/30 днів і стеж за прогресом до цільової ваги.`,
             },
             {
                 icon: "fa-solid fa-clock-four",
-                title: "Timezone-aware",
-                body: "Days roll over in your local time, wherever you are in the world.",
+                title: `Враховує часовий пояс`,
+                body: `Дні змінюються за твоїм місцевим часом, де б ти не був у світі.`,
             },
             {
                 icon: "fa-solid fa-file-import",
-                title: "Import from another app",
-                body: "Bring your meal history over from MyFitnessPal, Cronometer, Lose It!, or MacroFactor — or any other CSV, by mapping its columns yourself. You confirm what gets added before anything is saved.",
+                title: `Імпорт з іншого застосунку`,
+                body: `Перенеси історію прийомів їжі з MyFitnessPal, Cronometer, Lose It! або MacroFactor — або з будь-якого іншого CSV, самостійно зіставивши колонки. Ти підтверджуєш, що буде додано, перш ніж щось збережеться.`,
             },
             {
                 icon: "fa-solid fa-file-csv",
-                title: "Export & own your data",
-                body: "Take everything you have here — meals, water, weight, goals, and profile — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
+                title: `Експортуй і володій своїми даними`,
+                body: `Забери все, що тут є, — прийоми їжі, воду, вагу, цілі й профіль — одним ZIP-архівом CSV-файлів. Наразі назад можна імпортувати лише прийоми їжі. Видали свій акаунт і дані будь-коли.`,
             },
         ],
     },
 
     why: {
-        eyebrow: "Why Nutrition MCP",
-        title: "Talking beats tapping.",
-        sub: "Snap a barcode or just say what you ate — no database digging, no separate app to open.",
-        oldHeading: "Traditional apps",
+        eyebrow: "Чому Nutrition MCP",
+        title: `Розмова краща за тапання.`,
+        sub: `Сфотографуй штрихкод або просто скажи, що ти з'їв — без копирсання в базі даних, без окремого застосунку.`,
+        oldHeading: "Традиційні застосунки",
         oldItems: [
-            "Search a database for every item",
-            "Fix wrong database entries by hand",
-            "Yet another app, account, and paywall",
-            "Tedious manual logging",
+            "Шукай у базі даних кожен продукт",
+            "Виправляй неправильні записи вручну",
+            "Ще один застосунок, акаунт і платний доступ",
+            "Стомливий ручний запис",
         ],
         newHeading: "Nutrition MCP",
         newItems: [
-            "Describe meals in plain language",
-            "Calories & macros estimated for you",
-            "Works inside Claude or ChatGPT, free",
-            "Ask for trends, summaries, and goals",
+            "Описуй прийоми їжі звичайними словами",
+            "Калорії й макронутрієнти оцінюються за тебе",
+            "Працює всередині Claude чи ChatGPT, безкоштовно",
+            "Запитуй про тренди, зведення й цілі",
         ],
-        noteHtml:
-            'Switching from a specific app? See how Nutrition MCP compares to <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer, and other trackers</a>.',
+        noteHtml: `Переходиш з конкретного застосунку? Подивись, як Nutrition MCP порівнюється з <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer та іншими трекерами</a>.`,
     },
 
     trust: [
-        { label: "Private by default", small: "Only you can see your data." },
-        { label: "Open source", small: "Audit or self-host it." },
         {
-            label: "Export anytime",
-            small: "Every table as CSV, in one ZIP.",
+            label: "Приватність за замовчуванням",
+            small: "Тільки ти бачиш свої дані.",
         },
-        { label: "Delete instantly", small: "Remove your account & data." },
+        {
+            label: "Відкритий код",
+            small: "Перевіряй код або розгортай самостійно.",
+        },
+        {
+            label: "Експортуй будь-коли",
+            small: "Кожна таблиця як CSV, в одному ZIP.",
+        },
+        { label: "Видаляй миттєво", small: `Видали свій акаунт і дані.` },
     ],
 
     support: {
-        eyebrow: "Support",
-        title: "Help keep it running.",
-        sub: "Nutrition MCP is free and ad-free. Patreon covers the server and database bills.",
+        eyebrow: "Підтримка",
+        title: `Допоможи це підтримувати.`,
+        sub: `Nutrition MCP безкоштовний і без реклами. Patreon покриває рахунки за сервер і базу даних.`,
         free: {
-            tier: "Free member",
+            tier: "Безкоштовний учасник",
             price: "$0",
-            desc: "Follow along — get news and updates about the server, new tools, and what's coming next.",
-            cta: "Follow on Patreon",
+            desc: `Слідкуй за новинами — отримуй оновлення про сервер, нові інструменти та плани на майбутнє.`,
+            cta: "Підписатися на Patreon",
         },
         paid: {
-            tier: "Paid member",
-            price: "Pay what you want",
-            desc: "Chip in for hosting and database costs so the server stays free and online for everyone.",
-            cta: "Become a supporter",
+            tier: "Платний учасник",
+            price: "Плати, скільки хочеш",
+            desc: `Підтримай витрати на хостинг і базу даних, щоб сервер лишався безкоштовним і доступним для всіх.`,
+            cta: "Стати спонсором",
         },
     },
 
     cta: {
-        title: "Start tracking in under a minute.",
-        sub: "Free and open source — it works with the AI you already use.",
-        primary: "Quick install",
-        secondary: "Star on GitHub",
+        title: `Почни відстежувати менш ніж за хвилину.`,
+        sub: `Безкоштовно і з відкритим кодом — працює з тим ШІ, яким ти вже користуєшся.`,
+        primary: "Швидке підключення",
+        secondary: "Постав зірку на GitHub",
     },
 
     contact: {
-        eyebrow: "Contact",
-        title: "Questions or feedback?",
-        sub: "Found a bug, want a feature, or just have a question? Email me directly — I read every message.",
-        cta: "Send an email",
+        eyebrow: "Контакти",
+        title: `Питання чи відгук?`,
+        sub: `Знайшов баг, хочеш нову функцію чи просто маєш питання? Напиши мені напряму — я читаю кожне повідомлення.`,
+        cta: "Написати листа",
     },
 
     faqSection: {
         eyebrow: "FAQ",
-        title: "Frequently asked questions",
+        title: `Часті запитання`,
     },
     faq: [
         {
-            question: "What is Nutrition MCP?",
-            visibleHtml:
-                "Nutrition MCP is a free Model Context Protocol (MCP) server that lets you track meals, calories, macros, and nutrition history through natural conversation with Claude or ChatGPT. Instead of typing into a traditional app, you tell your AI what you ate and it logs everything for you.",
+            question: `Що таке Nutrition MCP?`,
+            visibleHtml: `Nutrition MCP — це безкоштовний сервер Model Context Protocol (MCP), який дозволяє відстежувати прийоми їжі, калорії, макронутрієнти та історію харчування через звичайну розмову з Claude чи ChatGPT. Замість того щоб вводити дані в традиційний застосунок, ти кажеш своєму ШІ, що з'їв, а він записує все за тебе.`,
         },
         {
-            question: "What is the Model Context Protocol (MCP)?",
-            visibleHtml:
-                "The Model Context Protocol is an open standard that lets AI assistants like Claude and ChatGPT connect to external tools and data sources. An MCP server provides specific capabilities — here, nutrition tracking — that the AI can use during a conversation. Think of it as a plugin system for AI assistants.",
+            question: `Що таке Model Context Protocol (MCP)?`,
+            visibleHtml: `Model Context Protocol — це відкритий стандарт, який дозволяє ШІ-асистентам на кшталт Claude і ChatGPT підключатися до зовнішніх інструментів і джерел даних. MCP-сервер надає конкретні можливості — у цьому випадку відстеження харчування — які ШІ може використовувати під час розмови. Сприймай це як систему плагінів для ШІ-асистентів.`,
         },
         {
-            // The visible answer deliberately omits the server URL (already
-            // stated elsewhere on the page); the JSON-LD answer, read
-            // standalone by search engines, states it explicitly. This
-            // mismatch predates this extraction — preserved verbatim rather
-            // than silently reconciled.
-            question: "Does it work with ChatGPT?",
-            visibleHtml:
-                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL using OAuth, and sign in. It works on every ChatGPT plan.",
-            jsonLdText:
-                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL https://nutrition-mcp.com/mcp using OAuth, and sign in. It works on every ChatGPT plan.",
+            question: `Чи працює це з ChatGPT?`,
+            visibleHtml: `Так. У ChatGPT в браузері відкрий Settings → Apps, створи власний застосунок з URL сервера через OAuth і увійди. Працює на будь-якому плані ChatGPT.`,
+            jsonLdText: `Так. У ChatGPT в браузері відкрий Settings → Apps, створи власний застосунок з URL сервера https://nutrition-mcp.com/mcp через OAuth і увійди. Працює на будь-якому плані ChatGPT.`,
         },
         {
-            question: "Which other clients are supported?",
-            visibleHtml:
-                "Any MCP client that supports OAuth 2.0 with PKCE — including Claude.ai, the Claude desktop and mobile apps, Claude Code, Cursor, Windsurf, and VS Code.",
+            question: `Які ще клієнти підтримуються?`,
+            visibleHtml: `Будь-який MCP-клієнт, що підтримує OAuth 2.0 з PKCE — включно з Claude.ai, застосунками Claude для десктопу й мобільних пристроїв, Claude Code, Cursor, Windsurf і VS Code.`,
         },
         {
-            question: "Can I self-host it?",
-            visibleHtml:
-                'Yes. Nutrition MCP is open source (MIT). You can run your own instance with your own Supabase project — the <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub repository</a> includes a full self-hosting guide and a Dockerfile.',
+            question: `Чи можу я розгорнути це самостійно?`,
+            visibleHtml: `Так. Nutrition MCP з відкритим кодом (MIT). Можеш запустити власний екземпляр із власним проєктом Supabase — <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">репозиторій на GitHub</a> містить повний гайд із самостійного розгортання та Dockerfile.`,
         },
         {
-            question: "Is Nutrition MCP free?",
-            visibleHtml:
-                "Yes, it is completely free — no premium tiers, ads, or hidden costs. You just need a Claude or ChatGPT account to connect. Donations on Patreon help cover server costs.",
+            question: `Чи безкоштовний Nutrition MCP?`,
+            visibleHtml: `Так, він повністю безкоштовний — без преміум-тарифів, реклами чи прихованих платежів. Тобі потрібен лише акаунт Claude чи ChatGPT, щоб підключитися. Донати на Patreon допомагають покривати витрати на сервер.`,
         },
         {
-            question: "What can I track?",
-            visibleHtml:
-                "Calories, protein, carbohydrates, fat, fiber, total sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol is tracked as well, in grams of pure ethanol, once you switch it on. You can also log your body weight in kg or lb and track trends toward a target weight. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+            question: `Що я можу відстежувати?`,
+            visibleHtml: `Калорії, білок, вуглеводи, жири, клітковину та воду для кожного запису — описані звичайними словами або отримані за штрихкодом продукту через Open Food Facts. Кофеїн теж відстежується, у міліграмах, одиниці, яку використовує кожна етикетка, і він не додає калорій. Алкоголь теж відстежується, у грамах чистого етанолу, щойно ти це ввімкнеш. Ти також можеш записувати вагу тіла в кг або фунтах і стежити за трендами до цільової ваги. Переглядай денні зведення, запитуй прийоми їжі за період, оновлюй чи видаляй минулі записи, встановлюй цілі та відстежуй тренди з часом.`,
         },
         {
-            question: "Does it track alcohol?",
-            visibleHtml:
-                "Only if you turn it on — alcohol tracking is off by default. Switched on, drinks are recorded in grams of pure ethanol and shown as US standard drinks or UK units, whichever you prefer. Nothing infers alcohol for you: it comes from a drink you log or an alcohol column in a file you import. Switching it back off hides alcohol from your meals, goals, and summaries and stops the importer reading alcohol columns — it is not a delete switch, and your CSV export always includes what you logged.",
+            question: `Чи відстежується алкоголь?`,
+            visibleHtml: `Лише якщо ти це ввімкнеш — відстеження алкоголю за замовчуванням вимкнено. Коли ввімкнено, напої записуються в грамах чистого етанолу й показуються як американські стандартні порції або британські одиниці — що тобі більше підходить. Нічого не виводиться автоматично: дані беруться лише з напою, який ти записав, або з колонки алкоголю у файлі, який ти імпортував. Повторне вимкнення приховує алкоголь з прийомів їжі, цілей і зведень та зупиняє читання колонок алкоголю імпортером — це не кнопка видалення, і твій CSV-експорт завжди включає те, що ти записав.`,
         },
         {
-            question:
-                "Can I import my history from MyFitnessPal or another app?",
-            visibleHtml:
-                "Yes. Ask to import your history and an importer opens in the chat: you pick the CSV your old app exported, check how its columns map, and see what will be added before confirming. Exports from MyFitnessPal, Cronometer, Lose It!, and MacroFactor are recognised automatically, and any other CSV works by mapping the columns yourself. Your browser reads the file, so the AI never retypes your rows. In clients without in-chat panels you can paste your export instead — and importing the same file twice does not create duplicates.",
+            question: `Чи можу я імпортувати історію з MyFitnessPal чи іншого застосунку?`,
+            visibleHtml: `Так. Попроси імпортувати свою історію, і в чаті відкриється імпортер: обери CSV, який експортував твій старий застосунок, перевір, як зіставились колонки, і подивись, що буде додано, перш ніж підтвердити. Експорти з MyFitnessPal, Cronometer, Lose It! і MacroFactor розпізнаються автоматично, а будь-який інший CSV працює через самостійне зіставлення колонок. Файл читає твій браузер, тож ШІ ніколи не перепечатує твої рядки. У клієнтах без панелей у чаті можна натомість вставити свій експорт текстом — а повторний імпорт того самого файлу не створює дублікатів.`,
         },
         {
-            question: "Is my data private?",
-            visibleHtml:
-                "Your data is stored securely and linked to your personal account. Only you can access your nutrition history through your authenticated session. Nutrition MCP does not sell or share your data, and you can delete your account and all data at any time.",
+            question: `Чи приватні мої дані?`,
+            visibleHtml: `Твої дані зберігаються безпечно й прив'язані до твого особистого акаунта. Тільки ти маєш доступ до своєї історії харчування через свою автентифіковану сесію. Nutrition MCP не продає й не передає твої дані, і ти можеш видалити свій акаунт і всі дані будь-коли.`,
         },
     ],
-};
-
-export const INDEX: Partial<Record<SiteLocale, IndexDoc>> = {
-    en: INDEX_EN,
-    de: INDEX_DE,
-    es: INDEX_ES,
-    fr: INDEX_FR,
-    nl: INDEX_NL,
-    pl: INDEX_PL,
-    it: INDEX_IT,
-    uk: INDEX_UK,
 };
