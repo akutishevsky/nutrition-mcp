@@ -404,17 +404,18 @@ kbd,
     display: none;
     justify-self: center;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.1rem;
 }
 .head-nav a {
     position: relative;
     display: inline-block;
-    padding: 0.45rem 0.8rem;
-    font-size: 0.92rem;
+    padding: 0.45rem 0.55rem;
+    font-size: 0.85rem;
     font-weight: 500;
     color: var(--ink-2);
     text-decoration: none;
     border-radius: 999px;
+    white-space: nowrap;
     transition:
         color 0.2s ease,
         background 0.2s ease;
@@ -594,7 +595,14 @@ body.is-dark .theme-toggle .moon {
 .menu-btn[aria-expanded="true"] .burger::after {
     transform: translateY(-6px) rotate(-45deg);
 }
-@media (min-width: 880px) {
+/* 1120px, not the usual tablet breakpoint: below it the desktop nav's 6
+   items, translated, can overflow or wrap mid-phrase (e.g. Ukrainian
+   "Статистика наживо", Polish "Statystyki na żywo" are longer than their
+   English source) — matches .head-inner's own max-width, so nothing here
+   competes with translated labels for room below the width where they'd
+   fit anyway. Below it, the mobile sheet menu (one label per line, no
+   width contest) takes over instead. */
+@media (min-width: 1120px) {
     .head-nav {
         display: flex;
     }
@@ -723,7 +731,9 @@ body.is-dark .theme-toggle .moon {
 body.menu-open {
     overflow: hidden;
 }
-@media (min-width: 880px) {
+/* Matches the .head-nav breakpoint above — the mobile sheet is what's
+   shown below it. */
+@media (min-width: 1120px) {
     .site-menu {
         display: none;
     }

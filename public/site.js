@@ -152,8 +152,9 @@
             if (a) closeMenu(false);
         });
         // Leaving the phone layout with the sheet open would strand the
-        // inert flags, so close on the way out.
-        var wide = window.matchMedia("(min-width: 880px)");
+        // inert flags, so close on the way out. Matches styles.css's
+        // .head-nav/.site-menu breakpoint.
+        var wide = window.matchMedia("(min-width: 1120px)");
         wide.addEventListener("change", function (ev) {
             if (ev.matches && menuBtn.getAttribute("aria-expanded") === "true")
                 closeMenu(false);
