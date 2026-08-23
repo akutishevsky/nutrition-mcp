@@ -143,6 +143,17 @@ Invariants worth keeping:
 
 ---
 
+## Public site (`public/*.html`)
+
+One design system, "Nutrition Facts": the FDA label's grammar — a heavy 3px `var(--rule)` above every section head, hairline rules between rows, bold label left / figure right, ruled 1px-gap grids instead of floating cards — is the structural motif on every page, and the stats section on the landing page is literally a Nutrition Facts panel (`.facts`). Type is Bricolage Grotesque (display, `.section-title` / `.display`), Instrument Sans (body) and Geist Mono (eyebrows, URLs, tool names), all from Google Fonts; the CSP already allows them. Light is paper white on green-black ink; dark is forest-tinted, not grey.
+
+- **`public/styles.css`** is the whole system (tokens at the top; every dark value is declared once in the `prefers-color-scheme` block and once in `body[data-theme="dark"]`, so a new colour must be added to both). Page-specific layout goes in that page's own inline `<style>` using the shared tokens — never hardcode a light-only colour.
+- **`public/site.js`** (served at `/site.js`, loaded with `defer` by every page) owns the theme toggle, the compact-on-scroll header with its reading-progress hairline, the mobile sheet menu (focus trap, Escape, `inert` on everything outside, scroll lock, auto-close above 880px), same-page scroll-spy, `[data-reveal]` / `[data-reveal="stagger"]` entrance reveals, the hero parallax (`.depth[data-depth]`) and card tilt, and the `.copy-mini` buttons. Reveals only hide content once `html.js` is set, so the pages are complete without script. Every effect is off under `prefers-reduced-motion`.
+- **The header + menu markup is byte-identical on all 12 pages** except for `aria-current="page"` on the current page's link; `scripts/gen-alternatives.ts` emits it from its `nav()` helper, the other pages carry it inline. When the nav changes, change it everywhere (the generator, `index.html`, `tools.html`, `login.html`, `privacy.html`, `terms.html`) and regenerate the alternatives. Primary links are absolute (`/#how`) so they work from any page; secondary links (Alternatives, Support, Contact, Privacy, Terms) live in the sheet and the footer only.
+- Keep the pre-paint `<script>` right after `<body>` that applies the saved `theme` from localStorage — it is what prevents the light flash on dark-mode visitors.
+
+---
+
 # Claude Code Operating Instructions
 
 ## Core Philosophy
