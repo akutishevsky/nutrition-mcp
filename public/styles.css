@@ -1381,6 +1381,12 @@ body.is-dark .btn-primary:hover,
     text-underline-offset: 2px;
     white-space: nowrap;
 }
+/* Wraps the notice on pages (the landing page) where it sits between two
+   full-bleed sections rather than inside one — e.g. the .legal-page /
+   .auth-card contexts already provide their own vertical rhythm. */
+.translation-notice-band {
+    padding: 0 clamp(1.25rem, 4vw, 2.5rem) clamp(2rem, 5vw, 3.5rem);
+}
 
 /* ---------- stats: the Nutrition Facts panel (the signature) ---------- */
 .facts {
