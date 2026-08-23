@@ -40,7 +40,7 @@
         <link rel="canonical" href="https://nutrition-mcp.com" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#4a7c59" />
+        <meta name="theme-color" content="#fbfbf9" />
         <script type="application/ld+json">
             {
                 "@context": "https://schema.org",
@@ -149,7 +149,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
             rel="stylesheet"
         />
         <link
@@ -182,43 +182,125 @@
                 } catch (e) {}
             })();
         </script>
-        <header class="nav">
-            <a class="nav-brand" href="/">
-                <span class="nav-mark" aria-hidden="true"
-                    ><i class="fa-solid fa-apple-whole"></i
-                ></span>
-                <span>Nutrition&nbsp;MCP</span>
-            </a>
-            <div class="nav-right">
-                <nav class="nav-links">
-                    <a href="#how">How it works</a>
-                    <a href="#install">Install</a>
-                    <a href="#onboarding">Onboarding</a>
+        <a class="skip" href="#main">Skip to content</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a class="brand" href="/" aria-label="Nutrition MCP home">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/#how">How it works</a>
+                    <a href="/#install">Install</a>
                     <a href="/tools">Tools</a>
-                    <a href="#try">Examples</a>
-                    <a href="#support">Support</a>
-                    <a href="#faq">FAQ</a>
-                    <a href="#contact">Contact</a>
+                    <a href="/#try">Examples</a>
+                    <a href="/#stats">Live stats</a>
+                    <a href="/#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
                     <a
+                        class="icon-btn head-gh"
                         href="https://github.com/akutishevsky/nutrition-mcp"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >GitHub</a
+                        aria-label="GitHub repository"
+                        title="GitHub"
                     >
-                </nav>
-                <button
-                    class="theme-toggle"
-                    type="button"
-                    id="theme-toggle"
-                    aria-label="Toggle dark mode"
-                    title="Toggle dark mode"
-                >
-                    <i class="fa-solid fa-moon" aria-hidden="true"></i>
-                </button>
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="Switch to dark mode"
+                        title="Switch to dark mode"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a class="btn btn-primary btn-sm head-cta" href="/#install"
+                        >Connect</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Open menu"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
             </div>
         </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/#how">How it works <small>3 steps</small></a>
+                <a href="/#install">Install <small>under a minute</small></a>
+                <a href="/tools">Tools <small>38 tools</small></a>
+                <a href="/#try">Examples <small>live demos</small></a>
+                <a href="/#stats">Live stats <small>since you opened</small></a>
+                <a href="/#faq">FAQ</a>
+                <a href="/alternatives"
+                    >Alternatives <small>switching apps</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/#support">Support</a>
+                <a href="/#contact">Contact</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/#install"
+                    >Connect in a minute</a
+                >
+            </div>
+        </div>
 
-        <main>
+        <main id="main">
             <!-- Hero -->
             <section class="hero">
                 <div class="container hero-grid">
@@ -241,452 +323,495 @@
                         </div>
                     </div>
 
-                    <!-- Illustrative chat demo (decorative) -->
-                    <div class="hero-card" aria-hidden="true">
-                        <div class="chat-window">
-                            <div class="cw-header">
-                                <span class="cw-avatar"
-                                    ><i class="fa-solid fa-apple-whole"></i
-                                ></span>
-                                <span class="cw-title">Nutrition MCP</span>
-                                <span class="cw-status">online</span>
-                            </div>
-                            <div class="cw-body">
-                                <div class="chat-thread">
-                                    <div class="msg msg-user">
-                                        Two eggs, whole-wheat toast, and a
-                                        coffee for breakfast
-                                    </div>
-
-                                    <div class="msg msg-ai">
-                                        <div class="wdg">
-                                            <div class="wdg-head">
-                                                <div class="wdg-title">
-                                                    Meal logged
-                                                </div>
-                                                <div class="wdg-sub">
-                                                    Two eggs, toast &amp; coffee
-                                                    · breakfast
-                                                </div>
-                                                <div class="wdg-meta wdg-kcal">
-                                                    +340 kcal
-                                                </div>
-                                            </div>
-                                            <div class="wdg-strip">
-                                                <div class="wdg-srow">
-                                                    <div class="wdg-cal">
-                                                        <div class="wdg-gauge">
-                                                            <div
-                                                                class="wdg-ring"
-                                                                style="
-                                                                    --c: var(
-                                                                        --cal
-                                                                    );
-                                                                    --p: 16;
-                                                                "
-                                                            ></div>
-                                                            <div class="wdg-rc">
-                                                                <span
-                                                                    class="wdg-rp"
-                                                                    style="
-                                                                        color: var(
-                                                                            --cal
-                                                                        );
-                                                                    "
-                                                                    >16%</span
-                                                                >
-                                                            </div>
-                                                        </div>
-                                                        <div class="wdg-caltxt">
-                                                            <div
-                                                                class="wdg-callab"
-                                                            >
-                                                                Calories today
-                                                            </div>
-                                                            <div
-                                                                class="wdg-calline"
-                                                            >
-                                                                <div
-                                                                    class="wdg-calval"
-                                                                >
-                                                                    340<span
-                                                                        class="wdg-calgoal"
-                                                                        >/
-                                                                        2,100</span
-                                                                    >
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-calleft"
-                                                                >
-                                                                    1,760 kcal
-                                                                    left
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-grids">
-                                                        <div class="wdg-mgrid">
-                                                            <div
-                                                                class="wdg-mtile"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtop"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-mkey"
-                                                                        >Protein</span
-                                                                    >
-                                                                    <span
-                                                                        class="wdg-mnum"
-                                                                        >20<span
-                                                                            class="wdg-msub"
-                                                                            >/150</span
-                                                                        ></span
-                                                                    >
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mbar"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mfill"
-                                                                        style="
-                                                                            width: 13.3%;
-                                                                            background: var(
-                                                                                --pro
-                                                                            );
-                                                                        "
-                                                                    ></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mtile"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtop"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-mkey"
-                                                                        >Carbs</span
-                                                                    >
-                                                                    <span
-                                                                        class="wdg-mnum"
-                                                                        >30<span
-                                                                            class="wdg-msub"
-                                                                            >/220</span
-                                                                        ></span
-                                                                    >
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mbar"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mfill"
-                                                                        style="
-                                                                            width: 13.6%;
-                                                                            background: var(
-                                                                                --car
-                                                                            );
-                                                                        "
-                                                                    ></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mtile"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtop"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-mkey"
-                                                                        >Fat</span
-                                                                    >
-                                                                    <span
-                                                                        class="wdg-mnum"
-                                                                        >15<span
-                                                                            class="wdg-msub"
-                                                                            >/70</span
-                                                                        ></span
-                                                                    >
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mbar"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mfill"
-                                                                        style="
-                                                                            width: 21.4%;
-                                                                            background: var(
-                                                                                --fat
-                                                                            );
-                                                                        "
-                                                                    ></div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="wdg-mgrid wdg-lim wdg-sec"
-                                                        >
-                                                            <div
-                                                                class="wdg-mtile"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtop"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-mkey"
-                                                                        >Sugar</span
-                                                                    >
-                                                                    <span
-                                                                        class="wdg-mnum"
-                                                                        >2.5</span
-                                                                    >
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mbar"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mfill"
-                                                                        style="
-                                                                            width: 5.6%;
-                                                                            background: var(
-                                                                                --sug
-                                                                            );
-                                                                        "
-                                                                    ></div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mcap"
-                                                                >
-                                                                    limit 45 g
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mtile"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtop"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-mkey"
-                                                                        >Caffeine</span
-                                                                    >
-                                                                    <span
-                                                                        class="wdg-mnum"
-                                                                        >95</span
-                                                                    >
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mbar"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mfill"
-                                                                        style="
-                                                                            width: 23.8%;
-                                                                            background: var(
-                                                                                --caf
-                                                                            );
-                                                                        "
-                                                                    ></div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mcap"
-                                                                >
-                                                                    limit 400 mg
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mtile"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtop"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-mkey"
-                                                                        >Fiber</span
-                                                                    >
-                                                                    <span
-                                                                        class="wdg-mnum"
-                                                                        >3.4</span
-                                                                    >
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mbar"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mfill"
-                                                                        style="
-                                                                            width: 11.3%;
-                                                                            background: var(
-                                                                                --fib
-                                                                            );
-                                                                        "
-                                                                    ></div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mcap"
-                                                                >
-                                                                    of 30 g
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="wdg-mhint"
-                                                            aria-hidden="true"
-                                                        >
-                                                            Tap a metric for the
-                                                            meals behind it
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                    <!-- Illustrative chat demo (decorative). Three depth
+                         layers: a faint label panel at the back, macro chips
+                         in the middle, the chat card in front. site.js moves
+                         them by scroll × data-depth and tilts the card. -->
+                    <div class="hero-stage" aria-hidden="true">
+                        <div class="hero-panel depth" data-depth="0.22"></div>
+                        <div class="hero-chips depth" data-depth="0.1">
+                            <span class="chip chip-1"
+                                ><i style="--c: var(--cal)"></i
+                                ><b>+340</b> kcal</span
+                            >
+                            <span class="chip chip-2"
+                                ><i style="--c: #8b5cf6"></i
+                                ><b>20 g</b> protein</span
+                            >
+                            <span class="chip chip-3"
+                                ><i style="--c: #10b981"></i
+                                ><b>30 g</b> carbs</span
+                            >
+                            <span class="chip chip-4"
+                                ><i style="--c: #0ea5e9"></i
+                                ><b>500 ml</b> water</span
+                            >
+                        </div>
+                        <div class="hero-card depth" data-depth="-0.04">
+                            <div class="chat-window">
+                                <div class="cw-header">
+                                    <span class="cw-avatar"
+                                        ><i class="fa-solid fa-apple-whole"></i
+                                    ></span>
+                                    <span class="cw-title">Nutrition MCP</span>
+                                    <span class="cw-status">online</span>
+                                </div>
+                                <div class="cw-body">
+                                    <div class="chat-thread">
+                                        <div class="msg msg-user">
+                                            Two eggs, whole-wheat toast, and a
+                                            coffee for breakfast
                                         </div>
-                                        Done — added that to breakfast: two
-                                        eggs, toast, and a coffee. That's about
-                                        340 kcal (20g protein, 30g carbs, 15g
-                                        fat, 3.4g fiber), plus 95mg of caffeine
-                                        from the coffee.
-                                    </div>
 
-                                    <div class="msg msg-user">
-                                        How's my weight trending?
-                                    </div>
-
-                                    <div class="msg msg-ai">
-                                        <div class="wdg">
-                                            <div class="wdg-head wdg-mid">
-                                                <div class="wdg-title">
-                                                    Weight
-                                                </div>
-                                                <div
-                                                    class="wdg-seg"
-                                                    aria-hidden="true"
-                                                >
-                                                    <span
-                                                        class="wdg-seg-btn wdg-on"
-                                                        >7</span
-                                                    >
-                                                    <span class="wdg-seg-btn"
-                                                        >14</span
-                                                    >
-                                                    <span class="wdg-seg-btn"
-                                                        >30</span
-                                                    >
-                                                </div>
-                                            </div>
-                                            <div class="wdg-wmain">
-                                                <div class="wdg-wnow">
-                                                    <div class="wdg-wtag">
-                                                        Latest
+                                        <div class="msg msg-ai">
+                                            <div class="wdg">
+                                                <div class="wdg-head">
+                                                    <div class="wdg-title">
+                                                        Meal logged
                                                     </div>
-                                                    <div class="wdg-wval">
-                                                        74.5<span
-                                                            class="wdg-wunit"
-                                                            >kg</span
-                                                        >
+                                                    <div class="wdg-sub">
+                                                        Two eggs, toast &amp;
+                                                        coffee · breakfast
                                                     </div>
                                                     <div
-                                                        class="wdg-wdelta"
-                                                        style="
-                                                            color: var(
-                                                                --accent
-                                                            );
-                                                        "
+                                                        class="wdg-meta wdg-kcal"
                                                     >
-                                                        −0.6 kg since 5 Jul
+                                                        +340 kcal
                                                     </div>
                                                 </div>
-                                                <svg
-                                                    class="wdg-wchart"
-                                                    viewBox="0 0 300 62"
-                                                    role="img"
-                                                    aria-label="Weight from 5 Jul to 11 Jul, latest 74.5 kg"
-                                                >
-                                                    <line
-                                                        class="wdg-goalline"
-                                                        x1="5"
-                                                        y1="50.4"
-                                                        x2="295"
-                                                        y2="50.4"
-                                                    />
-                                                    <path
-                                                        d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z"
-                                                        fill="var(--accent)"
-                                                        opacity="0.16"
-                                                    />
-                                                    <path
-                                                        d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1"
-                                                        fill="none"
-                                                        stroke="var(--accent)"
-                                                        stroke-width="2"
-                                                        stroke-linejoin="round"
-                                                        stroke-linecap="round"
-                                                    />
-                                                    <circle
-                                                        cx="5.0"
-                                                        cy="13.6"
-                                                        r="2.6"
-                                                        fill="var(--accent)"
-                                                    />
-                                                    <circle
-                                                        cx="53.3"
-                                                        cy="15.4"
-                                                        r="2.6"
-                                                        fill="var(--accent)"
-                                                    />
-                                                    <circle
-                                                        cx="101.7"
-                                                        cy="18.9"
-                                                        r="2.6"
-                                                        fill="var(--accent)"
-                                                    />
-                                                    <circle
-                                                        cx="150.0"
-                                                        cy="17.1"
-                                                        r="2.6"
-                                                        fill="var(--accent)"
-                                                    />
-                                                    <circle
-                                                        cx="198.3"
-                                                        cy="22.4"
-                                                        r="2.6"
-                                                        fill="var(--accent)"
-                                                    />
-                                                    <circle
-                                                        cx="246.7"
-                                                        cy="20.6"
-                                                        r="2.6"
-                                                        fill="var(--accent)"
-                                                    />
-                                                    <circle
-                                                        cx="295.0"
-                                                        cy="24.1"
-                                                        r="2.6"
-                                                        fill="var(--accent)"
-                                                    />
-                                                </svg>
+                                                <div class="wdg-strip">
+                                                    <div class="wdg-srow">
+                                                        <div class="wdg-cal">
+                                                            <div
+                                                                class="wdg-gauge"
+                                                            >
+                                                                <div
+                                                                    class="wdg-ring"
+                                                                    style="
+                                                                        --c: var(
+                                                                            --cal
+                                                                        );
+                                                                        --p: 16;
+                                                                    "
+                                                                ></div>
+                                                                <div
+                                                                    class="wdg-rc"
+                                                                >
+                                                                    <span
+                                                                        class="wdg-rp"
+                                                                        style="
+                                                                            color: var(
+                                                                                --cal
+                                                                            );
+                                                                        "
+                                                                        >16%</span
+                                                                    >
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                class="wdg-caltxt"
+                                                            >
+                                                                <div
+                                                                    class="wdg-callab"
+                                                                >
+                                                                    Calories
+                                                                    today
+                                                                </div>
+                                                                <div
+                                                                    class="wdg-calline"
+                                                                >
+                                                                    <div
+                                                                        class="wdg-calval"
+                                                                    >
+                                                                        340<span
+                                                                            class="wdg-calgoal"
+                                                                            >/
+                                                                            2,100</span
+                                                                        >
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-calleft"
+                                                                    >
+                                                                        1,760
+                                                                        kcal
+                                                                        left
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="wdg-grids">
+                                                            <div
+                                                                class="wdg-mgrid"
+                                                            >
+                                                                <div
+                                                                    class="wdg-mtile"
+                                                                >
+                                                                    <div
+                                                                        class="wdg-mtop"
+                                                                    >
+                                                                        <span
+                                                                            class="wdg-mkey"
+                                                                            >Protein</span
+                                                                        >
+                                                                        <span
+                                                                            class="wdg-mnum"
+                                                                            >20<span
+                                                                                class="wdg-msub"
+                                                                                >/150</span
+                                                                            ></span
+                                                                        >
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mbar"
+                                                                    >
+                                                                        <div
+                                                                            class="wdg-mfill"
+                                                                            style="
+                                                                                width: 13.3%;
+                                                                                background: var(
+                                                                                    --pro
+                                                                                );
+                                                                            "
+                                                                        ></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    class="wdg-mtile"
+                                                                >
+                                                                    <div
+                                                                        class="wdg-mtop"
+                                                                    >
+                                                                        <span
+                                                                            class="wdg-mkey"
+                                                                            >Carbs</span
+                                                                        >
+                                                                        <span
+                                                                            class="wdg-mnum"
+                                                                            >30<span
+                                                                                class="wdg-msub"
+                                                                                >/220</span
+                                                                            ></span
+                                                                        >
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mbar"
+                                                                    >
+                                                                        <div
+                                                                            class="wdg-mfill"
+                                                                            style="
+                                                                                width: 13.6%;
+                                                                                background: var(
+                                                                                    --car
+                                                                                );
+                                                                            "
+                                                                        ></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    class="wdg-mtile"
+                                                                >
+                                                                    <div
+                                                                        class="wdg-mtop"
+                                                                    >
+                                                                        <span
+                                                                            class="wdg-mkey"
+                                                                            >Fat</span
+                                                                        >
+                                                                        <span
+                                                                            class="wdg-mnum"
+                                                                            >15<span
+                                                                                class="wdg-msub"
+                                                                                >/70</span
+                                                                            ></span
+                                                                        >
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mbar"
+                                                                    >
+                                                                        <div
+                                                                            class="wdg-mfill"
+                                                                            style="
+                                                                                width: 21.4%;
+                                                                                background: var(
+                                                                                    --fat
+                                                                                );
+                                                                            "
+                                                                        ></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                class="wdg-mgrid wdg-lim wdg-sec"
+                                                            >
+                                                                <div
+                                                                    class="wdg-mtile"
+                                                                >
+                                                                    <div
+                                                                        class="wdg-mtop"
+                                                                    >
+                                                                        <span
+                                                                            class="wdg-mkey"
+                                                                            >Sugar</span
+                                                                        >
+                                                                        <span
+                                                                            class="wdg-mnum"
+                                                                            >2.5</span
+                                                                        >
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mbar"
+                                                                    >
+                                                                        <div
+                                                                            class="wdg-mfill"
+                                                                            style="
+                                                                                width: 5.6%;
+                                                                                background: var(
+                                                                                    --sug
+                                                                                );
+                                                                            "
+                                                                        ></div>
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mcap"
+                                                                    >
+                                                                        limit 45
+                                                                        g
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    class="wdg-mtile"
+                                                                >
+                                                                    <div
+                                                                        class="wdg-mtop"
+                                                                    >
+                                                                        <span
+                                                                            class="wdg-mkey"
+                                                                            >Caffeine</span
+                                                                        >
+                                                                        <span
+                                                                            class="wdg-mnum"
+                                                                            >95</span
+                                                                        >
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mbar"
+                                                                    >
+                                                                        <div
+                                                                            class="wdg-mfill"
+                                                                            style="
+                                                                                width: 23.8%;
+                                                                                background: var(
+                                                                                    --caf
+                                                                                );
+                                                                            "
+                                                                        ></div>
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mcap"
+                                                                    >
+                                                                        limit
+                                                                        400 mg
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    class="wdg-mtile"
+                                                                >
+                                                                    <div
+                                                                        class="wdg-mtop"
+                                                                    >
+                                                                        <span
+                                                                            class="wdg-mkey"
+                                                                            >Fiber</span
+                                                                        >
+                                                                        <span
+                                                                            class="wdg-mnum"
+                                                                            >3.4</span
+                                                                        >
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mbar"
+                                                                    >
+                                                                        <div
+                                                                            class="wdg-mfill"
+                                                                            style="
+                                                                                width: 11.3%;
+                                                                                background: var(
+                                                                                    --fib
+                                                                                );
+                                                                            "
+                                                                        ></div>
+                                                                    </div>
+                                                                    <div
+                                                                        class="wdg-mcap"
+                                                                    >
+                                                                        of 30 g
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                class="wdg-mhint"
+                                                                aria-hidden="true"
+                                                            >
+                                                                Tap a metric for
+                                                                the meals behind
+                                                                it
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="wdg-sec wdg-wfoot">
-                                                <span
-                                                    >7 weigh-ins · 5 Jul → 11
-                                                    Jul</span
-                                                >
-                                                <span
-                                                    ><b>Target 73.0 kg</b> · 1.5
-                                                    kg to lose</span
-                                                >
-                                            </div>
+                                            Done — added that to breakfast: two
+                                            eggs, toast, and a coffee. That's
+                                            about 340 kcal (20g protein, 30g
+                                            carbs, 15g fat, 3.4g fiber), plus
+                                            95mg of caffeine from the coffee.
                                         </div>
-                                        You're down 0.6 kg this week and 1.5 kg
-                                        from your 73 kg goal — your 7-day
-                                        average is trending down nicely.
+
+                                        <div class="msg msg-user">
+                                            How's my weight trending?
+                                        </div>
+
+                                        <div class="msg msg-ai">
+                                            <div class="wdg">
+                                                <div class="wdg-head wdg-mid">
+                                                    <div class="wdg-title">
+                                                        Weight
+                                                    </div>
+                                                    <div
+                                                        class="wdg-seg"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <span
+                                                            class="wdg-seg-btn wdg-on"
+                                                            >7</span
+                                                        >
+                                                        <span
+                                                            class="wdg-seg-btn"
+                                                            >14</span
+                                                        >
+                                                        <span
+                                                            class="wdg-seg-btn"
+                                                            >30</span
+                                                        >
+                                                    </div>
+                                                </div>
+                                                <div class="wdg-wmain">
+                                                    <div class="wdg-wnow">
+                                                        <div class="wdg-wtag">
+                                                            Latest
+                                                        </div>
+                                                        <div class="wdg-wval">
+                                                            74.5<span
+                                                                class="wdg-wunit"
+                                                                >kg</span
+                                                            >
+                                                        </div>
+                                                        <div
+                                                            class="wdg-wdelta"
+                                                            style="
+                                                                color: var(
+                                                                    --accent
+                                                                );
+                                                            "
+                                                        >
+                                                            −0.6 kg since 5 Jul
+                                                        </div>
+                                                    </div>
+                                                    <svg
+                                                        class="wdg-wchart"
+                                                        viewBox="0 0 300 62"
+                                                        role="img"
+                                                        aria-label="Weight from 5 Jul to 11 Jul, latest 74.5 kg"
+                                                    >
+                                                        <line
+                                                            class="wdg-goalline"
+                                                            x1="5"
+                                                            y1="50.4"
+                                                            x2="295"
+                                                            y2="50.4"
+                                                        />
+                                                        <path
+                                                            d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z"
+                                                            fill="var(--accent)"
+                                                            opacity="0.16"
+                                                        />
+                                                        <path
+                                                            d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1"
+                                                            fill="none"
+                                                            stroke="var(--accent)"
+                                                            stroke-width="2"
+                                                            stroke-linejoin="round"
+                                                            stroke-linecap="round"
+                                                        />
+                                                        <circle
+                                                            cx="5.0"
+                                                            cy="13.6"
+                                                            r="2.6"
+                                                            fill="var(--accent)"
+                                                        />
+                                                        <circle
+                                                            cx="53.3"
+                                                            cy="15.4"
+                                                            r="2.6"
+                                                            fill="var(--accent)"
+                                                        />
+                                                        <circle
+                                                            cx="101.7"
+                                                            cy="18.9"
+                                                            r="2.6"
+                                                            fill="var(--accent)"
+                                                        />
+                                                        <circle
+                                                            cx="150.0"
+                                                            cy="17.1"
+                                                            r="2.6"
+                                                            fill="var(--accent)"
+                                                        />
+                                                        <circle
+                                                            cx="198.3"
+                                                            cy="22.4"
+                                                            r="2.6"
+                                                            fill="var(--accent)"
+                                                        />
+                                                        <circle
+                                                            cx="246.7"
+                                                            cy="20.6"
+                                                            r="2.6"
+                                                            fill="var(--accent)"
+                                                        />
+                                                        <circle
+                                                            cx="295.0"
+                                                            cy="24.1"
+                                                            r="2.6"
+                                                            fill="var(--accent)"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <div class="wdg-sec wdg-wfoot">
+                                                    <span
+                                                        >7 weigh-ins · 5 Jul →
+                                                        11 Jul</span
+                                                    >
+                                                    <span
+                                                        ><b>Target 73.0 kg</b> ·
+                                                        1.5 kg to lose</span
+                                                    >
+                                                </div>
+                                            </div>
+                                            You're down 0.6 kg this week and 1.5
+                                            kg from your 73 kg goal — your 7-day
+                                            average is trending down nicely.
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="cw-input">
-                                <span class="cw-field">Message Nutrition…</span>
-                                <span class="cw-send"
-                                    ><i class="fa-solid fa-arrow-up"></i
-                                ></span>
+                                <div class="cw-input">
+                                    <span class="cw-field"
+                                        >Message Nutrition…</span
+                                    >
+                                    <span class="cw-send"
+                                        ><i class="fa-solid fa-arrow-up"></i
+                                    ></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -695,19 +820,19 @@
 
             <!-- How it works -->
             <section class="section band" id="how">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">How it works</p>
                         <h2 class="section-title">
                             Three steps. No app to learn.
                         </h2>
                     </div>
-                    <div class="steps3">
+                    <div class="steps3" data-reveal="stagger">
                         <div class="step3">
                             <span class="step3-icon"
                                 ><i class="fa-solid fa-plug"></i
                             ></span>
-                            <h3>1 · Connect once</h3>
+                            <h3>Connect once</h3>
                             <p>
                                 Works with any AI client that supports remote
                                 MCP servers — Claude, ChatGPT, and more. No
@@ -718,7 +843,7 @@
                             <span class="step3-icon"
                                 ><i class="fa-solid fa-message"></i
                             ></span>
-                            <h3>2 · Just say what you ate</h3>
+                            <h3>Just say what you ate</h3>
                             <p>
                                 Describe it in plain language — or send a photo
                                 of your meal, a screenshot from a delivery app,
@@ -730,7 +855,7 @@
                             <span class="step3-icon"
                                 ><i class="fa-solid fa-chart-area"></i
                             ></span>
-                            <h3>3 · Track &amp; review</h3>
+                            <h3>Track &amp; review</h3>
                             <p>
                                 Ask for daily summaries, weekly trends, goal
                                 progress, or export everything you've logged as
@@ -743,7 +868,7 @@
 
             <!-- Quick install -->
             <section class="section" id="install">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Quick install</p>
                         <h2 class="section-title">Connect in under a minute</h2>
@@ -948,7 +1073,7 @@
 
             <!-- Optional onboarding -->
             <section class="section" id="onboarding">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Onboarding</p>
                         <h2 class="section-title">
@@ -1026,7 +1151,7 @@
 
             <!-- Try saying -->
             <section class="section band" id="try">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Try saying</p>
                         <h2 class="section-title">Just talk to it.</h2>
@@ -2886,35 +3011,52 @@
 
             <!-- Stats + world map -->
             <section class="section" id="stats">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Tracked so far, together</p>
                         <h2 class="section-title">A growing global food log</h2>
                     </div>
 
-                    <div class="stat-row" id="stat-row">
-                        <div class="odo-hero">
-                            <span
-                                class="odo"
-                                data-odo="total_calories"
-                                role="img"
-                                aria-label="Calories tracked"
-                                >—</span
+                    <div class="facts" id="stat-row" data-reveal>
+                        <p class="facts-title">Nutrition Facts</p>
+                        <p class="facts-serving">
+                            <span>Serving size <b>everyone, so far</b></span>
+                            <span class="facts-live" id="facts-live">Live</span>
+                        </p>
+                        <div class="facts-cal">
+                            <span class="label"
+                                >Calories <small>tracked, all time</small></span
                             >
-                            <span class="odo-cap">Calories tracked</span>
+                            <div class="odo-hero">
+                                <span
+                                    class="odo"
+                                    data-odo="total_calories"
+                                    role="img"
+                                    aria-label="Calories tracked"
+                                    >—</span
+                                >
+                                <span class="odo-cap">Calories tracked</span>
+                            </div>
                         </div>
-                        <p class="odo-rest">
-                            <span
-                                ><b data-stat="food_logs">—</b> food logs</span
-                            >
-                            <span
-                                ><b data-stat="total_protein_g">—</b>
-                                protein</span
-                            >
-                            <span
-                                ><b data-stat="total_carbs_g">—</b> carbs</span
-                            >
-                            <span><b data-stat="total_fat_g">—</b> fat</span>
+                        <p class="facts-row">
+                            <span>Food logs</span>
+                            <b data-stat="food_logs">—</b>
+                        </p>
+                        <p class="facts-row">
+                            <span>Protein</span>
+                            <b data-stat="total_protein_g">—</b>
+                        </p>
+                        <p class="facts-row">
+                            <span>Carbohydrates</span>
+                            <b data-stat="total_carbs_g">—</b>
+                        </p>
+                        <p class="facts-row">
+                            <span>Fat</span>
+                            <b data-stat="total_fat_g">—</b>
+                        </p>
+                        <p class="facts-foot">
+                            Totals across every account, updated as meals are
+                            logged. Individual data is never shown.
                         </p>
                     </div>
 
@@ -2941,12 +3083,12 @@
 
             <!-- Features -->
             <section class="section band" id="features">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Everything, just by chatting</p>
                         <h2 class="section-title">What you can track</h2>
                     </div>
-                    <div class="features-grid">
+                    <div class="features-grid" data-reveal="stagger">
                         <article class="card feature">
                             <span class="feature-icon" aria-hidden="true"
                                 ><i class="fa-solid fa-utensils"></i
@@ -3054,7 +3196,7 @@
 
             <!-- Why / comparison -->
             <section class="section" id="why">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Why Nutrition MCP</p>
                         <h2 class="section-title">Talking beats tapping.</h2>
@@ -3123,7 +3265,7 @@
 
             <!-- Trust -->
             <section class="section band" id="trust">
-                <div class="container trust-grid">
+                <div class="container trust-grid" data-reveal="stagger">
                     <div class="trust-item">
                         <i class="fa-solid fa-lock"></i>
                         <span>Private by default</span>
@@ -3149,7 +3291,7 @@
 
             <!-- Support -->
             <section class="section" id="support">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Support</p>
                         <h2 class="section-title">Help keep it running.</h2>
@@ -3195,7 +3337,7 @@
 
             <!-- Closing CTA -->
             <section class="section cta">
-                <div class="container cta-inner">
+                <div class="container cta-inner" data-reveal>
                     <h2 class="cta-title">Start tracking in under a minute.</h2>
                     <p class="cta-sub">
                         Free and open source — it works with the AI you already
@@ -3220,7 +3362,7 @@
 
             <!-- Contact -->
             <section class="section band" id="contact">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Contact</p>
                         <h2 class="section-title">Questions or feedback?</h2>
@@ -3249,7 +3391,7 @@
 
             <!-- FAQ -->
             <section class="section" id="faq">
-                <div class="container">
+                <div class="container" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">FAQ</p>
                         <h2 class="section-title">
@@ -3399,11 +3541,12 @@
 
         <footer class="footer">
             <div class="footer-inner">
-                <span class="footer-brand"
-                    ><i class="fa-solid fa-apple-whole" aria-hidden="true"></i>
-                    Nutrition MCP</span
-                >
-                <nav class="footer-links">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/tools">Tools</a>
                     <a href="/alternatives">Alternatives</a>
                     <a
                         href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
@@ -3427,100 +3570,15 @@
                     <a href="/privacy">Privacy Policy</a>
                     <a href="/terms">Terms of Service</a>
                 </nav>
+                <p class="footer-note">
+                    Free and open source. Nutrition figures are estimates, not
+                    medical advice.
+                </p>
             </div>
         </footer>
 
         <script>
             (function () {
-                // ---------- theme toggle (dark / light, default = system) ----------
-                var themeBtn = document.getElementById("theme-toggle");
-                if (themeBtn) {
-                    var themeIcon = themeBtn.querySelector("i");
-                    var metaTheme = document.querySelector(
-                        'meta[name="theme-color"]',
-                    );
-                    var darkQuery = window.matchMedia(
-                        "(prefers-color-scheme: dark)",
-                    );
-                    // The effective theme = explicit override, else the OS setting.
-                    function effectiveTheme() {
-                        var override = document.body.getAttribute("data-theme");
-                        if (override) return override;
-                        return darkQuery.matches ? "dark" : "light";
-                    }
-                    // Reflect the current theme in the icon, label, and meta color.
-                    function syncUI() {
-                        var dark = effectiveTheme() === "dark";
-                        if (themeIcon)
-                            themeIcon.className = dark
-                                ? "fa-solid fa-sun"
-                                : "fa-solid fa-moon";
-                        var label = dark
-                            ? "Switch to light mode"
-                            : "Switch to dark mode";
-                        themeBtn.setAttribute("aria-label", label);
-                        themeBtn.setAttribute("title", label);
-                        if (metaTheme)
-                            metaTheme.setAttribute(
-                                "content",
-                                dark ? "#161617" : "#4a7c59",
-                            );
-                    }
-                    themeBtn.addEventListener("click", function () {
-                        var next =
-                            effectiveTheme() === "dark" ? "light" : "dark";
-                        document.body.setAttribute("data-theme", next);
-                        try {
-                            localStorage.setItem("theme", next);
-                        } catch (e) {}
-                        syncUI();
-                    });
-                    // While following the OS (no override), track system changes.
-                    darkQuery.addEventListener("change", function () {
-                        if (!document.body.getAttribute("data-theme")) syncUI();
-                    });
-                    syncUI();
-                }
-
-                // ---------- copy-URL buttons in the install guides ----------
-                document.querySelectorAll(".copy-mini").forEach(function (btn) {
-                    var icon = btn.querySelector("i");
-                    btn.addEventListener("click", function () {
-                        var text = btn.getAttribute("data-copy");
-                        function ok() {
-                            btn.classList.add("copied");
-                            if (icon) icon.className = "fa-solid fa-check";
-                            setTimeout(function () {
-                                btn.classList.remove("copied");
-                                if (icon) icon.className = "fa-solid fa-copy";
-                            }, 1500);
-                        }
-                        function fallback() {
-                            try {
-                                var ta = document.createElement("textarea");
-                                ta.value = text;
-                                ta.style.position = "absolute";
-                                ta.style.left = "-9999px";
-                                document.body.appendChild(ta);
-                                ta.select();
-                                document.execCommand("copy");
-                                document.body.removeChild(ta);
-                                ok();
-                            } catch (e) {}
-                        }
-                        if (
-                            navigator.clipboard &&
-                            navigator.clipboard.writeText
-                        ) {
-                            navigator.clipboard
-                                .writeText(text)
-                                .then(ok, fallback);
-                        } else {
-                            fallback();
-                        }
-                    });
-                });
-
                 var reduceMotion = window.matchMedia(
                     "(prefers-reduced-motion: reduce)",
                 ).matches;
@@ -3564,7 +3622,10 @@
                         fmt: fmtKg,
                     },
                 };
-                function animate(el, target, fmt) {
+                // Counts from `from` (0 on first paint, the previous value on
+                // a live update) to `target`.
+                function animate(el, target, fmt, from) {
+                    from = from || 0;
                     if (reduceMotion) {
                         el.textContent = fmt(target);
                         return;
@@ -3574,10 +3635,53 @@
                     function step(ts) {
                         if (start === null) start = ts;
                         var p = Math.min((ts - start) / dur, 1);
-                        el.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));
+                        var e = 1 - Math.pow(1 - p, 3);
+                        el.textContent = fmt(from + (target - from) * e);
                         if (p < 1) requestAnimationFrame(step);
                     }
                     requestAnimationFrame(step);
+                }
+                // ---------- live deltas ----------
+                // Every figure is compared with the baseline captured when
+                // the page loaded, and the tag shows the net change since
+                // then ("+150 kcal") for as long as the page is open. Raw
+                // units, not the display ones: a 40 g change is invisible
+                // once rounded to kg.
+                var DELTA_UNIT = {
+                    food_logs: "",
+                    timezones: "",
+                    total_calories: " kcal",
+                    total_protein_g: " g",
+                    total_carbs_g: " g",
+                    total_fat_g: " g",
+                };
+                function showDelta(el, key, diff) {
+                    var n = Math.round(diff);
+                    var host = el.closest(".facts-row, .facts-cal") || el;
+                    var tag = host.querySelector(".delta");
+                    if (!n) {
+                        if (tag) tag.remove();
+                        return;
+                    }
+                    if (!tag) {
+                        tag = document.createElement("span");
+                        tag.className = "delta";
+                        tag.setAttribute("role", "status");
+                        // Sits between the label and the figure.
+                        host.insertBefore(
+                            tag,
+                            host.querySelector("b, .odo-hero") || null,
+                        );
+                    }
+                    tag.classList.toggle("down", n < 0);
+                    tag.textContent =
+                        (n > 0 ? "+" : "\u2212") +
+                        fmtInt(Math.abs(n)) +
+                        (DELTA_UNIT[key] || "");
+                    // Re-trigger the pop so a second change is noticed.
+                    tag.classList.remove("pop");
+                    void tag.offsetWidth;
+                    tag.classList.add("pop");
                 }
                 // ---------- odometer ----------
                 // Builds one reel per digit of the real total, so the digits
@@ -3641,21 +3745,40 @@
                     });
                 }
 
-                function setStats(stats) {
+                // `prev` is the last stats object painted, or null on first
+                // load. Unchanged figures are left alone so the page is still
+                // while nothing happens; changed ones count from old to new.
+                function setStats(stats, prev, base) {
                     Object.keys(FORMATS).forEach(function (key) {
                         if (typeof stats[key] !== "number") return;
+                        var before = prev ? prev[key] : null;
+                        if (prev && before === stats[key]) return;
                         document
                             .querySelectorAll('[data-stat="' + key + '"]')
                             .forEach(function (el) {
                                 var c = FORMATS[key];
-                                animate(el, c.to(stats[key]), c.fmt);
+                                animate(
+                                    el,
+                                    c.to(stats[key]),
+                                    c.fmt,
+                                    typeof before === "number"
+                                        ? c.to(before)
+                                        : 0,
+                                );
+                                if (base)
+                                    showDelta(el, key, stats[key] - base[key]);
                             });
                     });
                     document
                         .querySelectorAll("[data-odo]")
                         .forEach(function (el) {
-                            var v = stats[el.dataset.odo];
-                            if (typeof v === "number") setOdometer(el, v);
+                            var key = el.dataset.odo;
+                            var v = stats[key];
+                            if (typeof v !== "number") return;
+                            var before = prev ? prev[key] : null;
+                            if (prev && before === v) return;
+                            setOdometer(el, v);
+                            if (base) showDelta(el, key, v - base[key]);
                         });
                 }
 
@@ -3755,20 +3878,70 @@
                     });
                 }
 
-                // ---------- load data ----------
+                // ---------- load data, then keep it live ----------
+                var POLL_MS = 5000;
+                var lastStats = null;
+                var baseStats = null;
+                var pollTimer = null;
+                var liveEl = document.getElementById("facts-live");
+                function fetchStats() {
+                    return fetch("/api/stats", { cache: "no-store" }).then(
+                        function (r) {
+                            if (!r.ok) throw new Error("stats");
+                            return r.json();
+                        },
+                    );
+                }
+                function poll() {
+                    pollTimer = null;
+                    if (document.hidden) return;
+                    fetchStats()
+                        .then(function (stats) {
+                            setStats(stats, lastStats, baseStats);
+                            lastStats = stats;
+                            if (liveEl) liveEl.classList.remove("stale");
+                        })
+                        .catch(function () {
+                            if (liveEl) liveEl.classList.add("stale");
+                        })
+                        .then(schedule);
+                }
+                function schedule() {
+                    if (pollTimer || document.hidden) return;
+                    pollTimer = setTimeout(poll, POLL_MS);
+                }
+                // A background tab stops polling; coming back refetches at
+                // once so the figures are never minutes behind.
+                document.addEventListener("visibilitychange", function () {
+                    if (document.hidden) {
+                        clearTimeout(pollTimer);
+                        pollTimer = null;
+                    } else if (lastStats) {
+                        poll();
+                    }
+                });
                 Promise.all([
-                    fetch("/api/stats").then(function (r) {
-                        if (!r.ok) throw new Error("stats");
-                        return r.json();
-                    }),
+                    fetchStats(),
                     fetch("/map-data.json").then(function (r) {
                         return r.ok ? r.json() : null;
                     }),
                 ])
                     .then(function (res) {
                         var stats = res[0];
-                        setStats(stats);
+                        setStats(stats, null, null);
+                        lastStats = stats;
+                        baseStats = stats;
                         buildMap(res[1], stats.timezone_levels);
+                        if (liveEl) {
+                            liveEl.classList.add("on");
+                            // The deltas are measured from this moment.
+                            var t = new Date().toLocaleTimeString([], {
+                                hour: "numeric",
+                                minute: "2-digit",
+                            });
+                            liveEl.textContent = "Live \u00b7 since " + t;
+                        }
+                        schedule();
                     })
                     .catch(function () {
                         var row = document.getElementById("stat-row");
@@ -3933,5 +4106,6 @@
                 }
             })();
         </script>
+        <script src="/site.js" defer></script>
     </body>
 </html>
