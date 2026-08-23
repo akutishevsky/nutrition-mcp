@@ -164,3 +164,30 @@ test("every existing page has a self-referencing canonical, not canonical-to-Eng
         );
     }
 });
+
+// Every AI-translated page discloses that and links back to the English
+// original (scripts/site-partials.ts's translationNotice(), added after a
+// German page shipped without it) — and English itself must never carry
+// the notice, since there's nothing to disclose about itself. Scoped to
+// generated pages for the same reason the hreflang/canonical checks above
+// are: a page not yet on the generator pipeline has no mechanism to emit
+// this at all, which is a known, separate gap (see CLAUDE.md), not this
+// guard's job to catch.
+test("every generated non-English page discloses it's AI-translated; English never does", async () => {
+    const all = await existingPages();
+    for (const page of all) {
+        if (!(await isGenerated(page.path))) continue;
+        const html = await Bun.file(page.path).text();
+        if (page.locale === "en") {
+            expect(
+                html,
+                `${page.path} is English but carries a translation notice`,
+            ).not.toContain('class="translation-notice"');
+        } else {
+            expect(
+                html,
+                `${page.path} is missing the translation-notice disclosure`,
+            ).toContain('class="translation-notice"');
+        }
+    }
+});
