@@ -496,6 +496,57 @@ body.is-dark .theme-toggle .moon {
 .head-tools .head-cta {
     display: none;
 }
+/* Language switcher: a native <details> disclosure, matching the .faq
+   pattern elsewhere — no dropdown JS needed for open/close, just the
+   light-dismiss behaviour added in site.js. */
+.lang-switch {
+    position: relative;
+}
+.lang-switch summary {
+    list-style: none;
+}
+.lang-switch summary::-webkit-details-marker {
+    display: none;
+}
+.lang-code {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.lang-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 160px;
+    padding: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-float);
+}
+.lang-menu a {
+    padding: 0.5rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    color: var(--ink-2);
+    text-decoration: none;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+.lang-menu a:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+}
+.lang-menu a[aria-current="page"] {
+    color: var(--accent-hover);
+    font-weight: 600;
+}
 /* The GitHub icon lives in the sheet too; on a narrow phone the bar keeps
    only brand, theme and menu. */
 @media (max-width: 480px) {

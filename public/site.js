@@ -289,6 +289,21 @@
         });
     });
 
+    /* ---------- language switcher (light-dismiss for the <details>) ---------- */
+    var langSwitch = doc.querySelector(".lang-switch");
+    if (langSwitch) {
+        doc.addEventListener("click", function (e) {
+            if (langSwitch.open && !langSwitch.contains(e.target))
+                langSwitch.open = false;
+        });
+        doc.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && langSwitch.open) {
+                langSwitch.open = false;
+                langSwitch.querySelector("summary").focus();
+            }
+        });
+    }
+
     onScroll();
     // Lets CSS run the load choreography (hero underline etc.).
     requestAnimationFrame(function () {
