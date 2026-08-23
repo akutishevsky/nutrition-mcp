@@ -186,7 +186,13 @@ export function nav(
                     <a href="${h("install")}">${esc(c.nav.install)}</a>
                     <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
                     <a href="${h("try")}">${esc(c.nav.examples)}</a>
-                    <a href="${h("stats")}">${esc(c.nav.liveStats)}</a>
+                    <a href="${h("stats")}"
+                        >${esc(c.nav.liveStats)}<span
+                            class="nav-badge"
+                            hidden
+                            aria-hidden="true"
+                        ></span
+                    ></a>
                     <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 </nav>
                 <div class="head-tools">
@@ -257,7 +263,16 @@ ${switcherItems}
                 <a href="${h("install")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
                 <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
                 <a href="${h("try")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
-                <a href="${h("stats")}">${esc(c.nav.liveStats)} <small>${esc(c.menu.liveStatsSmall)}</small></a>
+                <a href="${h("stats")}"
+                    ><span
+                        >${esc(c.nav.liveStats)}<span
+                            class="nav-badge"
+                            hidden
+                            aria-hidden="true"
+                        ></span></span
+                    >
+                    <small>${esc(c.menu.liveStatsSmall)}</small></a
+                >
                 <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
             </nav>

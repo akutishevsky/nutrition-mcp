@@ -289,6 +289,68 @@
         });
     });
 
+    /* ---------- live-stats nav badge ---------- */
+    // Shows the count of new food logs since THIS page loaded, on every
+    // "Live stats" nav link (desktop head-nav + mobile sheet menu) — on
+    // every page, not just the landing page, which has its own separate,
+    // richer poller for the #stats section itself (see the inline script
+    // in scripts/gen-index.ts). Both independently poll /api/stats every
+    // 5s; the server caches that aggregate for 5s regardless of how many
+    // pollers ask, so a second one here costs nothing extra server-side.
+    var statsLinks = doc.querySelectorAll('a[href$="#stats"]');
+    if (statsLinks.length) {
+        var STATS_POLL_MS = 5000;
+        var statsBaseline = null;
+        var statsTimer = null;
+        var setBadge = (function () {
+            var badges = Array.prototype.map.call(statsLinks, function (a) {
+                return a.querySelector(".nav-badge");
+            });
+            return function (n) {
+                badges.forEach(function (b) {
+                    if (!b) return;
+                    if (n > 0) {
+                        // Matches the "+150"-style delta tags in the #stats
+                        // section itself (scripts/gen-index.ts's showDelta).
+                        b.textContent = "+" + (n > 99 ? "99+" : String(n));
+                        b.hidden = false;
+                    } else {
+                        b.hidden = true;
+                    }
+                });
+            };
+        })();
+        var pollStats = function () {
+            statsTimer = null;
+            if (doc.hidden) return;
+            fetch("/api/stats", { cache: "no-store" })
+                .then(function (r) {
+                    if (!r.ok) throw new Error("stats");
+                    return r.json();
+                })
+                .then(function (stats) {
+                    if (typeof stats.food_logs !== "number") return;
+                    if (statsBaseline === null) statsBaseline = stats.food_logs;
+                    else setBadge(stats.food_logs - statsBaseline);
+                })
+                .catch(function () {})
+                .then(scheduleStats);
+        };
+        var scheduleStats = function () {
+            if (statsTimer || doc.hidden) return;
+            statsTimer = setTimeout(pollStats, STATS_POLL_MS);
+        };
+        doc.addEventListener("visibilitychange", function () {
+            if (doc.hidden) {
+                clearTimeout(statsTimer);
+                statsTimer = null;
+            } else if (statsBaseline !== null) {
+                pollStats();
+            }
+        });
+        pollStats();
+    }
+
     /* ---------- language switcher (light-dismiss for the <details>) ---------- */
     var langSwitch = doc.querySelector(".lang-switch");
     if (langSwitch) {

@@ -1575,6 +1575,31 @@ body.is-dark .btn-primary:hover,
         transform: translateY(6px);
     }
 }
+/* Nav badge: count of new food logs since this page loaded, on the "Live
+   stats" nav link (site.js polls /api/stats and toggles [hidden]). Fixed
+   rem sizing rather than em so it reads the same size in the compact
+   desktop nav and the much larger mobile sheet menu. */
+.nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    margin-left: 0.4rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1;
+    vertical-align: middle;
+}
+.head-nav .nav-badge {
+    position: relative;
+    top: -1px;
+}
 .facts-foot {
     padding: 0.55rem 0 0.5rem;
     border-top: 5px solid var(--rule);
