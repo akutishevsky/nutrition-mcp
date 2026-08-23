@@ -18,16 +18,19 @@
 
 import {
     HTML_LANG,
+    LOCALES,
     hashPath,
     pathFor,
     urlFor,
     type SiteLocale,
 } from "../src/routes.js";
 import {
+    ALT_PAGE_META,
     ALTERNATIVES_COPY,
     type AppCopy,
     type AppSlug,
 } from "../src/copy/alternatives.js";
+import { altUiFor, type AltUiCopy } from "../src/copy/alt-ui.js";
 import {
     SITE,
     esc,
@@ -36,6 +39,7 @@ import {
     jsonLd,
     localeHead,
     nav,
+    translationNotice,
     HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
@@ -68,6 +72,10 @@ type App = {
  */
 function copyFor(slug: AppSlug, locale: SiteLocale): AppCopy {
     return ALTERNATIVES_COPY[locale]?.[slug] ?? ALTERNATIVES_COPY.en![slug];
+}
+
+function metaFor(locale: SiteLocale) {
+    return ALT_PAGE_META[locale] ?? ALT_PAGE_META.en!;
 }
 
 const APPS: App[] = [
@@ -123,100 +131,44 @@ function disclaimerBand(text: string): string {
 }
 
 // The "What you get instead" feature grid describes Nutrition MCP, so it's the
-// same on every page.
-const FEATURES = `                    <div class="features-grid" data-reveal="stagger">
-                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="fa-solid fa-utensils"></i
-                            ></span>
-                            <h3>Meals in plain language</h3>
-                            <p>
-                                Say &ldquo;oatmeal with banana and peanut
-                                butter&rdquo; — your AI estimates calories and
-                                macros, fiber, total sugar and caffeine included, and logs
-                                it. No database search.
-                            </p>
-                        </article>
-                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="fa-solid fa-barcode"></i
-                            ></span>
-                            <h3>Barcode scanning — free</h3>
-                            <p>
-                                Send a product barcode and pull the label macros
-                                from Open Food Facts — fiber and sugar too, where
-                                the label lists them. No Premium subscription to
-                                unlock it.
-                            </p>
-                        </article>
-                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="fa-solid fa-weight-scale"></i
-                            ></span>
-                            <h3>Weight &amp; goals</h3>
-                            <p>
-                                Log body weight in kg or lb, set calorie, macro,
-                                fiber, sugar, caffeine, and water goals — fiber a
-                                target to reach, sugar and caffeine limits to
-                                stay under — and track
-                                trends toward a goal weight. Alcohol tracking is
-                                there too, opt-in and off unless you turn it on.
-                            </p>
-                        </article>
-                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="fa-solid fa-chart-area"></i
-                            ></span>
-                            <h3>Summaries &amp; trends</h3>
-                            <p>
-                                Ask for daily totals, weekly trends, streaks, and
-                                recurring meal patterns — right in the chat.
-                            </p>
-                        </article>
-                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="fa-solid fa-file-csv"></i
-                            ></span>
-                            <h3>Import &amp; own your data</h3>
-                            <p>
-                                Import your meal history from another app's CSV
-                                export — parsed in your browser, not by the AI.
-                                Take everything back out whenever you want: one
-                                ZIP with your meals, water, weight, goals and
-                                profile as CSV files. Meals are the only part
-                                that can be imported back in for now. Or delete
-                                your account, just as easily.
-                            </p>
-                        </article>
-                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="fa-solid fa-code-branch"></i
-                            ></span>
-                            <h3>Open source &amp; free</h3>
-                            <p>
-                                MIT-licensed and self-hostable — no ads, no
-                                paywall, no upsell. Audit the code or run your own
-                                instance.
-                            </p>
-                        </article>
-                    </div>`;
+// same on every page. Icons are structural (never translated); title/body
+// come from AltUiCopy.app.features, matched by array position.
+const FEATURE_ICONS = [
+    "fa-utensils",
+    "fa-barcode",
+    "fa-weight-scale",
+    "fa-chart-area",
+    "fa-file-csv",
+    "fa-code-branch",
+];
 
-function installBlock(locale: SiteLocale): string {
-    return `                    <div class="card install-card">
-                        <ol class="steps">
-                            <li>
-                                Open <strong>Claude</strong> (web or desktop) and
-                                click <strong>Customize</strong> →
-                                <strong>Connectors</strong>.
-                            </li>
-                            <li>
-                                Click <strong>+</strong>, then
-                                <strong>Add custom connector</strong>, and give it
-                                a name like <strong>Nutrition</strong>.
-                            </li>
-                            <li>
-                                Paste
-                                <span class="copy-url"
+function featuresBlock(ui: AltUiCopy): string {
+    const cards = ui.app.features
+        .map(
+            (f, i) => `                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid ${FEATURE_ICONS[i]}"></i
+                            ></span>
+                            <h3>${f.title}</h3>
+                            <p>
+                                ${f.body}
+                            </p>
+                        </article>`,
+        )
+        .join("\n");
+    return `                    <div class="features-grid" data-reveal="stagger">
+${cards}
+                    </div>`;
+}
+
+function installBlock(locale: SiteLocale, ui: AltUiCopy): string {
+    const steps = ui.app.installSteps
+        .map((s, i) => {
+            const html =
+                i === 2
+                    ? s.replace(
+                          "{copyUrl}",
+                          `<span class="copy-url"
                                     ><code>https://nutrition-mcp.com/mcp</code
                                     ><button
                                         class="copy-mini"
@@ -225,72 +177,59 @@ function installBlock(locale: SiteLocale): string {
                                         aria-label="Copy server URL"
                                     >
                                         <i class="fa-solid fa-copy"></i></button
-                                ></span>
-                                into the
-                                <strong>Remote MCP server URL</strong> field and
-                                click <strong>Add</strong>.
-                            </li>
-                            <li>
-                                Click <strong>Connect</strong>, sign in, and start
-                                logging by saying what you ate.
-                            </li>
+                                ></span>`,
+                      )
+                    : s;
+            return `                            <li>
+                                ${html}
+                            </li>`;
+        })
+        .join("\n");
+    const note = ui.app.installNoteTemplate.replace(
+        "{link}",
+        `<a href="${hashPath(locale, "install")}">${esc(ui.app.installLinkText)}</a>`,
+    );
+    return `                    <div class="card install-card">
+                        <ol class="steps">
+${steps}
                         </ol>
                         <p class="note">
-                            Using ChatGPT or another client instead? The
-                            <a href="${hashPath(locale, "install")}">full install guide</a> covers
-                            ChatGPT, Cursor, VS Code, Claude Code, and more.
+                            ${note}
                         </p>
                     </div>`;
 }
 
-// The Nutrition MCP (right) column of the comparison is identical everywhere.
-const PROS = [
-    "Built as an MCP server — lives inside Claude &amp; ChatGPT",
-    "Describe meals in plain language; calories, macros, fiber, sugar &amp; caffeine estimated for you",
-    "Barcode scanning, trends, CSV import &amp; export — all free",
-    "No separate app, no ads, open source",
-];
-
-// ---------- helpers ----------
-
-/**
- * Every import answer promises a panel that opens in the chat. That is the
- * widget path; a client with widgets off gets the paste fallback instead, where
- * the model does parse the rows (start_meal_import says so at src/mcp.ts). The
- * caveat is appended centrally so all seven pages carry the same wording rather
- * than six hand-edited variants.
- */
-const IMPORT_FALLBACK_NOTE =
-    " In clients without in-chat panels you can paste your export instead.";
-
-function faqsFor(app: App, copy: AppCopy): { q: string; a: string }[] {
+function faqsFor(
+    app: App,
+    copy: AppCopy,
+    ui: AltUiCopy,
+): { q: string; a: string }[] {
+    const faq = ui.app.faq;
     return [
         {
-            q: `Does ${app.name} have an MCP server?`,
-            a: `No. ${app.name} does not offer a Model Context Protocol (MCP) server, so there is no official way to connect it to Claude, ChatGPT, or other AI assistants. Nutrition MCP is a free, open-source alternative built as an MCP server from the ground up, so you can log meals and macros directly inside your AI.`,
+            q: faq.mcpQ.replaceAll("{app}", app.name),
+            a: faq.mcpA.replaceAll("{app}", app.name),
         },
         {
-            q: `How do I connect ${app.name} to Claude?`,
-            a: `There is no official ${app.name} connector for Claude, because ${app.name} has no MCP server or public MCP integration. The closest option is Nutrition MCP, a free MCP server: add https://nutrition-mcp.com/mcp as a custom connector in Claude, sign in, and start logging by conversation.`,
+            q: faq.connectQ.replaceAll("{app}", app.name),
+            a: faq.connectA.replaceAll("{app}", app.name),
         },
         ...copy.extraFaqs,
         {
-            q: `Is Nutrition MCP a good ${app.name} alternative?`,
-            a: `If you want to track calories, macros — fiber, total sugar, and caffeine included — water, and weight without opening a separate app or searching a food database, yes. Instead of tapping through a database, you describe what you ate in plain language, send a photo, or scan a barcode, and your AI logs it — completely free and open source.`,
+            q: faq.goodAltQ.replaceAll("{app}", app.name),
+            a: faq.goodAltA,
         },
         {
-            q: `Can I import my ${app.name} data?`,
-            a: copy.importFaq + IMPORT_FALLBACK_NOTE,
+            q: faq.importQ.replaceAll("{app}", app.name),
+            a: copy.importFaq + ui.app.importFallbackNote,
         },
         {
-            q: `Does the AI read my export file when I import?`,
-            a: `Not when the importer opens. It parses the CSV in your browser and shows you what will be added before anything is written: how many meals, the calorie total, anything it had to flag, and the rows themselves — a long file lists the first of them plus a count of the rest rather than every line. Only the rows you confirm are sent, and they go as structured data rather than through the AI's reply, so no row can be mistyped or invented in transit. Each row also carries a content fingerprint, so running the same file again reports those meals as already logged instead of duplicating them. If your client can't display in-chat panels, the fallback is to paste the export — the AI does read it on that path, so prefer the importer when you have the choice.`,
+            q: faq.readExportQ,
+            a: faq.readExportA,
         },
         {
-            q: `Is Nutrition MCP free?`,
-            a:
-                copy.freeAnswer ??
-                `Yes. Nutrition MCP is completely free with no premium tier, ads, or paywalled features — unlike apps that put some features behind a subscription. You only need a Claude or ChatGPT account to connect.`,
+            q: faq.freeQ,
+            a: copy.freeAnswer ?? faq.freeAFallback,
         },
     ];
 }
@@ -299,16 +238,24 @@ function faqsFor(app: App, copy: AppCopy): { q: string; a: string }[] {
 
 function renderApp(app: App, locale: SiteLocale = "en"): string {
     const copy = copyFor(app.slug, locale);
+    const meta = metaFor(locale);
+    const ui = altUiFor(locale);
     const url = urlFor(locale, `/${app.slug}`);
     // The <title> deliberately does NOT mention import: these pages rank on the
     // exact bridge query ("<app> mcp", "connect <app> to claude") and diluting
     // that head term would cost more than an import keyword gains. The
     // description is a click-through lever rather than a ranking one, so it does
     // carry import — abandoning logged history is the top objection to switching.
-    const desc = `No MCP server for ${app.name}? Nutrition MCP logs meals and macros inside Claude or ChatGPT — free, open source, and it imports your CSV export.`;
-    const ogDesc = `${app.name} has no MCP server. Nutrition MCP is a free, open-source alternative that logs meals, macros, and weight in Claude or ChatGPT — and imports your ${app.name} history from a CSV export.`;
-    const title = `${app.name} MCP Server? Track Nutrition in Claude & ChatGPT`;
-    const faqs = faqsFor(app, copy);
+    // app.name (the brand, e.g. "MyFitnessPal") is never translated — only
+    // the {app} placeholder's surrounding template is locale-specific.
+    const desc = meta.appDesc.replaceAll("{app}", app.name);
+    const ogDesc = meta.appOgDesc.replaceAll("{app}", app.name);
+    const title = meta.appTitle.replaceAll("{app}", app.name);
+    const faqs = faqsFor(app, copy, ui);
+    // "Plain" AltUiCopy strings (see src/copy/alt-ui.ts's field docs) are
+    // substituted then escaped here; "Html"-suffixed / documented-raw fields
+    // already carry their own entities/tags and are inserted as-is below.
+    const t = (s: string) => esc(s.replaceAll("{app}", app.name));
 
     const breadcrumb = {
         "@context": "https://schema.org",
@@ -350,10 +297,12 @@ function renderApp(app: App, locale: SiteLocale = "en"): string {
                 `                                <li>\n                                    <i class="fa-solid fa-xmark"></i> ${esc(c)}\n                                </li>`,
         )
         .join("\n");
-    const pros = PROS.map(
-        (p) =>
-            `                                <li>\n                                    <i class="fa-solid fa-circle-check"></i>\n                                    ${p}\n                                </li>`,
-    ).join("\n");
+    const pros = ui.app.pros
+        .map(
+            (p) =>
+                `                                <li>\n                                    <i class="fa-solid fa-circle-check"></i>\n                                    ${p}\n                                </li>`,
+        )
+        .join("\n");
     const faqDetails = faqs
         .map(
             (f) =>
@@ -397,32 +346,30 @@ ${nav(locale, `/${app.slug}`)}
             <section class="hero">
                 <div class="container">
                     <nav class="crumb" aria-label="Breadcrumb">
-                        <a href="${pathFor(locale, "")}">Home</a>
+                        <a href="${pathFor(locale, "")}">${esc(ui.breadcrumbHome)}</a>
                         <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                        <a href="${pathFor(locale, "/alternatives")}">Alternatives</a>
+                        <a href="${pathFor(locale, "/alternatives")}">${esc(ui.breadcrumbAlternatives)}</a>
                         <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                         <span>${esc(app.name)}</span>
                     </nav>
                     <div class="hero-copy hero-copy-wide">
-                        <p class="eyebrow">${esc(app.name)} alternative</p>
+                        <p class="eyebrow">${t(ui.app.heroEyebrow)}</p>
                         <h1 class="hero-title">
-                            Looking for a <em>${esc(app.name)} MCP</em> server?
+                            ${ui.app.heroTitleHtml.replaceAll("{app}", esc(app.name))}
                         </h1>
                         <p class="lead">
-                            ${esc(app.name)} doesn't have one — so you can't use
-                            it inside Claude or ChatGPT. Nutrition MCP does the
-                            same job by conversation, and it's free and open
-                            source.
+                            ${t(ui.app.heroLead)}
                         </p>
                         <div class="hero-actions">
                             <a class="btn btn-primary" href="#switch"
-                                >Connect in under a minute</a
+                                >${t(ui.app.ctaConnect)}</a
                             >
                             <a class="btn btn-secondary" href="#compare"
-                                >See the comparison</a
+                                >${t(ui.app.ctaSeeComparison)}</a
                             >
                         </div>
                     </div>
+${translationNotice(locale, `/${app.slug}`)}
                 </div>
             </section>
 
@@ -430,21 +377,12 @@ ${nav(locale, `/${app.slug}`)}
             <section class="section band" id="answer">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">The short answer</p>
+                        <p class="eyebrow">${t(ui.app.answerEyebrow)}</p>
                         <h2 class="section-title">
-                            No, ${esc(app.name)} has no MCP server.
+                            ${t(ui.app.answerTitle)}
                         </h2>
                         <p class="section-sub">
-                            The Model Context Protocol (MCP) is the open standard
-                            that lets AI assistants like Claude and ChatGPT
-                            connect to outside tools. ${esc(app.name)} doesn't
-                            publish an MCP server, so there's no official way to
-                            log food to it from your AI. If you searched for
-                            &ldquo;${esc(app.name)} MCP&rdquo; or &ldquo;connect
-                            ${esc(app.name)} to Claude,&rdquo; what you're really
-                            after is a nutrition tracker that lives
-                            <em>inside</em> your AI — that's exactly what
-                            Nutrition MCP is.
+                            ${ui.app.answerBodyHtml.replaceAll("{app}", esc(app.name))}
                         </p>
                     </div>
                 </div>
@@ -454,12 +392,12 @@ ${nav(locale, `/${app.slug}`)}
             <section class="section" id="instead">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">What you get instead</p>
+                        <p class="eyebrow">${t(ui.app.insteadEyebrow)}</p>
                         <h2 class="section-title">
-                            The same tracking, just by talking
+                            ${t(ui.app.insteadTitle)}
                         </h2>
                     </div>
-${FEATURES}
+${featuresBlock(ui)}
                 </div>
             </section>
 
@@ -467,8 +405,8 @@ ${FEATURES}
             <section class="section band" id="compare">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">${esc(app.name)} vs. Nutrition MCP</p>
-                        <h2 class="section-title">How they stack up</h2>
+                        <p class="eyebrow">${t(ui.app.compareEyebrow)}</p>
+                        <h2 class="section-title">${t(ui.app.compareTitle)}</h2>
                     </div>
                     <div class="compare">
                         <div class="compare-col">
@@ -498,7 +436,7 @@ ${pros}
             <section class="section" id="moving">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">Moving from ${esc(app.name)}</p>
+                        <p class="eyebrow">${t(ui.app.movingEyebrow)}</p>
                         <h2 class="section-title">
                             ${esc(copy.migrate.title)}
                         </h2>
@@ -515,17 +453,12 @@ ${copy.migrate.body
             <section class="section band" id="import">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">Your ${esc(app.name)} history</p>
+                        <p class="eyebrow">${t(ui.app.importEyebrow)}</p>
                         <h2 class="section-title">
                             ${esc(copy.importSection.title)}
                         </h2>
                         <p class="section-sub">
-                            Ask to import and an importer opens right in the
-                            chat: pick your export, map the columns, preview
-                            what will be added, then confirm. The file
-                            is read in your browser — the AI never sees the
-                            rows. In clients without in-chat panels, paste your
-                            export instead.
+                            ${t(ui.app.importSub)}
                         </p>
                     </div>
                     <div class="prose">
@@ -540,15 +473,13 @@ ${copy.importSection.body
             <section class="section" id="switch">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">How to switch</p>
-                        <h2 class="section-title">Connect in under a minute</h2>
+                        <p class="eyebrow">${t(ui.app.switchEyebrow)}</p>
+                        <h2 class="section-title">${t(ui.app.ctaConnect)}</h2>
                         <p class="section-sub">
-                            Works with any MCP client that supports OAuth 2.0
-                            with PKCE. On first connect you create an account
-                            with Google or an email and password.
+                            ${t(ui.app.switchSub)}
                         </p>
                     </div>
-${installBlock(locale)}
+${installBlock(locale, ui)}
                 </div>
             </section>
 
@@ -556,9 +487,9 @@ ${installBlock(locale)}
             <section class="section band" id="faq">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">FAQ</p>
+                        <p class="eyebrow">${t(ui.app.faqEyebrow)}</p>
                         <h2 class="section-title">
-                            ${esc(app.name)} &amp; MCP questions
+                            ${ui.app.faqTitleTemplate.replaceAll("{app}", esc(app.name))}
                         </h2>
                     </div>
                     <div class="faq">
@@ -571,25 +502,24 @@ ${faqDetails}
             <section class="section cta">
                 <div class="container cta-inner" data-reveal>
                     <h2 class="cta-title">
-                        Track nutrition inside the AI you already use.
+                        ${esc(ui.ctaClosingTitle)}
                     </h2>
                     <p class="cta-sub">
-                        Free and open source — no ${esc(app.name)} account, no app
-                        to open.
+                        ${t(ui.app.ctaClosingSub)}
                     </p>
                     <div class="cta-actions">
                         <a class="btn btn-on-accent" href="#switch"
-                            >Quick install</a
+                            >${esc(ui.ctaQuickInstall)}</a
                         >
                         <a class="btn btn-ghost-accent" href="${pathFor(locale, "/alternatives")}"
-                            >Other alternatives</a
+                            >${t(ui.app.ctaOtherAlternatives)}</a
                         >
                     </div>
                 </div>
             </section>
         </main>
 
-${disclaimerBand(`${esc(app.name)} is a trademark of its respective owner. Nutrition MCP is an independent, open-source project and is not affiliated with, endorsed by, or sponsored by ${esc(app.name)}. Comparisons reflect publicly available information at the time of writing and may change.`)}
+${disclaimerBand(ui.disclaimerAppHtml.replaceAll("{app}", esc(app.name)))}
 
 ${footer(locale)}
 
@@ -632,14 +562,13 @@ function renderHub(locale: SiteLocale = "en"): string {
                         </a>`,
     ).join("\n");
 
-    const title =
-        "Nutrition App MCP Alternatives — Track Food in Claude & ChatGPT";
     // As on the per-app pages, the title keeps the head term and the description
     // carries the import hook. See renderApp for the reasoning.
-    const desc =
-        "MyFitnessPal, Cronometer, and Lose It! have no MCP server. Nutrition MCP is the free, open-source alternative for Claude and ChatGPT — and imports your history.";
-    const ogDesc =
-        "Your nutrition app doesn't have an MCP server. Nutrition MCP is a free, open-source alternative that works inside Claude or ChatGPT — and imports your history from a CSV export.";
+    const meta = metaFor(locale);
+    const ui = altUiFor(locale);
+    const title = meta.hubTitle;
+    const desc = meta.hubDesc;
+    const ogDesc = meta.hubOgDesc;
 
     return `<!doctype html>
 <html lang="${HTML_LANG[locale]}">
@@ -675,54 +604,47 @@ ${nav(locale, "/alternatives", "/alternatives")}
             <section class="hero">
                 <div class="container">
                     <nav class="crumb" aria-label="Breadcrumb">
-                        <a href="${pathFor(locale, "")}">Home</a>
+                        <a href="${pathFor(locale, "")}">${esc(ui.breadcrumbHome)}</a>
                         <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                        <span>Alternatives</span>
+                        <span>${esc(ui.breadcrumbAlternatives)}</span>
                     </nav>
                     <div class="hero-copy hero-copy-wide">
-                        <p class="eyebrow">MCP alternatives</p>
+                        <p class="eyebrow">${esc(ui.hub.heroEyebrow)}</p>
                         <h1 class="hero-title">
-                            Your nutrition app doesn't have an
-                            <em>MCP server</em>.
+                            ${ui.hub.heroTitleHtml}
                         </h1>
                         <p class="lead">
-                            Apps like MyFitnessPal, Cronometer, and Lose It can't
-                            connect to Claude or ChatGPT. Nutrition MCP is the
-                            free, open-source way to track meals, macros, and
-                            weight by talking to your AI.
+                            ${esc(ui.hub.heroLead)}
                         </p>
                         <div class="hero-actions">
                             <a class="btn btn-primary" href="${hashPath(locale, "install")}"
-                                >Quick install</a
+                                >${esc(ui.ctaQuickInstall)}</a
                             >
                             <a class="btn btn-secondary" href="${hashPath(locale, "try")}"
-                                >See examples</a
+                                >${esc(ui.hub.ctaSeeExamples)}</a
                             >
                         </div>
                     </div>
+${translationNotice(locale, "/alternatives")}
                 </div>
             </section>
 
             <section class="section band" id="apps">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">Switching from…</p>
-                        <h2 class="section-title">Pick your current app</h2>
+                        <p class="eyebrow">${esc(ui.hub.appsEyebrow)}</p>
+                        <h2 class="section-title">${esc(ui.hub.appsTitle)}</h2>
                         <p class="section-sub">
-                            See how Nutrition MCP compares to the tracker you use
-                            today — and how to move your logging, and your
-                            existing history, into your AI.
+                            ${esc(ui.hub.appsSub)}
                         </p>
                     </div>
                     <div class="features-grid" data-reveal="stagger">
 ${cards}
                     </div>
                     <p class="note compare-note">
-                        Don't see your app? It almost certainly has no MCP server
-                        either — Nutrition MCP works the same way regardless of
-                        what you're switching from.
+                        ${esc(ui.hub.noAppNote)}
                         <a href="mailto:anton@nutrition-mcp.com"
-                            >Request a comparison</a
+                            >${esc(ui.hub.requestComparisonLinkText)}</a
                         >.
                     </p>
                 </div>
@@ -731,51 +653,16 @@ ${cards}
             <section class="section" id="import">
                 <div class="container" data-reveal>
                     <div class="section-head">
-                        <p class="eyebrow">Bringing your history</p>
+                        <p class="eyebrow">${esc(ui.hub.importEyebrow)}</p>
                         <h2 class="section-title">
-                            You don't have to start from zero
+                            ${esc(ui.hub.importTitle)}
                         </h2>
                         <p class="section-sub">
-                            The usual reason people stay put is the years already
-                            logged. Ask to import and an importer opens right in
-                            the chat: pick your export, map the columns, preview
-                            what will be added, then confirm — or paste
-                            the export if your client has no in-chat panels.
+                            ${esc(ui.hub.importSub)}
                         </p>
                     </div>
                     <div class="prose">
-                        <p>
-                            The file is parsed in your browser, not read by the
-                            AI — so the rows can't be mistyped on the way in, and
-                            you see the exact meals before any of them are
-                            written. Exports from MyFitnessPal, Cronometer, Lose
-                            It!, and MacroFactor have their columns recognised by
-                            name; any other CSV works too, you just point the
-                            mapper at each column once. What comes across is the
-                            date and time, food, meal, calories, protein, carbs,
-                            fat, fiber, total sugar, and caffeine in
-                            milligrams — and alcohol as well, if
-                            you've switched alcohol tracking on first.
-                        </p>
-                        <p>
-                            The awkward parts of real export files are handled:
-                            DD/MM/YYYY and MM/DD/YYYY dates, energy in kilojoules
-                            as well as kilocalories, semicolon-delimited European
-                            files whose numbers use comma decimals, quoted fields
-                            with line breaks inside them, trailing totals rows,
-                            and deleted-row flags. Column headings don't have to
-                            be English either — a German export's Kalorien or
-                            Ballaststoffe is recognised, and fiber, sugar, and
-                            caffeine are matched in Spanish, French, Italian,
-                            and Dutch too.
-                            Where a file is genuinely
-                            ambiguous — 05/06 could be May or June — the importer
-                            shows its reading next to a row from your own file and
-                            asks you to confirm rather than guessing. And each row
-                            carries a content fingerprint, so re-importing the
-                            same file reports the meals as already logged instead
-                            of duplicating them.
-                        </p>
+${ui.hub.importBody.map((p) => `                        <p>\n                            ${p}\n                        </p>`).join("\n")}
                     </div>
                 </div>
             </section>
@@ -783,29 +670,28 @@ ${cards}
             <section class="section cta">
                 <div class="container cta-inner" data-reveal>
                     <h2 class="cta-title">
-                        Track nutrition inside the AI you already use.
+                        ${esc(ui.ctaClosingTitle)}
                     </h2>
                     <p class="cta-sub">
-                        Free and open source — it works with Claude, ChatGPT, and
-                        any MCP client.
+                        ${esc(ui.hub.ctaSub)}
                     </p>
                     <div class="cta-actions">
                         <a class="btn btn-on-accent" href="${hashPath(locale, "install")}"
-                            >Quick install</a
+                            >${esc(ui.ctaQuickInstall)}</a
                         >
                         <a
                             class="btn btn-ghost-accent"
                             href="https://github.com/akutishevsky/nutrition-mcp"
                             target="_blank"
                             rel="noopener noreferrer"
-                            ><i class="fa-brands fa-github"></i> Star on GitHub</a
+                            ><i class="fa-brands fa-github"></i> ${esc(ui.hub.ctaStarGithub)}</a
                         >
                     </div>
                 </div>
             </section>
         </main>
 
-${disclaimerBand(`${APPS.map((a) => esc(a.name)).join(", ")}, and other product names are trademarks of their respective owners. Nutrition MCP is an independent, open-source project and is not affiliated with or endorsed by them. Comparisons reflect publicly available information at the time of writing and may change.`)}
+${disclaimerBand(ui.disclaimerHubHtml.replace("{apps}", APPS.map((a) => esc(a.name)).join(", ")))}
 
 ${footer(locale, "/alternatives")}
 
@@ -819,17 +705,29 @@ ${SITE_SCRIPT}
 
 const OUT_DIR = "./public/alternatives";
 
-// English only for now — the per-app APPS data (cons, migrate, FAQ, etc.)
-// isn't translated yet, so generating other locales here would ship pages
-// with a translated header/footer around untranslated English body copy.
-// The `locale` parameter threaded through renderApp/renderHub above is
-// ready for when that data lands; this loop is the only place to extend
-// once it does. src/routes.ts's ALT_PAGES is the source of truth for the
-// route -> file map src/index.ts serves these from — keep app.slug/app.file
-// here in sync with it by hand, the same as before.
+// English first — src/routes.ts's ALT_PAGES is the source of truth for the
+// route -> file map src/index.ts serves these from; keep app.slug/app.file
+// here in sync with it by hand.
 for (const app of APPS) {
     await Bun.write(`${OUT_DIR}/${app.file}`, renderApp(app));
     console.log(`wrote ${app.file}  (/${app.slug})`);
 }
 await Bun.write(`${OUT_DIR}/index.html`, renderHub());
 console.log("wrote index.html  (/alternatives)");
+
+// Then every locale that actually has translated per-app content — checked
+// against ALTERNATIVES_COPY directly (not just "is this locale in
+// src/routes.ts's LOCALES") so a locale added there before its translation
+// lands doesn't silently get an English page wearing that locale's URL
+// (copyFor()'s fallback exists for a locale with a FEW missing app entries,
+// not for skipping translation entirely).
+for (const locale of LOCALES) {
+    if (!ALTERNATIVES_COPY[locale]) continue;
+    const dir = `./public/${locale}/alternatives`;
+    for (const app of APPS) {
+        await Bun.write(`${dir}/${app.file}`, renderApp(app, locale));
+        console.log(`wrote ${locale}/${app.file}  (/${locale}/${app.slug})`);
+    }
+    await Bun.write(`${dir}/index.html`, renderHub(locale));
+    console.log(`wrote ${locale}/index.html  (/${locale}/alternatives)`);
+}

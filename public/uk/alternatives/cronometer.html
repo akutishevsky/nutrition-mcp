@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <title>
+            MCP-сервер для Cronometer? Відстежуй харчування в Claude та ChatGPT
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="Немає MCP-сервера для Cronometer? Nutrition MCP записує прийоми їжі та макронутрієнти прямо в Claude чи ChatGPT — безкоштовно, з відкритим кодом, і імпортує твій CSV-експорт."
+        />
+        <meta
+            property="og:title"
+            content="MCP-сервер для Cronometer? Відстежуй харчування в Claude та ChatGPT"
+        />
+        <meta
+            property="og:description"
+            content="Cronometer не має MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка записує прийоми їжі, макронутрієнти та вагу в Claude чи ChatGPT — і імпортує твою історію з Cronometer із CSV-експорту."
+        />
+        <meta property="og:type" content="article" />
+        <meta
+            property="og:url"
+            content="https://nutrition-mcp.com/uk/cronometer-mcp"
+        />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
+        <meta
+            name="twitter:title"
+            content="MCP-сервер для Cronometer? Відстежуй харчування в Claude та ChatGPT"
+        />
+        <meta
+            name="twitter:description"
+            content="Cronometer не має MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка записує прийоми їжі, макронутрієнти та вагу в Claude чи ChatGPT — і імпортує твою історію з Cronometer із CSV-експорту."
+        />
+        <link
+            rel="canonical"
+            href="https://nutrition-mcp.com/uk/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="en"
+            href="https://nutrition-mcp.com/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="de"
+            href="https://nutrition-mcp.com/de/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="es"
+            href="https://nutrition-mcp.com/es/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="fr"
+            href="https://nutrition-mcp.com/fr/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="nl"
+            href="https://nutrition-mcp.com/nl/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="pl"
+            href="https://nutrition-mcp.com/pl/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="it"
+            href="https://nutrition-mcp.com/it/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="uk"
+            href="https://nutrition-mcp.com/uk/cronometer-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="x-default"
+            href="https://nutrition-mcp.com/cronometer-mcp"
+        />
+        <meta property="og:locale" content="uk_UA" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="de_DE" />
+        <meta property="og:locale:alternate" content="es_ES" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="nl_NL" />
+        <meta property="og:locale:alternate" content="pl_PL" />
+        <meta property="og:locale:alternate" content="it_IT" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#fbfbf9" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Nutrition MCP",
+                        "item": "https://nutrition-mcp.com"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Alternatives",
+                        "item": "https://nutrition-mcp.com/uk/alternatives"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "Cronometer MCP",
+                        "item": "https://nutrition-mcp.com/uk/cronometer-mcp"
+                    }
+                ]
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "Чи має Cronometer MCP-сервер?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Ні. Cronometer не пропонує сервер Model Context Protocol (MCP), тож офіційного способу підключити його до Claude, ChatGPT чи інших ШІ-асистентів не існує. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, створена як MCP-сервер із нуля, тож ти можеш записувати прийоми їжі та макронутрієнти прямо всередині свого ШІ."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Як підключити Cronometer до Claude?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Офіційного конектора Cronometer для Claude не існує, тому що Cronometer не має ні MCP-сервера, ні публічної MCP-інтеграції. Найближчий варіант — Nutrition MCP, безкоштовний MCP-сервер: додай https://nutrition-mcp.com/mcp як власний конектор у Claude, увійди і почни записувати через розмову."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Чи відстежує Nutrition MCP мікронутрієнти, як Cronometer?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Ні. Відстеження понад 80 вітамінів і мінералів — це спеціалізація Cronometer, а в Nutrition MCP взагалі немає даних по мікронутрієнтах — ні натрію, ні вітамінів. Він відстежує калорії, білок, вуглеводи, жири, клітковину, загальний цукор, кофеїн у міліграмах, опціонально алкоголь, воду й вагу. Ти все одно можеш попросити свого ШІ дати приблизну оцінку мікронутрієнтів у страві, але якщо тобі потрібна лабораторна точність мікронутрієнтів, Cronometer підійде краще."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Чи такий самий точний Nutrition MCP, як Cronometer?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Для калорій, макронутрієнтів, клітковини й цукру розмовні оцінки досить точні для більшості цілей — але вони не зрівняються з курованою базою Cronometer, точною грам у грам. Це обмін невеликою точністю на значно менше зусиль на ведення записів, і для більшості людей цей обмін вартий того."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Чи є Nutrition MCP хорошою альтернативою Cronometer?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Якщо ти хочеш відстежувати калорії, макронутрієнти — разом із клітковиною, загальним цукром і кофеїном — воду й вагу, не відкриваючи окремий застосунок і не шукаючи в базі продуктів, то так. Замість того щоб гортати базу даних, ти описуєш з'їдене звичайною мовою, надсилаєш фото або скануєш штрихкод, а твій ШІ це записує — цілком безкоштовно і з відкритим кодом."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Чи можу я імпортувати свої дані з Cronometer?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Так. Попроси зробити імпорт, і в чаті відкриється імпортер: обери свій CSV від Cronometer, він розбирається у твоєму браузері, а не читається ШІ, і ти переглядаєш, що буде додано, перш ніж підтвердити. Експорт Cronometer розпізнається за назвою — його окремі колонки дати й часу обидві зчитуються, а повторюваний заголовок \"Amount\" не може зіткнутися, бо колонки визначаються за позицією. Переносяться дата й час, назва страви, прийом їжі, калорії, білок, вуглеводи, жири, клітковина, загальний цукор, кофеїн у міліграмах і нотатки; алкоголь теж, але лише якщо ти спершу увімкнув його відстеження. Вітаміни, мінерали й розміри порцій — ні. Повторний імпорт того самого файлу ніколи не створює дублікатів. У клієнтах без панелей у чаті ти можеш замість цього вставити свій експорт."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Чи читає ШІ мій файл експорту під час імпорту?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Не тоді, коли відкривається імпортер. Він розбирає CSV у твоєму браузері й показує, що буде додано, перш ніж хоч щось запишеться: скільки прийомів їжі, загальну кількість калорій, усе, що довелося позначити, і самі рядки — у довгому файлі показуються перші з них і кількість решти, а не кожен рядок. Надсилаються лише ті рядки, які ти підтвердив, і вони йдуть як структуровані дані, а не через відповідь ШІ, тож жоден рядок не може бути неправильно введений чи вигаданий по дорозі. Кожен рядок також несе відбиток вмісту, тож повторний запуск того самого файлу повідомить, що ці прийоми їжі вже записані, замість того щоб дублювати їх. Якщо твій клієнт не вміє показувати панелі в чаті, запасний варіант — вставити експорт; на цьому шляху ШІ таки читає його, тож обирай імпортер, коли є вибір."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Чи безкоштовний Nutrition MCP?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Так. Nutrition MCP повністю безкоштовний, без преміум-тарифу, реклами чи функцій за платним доступом — на відміну від застосунків, які ховають деякі функції за підпискою. Щоб підключитися, тобі потрібен лише акаунт Claude чи ChatGPT."
+                        }
+                    }
+                ]
+            }
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+        <a class="skip" href="#main">Skip to content</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a class="brand" href="/uk" aria-label="Nutrition MCP home">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/uk#how">How it works</a>
+                    <a href="/uk#install">Install</a>
+                    <a href="/uk/tools">Tools</a>
+                    <a href="/uk#try">Examples</a>
+                    <a href="/uk#stats">Live stats</a>
+                    <a href="/uk#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="GitHub repository"
+                        title="GitHub"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="Change language"
+                            title="Language"
+                        >
+                            <span class="lang-code">UK</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+                            <a
+                                href="https://nutrition-mcp.com/cronometer-mcp"
+                                lang="en"
+                                hreflang="en"
+                                >English</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/de/cronometer-mcp"
+                                lang="de"
+                                hreflang="de"
+                                >Deutsch</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/es/cronometer-mcp"
+                                lang="es"
+                                hreflang="es"
+                                >Español</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/fr/cronometer-mcp"
+                                lang="fr"
+                                hreflang="fr"
+                                >Français</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/nl/cronometer-mcp"
+                                lang="nl"
+                                hreflang="nl"
+                                >Nederlands</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/pl/cronometer-mcp"
+                                lang="pl"
+                                hreflang="pl"
+                                >Polski</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/it/cronometer-mcp"
+                                lang="it"
+                                hreflang="it"
+                                >Italiano</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/uk/cronometer-mcp"
+                                lang="uk"
+                                hreflang="uk"
+                                aria-current="page"
+                                >Українська</a
+                            >
+                        </div>
+                    </details>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="Switch to dark mode"
+                        title="Switch to dark mode"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/uk#install"
+                        >Connect</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Open menu"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/uk#how">How it works <small>3 steps</small></a>
+                <a href="/uk#install">Install <small>under a minute</small></a>
+                <a href="/uk/tools">Tools <small>38 tools</small></a>
+                <a href="/uk#try">Examples <small>live demos</small></a>
+                <a href="/uk#stats"
+                    >Live stats <small>since you opened</small></a
+                >
+                <a href="/uk#faq">FAQ</a>
+                <a href="/uk/alternatives"
+                    >Alternatives <small>switching apps</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/uk#support">Support</a>
+                <a href="/uk#contact">Contact</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/uk/privacy">Privacy</a>
+                <a href="/uk/terms">Terms</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/uk#install"
+                    >Connect in a minute</a
+                >
+            </div>
+        </div>
+
+        <main id="main">
+            <!-- Hero -->
+            <section class="hero">
+                <div class="container">
+                    <nav class="crumb" aria-label="Breadcrumb">
+                        <a href="/uk">Головна</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <a href="/uk/alternatives">Альтернативи</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <span>Cronometer</span>
+                    </nav>
+                    <div class="hero-copy hero-copy-wide">
+                        <p class="eyebrow">Альтернатива Cronometer</p>
+                        <h1 class="hero-title">
+                            Шукаєш <em>MCP-сервер для Cronometer</em>?
+                        </h1>
+                        <p class="lead">
+                            У Cronometer його немає — тож використати його
+                            всередині Claude чи ChatGPT не вийде. Nutrition MCP
+                            виконує ту саму роботу через розмову, і це
+                            безкоштовно та з відкритим кодом.
+                        </p>
+                        <div class="hero-actions">
+                            <a class="btn btn-primary" href="#switch"
+                                >Підключись менш ніж за хвилину</a
+                            >
+                            <a class="btn btn-secondary" href="#compare"
+                                >Переглянути порівняння</a
+                            >
+                        </div>
+                    </div>
+                    <div class="translation-notice">
+                        <p>
+                            Цю сторінку перекладено за допомогою ШІ з
+                            англійської, і її не перевіряла людина.
+                            <a href="/cronometer-mcp"
+                                >Читати оригінал англійською</a
+                            >
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- The honest answer -->
+            <section class="section band" id="answer">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Коротка відповідь</p>
+                        <h2 class="section-title">
+                            Ні, Cronometer не має MCP-сервера.
+                        </h2>
+                        <p class="section-sub">
+                            Model Context Protocol (MCP) — це відкритий
+                            стандарт, який дозволяє ШІ-асистентам на кшталт
+                            Claude і ChatGPT підключатися до зовнішніх
+                            інструментів. Cronometer не публікує MCP-сервер, тож
+                            офіційного способу записувати їжу до нього з твого
+                            ШІ не існує. Якщо ти шукав &laquo;Cronometer
+                            MCP&raquo; або &laquo;підключити Cronometer до
+                            Claude&raquo;, насправді тобі потрібен трекер
+                            харчування, який живе <em>всередині</em> твого ШІ —
+                            і це саме Nutrition MCP.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- What you get instead -->
+            <section class="section" id="instead">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Що отримуєш натомість</p>
+                        <h2 class="section-title">
+                            Те саме відстеження — просто розмовою
+                        </h2>
+                    </div>
+                    <div class="features-grid" data-reveal="stagger">
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-utensils"></i
+                            ></span>
+                            <h3>Прийоми їжі звичайною мовою</h3>
+                            <p>
+                                Скажи &laquo;вівсянка з бананом і арахісовою
+                                пастою&raquo; — твій ШІ оцінить калорії та
+                                макронутрієнти, разом із клітковиною, загальним
+                                цукром і кофеїном, і запише це. Жодного пошуку в
+                                базі даних.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-barcode"></i
+                            ></span>
+                            <h3>Сканування штрихкодів — безкоштовно</h3>
+                            <p>
+                                Надішли штрихкод продукту, і макронутрієнти з
+                                етикетки підтягнуться з Open Food Facts — разом
+                                із клітковиною та цукром, якщо вони вказані на
+                                етикетці. Жодної Premium-підписки, щоб це
+                                розблокувати.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-weight-scale"></i
+                            ></span>
+                            <h3>Вага &amp; цілі</h3>
+                            <p>
+                                Записуй вагу тіла в кг або фунтах, встановлюй
+                                цілі по калоріях, макронутрієнтах, клітковині,
+                                цукру, кофеїну та воді — клітковина це ціль,
+                                якої треба досягти, цукор і кофеїн це ліміти,
+                                яких треба не перевищувати — і стеж за трендами
+                                до цільової ваги. Відстеження алкоголю теж є, за
+                                бажанням і вимкнене, доки ти сам його не
+                                увімкнеш.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>Зведення &amp; тренди</h3>
+                            <p>
+                                Запитай денні підсумки, тижневі тренди, серії
+                                днів поспіль і повторювані шаблони прийомів їжі
+                                — прямо в чаті.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-file-csv"></i
+                            ></span>
+                            <h3>Імпорт &amp; повний контроль над даними</h3>
+                            <p>
+                                Імпортуй історію прийомів їжі з CSV-експорту
+                                іншого застосунку — файл читається у твоєму
+                                браузері, а не ШІ. Забери все назад, коли
+                                захочеш: один ZIP-архів із твоїми прийомами їжі,
+                                водою, вагою, цілями та профілем у форматі CSV.
+                                Наразі назад імпортувати можна лише прийоми їжі.
+                                Або так само легко видали свій акаунт.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-code-branch"></i
+                            ></span>
+                            <h3>Відкритий код &amp; безкоштовно</h3>
+                            <p>
+                                Ліцензія MIT, можна розгорнути самостійно — без
+                                реклами, платного доступу чи допродажів. Перевір
+                                код або запусти власний екземпляр.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison -->
+            <section class="section band" id="compare">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Cronometer проти Nutrition MCP</p>
+                        <h2 class="section-title">Як вони порівнюються</h2>
+                    </div>
+                    <div class="compare">
+                        <div class="compare-col">
+                            <h3 class="compare-h compare-h-old">Cronometer</h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Немає
+                                    MCP-сервера — не працює всередині Claude чи
+                                    ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Записуй,
+                                    шукаючи в базі даних, запис за записом
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Деякі
+                                    функції потребують платного плану Gold
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Окремий
+                                    застосунок, який треба відкривати щоразу,
+                                    коли їси
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="compare-col compare-col-new">
+                            <h3 class="compare-h compare-h-new">
+                                Nutrition MCP
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Створено як MCP-сервер — живе всередині
+                                    Claude &amp; ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Описуй прийоми їжі звичайною мовою; калорії,
+                                    макронутрієнти, клітковина, цукор &amp;
+                                    кофеїн оцінюються за тебе
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Сканування штрихкодів, тренди, імпорт &amp;
+                                    експорт CSV — усе безкоштовно
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Без окремого застосунку, без реклами, з
+                                    відкритим кодом
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="note compare-note">
+                        Cronometer чудовий, якщо тобі потрібна глибока точність
+                        по мікронутрієнтах. Nutrition MCP пропонує легший,
+                        розмовний підхід до калорій, макронутрієнтів і ваги —
+                        прямо всередині твого ШІ.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Moving from X (per-app, unique content) -->
+            <section class="section" id="moving">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Переходиш з Cronometer</p>
+                        <h2 class="section-title">
+                            Коли точність — це і є суть
+                        </h2>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            Cronometer здобув репутацію завдяки точності —
+                            курованим базам даних і відстеженню понад 80
+                            мікронутрієнтів, включно з вітамінами й мінералами.
+                            Якщо саме ця глибина мікронутрієнтів — причина, чому
+                            ти його відкриваєш, будь чесним із собою: розмовні
+                            оцінки не зрівняються з лабораторно точним записом
+                            бази даних грам у грам.
+                        </p>
+                        <p>
+                            Але більшість людей ведуть записи, щоб тримати
+                            калорії й макронутрієнти в межах норми, а не щоб
+                            перевіряти споживання селену. Ці межі ширші, ніж
+                            здається: окрім білка, вуглеводів і жирів ти
+                            отримуєш клітковину, загальний цукор і кофеїн у
+                            міліграмах, а також опціонально алкоголь у грамах
+                            етанолу, якщо ввімкнеш цю функцію. Для цього описати
+                            страву своєму ШІ набагато простіше, ніж шукати й
+                            зважувати кожен інгредієнт — і при цьому ти
+                            безкоштовно отримуєш денні підсумки, тренди й
+                            цільову вагу для відстеження.
+                        </p>
+                        <p>
+                            Є й проміжний варіант: оскільки ти всередині
+                            ШІ-асистента, можеш запитати про мікронутрієнти саме
+                            тоді, коли це справді потрібно — "скільки приблизно
+                            заліза й B12 було в сьогоднішніх прийомах їжі?" — і
+                            отримати обґрунтовану оцінку на вимогу, без потреби
+                            записувати кожен грам у курований запис постійно.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bring your history (per-app, unique content) -->
+            <section class="section band" id="import">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Твоя історія з Cronometer</p>
+                        <h2 class="section-title">
+                            Десять років записів — збережено
+                        </h2>
+                        <p class="section-sub">
+                            Попроси імпортувати, і імпортер відкриється прямо в
+                            чаті: обери свій експорт, зістав колонки, перевір,
+                            що буде додано, і підтверди. Файл читається у твоєму
+                            браузері — ШІ ніколи не бачить рядків. У клієнтах
+                            без панелей у чаті замість цього встав свій експорт.
+                        </p>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            Точність — це причина, чому ти користувався
+                            Cronometer, тож недбалий імпорт був би гіршим за
+                            його відсутність. Попроси зробити імпорт, і в чаті
+                            відкриється панель: обери свій CSV від Cronometer,
+                            він розбирається у твоєму браузері, і ти схвалюєш
+                            попередній перегляд, перш ніж буде записано хоч один
+                            рядок. Числа читаються прямо з файлу — ШІ ніколи не
+                            бачить рядків, тож не може округлити чи переплутати
+                            жодне з них.
+                        </p>
+                        <p>
+                            Форма експорту Cronometer розпізнається за назвою.
+                            Часову мітку він розбиває на окремі колонки дати й
+                            часу, і обидві зчитуються, тож сніданок, записаний о
+                            07:12, зберігає свій час замість того, щоб потрапити
+                            на дефолтну середину дня. Кількість він записує
+                            разом з одиницею виміру в одній комірці — "58.00 g",
+                            "1.00 cup" — і значення, записане так, усе одно
+                            розпізнається як число, а не як нічого. А заголовок
+                            "Amount" повторюється кілька разів, тож колонки
+                            визначаються за позицією, а не за назвою: дублікати
+                            не можуть непомітно зіткнутися, і мапер показує, на
+                            яку саме колонку ти вказуєш.
+                        </p>
+                        <p>
+                            Варто чітко розуміти, що переноситься: дата й час,
+                            назва страви, прийом їжі, калорії, білок, вуглеводи,
+                            жири, клітковина, загальний цукор, кофеїн і нотатки.
+                            Cronometer — єдиний експорт у цьому списку, який
+                            містить колонку Caffeine (mg), і вона переноситься в
+                            міліграмах — одиниці, в якій вона вже є і в якій
+                            кофеїн зберігається тут, тож нічого не
+                            конвертується. Колонка кофеїну із заголовком у
+                            грамах натомість залишається без зіставлення, з
+                            поясненням причини, замість того щоб записати 0.18
+                            там, де на етикетці 180 мг. Цукор означає загальний
+                            цукор, включно з фруктами й молоком, — не доданий
+                            цукор, який жоден експорт не передає надійно. Окрема
+                            колонка Cronometer "Sugar Alcohols" — це поліол, а
+                            не цукор чи етанол, і вона не може потрапити в жодне
+                            з цих полів. Алкоголь — особливий випадок:
+                            Cronometer експортує його як етиловий спирт у
+                            грамах, і він переноситься, лише якщо ти спершу
+                            увімкнув тут відстеження алкоголю, бо за
+                            замовчуванням воно вимкнено. Розміри порцій і понад
+                            80 вітамінів та мінералів Cronometer взагалі не
+                            переносяться — ця глибина мікронутрієнтів
+                            залишається у власному експорті Cronometer.
+                            Повторний імпорт безпечний: кожен рядок має відбиток
+                            вмісту, тож другий запуск того самого файлу
+                            повідомляє про прийоми їжі як уже записані, а не
+                            додає їх удруге.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How to switch -->
+            <section class="section" id="switch">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Як перейти</p>
+                        <h2 class="section-title">
+                            Підключись менш ніж за хвилину
+                        </h2>
+                        <p class="section-sub">
+                            Працює з будь-яким MCP-клієнтом, що підтримує OAuth
+                            2.0 з PKCE. При першому підключенні ти створюєш
+                            акаунт через Google або через email і пароль.
+                        </p>
+                    </div>
+                    <div class="card install-card">
+                        <ol class="steps">
+                            <li>
+                                Відкрий <strong>Claude</strong> (у браузері чи
+                                застосунку) і натисни
+                                <strong>Customize</strong> →
+                                <strong>Connectors</strong>.
+                            </li>
+                            <li>
+                                Натисни <strong>+</strong>, а тоді
+                                <strong>Add custom connector</strong>, і дай
+                                йому назву, наприклад
+                                <strong>Nutrition</strong>.
+                            </li>
+                            <li>
+                                Встав
+                                <span class="copy-url"
+                                    ><code>https://nutrition-mcp.com/mcp</code
+                                    ><button
+                                        class="copy-mini"
+                                        type="button"
+                                        data-copy="https://nutrition-mcp.com/mcp"
+                                        aria-label="Copy server URL"
+                                    >
+                                        <i class="fa-solid fa-copy"></i></button
+                                ></span>
+                                у поле <strong>Remote MCP server URL</strong> і
+                                натисни <strong>Add</strong>.
+                            </li>
+                            <li>
+                                Натисни <strong>Connect</strong>, увійди і почни
+                                записувати, просто кажучи, що ти з'їв.
+                            </li>
+                        </ol>
+                        <p class="note">
+                            Користуєшся ChatGPT чи іншим клієнтом?
+                            <a href="/uk#install">повний гайд із підключення</a>
+                            охоплює ChatGPT, Cursor, VS Code, Claude Code та
+                            інші.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section band" id="faq">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">FAQ</p>
+                        <h2 class="section-title">
+                            Питання про Cronometer &amp; MCP
+                        </h2>
+                    </div>
+                    <div class="faq">
+                        <details>
+                            <summary>Чи має Cronometer MCP-сервер?</summary>
+                            <p>
+                                Ні. Cronometer не пропонує сервер Model Context
+                                Protocol (MCP), тож офіційного способу
+                                підключити його до Claude, ChatGPT чи інших
+                                ШІ-асистентів не існує. Nutrition MCP —
+                                безкоштовна альтернатива з відкритим кодом,
+                                створена як MCP-сервер із нуля, тож ти можеш
+                                записувати прийоми їжі та макронутрієнти прямо
+                                всередині свого ШІ.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Як підключити Cronometer до Claude?
+                            </summary>
+                            <p>
+                                Офіційного конектора Cronometer для Claude не
+                                існує, тому що Cronometer не має ні MCP-сервера,
+                                ні публічної MCP-інтеграції. Найближчий варіант
+                                — Nutrition MCP, безкоштовний MCP-сервер: додай
+                                https://nutrition-mcp.com/mcp як власний
+                                конектор у Claude, увійди і почни записувати
+                                через розмову.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Чи відстежує Nutrition MCP мікронутрієнти, як
+                                Cronometer?
+                            </summary>
+                            <p>
+                                Ні. Відстеження понад 80 вітамінів і мінералів —
+                                це спеціалізація Cronometer, а в Nutrition MCP
+                                взагалі немає даних по мікронутрієнтах — ні
+                                натрію, ні вітамінів. Він відстежує калорії,
+                                білок, вуглеводи, жири, клітковину, загальний
+                                цукор, кофеїн у міліграмах, опціонально
+                                алкоголь, воду й вагу. Ти все одно можеш
+                                попросити свого ШІ дати приблизну оцінку
+                                мікронутрієнтів у страві, але якщо тобі потрібна
+                                лабораторна точність мікронутрієнтів, Cronometer
+                                підійде краще.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Чи такий самий точний Nutrition MCP, як
+                                Cronometer?
+                            </summary>
+                            <p>
+                                Для калорій, макронутрієнтів, клітковини й цукру
+                                розмовні оцінки досить точні для більшості цілей
+                                — але вони не зрівняються з курованою базою
+                                Cronometer, точною грам у грам. Це обмін
+                                невеликою точністю на значно менше зусиль на
+                                ведення записів, і для більшості людей цей обмін
+                                вартий того.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Чи є Nutrition MCP хорошою альтернативою
+                                Cronometer?
+                            </summary>
+                            <p>
+                                Якщо ти хочеш відстежувати калорії,
+                                макронутрієнти — разом із клітковиною, загальним
+                                цукром і кофеїном — воду й вагу, не відкриваючи
+                                окремий застосунок і не шукаючи в базі
+                                продуктів, то так. Замість того щоб гортати базу
+                                даних, ти описуєш з'їдене звичайною мовою,
+                                надсилаєш фото або скануєш штрихкод, а твій ШІ
+                                це записує — цілком безкоштовно і з відкритим
+                                кодом.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Чи можу я імпортувати свої дані з Cronometer?
+                            </summary>
+                            <p>
+                                Так. Попроси зробити імпорт, і в чаті
+                                відкриється імпортер: обери свій CSV від
+                                Cronometer, він розбирається у твоєму браузері,
+                                а не читається ШІ, і ти переглядаєш, що буде
+                                додано, перш ніж підтвердити. Експорт Cronometer
+                                розпізнається за назвою — його окремі колонки
+                                дати й часу обидві зчитуються, а повторюваний
+                                заголовок "Amount" не може зіткнутися, бо
+                                колонки визначаються за позицією. Переносяться
+                                дата й час, назва страви, прийом їжі, калорії,
+                                білок, вуглеводи, жири, клітковина, загальний
+                                цукор, кофеїн у міліграмах і нотатки; алкоголь
+                                теж, але лише якщо ти спершу увімкнув його
+                                відстеження. Вітаміни, мінерали й розміри порцій
+                                — ні. Повторний імпорт того самого файлу ніколи
+                                не створює дублікатів. У клієнтах без панелей у
+                                чаті ти можеш замість цього вставити свій
+                                експорт.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Чи читає ШІ мій файл експорту під час імпорту?
+                            </summary>
+                            <p>
+                                Не тоді, коли відкривається імпортер. Він
+                                розбирає CSV у твоєму браузері й показує, що
+                                буде додано, перш ніж хоч щось запишеться:
+                                скільки прийомів їжі, загальну кількість
+                                калорій, усе, що довелося позначити, і самі
+                                рядки — у довгому файлі показуються перші з них
+                                і кількість решти, а не кожен рядок.
+                                Надсилаються лише ті рядки, які ти підтвердив, і
+                                вони йдуть як структуровані дані, а не через
+                                відповідь ШІ, тож жоден рядок не може бути
+                                неправильно введений чи вигаданий по дорозі.
+                                Кожен рядок також несе відбиток вмісту, тож
+                                повторний запуск того самого файлу повідомить,
+                                що ці прийоми їжі вже записані, замість того щоб
+                                дублювати їх. Якщо твій клієнт не вміє
+                                показувати панелі в чаті, запасний варіант —
+                                вставити експорт; на цьому шляху ШІ таки читає
+                                його, тож обирай імпортер, коли є вибір.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Чи безкоштовний Nutrition MCP?</summary>
+                            <p>
+                                Так. Nutrition MCP повністю безкоштовний, без
+                                преміум-тарифу, реклами чи функцій за платним
+                                доступом — на відміну від застосунків, які
+                                ховають деякі функції за підпискою. Щоб
+                                підключитися, тобі потрібен лише акаунт Claude
+                                чи ChatGPT.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Closing CTA -->
+            <section class="section cta">
+                <div class="container cta-inner" data-reveal>
+                    <h2 class="cta-title">
+                        Відстежуй харчування прямо в ШІ, яким ти вже
+                        користуєшся.
+                    </h2>
+                    <p class="cta-sub">
+                        Безкоштовно і з відкритим кодом — не потрібен акаунт
+                        Cronometer, не потрібно відкривати застосунок.
+                    </p>
+                    <div class="cta-actions">
+                        <a class="btn btn-on-accent" href="#switch"
+                            >Швидке підключення</a
+                        >
+                        <a class="btn btn-ghost-accent" href="/uk/alternatives"
+                            >Інші альтернативи</a
+                        >
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="disclaimer-band">
+            <div class="container">
+                <p class="page-disclaimer">
+                    Cronometer — товарний знак відповідного власника. Nutrition
+                    MCP — незалежний проєкт з відкритим кодом, не пов'язаний із
+                    брендом Cronometer, не схвалений і не спонсорований ним.
+                    Порівняння відображають загальнодоступну інформацію на
+                    момент написання і можуть змінюватися.
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/uk/tools">Tools</a>
+                    <a href="/uk/alternatives">Alternatives</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >How I built this</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Demo</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">Contact</a>
+                    <a href="/uk/privacy">Privacy Policy</a>
+                    <a href="/uk/terms">Terms of Service</a>
+                </nav>
+                <p class="footer-note">
+                    Free and open source. Nutrition figures are estimates, not
+                    medical advice.
+                </p>
+            </div>
+        </footer>
+
+        <script src="/site.js" defer></script>
+    </body>
+</html>

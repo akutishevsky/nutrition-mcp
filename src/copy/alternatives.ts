@@ -13,6 +13,13 @@
 // still apply to this content wherever it now lives.
 
 import type { SiteLocale } from "../routes.js";
+import { ALTERNATIVES_DE } from "./alternatives.de.js";
+import { ALTERNATIVES_ES } from "./alternatives.es.js";
+import { ALTERNATIVES_FR } from "./alternatives.fr.js";
+import { ALTERNATIVES_NL } from "./alternatives.nl.js";
+import { ALTERNATIVES_PL } from "./alternatives.pl.js";
+import { ALTERNATIVES_IT } from "./alternatives.it.js";
+import { ALTERNATIVES_UK } from "./alternatives.uk.js";
 
 /** One /alternatives comparison page's slug (a PAGE_ROUTES / ALT_PAGES key
  * minus the leading slash), matching APPS[].slug in scripts/gen-alternatives.ts. */
@@ -42,6 +49,138 @@ export interface AppCopy {
     /** Optional override for the "Is Nutrition MCP free?" FAQ answer. */
     freeAnswer?: string;
 }
+
+/**
+ * <title>/description/og:description templates for the per-app comparison
+ * pages and the /alternatives hub — the one piece of this generator's
+ * output that shipped English-only for a while even after AppCopy above
+ * was translated into every locale (caught by src/alt-pages.test.ts once
+ * real /{locale}/alternatives pages existed to check: a translated
+ * comparison page still had an English <title>). appTitle/appDesc/
+ * appOgDesc take a "{app}" placeholder for the untranslated brand name
+ * (e.g. "MyFitnessPal" — app names are never translated); the hub strings
+ * are fixed, no placeholder.
+ */
+export interface AltPageMeta {
+    appTitle: string;
+    appDesc: string;
+    appOgDesc: string;
+    hubTitle: string;
+    hubDesc: string;
+    hubOgDesc: string;
+}
+
+export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
+    en: {
+        appTitle: "{app} MCP Server? Track Nutrition in Claude & ChatGPT",
+        appDesc:
+            "No MCP server for {app}? Nutrition MCP logs meals and macros inside Claude or ChatGPT — free, open source, and it imports your CSV export.",
+        appOgDesc:
+            "{app} has no MCP server. Nutrition MCP is a free, open-source alternative that logs meals, macros, and weight in Claude or ChatGPT — and imports your {app} history from a CSV export.",
+        hubTitle:
+            "Nutrition App MCP Alternatives — Track Food in Claude & ChatGPT",
+        hubDesc:
+            "MyFitnessPal, Cronometer, and Lose It! have no MCP server. Nutrition MCP is the free, open-source alternative for Claude and ChatGPT — and imports your history.",
+        hubOgDesc:
+            "Your nutrition app doesn't have an MCP server. Nutrition MCP is a free, open-source alternative that works inside Claude or ChatGPT — and imports your history from a CSV export.",
+    },
+    de: {
+        appTitle: "{app} MCP-Server? Ernährung in Claude & ChatGPT verfolgen",
+        appDesc:
+            "Kein MCP-Server für {app}? Nutrition MCP protokolliert Mahlzeiten und Makros in Claude oder ChatGPT — kostenlos, quelloffen, und importiert deinen CSV-Export.",
+        appOgDesc:
+            "{app} hat keinen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die Mahlzeiten, Makros und Gewicht in Claude oder ChatGPT protokolliert — und importiert deinen {app}-Verlauf aus einem CSV-Export.",
+        hubTitle:
+            "Nutrition App MCP-Alternativen — Ernährung in Claude & ChatGPT verfolgen",
+        hubDesc:
+            "MyFitnessPal, Cronometer und Lose It! haben keinen MCP-Server. Nutrition MCP ist die kostenlose, quelloffene Alternative für Claude und ChatGPT — und importiert deinen Verlauf.",
+        hubOgDesc:
+            "Deine Ernährungs-App hat keinen MCP-Server? Nutrition MCP ist eine kostenlose, quelloffene Alternative, die in Claude oder ChatGPT läuft — und importiert deinen Verlauf aus einem CSV-Export.",
+    },
+    es: {
+        appTitle:
+            "¿Servidor MCP para {app}? Controla tu nutrición en Claude y ChatGPT",
+        appDesc:
+            "¿{app} no tiene servidor MCP? Nutrition MCP registra comidas y macros dentro de Claude o ChatGPT — gratuito, de código abierto, e importa tu exportación CSV.",
+        appOgDesc:
+            "{app} no tiene servidor MCP. Nutrition MCP es una alternativa gratuita y de código abierto que registra comidas, macros y peso en Claude o ChatGPT — e importa tu historial de {app} desde una exportación CSV.",
+        hubTitle:
+            "Alternativas MCP a apps de nutrición — Controla tu comida en Claude y ChatGPT",
+        hubDesc:
+            "MyFitnessPal, Cronometer y Lose It! no tienen servidor MCP. Nutrition MCP es la alternativa gratuita y de código abierto para Claude y ChatGPT — e importa tu historial.",
+        hubOgDesc:
+            "Tu app de nutrición no tiene servidor MCP. Nutrition MCP es una alternativa gratuita y de código abierto que funciona dentro de Claude o ChatGPT — e importa tu historial desde una exportación CSV.",
+    },
+    fr: {
+        appTitle:
+            "Serveur MCP pour {app} ? Suivez votre nutrition dans Claude et ChatGPT",
+        appDesc:
+            "Pas de serveur MCP pour {app} ? Nutrition MCP enregistre les repas et les macros dans Claude ou ChatGPT — gratuit, open source, et importe votre export CSV.",
+        appOgDesc:
+            "{app} n'a pas de serveur MCP. Nutrition MCP est une alternative gratuite et open source qui enregistre repas, macros et poids dans Claude ou ChatGPT — et importe votre historique {app} depuis un export CSV.",
+        hubTitle:
+            "Alternatives MCP aux apps de nutrition — Suivez votre alimentation dans Claude et ChatGPT",
+        hubDesc:
+            "MyFitnessPal, Cronometer et Lose It! n'ont pas de serveur MCP. Nutrition MCP est l'alternative gratuite et open source pour Claude et ChatGPT — et importe votre historique.",
+        hubOgDesc:
+            "Votre app de nutrition n'a pas de serveur MCP ? Nutrition MCP est une alternative gratuite et open source qui fonctionne dans Claude ou ChatGPT — et importe votre historique depuis un export CSV.",
+    },
+    nl: {
+        appTitle:
+            "MCP-server voor {app}? Houd je voeding bij in Claude en ChatGPT",
+        appDesc:
+            "Geen MCP-server voor {app}? Nutrition MCP logt maaltijden en macro's in Claude of ChatGPT — gratis, open source, en importeert je CSV-export.",
+        appOgDesc:
+            "{app} heeft geen MCP-server. Nutrition MCP is een gratis, open source alternatief dat maaltijden, macro's en gewicht logt in Claude of ChatGPT — en importeert je {app}-geschiedenis vanuit een CSV-export.",
+        hubTitle:
+            "MCP-alternatieven voor voedingsapps — Houd je voeding bij in Claude en ChatGPT",
+        hubDesc:
+            "MyFitnessPal, Cronometer en Lose It! hebben geen MCP-server. Nutrition MCP is het gratis, open source alternatief voor Claude en ChatGPT — en importeert je geschiedenis.",
+        hubOgDesc:
+            "Jouw voedingsapp heeft geen MCP-server? Nutrition MCP is een gratis, open source alternatief dat werkt binnen Claude of ChatGPT — en importeert je geschiedenis vanuit een CSV-export.",
+    },
+    pl: {
+        appTitle: "Serwer MCP dla {app}? Śledź odżywianie w Claude i ChatGPT",
+        appDesc:
+            "Brak serwera MCP dla {app}? Nutrition MCP zapisuje posiłki i makroskładniki w Claude lub ChatGPT — za darmo, open source, i importuje Twój eksport CSV.",
+        appOgDesc:
+            "{app} nie ma serwera MCP. Nutrition MCP to darmowa alternatywa open source, która zapisuje posiłki, makroskładniki i wagę w Claude lub ChatGPT — i importuje Twoją historię z {app} z eksportu CSV.",
+        hubTitle:
+            "Alternatywy MCP dla aplikacji żywieniowych — Śledź jedzenie w Claude i ChatGPT",
+        hubDesc:
+            "MyFitnessPal, Cronometer i Lose It! nie mają serwera MCP. Nutrition MCP to darmowa alternatywa open source dla Claude i ChatGPT — i importuje Twoją historię.",
+        hubOgDesc:
+            "Twoja aplikacja żywieniowa nie ma serwera MCP? Nutrition MCP to darmowa alternatywa open source, działająca w Claude lub ChatGPT — i importuje Twoją historię z eksportu CSV.",
+    },
+    it: {
+        appTitle:
+            "Server MCP per {app}? Monitora la tua alimentazione in Claude e ChatGPT",
+        appDesc:
+            "Nessun server MCP per {app}? Nutrition MCP registra pasti e macro in Claude o ChatGPT — gratuito, open source, e importa il tuo export CSV.",
+        appOgDesc:
+            "{app} non ha un server MCP. Nutrition MCP è un'alternativa gratuita e open source che registra pasti, macro e peso in Claude o ChatGPT — e importa la tua cronologia {app} da un export CSV.",
+        hubTitle:
+            "Alternative MCP alle app di nutrizione — Monitora il cibo in Claude e ChatGPT",
+        hubDesc:
+            "MyFitnessPal, Cronometer e Lose It! non hanno un server MCP. Nutrition MCP è l'alternativa gratuita e open source per Claude e ChatGPT — e importa la tua cronologia.",
+        hubOgDesc:
+            "La tua app di nutrizione non ha un server MCP? Nutrition MCP è un'alternativa gratuita e open source che funziona in Claude o ChatGPT — e importa la tua cronologia da un export CSV.",
+    },
+    uk: {
+        appTitle:
+            "MCP-сервер для {app}? Відстежуй харчування в Claude та ChatGPT",
+        appDesc:
+            "Немає MCP-сервера для {app}? Nutrition MCP записує прийоми їжі та макронутрієнти прямо в Claude чи ChatGPT — безкоштовно, з відкритим кодом, і імпортує твій CSV-експорт.",
+        appOgDesc:
+            "{app} не має MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка записує прийоми їжі, макронутрієнти та вагу в Claude чи ChatGPT — і імпортує твою історію з {app} із CSV-експорту.",
+        hubTitle:
+            "MCP-альтернативи додаткам для харчування — Відстежуй їжу в Claude та ChatGPT",
+        hubDesc:
+            "MyFitnessPal, Cronometer і Lose It! не мають MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом для Claude та ChatGPT — і імпортує твою історію.",
+        hubOgDesc:
+            "Твій додаток для харчування не має MCP-сервера? Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка працює в Claude чи ChatGPT — і імпортує твою історію з CSV-експорту.",
+    },
+};
 
 export const ALTERNATIVES_COPY: Partial<
     Record<SiteLocale, Record<AppSlug, AppCopy>>
@@ -284,4 +423,11 @@ export const ALTERNATIVES_COPY: Partial<
             ],
         },
     },
+    de: ALTERNATIVES_DE,
+    es: ALTERNATIVES_ES,
+    fr: ALTERNATIVES_FR,
+    nl: ALTERNATIVES_NL,
+    pl: ALTERNATIVES_PL,
+    it: ALTERNATIVES_IT,
+    uk: ALTERNATIVES_UK,
 };

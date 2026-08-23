@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <title>
+            ¿Servidor MCP para MyFitnessPal? Controla tu nutrición en Claude y
+            ChatGPT
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="¿MyFitnessPal no tiene servidor MCP? Nutrition MCP registra comidas y macros dentro de Claude o ChatGPT — gratuito, de código abierto, e importa tu exportación CSV."
+        />
+        <meta
+            property="og:title"
+            content="¿Servidor MCP para MyFitnessPal? Controla tu nutrición en Claude y ChatGPT"
+        />
+        <meta
+            property="og:description"
+            content="MyFitnessPal no tiene servidor MCP. Nutrition MCP es una alternativa gratuita y de código abierto que registra comidas, macros y peso en Claude o ChatGPT — e importa tu historial de MyFitnessPal desde una exportación CSV."
+        />
+        <meta property="og:type" content="article" />
+        <meta
+            property="og:url"
+            content="https://nutrition-mcp.com/es/myfitnesspal-mcp"
+        />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
+        <meta
+            name="twitter:title"
+            content="¿Servidor MCP para MyFitnessPal? Controla tu nutrición en Claude y ChatGPT"
+        />
+        <meta
+            name="twitter:description"
+            content="MyFitnessPal no tiene servidor MCP. Nutrition MCP es una alternativa gratuita y de código abierto que registra comidas, macros y peso en Claude o ChatGPT — e importa tu historial de MyFitnessPal desde una exportación CSV."
+        />
+        <link
+            rel="canonical"
+            href="https://nutrition-mcp.com/es/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="en"
+            href="https://nutrition-mcp.com/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="de"
+            href="https://nutrition-mcp.com/de/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="es"
+            href="https://nutrition-mcp.com/es/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="fr"
+            href="https://nutrition-mcp.com/fr/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="nl"
+            href="https://nutrition-mcp.com/nl/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="pl"
+            href="https://nutrition-mcp.com/pl/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="it"
+            href="https://nutrition-mcp.com/it/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="uk"
+            href="https://nutrition-mcp.com/uk/myfitnesspal-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="x-default"
+            href="https://nutrition-mcp.com/myfitnesspal-mcp"
+        />
+        <meta property="og:locale" content="es_ES" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="de_DE" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="nl_NL" />
+        <meta property="og:locale:alternate" content="pl_PL" />
+        <meta property="og:locale:alternate" content="it_IT" />
+        <meta property="og:locale:alternate" content="uk_UA" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#fbfbf9" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Nutrition MCP",
+                        "item": "https://nutrition-mcp.com"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Alternatives",
+                        "item": "https://nutrition-mcp.com/es/alternatives"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "MyFitnessPal MCP",
+                        "item": "https://nutrition-mcp.com/es/myfitnesspal-mcp"
+                    }
+                ]
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "¿Tiene MyFitnessPal servidor MCP?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "No. MyFitnessPal no ofrece un servidor del Model Context Protocol (MCP), así que no hay ninguna forma oficial de conectarlo a Claude, ChatGPT u otros asistentes de IA. Nutrition MCP es una alternativa gratuita y de código abierto, creada como servidor MCP desde cero, para que puedas registrar comidas y macros directamente dentro de tu IA."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "¿Cómo conecto MyFitnessPal a Claude?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "No existe un conector oficial de MyFitnessPal para Claude, porque MyFitnessPal no tiene servidor MCP ni integración MCP pública. La opción más cercana es Nutrition MCP, un servidor MCP gratuito: añade https://nutrition-mcp.com/mcp como conector personalizado en Claude, inicia sesión y empieza a registrar por conversación."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "¿Nutrition MCP puede escanear códigos de barras como MyFitnessPal Premium?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Sí, y es gratis. Envía el código de barras de un producto y Nutrition MCP obtiene los macros de la etiqueta desde Open Food Facts, mientras que MyFitnessPal trasladó su escáner de código de barras a una suscripción Premium de pago."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "¿Cómo funciona el registro sin la base de datos de alimentos de MyFitnessPal?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Describes lo que comiste en lenguaje natural (\"un bowl de burrito de pollo con arroz extra\") y tu IA estima las calorías y los macros. No hay una base de datos de millones de entradas de usuarios que revisar ni que adivinar cuál es la correcta."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "¿Es Nutrition MCP una buena alternativa a MyFitnessPal?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Si quieres controlar calorías, macros — fibra, azúcares totales y cafeína incluidos —, agua y peso sin abrir una app aparte ni buscar en una base de datos de alimentos, sí. En vez de navegar por una base de datos, describes lo que comiste en lenguaje sencillo, envías una foto o escaneas un código de barras, y tu IA lo registra — completamente gratis y de código abierto."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "¿Puedo importar mis datos de MyFitnessPal?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Sí. Pide importar tu historial y se abre un importador en el chat: eliges el CSV que exporta MyFitnessPal, se analiza en tu navegador en vez de leerlo la IA, emparejas o confirmas las columnas, ves una vista previa de lo que se añadirá y confirmas. Calorías, proteína, carbohidratos y grasa se transfieren, y también fibra, azúcares totales y cafeína cuando tu exportación los incluye. La exportación de MyFitnessPal se reconoce por su nombre, incluida su marca de orden de bytes, sus filas de totales al final, y el hecho de que escribe una fila agregada por comida y por día sin nombre de alimento, que se etiquetan por franja de comida. Volver a importar el mismo archivo nunca crea duplicados. En clientes sin paneles integrados en el chat puedes pegar tu exportación en su lugar."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "¿Lee la IA mi archivo de exportación al importar?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "No cuando se abre el importador. Analiza el CSV en tu navegador y te muestra qué se añadirá antes de escribir nada: cuántas comidas, el total de calorías, cualquier cosa que tuviera que marcar, y las propias filas — un archivo largo muestra las primeras junto con un recuento del resto en vez de cada línea. Solo se envían las filas que confirmas, y viajan como datos estructurados en lugar de pasar por la respuesta de la IA, así que ninguna fila puede transcribirse mal ni inventarse en el camino. Cada fila también lleva una huella de contenido, así que volver a ejecutar el mismo archivo informa que esas comidas ya están registradas en vez de duplicarlas. Si tu cliente no puede mostrar paneles integrados en el chat, la alternativa es pegar la exportación — la IA sí la lee por ese camino, así que prefiere el importador cuando puedas elegir."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "¿Es gratis Nutrition MCP?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Sí. Nutrition MCP es completamente gratis, sin nivel premium, anuncios ni funciones detrás de un muro de pago — a diferencia de apps que ponen algunas funciones tras una suscripción. Solo necesitas una cuenta de Claude o ChatGPT para conectarte."
+                        }
+                    }
+                ]
+            }
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+        <a class="skip" href="#main">Skip to content</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a class="brand" href="/es" aria-label="Nutrition MCP home">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/es#how">How it works</a>
+                    <a href="/es#install">Install</a>
+                    <a href="/es/tools">Tools</a>
+                    <a href="/es#try">Examples</a>
+                    <a href="/es#stats">Live stats</a>
+                    <a href="/es#faq">FAQ</a>
+                </nav>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="GitHub repository"
+                        title="GitHub"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="Change language"
+                            title="Language"
+                        >
+                            <span class="lang-code">ES</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+                            <a
+                                href="https://nutrition-mcp.com/myfitnesspal-mcp"
+                                lang="en"
+                                hreflang="en"
+                                >English</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/de/myfitnesspal-mcp"
+                                lang="de"
+                                hreflang="de"
+                                >Deutsch</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/es/myfitnesspal-mcp"
+                                lang="es"
+                                hreflang="es"
+                                aria-current="page"
+                                >Español</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/fr/myfitnesspal-mcp"
+                                lang="fr"
+                                hreflang="fr"
+                                >Français</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/nl/myfitnesspal-mcp"
+                                lang="nl"
+                                hreflang="nl"
+                                >Nederlands</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/pl/myfitnesspal-mcp"
+                                lang="pl"
+                                hreflang="pl"
+                                >Polski</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/it/myfitnesspal-mcp"
+                                lang="it"
+                                hreflang="it"
+                                >Italiano</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/uk/myfitnesspal-mcp"
+                                lang="uk"
+                                hreflang="uk"
+                                >Українська</a
+                            >
+                        </div>
+                    </details>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="Switch to dark mode"
+                        title="Switch to dark mode"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/es#install"
+                        >Connect</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="Open menu"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/es#how">How it works <small>3 steps</small></a>
+                <a href="/es#install">Install <small>under a minute</small></a>
+                <a href="/es/tools">Tools <small>38 tools</small></a>
+                <a href="/es#try">Examples <small>live demos</small></a>
+                <a href="/es#stats"
+                    >Live stats <small>since you opened</small></a
+                >
+                <a href="/es#faq">FAQ</a>
+                <a href="/es/alternatives"
+                    >Alternatives <small>switching apps</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/es#support">Support</a>
+                <a href="/es#contact">Contact</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/es/privacy">Privacy</a>
+                <a href="/es/terms">Terms</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/es#install"
+                    >Connect in a minute</a
+                >
+            </div>
+        </div>
+
+        <main id="main">
+            <!-- Hero -->
+            <section class="hero">
+                <div class="container">
+                    <nav class="crumb" aria-label="Breadcrumb">
+                        <a href="/es">Inicio</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <a href="/es/alternatives">Alternativas</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <span>MyFitnessPal</span>
+                    </nav>
+                    <div class="hero-copy hero-copy-wide">
+                        <p class="eyebrow">Alternativa a MyFitnessPal</p>
+                        <h1 class="hero-title">
+                            ¿Buscas un servidor <em>MCP de MyFitnessPal</em>?
+                        </h1>
+                        <p class="lead">
+                            MyFitnessPal no tiene uno, así que no puedes usarlo
+                            dentro de Claude o ChatGPT. Nutrition MCP hace el
+                            mismo trabajo por conversación, y es gratis y de
+                            código abierto.
+                        </p>
+                        <div class="hero-actions">
+                            <a class="btn btn-primary" href="#switch"
+                                >Conéctate en menos de un minuto</a
+                            >
+                            <a class="btn btn-secondary" href="#compare"
+                                >Ver la comparación</a
+                            >
+                        </div>
+                    </div>
+                    <div class="translation-notice">
+                        <p>
+                            Esta página fue traducida con IA a partir del inglés
+                            y no ha sido revisada por una persona.
+                            <a href="/myfitnesspal-mcp"
+                                >Leer el original en inglés</a
+                            >
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- The honest answer -->
+            <section class="section band" id="answer">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">La respuesta corta</p>
+                        <h2 class="section-title">
+                            No, MyFitnessPal no tiene servidor MCP.
+                        </h2>
+                        <p class="section-sub">
+                            El Model Context Protocol (MCP) es el estándar
+                            abierto que permite a asistentes de IA como Claude y
+                            ChatGPT conectarse a herramientas externas.
+                            MyFitnessPal no publica un servidor MCP, así que no
+                            hay ninguna forma oficial de registrar comida en él
+                            desde tu IA. Si buscaste &ldquo;MyFitnessPal
+                            MCP&rdquo; o &ldquo;conectar MyFitnessPal a
+                            Claude,&rdquo; lo que realmente buscas es un
+                            registro de nutrición que viva <em>dentro</em> de tu
+                            IA — eso es exactamente lo que es Nutrition MCP.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- What you get instead -->
+            <section class="section" id="instead">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Lo que obtienes en su lugar</p>
+                        <h2 class="section-title">
+                            El mismo seguimiento, solo con hablar
+                        </h2>
+                    </div>
+                    <div class="features-grid" data-reveal="stagger">
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-utensils"></i
+                            ></span>
+                            <h3>Comidas en lenguaje sencillo</h3>
+                            <p>
+                                Di &ldquo;avena con plátano y mantequilla de
+                                maní&rdquo; — tu IA estima las calorías y los
+                                macros, fibra, azúcares totales y cafeína
+                                incluidos, y lo registra. Sin buscar en ninguna
+                                base de datos.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-barcode"></i
+                            ></span>
+                            <h3>Escaneo de código de barras — gratis</h3>
+                            <p>
+                                Envía el código de barras de un producto y obtén
+                                los macros de la etiqueta desde Open Food Facts
+                                — fibra y azúcar también, cuando la etiqueta los
+                                indica. Sin suscripción Premium para
+                                desbloquearlo.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-weight-scale"></i
+                            ></span>
+                            <h3>Peso &amp; objetivos</h3>
+                            <p>
+                                Registra tu peso corporal en kg o lb, define
+                                objetivos de calorías, macros, fibra, azúcar,
+                                cafeína y agua — la fibra como meta a alcanzar,
+                                el azúcar y la cafeína como límites que no
+                                superar — y sigue la tendencia hacia un peso
+                                objetivo. El seguimiento de alcohol también está
+                                disponible, opcional y desactivado a menos que
+                                lo actives.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>Resúmenes &amp; tendencias</h3>
+                            <p>
+                                Pide totales diarios, tendencias semanales,
+                                rachas y patrones de comida recurrentes —
+                                directamente en el chat.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-file-csv"></i
+                            ></span>
+                            <h3>Importa &amp; controla tus datos</h3>
+                            <p>
+                                Importa tu historial de comidas desde la
+                                exportación CSV de otra app — analizada en tu
+                                navegador, no por la IA. Sácalo todo de nuevo
+                                cuando quieras: un ZIP con tus comidas, agua,
+                                peso, objetivos y perfil como archivos CSV. Por
+                                ahora, las comidas son la única parte que se
+                                puede volver a importar. O elimina tu cuenta,
+                                con la misma facilidad.
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-code-branch"></i
+                            ></span>
+                            <h3>Código abierto &amp; gratis</h3>
+                            <p>
+                                Con licencia MIT y autoalojable — sin anuncios,
+                                sin muro de pago, sin ventas adicionales. Audita
+                                el código o ejecuta tu propia instancia.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison -->
+            <section class="section band" id="compare">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">MyFitnessPal vs. Nutrition MCP</p>
+                        <h2 class="section-title">Cómo se comparan</h2>
+                    </div>
+                    <div class="compare">
+                        <div class="compare-col">
+                            <h3 class="compare-h compare-h-old">
+                                MyFitnessPal
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Sin
+                                    servidor MCP: no funciona dentro de Claude o
+                                    ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Busca en
+                                    una base de datos y elige la entrada
+                                    correcta para cada alimento
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Algunas
+                                    funciones, como el escáner de código de
+                                    barras, requieren un plan de pago
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i> Una app y
+                                    una cuenta aparte, con anuncios en el plan
+                                    gratuito
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="compare-col compare-col-new">
+                            <h3 class="compare-h compare-h-new">
+                                Nutrition MCP
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Creado como servidor MCP — vive dentro de
+                                    Claude &amp; ChatGPT
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Describe las comidas en lenguaje sencillo;
+                                    calorías, macros, fibra, azúcar &amp;
+                                    cafeína estimados para ti
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Escaneo de código de barras, tendencias,
+                                    importación &amp; exportación CSV — todo
+                                    gratis
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Sin app aparte, sin anuncios, código abierto
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="note compare-note">
+                        MyFitnessPal es una app capaz con una base de datos de
+                        alimentos enorme. Esto no es una crítica: simplemente es
+                        un enfoque distinto para quienes prefieren hablar con su
+                        IA en vez de navegar por un contador de calorías.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Moving from X (per-app, unique content) -->
+            <section class="section" id="moving">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Cambiando desde MyFitnessPal</p>
+                        <h2 class="section-title">
+                            Dejar atrás la base de datos
+                        </h2>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            MyFitnessPal construyó su comunidad sobre una de las
+                            bases de datos de alimentos más grandes que existen:
+                            decenas de millones de entradas aportadas por
+                            usuarios. Esa escala es también su fricción: para
+                            cualquier alimento, te desplazas entre entradas casi
+                            duplicadas y tienes que adivinar cuál es correcta.
+                            El registro conversacional se salta la búsqueda por
+                            completo: describes el alimento y tu IA estima los
+                            macros.
+                        </p>
+                        <p>
+                            No hace falta dejar atrás tu diario para lograrlo:
+                            una exportación CSV de MyFitnessPal se importa
+                            directamente, con sus peculiaridades incluidas, así
+                            que los años que ya has registrado vienen contigo.
+                            Todo lo que registres a partir de entonces es tuyo,
+                            para exportarlo como CSV cuando quieras.
+                        </p>
+                        <p>
+                            Las funciones que MyFitnessPal fue trasladando a
+                            Premium (escaneo de código de barras, macros por
+                            gramo, sin anuncios) aquí están incluidas sin más.
+                            No estás comparando un plan gratuito con una mejora
+                            de 20 $ al mes: hay un único plan gratuito y de
+                            código abierto, y la única cuenta que necesitas es
+                            la de Claude o ChatGPT que ya tienes.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bring your history (per-app, unique content) -->
+            <section class="section band" id="import">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Tu historial de MyFitnessPal</p>
+                        <h2 class="section-title">Trae el diario contigo</h2>
+                        <p class="section-sub">
+                            Pide importar y un importador se abre directamente
+                            en el chat: elige tu exportación, mapea las
+                            columnas, previsualiza lo que se añadirá y confirma.
+                            El archivo se lee en tu navegador — la IA nunca ve
+                            las filas. En clientes sin paneles integrados en el
+                            chat, pega tu exportación en su lugar.
+                        </p>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            Años de historial registrado son la verdadera razón
+                            por la que la gente se queda, y no tienes que
+                            abandonarlos. Pide importar y se abre un panel de
+                            importación en el chat: eliges el CSV que exporta
+                            MyFitnessPal, se analiza en tu navegador, se
+                            emparejan por ti las columnas que reconoce, y ves
+                            qué se añadirá antes de que se guarde nada. Ese
+                            emparejamiento cubre calorías, proteína,
+                            carbohidratos y grasa, además de fibra, azúcares
+                            totales y cafeína en miligramos donde tu exportación
+                            tenga esas columnas. Las filas nunca pasan por la
+                            IA, así que no hay nada que pueda transcribir mal.
+                        </p>
+                        <p>
+                            Una exportación de MyFitnessPal se reconoce por su
+                            nombre, peculiaridades incluidas. El archivo llega
+                            con una marca de orden de bytes que, si no se
+                            tratara, corrompería el encabezado de la primera
+                            columna; sus notas pueden contener saltos de línea
+                            dentro de una celda entre comillas, algo que una
+                            división ingenua por líneas destrozaría junto con
+                            todas las filas siguientes; y cada bloque de un día
+                            termina con una fila de totales que no debe
+                            convertirse en una comida. La más importante:
+                            MyFitnessPal exporta una fila agregada por comida y
+                            por día, y no tiene ninguna columna de nombre de
+                            alimento, así que en vez de rechazar esas filas por
+                            no tener descripción, el importador reconoce la
+                            forma y las etiqueta por su franja: llegan como
+                            «Desayuno (importado de MyFitnessPal)».
+                        </p>
+                        <p>
+                            Las fechas se confirman, no se dan por hechas. Una
+                            columna con 05/06/2024 es genuinamente indecidible
+                            (mayo o junio), así que el importador te muestra su
+                            lectura junto a una fila real de tu propio archivo y
+                            te deja corregirla antes de guardar. Y cada fila
+                            lleva una huella de contenido, así que volver a
+                            ejecutar el mismo archivo informa que esas comidas
+                            ya están registradas en vez de duplicarlas. Importa
+                            una exportación parcial, detecta una columna mal
+                            emparejada y simplemente vuelve a hacerlo.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How to switch -->
+            <section class="section" id="switch">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">Cómo cambiarte</p>
+                        <h2 class="section-title">
+                            Conéctate en menos de un minuto
+                        </h2>
+                        <p class="section-sub">
+                            Funciona con cualquier cliente MCP compatible con
+                            OAuth 2.0 con PKCE. En la primera conexión creas una
+                            cuenta con Google o con un correo y una contraseña.
+                        </p>
+                    </div>
+                    <div class="card install-card">
+                        <ol class="steps">
+                            <li>
+                                Abre <strong>Claude</strong> (web o escritorio)
+                                y haz clic en <strong>Personalizar</strong> →
+                                <strong>Conectores</strong>.
+                            </li>
+                            <li>
+                                Haz clic en <strong>+</strong>, luego en
+                                <strong>Añadir conector personalizado</strong>,
+                                y dale un nombre como
+                                <strong>Nutrition</strong>.
+                            </li>
+                            <li>
+                                Pega
+                                <span class="copy-url"
+                                    ><code>https://nutrition-mcp.com/mcp</code
+                                    ><button
+                                        class="copy-mini"
+                                        type="button"
+                                        data-copy="https://nutrition-mcp.com/mcp"
+                                        aria-label="Copy server URL"
+                                    >
+                                        <i class="fa-solid fa-copy"></i></button
+                                ></span>
+                                en el campo
+                                <strong>URL del servidor MCP remoto</strong> y
+                                haz clic en <strong>Añadir</strong>.
+                            </li>
+                            <li>
+                                Haz clic en <strong>Conectar</strong>, inicia
+                                sesión y empieza a registrar diciendo lo que
+                                comiste.
+                            </li>
+                        </ol>
+                        <p class="note">
+                            ¿Usas ChatGPT u otro cliente en su lugar? La
+                            <a href="/es#install"
+                                >guía de instalación completa</a
+                            >
+                            cubre ChatGPT, Cursor, VS Code, Claude Code y más.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section band" id="faq">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">FAQ</p>
+                        <h2 class="section-title">
+                            Preguntas sobre MyFitnessPal &amp; MCP
+                        </h2>
+                    </div>
+                    <div class="faq">
+                        <details>
+                            <summary>¿Tiene MyFitnessPal servidor MCP?</summary>
+                            <p>
+                                No. MyFitnessPal no ofrece un servidor del Model
+                                Context Protocol (MCP), así que no hay ninguna
+                                forma oficial de conectarlo a Claude, ChatGPT u
+                                otros asistentes de IA. Nutrition MCP es una
+                                alternativa gratuita y de código abierto, creada
+                                como servidor MCP desde cero, para que puedas
+                                registrar comidas y macros directamente dentro
+                                de tu IA.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                ¿Cómo conecto MyFitnessPal a Claude?
+                            </summary>
+                            <p>
+                                No existe un conector oficial de MyFitnessPal
+                                para Claude, porque MyFitnessPal no tiene
+                                servidor MCP ni integración MCP pública. La
+                                opción más cercana es Nutrition MCP, un servidor
+                                MCP gratuito: añade
+                                https://nutrition-mcp.com/mcp como conector
+                                personalizado en Claude, inicia sesión y empieza
+                                a registrar por conversación.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                ¿Nutrition MCP puede escanear códigos de barras
+                                como MyFitnessPal Premium?
+                            </summary>
+                            <p>
+                                Sí, y es gratis. Envía el código de barras de un
+                                producto y Nutrition MCP obtiene los macros de
+                                la etiqueta desde Open Food Facts, mientras que
+                                MyFitnessPal trasladó su escáner de código de
+                                barras a una suscripción Premium de pago.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                ¿Cómo funciona el registro sin la base de datos
+                                de alimentos de MyFitnessPal?
+                            </summary>
+                            <p>
+                                Describes lo que comiste en lenguaje natural
+                                ("un bowl de burrito de pollo con arroz extra")
+                                y tu IA estima las calorías y los macros. No hay
+                                una base de datos de millones de entradas de
+                                usuarios que revisar ni que adivinar cuál es la
+                                correcta.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                ¿Es Nutrition MCP una buena alternativa a
+                                MyFitnessPal?
+                            </summary>
+                            <p>
+                                Si quieres controlar calorías, macros — fibra,
+                                azúcares totales y cafeína incluidos —, agua y
+                                peso sin abrir una app aparte ni buscar en una
+                                base de datos de alimentos, sí. En vez de
+                                navegar por una base de datos, describes lo que
+                                comiste en lenguaje sencillo, envías una foto o
+                                escaneas un código de barras, y tu IA lo
+                                registra — completamente gratis y de código
+                                abierto.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                ¿Puedo importar mis datos de MyFitnessPal?
+                            </summary>
+                            <p>
+                                Sí. Pide importar tu historial y se abre un
+                                importador en el chat: eliges el CSV que exporta
+                                MyFitnessPal, se analiza en tu navegador en vez
+                                de leerlo la IA, emparejas o confirmas las
+                                columnas, ves una vista previa de lo que se
+                                añadirá y confirmas. Calorías, proteína,
+                                carbohidratos y grasa se transfieren, y también
+                                fibra, azúcares totales y cafeína cuando tu
+                                exportación los incluye. La exportación de
+                                MyFitnessPal se reconoce por su nombre, incluida
+                                su marca de orden de bytes, sus filas de totales
+                                al final, y el hecho de que escribe una fila
+                                agregada por comida y por día sin nombre de
+                                alimento, que se etiquetan por franja de comida.
+                                Volver a importar el mismo archivo nunca crea
+                                duplicados. En clientes sin paneles integrados
+                                en el chat puedes pegar tu exportación en su
+                                lugar.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                ¿Lee la IA mi archivo de exportación al
+                                importar?
+                            </summary>
+                            <p>
+                                No cuando se abre el importador. Analiza el CSV
+                                en tu navegador y te muestra qué se añadirá
+                                antes de escribir nada: cuántas comidas, el
+                                total de calorías, cualquier cosa que tuviera
+                                que marcar, y las propias filas — un archivo
+                                largo muestra las primeras junto con un recuento
+                                del resto en vez de cada línea. Solo se envían
+                                las filas que confirmas, y viajan como datos
+                                estructurados en lugar de pasar por la respuesta
+                                de la IA, así que ninguna fila puede
+                                transcribirse mal ni inventarse en el camino.
+                                Cada fila también lleva una huella de contenido,
+                                así que volver a ejecutar el mismo archivo
+                                informa que esas comidas ya están registradas en
+                                vez de duplicarlas. Si tu cliente no puede
+                                mostrar paneles integrados en el chat, la
+                                alternativa es pegar la exportación — la IA sí
+                                la lee por ese camino, así que prefiere el
+                                importador cuando puedas elegir.
+                            </p>
+                        </details>
+                        <details>
+                            <summary>¿Es gratis Nutrition MCP?</summary>
+                            <p>
+                                Sí. Nutrition MCP es completamente gratis, sin
+                                nivel premium, anuncios ni funciones detrás de
+                                un muro de pago — a diferencia de apps que ponen
+                                algunas funciones tras una suscripción. Solo
+                                necesitas una cuenta de Claude o ChatGPT para
+                                conectarte.
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Closing CTA -->
+            <section class="section cta">
+                <div class="container cta-inner" data-reveal>
+                    <h2 class="cta-title">
+                        Controla tu nutrición dentro de la IA que ya usas.
+                    </h2>
+                    <p class="cta-sub">
+                        Gratis y de código abierto — sin cuenta de MyFitnessPal,
+                        sin app que abrir.
+                    </p>
+                    <div class="cta-actions">
+                        <a class="btn btn-on-accent" href="#switch"
+                            >Instalación rápida</a
+                        >
+                        <a class="btn btn-ghost-accent" href="/es/alternatives"
+                            >Otras alternativas</a
+                        >
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="disclaimer-band">
+            <div class="container">
+                <p class="page-disclaimer">
+                    MyFitnessPal es una marca comercial de su respectivo
+                    propietario. Nutrition MCP es un proyecto independiente y de
+                    código abierto, y no está afiliado a MyFitnessPal ni cuenta
+                    con su patrocinio o respaldo. Las comparaciones reflejan
+                    información disponible públicamente en el momento de su
+                    redacción y pueden cambiar.
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/es/tools">Tools</a>
+                    <a href="/es/alternatives">Alternatives</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >How I built this</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Demo</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">Contact</a>
+                    <a href="/es/privacy">Privacy Policy</a>
+                    <a href="/es/terms">Terms of Service</a>
+                </nav>
+                <p class="footer-note">
+                    Free and open source. Nutrition figures are estimates, not
+                    medical advice.
+                </p>
+            </div>
+        </footer>
+
+        <script src="/site.js" defer></script>
+    </body>
+</html>

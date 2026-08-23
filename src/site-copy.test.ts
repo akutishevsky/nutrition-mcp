@@ -75,14 +75,17 @@ test("the landing page's feature cards list caffeine where they list nutrients",
 
 // The comparison pages are generated. Editing the HTML directly is silently
 // undone by the next `bun run scripts/gen-alternatives.ts`, so the copy has to
-// be right in the generator AND regenerated — this asserts both halves landed.
-const generator = await Bun.file("./scripts/gen-alternatives.ts").text();
+// be right in the source data AND regenerated — this asserts both halves
+// landed. The shared template prose (feature grid, comparison column) lives
+// in src/copy/alt-ui.ts, not the generator itself — see that file's doc
+// comment for why it was split out.
+const altUi = await Bun.file("./src/copy/alt-ui.ts").text();
 
-test("the comparison-page generator names caffeine in the tracked set", () => {
-    expect(generator).toContain("caffeine");
+test("the comparison-page copy names caffeine in the tracked set", () => {
+    expect(altUi).toContain("caffeine");
     // The shared right-hand column and the shared feature card, which every
     // page carries verbatim.
-    expect(generator).toContain(
+    expect(altUi).toContain(
         "calories, macros, fiber, sugar &amp; caffeine estimated for you",
     );
 });
@@ -233,12 +236,12 @@ test("llms.txt names the export tool and the archive members", async () => {
 
 // The strongest switching-cost line on the comparison pages is that all of the
 // data comes back out, so it has to enumerate what "all" means — in the
-// generator, and in the six pages that were regenerated from it.
+// source copy, and in the six pages that were regenerated from it.
 test("the comparison-page card names every table it promises back", async () => {
     for (const table of ARCHIVE_TABLES) {
-        expect(generator, `generator omits ${table}`).toContain(table);
+        expect(altUi, `alt-ui.ts omits ${table}`).toContain(table);
     }
-    expect(generator).toContain("Take everything back out whenever you want");
+    expect(altUi).toContain("Take everything back out whenever you want");
 
     for (const slug of [
         "cronometer",
@@ -253,7 +256,7 @@ test("the comparison-page card names every table it promises back", async () => 
         );
         expect(
             html,
-            `${slug}.html was not regenerated from the generator`,
+            `${slug}.html was not regenerated from alt-ui.ts`,
         ).toContain(
             "one ZIP with your meals, water, weight, goals and profile",
         );
