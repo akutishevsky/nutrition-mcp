@@ -31,6 +31,8 @@
  * GitHub/contact links before regenerating).
  */
 
+import { statSync } from "node:fs";
+
 const PLACEHOLDER_DOMAIN = "your-domain.com";
 const DRY = process.argv.includes("--dry");
 
@@ -204,6 +206,73 @@ const altPageJobs = (
     .sort()
     .map((f) => ({ path: `public/alternatives/${f}`, rules: ALT_RULES }));
 
+// Translated site: public/{locale}/privacy.html, public/{locale}/terms.html,
+// and (once those pages are migrated too) .../tools.html, .../index.html,
+// .../alternatives/*.html. Discovered at run time the same way altPageJobs
+// is, rather than hand-listing every locale: a locale directory that
+// doesn't exist yet on a given checkout (translation lands incrementally,
+// see src/copy/legal.ts) simply contributes no jobs. Rules per filename
+// mirror the English job for that same page below — keep the two in sync
+// by hand when you change one, the same as the rest of this file already
+// asks for GITHUB_LINKS_RULE / DOMAIN_RULE etc.
+const RULES_BY_FILENAME: Record<string, Rule[]> = {
+    "privacy.html": [...ANALYTICS_RULES, DOMAIN_RULE],
+    "terms.html": [
+        ...ANALYTICS_RULES,
+        {
+            name: "terms: 'GitHub' prose link -> plain text",
+            find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>/,
+            replace: "GitHub",
+        },
+        {
+            name: "terms: contact mailto -> placeholder address",
+            find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>[^<]*<\/a\s*>/,
+            replace: "your@email.com",
+        },
+        DOMAIN_RULE,
+    ],
+    "tools.html": [
+        ...ANALYTICS_RULES,
+        GITHUB_LINKS_RULE,
+        MAILTO_RULE,
+        DOMAIN_RULE,
+    ],
+    "index.html": [...ANALYTICS_RULES, ...LANDING_RULES, DOMAIN_RULE],
+};
+
+const localeJobs: { path: string; rules: Rule[] }[] = [];
+for (const entry of await Array.fromAsync(
+    new Bun.Glob("*").scan({ cwd: "public", onlyFiles: false }),
+)) {
+    // public/alternatives is itself a "locale-shaped" directory name-wise
+    // but isn't one — it's the English comparison pages, already covered
+    // by altPageJobs above.
+    if (entry === "alternatives" || !statSync(`public/${entry}`).isDirectory())
+        continue;
+    const dir = `public/${entry}`;
+    for (const f of await Array.fromAsync(
+        new Bun.Glob("*.html").scan({ cwd: dir }),
+    )) {
+        const rules = RULES_BY_FILENAME[f];
+        if (rules) localeJobs.push({ path: `${dir}/${f}`, rules });
+    }
+    if (
+        statSync(`${dir}/alternatives`, {
+            throwIfNoEntry: false,
+        })?.isDirectory()
+    ) {
+        for (const f of await Array.fromAsync(
+            new Bun.Glob("*.html").scan({ cwd: `${dir}/alternatives` }),
+        )) {
+            localeJobs.push({
+                path: `${dir}/alternatives/${f}`,
+                rules: ALT_RULES,
+            });
+        }
+    }
+}
+localeJobs.sort((a, b) => a.path.localeCompare(b.path));
+
 const JOBS: { path: string; rules: Rule[] }[] = [
     {
         path: "public/index.html",
@@ -244,6 +313,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
         ],
     },
     ...altPageJobs,
+    ...localeJobs,
     // NB: the generator scripts/gen-alternatives.ts is intentionally NOT
     // rewritten here — these HTML-tuned patterns are unreliable against its TS
     // template literals. If you regenerate the pages, update the generator's
