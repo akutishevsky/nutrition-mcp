@@ -113,17 +113,17 @@ export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
     },
     fr: {
         appTitle:
-            "Serveur MCP pour {app} ? Suivez votre nutrition dans Claude et ChatGPT",
+            "Serveur MCP pour {app} ? Suis ta nutrition dans Claude et ChatGPT",
         appDesc:
-            "Pas de serveur MCP pour {app} ? Nutrition MCP enregistre les repas et les macros dans Claude ou ChatGPT — gratuit, open source, et importe votre export CSV.",
+            "Pas de serveur MCP pour {app} ? Nutrition MCP enregistre les repas et les macros dans Claude ou ChatGPT — gratuit, open source, et importe ton export CSV.",
         appOgDesc:
-            "{app} n'a pas de serveur MCP. Nutrition MCP est une alternative gratuite et open source qui enregistre repas, macros et poids dans Claude ou ChatGPT — et importe votre historique {app} depuis un export CSV.",
+            "{app} n'a pas de serveur MCP. Nutrition MCP est une alternative gratuite et open source qui enregistre repas, macros et poids dans Claude ou ChatGPT — et importe ton historique {app} depuis un export CSV.",
         hubTitle:
-            "Alternatives MCP aux apps de nutrition — Suivez votre alimentation dans Claude et ChatGPT",
+            "Alternatives MCP aux apps de nutrition — Suis ton alimentation dans Claude et ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer et Lose It! n'ont pas de serveur MCP. Nutrition MCP est l'alternative gratuite et open source pour Claude et ChatGPT — et importe votre historique.",
+            "MyFitnessPal, Cronometer et Lose It! n'ont pas de serveur MCP. Nutrition MCP est l'alternative gratuite et open source pour Claude et ChatGPT — et importe ton historique.",
         hubOgDesc:
-            "Votre app de nutrition n'a pas de serveur MCP ? Nutrition MCP est une alternative gratuite et open source qui fonctionne dans Claude ou ChatGPT — et importe votre historique depuis un export CSV.",
+            "Ton app de nutrition n'a pas de serveur MCP ? Nutrition MCP est une alternative gratuite et open source qui fonctionne dans Claude ou ChatGPT — et importe ton historique depuis un export CSV.",
     },
     nl: {
         appTitle:

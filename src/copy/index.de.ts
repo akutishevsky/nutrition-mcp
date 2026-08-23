@@ -670,6 +670,7 @@ export const INDEX_DE: IndexDoc = {
         other: {
             note: "Füge die Konfiguration oben zu deinem Client hinzu (Cursor, VS Code, Claude Code und weitere). Windsurf verwendet <code>serverUrl</code> statt <code>url</code>. Führe in Claude Code <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code> aus. Dein Client übernimmt die OAuth-Anmeldung automatisch.",
         },
+        otherTabLabel: "Andere Clients",
     },
 
     onboarding: {

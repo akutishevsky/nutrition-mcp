@@ -38,7 +38,7 @@ const HERO_CHAT_HTML_PL = `
                                     <div class="wdg-callab">Kalorie dzisiaj</div>
                                     <div class="wdg-calline">
                                         <div class="wdg-calval">340<span class="wdg-calgoal">/ 2 100</span></div>
-                                        <div class="wdg-calleft">Zostało 1760 kcal</div>
+                                        <div class="wdg-calleft">Zostało 1 760 kcal</div>
                                     </div>
                                 </div>
                             </div>
@@ -185,7 +185,7 @@ const SLIDE_1_HTML_PL = `
                             <div class="wdg-callab">Kalorie dzisiaj</div>
                             <div class="wdg-calline">
                                 <div class="wdg-calval">990<span class="wdg-calgoal">/ 2 100</span></div>
-                                <div class="wdg-calleft">Zostało 1110 kcal</div>
+                                <div class="wdg-calleft">Zostało 1 110 kcal</div>
                             </div>
                         </div>
                     </div>
@@ -349,7 +349,7 @@ const SLIDE_3_HTML_PL = `
                         <div class="wdg-caltxt">
                             <div class="wdg-callab">Kalorie dzisiaj</div>
                             <div class="wdg-calline">
-                                <div class="wdg-calval">1,540<span class="wdg-calgoal">/ 2 100</span></div>
+                                <div class="wdg-calval">1 540<span class="wdg-calgoal">/ 2 100</span></div>
                                 <div class="wdg-calleft">Zostało 560 kcal</div>
                             </div>
                         </div>
@@ -459,7 +459,7 @@ const SLIDE_6_HTML_PL = `
                         <div class="wdg-caltxt">
                             <div class="wdg-callab">Średnia 7-dniowa · wszystkie dni</div>
                             <div class="wdg-calline">
-                                <div class="wdg-calval">1,980<span class="wdg-calgoal">/ 2 100</span></div>
+                                <div class="wdg-calval">1 980<span class="wdg-calgoal">/ 2 100</span></div>
                                 <div class="wdg-calleft">120 kcal poniżej celu</div>
                             </div>
                         </div>
@@ -505,7 +505,7 @@ const SLIDE_6_HTML_PL = `
                 </div>
             </div>
         </div>
-        Średnio masz 1980 kcal dziennie — 120 kcal poniżej celu, a cukier i
+        Średnio masz 1 980 kcal dziennie — 120 kcal poniżej celu, a cukier i
         kofeina mieszczą się wygodnie w limitach. Błonnik wynosi średnio 26,8 g,
         tuż poniżej celu 30 g.
     </div>`;
@@ -631,6 +631,7 @@ export const INDEX_PL: IndexDoc = {
         other: {
             note: "Dodaj powyższą konfigurację do swojego klienta (Cursor, VS Code, Claude Code i inne). Windsurf używa <code>serverUrl</code> zamiast <code>url</code>. W Claude Code uruchom <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Twój klient obsłuży logowanie OAuth automatycznie.",
         },
+        otherTabLabel: "Inni klienci",
     },
 
     onboarding: {

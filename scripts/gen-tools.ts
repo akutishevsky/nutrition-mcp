@@ -537,10 +537,11 @@ function renderBadge(kind: BadgeKind, label: string): string {
 function renderParam(
     param: { name: string; required: boolean },
     descHtml: string,
+    doc: ToolsDoc,
 ): string {
     const badge = param.required
-        ? `<span class="param-req">required</span>`
-        : `<span class="param-opt">optional</span>`;
+        ? `<span class="param-req">${esc(doc.ui.requiredLabel)}</span>`
+        : `<span class="param-opt">${esc(doc.ui.optionalLabel)}</span>`;
     const tail = descHtml ? ` — ${descHtml}` : "";
     return `<li><code>${param.name}</code> ${badge}${tail}</li>`;
 }
@@ -559,11 +560,11 @@ function renderToolCard(tool: ToolIdentity, doc: ToolsDoc): string {
         tool.params.length === 0
             ? ""
             : `<div class="tool-params">
-                    <span class="tool-params-label">Parameters</span>
+                    <span class="tool-params-label">${esc(doc.ui.parametersLabel)}</span>
                     <ul>
                         ${tool.params
                             .map((p) =>
-                                renderParam(p, prose.params[p.name] ?? ""),
+                                renderParam(p, prose.params[p.name] ?? "", doc),
                             )
                             .join("\n                        ")}
                     </ul>
@@ -583,7 +584,7 @@ function renderToolCard(tool: ToolIdentity, doc: ToolsDoc): string {
                 <p class="tool-desc">${esc(prose.description)}</p>
                 ${paramsHtml}
                 <div class="tool-ex">
-                    <span class="tool-ex-label">Try saying</span>
+                    <span class="tool-ex-label">${esc(doc.ui.trySayingLabel)}</span>
                     <p>${esc(prose.example)}</p>
                     ${photoHtml}
                 </div>

@@ -22,6 +22,7 @@ import {
     urlFor,
     type SiteLocale,
 } from "../src/routes.js";
+import { chromeFor } from "../src/copy/chrome.js";
 
 export { SITE };
 
@@ -163,6 +164,7 @@ export function nav(
 ): string {
     const p = (id: string) => pathFor(locale, id);
     const h = (id: string) => hashPath(locale, id);
+    const c = chromeFor(locale);
     const switcherItems = SITE_LOCALES.map((l) => {
         const active = l === locale;
         return `                    <a
@@ -172,20 +174,20 @@ export function nav(
                         >${esc(LOCALE_NAMES[l])}</a
                     >`;
     }).join("\n");
-    const html = `        <a class="skip" href="#main">Skip to content</a>
+    const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>
         <header class="site-head" id="site-head">
             <div class="head-inner">
-                <a class="brand" href="${p("")}" aria-label="Nutrition MCP home">
+                <a class="brand" href="${p("")}" aria-label="${esc(c.brandHomeAriaLabel)}">
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     <span>Nutrition&nbsp;MCP</span>
                 </a>
                 <nav class="head-nav" aria-label="Primary">
-                    <a href="${h("how")}">How it works</a>
-                    <a href="${h("install")}">Install</a>
-                    <a href="${p("/tools")}">Tools</a>
-                    <a href="${h("try")}">Examples</a>
-                    <a href="${h("stats")}">Live stats</a>
-                    <a href="${h("faq")}">FAQ</a>
+                    <a href="${h("how")}">${esc(c.nav.how)}</a>
+                    <a href="${h("install")}">${esc(c.nav.install)}</a>
+                    <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
+                    <a href="${h("try")}">${esc(c.nav.examples)}</a>
+                    <a href="${h("stats")}">${esc(c.nav.liveStats)}</a>
+                    <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 </nav>
                 <div class="head-tools">
                     <a
@@ -193,7 +195,7 @@ export function nav(
                         href="https://github.com/akutishevsky/nutrition-mcp"
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label="GitHub repository"
+                        aria-label="${esc(c.githubAriaLabel)}"
                         title="GitHub"
                     >
                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -208,8 +210,8 @@ ${
         : `                    <details class="lang-switch">
                         <summary
                             class="icon-btn"
-                            aria-label="Change language"
-                            title="Language"
+                            aria-label="${esc(c.changeLanguageAriaLabel)}"
+                            title="${esc(c.languageTitle)}"
                         >
                             <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
                         </summary>
@@ -222,8 +224,8 @@ ${switcherItems}
                         class="icon-btn theme-toggle"
                         type="button"
                         id="theme-toggle"
-                        aria-label="Switch to dark mode"
-                        title="Switch to dark mode"
+                        aria-label="${esc(c.switchToDarkModeAriaLabel)}"
+                        title="${esc(c.switchToDarkModeAriaLabel)}"
                     >
                         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
@@ -234,7 +236,7 @@ ${switcherItems}
                         </svg>
                     </button>
                     <a class="btn btn-primary btn-sm head-cta" href="${h("install")}"
-                        >Connect</a
+                        >${esc(c.connectCta)}</a
                     >
                     <button
                         class="icon-btn menu-btn"
@@ -242,7 +244,7 @@ ${switcherItems}
                         id="menu-btn"
                         aria-expanded="false"
                         aria-controls="site-menu"
-                        aria-label="Open menu"
+                        aria-label="${esc(c.openMenuAriaLabel)}"
                     >
                         <span class="burger" aria-hidden="true"></span>
                     </button>
@@ -251,28 +253,28 @@ ${switcherItems}
         </header>
         <div class="site-menu" id="site-menu" hidden>
             <nav aria-label="Menu">
-                <a href="${h("how")}">How it works <small>3 steps</small></a>
-                <a href="${h("install")}">Install <small>under a minute</small></a>
-                <a href="${p("/tools")}">Tools <small>38 tools</small></a>
-                <a href="${h("try")}">Examples <small>live demos</small></a>
-                <a href="${h("stats")}">Live stats <small>since you opened</small></a>
-                <a href="${h("faq")}">FAQ</a>
-                <a href="${p("/alternatives")}">Alternatives <small>switching apps</small></a>
+                <a href="${h("how")}">${esc(c.nav.how)} <small>${esc(c.menu.howSmall)}</small></a>
+                <a href="${h("install")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
+                <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
+                <a href="${h("try")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
+                <a href="${h("stats")}">${esc(c.nav.liveStats)} <small>${esc(c.menu.liveStatsSmall)}</small></a>
+                <a href="${h("faq")}">${esc(c.nav.faq)}</a>
+                <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
             </nav>
             <div class="menu-secondary">
-                <a href="${h("support")}">Support</a>
-                <a href="${h("contact")}">Contact</a>
+                <a href="${h("support")}">${esc(c.menu.support)}</a>
+                <a href="${h("contact")}">${esc(c.menu.contact)}</a>
                 <a
                     href="https://github.com/akutishevsky/nutrition-mcp"
                     target="_blank"
                     rel="noopener noreferrer"
-                    >GitHub</a
+                    >${esc(c.menu.github)}</a
                 >
-                <a href="${p("/privacy")}">Privacy</a>
-                <a href="${p("/terms")}">Terms</a>
+                <a href="${p("/privacy")}">${esc(c.menu.privacy)}</a>
+                <a href="${p("/terms")}">${esc(c.menu.terms)}</a>
             </div>
             <div class="menu-foot">
-                <a class="btn btn-primary" href="${h("install")}">Connect in a minute</a>
+                <a class="btn btn-primary" href="${h("install")}">${esc(c.menu.connectInMinute)}</a>
             </div>
         </div>`;
     if (!currentSuffix) return html;
@@ -293,6 +295,7 @@ ${switcherItems}
  */
 export function footer(locale: SiteLocale, currentSuffix?: string): string {
     const p = (id: string) => pathFor(locale, id);
+    const c = chromeFor(locale);
     const html = `        <footer class="footer">
             <div class="footer-inner">
                 <span class="footer-brand">
@@ -300,33 +303,32 @@ export function footer(locale: SiteLocale, currentSuffix?: string): string {
                     Nutrition MCP
                 </span>
                 <nav class="footer-links" aria-label="Footer">
-                    <a href="${p("/tools")}">Tools</a>
-                    <a href="${p("/alternatives")}">Alternatives</a>
+                    <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
+                    <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
                     <a
                         href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >How I built this</a
+                        >${esc(c.footer.howIBuiltThis)}</a
                     >
                     <a
                         href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >Demo</a
+                        >${esc(c.footer.demo)}</a
                     >
                     <a
                         href="https://github.com/akutishevsky/nutrition-mcp"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >GitHub</a
+                        >${esc(c.footer.github)}</a
                     >
-                    <a href="mailto:anton@nutrition-mcp.com">Contact</a>
-                    <a href="${p("/privacy")}">Privacy Policy</a>
-                    <a href="${p("/terms")}">Terms of Service</a>
+                    <a href="mailto:anton@nutrition-mcp.com">${esc(c.footer.contact)}</a>
+                    <a href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a>
+                    <a href="${p("/terms")}">${esc(c.footer.termsOfService)}</a>
                 </nav>
                 <p class="footer-note">
-                    Free and open source. Nutrition figures are estimates, not
-                    medical advice.
+                    ${esc(c.footer.note)}
                 </p>
             </div>
         </footer>`;

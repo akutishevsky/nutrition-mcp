@@ -108,13 +108,13 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                         340<span
                                                                             class="wdg-calgoal"
                                                                             >/
-                                                                            2,100</span
+                                                                            2 100</span
                                                                         >
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calleft"
                                                                     >
-                                                                        1,760
+                                                                        1 760
                                                                         kcal
                                                                         restants
                                                                     </div>
@@ -574,13 +574,13 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                             990<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2 100</span
                                                                             >
                                                                         </div>
                                                                         <div
                                                                             class="wdg-calleft"
                                                                         >
-                                                                            1,110
+                                                                            1 110
                                                                             kcal
                                                                             restants
                                                                         </div>
@@ -1335,10 +1335,10 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calval"
                                                                         >
-                                                                            1,540<span
+                                                                            1 540<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2 100</span
                                                                             >
                                                                         </div>
                                                                         <div
@@ -1798,10 +1798,10 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calval"
                                                                         >
-                                                                            1,980<span
+                                                                            1 980<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2 100</span
                                                                             >
                                                                         </div>
                                                                         <div
@@ -2068,7 +2068,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                         </div>
                                                     </div>
                                                 </div>
-                                                Tu es à 1,980 kcal en moyenne
+                                                Tu es à 1 980 kcal en moyenne
                                                 par jour — 120 sous l'objectif,
                                                 avec le sucre et la caféine
                                                 bien dans leurs limites. Les
@@ -2312,6 +2312,7 @@ export const INDEX_FR: IndexDoc = {
         other: {
             note: "Ajoute la config ci-dessus à ton client (Cursor, VS Code, Claude Code, et d'autres). Windsurf utilise <code>serverUrl</code> au lieu de <code>url</code>. Dans Claude Code, exécute <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Ton client gère la connexion OAuth automatiquement.",
         },
+        otherTabLabel: "Autres clients",
     },
 
     onboarding: {

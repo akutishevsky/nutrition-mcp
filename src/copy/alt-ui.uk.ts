@@ -80,6 +80,7 @@ export const ALT_UI_UK: AltUiCopy = {
         installNoteTemplate:
             "Користуєшся ChatGPT чи іншим клієнтом? {link} охоплює ChatGPT, Cursor, VS Code, Claude Code та інші.",
         installLinkText: "повний гайд із підключення",
+        copyUrlAriaLabel: "Копіювати URL сервера",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "Питання про {app} &amp; MCP",

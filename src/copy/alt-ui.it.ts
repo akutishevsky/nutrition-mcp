@@ -91,6 +91,7 @@ export const ALT_UI_IT: AltUiCopy = {
         installNoteTemplate:
             "Usi ChatGPT o un altro client? La {link} copre ChatGPT, Cursor, VS Code, Claude Code e altri.",
         installLinkText: "guida completa all'installazione",
+        copyUrlAriaLabel: "Copia l'URL del server",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "Domande su {app} &amp; MCP",

@@ -528,6 +528,19 @@ export interface ToolsDoc {
      * carries that badge — keyed once here, not per tool (see
      * BadgeKind's doc comment). */
     badges: Record<BadgeKind, string>;
+    /** Structural UI chrome repeated on every tool card — was hardcoded
+     * English in scripts/gen-tools.ts until a translation review caught it
+     * (every tool's prose was translated, but these labels weren't). */
+    ui: {
+        /** The "Parameters" section label. */
+        parametersLabel: string;
+        /** ToolParamIdentity.required's badge text. */
+        requiredLabel: string;
+        /** ToolParamIdentity.required === false's badge text. */
+        optionalLabel: string;
+        /** The label above each card's example prompt. */
+        trySayingLabel: string;
+    };
     /** Keyed by ToolIdentity.name. */
     tools: Record<string, ToolProse>;
 }
@@ -601,6 +614,12 @@ const TOOLS_EN: ToolsDoc = {
         view: "View",
         export: "Export",
         setting: "Setting",
+    },
+    ui: {
+        parametersLabel: "Parameters",
+        requiredLabel: "required",
+        optionalLabel: "optional",
+        trySayingLabel: "Try saying",
     },
     tools: {
         log_meal: {

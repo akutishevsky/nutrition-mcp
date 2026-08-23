@@ -310,7 +310,7 @@ ${doc.how.steps.map((s, i) => renderHowStep(s, HOW_ICONS[i]!)).join("\n")}
                                 >
                                 <label for="itab-other" class="seg-other"
                                     ><i class="fa-solid fa-terminal" aria-hidden="true"></i>
-                                    Other agents</label
+                                    ${esc(doc.install.otherTabLabel)}</label
                                 >
                             </div>
 

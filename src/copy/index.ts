@@ -113,6 +113,12 @@ export interface IndexDoc {
         claude: { steps: string[]; note: string };
         chatgpt: { steps: string[] };
         other: { note: string };
+        /** The third install-tab's visible label ("Other agents") — was
+         * hardcoded English in scripts/gen-index.ts alongside the "Claude"/
+         * "ChatGPT" brand-name tabs (correctly untranslated) until a
+         * translation review caught it: unlike those two, this is ordinary
+         * descriptive text, not a proper noun. */
+        otherTabLabel: string;
     };
 
     onboarding: {
@@ -2487,6 +2493,7 @@ const INDEX_EN: IndexDoc = {
         other: {
             note: "Add the config above to your client (Cursor, VS Code, Claude Code, and more). Windsurf uses <code>serverUrl</code> instead of <code>url</code>. In Claude Code, run <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Your client handles the OAuth login automatically.",
         },
+        otherTabLabel: "Other agents",
     },
 
     onboarding: {

@@ -103,6 +103,13 @@ export interface AltUiCopy {
         /** Raw text with a {link} placeholder the generator replaces with an anchor. */
         installNoteTemplate: string;
         installLinkText: string;
+        /** aria-label on the copy-to-clipboard button next to the server URL
+         * (installSteps' {copyUrl} slot) — was hardcoded English in
+         * scripts/gen-alternatives.ts until a translation review caught it;
+         * the equivalent button on the landing page (src/copy/index.ts's
+         * install steps) already carries this translation, so reuse the
+         * same wording for consistency within a locale. */
+        copyUrlAriaLabel: string;
 
         faqEyebrow: string;
         faqTitleTemplate: string;
@@ -216,6 +223,7 @@ export const ALT_UI_EN: AltUiCopy = {
         installNoteTemplate:
             "Using ChatGPT or another client instead? The {link} covers ChatGPT, Cursor, VS Code, Claude Code, and more.",
         installLinkText: "full install guide",
+        copyUrlAriaLabel: "Copy server URL",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "{app} &amp; MCP questions",

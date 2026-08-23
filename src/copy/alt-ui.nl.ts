@@ -6,15 +6,15 @@ export const ALT_UI_NL: AltUiCopy = {
     ctaQuickInstall: "Snel installeren",
     ctaClosingTitle: "Houd je voeding bij in de AI die je al gebruikt.",
     disclaimerAppHtml:
-        "{app} is een handelsmerk van de betreffende eigenaar. Nutrition MCP is een onafhankelijk opensource-project en is niet verbonden aan, goedgekeurd door, of gesponsord door {app}. Vergelijkingen zijn gebaseerd op publiek beschikbare informatie op het moment van schrijven en kunnen veranderen.",
+        "{app} is een handelsmerk van de betreffende eigenaar. Nutrition MCP is een onafhankelijk open source-project en is niet verbonden aan, goedgekeurd door, of gesponsord door {app}. Vergelijkingen zijn gebaseerd op publiek beschikbare informatie op het moment van schrijven en kunnen veranderen.",
     disclaimerHubHtml:
-        "{apps} en andere productnamen zijn handelsmerken van hun respectievelijke eigenaars. Nutrition MCP is een onafhankelijk opensource-project en is niet verbonden aan of goedgekeurd door hen. Vergelijkingen zijn gebaseerd op publiek beschikbare informatie op het moment van schrijven en kunnen veranderen.",
+        "{apps} en andere productnamen zijn handelsmerken van hun respectievelijke eigenaars. Nutrition MCP is een onafhankelijk open source-project en is niet verbonden aan of goedgekeurd door hen. Vergelijkingen zijn gebaseerd op publiek beschikbare informatie op het moment van schrijven en kunnen veranderen.",
 
     app: {
         heroEyebrow: "{app}-alternatief",
         heroTitleHtml: "Op zoek naar een <em>{app} MCP</em>-server?",
         heroLead:
-            "{app} heeft die niet — dus je kunt het niet gebruiken binnen Claude of ChatGPT. Nutrition MCP doet hetzelfde via een gesprek, en het is gratis en opensource.",
+            "{app} heeft die niet — dus je kunt het niet gebruiken binnen Claude of ChatGPT. Nutrition MCP doet hetzelfde via een gesprek, en het is gratis en open source.",
         ctaConnect: "Verbind binnen een minuut",
         ctaSeeComparison: "Bekijk de vergelijking",
 
@@ -79,18 +79,19 @@ export const ALT_UI_NL: AltUiCopy = {
         installNoteTemplate:
             "Gebruik je liever ChatGPT of een andere client? De {link} behandelt ChatGPT, Cursor, VS Code, Claude Code en meer.",
         installLinkText: "volledige installatiehandleiding",
+        copyUrlAriaLabel: "Serverlink kopiëren",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "{app} &amp; MCP-vragen",
         faq: {
             mcpQ: "Heeft {app} een MCP-server?",
-            mcpA: "Nee. {app} biedt geen Model Context Protocol (MCP)-server aan, dus er is geen officiële manier om het te verbinden met Claude, ChatGPT of andere AI-assistenten. Nutrition MCP is een gratis, opensource alternatief dat vanaf de grond af is gebouwd als MCP-server, zodat je maaltijden en macro's rechtstreeks in je AI kunt loggen.",
+            mcpA: "Nee. {app} biedt geen Model Context Protocol (MCP)-server aan, dus er is geen officiële manier om het te verbinden met Claude, ChatGPT of andere AI-assistenten. Nutrition MCP is een gratis, open source alternatief dat vanaf de grond af is gebouwd als MCP-server, zodat je maaltijden en macro's rechtstreeks in je AI kunt loggen.",
             connectQ: "Hoe verbind ik {app} met Claude?",
             connectA:
                 "Er is geen officiële {app}-connector voor Claude, omdat {app} geen MCP-server of publieke MCP-integratie heeft. De dichtstbijzijnde optie is Nutrition MCP, een gratis MCP-server: voeg https://nutrition-mcp.com/mcp toe als custom connector in Claude, log in, en begin met loggen via een gesprek.",
             goodAltQ: "Is Nutrition MCP een goed {app}-alternatief?",
             goodAltA:
-                "Als je calorieën, macro's — vezels, totale suikers en cafeïne inbegrepen — water en gewicht wilt bijhouden zonder een aparte app te openen of een voedseldatabase te doorzoeken, dan wel. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto, of scan je een barcode, en je AI logt het — volledig gratis en opensource.",
+                "Als je calorieën, macro's — vezels, totale suikers en cafeïne inbegrepen — water en gewicht wilt bijhouden zonder een aparte app te openen of een voedseldatabase te doorzoeken, dan wel. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto, of scan je een barcode, en je AI logt het — volledig gratis en open source.",
             importQ: "Kan ik mijn {app}-gegevens importeren?",
             readExportQ: "Leest de AI mijn exportbestand wanneer ik importeer?",
             readExportA:
@@ -103,7 +104,7 @@ export const ALT_UI_NL: AltUiCopy = {
             " In clients zonder in-chat-panelen kun je in plaats daarvan je export plakken.",
 
         ctaClosingSub:
-            "Gratis en opensource — geen {app}-account, geen app om te openen.",
+            "Gratis en open source — geen {app}-account, geen app om te openen.",
         ctaOtherAlternatives: "Andere alternatieven",
     },
 
@@ -111,7 +112,7 @@ export const ALT_UI_NL: AltUiCopy = {
         heroEyebrow: "MCP-alternatieven",
         heroTitleHtml: "Jouw voedingsapp heeft geen <em>MCP-server</em>.",
         heroLead:
-            "Apps zoals MyFitnessPal, Cronometer en Lose It kunnen geen verbinding maken met Claude of ChatGPT. Nutrition MCP is de gratis, opensource manier om maaltijden, macro's en gewicht bij te houden door met je AI te praten.",
+            "Apps zoals MyFitnessPal, Cronometer en Lose It kunnen geen verbinding maken met Claude of ChatGPT. Nutrition MCP is de gratis, open source manier om maaltijden, macro's en gewicht bij te houden door met je AI te praten.",
         ctaSeeExamples: "Bekijk voorbeelden",
 
         appsEyebrow: "Overstappen van…",
@@ -131,7 +132,7 @@ export const ALT_UI_NL: AltUiCopy = {
             "De lastige kanten van echte exportbestanden worden opgevangen: datums in DD/MM/JJJJ en MM/DD/JJJJ, energie in kilojoules naast kilocalorieën, met puntkomma's gescheiden Europese bestanden waarvan de getallen een komma als decimaalteken gebruiken, aangehaalde velden met regeleinden erin, afsluitende totaalregels, en verwijderd-vlaggen. Kolomkoppen hoeven ook niet Engelstalig te zijn — de Kalorien of Ballaststoffe van een Duitse export worden herkend, en vezels, suiker en cafeïne worden ook herkend in het Spaans, Frans, Italiaans en Nederlands. Waar een bestand oprecht dubbelzinnig is — 05/06 kan mei of juni zijn — laat de importer zijn interpretatie zien naast een regel uit je eigen bestand en vraagt je te bevestigen in plaats van te gokken. En elke regel draagt een inhoudelijke vingerafdruk, dus hetzelfde bestand opnieuw importeren meldt de maaltijden als al gelogd in plaats van ze te dupliceren.",
         ],
 
-        ctaSub: "Gratis en opensource — het werkt met Claude, ChatGPT en elke MCP-client.",
+        ctaSub: "Gratis en open source — het werkt met Claude, ChatGPT en elke MCP-client.",
         ctaStarGithub: "Star op GitHub",
     },
 };

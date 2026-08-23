@@ -102,7 +102,7 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                         340<span
                                                                             class="wdg-calgoal"
                                                                             >/
-                                                                            2,100</span
+                                                                            2 100</span
                                                                         >
                                                                     </div>
                                                                     <div
@@ -548,7 +548,7 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                             990<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2 100</span
                                                                             >
                                                                         </div>
                                                                         <div
@@ -1282,10 +1282,10 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calval"
                                                                         >
-                                                                            1,540<span
+                                                                            1 540<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2 100</span
                                                                             >
                                                                         </div>
                                                                         <div
@@ -1720,10 +1720,10 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calval"
                                                                         >
-                                                                            1,980<span
+                                                                            1 980<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2 100</span
                                                                             >
                                                                         </div>
                                                                         <div
@@ -2189,7 +2189,7 @@ export const INDEX_UK: IndexDoc = {
                 `Натисни <strong>Connectors</strong>.`,
                 `Натисни <strong>+</strong>, а тоді <strong>Add custom connector</strong>.`,
                 `Дай йому назву, наприклад <strong>Nutrition</strong>.`,
-                `Встав <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span> у поле <strong>Remote MCP server URL</strong>.`,
+                `Встав <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Копіювати URL сервера"><i class="fa-solid fa-copy"></i></button></span> у поле <strong>Remote MCP server URL</strong>.`,
                 `Натисни <strong>Add</strong>.`,
                 `Натисни <strong>Connect</strong> — відкриється сторінка входу; продовж через Google або увійди через email і пароль.`,
                 `Готово. Усе запрацює одразу і автоматично з'явиться в застосунках для iOS та Android.`,
@@ -2201,7 +2201,7 @@ export const INDEX_UK: IndexDoc = {
                 `Відкрий <strong>ChatGPT on the web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.`,
                 `Натисни <strong>Create app</strong> внизу спливного вікна. Якщо не бачиш цієї кнопки, увімкни <strong>Developer mode</strong> в <strong>Advanced settings</strong>.`,
                 `Дай йому назву, наприклад <strong>Nutrition</strong>.`,
-                `У полі <strong>Connection</strong> встав <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span>.`,
+                `У полі <strong>Connection</strong> встав <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Копіювати URL сервера"><i class="fa-solid fa-copy"></i></button></span>.`,
                 `У полі <strong>Authentication</strong> обери <strong>OAuth</strong> — решту залиш без змін.`,
                 `Постав галочку <strong>"I understand and want to continue"</strong>.`,
                 `Натисни <strong>Create</strong>.`,
@@ -2212,6 +2212,7 @@ export const INDEX_UK: IndexDoc = {
         other: {
             note: `Додай конфігурацію вище до свого клієнта (Cursor, VS Code, Claude Code та інших). Windsurf використовує <code>serverUrl</code> замість <code>url</code>. У Claude Code виконай <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Твій клієнт сам обробить вхід через OAuth.`,
         },
+        otherTabLabel: "Інші клієнти",
     },
 
     onboarding: {

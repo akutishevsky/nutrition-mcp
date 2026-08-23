@@ -174,7 +174,7 @@ function installBlock(locale: SiteLocale, ui: AltUiCopy): string {
                                         class="copy-mini"
                                         type="button"
                                         data-copy="https://nutrition-mcp.com/mcp"
-                                        aria-label="Copy server URL"
+                                        aria-label="${esc(ui.app.copyUrlAriaLabel)}"
                                     >
                                         <i class="fa-solid fa-copy"></i></button
                                 ></span>`,

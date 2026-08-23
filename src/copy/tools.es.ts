@@ -77,6 +77,12 @@ export const TOOLS_ES: ToolsDoc = {
         export: "Exportar",
         setting: "Ajuste",
     },
+    ui: {
+        parametersLabel: "Parámetros",
+        requiredLabel: "obligatorio",
+        optionalLabel: "opcional",
+        trySayingLabel: "Prueba a decir",
+    },
     tools: {
         log_meal: {
             description:

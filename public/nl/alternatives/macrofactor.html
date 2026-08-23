@@ -133,7 +133,7 @@
                         "name": "Heeft MacroFactor een MCP-server?",
                         "acceptedAnswer": {
                             "@type": "Answer",
-                            "text": "Nee. MacroFactor biedt geen Model Context Protocol (MCP)-server aan, dus er is geen officiële manier om het te verbinden met Claude, ChatGPT of andere AI-assistenten. Nutrition MCP is een gratis, opensource alternatief dat vanaf de grond af is gebouwd als MCP-server, zodat je maaltijden en macro's rechtstreeks in je AI kunt loggen."
+                            "text": "Nee. MacroFactor biedt geen Model Context Protocol (MCP)-server aan, dus er is geen officiële manier om het te verbinden met Claude, ChatGPT of andere AI-assistenten. Nutrition MCP is een gratis, open source alternatief dat vanaf de grond af is gebouwd als MCP-server, zodat je maaltijden en macro's rechtstreeks in je AI kunt loggen."
                         }
                     },
                     {
@@ -157,7 +157,7 @@
                         "name": "Is Nutrition MCP echt gratis terwijl MacroFactor alleen op abonnement is?",
                         "acceptedAnswer": {
                             "@type": "Answer",
-                            "text": "Ja. Nutrition MCP is volledig gratis en opensource, zonder proefperiode-daarna-betalen en zonder limieten op de gratis versie — in tegenstelling tot MacroFactor, dat geen gratis versie heeft en na de proefperiode een abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig."
+                            "text": "Ja. Nutrition MCP is volledig gratis en open source, zonder proefperiode-daarna-betalen en zonder limieten op de gratis versie — in tegenstelling tot MacroFactor, dat geen gratis versie heeft en na de proefperiode een abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig."
                         }
                     },
                     {
@@ -165,7 +165,7 @@
                         "name": "Is Nutrition MCP een goed MacroFactor-alternatief?",
                         "acceptedAnswer": {
                             "@type": "Answer",
-                            "text": "Als je calorieën, macro's — vezels, totale suikers en cafeïne inbegrepen — water en gewicht wilt bijhouden zonder een aparte app te openen of een voedseldatabase te doorzoeken, dan wel. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto, of scan je een barcode, en je AI logt het — volledig gratis en opensource."
+                            "text": "Als je calorieën, macro's — vezels, totale suikers en cafeïne inbegrepen — water en gewicht wilt bijhouden zonder een aparte app te openen of een voedseldatabase te doorzoeken, dan wel. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto, of scan je een barcode, en je AI logt het — volledig gratis en open source."
                         }
                     },
                     {
@@ -189,7 +189,7 @@
                         "name": "Is Nutrition MCP gratis?",
                         "acceptedAnswer": {
                             "@type": "Answer",
-                            "text": "Ja. Nutrition MCP is volledig gratis en opensource, zonder abonnement — terwijl MacroFactor na de gratis proefperiode een betaald abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden."
+                            "text": "Ja. Nutrition MCP is volledig gratis en open source, zonder abonnement — terwijl MacroFactor na de gratis proefperiode een betaald abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden."
                         }
                     }
                 ]
@@ -232,19 +232,23 @@
                 } catch (e) {}
             })();
         </script>
-        <a class="skip" href="#main">Skip to content</a>
+        <a class="skip" href="#main">Naar de inhoud</a>
         <header class="site-head" id="site-head">
             <div class="head-inner">
-                <a class="brand" href="/nl" aria-label="Nutrition MCP home">
+                <a
+                    class="brand"
+                    href="/nl"
+                    aria-label="Nutrition MCP startpagina"
+                >
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     <span>Nutrition&nbsp;MCP</span>
                 </a>
                 <nav class="head-nav" aria-label="Primary">
-                    <a href="/nl#how">How it works</a>
-                    <a href="/nl#install">Install</a>
+                    <a href="/nl#how">Hoe het werkt</a>
+                    <a href="/nl#install">Installeren</a>
                     <a href="/nl/tools">Tools</a>
-                    <a href="/nl#try">Examples</a>
-                    <a href="/nl#stats">Live stats</a>
+                    <a href="/nl#try">Voorbeelden</a>
+                    <a href="/nl#stats">Live statistieken</a>
                     <a href="/nl#faq">FAQ</a>
                 </nav>
                 <div class="head-tools">
@@ -253,7 +257,7 @@
                         href="https://github.com/akutishevsky/nutrition-mcp"
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label="GitHub repository"
+                        aria-label="GitHub-repository"
                         title="GitHub"
                     >
                         <svg
@@ -269,8 +273,8 @@
                     <details class="lang-switch">
                         <summary
                             class="icon-btn"
-                            aria-label="Change language"
-                            title="Language"
+                            aria-label="Taal wijzigen"
+                            title="Taal"
                         >
                             <span class="lang-code">NL</span>
                         </summary>
@@ -330,8 +334,8 @@
                         class="icon-btn theme-toggle"
                         type="button"
                         id="theme-toggle"
-                        aria-label="Switch to dark mode"
-                        title="Switch to dark mode"
+                        aria-label="Schakel naar donkere modus"
+                        title="Schakel naar donkere modus"
                     >
                         <svg
                             class="moon"
@@ -366,7 +370,7 @@
                     <a
                         class="btn btn-primary btn-sm head-cta"
                         href="/nl#install"
-                        >Connect</a
+                        >Verbind</a
                     >
                     <button
                         class="icon-btn menu-btn"
@@ -374,7 +378,7 @@
                         id="menu-btn"
                         aria-expanded="false"
                         aria-controls="site-menu"
-                        aria-label="Open menu"
+                        aria-label="Menu openen"
                     >
                         <span class="burger" aria-hidden="true"></span>
                     </button>
@@ -383,20 +387,22 @@
         </header>
         <div class="site-menu" id="site-menu" hidden>
             <nav aria-label="Menu">
-                <a href="/nl#how">How it works <small>3 steps</small></a>
-                <a href="/nl#install">Install <small>under a minute</small></a>
+                <a href="/nl#how">Hoe het werkt <small>3 stappen</small></a>
+                <a href="/nl#install"
+                    >Installeren <small>binnen een minuut</small></a
+                >
                 <a href="/nl/tools">Tools <small>38 tools</small></a>
-                <a href="/nl#try">Examples <small>live demos</small></a>
+                <a href="/nl#try">Voorbeelden <small>live demo's</small></a>
                 <a href="/nl#stats"
-                    >Live stats <small>since you opened</small></a
+                    >Live statistieken <small>sinds je dit opende</small></a
                 >
                 <a href="/nl#faq">FAQ</a>
                 <a href="/nl/alternatives"
-                    >Alternatives <small>switching apps</small></a
+                    >Alternatieven <small>van app wisselen</small></a
                 >
             </nav>
             <div class="menu-secondary">
-                <a href="/nl#support">Support</a>
+                <a href="/nl#support">Steun</a>
                 <a href="/nl#contact">Contact</a>
                 <a
                     href="https://github.com/akutishevsky/nutrition-mcp"
@@ -405,11 +411,11 @@
                     >GitHub</a
                 >
                 <a href="/nl/privacy">Privacy</a>
-                <a href="/nl/terms">Terms</a>
+                <a href="/nl/terms">Voorwaarden</a>
             </div>
             <div class="menu-foot">
                 <a class="btn btn-primary" href="/nl#install"
-                    >Connect in a minute</a
+                    >Verbind binnen een minuut</a
                 >
             </div>
         </div>
@@ -440,7 +446,7 @@
                             MacroFactor heeft die niet — dus je kunt het niet
                             gebruiken binnen Claude of ChatGPT. Nutrition MCP
                             doet hetzelfde via een gesprek, en het is gratis en
-                            opensource.
+                            open source.
                         </p>
                         <div class="hero-actions">
                             <a class="btn btn-primary" href="#switch"
@@ -790,7 +796,7 @@
                                         class="copy-mini"
                                         type="button"
                                         data-copy="https://nutrition-mcp.com/mcp"
-                                        aria-label="Copy server URL"
+                                        aria-label="Serverlink kopiëren"
                                     >
                                         <i class="fa-solid fa-copy"></i></button
                                 ></span>
@@ -833,7 +839,7 @@
                                 Protocol (MCP)-server aan, dus er is geen
                                 officiële manier om het te verbinden met Claude,
                                 ChatGPT of andere AI-assistenten. Nutrition MCP
-                                is een gratis, opensource alternatief dat vanaf
+                                is een gratis, open source alternatief dat vanaf
                                 de grond af is gebouwd als MCP-server, zodat je
                                 maaltijden en macro's rechtstreeks in je AI kunt
                                 loggen.
@@ -875,9 +881,9 @@
                                 alleen op abonnement is?
                             </summary>
                             <p>
-                                Ja. Nutrition MCP is volledig gratis en
-                                opensource, zonder proefperiode-daarna-betalen
-                                en zonder limieten op de gratis versie — in
+                                Ja. Nutrition MCP is volledig gratis en open
+                                source, zonder proefperiode-daarna-betalen en
+                                zonder limieten op de gratis versie — in
                                 tegenstelling tot MacroFactor, dat geen gratis
                                 versie heeft en na de proefperiode een
                                 abonnement vereist. Je hebt alleen een Claude-
@@ -897,7 +903,7 @@
                                 In plaats van door een database te tikken,
                                 omschrijf je in gewone taal wat je hebt gegeten,
                                 stuur je een foto, of scan je een barcode, en je
-                                AI logt het — volledig gratis en opensource.
+                                AI logt het — volledig gratis en open source.
                             </p>
                         </details>
                         <details>
@@ -955,12 +961,11 @@
                         <details>
                             <summary>Is Nutrition MCP gratis?</summary>
                             <p>
-                                Ja. Nutrition MCP is volledig gratis en
-                                opensource, zonder abonnement — terwijl
-                                MacroFactor na de gratis proefperiode een
-                                betaald abonnement vereist. Je hebt alleen een
-                                Claude- of ChatGPT-account nodig om te
-                                verbinden.
+                                Ja. Nutrition MCP is volledig gratis en open
+                                source, zonder abonnement — terwijl MacroFactor
+                                na de gratis proefperiode een betaald abonnement
+                                vereist. Je hebt alleen een Claude- of
+                                ChatGPT-account nodig om te verbinden.
                             </p>
                         </details>
                     </div>
@@ -974,7 +979,7 @@
                         Houd je voeding bij in de AI die je al gebruikt.
                     </h2>
                     <p class="cta-sub">
-                        Gratis en opensource — geen MacroFactor-account, geen
+                        Gratis en open source — geen MacroFactor-account, geen
                         app om te openen.
                     </p>
                     <div class="cta-actions">
@@ -993,7 +998,7 @@
             <div class="container">
                 <p class="page-disclaimer">
                     MacroFactor is een handelsmerk van de betreffende eigenaar.
-                    Nutrition MCP is een onafhankelijk opensource-project en is
+                    Nutrition MCP is een onafhankelijk open source-project en is
                     niet verbonden aan, goedgekeurd door, of gesponsord door
                     MacroFactor. Vergelijkingen zijn gebaseerd op publiek
                     beschikbare informatie op het moment van schrijven en kunnen
@@ -1010,12 +1015,12 @@
                 </span>
                 <nav class="footer-links" aria-label="Footer">
                     <a href="/nl/tools">Tools</a>
-                    <a href="/nl/alternatives">Alternatives</a>
+                    <a href="/nl/alternatives">Alternatieven</a>
                     <a
                         href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >How I built this</a
+                        >Hoe ik dit heb gebouwd</a
                     >
                     <a
                         href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
@@ -1030,12 +1035,12 @@
                         >GitHub</a
                     >
                     <a href="mailto:anton@nutrition-mcp.com">Contact</a>
-                    <a href="/nl/privacy">Privacy Policy</a>
-                    <a href="/nl/terms">Terms of Service</a>
+                    <a href="/nl/privacy">Privacybeleid</a>
+                    <a href="/nl/terms">Gebruiksvoorwaarden</a>
                 </nav>
                 <p class="footer-note">
-                    Free and open source. Nutrition figures are estimates, not
-                    medical advice.
+                    Gratis en open source. Voedingswaarden zijn schattingen,
+                    geen medisch advies.
                 </p>
             </div>
         </footer>

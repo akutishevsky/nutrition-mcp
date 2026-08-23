@@ -22,7 +22,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             body: [
                 "MyFitnessPal bouwde zijn aanhang op een van de grootste voedseldatabases die er zijn — tientallen miljoenen door gebruikers aangeleverde vermeldingen. Die schaal is ook de wrijving: voor elk voedingsmiddel scrol je langs bijna-identieke vermeldingen en moet je gokken welke klopt. Conversationeel loggen slaat het opzoeken helemaal over — je omschrijft het eten en je AI schat de macro's.",
                 "Je hoeft je dagboek daarvoor niet achter te laten: een CSV-export van MyFitnessPal wordt direct geïmporteerd, eigenaardigheden en al, dus de jaren die je al hebt gelogd gaan mee. Alles wat je vanaf dan vastlegt, kun je zelf op elk moment weer als CSV exporteren.",
-                "De functies die MyFitnessPal geleidelijk achter Premium plaatste — barcode scannen, macro's per gram, geen advertenties — zijn hier gewoon inbegrepen. Je weegt geen gratis versie af tegen een upgrade van $20 per maand; er is één gratis, opensource-niveau, en het enige account dat je nodig hebt is het Claude- of ChatGPT-account dat je al hebt.",
+                "De functies die MyFitnessPal geleidelijk achter Premium plaatste — barcode scannen, macro's per gram, geen advertenties — zijn hier gewoon inbegrepen. Je weegt geen gratis versie af tegen een upgrade van $20 per maand; er is één gratis, open source-niveau, en het enige account dat je nodig hebt is het Claude- of ChatGPT-account dat je al hebt.",
             ],
         },
         importSection: {
@@ -159,22 +159,22 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Is Nutrition MCP echt gratis terwijl MacroFactor alleen op abonnement is?",
-                a: "Ja. Nutrition MCP is volledig gratis en opensource, zonder proefperiode-daarna-betalen en zonder limieten op de gratis versie — in tegenstelling tot MacroFactor, dat geen gratis versie heeft en na de proefperiode een abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig.",
+                a: "Ja. Nutrition MCP is volledig gratis en open source, zonder proefperiode-daarna-betalen en zonder limieten op de gratis versie — in tegenstelling tot MacroFactor, dat geen gratis versie heeft en na de proefperiode een abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig.",
             },
         ],
         freeAnswer:
-            "Ja. Nutrition MCP is volledig gratis en opensource, zonder abonnement — terwijl MacroFactor na de gratis proefperiode een betaald abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden.",
+            "Ja. Nutrition MCP is volledig gratis en open source, zonder abonnement — terwijl MacroFactor na de gratis proefperiode een betaald abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden.",
     },
     "yazio-mcp": {
         hubBlurb:
-            "Geen MCP-server. Houd maaltijden en macro's bij via een gesprek — gratis en opensource.",
+            "Geen MCP-server. Houd maaltijden en macro's bij via een gesprek — gratis en open source.",
         cons: [
             "Geen MCP-server — werkt niet binnen Claude of ChatGPT",
             "Doorzoek de database voor elk voedingsmiddel dat je logt",
             "Sommige functies, zoals maaltijdplannen, vereisen een betaald PRO-abonnement",
             "Een aparte app en account om te beheren",
         ],
-        note: "Yazio is een gepolijste tracker met goede maaltijdplannen. Nutrition MCP focust op moeiteloos conversationeel loggen dat leeft binnen Claude of ChatGPT — gratis en opensource.",
+        note: "Yazio is een gepolijste tracker met goede maaltijdplannen. Nutrition MCP focust op moeiteloos conversationeel loggen dat leeft binnen Claude of ChatGPT — gratis en open source.",
         migrate: {
             title: "Plannen aan de ene kant, loggen aan de andere",
             body: [
@@ -239,7 +239,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Is Nutrition MCP gratis zonder een abonnement zoals Lifesum Premium?",
-                a: "Ja. Nutrition MCP is volledig gratis en opensource, zonder premium-laag — terwijl Lifesum dieetplannen en een deel van de trackingfuncties achter een Premium-abonnement plaatst. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden.",
+                a: "Ja. Nutrition MCP is volledig gratis en open source, zonder premium-laag — terwijl Lifesum dieetplannen en een deel van de trackingfuncties achter een Premium-abonnement plaatst. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden.",
             },
         ],
     },

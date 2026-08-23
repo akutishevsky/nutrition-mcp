@@ -535,19 +535,23 @@
             })();
         </script>
 
-        <a class="skip" href="#main">Skip to content</a>
+        <a class="skip" href="#main">Przejdź do treści</a>
         <header class="site-head" id="site-head">
             <div class="head-inner">
-                <a class="brand" href="/pl" aria-label="Nutrition MCP home">
+                <a
+                    class="brand"
+                    href="/pl"
+                    aria-label="Nutrition MCP — strona główna"
+                >
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     <span>Nutrition&nbsp;MCP</span>
                 </a>
                 <nav class="head-nav" aria-label="Primary">
-                    <a href="/pl#how">How it works</a>
-                    <a href="/pl#install">Install</a>
-                    <a href="/pl/tools" aria-current="page">Tools</a>
-                    <a href="/pl#try">Examples</a>
-                    <a href="/pl#stats">Live stats</a>
+                    <a href="/pl#how">Jak to działa</a>
+                    <a href="/pl#install">Instalacja</a>
+                    <a href="/pl/tools" aria-current="page">Narzędzia</a>
+                    <a href="/pl#try">Przykłady</a>
+                    <a href="/pl#stats">Statystyki na żywo</a>
                     <a href="/pl#faq">FAQ</a>
                 </nav>
                 <div class="head-tools">
@@ -556,7 +560,7 @@
                         href="https://github.com/akutishevsky/nutrition-mcp"
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label="GitHub repository"
+                        aria-label="Repozytorium na GitHub"
                         title="GitHub"
                     >
                         <svg
@@ -572,8 +576,8 @@
                     <details class="lang-switch">
                         <summary
                             class="icon-btn"
-                            aria-label="Change language"
-                            title="Language"
+                            aria-label="Zmień język"
+                            title="Język"
                         >
                             <span class="lang-code">PL</span>
                         </summary>
@@ -633,8 +637,8 @@
                         class="icon-btn theme-toggle"
                         type="button"
                         id="theme-toggle"
-                        aria-label="Switch to dark mode"
-                        title="Switch to dark mode"
+                        aria-label="Przełącz na tryb ciemny"
+                        title="Przełącz na tryb ciemny"
                     >
                         <svg
                             class="moon"
@@ -669,7 +673,7 @@
                     <a
                         class="btn btn-primary btn-sm head-cta"
                         href="/pl#install"
-                        >Connect</a
+                        >Połącz</a
                     >
                     <button
                         class="icon-btn menu-btn"
@@ -677,7 +681,7 @@
                         id="menu-btn"
                         aria-expanded="false"
                         aria-controls="site-menu"
-                        aria-label="Open menu"
+                        aria-label="Otwórz menu"
                     >
                         <span class="burger" aria-hidden="true"></span>
                     </button>
@@ -686,35 +690,37 @@
         </header>
         <div class="site-menu" id="site-menu" hidden>
             <nav aria-label="Menu">
-                <a href="/pl#how">How it works <small>3 steps</small></a>
-                <a href="/pl#install">Install <small>under a minute</small></a>
-                <a href="/pl/tools" aria-current="page"
-                    >Tools <small>38 tools</small></a
+                <a href="/pl#how">Jak to działa <small>3 kroki</small></a>
+                <a href="/pl#install"
+                    >Instalacja <small>poniżej minuty</small></a
                 >
-                <a href="/pl#try">Examples <small>live demos</small></a>
+                <a href="/pl/tools" aria-current="page"
+                    >Narzędzia <small>38 narzędzi</small></a
+                >
+                <a href="/pl#try">Przykłady <small>przykłady na żywo</small></a>
                 <a href="/pl#stats"
-                    >Live stats <small>since you opened</small></a
+                    >Statystyki na żywo <small>od otwarcia strony</small></a
                 >
                 <a href="/pl#faq">FAQ</a>
                 <a href="/pl/alternatives"
-                    >Alternatives <small>switching apps</small></a
+                    >Alternatywy <small>zmiana aplikacji</small></a
                 >
             </nav>
             <div class="menu-secondary">
-                <a href="/pl#support">Support</a>
-                <a href="/pl#contact">Contact</a>
+                <a href="/pl#support">Wsparcie</a>
+                <a href="/pl#contact">Kontakt</a>
                 <a
                     href="https://github.com/akutishevsky/nutrition-mcp"
                     target="_blank"
                     rel="noopener noreferrer"
                     >GitHub</a
                 >
-                <a href="/pl/privacy">Privacy</a>
-                <a href="/pl/terms">Terms</a>
+                <a href="/pl/privacy">Prywatność</a>
+                <a href="/pl/terms">Regulamin</a>
             </div>
             <div class="menu-foot">
                 <a class="btn btn-primary" href="/pl#install"
-                    >Connect in a minute</a
+                    >Połącz się w minutę</a
                 >
             </div>
         </div>
@@ -856,20 +862,20 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>description</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Co zostało zjedzone
                                         </li>
                                         <li>
                                             <code>meal_type</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — śniadanie, obiad, kolacja lub
                                             przekąska
@@ -877,35 +883,35 @@
                                         <li>
                                             <code>calories</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Łączna liczba kalorii
                                         </li>
                                         <li>
                                             <code>protein_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Białko w gramach
                                         </li>
                                         <li>
                                             <code>carbs_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Węglowodany w gramach
                                         </li>
                                         <li>
                                             <code>fat_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Tłuszcz w gramach
                                         </li>
                                         <li>
                                             <code>fiber_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Błonnik pokarmowy w gramach. AI ma
                                             polecenie uzupełniać tę wartość przy
@@ -918,7 +924,7 @@
                                         <li>
                                             <code>sugar_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — <b>Łączna</b> zawartość cukrów w
                                             gramach — wartość, którą etykieta
@@ -932,7 +938,7 @@
                                         <li>
                                             <code>alcohol_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Gramy <b>czystego etanolu</b>, a
                                             nie objętość napoju ani jego
@@ -943,7 +949,7 @@
                                         <li>
                                             <code>caffeine_mg</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Kofeina w <b>miligramach</b>, nie
                                             w gramach — to jedyne pole tutaj
@@ -963,7 +969,7 @@
                                         <li>
                                             <code>logged_at</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Kiedy to zjadłeś/aś, jeśli nie
                                             teraz — pozwala zapisać coś z
@@ -972,7 +978,7 @@
                                         <li>
                                             <code>notes</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dodatkowe notatki
                                         </li>
@@ -980,7 +986,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Zapisz burrito bowl z kurczakiem i
@@ -1021,7 +1027,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Zeskanuj ten kod kreskowy: 3017620422003
@@ -1069,7 +1075,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Zaimportuj moją historię posiłków z
@@ -1099,13 +1105,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>meals</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Wiersze do zaimportowania, w
                                             kolejności z pliku źródłowego (1–50
@@ -1127,7 +1133,7 @@
                                         <li>
                                             <code>expected_row_count</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Ile wierszy zawiera to wywołanie,
                                             policzone z pliku źródłowego, żeby
@@ -1136,7 +1142,7 @@
                                         <li>
                                             <code>expected_total_kcal</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Suma kalorii z pliku źródłowego,
                                             porównywana z tym, co faktycznie
@@ -1145,7 +1151,7 @@
                                         <li>
                                             <code>dry_run</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Zgłoś, co by się stało, bez
                                             zapisywania czegokolwiek
@@ -1153,7 +1159,7 @@
                                         <li>
                                             <code>on_error</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Zaimportuj poprawne wiersze i
                                             zgłoś resztę, albo nie zapisuj
@@ -1163,7 +1169,7 @@
                                         <li>
                                             <code>source_app</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Z jakiej aplikacji pochodzi plik
                                         </li>
@@ -1171,7 +1177,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Oto posiłki z zeszłego tygodnia wklejone
@@ -1205,63 +1211,63 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>id</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — UUID posiłku do zaktualizowania
                                         </li>
                                         <li>
                                             <code>description</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>calories</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>protein_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>carbs_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>fat_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>fiber_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>sugar_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Cukry ogółem, nie cukier dodany
                                         </li>
                                         <li>
                                             <code>alcohol_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Gramy czystego etanolu, nie
                                             objętość napoju
@@ -1269,27 +1275,27 @@
                                         <li>
                                             <code>caffeine_mg</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Miligramy, nie gramy
                                         </li>
                                         <li>
                                             <code>logged_at</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>notes</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                     </ul>
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Właściwie ten obiad miał 600 kalorii,
@@ -1310,13 +1316,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>id</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — UUID posiłku do usunięcia
                                         </li>
@@ -1324,7 +1330,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Usuń przekąskę, którą zapisałem/am dziś
@@ -1375,13 +1381,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>queries</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Alternatywne słowa kluczowe
                                             dotyczące jedzenia, w dowolnym
@@ -1391,7 +1397,7 @@
                                         <li>
                                             <code>days</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Jak daleko wstecz szukać
                                             (domyślnie rok)
@@ -1399,7 +1405,7 @@
                                         <li>
                                             <code>limit</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Maksymalna liczba wpisów do
                                             analizy
@@ -1408,7 +1414,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Zapisz moje zwykłe śniadanie</p>
                                 </div>
@@ -1427,7 +1433,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Co dzisiaj zjadłem/am?</p>
                                 </div>
@@ -1446,13 +1452,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data w formacie RRRR-MM-DD
                                         </li>
@@ -1460,7 +1466,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Pokaż mi wszystko, co zjadłem/am 4 lipca
@@ -1485,20 +1491,20 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>start_date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data początkowa (RRRR-MM-DD)
                                         </li>
                                         <li>
                                             <code>end_date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data końcowa (RRRR-MM-DD)
                                         </li>
@@ -1506,7 +1512,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Pokaż moje posiłki od poniedziałku do
@@ -1534,7 +1540,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Wyeksportuj wszystkie moje dane —
@@ -1571,13 +1577,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>amount_ml</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Ilość w mililitrach (liczba
                                             całkowita, &gt; 0).
@@ -1586,7 +1592,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Właśnie wypiłem/am butelkę wody 500 ml
@@ -1608,7 +1614,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Ile wody wypiłem/am dzisiaj?</p>
                                 </div>
@@ -1626,13 +1632,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data w formacie RRRR-MM-DD
                                         </li>
@@ -1640,7 +1646,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Ile wypiłem/am wczoraj?</p>
                                 </div>
@@ -1658,13 +1664,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>id</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — UUID wpisu wody do usunięcia
                                         </li>
@@ -1672,7 +1678,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Usuń ten ostatni wpis wody</p>
                                 </div>
@@ -1711,13 +1717,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>weight</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Wartość masy ciała, w jednostce
                                             `unit` (&gt; 0).
@@ -1726,7 +1732,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Zapisz moją wagę — 74,2 kg dziś rano</p>
                                 </div>
@@ -1743,20 +1749,20 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>id</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — UUID wpisu wagi do zaktualizowania
                                         </li>
                                         <li>
                                             <code>weight</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Nowa wartość wagi, w jednostce
                                             `unit`.
@@ -1764,21 +1770,21 @@
                                         <li>
                                             <code>logged_at</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Znacznik czasu w formacie ISO 8601
                                         </li>
                                         <li>
                                             <code>notes</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                     </ul>
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Popraw dzisiejsze poranne ważenie na
@@ -1797,13 +1803,13 @@
                                 <p class="tool-desc">Usuń wpis wagi.</p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>id</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — UUID wpisu wagi do usunięcia
                                         </li>
@@ -1811,7 +1817,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Usuń dzisiejszy wpis wagi</p>
                                 </div>
@@ -1831,7 +1837,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Ile dziś ważyłem/am?</p>
                                 </div>
@@ -1849,13 +1855,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data w formacie RRRR-MM-DD
                                         </li>
@@ -1863,7 +1869,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Ile ważyłem/am pierwszego dnia miesiąca?
@@ -1888,20 +1894,20 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>start_date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data początkowa (RRRR-MM-DD)
                                         </li>
                                         <li>
                                             <code>end_date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data końcowa (RRRR-MM-DD)
                                         </li>
@@ -1909,7 +1915,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Pokaż moje ważenia z ostatnich dwóch
@@ -1940,13 +1946,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>days</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Długość okresu w dniach (domyślnie
                                             30, maksymalnie 365).
@@ -1955,7 +1961,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Jak wygląda trend mojej wagi w tym
@@ -1982,7 +1988,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Od teraz pokazuj moją wagę w funtach</p>
                                 </div>
@@ -2002,7 +2008,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Jakiej jednostki wagi używam?</p>
                                 </div>
@@ -2050,13 +2056,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>daily_calories</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny cel kaloryczny (kcal).
                                             Null, aby wyczyścić.
@@ -2064,7 +2070,7 @@
                                         <li>
                                             <code>daily_protein_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny cel białka (gramy). Null,
                                             aby wyczyścić.
@@ -2072,7 +2078,7 @@
                                         <li>
                                             <code>daily_carbs_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny cel węglowodanów (gramy).
                                             Null, aby wyczyścić.
@@ -2080,7 +2086,7 @@
                                         <li>
                                             <code>daily_fat_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny cel tłuszczu (gramy).
                                             Null, aby wyczyścić.
@@ -2088,7 +2094,7 @@
                                         <li>
                                             <code>daily_fiber_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny cel błonnika (gramy),
                                             minimum do osiągnięcia. Null, aby
@@ -2097,7 +2103,7 @@
                                         <li>
                                             <code>daily_sugar_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny limit cukrów
                                             <b>ogółem</b> (gramy), maksimum,
@@ -2112,7 +2118,7 @@
                                         <li>
                                             <code>daily_alcohol_g</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny limit alkoholu w gramach
                                             <b>czystego etanolu</b>, maksimum,
@@ -2124,7 +2130,7 @@
                                         <li>
                                             <code>daily_caffeine_mg</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Dzienny limit kofeiny w
                                             <b>miligramach</b>, maksimum,
@@ -2139,20 +2145,20 @@
                                         <li>
                                             <code>daily_water_ml</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                         <li>
                                             <code>target_weight</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                         </li>
                                     </ul>
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Ustaw moje cele na 2200 kalorii, 160 g
@@ -2177,7 +2183,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Jakie są moje dzienne cele?</p>
                                 </div>
@@ -2208,7 +2214,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Jak mi dzisiaj idzie względem moich
@@ -2242,20 +2248,20 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>start_date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data początkowa (RRRR-MM-DD)
                                         </li>
                                         <li>
                                             <code>end_date</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — Data końcowa (RRRR-MM-DD)
                                         </li>
@@ -2263,7 +2269,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Podsumuj mi ten ostatni tydzień</p>
                                 </div>
@@ -2314,13 +2320,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>days</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Długość okresu w dniach (domyślnie
                                             30, maksymalnie 365).
@@ -2329,7 +2335,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Jakie są moje trendy kaloryczne i
@@ -2353,13 +2359,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>days</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Długość okresu w dniach (domyślnie
                                             30, minimum 7, maksymalnie 365).
@@ -2368,7 +2374,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Czy widać jakieś wzorce w moim jedzeniu
@@ -2418,7 +2424,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Jestem w Berlinie — ustaw moją strefę
@@ -2441,7 +2447,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Jaka strefa czasowa jest u mnie
@@ -2470,7 +2476,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Która jest teraz u mnie godzina?</p>
                                 </div>
@@ -2495,13 +2501,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>enabled</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — true, aby pokazywać widżety, false
                                             dla odpowiedzi tylko tekstowych
@@ -2510,7 +2516,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Wyłącz widżety</p>
                                 </div>
@@ -2530,7 +2536,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Czy widżety są włączone?</p>
                                 </div>
@@ -2566,13 +2572,13 @@
                                 </p>
                                 <div class="tool-params">
                                     <span class="tool-params-label"
-                                        >Parameters</span
+                                        >Parametry</span
                                     >
                                     <ul>
                                         <li>
                                             <code>enabled</code>
                                             <span class="param-req"
-                                                >required</span
+                                                >wymagane</span
                                             >
                                             — true, aby pokazywać alkohol w
                                             posiłkach, celach i postępach,
@@ -2581,7 +2587,7 @@
                                         <li>
                                             <code>drink_unit</code>
                                             <span class="param-opt"
-                                                >optional</span
+                                                >opcjonalne</span
                                             >
                                             — Który standardowy drink pokazywać
                                             obok gramów: <code>us</code> (14 g
@@ -2595,7 +2601,7 @@
                                 </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>
                                         Zacznij śledzić moje picie, w
@@ -2622,7 +2628,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Czy śledzę alkohol?</p>
                                 </div>
@@ -2646,7 +2652,7 @@
 
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
-                                        >Try saying</span
+                                        >Spróbuj powiedzieć</span
                                     >
                                     <p>Usuń moje konto i wszystkie moje dane</p>
                                 </div>
@@ -2664,13 +2670,13 @@
                     Nutrition MCP
                 </span>
                 <nav class="footer-links" aria-label="Footer">
-                    <a href="/pl/tools" aria-current="page">Tools</a>
-                    <a href="/pl/alternatives">Alternatives</a>
+                    <a href="/pl/tools" aria-current="page">Narzędzia</a>
+                    <a href="/pl/alternatives">Alternatywy</a>
                     <a
                         href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >How I built this</a
+                        >Jak to zbudowałem</a
                     >
                     <a
                         href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
@@ -2684,13 +2690,13 @@
                         rel="noopener noreferrer"
                         >GitHub</a
                     >
-                    <a href="mailto:anton@nutrition-mcp.com">Contact</a>
-                    <a href="/pl/privacy">Privacy Policy</a>
-                    <a href="/pl/terms">Terms of Service</a>
+                    <a href="mailto:anton@nutrition-mcp.com">Kontakt</a>
+                    <a href="/pl/privacy">Polityka prywatności</a>
+                    <a href="/pl/terms">Regulamin</a>
                 </nav>
                 <p class="footer-note">
-                    Free and open source. Nutrition figures are estimates, not
-                    medical advice.
+                    Darmowy i open source. Wartości odżywcze są szacunkowe, nie
+                    stanowią porady medycznej.
                 </p>
             </div>
         </footer>

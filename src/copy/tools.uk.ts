@@ -74,6 +74,12 @@ export const TOOLS_UK: ToolsDoc = {
         export: "Експорт",
         setting: "Налаштування",
     },
+    ui: {
+        parametersLabel: "Параметри",
+        requiredLabel: "обов'язковий",
+        optionalLabel: "необов'язковий",
+        trySayingLabel: "Спробуй сказати",
+    },
     tools: {
         log_meal: {
             description:

@@ -99,13 +99,13 @@ const HERO_CHAT_HTML_PLACEHOLDER = `
                                                                         340<span
                                                                             class="wdg-calgoal"
                                                                             >/
-                                                                            2,100</span
+                                                                            2.100</span
                                                                         >
                                                                     </div>
                                                                     <div
                                                                         class="wdg-calleft"
                                                                     >
-                                                                        1,760
+                                                                        1.760
                                                                         kcal restantes
                                                                     </div>
                                                                 </div>
@@ -547,13 +547,13 @@ const SLIDE_1_HTML_PLACEHOLDER = `
                                                                             990<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2.100</span
                                                                             >
                                                                         </div>
                                                                         <div
                                                                             class="wdg-calleft"
                                                                         >
-                                                                            1,110
+                                                                            1.110
                                                                             kcal restantes
                                                                         </div>
                                                                     </div>
@@ -1283,10 +1283,10 @@ const SLIDE_3_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calval"
                                                                         >
-                                                                            1,540<span
+                                                                            1.540<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2.100</span
                                                                             >
                                                                         </div>
                                                                         <div
@@ -1722,10 +1722,10 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                                         <div
                                                                             class="wdg-calval"
                                                                         >
-                                                                            1,980<span
+                                                                            1.980<span
                                                                                 class="wdg-calgoal"
                                                                                 >/
-                                                                                2,100</span
+                                                                                2.100</span
                                                                             >
                                                                         </div>
                                                                         <div
@@ -1987,7 +1987,7 @@ const SLIDE_6_HTML_PLACEHOLDER = `
                                                         </div>
                                                     </div>
                                                 </div>
-                                                Tu promedio es de 1,980 kcal al día: 120 por debajo de tu objetivo, con el azúcar y la cafeína cómodamente dentro de tus límites. La fibra promedia 26.8 g, un poco por debajo de tu objetivo de 30 g.
+                                                Tu promedio es de 1.980 kcal al día: 120 por debajo de tu objetivo, con el azúcar y la cafeína cómodamente dentro de tus límites. La fibra promedia 26.8 g, un poco por debajo de tu objetivo de 30 g.
                                             </div>`;
 const SLIDE_7_HTML_PLACEHOLDER = `
                                             <div class="msg msg-user">
@@ -2217,6 +2217,7 @@ export const INDEX_ES: IndexDoc = {
         other: {
             note: "Añade la configuración de arriba a tu cliente (Cursor, VS Code, Claude Code y más). Windsurf usa <code>serverUrl</code> en vez de <code>url</code>. En Claude Code, ejecuta <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Tu cliente gestiona el inicio de sesión OAuth automáticamente.",
         },
+        otherTabLabel: "Otros clientes",
     },
 
     onboarding: {

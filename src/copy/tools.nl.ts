@@ -65,15 +65,21 @@ export const TOOLS_NL: ToolsDoc = {
         },
     },
     badges: {
-        log: "Log",
+        log: "Loggen",
         widget: "Interactieve UI",
         lookup: "Opzoeken",
-        import: "Import",
+        import: "Importeren",
         edit: "Bewerken",
         remove: "Verwijderen",
         view: "Bekijken",
-        export: "Export",
+        export: "Exporteren",
         setting: "Instelling",
+    },
+    ui: {
+        parametersLabel: "Parameters",
+        requiredLabel: "vereist",
+        optionalLabel: "optioneel",
+        trySayingLabel: "Probeer te zeggen",
     },
     tools: {
         log_meal: {
