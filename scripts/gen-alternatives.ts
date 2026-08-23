@@ -16,7 +16,25 @@
  * GitHub links, and contact email in the shared fragments first.
  */
 
-const SITE = "https://nutrition-mcp.com";
+import {
+    HTML_LANG,
+    hashPath,
+    pathFor,
+    urlFor,
+    type SiteLocale,
+} from "../src/routes.js";
+import {
+    SITE,
+    esc,
+    footer,
+    generatedBanner,
+    jsonLd,
+    localeHead,
+    nav,
+    HEAD_ASSETS,
+    SITE_SCRIPT,
+    THEME_PREPAINT,
+} from "./site-partials.js";
 
 type App = {
     /** Display name, e.g. "MyFitnessPal". */
@@ -331,187 +349,6 @@ const APPS: App[] = [
     },
 ];
 
-// ---------- shared markup fragments ----------
-
-const HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
-            rel="stylesheet"
-        />
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
-        />
-        <link rel="stylesheet" href="/styles.css" />
-        <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
-        ></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() {
-                dataLayer.push(arguments);
-            }
-            gtag("js", new Date());
-            gtag("config", "G-1K4HRB2R8X");
-        </script>`;
-
-const THEME_PREPAINT = `        <script>
-            // Apply a saved theme override before paint to avoid a flash.
-            (function () {
-                try {
-                    var t = localStorage.getItem("theme");
-                    if (t === "dark" || t === "light")
-                        document.body.setAttribute("data-theme", t);
-                } catch (e) {}
-            })();
-        </script>`;
-
-/**
- * Shared site header + mobile menu, identical to public/index.html. site.js
- * owns the theme toggle, menu and scroll state. `current` marks the matching
- * .site-menu link with aria-current="page" (the hub has no desktop nav entry).
- */
-function nav(current?: string): string {
-    const html = `        <a class="skip" href="#main">Skip to content</a>
-        <header class="site-head" id="site-head">
-            <div class="head-inner">
-                <a class="brand" href="/" aria-label="Nutrition MCP home">
-                    <span class="brand-mark" aria-hidden="true">🍏</span>
-                    <span>Nutrition&nbsp;MCP</span>
-                </a>
-                <nav class="head-nav" aria-label="Primary">
-                    <a href="/#how">How it works</a>
-                    <a href="/#install">Install</a>
-                    <a href="/tools">Tools</a>
-                    <a href="/#try">Examples</a>
-                    <a href="/#stats">Live stats</a>
-                    <a href="/#faq">FAQ</a>
-                </nav>
-                <div class="head-tools">
-                    <a
-                        class="icon-btn head-gh"
-                        href="https://github.com/akutishevsky/nutrition-mcp"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="GitHub repository"
-                        title="GitHub"
-                    >
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path
-                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
-                            />
-                        </svg>
-                    </a>
-                    <button
-                        class="icon-btn theme-toggle"
-                        type="button"
-                        id="theme-toggle"
-                        aria-label="Switch to dark mode"
-                        title="Switch to dark mode"
-                    >
-                        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-                        </svg>
-                        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="4" />
-                            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-                        </svg>
-                    </button>
-                    <a class="btn btn-primary btn-sm head-cta" href="/#install"
-                        >Connect</a
-                    >
-                    <button
-                        class="icon-btn menu-btn"
-                        type="button"
-                        id="menu-btn"
-                        aria-expanded="false"
-                        aria-controls="site-menu"
-                        aria-label="Open menu"
-                    >
-                        <span class="burger" aria-hidden="true"></span>
-                    </button>
-                </div>
-            </div>
-        </header>
-        <div class="site-menu" id="site-menu" hidden>
-            <nav aria-label="Menu">
-                <a href="/#how">How it works <small>3 steps</small></a>
-                <a href="/#install">Install <small>under a minute</small></a>
-                <a href="/tools">Tools <small>38 tools</small></a>
-                <a href="/#try">Examples <small>live demos</small></a>
-                <a href="/#stats">Live stats <small>since you opened</small></a>
-                <a href="/#faq">FAQ</a>
-                <a href="/alternatives">Alternatives <small>switching apps</small></a>
-            </nav>
-            <div class="menu-secondary">
-                <a href="/#support">Support</a>
-                <a href="/#contact">Contact</a>
-                <a
-                    href="https://github.com/akutishevsky/nutrition-mcp"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >GitHub</a
-                >
-                <a href="/privacy">Privacy</a>
-                <a href="/terms">Terms</a>
-            </div>
-            <div class="menu-foot">
-                <a class="btn btn-primary" href="/#install">Connect in a minute</a>
-            </div>
-        </div>`;
-    if (!current) return html;
-    return html.replace(
-        `<a href="${current}">`,
-        `<a href="${current}" aria-current="page">`,
-    );
-}
-
-const FOOTER = `        <footer class="footer">
-            <div class="footer-inner">
-                <span class="footer-brand">
-                    <span class="brand-mark" aria-hidden="true">🍏</span>
-                    Nutrition MCP
-                </span>
-                <nav class="footer-links" aria-label="Footer">
-                    <a href="/tools">Tools</a>
-                    <a href="/alternatives">Alternatives</a>
-                    <a
-                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >How I built this</a
-                    >
-                    <a
-                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >Demo</a
-                    >
-                    <a
-                        href="https://github.com/akutishevsky/nutrition-mcp"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >GitHub</a
-                    >
-                    <a href="mailto:anton@nutrition-mcp.com">Contact</a>
-                    <a href="/privacy">Privacy Policy</a>
-                    <a href="/terms">Terms of Service</a>
-                </nav>
-                <p class="footer-note">
-                    Free and open source. Nutrition figures are estimates, not
-                    medical advice.
-                </p>
-            </div>
-        </footer>`;
-
-// Theme toggle, menu, reveals and copy buttons all live in /site.js now.
-const SITE_SCRIPT = `        <script src="/site.js" defer></script>`;
-
-const GENERATED_BANNER = `        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->`;
-
 /**
  * Trademark / non-affiliation notice shown near the footer of every comparison
  * page. Keeps the pages clearly independent and hedges the comparisons as
@@ -604,7 +441,8 @@ const FEATURES = `                    <div class="features-grid" data-reveal="st
                         </article>
                     </div>`;
 
-const INSTALL = `                    <div class="card install-card">
+function installBlock(locale: SiteLocale): string {
+    return `                    <div class="card install-card">
                         <ol class="steps">
                             <li>
                                 Open <strong>Claude</strong> (web or desktop) and
@@ -639,10 +477,11 @@ const INSTALL = `                    <div class="card install-card">
                         </ol>
                         <p class="note">
                             Using ChatGPT or another client instead? The
-                            <a href="/#install">full install guide</a> covers
+                            <a href="${hashPath(locale, "install")}">full install guide</a> covers
                             ChatGPT, Cursor, VS Code, Claude Code, and more.
                         </p>
                     </div>`;
+}
 
 // The Nutrition MCP (right) column of the comparison is identical everywhere.
 const PROS = [
@@ -696,26 +535,10 @@ function faqsFor(app: App): { q: string; a: string }[] {
     ];
 }
 
-/** Minimal HTML-entity escaping for text interpolated into element bodies. */
-function esc(s: string): string {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function jsonLd(obj: unknown): string {
-    return `        <script type="application/ld+json">\n${JSON.stringify(
-        obj,
-        null,
-        4,
-    )
-        .split("\n")
-        .map((l) => "            " + l)
-        .join("\n")}\n        </script>`;
-}
-
 // ---------- per-app page ----------
 
-function renderApp(app: App): string {
-    const url = `${SITE}/${app.slug}`;
+function renderApp(app: App, locale: SiteLocale = "en"): string {
+    const url = urlFor(locale, `/${app.slug}`);
     // The <title> deliberately does NOT mention import: these pages rank on the
     // exact bridge query ("<app> mcp", "connect <app> to claude") and diluting
     // that head term would cost more than an import keyword gains. The
@@ -740,7 +563,7 @@ function renderApp(app: App): string {
                 "@type": "ListItem",
                 position: 2,
                 name: "Alternatives",
-                item: `${SITE}/alternatives`,
+                item: urlFor(locale, "/alternatives"),
             },
             {
                 "@type": "ListItem",
@@ -778,7 +601,7 @@ function renderApp(app: App): string {
         .join("\n");
 
     return `<!doctype html>
-<html lang="en">
+<html lang="${HTML_LANG[locale]}">
     <head>
         <title>${esc(title)}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -795,7 +618,7 @@ function renderApp(app: App): string {
         <meta name="twitter:image" content="${SITE}/og.png" />
         <meta name="twitter:title" content="${esc(title)}" />
         <meta name="twitter:description" content="${esc(ogDesc)}" />
-        <link rel="canonical" href="${url}" />
+${localeHead(locale, `/${app.slug}`)}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#fbfbf9" />
@@ -804,18 +627,18 @@ ${jsonLd(faqSchema)}
 ${HEAD_ASSETS}
     </head>
     <body class="landing">
-${GENERATED_BANNER}
+${generatedBanner("scripts/gen-alternatives.ts")}
 ${THEME_PREPAINT}
-${nav()}
+${nav(locale, `/${app.slug}`)}
 
         <main id="main">
             <!-- Hero -->
             <section class="hero">
                 <div class="container">
                     <nav class="crumb" aria-label="Breadcrumb">
-                        <a href="/">Home</a>
+                        <a href="${pathFor(locale, "")}">Home</a>
                         <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                        <a href="/alternatives">Alternatives</a>
+                        <a href="${pathFor(locale, "/alternatives")}">Alternatives</a>
                         <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                         <span>${esc(app.name)}</span>
                     </nav>
@@ -964,7 +787,7 @@ ${app.importSection.body
                             with Google or an email and password.
                         </p>
                     </div>
-${INSTALL}
+${installBlock(locale)}
                 </div>
             </section>
 
@@ -997,7 +820,7 @@ ${faqDetails}
                         <a class="btn btn-on-accent" href="#switch"
                             >Quick install</a
                         >
-                        <a class="btn btn-ghost-accent" href="/alternatives"
+                        <a class="btn btn-ghost-accent" href="${pathFor(locale, "/alternatives")}"
                             >Other alternatives</a
                         >
                     </div>
@@ -1007,7 +830,7 @@ ${faqDetails}
 
 ${disclaimerBand(`${esc(app.name)} is a trademark of its respective owner. Nutrition MCP is an independent, open-source project and is not affiliated with, endorsed by, or sponsored by ${esc(app.name)}. Comparisons reflect publicly available information at the time of writing and may change.`)}
 
-${FOOTER}
+${footer(locale)}
 
 ${SITE_SCRIPT}
     </body>
@@ -1017,8 +840,8 @@ ${SITE_SCRIPT}
 
 // ---------- hub page ----------
 
-function renderHub(): string {
-    const url = `${SITE}/alternatives`;
+function renderHub(locale: SiteLocale = "en"): string {
+    const url = urlFor(locale, "/alternatives");
     const breadcrumb = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -1027,7 +850,7 @@ function renderHub(): string {
                 "@type": "ListItem",
                 position: 1,
                 name: "Nutrition MCP",
-                item: SITE,
+                item: urlFor(locale, ""),
             },
             {
                 "@type": "ListItem",
@@ -1039,7 +862,7 @@ function renderHub(): string {
     };
     const cards = APPS.map(
         (app) =>
-            `                        <a class="card feature alt-card" href="/${app.slug}">
+            `                        <a class="card feature alt-card" href="${pathFor(locale, `/${app.slug}`)}">
                             <span class="feature-icon" aria-hidden="true"
                                 ><i class="fa-solid ${app.icon}"></i
                             ></span>
@@ -1058,7 +881,7 @@ function renderHub(): string {
         "Your nutrition app doesn't have an MCP server. Nutrition MCP is a free, open-source alternative that works inside Claude or ChatGPT — and imports your history from a CSV export.";
 
     return `<!doctype html>
-<html lang="en">
+<html lang="${HTML_LANG[locale]}">
     <head>
         <title>${esc(title)}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1075,7 +898,7 @@ function renderHub(): string {
         <meta name="twitter:image" content="${SITE}/og.png" />
         <meta name="twitter:title" content="${esc(title)}" />
         <meta name="twitter:description" content="${esc(ogDesc)}" />
-        <link rel="canonical" href="${url}" />
+${localeHead(locale, "/alternatives")}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#fbfbf9" />
@@ -1083,15 +906,15 @@ ${jsonLd(breadcrumb)}
 ${HEAD_ASSETS}
     </head>
     <body class="landing">
-${GENERATED_BANNER}
+${generatedBanner("scripts/gen-alternatives.ts")}
 ${THEME_PREPAINT}
-${nav("/alternatives")}
+${nav(locale, "/alternatives", "/alternatives")}
 
         <main id="main">
             <section class="hero">
                 <div class="container">
                     <nav class="crumb" aria-label="Breadcrumb">
-                        <a href="/">Home</a>
+                        <a href="${pathFor(locale, "")}">Home</a>
                         <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                         <span>Alternatives</span>
                     </nav>
@@ -1108,10 +931,10 @@ ${nav("/alternatives")}
                             weight by talking to your AI.
                         </p>
                         <div class="hero-actions">
-                            <a class="btn btn-primary" href="/#install"
+                            <a class="btn btn-primary" href="${hashPath(locale, "install")}"
                                 >Quick install</a
                             >
-                            <a class="btn btn-secondary" href="/#try"
+                            <a class="btn btn-secondary" href="${hashPath(locale, "try")}"
                                 >See examples</a
                             >
                         </div>
@@ -1206,7 +1029,7 @@ ${cards}
                         any MCP client.
                     </p>
                     <div class="cta-actions">
-                        <a class="btn btn-on-accent" href="/#install"
+                        <a class="btn btn-on-accent" href="${hashPath(locale, "install")}"
                             >Quick install</a
                         >
                         <a
@@ -1223,7 +1046,7 @@ ${cards}
 
 ${disclaimerBand(`${APPS.map((a) => esc(a.name)).join(", ")}, and other product names are trademarks of their respective owners. Nutrition MCP is an independent, open-source project and is not affiliated with or endorsed by them. Comparisons reflect publicly available information at the time of writing and may change.`)}
 
-${FOOTER}
+${footer(locale, "/alternatives")}
 
 ${SITE_SCRIPT}
     </body>
@@ -1235,16 +1058,17 @@ ${SITE_SCRIPT}
 
 const OUT_DIR = "./public/alternatives";
 
+// English only for now — the per-app APPS data (cons, migrate, FAQ, etc.)
+// isn't translated yet, so generating other locales here would ship pages
+// with a translated header/footer around untranslated English body copy.
+// The `locale` parameter threaded through renderApp/renderHub above is
+// ready for when that data lands; this loop is the only place to extend
+// once it does. src/routes.ts's ALT_PAGES is the source of truth for the
+// route -> file map src/index.ts serves these from — keep app.slug/app.file
+// here in sync with it by hand, the same as before.
 for (const app of APPS) {
     await Bun.write(`${OUT_DIR}/${app.file}`, renderApp(app));
     console.log(`wrote ${app.file}  (/${app.slug})`);
 }
 await Bun.write(`${OUT_DIR}/index.html`, renderHub());
 console.log("wrote index.html  (/alternatives)");
-
-// Emit the route map + sitemap entries so wiring stays in sync with the data.
-console.log("\n--- ALT_PAGES for src/index.ts ---");
-console.log('    "/alternatives": "alternatives/index.html",');
-for (const app of APPS) {
-    console.log(`    "/${app.slug}": "alternatives/${app.file}",`);
-}
