@@ -4,13 +4,16 @@
  *
  * Unlike every other generated page, this one is a TEMPLATE, not a final
  * document: src/oauth.ts's renderLoginPage() reads whichever locale's
- * output this writes and fills in three placeholders at request time —
- * {{SESSION_ID}}, {{ERROR}}, and {{LANG_SWITCHER}} (the language switcher
- * has to be built per-request too, since its links carry the in-flight
- * OAuth session's state/redirect_uri, which this generator has no access
- * to — see nav()'s `dynamicSwitcher` option in scripts/site-partials.ts).
- * Those three tokens must reach the written file untouched; nothing below
- * runs esc()/interpolation on them.
+ * output this writes and fills in four placeholders at request time —
+ * {{SESSION_ID}}, {{ERROR}}, {{LANG_SWITCHER}}, and
+ * {{TRANSLATION_NOTICE}}. The latter two both have to be built per-request
+ * rather than by scripts/site-partials.ts's ordinary nav()/translationNotice()
+ * helpers: their links need to point back at THIS in-flight OAuth flow in
+ * another language, which means carrying the session's state/redirect_uri/
+ * client_id (see authorizeUrl() in oauth.ts) — a fixed pathFor(locale, "")
+ * would send someone to the marketing homepage instead of back to their
+ * login attempt. Those four tokens must reach the written file untouched;
+ * nothing below runs esc()/interpolation on them.
  *
  * Re-run after editing src/copy/login.ts:
  *   bun run scripts/gen-login.ts
@@ -75,6 +78,18 @@ const LOGIN_STYLE = `        <style>
             body.auth .auth-btn {
                 border-radius: 10px;
             }
+            /* Lighter and centred than the base .translation-notice box
+               (public/styles.css) — the auth-card already has its own
+               border/background, so the full callout treatment reads as a
+               box-in-a-box in this compact a card. */
+            .auth-card .translation-notice {
+                padding: 0.65rem 0.85rem;
+                margin-bottom: 1.1rem;
+            }
+            .auth-card .translation-notice p {
+                font-size: 0.8rem;
+                text-align: center;
+            }
         </style>`;
 
 function renderDoc(doc: LoginDoc, locale: SiteLocale): string {
@@ -125,6 +140,8 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true })}
                             <h1 class="auth-title">${esc(doc.title)}</h1>
                             <p class="auth-sub">${esc(doc.subtitle)}</p>
                         </div>
+
+                        {{TRANSLATION_NOTICE}}
 
                         {{ERROR}}
 

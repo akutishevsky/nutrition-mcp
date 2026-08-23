@@ -80,6 +80,18 @@
             body.auth .auth-btn {
                 border-radius: 10px;
             }
+            /* Lighter and centred than the base .translation-notice box
+               (public/styles.css) — the auth-card already has its own
+               border/background, so the full callout treatment reads as a
+               box-in-a-box in this compact a card. */
+            .auth-card .translation-notice {
+                padding: 0.65rem 0.85rem;
+                margin-bottom: 1.1rem;
+            }
+            .auth-card .translation-notice p {
+                font-size: 0.8rem;
+                text-align: center;
+            }
         </style>
     </head>
     <body class="auth">
@@ -224,7 +236,7 @@
                             <p class="auth-sub">Sign in to connect</p>
                         </div>
 
-                        {{ERROR}}
+                        {{TRANSLATION_NOTICE}} {{ERROR}}
 
                         <a
                             class="auth-btn auth-btn-google"

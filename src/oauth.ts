@@ -17,6 +17,7 @@ import {
     HTML_LANG,
     LOCALE_NAMES,
     SITE_LOCALES,
+    TRANSLATION_NOTICE,
     type SiteLocale,
 } from "./routes.js";
 import { LOGIN_ERRORS, type LoginErrors } from "./copy/login.js";
@@ -136,6 +137,27 @@ ${items}
                     </details>`;
 }
 
+// "This page is machine-translated" disclosure, linking back to THIS same
+// in-flight flow in English (via authorizeUrl, same reasoning as the
+// switcher above — a fixed site link would drop the user at the marketing
+// homepage instead of back at their login attempt). Empty for English
+// itself, and empty (not a half-translated banner) for a locale
+// TRANSLATION_NOTICE hasn't reached yet.
+function renderTranslationNotice(
+    session: OAuthSession,
+    locale: SiteLocale,
+): string {
+    if (locale === "en") return "";
+    const notice = TRANSLATION_NOTICE[locale];
+    if (!notice) return "";
+    return `<div class="translation-notice">
+                            <p>
+                                ${escapeHtml(notice.text)}
+                                <a href="${escapeHtml(authorizeUrl(session, "en"))}">${escapeHtml(notice.linkText)}</a>
+                            </p>
+                        </div>`;
+}
+
 export async function renderLoginPage(
     sessionId: string,
     session: OAuthSession,
@@ -156,6 +178,10 @@ export async function renderLoginPage(
         .replaceAll(
             "{{LANG_SWITCHER}}",
             await renderLangSwitcher(session, locale),
+        )
+        .replaceAll(
+            "{{TRANSLATION_NOTICE}}",
+            renderTranslationNotice(session, locale),
         );
 }
 

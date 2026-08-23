@@ -70,6 +70,23 @@ test("renderLoginPage substitutes {{LANG_SWITCHER}} and reflects the session's l
     expect(html).toContain("client_id=test-client-id");
 });
 
+test("renderLoginPage substitutes {{TRANSLATION_NOTICE}}: present in translated locales, empty on English", async () => {
+    const en = await renderLoginPage("s1", fakeSession("en"));
+    expect(en).not.toContain("{{TRANSLATION_NOTICE}}");
+    // Nothing to disclose on the original-language page.
+    expect(en).not.toContain('class="translation-notice"');
+
+    const de = await renderLoginPage("s1", fakeSession("de"));
+    expect(de).not.toContain("{{TRANSLATION_NOTICE}}");
+    expect(de).toContain('class="translation-notice"');
+    // Links back to the SAME in-flight flow in English (authorizeUrl), not
+    // a fixed site URL — losing session/state here would strand a user who
+    // just wants to read the original mid sign-in.
+    expect(de).toContain('href="/authorize?response_type=code');
+    expect(de).toContain("state=state-xyz");
+    expect(de).not.toContain('href="/"');
+});
+
 test("renderLoginPage serves the requested locale's template when it exists", async () => {
     const en = await renderLoginPage("s1", fakeSession("en"));
     expect(en).toContain('<html lang="en">');
