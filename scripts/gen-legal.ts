@@ -19,6 +19,7 @@ import {
     generatedBanner,
     localeHead,
     nav,
+    translationNotice,
     HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
@@ -81,6 +82,9 @@ const LEGAL_STYLE = `        <style>
             body.auth .legal-page .legal-updated.eyebrow {
                 font-size: 0.74rem;
                 color: var(--accent-hover);
+            }
+            .legal-page .translation-notice {
+                margin-bottom: clamp(2rem, 4vw, 2.75rem);
             }
             body.auth .legal-page .auth-card .legal-section {
                 margin: 0 0 clamp(2rem, 4vw, 2.75rem);
@@ -227,6 +231,8 @@ ${nav(locale, suffix, suffix)}
                     </div>
 
                     <p class="legal-updated eyebrow">${esc(doc.lastUpdated)}</p>
+
+${translationNotice(locale, suffix)}
 
 ${sections}
 
