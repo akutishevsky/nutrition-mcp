@@ -297,10 +297,20 @@
     // in scripts/gen-index.ts). Both independently poll /api/stats every
     // 5s; the server caches that aggregate for 5s regardless of how many
     // pollers ask, so a second one here costs nothing extra server-side.
+    //
+    // food_logs is a sitewide counter across every account, not just this
+    // visitor's — on a live site it can genuinely tick up within the first
+    // few seconds, which read as "the badge just appears on load" even
+    // though it's accurately reporting real activity. STATS_MIN_AGE_MS
+    // holds the badge back until the page has been open a little while, so
+    // it reads as "something changed while you were here" rather than an
+    // instant, constant ticker.
     var statsLinks = doc.querySelectorAll('a[href$="#stats"]');
     if (statsLinks.length) {
         var STATS_POLL_MS = 5000;
+        var STATS_MIN_AGE_MS = 30000;
         var statsBaseline = null;
+        var statsBaselineAt = null;
         var statsTimer = null;
         var setBadge = (function () {
             var badges = Array.prototype.map.call(statsLinks, function (a) {
@@ -330,8 +340,15 @@
                 })
                 .then(function (stats) {
                     if (typeof stats.food_logs !== "number") return;
-                    if (statsBaseline === null) statsBaseline = stats.food_logs;
-                    else setBadge(stats.food_logs - statsBaseline);
+                    if (statsBaseline === null) {
+                        statsBaseline = stats.food_logs;
+                        statsBaselineAt = Date.now();
+                    } else if (
+                        Date.now() - statsBaselineAt >=
+                        STATS_MIN_AGE_MS
+                    ) {
+                        setBadge(stats.food_logs - statsBaseline);
+                    }
                 })
                 .catch(function () {})
                 .then(scheduleStats);
