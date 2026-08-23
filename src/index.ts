@@ -13,6 +13,7 @@ import { getLandingStats, type LandingStats } from "./supabase.js";
 import { registerDiscoveryRoutes } from "./discovery.js";
 import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
+import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
 
 const app = new Hono();
 
@@ -292,16 +293,10 @@ app.get("/tools/", (c) => c.redirect("/tools", 301));
 // SEO comparison / "alternative to X" landing pages. Each targets long-tail
 // queries like "myfitnesspal mcp" or "connect myfitnesspal to claude" and is a
 // static HTML file under public/alternatives. Kept data-driven so adding a page
-// is one entry here plus the file and a sitemap.xml line.
-const ALT_PAGES: Record<string, string> = {
-    "/alternatives": "alternatives/index.html",
-    "/myfitnesspal-mcp": "alternatives/myfitnesspal.html",
-    "/cronometer-mcp": "alternatives/cronometer.html",
-    "/lose-it-mcp": "alternatives/lose-it.html",
-    "/macrofactor-mcp": "alternatives/macrofactor.html",
-    "/yazio-mcp": "alternatives/yazio.html",
-    "/lifesum-mcp": "alternatives/lifesum.html",
-};
+// is one entry here plus the file and a sitemap.xml line. ALT_PAGES itself now
+// lives in src/routes.ts — a module with no Supabase/side-effecting imports —
+// so tests can import it directly instead of regex-scraping it out of this
+// file's source text.
 for (const [path, file] of Object.entries(ALT_PAGES)) {
     app.get(path, async (c) =>
         c.html(await Bun.file(`./public/${file}`).text()),
@@ -309,6 +304,24 @@ for (const [path, file] of Object.entries(ALT_PAGES)) {
     // Redirect the trailing-slash variant to the canonical no-slash URL so a
     // stray "/myfitnesspal-mcp/" link doesn't 404.
     app.get(`${path}/`, (c) => c.redirect(path, 301));
+}
+
+// Every page above, again under each translated locale's /{locale} prefix
+// (public/{locale}/... instead of public/...) — same route/redirect shape as
+// the ALT_PAGES loop just above. English stays unprefixed at the routes
+// already registered above; it's also the x-default hreflang target (see
+// scripts/site-partials.ts's localeHead()). Not every locale has every page
+// generated yet — a missing file 500s via the error handler below rather
+// than silently 404ing, which is deliberate: a locale page that should exist
+// but doesn't is a bug to notice, not a page that was never meant to be there.
+for (const locale of LOCALES) {
+    for (const [suffix, file] of Object.entries(PAGE_ROUTES)) {
+        const path = `/${locale}${suffix}`;
+        app.get(path, async (c) =>
+            c.html(await Bun.file(`./public/${locale}/${file}`).text()),
+        );
+        app.get(`${path}/`, (c) => c.redirect(path, 301));
+    }
 }
 
 // CSS
