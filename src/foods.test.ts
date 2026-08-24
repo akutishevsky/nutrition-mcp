@@ -442,6 +442,66 @@ describe("fetchProductFromOFF alcohol (ABV, not grams)", () => {
     });
 });
 
+describe("fetchProductFromOFF Nutri-Score / NOVA", () => {
+    function product(over: Record<string, unknown> = {}) {
+        return {
+            status: 1,
+            product: {
+                product_name: "Nutella",
+                nutriments: { "energy-kcal_100g": 539 },
+                nutriscore_grade: "e",
+                nova_group: 4,
+                ...over,
+            },
+        };
+    }
+
+    test("maps a valid grade and group", async () => {
+        mockFetch(() => jsonResponse(product()));
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.nutriscore_grade).toBe("e");
+        expect(food!.nova_group).toBe(4);
+    });
+
+    test("uppercase grades are normalized to lowercase", async () => {
+        mockFetch(() => jsonResponse(product({ nutriscore_grade: "E" })));
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.nutriscore_grade).toBe("e");
+    });
+
+    test("'not-applicable' and 'unknown' grades become null, not passed through", async () => {
+        mockFetch(() =>
+            jsonResponse(product({ nutriscore_grade: "not-applicable" })),
+        );
+        expect(
+            (await fetchProductFromOFF("3017620422003"))!.nutriscore_grade,
+        ).toBeNull();
+
+        mockFetch(() => jsonResponse(product({ nutriscore_grade: "unknown" })));
+        expect(
+            (await fetchProductFromOFF("3017620422003"))!.nutriscore_grade,
+        ).toBeNull();
+    });
+
+    test("an out-of-range NOVA group becomes null instead of passed through", async () => {
+        mockFetch(() => jsonResponse(product({ nova_group: 5 })));
+        expect(
+            (await fetchProductFromOFF("3017620422003"))!.nova_group,
+        ).toBeNull();
+    });
+
+    test("both are null when OFF carries neither field", async () => {
+        mockFetch(() =>
+            jsonResponse(
+                product({ nutriscore_grade: undefined, nova_group: undefined }),
+            ),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.nutriscore_grade).toBeNull();
+        expect(food!.nova_group).toBeNull();
+    });
+});
+
 describe("formatFoodResult", () => {
     const base: FoodResult = {
         name: "Coconut Milk",
@@ -454,6 +514,8 @@ describe("formatFoodResult", () => {
         fiber_g: 0.5,
         sugar_g: 1.8,
         alcohol_g: null,
+        nutriscore_grade: "b",
+        nova_group: 3,
         source: "off:737628064502",
         source_name: "openfoodfacts",
         barcode: "737628064502",
@@ -465,6 +527,35 @@ describe("formatFoodResult", () => {
         expect(text).toContain("Serving: 80 ml");
         expect(text).toContain("120 kcal");
         expect(text).toContain("barcode 737628064502");
+    });
+
+    test("includes Nutri-Score and NOVA when OFF has computed them", () => {
+        const text = formatFoodResult(base);
+        expect(text).toContain("Nutri-Score: B");
+        expect(text).toContain("NOVA: 3 (processed)");
+    });
+
+    test("omits the score line entirely when OFF has computed neither", () => {
+        const text = formatFoodResult({
+            ...base,
+            nutriscore_grade: null,
+            nova_group: null,
+        });
+        expect(text).not.toContain("Nutri-Score");
+        expect(text).not.toContain("NOVA");
+    });
+
+    test("shows whichever of Nutri-Score/NOVA is present", () => {
+        const gradeOnly = formatFoodResult({ ...base, nova_group: null });
+        expect(gradeOnly).toContain("Nutri-Score: B");
+        expect(gradeOnly).not.toContain("NOVA");
+
+        const novaOnly = formatFoodResult({
+            ...base,
+            nutriscore_grade: null,
+        });
+        expect(novaOnly).not.toContain("Nutri-Score");
+        expect(novaOnly).toContain("NOVA: 3 (processed)");
     });
 
     // "n/a" states the gap but leaves the model to decide what to do with it,

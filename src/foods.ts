@@ -43,6 +43,12 @@ export interface FoodResult {
     fiber_g: number | null;
     sugar_g: number | null; // TOTAL sugars, incl. naturally occurring
     alcohol_g: number | null; // pure ethanol; often null — see resolveAlcoholGrams
+    // Open Food Facts' own quality scores. Both are null when OFF hasn't
+    // computed one — a real gap (missing category or nutrition data on OFF's
+    // side, e.g. water, coffee, baby food), not a lookup failure — so unlike
+    // fiber/sugar we don't advise the caller to estimate a replacement.
+    nutriscore_grade: "a" | "b" | "c" | "d" | "e" | null;
+    nova_group: 1 | 2 | 3 | 4 | null; // processing classification, 1=least to 4=ultra-processed
     source: string; // stable id, e.g. "off:737628064502"
     source_name: typeof SOURCE_OFF;
     barcode: string;
@@ -72,6 +78,29 @@ interface OFFProduct {
     serving_quantity?: unknown;
     serving_quantity_unit?: unknown;
     nutriments?: Record<string, unknown>;
+    // "a"-"e", or "not-applicable" / "unknown" when OFF hasn't computed one.
+    nutriscore_grade?: unknown;
+    nova_group?: unknown;
+}
+
+const NUTRISCORE_GRADES = ["a", "b", "c", "d", "e"] as const;
+
+function normalizeNutriscoreGrade(
+    value: unknown,
+): FoodResult["nutriscore_grade"] {
+    const grade = String(value ?? "")
+        .trim()
+        .toLowerCase();
+    return (NUTRISCORE_GRADES as readonly string[]).includes(grade)
+        ? (grade as FoodResult["nutriscore_grade"])
+        : null;
+}
+
+function normalizeNovaGroup(value: unknown): FoodResult["nova_group"] {
+    const group = typeof value === "string" ? parseFloat(value) : value;
+    return group === 1 || group === 2 || group === 3 || group === 4
+        ? group
+        : null;
 }
 
 // The only alcohol unit Open Food Facts actually emits (see below).
@@ -172,6 +201,8 @@ function normalizeOFFProduct(product: OFFProduct, barcode: string): FoodResult {
         // stored field is total sugar.
         sugar_g: pick("sugars_serving", "sugars_100g"),
         alcohol_g: resolveAlcoholGrams(product, n, hasServing),
+        nutriscore_grade: normalizeNutriscoreGrade(product.nutriscore_grade),
+        nova_group: normalizeNovaGroup(product.nova_group),
         source: `off:${barcode}`,
         source_name: SOURCE_OFF,
         barcode,
@@ -247,18 +278,20 @@ async function getCachedFood(
         const ageMs = Date.now() - new Date(data.fetched_at).getTime();
         if (ageMs > ttlMs) return null;
         const payload = data.payload as FoodResult;
-        // Rows cached before fiber/sugar/alcohol shipped have no such keys, and
-        // stay servable for the whole TTL after deploy. Deserialized they would
-        // be `undefined`, not `null` — and an undefined field is an ABSENT one
-        // once it reaches a structuredContent literal, which for a .nullable()
-        // (hence *required*) schema field is a validation failure rather than a
-        // null. Backfill explicitly so a cache hit and a fresh fetch are always
-        // the same shape.
+        // Rows cached before fiber/sugar/alcohol/nutriscore/nova shipped have no
+        // such keys, and stay servable for the whole TTL after deploy.
+        // Deserialized they would be `undefined`, not `null` — and an undefined
+        // field is an ABSENT one once it reaches a structuredContent literal,
+        // which for a .nullable() (hence *required*) schema field is a
+        // validation failure rather than a null. Backfill explicitly so a cache
+        // hit and a fresh fetch are always the same shape.
         return {
             ...payload,
             fiber_g: payload.fiber_g ?? null,
             sugar_g: payload.sugar_g ?? null,
             alcohol_g: payload.alcohol_g ?? null,
+            nutriscore_grade: payload.nutriscore_grade ?? null,
+            nova_group: payload.nova_group ?? null,
         };
     } catch {
         return null;
@@ -305,6 +338,19 @@ function macro(value: number | null, unit: string): string {
     return value == null ? "n/a" : `${value} ${unit}`;
 }
 
+function novaLabel(group: 1 | 2 | 3 | 4): string {
+    switch (group) {
+        case 1:
+            return "unprocessed/minimally processed";
+        case 2:
+            return "processed culinary ingredient";
+        case 3:
+            return "processed";
+        case 4:
+            return "ultra-processed";
+    }
+}
+
 /**
  * Render a lookup for the model. `alcoholUnit` is the user's drink unit, or null
  * when alcohol tracking is off for them — in which case the alcohol line is
@@ -315,6 +361,11 @@ function macro(value: number | null, unit: string): string {
  * Fiber and sugar are never gated, and are shown even when null ("n/a"): a food
  * with no fiber figure in Open Food Facts is a fact worth stating, since the
  * alternative is the model quietly assuming zero.
+ *
+ * Nutri-Score and NOVA are the opposite: OFF simply hasn't computed them for
+ * plenty of legitimate products (water, coffee, categories it can't classify),
+ * so unlike fiber/sugar that's not a gap to estimate around — the line is
+ * omitted entirely rather than shown as "n/a".
  */
 export function formatFoodResult(
     food: FoodResult,
@@ -336,6 +387,15 @@ export function formatFoodResult(
             "g",
         )}`,
     ];
+    const scoreParts = [
+        food.nutriscore_grade
+            ? `Nutri-Score: ${food.nutriscore_grade.toUpperCase()}`
+            : null,
+        food.nova_group
+            ? `NOVA: ${food.nova_group} (${novaLabel(food.nova_group)})`
+            : null,
+    ].filter(Boolean);
+    if (scoreParts.length > 0) lines.push(scoreParts.join(" · "));
     if (alcoholUnit && food.alcohol_g != null) {
         lines.push(`Alcohol: ${formatAlcohol(food.alcohol_g, alcoholUnit)}`);
     }

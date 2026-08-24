@@ -1150,6 +1150,8 @@ describe("formatFoodResult", () => {
         fiber_g: 0.5,
         sugar_g: 0.2,
         alcohol_g: 13,
+        nutriscore_grade: "d",
+        nova_group: 2,
         source: "off:1234567890123",
         source_name: "openfoodfacts",
         barcode: "1234567890123",
