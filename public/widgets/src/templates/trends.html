@@ -115,6 +115,7 @@
                     end_date: date,
                     default_range: 14,
                     drink_unit: "us",
+                    locale: "en",
                     goals: {
                         calories: 2200,
                         protein_g: 160,
@@ -235,10 +236,10 @@
                 return `
           <div class="chart">
             <div class="chead">
-              <span class="ctitle">Calories / day</span>
-              <span class="cmeta">${logged}/${n} days logged</span>
+              <span class="ctitle">${esc(T.nutritionSummary.caloriesPerDay)}</span>
+              <span class="cmeta">${tpl(T.trends.loggedOfTotal, { logged, total: n })}</span>
             </div>
-            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calories per day over the last ${range} days">
+            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tpl(T.trends.caloriesOverRange, { range }))}">
               <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
               ${goalLine}
               <path d="${area}" fill="var(--calories)" opacity="0.16"/>
@@ -254,6 +255,7 @@
 
             // ---- State + rendering ---------------------------------------------
             const STATE = { data: null, range: 30 };
+            let __widgetApi = null;
 
             function render(data) {
                 STATE.data = data;
@@ -270,11 +272,12 @@
                     data &&
                     Array.isArray(data.days) &&
                     data.days.some(dayHasData);
+                setLocaleFrom(data, __widgetApi);
                 if (!anyLogged) {
                     root.innerHTML = `
             <div class="empty">
               <div class="big">📈</div>
-              <div>No meals or water logged in this range yet.</div>
+              <div>${esc(T.trends.empty)}</div>
             </div>`;
                     return;
                 }
@@ -300,17 +303,22 @@
 
                 const seg = RANGES.map(
                     (r) =>
-                        `<button class="seg-btn${r === range ? " active" : ""}" data-range="${r}" aria-pressed="${r === range}" aria-label="${r} days">${r}</button>`,
+                        `<button class="seg-btn${r === range ? " active" : ""}" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: r }))}">${r}</button>`,
                 ).join("");
 
                 // No per-meal rows in a trends payload, so the strip is static
                 // — macroPanel only makes tiles tappable when meals are passed.
                 // `divided` gives it the leading hairline that separates it from
-                // the chart above.
+                // the chart above. The floor-metric averaged wording uses its
+                // own dedicated string (T.trends.avgUnder) — distinct from
+                // macros.floorUnder's live "still left today" framing and
+                // macros.ceilingUnder's safety-margin framing, neither of which
+                // fits a historical average's shortfall. See macroBits'
+                // wording.under in shared/macros.js.
                 const panel = macroPanel(
                     avg,
                     data.goals,
-                    { under: "under" },
+                    { under: T.trends.avgUnder },
                     null,
                     {
                         drinkUnit: data.drink_unit,
@@ -318,7 +326,7 @@
                         // The one place the denominator is named: these are
                         // averages over every calendar day in the window, skipped
                         // days included.
-                        calLabel: `${range}-day avg · all days`,
+                        calLabel: tpl(T.trends.avgAllDays, { range }),
                     },
                 );
                 const chart = trendChart(
@@ -331,8 +339,8 @@
                 root.innerHTML = `
           <div class="panel">
             <div class="phead mid">
-              <div class="ptitle">Trends</div>
-              <div class="seg seg-sm" role="group" aria-label="Trend window">${seg}</div>
+              <div class="ptitle">${esc(T.trends.title)}</div>
+              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>
             </div>
             ${chart}
             ${panel}
@@ -366,6 +374,9 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                onReady(api) {
+                    __widgetApi = api;
+                },
             });
         </script>
     </body>

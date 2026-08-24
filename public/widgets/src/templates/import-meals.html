@@ -108,6 +108,9 @@
     <body>
         <div id="root"></div>
         <script>
+            /*@i18n@*/
+            /*@include shared/i18n.js@*/
+
             /*@include shared/bridge.js@*/
 
             // The real, unit-tested CSV parser (src/csv.ts + src/csv.test.ts).
@@ -132,6 +135,7 @@
                 known_source_apps: [],
                 tz_configured: true,
                 drink_unit: null,
+                locale: "en",
             };
             let API = null;
 
@@ -179,7 +183,8 @@
                     );
                     lines.push(
                         "dates read as " +
-                            dateFormatLabel(S.dateFormat) +
+                            (DATE_FORMAT_ENGLISH_LABELS[S.dateFormat] ||
+                                S.dateFormat) +
                             " · energy " +
                             S.energyUnit +
                             (S.dateAmbiguous ? " · format was ambiguous" : ""),
@@ -221,10 +226,10 @@
                     );
                 }
                 return (
-                    '<div class="notice"><span>✉</span><span>Not working as expected? Email ' +
-                    "<b>" +
-                    esc(SUPPORT_EMAIL) +
-                    "</b> and include the lines below — that is everything needed to diagnose it." +
+                    '<div class="notice"><span>✉</span><span>' +
+                    tpl(T.importMeals.emailNotice, {
+                        email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
+                    }) +
                     '<span class="diag">' +
                     esc(lines.join("\n")) +
                     "</span></span></div>"
@@ -232,37 +237,40 @@
             }
 
             // ---- state -------------------------------------------------------
+            // Plain data — labels are looked up from T.importMeals.fieldLabels
+            // by key at the one call site that renders them (mapStep()), so a
+            // locale switch relabels these without rebuilding the array.
             const FIELDS = [
-                { key: "logged_at", label: "Date / time", required: true },
-                { key: "description", label: "Food name" },
-                { key: "meal_type", label: "Meal" },
-                { key: "calories", label: "Calories" },
-                { key: "protein_g", label: "Protein (g)" },
-                { key: "carbs_g", label: "Carbs (g)" },
-                { key: "fat_g", label: "Fat (g)" },
-                { key: "fiber_g", label: "Fiber (g)" },
-                { key: "sugar_g", label: "Sugar, total (g)" },
+                { key: "logged_at", required: true },
+                { key: "description" },
+                { key: "meal_type" },
+                { key: "calories" },
+                { key: "protein_g" },
+                { key: "carbs_g" },
+                { key: "fat_g" },
+                { key: "fiber_g" },
+                { key: "sugar_g" },
                 // Only offered when the user tracks alcohol — see gatedField.
-                { key: "alcohol_g", label: "Alcohol (g)", alcoholOnly: true },
+                { key: "alcohol_g", alcoholOnly: true },
                 // Milligrams, and the label says so. Caffeine has no opt-in
                 // flag of any kind — unlike alcohol it is offered to everyone,
                 // always; it is the read side that stays quiet until there is
                 // caffeine to talk about.
-                { key: "caffeine_mg", label: "Caffeine (mg)" },
-                { key: "notes", label: "Notes" },
-                { key: "time", label: "Time (separate column)" },
-                { key: "deleted", label: "Deleted flag" },
+                { key: "caffeine_mg" },
+                { key: "notes" },
+                { key: "time" },
+                { key: "deleted" },
                 // Only meaningful in this app's own export, where it is the
                 // meal's id and is what lets a restored backup be recognized
                 // instead of duplicated. Offered like any other field so it can
                 // be re-pointed or unset; a foreign app's id column maps here
                 // harmlessly, because the server ignores anything that is not
                 // one of this user's meal ids.
-                { key: "source_id", label: "Meal id (from our export)" },
+                { key: "source_id" },
                 // Same reasoning as source_id: only meaningful when the file
                 // is this app's own export, offered like any other field so
                 // it can be re-pointed or unset.
-                { key: "timezone", label: "Timezone (from our export)" },
+                { key: "timezone" },
             ];
             // Header aliases for the exports surveyed. Matched with
             // normalizeHeader from csv.ts, so "Fat (g)" and "fat_g" both hit.
@@ -485,6 +493,15 @@
                     .replace(/"/g, "&quot;")
                     .replace(/'/g, "&#39;");
             }
+            // Escapes a translated "{n} rows"-style string, then bolds the
+            // digit run wherever it landed — robust to word order, unlike
+            // hardcoding "<b>N</b> rows" around a fixed English shape.
+            function boldCount(text) {
+                return esc(text).replace(
+                    /\d[\d,.\s ]*\d|\d/,
+                    (m) => "<b>" + m + "</b>",
+                );
+            }
 
             // ---- step 1: file ------------------------------------------------
             async function loadFile(file) {
@@ -493,13 +510,17 @@
                     const buf = new Uint8Array(await file.arrayBuffer());
                     S.table = parseCsv(buf);
                 } catch (e) {
-                    S.errors = ["Could not read that file: " + e.message];
+                    S.errors = [
+                        tpl(T.importMeals.couldNotReadFile, {
+                            msg: e.message,
+                        }),
+                    ];
                     render();
                     return;
                 }
                 if (!S.table.rows.length) {
                     S.errors = [
-                        "No data rows found in that file." +
+                        T.importMeals.noDataRows +
                             (S.table.warnings[0]
                                 ? " " + S.table.warnings[0]
                                 : ""),
@@ -558,15 +579,21 @@
             // store every row 4.184x too high while reporting success. So each
             // control is shown next to a worked example from the user's own first
             // row — a wrong setting is then visible before anything is written.
-            const DATE_FORMAT_OPTIONS = [
-                ["iso", "Year-Month-Day (2026-07-18)"],
-                ["dmy", "Day/Month/Year (18/07/2026)"],
-                ["mdy", "Month/Day/Year (07/18/2026)"],
-            ];
-            const ENERGY_UNIT_OPTIONS = [
-                ["kcal", "Calories (kcal)"],
-                ["kj", "Kilojoules (kJ)"],
-            ];
+            // Functions, not static arrays, so a locale switch (setLocale runs
+            // before every render()) relabels these without rebuilding them.
+            function dateFormatOptions() {
+                return [
+                    ["iso", `${T.importMeals.dateFormatYmd} (2026-07-18)`],
+                    ["dmy", `${T.importMeals.dateFormatDmy} (18/07/2026)`],
+                    ["mdy", `${T.importMeals.dateFormatMdy} (07/18/2026)`],
+                ];
+            }
+            function energyUnitOptions() {
+                return [
+                    ["kcal", `${T.importMeals.energyUnitKcal} (kcal)`],
+                    ["kj", `${T.importMeals.energyUnitKj} (kJ)`],
+                ];
+            }
 
             // Some exports put the whole timestamp in the date column. toIsoDate
             // tolerates a trailing time but returns the date alone, so the time is
@@ -583,9 +610,22 @@
             }
 
             function dateFormatLabel(fmt) {
-                const o = DATE_FORMAT_OPTIONS.find((x) => x[0] === fmt);
+                const o = dateFormatOptions().find((x) => x[0] === fmt);
                 return o ? o[1].replace(/\s*\(.*\)$/, "") : String(fmt);
             }
+            // English-only, for diagnosticsBlock() alone: that block is a
+            // copy-paste dump addressed to the (English-speaking) maintainer
+            // regardless of the widget's locale, but dateFormatLabel() now
+            // returns the user's own translated text since it reads from
+            // dateFormatOptions(). Keep this lookup separate rather than
+            // changing dateFormatLabel() itself, whose other call sites
+            // (dateExampleHtml(), the "Dates read as…" line, the bad-dates
+            // warning) are correctly meant to show the user's locale.
+            const DATE_FORMAT_ENGLISH_LABELS = {
+                iso: "Year-Month-Day",
+                dmy: "Day/Month/Year",
+                mdy: "Month/Day/Year",
+            };
 
             // Cells / numbers of the column currently mapped to `fieldKey`
             // (limit 0 = all of them).
@@ -803,11 +843,12 @@
                     };
                     if (everyHasKcal) args.expected_total_kcal = kcal;
 
-                    S.progress.label =
-                        (i === 0 ? "Checking" : "Importing") +
-                        " " +
-                        rows.length +
-                        " rows…";
+                    S.progress.label = tpl(
+                        i === 0
+                            ? T.importMeals.checkingRows
+                            : T.importMeals.importingRows,
+                        { n: rows.length },
+                    );
                     render();
 
                     try {
@@ -831,14 +872,14 @@
                             // (issue #65).
                             if (sc.status === "failed") {
                                 S.result.chunkErrors.push(
-                                    "Rows " +
-                                        rows[0].source_line +
-                                        "–" +
-                                        rows[rows.length - 1].source_line +
-                                        ": " +
-                                        (sc.warnings && sc.warnings.length
-                                            ? sc.warnings.join("; ")
-                                            : "Preflight check failed."),
+                                    tpl(T.importMeals.rowsRange, {
+                                        a: rows[0].source_line,
+                                        b: rows[rows.length - 1].source_line,
+                                        msg:
+                                            sc.warnings && sc.warnings.length
+                                                ? sc.warnings.join("; ")
+                                                : T.importMeals.preflightFailed,
+                                    }),
                                 );
                                 S.busy = false;
                                 S.progress = null;
@@ -857,12 +898,11 @@
                         }
                     } catch (e) {
                         S.result.chunkErrors.push(
-                            "Rows " +
-                                rows[0].source_line +
-                                "–" +
-                                rows[rows.length - 1].source_line +
-                                ": " +
-                                e.message,
+                            tpl(T.importMeals.rowsRange, {
+                                a: rows[0].source_line,
+                                b: rows[rows.length - 1].source_line,
+                                msg: e.message,
+                            }),
                         );
                     }
                     S.progress.done = i + 1;
@@ -931,7 +971,12 @@
             // ---- rendering ---------------------------------------------------
             function steps() {
                 const order = ["file", "map", "preview", "done"];
-                const names = ["File", "Map columns", "Preview", "Import"];
+                const names = [
+                    T.importMeals.stepFile,
+                    T.importMeals.stepMap,
+                    T.importMeals.stepPreview,
+                    T.importMeals.stepImport,
+                ];
                 const at = order.indexOf(S.step);
                 return (
                     '<div class="steps">' +
@@ -958,21 +1003,25 @@
                 const noTools =
                     API && !API.canCallTools
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          "This host does not let this view write to your log. Ask Claude to import the file instead — it can do it directly." +
+                          esc(T.importMeals.noToolsWarning) +
                           "</span></div>" +
                           (SUPPORT_EMAIL
-                              ? '<div class="notice"><span>✉</span><span>If asking Claude does not work either, email <b>' +
-                                esc(SUPPORT_EMAIL) +
-                                "</b>.</span></div>"
+                              ? '<div class="notice"><span>✉</span><span>' +
+                                tpl(T.importMeals.emailFallback, {
+                                    email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
+                                }) +
+                                "</span></div>"
                               : "")
                         : "";
                 const tzWarn = !CFG.tz_configured
                     ? '<div class="notice notice-warn"><span>!</span><span>' +
-                      "Your timezone is not set, so times will be read as UTC and may land on the wrong day. Ask Claude to set your timezone first." +
+                      esc(T.importMeals.tzWarning) +
                       "</span></div>"
                     : "";
                 return (
-                    '<section class="card"><h3>Choose your export</h3>' +
+                    '<section class="card"><h3>' +
+                    esc(T.importMeals.chooseExportHeading) +
+                    "</h3>" +
                     noTools +
                     tzWarn +
                     (S.errors.length
@@ -981,10 +1030,15 @@
                           "</span></div>"
                         : "") +
                     '<label class="drop" id="drop">' +
-                    '<span class="big">📄</span><strong>Choose a CSV file</strong><br />or drag it here' +
+                    '<span class="big">📄</span><strong>' +
+                    esc(T.importMeals.dropChoose) +
+                    "</strong><br />" +
+                    esc(T.importMeals.dropOr) +
                     '<input type="file" class="drop-input" id="file" accept=".csv,text/csv,text/plain" />' +
                     "</label>" +
-                    '<div class="hint" style="margin-top:8px">Exports from MyFitnessPal, Cronometer, Lose It! and MacroFactor are recognised automatically. Nothing is saved until you confirm.</div>' +
+                    '<div class="hint" style="margin-top:8px">' +
+                    esc(T.importMeals.recognizedHint) +
+                    "</div>" +
                     "</section>"
                 );
             }
@@ -993,28 +1047,38 @@
             // through the very functions the import will use. Returns escaped HTML.
             function dateExampleHtml() {
                 if (!(S.mapping.logged_at >= 0))
-                    return "Map a date column above to see how a value from your file converts.";
+                    return esc(T.importMeals.dateMapHint);
                 const raw = columnCells("logged_at", 1)[0];
-                if (raw === undefined) return "That column has no dates in it.";
+                if (raw === undefined) return esc(T.importMeals.dateNoneHint);
                 const iso = toIsoDate(raw, S.dateFormat);
                 if (iso === null)
-                    return (
-                        esc(raw) +
-                        " → cannot be read as " +
-                        esc(dateFormatLabel(S.dateFormat)) +
-                        ", so rows like it will be skipped"
+                    return esc(
+                        tpl(T.importMeals.dateUnreadable, {
+                            raw,
+                            format: dateFormatLabel(S.dateFormat),
+                        }),
                     );
                 const time = normalizeTime(timeInDateCell(raw));
-                return esc(raw) + " → " + esc(iso + (time ? " " + time : ""));
+                return esc(
+                    tpl(T.importMeals.dateConverted, {
+                        raw,
+                        result: iso + (time ? " " + time : ""),
+                    }),
+                );
             }
             function energyExampleHtml() {
                 if (!(S.mapping.calories >= 0))
-                    return "Map a calories column above to see how a value from your file converts.";
+                    return esc(T.importMeals.energyMapHint);
                 const v = columnNumbers("calories", 1)[0];
-                if (v === undefined) return "That column has no numbers in it.";
+                if (v === undefined) return esc(T.importMeals.energyNoneHint);
                 if (S.energyUnit === "kj")
-                    return esc(v) + " kJ → " + esc(toKcal(v, "kj")) + " kcal";
-                return esc(v) + " kcal → " + esc(v) + " kcal (no conversion)";
+                    return esc(
+                        tpl(T.importMeals.energyConverted, {
+                            v,
+                            kcal: toKcal(v, "kj"),
+                        }),
+                    );
+                return esc(tpl(T.importMeals.energyNoConversion, { v }));
             }
 
             function formatFieldsHtml() {
@@ -1040,16 +1104,20 @@
                     // Undecidable, so it must not be dressed up as auto-detected.
                     (S.dateAmbiguous
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          "The date format could not be determined from this file — its dates read equally well as day-first or month-first. Please confirm which one your app exports: the wrong choice files meals on the wrong day with no error." +
+                          esc(T.importMeals.dateAmbiguousWarning) +
                           "</span></div>"
                         : "") +
-                    '<div class="field"><label class="label" for="dateFormat">Date format in this file</label>' +
-                    select("dateFormat", DATE_FORMAT_OPTIONS, S.dateFormat) +
+                    '<div class="field"><label class="label" for="dateFormat">' +
+                    esc(T.importMeals.dateFormatLabel) +
+                    "</label>" +
+                    select("dateFormat", dateFormatOptions(), S.dateFormat) +
                     '<span class="hint">' +
                     dateExampleHtml() +
                     "</span></div>" +
-                    '<div class="field"><label class="label" for="energyUnit">Energy unit of the calories column</label>' +
-                    select("energyUnit", ENERGY_UNIT_OPTIONS, S.energyUnit) +
+                    '<div class="field"><label class="label" for="energyUnit">' +
+                    esc(T.importMeals.energyUnitLabel) +
+                    "</label>" +
+                    select("energyUnit", energyUnitOptions(), S.energyUnit) +
                     '<span class="hint">' +
                     energyExampleHtml() +
                     "</span></div>" +
@@ -1062,7 +1130,9 @@
                 const opts = (sel) =>
                     '<option value="-1"' +
                     (sel === -1 ? " selected" : "") +
-                    ">(not in this file)</option>" +
+                    ">" +
+                    esc(T.importMeals.notInFile) +
+                    "</option>" +
                     t.headers
                         .map(
                             (h, i) =>
@@ -1071,20 +1141,35 @@
                                 '"' +
                                 (sel === i ? " selected" : "") +
                                 ">" +
-                                esc(h || "column " + (i + 1)) +
+                                esc(
+                                    h ||
+                                        tpl(T.importMeals.columnFallback, {
+                                            n: i + 1,
+                                        }),
+                                ) +
                                 "</option>",
                         )
                         .join("");
                 return (
-                    '<section class="card"><h3>Map columns</h3>' +
-                    '<div class="stat-row"><span><b>' +
-                    t.rows.length +
-                    "</b> rows</span><span><b>" +
-                    t.headers.length +
-                    "</b> columns</span><span>" +
+                    '<section class="card"><h3>' +
+                    esc(T.importMeals.mapColumnsHeading) +
+                    "</h3>" +
+                    '<div class="stat-row"><span>' +
+                    boldCount(plural(T.importMeals.rowsCount, t.rows.length)) +
+                    "</span><span>" +
+                    boldCount(
+                        plural(T.importMeals.columnsCount, t.headers.length),
+                    ) +
+                    "</span><span>" +
                     esc(t.encoding) +
-                    ", delimiter <b>" +
-                    esc(t.delimiter === "\t" ? "tab" : t.delimiter) +
+                    ", " +
+                    esc(T.importMeals.delimiterLabel) +
+                    " <b>" +
+                    esc(
+                        t.delimiter === "\t"
+                            ? T.importMeals.tabLabel
+                            : t.delimiter,
+                    ) +
                     "</b></span></div>" +
                     (t.warnings.length
                         ? t.warnings
@@ -1099,9 +1184,9 @@
                     (S.mapping.sugar_g === -1 && addedSugarColumns().length
                         ? '<div class="notice"><span>i</span><span>' +
                           esc(
-                              "This file has an added-sugar column (" +
-                                  addedSugarColumns()[0] +
-                                  ") but no total-sugar column, so Sugar was left unmapped. Sugar is stored as TOTAL sugars, including what occurs naturally in fruit and milk, so mapping added sugar into it would under-report every row.",
+                              tpl(T.importMeals.addedSugarNotice, {
+                                  column: addedSugarColumns()[0],
+                              }),
                           ) +
                           "</span></div>"
                         : "") +
@@ -1109,18 +1194,18 @@
                     caffeineGramsColumns().length
                         ? '<div class="notice"><span>i</span><span>' +
                           esc(
-                              "This file's caffeine column (" +
-                                  caffeineGramsColumns()[0] +
-                                  ") is in grams, but caffeine is stored in milligrams, so Caffeine was left unmapped. Mapping it would record 0.18 where the label says 180 mg. Re-importing the same file later will not fill it in — those rows will already be logged and will be skipped as duplicates. If the header is mislabelled and the values really are milligrams, pick it above; if they really are grams, multiply them by 1000 in the file before importing, not after.",
+                              tpl(T.importMeals.caffeineGramsNotice, {
+                                  column: caffeineGramsColumns()[0],
+                              }),
                           ) +
                           "</span></div>"
                         : "") +
                     (!alcoholTracked() && alcoholColumn()
                         ? '<div class="notice"><span>i</span><span>' +
                           esc(
-                              "This file has an alcohol column (" +
-                                  alcoholColumn() +
-                                  "), but alcohol tracking is off for this account, so it will not be imported. Re-importing the same file later will not fill it in — those rows will already be logged and will be skipped as duplicates. To keep this data, ask Claude to turn on alcohol tracking (set_alcohol_tracking) before importing.",
+                              tpl(T.importMeals.alcoholNotice, {
+                                  column: alcoholColumn(),
+                              }),
                           ) +
                           "</span></div>"
                         : "") +
@@ -1132,12 +1217,18 @@
                                 sel >= 0 && t.rows[0] ? t.rows[0][sel] : "";
                             return (
                                 '<div><div class="map-src">' +
-                                esc(f.label) +
+                                esc(T.importMeals.fieldLabels[f.key]) +
                                 (f.required
                                     ? ' <span style="color:var(--over)">*</span>'
                                     : "") +
                                 '</div><div class="map-sample">' +
-                                esc(sample ? "e.g. " + sample : "") +
+                                esc(
+                                    sample
+                                        ? tpl(T.importMeals.sampleValue, {
+                                              sample,
+                                          })
+                                        : "",
+                                ) +
                                 "</div></div>" +
                                 '<select class="select map-sel" data-field="' +
                                 f.key +
@@ -1149,13 +1240,21 @@
                         .join("") +
                     "</div>" +
                     formatFieldsHtml() +
-                    '<div class="field"><label class="label">Source app (optional)</label>' +
+                    '<div class="field"><label class="label">' +
+                    esc(T.importMeals.sourceAppLabel) +
+                    "</label>" +
                     '<input class="input" id="srcapp" value="' +
                     esc(S.sourceApp) +
                     '" placeholder="myfitnesspal" />' +
-                    '<span class="hint">Used to label rows that have no food name of their own.</span></div>' +
-                    '<div class="actions"><button class="btn btn-primary" id="toPreview">Preview import</button>' +
-                    '<button class="btn" id="backToFile">Choose another file</button></div>' +
+                    '<span class="hint">' +
+                    esc(T.importMeals.sourceAppHint) +
+                    "</span></div>" +
+                    '<div class="actions"><button class="btn btn-primary" id="toPreview">' +
+                    esc(T.importMeals.previewButton) +
+                    "</button>" +
+                    '<button class="btn" id="backToFile">' +
+                    esc(T.importMeals.chooseAnotherButton) +
+                    "</button></div>" +
                     "</section>"
                 );
             }
@@ -1191,52 +1290,66 @@
                         S.rows.some((r) => r[c[0]] !== undefined),
                 );
                 return (
-                    '<section class="card"><h3>Preview</h3>' +
-                    '<div class="stat-row"><span><b>' +
-                    S.rows.length +
-                    "</b> meals to import</span><span><b>" +
-                    kcal.toLocaleString() +
-                    "</b> kcal total</span>" +
+                    '<section class="card"><h3>' +
+                    esc(T.importMeals.previewHeading) +
+                    "</h3>" +
+                    '<div class="stat-row"><span>' +
+                    boldCount(
+                        plural(T.importMeals.mealsToImport, S.rows.length),
+                    ) +
+                    "</span><span>" +
+                    boldCount(
+                        tpl(T.importMeals.kcalTotal, {
+                            kcal: kcal.toLocaleString(),
+                        }),
+                    ) +
+                    "</span>" +
                     (S.skipped
-                        ? "<span><b>" + S.skipped + "</b> rows skipped</span>"
+                        ? "<span>" +
+                          boldCount(
+                              tpl(T.importMeals.rowsSkipped, {
+                                  n: S.skipped,
+                              }),
+                          ) +
+                          "</span>"
                         : "") +
-                    "<span><b>" +
-                    chunks +
-                    "</b> batch" +
-                    (chunks === 1 ? "" : "es") +
+                    "<span>" +
+                    boldCount(plural(T.importMeals.batchCount, chunks)) +
                     "</span></div>" +
                     // State the two conversions applied, so the confirmation step
                     // shows what will be sent rather than what the file said.
-                    '<div class="hint" style="margin-bottom:10px">Dates read as ' +
-                    esc(dateFormatLabel(S.dateFormat)) +
-                    "; energy " +
-                    (S.energyUnit === "kj"
-                        ? "converted from kJ to kcal"
-                        : "read as kcal") +
-                    ".</div>" +
+                    '<div class="hint" style="margin-bottom:10px">' +
+                    esc(
+                        tpl(T.importMeals.datesReadAs, {
+                            format: dateFormatLabel(S.dateFormat),
+                            conversion:
+                                S.energyUnit === "kj"
+                                    ? T.importMeals.energyConvertedNote
+                                    : T.importMeals.energyReadAsKcal,
+                        }),
+                    ) +
+                    "</div>" +
                     // Importing fewer rows than the file holds is the exact failure
                     // this flow exists to prevent, so never let it pass silently.
                     (S.badDates
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
                           esc(
-                              S.badDates +
-                                  " row(s) were skipped because their date could not be read as " +
-                                  dateFormatLabel(S.dateFormat) +
-                                  (S.badDateSample
-                                      ? " (e.g. line " +
-                                        S.badDateSample.line +
-                                        ": " +
-                                        S.badDateSample.value +
-                                        ")"
-                                      : "") +
-                                  ". Go back and set the date format that matches your file.",
+                              tpl(T.importMeals.badDatesWarning, {
+                                  n: S.badDates,
+                                  format: dateFormatLabel(S.dateFormat),
+                                  sample: S.badDateSample
+                                      ? tpl(T.importMeals.badDateSample, {
+                                            line: S.badDateSample.line,
+                                            value: S.badDateSample.value,
+                                        })
+                                      : "",
+                              }),
                           ) +
                           "</span></div>"
                         : "") +
                     (noTime
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          noTime +
-                          " row(s) have a date but no time — they will be logged at midday." +
+                          esc(tpl(T.importMeals.noTimeWarning, { n: noTime })) +
                           "</span></div>"
                         : "") +
                     // A calendar date with more than max_rows_per_call rows on
@@ -1249,19 +1362,27 @@
                     (splitDates.length
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
                           esc(
-                              (splitDates.length === 1
-                                  ? "One date has"
-                                  : splitDates.length + " dates have") +
-                                  " more than " +
-                                  CFG.max_rows_per_call +
-                                  " meals (e.g. " +
-                                  splitDates[0] +
-                                  ") and had to be split across separate import batches. If that date contains two entries with the exact same food, meal type and macros, one of them may be skipped as a duplicate instead of imported.",
+                              plural(
+                                  T.importMeals.splitDatesCount,
+                                  splitDates.length,
+                              ) +
+                                  tpl(T.importMeals.splitDatesWarning, {
+                                      max: CFG.max_rows_per_call,
+                                      date: splitDates[0],
+                                  }),
                           ) +
                           "</span></div>"
                         : "") +
                     '<div class="tscroll"><table class="tbl"><thead><tr>' +
-                    "<th>Line</th><th>When</th><th>Meal</th><th class='wide'>Food</th>" +
+                    "<th>" +
+                    esc(T.importMeals.tableLine) +
+                    "</th><th>" +
+                    esc(T.importMeals.tableWhen) +
+                    "</th><th>" +
+                    esc(T.importMeals.tableMeal) +
+                    "</th><th class='wide'>" +
+                    esc(T.importMeals.tableFood) +
+                    "</th>" +
                     '<th class="num">kcal</th><th class="num">P</th><th class="num">C</th><th class="num">F</th>' +
                     extra
                         .map((c) => '<th class="num">' + c[1] + "</th>")
@@ -1279,7 +1400,7 @@
                                 "</td><td class='wide'>" +
                                 esc(
                                     r.description ||
-                                        "(no name — will be labelled by meal)",
+                                        T.importMeals.noNameFallback,
                                 ) +
                                 '</td><td class="num">' +
                                 (r.calories ?? "—") +
@@ -1303,11 +1424,14 @@
                         .join("") +
                     "</tbody></table>" +
                     (S.rows.length > shown.length
-                        ? '<div class="tmore">Showing ' +
-                          shown.length +
-                          " of " +
-                          S.rows.length +
-                          " rows</div>"
+                        ? '<div class="tmore">' +
+                          esc(
+                              tpl(T.importMeals.showingRows, {
+                                  shown: shown.length,
+                                  total: S.rows.length,
+                              }),
+                          ) +
+                          "</div>"
                         : "") +
                     "</div>" +
                     (S.progress
@@ -1316,12 +1440,14 @@
                               (S.progress.done / S.progress.total) * 100,
                           ) +
                           '%"></span></div><div class="hint" style="margin-top:6px">' +
-                          esc(S.progress.label) +
-                          " (batch " +
-                          S.progress.done +
-                          " of " +
-                          S.progress.total +
-                          ")</div></div>"
+                          esc(
+                              tpl(T.importMeals.batchProgress, {
+                                  label: S.progress.label,
+                                  done: S.progress.done,
+                                  total: S.progress.total,
+                              }),
+                          ) +
+                          "</div></div>"
                         : "") +
                     (S.result && S.result.chunkErrors.length
                         ? S.result.chunkErrors
@@ -1336,11 +1462,11 @@
                     (S.result && S.result.rowErrors.length && !S.busy
                         ? '<div class="notice notice-error"><span>✕</span><span>' +
                           esc(
-                              S.result.rowErrors.length +
-                                  " row(s) would fail, e.g. line " +
-                                  S.result.rowErrors[0].line +
-                                  ": " +
-                                  S.result.rowErrors[0].message,
+                              tpl(T.importMeals.rowsWouldFail, {
+                                  n: S.result.rowErrors.length,
+                                  line: S.result.rowErrors[0].line,
+                                  message: S.result.rowErrors[0].message,
+                              }),
                           ) +
                           "</span></div>"
                         : "") +
@@ -1348,13 +1474,19 @@
                     '<div class="actions"><button class="btn btn-primary" id="doImport"' +
                     (S.busy || !(API && API.canCallTools) ? " disabled" : "") +
                     ">" +
-                    (S.busy
-                        ? "Importing…"
-                        : "Import " + S.rows.length + " meals") +
+                    esc(
+                        S.busy
+                            ? T.importMeals.importingEllipsis
+                            : tpl(T.importMeals.importButton, {
+                                  n: S.rows.length,
+                              }),
+                    ) +
                     "</button>" +
                     '<button class="btn" id="backToMap"' +
                     (S.busy ? " disabled" : "") +
-                    ">Back to mapping</button></div>" +
+                    ">" +
+                    esc(T.importMeals.backToMapping) +
+                    "</button></div>" +
                     "</section>"
                 );
             }
@@ -1366,20 +1498,33 @@
                     failed: 0,
                 };
                 const ok = r.failed === 0 && !r.chunkErrors.length;
+                const tail =
+                    (r.deduplicated
+                        ? tpl(T.importMeals.resultAlreadyLogged, {
+                              n: r.deduplicated,
+                          })
+                        : "") +
+                    (r.failed
+                        ? tpl(T.importMeals.resultFailed, { n: r.failed })
+                        : "") +
+                    (S.skipped
+                        ? tpl(T.importMeals.resultSkipped, { n: S.skipped })
+                        : "");
                 return (
-                    '<section class="card"><h3>Import complete</h3>' +
+                    '<section class="card"><h3>' +
+                    esc(T.importMeals.importCompleteHeading) +
+                    "</h3>" +
                     '<div class="notice ' +
                     (ok ? "notice-ok" : "notice-warn") +
                     '"><span>' +
                     (ok ? "✓" : "!") +
-                    "</span><span><b>" +
-                    r.created +
-                    "</b> meals imported" +
-                    (r.deduplicated
-                        ? ", " + r.deduplicated + " already logged"
-                        : "") +
-                    (r.failed ? ", " + r.failed + " failed" : "") +
-                    (S.skipped ? ", " + S.skipped + " skipped" : "") +
+                    "</span><span>" +
+                    boldCount(
+                        tpl(T.importMeals.resultMealsImported, {
+                            n: r.created,
+                        }),
+                    ) +
+                    esc(tail) +
                     ".</span></div>" +
                     (r.warnings || [])
                         .map(
@@ -1390,7 +1535,11 @@
                         )
                         .join("") +
                     (r.rowErrors && r.rowErrors.length
-                        ? '<div class="tscroll" style="max-height:160px"><table class="tbl"><thead><tr><th>Line</th><th class="wide">Problem</th></tr></thead><tbody>' +
+                        ? '<div class="tscroll" style="max-height:160px"><table class="tbl"><thead><tr><th>' +
+                          esc(T.importMeals.tableLine) +
+                          '</th><th class="wide">' +
+                          esc(T.importMeals.tableProblem) +
+                          "</th></tr></thead><tbody>" +
                           r.rowErrors
                               .slice(0, 20)
                               .map(
@@ -1405,7 +1554,9 @@
                           "</tbody></table></div>"
                         : "") +
                     (ok ? "" : diagnosticsBlock()) +
-                    '<div class="actions"><button class="btn" id="restart">Import another file</button></div>' +
+                    '<div class="actions"><button class="btn" id="restart">' +
+                    esc(T.importMeals.restartButton) +
+                    "</button></div>" +
                     "</section>"
                 );
             }
@@ -1533,6 +1684,14 @@
                     if (data && data.import_tool_name) {
                         CFG = Object.assign({}, CFG, data);
                     }
+                    setLocale(
+                        pickLocale(
+                            CFG.locale,
+                            API && API.hostContext
+                                ? API.hostContext.locale
+                                : null,
+                        ),
+                    );
                     render();
                 },
                 sample: {
@@ -1545,6 +1704,7 @@
                     // Tracking off is the default account state, so it is what
                     // the standalone preview shows.
                     drink_unit: null,
+                    locale: "en",
                 },
                 onReady: (api) => {
                     API = api;

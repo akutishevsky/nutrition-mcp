@@ -510,6 +510,10 @@ const MEAL_PROGRESS_OUTPUT_SCHEMA = z.object({
     action: z.enum(["logged", "updated"]),
     date: z.string(),
     drink_unit: DRINK_UNIT_FIELD,
+    // The widget's UI language — see the identical field on
+    // get_nutrition_summary's outputSchema for why this is z.string() and
+    // resolved server-side via getUserLocale.
+    locale: z.string(),
     logged_meal: z.object({
         description: z.string(),
         meal_type: z.string().nullable(),
@@ -730,6 +734,10 @@ export const START_IMPORT_OUTPUT_SCHEMA = z.object({
     // who had asked never to see alcohol — the exact scenario the opt-in
     // exists to prevent. What null makes the widget do: see startImportPayload.
     drink_unit: DRINK_UNIT_FIELD,
+    // The widget's UI language — see the identical field on
+    // get_nutrition_summary's outputSchema for why this is z.string() and
+    // resolved server-side via getUserLocale.
+    locale: z.string(),
 });
 
 export function startImportPayload(opts: {
@@ -737,6 +745,7 @@ export function startImportPayload(opts: {
     tzConfigured: boolean;
     widgetsEnabled: boolean;
     alcohol: AlcoholDisplay;
+    locale: string;
 }) {
     return {
         // The widget must resolve dates the same way the server will, so it is
@@ -780,6 +789,7 @@ export function startImportPayload(opts: {
         // tracking before importing is how to keep it. Silent would be
         // indefensible; announced, it is the user's call to make.
         drink_unit: opts.alcohol,
+        locale: opts.locale,
     };
 }
 
@@ -793,7 +803,9 @@ async function buildMealProgress(
     action: "logged" | "updated",
     alcohol: AlcoholDisplay,
 ) {
-    const tz = await getUserTimezone(userId);
+    const profile = await getProfile(userId);
+    const tz = timezoneFromProfile(profile) ?? "UTC";
+    const locale = localeFromProfile(profile) ?? "en";
     const mealDate = dateInTz(meal.logged_at, tz);
     const [meals, waterEntries, goals] = await Promise.all([
         getMealsByDate(userId, mealDate, tz),
@@ -812,6 +824,7 @@ async function buildMealProgress(
         action,
         date: mealDate,
         drink_unit: alcohol,
+        locale,
         logged_meal: {
             description: meal.description,
             meal_type: meal.meal_type ?? null,
@@ -1540,6 +1553,7 @@ export function registerTools(
                         tzConfigured: tz !== null,
                         widgetsEnabled,
                         alcohol,
+                        locale: localeFromProfile(profile) ?? "en",
                     });
                     const text = widgetsEnabled
                         ? "Importer ready — pick your export file in the panel above. Nothing is saved until you confirm the preview." +
@@ -2698,6 +2712,10 @@ export function registerTools(
                 meal_count: z.number(),
                 water_entries: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
+                // The widget's UI language — see the identical field on
+                // get_nutrition_summary's outputSchema for why this is
+                // z.string() and resolved server-side via getUserLocale.
+                locale: z.string(),
                 goals: GOALS_ITEM.nullable(),
                 totals: TOTALS_ITEM,
                 weight: z
@@ -2717,17 +2735,19 @@ export function registerTools(
             return withAnalytics(
                 "get_goal_progress",
                 async () => {
-                    const tz = await getUserTimezone(userId);
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
                     const targetDate = date ?? todayInTz(tz);
-                    const [meals, water, goals, latestWeight, weightPref] =
+                    const [meals, water, goals, latestWeight] =
                         await Promise.all([
                             getMealsByDate(userId, targetDate, tz),
                             getWaterByDate(userId, targetDate, tz),
                             getNutritionGoals(userId),
                             getLatestWeight(userId),
-                            getPreferredWeightUnit(userId),
                         ]);
-                    const unit = weightPref ?? "kg";
+                    const unit =
+                        preferredWeightUnitFromProfile(profile) ?? "kg";
+                    const locale = localeFromProfile(profile) ?? "en";
                     const totals = sumMeals(meals);
                     totals.water_ml = sumWater(water);
                     const present = nutrientPresence(meals);
@@ -2802,6 +2822,7 @@ export function registerTools(
                         structuredContent: {
                             date: targetDate,
                             drink_unit: alcohol,
+                            locale,
                             meal_count: meals.length,
                             water_entries: water.length,
                             goals: goalsPayload,
@@ -3476,6 +3497,10 @@ export function registerTools(
                 unit: z.string(),
                 target: z.number().nullable(),
                 default_range: z.number(),
+                // The widget's UI language — see the identical field on
+                // get_nutrition_summary's outputSchema for why this is
+                // z.string() and resolved server-side via getUserLocale.
+                locale: z.string(),
                 // Per-day weight (same-day weigh-ins averaged) in display units,
                 // for logged days within the last 30 days; widget slices 7/14/30.
                 days: z.array(
@@ -3492,11 +3517,11 @@ export function registerTools(
             return withAnalytics(
                 "get_weight_trends",
                 async () => {
-                    const [tz, weightPref] = await Promise.all([
-                        getUserTimezone(userId),
-                        getPreferredWeightUnit(userId),
-                    ]);
-                    const unit = weightPref ?? "kg";
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
+                    const unit =
+                        preferredWeightUnitFromProfile(profile) ?? "kg";
+                    const locale = localeFromProfile(profile) ?? "en";
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
                     // The widget's toggle offers up to 30 days, so fetch at
@@ -3572,6 +3597,7 @@ export function registerTools(
                             default_range: [7, 14, 30].includes(windowDays)
                                 ? windowDays
                                 : 30,
+                            locale,
                             days: widgetDays,
                         },
                     };
@@ -3888,6 +3914,10 @@ export function registerTools(
                 // Which toggle the widget opens on (nearest of 7/14/30).
                 default_range: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
+                // The widget's UI language — see the identical field on
+                // get_nutrition_summary's outputSchema for why this is
+                // z.string() and resolved server-side via getUserLocale.
+                locale: z.string(),
                 goals: GOALS_ITEM.nullable(),
                 // Up to 30 days of daily series; the widget slices to 7/14/30.
                 days: z.array(TRENDS_DAY_ITEM),
@@ -3899,7 +3929,9 @@ export function registerTools(
             return withAnalytics(
                 "get_trends",
                 async () => {
-                    const tz = await getUserTimezone(userId);
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
+                    const locale = localeFromProfile(profile) ?? "en";
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
                     // The widget's toggle always offers up to 30 days, so build
@@ -3944,6 +3976,7 @@ export function registerTools(
                                 ? windowDays
                                 : 30,
                             drink_unit: alcohol,
+                            locale,
                             goals: goalsPayload,
                             // Rounded through trendsDayPayloadOf, which nulls
                             // out fiber/sugar/alcohol on days that didn't

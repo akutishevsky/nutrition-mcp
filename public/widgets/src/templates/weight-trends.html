@@ -119,23 +119,12 @@
         <script>
             "use strict";
 
+            /*@i18n@*/
+            /*@include shared/i18n.js@*/
+
             /*@include shared/bridge.js@*/
 
             const RANGES = [7, 14, 30];
-            const MONTHS = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
 
             function shiftDate(date, delta) {
                 const d = new Date(date + "T00:00:00Z");
@@ -145,12 +134,14 @@
 
             // "2026-07-11" → "11 Jul". Parsed by parts, not by Date: the string
             // is already a local calendar day and re-reading it through a
-            // timezone is how it slips by one.
+            // timezone is how it slips by one. Reuses
+            // T.nutritionSummary.months (identical Jan..Dec shape) rather than
+            // its own MONTHS array.
             function shortDay(iso) {
                 const p = String(iso).split("-");
                 const m = Number(p[1]);
                 if (!m || m < 1 || m > 12) return String(iso);
-                return `${Number(p[2])} ${MONTHS[m - 1]}`;
+                return `${Number(p[2])} ${T.nutritionSummary.months[m - 1]}`;
             }
 
             // ---- Sample data so the file renders on its own (browser preview) ----
@@ -170,6 +161,7 @@
                     unit: "kg",
                     target: 75,
                     default_range: 30,
+                    locale: "en",
                     days,
                 };
             }
@@ -268,7 +260,11 @@
                     )
                     .join("");
 
-                const label = `Weight from ${shortDay(days[0].date)} to ${shortDay(days[n - 1].date)}, latest ${w1(weights[n - 1])} ${unit}`;
+                const label = tpl(T.weightTrends.chartAriaLabel, {
+                    from: shortDay(days[0].date),
+                    to: shortDay(days[n - 1].date),
+                    latest: `${w1(weights[n - 1])} ${unit}`,
+                });
 
                 return `
           <svg class="wchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
@@ -303,14 +299,14 @@
                     // inside a 30-day range are a one-day change, and
                     // "−1.0 kg in 30 d" claims a month-long trend that was
                     // never measured.
-                    delta = `<div class="wdelta" style="color:${color}">${signed(change)} ${esc(unit)} since ${shortDay(slice[0].date)}</div>`;
+                    delta = `<div class="wdelta" style="color:${color}">${tpl(T.weightTrends.sinceDate, { change: `${signed(change)} ${esc(unit)}`, date: shortDay(slice[0].date) })}</div>`;
                 } else {
-                    delta = `<div class="wdelta" style="color:var(--text-dim)">need 2+ weigh-ins</div>`;
+                    delta = `<div class="wdelta" style="color:var(--text-dim)">${esc(T.weightTrends.needTwo)}</div>`;
                 }
 
                 return `
           <div class="wnow">
-            <div class="wlabel">Latest</div>
+            <div class="wlabel">${esc(T.weightTrends.latest)}</div>
             <div class="wval">${w1(last)}<span class="wunit">${esc(unit)}</span></div>
             ${delta}
           </div>`;
@@ -322,7 +318,7 @@
                 // a bug.
                 const from = shortDay(slice[0].date);
                 const to = shortDay(slice[n - 1].date);
-                const span = `${n} weigh-in${n === 1 ? "" : "s"} · ${from === to ? from : `${from} → ${to}`}`;
+                const span = `${plural(T.weightTrends.weighIns, n)} · ${from === to ? from : `${from} → ${to}`}`;
 
                 let right;
                 if (target != null) {
@@ -330,11 +326,21 @@
                         Math.round((slice[n - 1].weight - target) * 10) / 10;
                     const gap =
                         Math.abs(delta) < 0.05
-                            ? "at target"
-                            : `${w1(Math.abs(delta))} ${esc(unit)} to ${delta > 0 ? "lose" : "gain"}`;
-                    right = `<b>Target ${w1(target)} ${esc(unit)}</b> · ${gap}`;
+                            ? T.weightTrends.atTarget
+                            : tpl(
+                                  delta > 0
+                                      ? T.weightTrends.toLose
+                                      : T.weightTrends.toGain,
+                                  {
+                                      amount: `${w1(Math.abs(delta))} ${esc(unit)}`,
+                                  },
+                              );
+                    const targetVal = tpl(T.weightTrends.target, {
+                        value: `${w1(target)} ${unit}`,
+                    });
+                    right = `<b>${esc(targetVal)}</b> · ${gap}`;
                 } else {
-                    right = "No target set";
+                    right = esc(T.weightTrends.noTarget);
                 }
 
                 return `
@@ -346,10 +352,12 @@
 
             // ---- State + rendering ---------------------------------------------
             const STATE = { data: null, range: 30 };
+            let __widgetApi = null;
 
             function render(data) {
                 STATE.data = data;
                 const root = document.getElementById("root");
+                setLocaleFrom(data, __widgetApi);
                 if (
                     !data ||
                     !Array.isArray(data.days) ||
@@ -358,7 +366,7 @@
                     root.innerHTML = `
             <div class="empty">
               <div class="big">⚖️</div>
-              <div>No weight logged in this range yet.</div>
+              <div>${esc(T.weightTrends.empty)}</div>
             </div>`;
                     return;
                 }
@@ -386,12 +394,12 @@
 
                 const seg = RANGES.map(
                     (r) =>
-                        `<button class="seg-btn${r === range ? " active" : ""}" data-n="${r}" aria-label="Last ${r} days" aria-pressed="${r === range}">${r}</button>`,
+                        `<button class="seg-btn${r === range ? " active" : ""}" data-n="${r}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}" aria-pressed="${r === range}">${r}</button>`,
                 ).join("");
 
                 const body =
                     n === 0
-                        ? `<div class="cempty">No weigh-ins in the last ${range} days. Try a wider range.</div>`
+                        ? `<div class="cempty">${esc(tpl(T.weightTrends.rangeEmpty, { range }))}</div>`
                         : `
           <div class="wmain">
             ${latestBlock(slice, target, unit)}
@@ -402,8 +410,8 @@
                 root.innerHTML = `
           <div class="panel">
             <div class="phead mid">
-              <div class="ptitle">Weight</div>
-              <div class="seg seg-sm" role="group" aria-label="Trend window">${seg}</div>
+              <div class="ptitle">${esc(T.weightTrends.title)}</div>
+              <div class="seg seg-sm" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${seg}</div>
             </div>
             ${body}
           </div>`;
@@ -435,6 +443,9 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                onReady(api) {
+                    __widgetApi = api;
+                },
             });
         </script>
     </body>

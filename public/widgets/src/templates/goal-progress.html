@@ -95,6 +95,7 @@
             // ---- Sample data so the file renders on its own (browser preview) ----
             const SAMPLE = {
                 date: "2026-07-10",
+                locale: "en",
                 meal_count: 5,
                 water_entries: 6,
                 // The alcohol opt-in, which every payload with an alcohol
@@ -228,31 +229,17 @@
 
             /*@include shared/macros.js@*/
 
-            const MONTHS = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-
             // "2026-07-10" → "10 Jul", for the header line where the year is
             // noise. Split on the string rather than through Date: the payload
             // is a calendar date already resolved in the user's timezone, and
             // new Date("2026-07-10") is UTC midnight, which renders as the 9th
             // for anyone west of Greenwich. Anything not date-shaped is passed
-            // through untouched.
+            // through untouched. Reuses T.nutritionSummary.months (identical
+            // Jan..Dec shape) rather than its own MONTHS array.
             function shortDate(iso) {
                 const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
                 if (!m) return String(iso || "");
-                return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}`;
+                return `${Number(m[3])} ${T.nutritionSummary.months[Number(m[2]) - 1]}`;
             }
 
             // The weight section: one compact row on the strip's own idiom
@@ -271,8 +258,10 @@
                 // section silently.
                 if (!hasCur) {
                     const msg = hasTgt
-                        ? `No weight logged yet. Log one with log_weight to track progress toward your ${fmt(tgt, 1)} ${unit} target.`
-                        : `No weight logged yet. Log one with log_weight to track progress.`;
+                        ? tpl(T.goalProgress.weightNoneWithTarget, {
+                              target: `${fmt(tgt, 1)} ${unit}`,
+                          })
+                        : T.goalProgress.weightNoneNoTarget;
                     return `<div class="wnote psec">${msg}</div>`;
                 }
 
@@ -285,25 +274,37 @@
                     const when = w.logged_on
                         ? ` (${esc(shortDate(w.logged_on))})`
                         : "";
-                    return `<div class="wnote psec">Weight ${fmt(cur, 1)} ${unit}${when} — no goal set. Set one with set_nutrition_goals to see progress here.</div>`;
+                    const reading = `${fmt(cur, 1)} ${unit}${when}`;
+                    return `<div class="wnote psec">${tpl(T.goalProgress.weightNoGoal, { reading })}</div>`;
                 }
 
                 const atTarget = Math.abs(cur - tgt) < 0.05;
                 const delta = Math.round((cur - tgt) * 10) / 10;
-                const dir = delta > 0 ? "to lose" : "to gain";
                 const state = atTarget
-                    ? "at target"
-                    : `${fmt(Math.abs(delta), 1)} ${unit} ${dir}`;
+                    ? T.goalProgress.atTarget
+                    : tpl(
+                          delta > 0
+                              ? T.goalProgress.toLose
+                              : T.goalProgress.toGain,
+                          { amount: `${fmt(Math.abs(delta), 1)} ${unit}` },
+                      );
                 // The row shows the two readings; the distance between them and
                 // the date behind the current one ride along as the graphic's
                 // accessible name and the row's tooltip. "·" separates them
                 // visually, but a screen reader either skips it or announces
                 // "middle dot", so the spoken name uses commas.
                 const metaTxt = w.logged_on
-                    ? `last logged ${esc(w.logged_on)}`
+                    ? tpl(T.goalProgress.lastLogged, {
+                          date: esc(w.logged_on),
+                      })
                     : "";
                 const title = metaTxt ? `${state} · ${metaTxt}` : state;
-                const aria = `Weight ${fmt(cur, 1)} ${unit}, target ${fmt(tgt, 1)} ${unit}, ${state}${metaTxt ? `, ${metaTxt}` : ""}`;
+                const aria = tpl(T.goalProgress.weightAria, {
+                    current: `${fmt(cur, 1)} ${unit}`,
+                    target: `${fmt(tgt, 1)} ${unit}`,
+                    state,
+                    metaSuffix: metaTxt ? `, ${metaTxt}` : "",
+                });
 
                 let pc = 50;
                 let pt = 50;
@@ -328,7 +329,7 @@
 
                 return `
           <div class="wrow psec" title="${title}">
-            <span class="wlab"><span class="dot" style="background:var(--accent)"></span>Weight</span>
+            <span class="wlab"><span class="dot" style="background:var(--accent)"></span>${esc(T.goalProgress.weightLabel)}</span>
             <div class="wtrack" role="img" aria-label="${aria}">
               <div class="wseg" style="left:${segL.toFixed(1)}%;width:${segW.toFixed(1)}%"></div>
               <div class="wmark tgt" style="left:${pt.toFixed(1)}%"></div>
@@ -338,13 +339,16 @@
           </div>`;
             }
 
+            let __widgetApi = null;
+
             function render(data) {
                 const root = document.getElementById("root");
+                setLocaleFrom(data, __widgetApi);
                 if (!data || typeof data !== "object") {
                     root.innerHTML = `
             <div class="empty">
               <div class="big">🎯</div>
-              <div>No goal progress to show.</div>
+              <div>${esc(T.goalProgress.empty)}</div>
             </div>`;
                     return;
                 }
@@ -358,11 +362,14 @@
                     water === 0 &&
                     !(w && (w.current != null || w.target != null));
 
+                const dateOrThisDay =
+                    esc(shortDate(data.date)) || T.goalProgress.thisDay;
+
                 if (nothingLogged) {
                     root.innerHTML = `
             <div class="empty">
               <div class="big">🎯</div>
-              <div>Nothing logged yet for ${esc(shortDate(data.date) || "this day")}.</div>
+              <div>${tpl(T.goalProgress.nothingLoggedFor, { date: dateOrThisDay })}</div>
             </div>`;
                     return;
                 }
@@ -381,18 +388,18 @@
 
                 // The day itself and what was logged on it — the context the
                 // strip's numbers are read against.
-                const meta = `${esc(shortDate(data.date))} · ${meals} meal${meals === 1 ? "" : "s"} · ${water} water${water === 1 ? "" : "s"}`;
+                const meta = `${esc(shortDate(data.date))} · ${plural(T.goalProgress.mealsCount, meals)} · ${plural(T.goalProgress.waterCount, water)}`;
                 // A day with a weight reading but no meals or water still shows
                 // the strip (all zeros against the goals), so say why.
                 const sub =
                     meals === 0 && water === 0
-                        ? `<div class="psub">Nothing logged yet for ${esc(shortDate(data.date) || "this day")}.</div>`
+                        ? `<div class="psub">${tpl(T.goalProgress.nothingLoggedFor, { date: dateOrThisDay })}</div>`
                         : "";
 
                 root.innerHTML = `
           <div class="panel">
             <div class="phead">
-              <div class="ptitle">Goal progress</div>
+              <div class="ptitle">${esc(T.goalProgress.title)}</div>
               ${sub}
               <div class="pmeta">${meta}</div>
             </div>
@@ -417,6 +424,9 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                onReady(api) {
+                    __widgetApi = api;
+                },
             });
         </script>
     </body>
