@@ -1389,6 +1389,7 @@ const PROFILE_BASE: actualSupabase.Profile = {
     widgets_enabled: true,
     alcohol_tracking_enabled: false,
     preferred_drink_unit: null,
+    locale: null,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
 };
@@ -2826,6 +2827,7 @@ describe("get_nutrition_summary discloses its logged-day denominator", () => {
         logged_days: number;
         days_in_range: number;
         averages: Record<string, number>;
+        locale: string;
     }
 
     const summarize = async (call: CallTool) =>
@@ -2885,6 +2887,33 @@ describe("get_nutrition_summary discloses its logged-day denominator", () => {
             expect(r.isError).toBeFalsy();
             expect(sc.logged_days).toBe(0);
             expect(sc.days_in_range).toBe(30);
+            // The empty-range branch has its own structuredContent literal,
+            // separate from the populated one below — both must carry the
+            // widget's resolved locale, not just the common case.
+            expect(sc.locale).toBe("en");
+        });
+    });
+
+    // The dashboard widget reads structuredContent.locale (get_language /
+    // set_language) to render its own strings — not the language of `content`,
+    // which stays whatever the model uses.
+    test("structuredContent carries the profile's saved widget language", async () => {
+        stage(1);
+        db.profile = { ...PROFILE_BASE, locale: "de" };
+        await withTools(null, async (call) => {
+            const sc = (await summarize(call))
+                .structuredContent as unknown as SummaryPayload;
+            expect(sc.locale).toBe("de");
+        });
+    });
+
+    test("structuredContent defaults locale to English when never set", async () => {
+        stage(1);
+        db.profile = { ...PROFILE_BASE, locale: null };
+        await withTools(null, async (call) => {
+            const sc = (await summarize(call))
+                .structuredContent as unknown as SummaryPayload;
+            expect(sc.locale).toBe("en");
         });
     });
 
@@ -3500,6 +3529,53 @@ describe("current-time disclosure", () => {
             expect(text).toContain("No timezone set yet (defaulting to UTC).");
             expectClockIn(text, "UTC", sampled);
             expect(text).toContain("set_timezone");
+        });
+    });
+
+    test("set_language rejects a code outside the supported set", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("set_language", { locale: "xx" });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("Unsupported language");
+            expect(db.profilePatches).toHaveLength(0);
+        });
+    });
+
+    test("set_language persists a supported locale", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("set_language", { locale: "de" });
+            expect(textOf(r)).toContain("Deutsch");
+            expect(textOf(r)).toContain("de");
+            expect(db.profilePatches).toContainEqual({ locale: "de" });
+            expect(db.profile?.locale).toBe("de");
+        });
+    });
+
+    test("get_language defaults to English when never set", async () => {
+        db.profile = { ...PROFILE_BASE, locale: null };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_language"));
+            expect(text).toContain("No language set yet");
+            expect(text).toContain("set_language");
+        });
+    });
+
+    // #99-shaped case, same as timezone: a profile row created by some other
+    // set_* tool with locale still null must read the same as no profile at all.
+    test("get_language treats a profile with no locale as unset", async () => {
+        db.profile = { ...PROFILE_BASE, locale: null, timezone: "UTC" };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_language"));
+            expect(text).toContain("No language set yet");
+        });
+    });
+
+    test("get_language reports a saved locale", async () => {
+        db.profile = { ...PROFILE_BASE, locale: "fr" };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_language"));
+            expect(text).toContain("Français");
+            expect(text).toContain("fr");
         });
     });
 

@@ -34,10 +34,12 @@ import {
     getWidgetsEnabled,
     getAlcoholTrackingEnabled,
     getPreferredDrinkUnit,
+    getUserLocale,
     widgetsEnabledFromProfile,
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
     timezoneFromProfile,
+    localeFromProfile,
     upsertProfile,
     getProfile,
     countMeals,
@@ -59,6 +61,7 @@ import {
     LoggedAtError,
     resolveWriteLoggedAt,
 } from "./tz.js";
+import { SITE_LOCALES, LOCALE_NAMES, type SiteLocale } from "./routes.js";
 import {
     buildDailyBuckets,
     computeTrends,
@@ -2206,6 +2209,15 @@ export function registerTools(
                 // client cannot tell a full month from a fortnight of gaps.
                 days_in_range: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
+                // The widget's UI language (get_language / set_language),
+                // resolved server-side so the dashboard renders its own
+                // labels in it without a second round trip. Not the language
+                // of `content` above — that stays whatever the model uses.
+                // z.string(), not z.enum(SITE_LOCALES): SITE_LOCALES is a
+                // `readonly SiteLocale[]`, not a literal tuple, and this is
+                // an output-only field — getUserLocale's own fallback is
+                // what actually guarantees a known code.
+                locale: z.string(),
                 goals: GOALS_ITEM.nullable(),
                 averages: TOTALS_ITEM,
                 // How many of `logged_days` actually record each of the
@@ -2247,6 +2259,7 @@ export function registerTools(
                         dateDiffDays(start_date, end_date) + 1,
                     );
                     const tz = await getUserTimezone(userId);
+                    const locale = await getUserLocale(userId);
                     const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, start_date, end_date, tz),
                         getWaterInRange(userId, start_date, end_date, tz),
@@ -2269,6 +2282,7 @@ export function registerTools(
                                 logged_days: 0,
                                 days_in_range: daysInRange,
                                 drink_unit: alcohol,
+                                locale,
                                 goals: goalsPayload,
                                 averages: totalsPayloadOf(
                                     emptyTotals(),
@@ -2405,6 +2419,7 @@ export function registerTools(
                             logged_days: days.length,
                             days_in_range: daysInRange,
                             drink_unit: alcohol,
+                            locale,
                             goals: goalsPayload,
                             averages,
                             recorded_days: {
@@ -4291,6 +4306,91 @@ export function registerTools(
                             {
                                 type: "text",
                                 text: `Timezone: ${tz}. ${formatClockLine(tz)}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "set_language",
+        {
+            title: "Set Language",
+            description: `Set the user's UI language for in-chat widgets (dashboards, charts). Supported: ${SITE_LOCALES.map((l) => `'${l}' (${LOCALE_NAMES[l]})`).join(", ")}. This does not change what language the model replies in — only the text rendered inside widget cards. Offer to set this the first time you notice the user writing in a non-English language.`,
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                locale: z
+                    .string()
+                    .describe(
+                        `One of: ${SITE_LOCALES.join(", ")} (ISO 639-1 code).`,
+                    ),
+            }),
+        },
+        async ({ locale }) => {
+            return withAnalytics(
+                "set_language",
+                async () => {
+                    if (!SITE_LOCALES.includes(locale as SiteLocale)) {
+                        throw new Error(
+                            `Unsupported language: ${locale}. Use one of: ${SITE_LOCALES.join(", ")}.`,
+                        );
+                    }
+                    await upsertProfile(userId, { locale });
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Widget language set to ${LOCALE_NAMES[locale as SiteLocale]} (${locale}).`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_language",
+        {
+            title: "Get Language",
+            description:
+                "Get the user's configured UI language for in-chat widgets. Returns English if never set.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_language",
+                async () => {
+                    const locale = localeFromProfile(await getProfile(userId));
+                    if (locale === null) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "No language set yet (defaulting to English). Call set_language to configure one.",
+                                },
+                            ],
+                        };
+                    }
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Language: ${LOCALE_NAMES[locale as SiteLocale] ?? locale} (${locale}).`,
                             },
                         ],
                     };

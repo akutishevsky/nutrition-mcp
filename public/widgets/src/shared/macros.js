@@ -150,13 +150,24 @@ function dayHasData(day) {
     return TOP_LEVEL_MACRO_KEYS.some((k) => (day?.[k] || 0) > 0);
 }
 
-// Grams of pure ethanol per standard drink, and how to name one. Mirrors
-// src/alcohol.ts (NIAAA: 14 g per US drink; NHS: one unit is 10 mL of ethanol
-// = 7.893 g). Hand-copied rather than pulled in with @inlinets because
-// src/widgets.test.ts requires every @include'd partial to appear VERBATIM in
-// the assembled HTML, and a marker expanded inside this partial would break it.
+// The translated label for a metric, falling back to the English literal
+// above if the current locale's dictionary (T, from shared/i18n.js) is
+// somehow missing it. Not baked into the MACROS entries themselves: T is
+// only resolved once the widget's locale is known (setLocale(), called from
+// render()), which is after this module-level array is built.
+function macroLabel(m) {
+    return (T.macros.labels && T.macros.labels[m.key]) || m.label;
+}
+
+// Grams of pure ethanol per standard drink. Mirrors src/alcohol.ts (NIAAA:
+// 14 g per US drink; NHS: one unit is 10 mL of ethanol = 7.893 g).
+// Hand-copied rather than pulled in with @inlinets because src/widgets.test.ts
+// requires every @include'd partial to appear VERBATIM in the assembled
+// HTML, and a marker expanded inside this partial would break it. The unit
+// NAMES ("US drinks" / "UK units") come from T.macros.drinkLabels instead of
+// a sibling constant here, since — unlike the gram figures — they are
+// user-visible text.
 const DRINK_GRAMS = { us: 14, uk: 7.893 };
-const DRINK_LABEL = { us: "US drinks", uk: "UK units" };
 
 // value vs goal → filled fraction, the target caption, the remaining-amount
 // caption, and the ring's centre. Bars and rings keep their metric colour even
@@ -170,8 +181,10 @@ function macroBits(m, vals, goal, wording) {
     // means nothing at all. So a ceiling always uses under/over — matching the
     // "Days over limit" phrasing in computeTrends — and `wording` tunes the
     // floor case only (trends passes { under: "under" } for its averages).
-    const underWord = ceiling ? "under" : (wording && wording.under) || "left";
-    const overWord = (wording && wording.over) || "over";
+    const underWord = ceiling
+        ? T.macros.ceilingUnder
+        : (wording && wording.under) || T.macros.floorUnder;
+    const overWord = (wording && wording.over) || T.macros.over;
     const val = vals?.[m.key] ?? 0;
     const target = goal?.[m.key] ?? null;
 
@@ -193,8 +206,12 @@ function macroBits(m, vals, goal, wording) {
     const pctColor = over ? "var(--over)" : m.color;
 
     let goalLine, targetStr, deltaStr, center2;
+    // Tracked separately from the (translated) deltaStr text so callers can
+    // detect the "exactly at a ceiling" state without string-matching a
+    // localized value — see its use in macroLimit.
+    let atLimit = false;
     if (pct == null) {
-        targetStr = "no goal set";
+        targetStr = T.macros.noGoalSet;
         deltaStr = "";
         goalLine = targetStr;
         center2 = `<div class="ru">${m.unit}</div>`;
@@ -205,11 +222,12 @@ function macroBits(m, vals, goal, wording) {
         } else if (delta === 0 && ceiling) {
             // "0 g under" would be read as room left; exactly at a limit is
             // its own state.
-            deltaStr = "at limit";
+            deltaStr = T.macros.atLimit;
+            atLimit = true;
         } else {
             deltaStr = `${fmt(delta, m.decimals)} ${m.unit} ${underWord}`;
         }
-        targetStr = `${ceiling ? "limit" : "of"} ${fmt(target, m.decimals)} ${m.unit}`;
+        targetStr = `${ceiling ? T.macros.limitPrefix : T.macros.ofPrefix} ${fmt(target, m.decimals)} ${m.unit}`;
         goalLine = `${targetStr} · ${deltaStr}`;
         center2 = `<div class="rp" style="color:${pctColor}">${Math.round(pct)}%</div>`;
     }
@@ -218,6 +236,7 @@ function macroBits(m, vals, goal, wording) {
         target,
         pct,
         over,
+        atLimit,
         frac,
         goalLine,
         targetStr,
@@ -243,7 +262,7 @@ function ringMarkup(m, b) {
             ? b.center2
             : `<div class="rv">${fmt(b.val, m.decimals)}</div>${b.center2}`;
     return `
-      <div class="ring" style="--c:${m.color};--p:${b.frac.toFixed(4)}" role="img" aria-label="${esc(m.label)} ${fmt(b.val, m.decimals)} ${m.unit}">
+      <div class="ring" style="--c:${m.color};--p:${b.frac.toFixed(4)}" role="img" aria-label="${esc(macroLabel(m))} ${fmt(b.val, m.decimals)} ${m.unit}">
         <div class="ring-track"></div>
         <div class="ring-arc"></div>
         ${cap}
@@ -288,7 +307,7 @@ function tileLabel(m, b) {
     // "·" separates value from goal visually; screen readers either skip it or
     // announce "middle dot", so the spoken name uses a comma.
     const state = b.goalLine.replace(" · ", ", ");
-    return `${m.label} ${fmt(b.val, m.decimals)} ${m.unit}, ${state}. Show the meals that contributed.`;
+    return `${macroLabel(m)} ${fmt(b.val, m.decimals)} ${m.unit}, ${state}. ${T.macros.showMealsContributed}`;
 }
 
 // When a tile has something to disclose it is also a button that toggles its
@@ -341,7 +360,7 @@ function macroTile(m, b, num, cap, interactive) {
     return `
         <div class="${cls}"${interactiveAttrs(m, b, interactive)}>
           <div class="mtop">
-            <span class="mkey">${esc(m.label)}</span>
+            <span class="mkey">${esc(macroLabel(m))}</span>
             <span class="mnum"${flag ? ' style="color:var(--over)"' : ""}>${num}</span>
           </div>
           <div class="mbar"><div class="mfill" style="width:${(b.frac * 100).toFixed(1)}%;background:${m.color}"></div></div>
@@ -395,11 +414,11 @@ function macroLimit(m, ctx, interactive) {
     const num =
         b.val > 0
             ? `${fmt(b.val, m.decimals)}${unit}`
-            : `<span class="mnone">none logged</span>`;
+            : `<span class="mnone">${esc(T.macros.noneLogged)}</span>`;
     let cap = b.targetStr;
     if (b.val > 0 && m.gloss === "drinks") {
         const drinks = (b.val / DRINK_GRAMS[ctx.drinkUnit]).toFixed(1);
-        cap = `${drinks} ${DRINK_LABEL[ctx.drinkUnit]} · ${cap}`;
+        cap = `${drinks} ${T.macros.drinkLabels[ctx.drinkUnit]} · ${cap}`;
     }
     // The limit itself is the caption; BY HOW MUCH joins it only when that is
     // the thing to act on. Under a limit "13.1 g under" is noise in a cell
@@ -407,7 +426,7 @@ function macroLimit(m, ctx, interactive) {
     // size, and "at limit" is a state the colour cannot express at all
     // (`over` is pct > 100, so exactly at a ceiling reads as comfortably
     // under it otherwise).
-    if (b.deltaStr && (b.over || b.deltaStr === "at limit")) {
+    if (b.deltaStr && (b.over || b.atLimit)) {
         cap = `${cap} · ${b.deltaStr}`;
     }
     return macroTile(m, b, num, cap, interactive);
@@ -428,7 +447,7 @@ function macroWater(m, ctx) {
             : `${L(b.val)}<span class="wsub"> L</span>`;
     return `
       <div class="wrow psec">
-        <span class="wlab"><span class="dot" style="background:${m.color}"></span>${esc(m.label)}</span>
+        <span class="wlab"><span class="dot" style="background:${m.color}"></span>${esc(macroLabel(m))}</span>
         <div class="mbar"><div class="mfill" style="width:${(b.frac * 100).toFixed(1)}%;background:${m.color}"></div></div>
         <span class="wnum">${num}</span>
       </div>`;
@@ -452,6 +471,11 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // unrecognised unit: "us" is what src/mcp.ts uses for an
         // alcohol-tracking user with no saved preference.
         drinkUnit: DRINK_GRAMS[unit] ? unit : "us",
+        // "Calories today" is not yet in WIDGET_STRINGS — every current
+        // caller (the four production templates) passes its own calLabel,
+        // so this default only fires for the dev-only component gallery.
+        // Add a macros.calLabelDefault key here when a widget that relies
+        // on it is translated.
         calLabel: (opts && opts.calLabel) || "Calories today",
         // Set by a widget that puts something of its own — a chart, a range
         // toggle's chart — between the header line and the strip, so the strip
@@ -516,7 +540,7 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // hides it once a breakdown is open: by then the answer is on screen and
     // the instruction is just a row of noise above it.
     const hint = interactive
-        ? `<div class="mhint" data-macro-hint>Tap a metric for the meals behind it</div>`
+        ? `<div class="mhint" data-macro-hint>${esc(T.macros.tapHint)}</div>`
         : "";
     // The breakdown renders into this region on tap; hidden until then.
     const detail = interactive
@@ -561,7 +585,7 @@ function mealList(m, meals) {
         .sort((a, b) => b.v - a.v);
 
     if (!rows.length) {
-        return `<div class="md-empty">No logged meals contributed ${esc(m.label.toLowerCase())}.</div>`;
+        return `<div class="md-empty">${esc(tpl(T.macros.noMealsContributed, { label: macroLabel(m) }))}</div>`;
     }
 
     const CAP = 8;
@@ -578,14 +602,14 @@ function mealList(m, meals) {
             return `
         <li class="md-row">
           <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(m.unit)}</span></span>
-          <span class="md-name">${esc(meal.description || "Untitled meal")}</span>
+          <span class="md-name">${esc(meal.description || T.macros.untitledMeal)}</span>
           ${sub ? `<span class="md-sub">${sub}</span>` : ""}
         </li>`;
         })
         .join("");
     const more =
         extra > 0
-            ? `<li class="md-more">+ ${extra} smaller meal${extra === 1 ? "" : "s"}</li>`
+            ? `<li class="md-more">${esc(plural(T.macros.moreMeals, extra))}</li>`
             : "";
     return `<ul class="md-list">${items}${more}</ul>`;
 }
@@ -595,8 +619,8 @@ function mealList(m, meals) {
 function macroDetailBody(m, ctx) {
     return `
       <div class="md-head">
-        <span class="md-title"><span class="dot" style="background:${m.color}"></span>${esc(m.label)} by meal</span>
-        <button class="md-close" data-macro-close aria-label="Close breakdown">✕</button>
+        <span class="md-title"><span class="dot" style="background:${m.color}"></span>${esc(tpl(T.macros.byMealTitle, { label: macroLabel(m) }))}</span>
+        <button class="md-close" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">✕</button>
       </div>${mealList(m, ctx.meals)}`;
 }
 

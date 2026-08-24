@@ -615,6 +615,10 @@ export interface Profile {
     widgets_enabled: boolean;
     alcohol_tracking_enabled: boolean;
     preferred_drink_unit: DrinkUnit | null;
+    // null means "never set with set_language" — same null-is-not-a-default
+    // contract as timezone above. Always coalesce through localeFromProfile /
+    // getUserLocale, never read this directly.
+    locale: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -642,6 +646,20 @@ export function timezoneFromProfile(
 
 export async function getUserTimezone(userId: string): Promise<string> {
     return timezoneFromProfile(await getProfile(userId)) ?? "UTC";
+}
+
+// Returns the locale the user actually chose with set_language, or null if
+// they never have — regardless of whether a profile row exists. Mirrors
+// timezoneFromProfile: callers that need to know whether a locale is
+// *configured* must use this, not `profile !== null`.
+export function localeFromProfile(
+    profile: Profile | null | undefined,
+): string | null {
+    return profile?.locale ?? null;
+}
+
+export async function getUserLocale(userId: string): Promise<string> {
+    return localeFromProfile(await getProfile(userId)) ?? "en";
 }
 
 // Returns the user's saved weight-unit preference, or null if they have never
@@ -728,6 +746,7 @@ export async function upsertProfile(
         widgets_enabled?: boolean;
         alcohol_tracking_enabled?: boolean;
         preferred_drink_unit?: DrinkUnit | null;
+        locale?: string;
     },
 ): Promise<Profile> {
     const payload: Record<string, unknown> = {
@@ -745,6 +764,7 @@ export async function upsertProfile(
     // null is meaningful here too (clears the preference).
     if (patch.preferred_drink_unit !== undefined)
         payload.preferred_drink_unit = patch.preferred_drink_unit;
+    if (patch.locale !== undefined) payload.locale = patch.locale;
 
     const { data, error } = await getSupabase()
         .from("profiles")
