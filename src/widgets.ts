@@ -16,6 +16,8 @@
 //
 // Markers resolve relative to public/widgets/src/ and expand recursively.
 
+import { WIDGET_STRINGS } from "./copy/widgets.js";
+
 const SRC_DIR = "./public/widgets/src";
 const INCLUDE_RE = /\/\*@include\s+([^\s@]+)\s*@\*\//g;
 
@@ -50,6 +52,19 @@ async function inlineTs(relPath: string): Promise<string> {
         .replace(/^export\s+/gm, "")
         .replace(/^\s*export\s*\{[^}]*\};?\s*$/gm, "");
 }
+
+// Third marker: inline the widget UI-string dictionary as a plain-data JS
+// const.
+//
+//     /*@i18n@*/
+//
+// Lives once, in shared/i18n.js (see that file for the runtime locale-pick/
+// lookup helpers it defines around this data). Unlike @inlinets this has no
+// source-file argument — WIDGET_STRINGS is a single, fixed, already-imported
+// object (src/copy/widgets.ts) covering every locale, not a per-marker path.
+// Plain JSON.stringify is enough because that dictionary is data-only (no
+// functions) by design — see the doc comment on WidgetStrings.
+const I18N_RE = /\/\*@i18n@\*\//g;
 
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
@@ -104,19 +119,27 @@ async function assemble(templateFile: string): Promise<string> {
         `templates/${templateFile}`,
     ]);
 
-    // @inlinets runs after @include so a shared partial can pull one in too.
+    // @inlinets and @i18n run after @include so a shared partial can pull
+    // either in too.
     const tsMatches = [...withPartials.matchAll(INLINE_TS_RE)];
-    if (tsMatches.length === 0) return withPartials;
     const compiled = new Map<string, string>();
     for (const m of tsMatches) {
         const rel = m[1];
         if (!rel || compiled.has(rel)) continue;
         compiled.set(rel, await inlineTs(rel));
     }
-    return withPartials.replace(
-        INLINE_TS_RE,
-        (_full, rel) => compiled.get(rel) ?? "",
-    );
+    const withTs =
+        tsMatches.length === 0
+            ? withPartials
+            : withPartials.replace(
+                  INLINE_TS_RE,
+                  (_full, rel) => compiled.get(rel) ?? "",
+              );
+
+    if (!I18N_RE.test(withTs)) return withTs;
+    I18N_RE.lastIndex = 0;
+    const stringsLiteral = `const WIDGET_STRINGS = ${JSON.stringify(WIDGET_STRINGS)};`;
+    return withTs.replace(I18N_RE, stringsLiteral);
 }
 
 // Return the fully-inlined HTML for a widget, assembling+caching on first use.

@@ -6,6 +6,7 @@
 // helpers each template supplies — and the caption strings are asserted against
 // real values. Without this the wording is pinned by nothing at all.
 import { test, expect } from "bun:test";
+import { WIDGET_STRINGS_EN } from "../../src/copy/widgets";
 
 const SRC = "./public/widgets/src";
 
@@ -21,15 +22,22 @@ type Bits = { goalLine: string; over: boolean; pct: number | null };
 type Macro = { key: string; direction?: string };
 type Vals = Record<string, number | null>;
 const macrosApi = await (async () => {
-    const src = await Bun.file(`${SRC}/shared/macros.js`).text();
+    // shared/i18n.js before shared/macros.js, exactly as every template
+    // orders its includes — macros.js reads T/tpl/plural from it. Only the
+    // "en" dictionary is wired in (WIDGET_STRINGS = { en: ... }): these
+    // tests assert English wording, and macroLabel()/T.macros.* fall back to
+    // English by construction whenever a locale is missing.
+    const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
+    const macrosSrc = await Bun.file(`${SRC}/shared/macros.js`).text();
     // `document`/`window` are left undefined so the partial's delegated event
     // wiring (guarded by `typeof document`) stays out of the way.
     const factory = new Function(
         "fmt",
         "esc",
-        `${src}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList };`,
+        "WIDGET_STRINGS",
+        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList };`,
     );
-    return factory(fmt, esc) as {
+    return factory(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
         macroBits: (
             m: Macro,
             vals: Record<string, number>,

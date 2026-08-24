@@ -64,17 +64,15 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `update_weight`            | Update an existing weight entry                                                                                                                  |
 | `delete_weight`            | Delete a weight entry by ID                                                                                                                      |
 | `set_weight_unit`          | Set the preferred weight unit (`kg` or `lb`; null to clear)                                                                                      |
-| `get_weight_unit`          | Get the preferred weight unit                                                                                                                    |
 | `get_trends`               | 7/14/30-day averages, std dev, streaks, day-of-week, best/worst day                                                                              |
 | `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                |
 | `export_all_data`          | Export every table — meals, water, weight, goals, profile — as one ZIP of CSVs plus a README, and return a 60-minute download link               |
+| `get_profile`              | Get timezone (+ local date/time), widget language, weight unit, widget display and alcohol tracking in one call                                  |
 | `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                                                        |
-| `get_timezone`             | Get the user's configured timezone, plus their current local date and time                                                                       |
+| `set_language`             | Set the UI language for in-chat widgets (dashboards, charts) — not the language the AI replies in                                                |
 | `get_current_time`         | Get the current date and time in the user's timezone, plus the UTC instant — for hosts with no clock in context                                  |
 | `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default                                                     |
-| `get_widget_display`       | Get whether the in-chat visual widgets are enabled                                                                                               |
 | `set_alcohol_tracking`     | Turn alcohol tracking on or off (off by default) and choose US standard drinks or UK units; turning it off hides alcohol rather than deleting it |
-| `get_alcohol_tracking`     | Get whether alcohol tracking is on and which standard drink it's displayed in                                                                    |
 | `delete_account`           | Permanently delete account and all associated data                                                                                               |
 
 ## MCP Resources

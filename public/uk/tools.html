@@ -2,13 +2,13 @@
 <html lang="uk">
     <head>
         <title>
-            Довідник інструментів: усі 38 інструментів — Nutrition MCP
+            Довідник інструментів: усі 36 інструментів — Nutrition MCP
         </title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <meta
             name="description"
-            content="Усі 38 інструментів, які сервер Nutrition MCP дає твоєму ШІ — записувати прийоми їжі, сканувати штрихкоди, імпортувати історію з іншого застосунку, відстежувати воду й вагу, встановлювати цілі та переглядати тренди. Повний довідник з описами та прикладами запитів."
+            content="Усі 36 інструментів, які сервер Nutrition MCP дає твоєму ШІ — записувати прийоми їжі, сканувати штрихкоди, імпортувати історію з іншого застосунку, відстежувати воду й вагу, встановлювати цілі та переглядати тренди. Повний довідник з описами та прикладами запитів."
         />
         <link rel="canonical" href="https://nutrition-mcp.com/uk/tools" />
         <link
@@ -53,6 +53,11 @@
         />
         <link
             rel="alternate"
+            hreflang="ja"
+            href="https://nutrition-mcp.com/ja/tools"
+        />
+        <link
+            rel="alternate"
             hreflang="x-default"
             href="https://nutrition-mcp.com/tools"
         />
@@ -64,16 +69,17 @@
         <meta property="og:locale:alternate" content="nl_NL" />
         <meta property="og:locale:alternate" content="pl_PL" />
         <meta property="og:locale:alternate" content="it_IT" />
+        <meta property="og:locale:alternate" content="ja_JP" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#fbfbf9" />
         <meta
             property="og:title"
-            content="Довідник інструментів: усі 38 інструментів — Nutrition MCP"
+            content="Довідник інструментів: усі 36 інструментів — Nutrition MCP"
         />
         <meta
             property="og:description"
-            content="Усі 38 інструментів, які сервер Nutrition MCP дає твоєму ШІ, включно з імпортером CSV для історії з іншого застосунку — з описами та прикладами запитів."
+            content="Усі 36 інструментів, які сервер Nutrition MCP дає твоєму ШІ, включно з імпортером CSV для історії з іншого застосунку — з описами та прикладами запитів."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://nutrition-mcp.com/uk/tools" />
@@ -633,6 +639,12 @@
                                 aria-current="page"
                                 >Українська</a
                             >
+                            <a
+                                href="https://nutrition-mcp.com/ja/tools"
+                                lang="ja"
+                                hreflang="ja"
+                                >日本語</a
+                            >
                         </div>
                     </details>
                     <button
@@ -697,7 +709,7 @@
                     >Підключення <small>менш ніж за хвилину</small></a
                 >
                 <a href="/uk/tools" aria-current="page"
-                    >Інструменти <small>38 інструментів</small></a
+                    >Інструменти <small>36 інструментів</small></a
                 >
                 <a href="/uk#try">Приклади <small>демо наживо</small></a>
                 <a href="/uk#stats"
@@ -744,7 +756,7 @@
                                 class="fa-solid fa-wrench"
                                 aria-hidden="true"
                             ></i
-                            ><b>38 інструментів</b> у 7 категоріях</span
+                            ><b>36 інструментів</b> у 7 категоріях</span
                         >
                     </div>
 
@@ -1968,28 +1980,6 @@
                                     <p>Відтепер показуй мою вагу у фунтах</p>
                                 </div>
                             </article>
-
-                            <article class="tool-card" id="get_weight_unit">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_weight_unit</code
-                                    >
-                                    <span class="chip chip-view">Перегляд</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Перевір, яку одиницю виміру ваги ти зараз
-                                    використовуєш.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Спробуй сказати</span
-                                    >
-                                    <p>
-                                        Яку одиницю виміру ваги я використовую?
-                                    </p>
-                                </div>
-                            </article>
                         </div>
                     </section>
 
@@ -2380,6 +2370,27 @@
                             </div>
                         </div>
                         <div class="tool-grid">
+                            <article class="tool-card" id="get_profile">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_profile</code>
+                                    <span class="chip chip-view">Перегляд</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Переглянь свої поточні налаштування одразу:
+                                    часовий пояс (разом із місцевою датою й
+                                    часом), мову віджетів, обрану одиницю виміру
+                                    ваги, чи показуються віджети в чаті та чи
+                                    увімкнено відстеження алкоголю.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Спробуй сказати</span
+                                    >
+                                    <p>Які в мене зараз налаштування?</p>
+                                </div>
+                            </article>
+
                             <article class="tool-card" id="set_timezone">
                                 <div class="tool-head">
                                     <code class="tool-name">set_timezone</code>
@@ -2405,25 +2416,42 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_timezone">
+                            <article class="tool-card" id="set_language">
                                 <div class="tool-head">
-                                    <code class="tool-name">get_timezone</code>
-                                    <span class="chip chip-view">Перегляд</span>
+                                    <code class="tool-name">set_language</code>
+                                    <span class="chip chip-setting"
+                                        >Налаштування</span
+                                    >
                                 </div>
                                 <p class="tool-desc">
-                                    Перевір, який часовий пояс у тебе
-                                    налаштований, разом із поточною місцевою
-                                    датою та часом (за замовчуванням UTC, якщо
-                                    не встановлено).
+                                    Встанови мову інтерфейсу для віджетів у чаті
+                                    — панелей і графіків, а не того, що ШІ пише
+                                    тобі у відповідь.
                                 </p>
-
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Параметри</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>locale</code>
+                                            <span class="param-req"
+                                                >обов'язковий</span
+                                            >
+                                            — Код ISO 639-1, наприклад
+                                            <code>de</code>, <code>uk</code>.
+                                            Підтримуються: англійська, німецька,
+                                            іспанська, французька,
+                                            нідерландська, польська, італійська,
+                                            українська.
+                                        </li>
+                                    </ul>
+                                </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
                                         >Спробуй сказати</span
                                     >
-                                    <p>
-                                        Який у мене встановлений часовий пояс?
-                                    </p>
+                                    <p>Покажи мої віджети українською</p>
                                 </div>
                             </article>
 
@@ -2492,26 +2520,6 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_widget_display">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_widget_display</code
-                                    >
-                                    <span class="chip chip-view">Перегляд</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Перевір, чи увімкнені зараз візуальні
-                                    віджети в чаті.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Спробуй сказати</span
-                                    >
-                                    <p>Чи увімкнені віджети?</p>
-                                </div>
-                            </article>
-
                             <article
                                 class="tool-card"
                                 id="set_alcohol_tracking"
@@ -2575,30 +2583,6 @@
                                         Почни відстежувати мій алкоголь у
                                         британських одиницях
                                     </p>
-                                </div>
-                            </article>
-
-                            <article
-                                class="tool-card"
-                                id="get_alcohol_tracking"
-                            >
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_alcohol_tracking</code
-                                    >
-                                    <span class="chip chip-view">Перегляд</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Перевір, чи увімкнено відстеження алкоголю і
-                                    в якій стандартній порції показуються твої
-                                    грами.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Спробуй сказати</span
-                                    >
-                                    <p>Чи відстежую я алкоголь?</p>
                                 </div>
                             </article>
 

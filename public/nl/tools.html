@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="nl">
     <head>
-        <title>Toolreferentie: alle 38 tools — Nutrition MCP</title>
+        <title>Toolreferentie: alle 36 tools — Nutrition MCP</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <meta
             name="description"
-            content="Alle 38 tools die de Nutrition MCP-server aan je AI geeft — maaltijden loggen, barcodes scannen, je geschiedenis uit een andere app importeren, water en gewicht bijhouden, doelen instellen en trends bekijken. Volledige referentie met beschrijvingen en voorbeeldzinnen."
+            content="Alle 36 tools die de Nutrition MCP-server aan je AI geeft — maaltijden loggen, barcodes scannen, je geschiedenis uit een andere app importeren, water en gewicht bijhouden, doelen instellen en trends bekijken. Volledige referentie met beschrijvingen en voorbeeldzinnen."
         />
         <link rel="canonical" href="https://nutrition-mcp.com/nl/tools" />
         <link
@@ -51,6 +51,11 @@
         />
         <link
             rel="alternate"
+            hreflang="ja"
+            href="https://nutrition-mcp.com/ja/tools"
+        />
+        <link
+            rel="alternate"
             hreflang="x-default"
             href="https://nutrition-mcp.com/tools"
         />
@@ -62,16 +67,17 @@
         <meta property="og:locale:alternate" content="pl_PL" />
         <meta property="og:locale:alternate" content="it_IT" />
         <meta property="og:locale:alternate" content="uk_UA" />
+        <meta property="og:locale:alternate" content="ja_JP" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#fbfbf9" />
         <meta
             property="og:title"
-            content="Toolreferentie: alle 38 tools — Nutrition MCP"
+            content="Toolreferentie: alle 36 tools — Nutrition MCP"
         />
         <meta
             property="og:description"
-            content="Alle 38 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer voor je geschiedenis uit een andere app — met beschrijvingen en voorbeeldzinnen."
+            content="Alle 36 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer voor je geschiedenis uit een andere app — met beschrijvingen en voorbeeldzinnen."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://nutrition-mcp.com/nl/tools" />
@@ -631,6 +637,12 @@
                                 hreflang="uk"
                                 >Українська</a
                             >
+                            <a
+                                href="https://nutrition-mcp.com/ja/tools"
+                                lang="ja"
+                                hreflang="ja"
+                                >日本語</a
+                            >
                         </div>
                     </details>
                     <button
@@ -695,7 +707,7 @@
                     >Installeren <small>binnen een minuut</small></a
                 >
                 <a href="/nl/tools" aria-current="page"
-                    >Tools <small>38 tools</small></a
+                    >Tools <small>36 tools</small></a
                 >
                 <a href="/nl#try">Voorbeelden <small>live demo's</small></a>
                 <a href="/nl#stats"
@@ -743,7 +755,7 @@
                                 class="fa-solid fa-wrench"
                                 aria-hidden="true"
                             ></i
-                            ><b>38 tools</b> verdeeld over 7 categorieën</span
+                            ><b>36 tools</b> verdeeld over 7 categorieën</span
                         >
                     </div>
 
@@ -2013,26 +2025,6 @@
                                     </p>
                                 </div>
                             </article>
-
-                            <article class="tool-card" id="get_weight_unit">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_weight_unit</code
-                                    >
-                                    <span class="chip chip-view">Bekijken</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Bekijk welke gewichtseenheid je op dit
-                                    moment gebruikt.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Probeer te zeggen</span
-                                    >
-                                    <p>Welke gewichtseenheid gebruik ik?</p>
-                                </div>
-                            </article>
                         </div>
                     </section>
 
@@ -2430,6 +2422,27 @@
                             </div>
                         </div>
                         <div class="tool-grid">
+                            <article class="tool-card" id="get_profile">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_profile</code>
+                                    <span class="chip chip-view">Bekijken</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Bekijk al je huidige instellingen in één
+                                    keer: tijdzone (plus je lokale datum en
+                                    tijd), de widgettaal, je gewichtseenheid, of
+                                    de widgets in de chat worden getoond, en of
+                                    alcoholregistratie aanstaat.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Probeer te zeggen</span
+                                    >
+                                    <p>Wat zijn mijn huidige instellingen?</p>
+                                </div>
+                            </article>
+
                             <article class="tool-card" id="set_timezone">
                                 <div class="tool-head">
                                     <code class="tool-name">set_timezone</code>
@@ -2455,23 +2468,41 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_timezone">
+                            <article class="tool-card" id="set_language">
                                 <div class="tool-head">
-                                    <code class="tool-name">get_timezone</code>
-                                    <span class="chip chip-view">Bekijken</span>
+                                    <code class="tool-name">set_language</code>
+                                    <span class="chip chip-setting"
+                                        >Instelling</span
+                                    >
                                 </div>
                                 <p class="tool-desc">
-                                    Bekijk voor welke tijdzone je bent
-                                    ingesteld, samen met je huidige lokale datum
-                                    en tijd (standaard UTC als niets is
-                                    ingesteld).
+                                    Stel de taal in voor de widgets in de chat —
+                                    de dashboards en grafieken, niet wat de AI
+                                    aan je terugschrijft.
                                 </p>
-
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parameters</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>locale</code>
+                                            <span class="param-req"
+                                                >vereist</span
+                                            >
+                                            — ISO 639-1-code, bijv.
+                                            <code>de</code>, <code>uk</code>.
+                                            Ondersteund: Engels, Duits, Spaans,
+                                            Frans, Nederlands, Pools, Italiaans
+                                            en Oekraïens.
+                                        </li>
+                                    </ul>
+                                </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
                                         >Probeer te zeggen</span
                                     >
-                                    <p>Op welke tijdzone sta ik ingesteld?</p>
+                                    <p>Zet mijn widgets in het Duits</p>
                                 </div>
                             </article>
 
@@ -2540,26 +2571,6 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_widget_display">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_widget_display</code
-                                    >
-                                    <span class="chip chip-view">Bekijken</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Bekijk of de visuele widgets in de chat op
-                                    dit moment zijn ingeschakeld.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Probeer te zeggen</span
-                                    >
-                                    <p>Staan de widgets aan?</p>
-                                </div>
-                            </article>
-
                             <article
                                 class="tool-card"
                                 id="set_alcohol_tracking"
@@ -2624,30 +2635,6 @@
                                         Begin met het bijhouden van mijn
                                         drankgebruik, in Britse eenheden
                                     </p>
-                                </div>
-                            </article>
-
-                            <article
-                                class="tool-card"
-                                id="get_alcohol_tracking"
-                            >
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_alcohol_tracking</code
-                                    >
-                                    <span class="chip chip-view">Bekijken</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Bekijk of alcoholregistratie aanstaat, en in
-                                    welk standaardglas je gramwaarden worden
-                                    getoond.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Probeer te zeggen</span
-                                    >
-                                    <p>Houd ik alcohol bij?</p>
                                 </div>
                             </article>
 

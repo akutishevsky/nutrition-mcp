@@ -16,17 +16,17 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_FR: ToolsDoc = {
     meta: {
-        title: "Référence des outils : les 38 outils",
+        title: "Référence des outils : les 36 outils",
         description:
-            "Les 38 outils que le serveur Nutrition MCP donne à ton IA — enregistrer des repas, scanner des codes-barres, importer ton historique depuis une autre app, suivre l'eau et le poids, définir des objectifs et consulter les tendances. Référence complète avec descriptions et exemples de formulations.",
+            "Les 36 outils que le serveur Nutrition MCP donne à ton IA — enregistrer des repas, scanner des codes-barres, importer ton historique depuis une autre app, suivre l'eau et le poids, définir des objectifs et consulter les tendances. Référence complète avec descriptions et exemples de formulations.",
         ogDescription:
-            "Les 38 outils que le serveur Nutrition MCP donne à ton IA, dont un importateur CSV pour ton historique venu d'une autre app — avec descriptions et exemples de formulations.",
+            "Les 36 outils que le serveur Nutrition MCP donne à ton IA, dont un importateur CSV pour ton historique venu d'une autre app — avec descriptions et exemples de formulations.",
     },
     hero: {
         eyebrow: "Référence",
         title: "Tout ce que ton IA peut faire",
         lead: "Tu n'appelles jamais ces outils directement — tu parles simplement, et l'assistant choisit le bon outil. Voici l'ensemble complet exposé par le serveur Nutrition MCP, avec ce que fait chacun et une phrase qui le déclenche.",
-        countBold: "38 outils",
+        countBold: "36 outils",
         countTail: "répartis en 7 catégories",
     },
     categories: {
@@ -305,12 +305,6 @@ export const TOOLS_FR: ToolsDoc = {
             params: {},
             example: "Utilise les livres pour mon poids à partir de maintenant",
         },
-        get_weight_unit: {
-            description:
-                "Vérifie quelle unité de poids tu utilises actuellement.",
-            params: {},
-            example: "Quelle unité de poids j'utilise ?",
-        },
         set_nutrition_goals: {
             description:
                 "Définis tes objectifs quotidiens de calories, macros, fibres, sucre, alcool, caféine et eau, plus un poids cible facultatif. Les calories, protéines, glucides, lipides, fibres et eau sont des cibles à atteindre ; le sucre, l'alcool et la caféine sont des limites à ne pas dépasser, et la progression est formulée en conséquence. Seuls les champs que tu nommes sont mis à jour ; les autres restent inchangés.",
@@ -376,17 +370,25 @@ export const TOOLS_FR: ToolsDoc = {
             example:
                 "Des habitudes dans ma façon de manger — comme des dîners tardifs ou sauter le petit-déjeuner ?",
         },
+        get_profile: {
+            description:
+                "Affiche tes réglages actuels en un coup d'œil : fuseau horaire (plus la date et l'heure locales), langue des widgets, unité de poids préférée, si les widgets interactifs dans le chat sont activés, et si le suivi de l'alcool est activé.",
+            params: {},
+            example: "Quels sont mes réglages actuels ?",
+        },
         set_timezone: {
             description:
                 "Définis ton fuseau horaire IANA pour que tes journées basculent à minuit heure locale — un repas enregistré à 23h compte pour ce jour-là, pas le suivant en UTC.",
             params: {},
             example: "Je suis à Berlin — configure mon fuseau horaire",
         },
-        get_timezone: {
+        set_language: {
             description:
-                "Vérifie le fuseau horaire configuré, ainsi que ta date et heure locales actuelles (UTC par défaut si non configuré).",
-            params: {},
-            example: "Sur quel fuseau horaire suis-je réglé ?",
+                "Définis la langue de l'interface pour les widgets interactifs dans le chat — les tableaux de bord et graphiques, pas ce que l'IA t'écrit.",
+            params: {
+                locale: "Code ISO 639-1, par exemple <code>de</code>, <code>uk</code>. Langues prises en charge : anglais, allemand, espagnol, français, néerlandais, polonais, italien, ukrainien.",
+            },
+            example: "Affiche mes widgets en allemand",
         },
         get_current_time: {
             description:
@@ -403,12 +405,6 @@ export const TOOLS_FR: ToolsDoc = {
             },
             example: "Désactive les widgets",
         },
-        get_widget_display: {
-            description:
-                "Vérifie si les widgets visuels du chat sont actuellement activés.",
-            params: {},
-            example: "Est-ce que les widgets sont activés ?",
-        },
         set_alcohol_tracking: {
             description:
                 "Active ou désactive le suivi de l'alcool, et choisis si les boissons sont comptées en verres standards américains ou en unités britanniques. C'est désactivé par défaut, il faut donc le demander explicitement. Le redésactiver masque l'alcool des repas, objectifs et progression et empêche l'importateur de fichiers de lire la colonne alcool d'un fichier — rien de déjà enregistré n'est supprimé, ton export CSV l'inclut toujours, et il réapparaît si tu le réactives. Le changement s'applique dès ton prochain message, rien à redémarrer.",
@@ -420,12 +416,6 @@ export const TOOLS_FR: ToolsDoc = {
             },
             example:
                 "Commence à suivre ma consommation d'alcool, en unités britanniques",
-        },
-        get_alcohol_tracking: {
-            description:
-                "Vérifie si le suivi de l'alcool est activé, et à quel verre standard tes grammes sont associés.",
-            params: {},
-            example: "Est-ce que je suis ma consommation d'alcool ?",
         },
         delete_account: {
             description:

@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <title>MacroFactorのMCPサーバー？ ClaudeとChatGPTで栄養管理</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta
+            name="description"
+            content="MacroFactorにMCPサーバーがない？ Nutrition MCPならClaudeやChatGPTの中で食事とマクロ栄養素を記録できます——無料・オープンソースで、CSVエクスポートのインポートにも対応。"
+        />
+        <meta
+            property="og:title"
+            content="MacroFactorのMCPサーバー？ ClaudeとChatGPTで栄養管理"
+        />
+        <meta
+            property="og:description"
+            content="MacroFactorにはMCPサーバーがありません。Nutrition MCPは、ClaudeやChatGPTの中で食事・マクロ栄養素・体重を記録できる無料・オープンソースの代替サービスで、MacroFactorの履歴もCSVエクスポートからインポートできます。"
+        />
+        <meta property="og:type" content="article" />
+        <meta
+            property="og:url"
+            content="https://nutrition-mcp.com/ja/macrofactor-mcp"
+        />
+        <meta property="og:image" content="https://nutrition-mcp.com/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://nutrition-mcp.com/og.png" />
+        <meta
+            name="twitter:title"
+            content="MacroFactorのMCPサーバー？ ClaudeとChatGPTで栄養管理"
+        />
+        <meta
+            name="twitter:description"
+            content="MacroFactorにはMCPサーバーがありません。Nutrition MCPは、ClaudeやChatGPTの中で食事・マクロ栄養素・体重を記録できる無料・オープンソースの代替サービスで、MacroFactorの履歴もCSVエクスポートからインポートできます。"
+        />
+        <link
+            rel="canonical"
+            href="https://nutrition-mcp.com/ja/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="en"
+            href="https://nutrition-mcp.com/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="de"
+            href="https://nutrition-mcp.com/de/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="es"
+            href="https://nutrition-mcp.com/es/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="fr"
+            href="https://nutrition-mcp.com/fr/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="nl"
+            href="https://nutrition-mcp.com/nl/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="pl"
+            href="https://nutrition-mcp.com/pl/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="it"
+            href="https://nutrition-mcp.com/it/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="uk"
+            href="https://nutrition-mcp.com/uk/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="ja"
+            href="https://nutrition-mcp.com/ja/macrofactor-mcp"
+        />
+        <link
+            rel="alternate"
+            hreflang="x-default"
+            href="https://nutrition-mcp.com/macrofactor-mcp"
+        />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="de_DE" />
+        <meta property="og:locale:alternate" content="es_ES" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="nl_NL" />
+        <meta property="og:locale:alternate" content="pl_PL" />
+        <meta property="og:locale:alternate" content="it_IT" />
+        <meta property="og:locale:alternate" content="uk_UA" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#fbfbf9" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Nutrition MCP",
+                        "item": "https://nutrition-mcp.com"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Alternatives",
+                        "item": "https://nutrition-mcp.com/ja/alternatives"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "MacroFactor MCP",
+                        "item": "https://nutrition-mcp.com/ja/macrofactor-mcp"
+                    }
+                ]
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "MacroFactorにMCPサーバーはありますか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "いいえ。MacroFactorはModel Context Protocol（MCP）サーバーを提供していないため、Claude、ChatGPT、その他のAIアシスタントに接続する公式な方法はありません。Nutrition MCPは、最初からMCPサーバーとして構築された無料・オープンソースの代替ツールで、食事やマクロ栄養素をAIの中で直接記録できます。"
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "MacroFactorをClaudeに接続するにはどうすればいいですか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "MacroFactorには公式のClaude用コネクタはありません。MacroFactorにはMCPサーバーも公開MCP連携もないためです。最も近い選択肢がNutrition MCPという無料のMCPサーバーです：Claudeにカスタムコネクタとしてhttps://nutrition-mcp.com/mcpを追加し、サインインすれば、会話するだけで記録を始められます。"
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Nutrition MCPはMacroFactorのようにカロリー目標を調整してくれますか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "自動的には調整しません。MacroFactorの週次でアルゴリズムによる再計算は、その有料の中核機能です。Nutrition MCPでは、「この3週間の摂取量と体重を踏まえて、カロリーを調整すべき？」とこちらから尋ねると、決まった週次更新の代わりに、AIがその場で根拠を考えて答えます。"
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "MacroFactorがサブスクリプション限定なのに対し、Nutrition MCPは本当に無料なのですか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "はい、本当に無料です。Nutrition MCPは完全に無料でオープンソースであり、トライアル後の課金も無料プランの制限もありません——無料プランがなく、トライアル後にサブスクリプションが必要なMacroFactorとは異なります。必要なのはClaudeかChatGPTのアカウントだけです。"
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Nutrition MCPはMacroFactorの良い代替になりますか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "別のアプリを開いたり食品データベースを検索したりせずに、カロリー、マクロ栄養素——食物繊維、総糖質、カフェインを含む——、水分、体重を記録したいなら、はいそうです。データベースをタップして探す代わりに、食べたものを普段の言葉で説明したり、写真を送ったり、バーコードをスキャンしたりするだけで、AIが記録してくれます——完全に無料でオープンソースです。"
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "MacroFactorのデータをインポートできますか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "はい、できます。インポートを依頼すると、チャット内にインポーターが開きます。MacroFactorのCSVエクスポートを選ぶと、AIではなくブラウザ内で解析され、何も書き込まれる前にプレビューを確認します。MacroFactorのエクスポートは列名で認識されます——日付、食品名、食事の種類、カロリー、タンパク質、炭水化物、脂質は自動的に対応付けられ、ファイルに含まれていれば食物繊維、総糖質、カフェインも同様です——エネルギーがキロジュールで報告されている場合は、あなた自身のファイルの例とともに単位を確認したうえでキロカロリーに変換されます。同じファイルを再インポートしても重複が作られることはありません。 チャット内パネルに対応していないクライアントでは、代わりにエクスポート内容を貼り付けることができます。"
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "インポート時にAIがエクスポートファイルを読むことはありますか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "インポーターが開いている間は読みません。CSVはブラウザ内で解析され、何も書き込まれる前に、追加される内容——食事の件数、カロリー合計、警告が必要な項目、そして行データそのもの——が表示されます。長いファイルの場合はすべての行ではなく、先頭の数行と残りの件数が表示されます。送信されるのは確定した行だけで、それらはAIの返答を経由せず構造化データとして送られるため、途中で行が誤記されたり創作されたりすることはありません。各行にはコンテンツフィンガープリントも付与されるため、同じファイルを再度実行しても、それらの食事はすでに記録済みとして扱われ、重複することはありません。チャット内パネルを表示できないクライアントを使っている場合は、代わりにエクスポート内容を貼り付ける方法があります——その場合はAIが内容を読むため、選べるならインポーターを優先してください。"
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Nutrition MCPは無料ですか？",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "はい、無料です。Nutrition MCPは完全に無料でオープンソースであり、サブスクリプションは必要ありません——一方MacroFactorは無料トライアル後に有料サブスクリプションが必要です。接続に必要なのはClaudeかChatGPTのアカウントだけです。"
+                        }
+                    }
+                ]
+            }
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>
+    </head>
+    <body class="landing">
+        <!-- Generated by scripts/gen-alternatives.ts — edit the data there, not this file. -->
+        <script>
+            // Apply a saved theme override before paint to avoid a flash.
+            (function () {
+                try {
+                    var t = localStorage.getItem("theme");
+                    if (t === "dark" || t === "light")
+                        document.body.setAttribute("data-theme", t);
+                } catch (e) {}
+            })();
+        </script>
+        <a class="skip" href="#main">コンテンツにスキップ</a>
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <a class="brand" href="/ja" aria-label="Nutrition MCP ホーム">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    <span>Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="Primary">
+                    <a href="/ja#how">使い方</a>
+                    <a href="/ja#install">インストール</a>
+                    <a href="/ja/tools">ツール</a>
+                    <a href="/ja#try">使用例</a>
+                    <a href="/ja#stats">ライブ統計</a>
+                    <a href="/ja#faq">よくある質問</a>
+                </nav>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="GitHubリポジトリ"
+                        title="GitHub"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+                            />
+                        </svg>
+                    </a>
+                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="言語を変更"
+                            title="言語"
+                        >
+                            <span class="lang-code">JA</span>
+                        </summary>
+                        <div class="lang-menu" aria-label="Choose a language">
+                            <a
+                                href="https://nutrition-mcp.com/macrofactor-mcp"
+                                lang="en"
+                                hreflang="en"
+                                >English</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/de/macrofactor-mcp"
+                                lang="de"
+                                hreflang="de"
+                                >Deutsch</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/es/macrofactor-mcp"
+                                lang="es"
+                                hreflang="es"
+                                >Español</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/fr/macrofactor-mcp"
+                                lang="fr"
+                                hreflang="fr"
+                                >Français</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/nl/macrofactor-mcp"
+                                lang="nl"
+                                hreflang="nl"
+                                >Nederlands</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/pl/macrofactor-mcp"
+                                lang="pl"
+                                hreflang="pl"
+                                >Polski</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/it/macrofactor-mcp"
+                                lang="it"
+                                hreflang="it"
+                                >Italiano</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/uk/macrofactor-mcp"
+                                lang="uk"
+                                hreflang="uk"
+                                >Українська</a
+                            >
+                            <a
+                                href="https://nutrition-mcp.com/ja/macrofactor-mcp"
+                                lang="ja"
+                                hreflang="ja"
+                                aria-current="page"
+                                >日本語</a
+                            >
+                        </div>
+                    </details>
+                    <button
+                        class="icon-btn theme-toggle"
+                        type="button"
+                        id="theme-toggle"
+                        aria-label="ダークモードに切り替え"
+                        title="ダークモードに切り替え"
+                    >
+                        <svg
+                            class="moon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
+                            />
+                        </svg>
+                        <svg
+                            class="sun"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                            />
+                        </svg>
+                    </button>
+                    <a
+                        class="btn btn-primary btn-sm head-cta"
+                        href="/ja#install"
+                        >接続する</a
+                    >
+                    <button
+                        class="icon-btn menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="メニューを開く"
+                    >
+                        <span class="burger" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="Menu">
+                <a href="/ja#how">使い方 <small>3ステップ</small></a>
+                <a href="/ja#install">インストール <small>1分足らず</small></a>
+                <a href="/ja/tools">ツール <small>36個のツール</small></a>
+                <a href="/ja#try">使用例 <small>ライブデモ</small></a>
+                <a href="/ja#stats">ライブ統計 <small>開いてから</small></a>
+                <a href="/ja#faq">よくある質問</a>
+                <a href="/ja/alternatives"
+                    >代替アプリ <small>アプリの乗り換え</small></a
+                >
+            </nav>
+            <div class="menu-secondary">
+                <a href="/ja#support">サポート</a>
+                <a href="/ja#contact">お問い合わせ</a>
+                <a
+                    href="https://github.com/akutishevsky/nutrition-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub</a
+                >
+                <a href="/ja/privacy">プライバシー</a>
+                <a href="/ja/terms">利用規約</a>
+            </div>
+            <div class="menu-foot">
+                <a class="btn btn-primary" href="/ja#install">1分で接続</a>
+            </div>
+        </div>
+
+        <main id="main">
+            <!-- Hero -->
+            <section class="hero">
+                <div class="container">
+                    <nav class="crumb" aria-label="Breadcrumb">
+                        <a href="/ja">ホーム</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <a href="/ja/alternatives">代替ツール</a>
+                        <i
+                            class="fa-solid fa-chevron-right"
+                            aria-hidden="true"
+                        ></i>
+                        <span>MacroFactor</span>
+                    </nav>
+                    <div class="hero-copy hero-copy-wide">
+                        <p class="eyebrow">MacroFactorの代替</p>
+                        <h1 class="hero-title">
+                            <em>MacroFactor MCP</em>サーバーをお探しですか？
+                        </h1>
+                        <p class="lead">
+                            MacroFactorにはMCPサーバーがないため、ClaudeやChatGPTの中では使えません。Nutrition
+                            MCPなら会話するだけで同じことができ、しかも無料でオープンソースです。
+                        </p>
+                        <div class="hero-actions">
+                            <a class="btn btn-primary" href="#switch"
+                                >1分足らずで接続</a
+                            >
+                            <a class="btn btn-secondary" href="#compare"
+                                >比較を見る</a
+                            >
+                        </div>
+                    </div>
+                    <div class="translation-notice">
+                        <p>
+                            このページはAIによって英語から翻訳されており、人による確認は行われていません。
+                            <a href="/macrofactor-mcp">英語の原文を読む</a>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- The honest answer -->
+            <section class="section band" id="answer">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">結論から言うと</p>
+                        <h2 class="section-title">
+                            いいえ、MacroFactorにMCPサーバーはありません。
+                        </h2>
+                        <p class="section-sub">
+                            Model Context
+                            Protocol（MCP）は、ClaudeやChatGPTのようなAIアシスタントが外部ツールに接続するためのオープンスタンダードです。MacroFactorはMCPサーバーを公開していないため、あなたのAIから食事を記録する公式な方法はありません。もし&ldquo;MacroFactor
+                            MCP&rdquo;や&ldquo;MacroFactorをClaudeに接続&rdquo;と検索したことがあるなら、本当に求めているのはAIの<em>中に</em>ある栄養管理ツールのはずです——それこそがNutrition
+                            MCPです。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- What you get instead -->
+            <section class="section" id="instead">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">代わりに得られるもの</p>
+                        <h2 class="section-title">同じ記録が、話すだけで</h2>
+                    </div>
+                    <div class="features-grid" data-reveal="stagger">
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-utensils"></i
+                            ></span>
+                            <h3>食事は普段の言葉で</h3>
+                            <p>
+                                &ldquo;バナナとピーナッツバターのオートミール&rdquo;と言うだけで、AIがカロリーとマクロ栄養素——食物繊維、総糖質、カフェインも含めて——を推定して記録します。データベース検索は不要です。
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-barcode"></i
+                            ></span>
+                            <h3>バーコードスキャン——無料</h3>
+                            <p>
+                                商品のバーコードを送信するだけで、Open Food
+                                Factsからラベルのマクロ栄養素を取得します——ラベルに記載があれば食物繊維や糖質も。Premium課金で解除する必要はありません。
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-weight-scale"></i
+                            ></span>
+                            <h3>体重 &amp; 目標</h3>
+                            <p>
+                                体重をkgまたはlbで記録し、カロリー・マクロ栄養素・食物繊維・糖質・カフェイン・水分の目標を設定できます——食物繊維は達成すべき目標値、糖質とカフェインは超えないための上限値として。目標体重に向けた推移も追跡できます。アルコールの記録もオプションとして用意されており、有効にしない限りオフのままです。
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-chart-area"></i
+                            ></span>
+                            <h3>要約 &amp; 傾向</h3>
+                            <p>
+                                1日の合計、週ごとの傾向、連続記録日数、繰り返し現れる食事パターンなどを、チャットの中でそのまま尋ねられます。
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-file-csv"></i
+                            ></span>
+                            <h3>インポート &amp; データの所有</h3>
+                            <p>
+                                他のアプリからエクスポートしたCSVをもとに食事履歴をインポートできます——解析はAIではなくブラウザ内で行われます。データはいつでも丸ごと取り出せます：食事・水分・体重・目標・プロフィールをCSVファイルにまとめた1つのZIPです。現時点で再インポートできるのは食事のみです。アカウントの削除も同じくらい簡単に行えます。
+                            </p>
+                        </article>
+                        <article class="card feature">
+                            <span class="feature-icon" aria-hidden="true"
+                                ><i class="fa-solid fa-code-branch"></i
+                            ></span>
+                            <h3>オープンソース &amp; 無料</h3>
+                            <p>
+                                MITライセンスで自前ホストも可能——広告もペイウォールもアップセルもありません。コードを監査したり、自分のインスタンスを運用したりできます。
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison -->
+            <section class="section band" id="compare">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">MacroFactor vs. Nutrition MCP</p>
+                        <h2 class="section-title">機能を比較すると</h2>
+                    </div>
+                    <div class="compare">
+                        <div class="compare-col">
+                            <h3 class="compare-h compare-h-old">MacroFactor</h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i>
+                                    MCPサーバーがない —
+                                    ClaudeやChatGPTの中で使えない
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i>
+                                    無料トライアル後は有料サブスクリプションが必要(無料プランなし)
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i>
+                                    食事を記録するたびに、それでも別のアプリを開く必要がある
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-xmark"></i>
+                                    その適応型コーチングこそが製品の核心であり、手軽な記録が目的ではない
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="compare-col compare-col-new">
+                            <h3 class="compare-h compare-h-new">
+                                Nutrition MCP
+                            </h3>
+                            <ul>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    MCPサーバーとして構築——Claude &amp;
+                                    ChatGPTの中で動作
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    食事を普段の言葉で説明するだけ。カロリー、マクロ栄養素、食物繊維、糖質
+                                    &amp; カフェインを自動で推定
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    バーコードスキャン、傾向分析、CSVのインポート
+                                    &amp; エクスポート——すべて無料
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    別アプリ不要、広告なし、オープンソース
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="note compare-note">
+                        MacroFactorの適応型TDEEコーチングは本当に優れています。もしあなたが求めているのが主に、AIの中で完結する素早く無料なマクロ記録なら、Nutrition
+                        MCPの方がよりシンプルで無料な選択肢です。
+                    </p>
+                </div>
+            </section>
+
+            <!-- Moving from X (per-app, unique content) -->
+            <section class="section" id="moving">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">MacroFactorからの移行</p>
+                        <h2 class="section-title">コーチングか、記録か</h2>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            MacroFactorの売りはそのアルゴリズムです。記録した摂取量と体重を観察し、毎週静かにカロリーとマクロ栄養素の目標値を再計算します——Stronger
+                            By
+                            Scienceチームによる、本当に賢い適応型コーチングです。このコーチングこそが製品であり、だからこそサブスクリプション限定なのです。
+                        </p>
+                        <p>
+                            Nutrition
+                            MCPはコーチングアルゴリズムを動かしていません——ですが、すでにAIアシスタントの中にいるのですから、ただ尋ねればいいのです。「この3週間を踏まえて、カロリーを調整すべき？」と聞けば、その場で根拠のある答えが得られます。これは違うモデルです。決まった週次の再計算ではなく、必要なときに会話形式で分析を得られる——しかも無料です。
+                        </p>
+                        <p>
+                            正直なところ、これは規律と柔軟性のトレードオフです。MacroFactorの週次再計算は、あなたが尋ねようと思うかどうかに関わらず行われるため、規律を保ちやすくなります。一方、会話形式のモデルは、あなたが促したときにしか調整されません。数字の舵取りを完全にアルゴリズムに任せたいなら、MacroFactorのサブスクリプションには価値があります。無料で記録し、気になったときに分析を引き出したいなら、こちらの方が合っています。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bring your history (per-app, unique content) -->
+            <section class="section band" id="import">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">あなたのMacroFactorの履歴</p>
+                        <h2 class="section-title">
+                            コーチングは残せなくても、記録は移行できる
+                        </h2>
+                        <p class="section-sub">
+                            インポートしたいと伝えると、チャット内にインポーターがそのまま開きます：エクスポートファイルを選び、列を対応付け、追加される内容をプレビューしてから確定します。ファイルはブラウザ内で読み込まれ、AIが行データを見ることはありません。チャット内パネルに対応していないクライアントでは、代わりにエクスポート内容を貼り付けてください。
+                        </p>
+                    </div>
+                    <div class="prose">
+                        <p>
+                            手放すことになるのはアルゴリズムであって、データではありません。インポートを依頼すると、チャット内にインポーターパネルが開きます。MacroFactorのCSVエクスポートを選ぶとブラウザ内で解析され、認識できる列は自動的に対応付けられ、何も書き込まれる前にプレビューを確認して確定します。各行はAIを一切経由しないため、取り込みの途中で誤って書き写されることもありません。
+                        </p>
+                        <p>
+                            MacroFactorのエクスポートは列名で認識されます——分量(サービングサイズ)の列がその手がかりです——日付、食品名、食事の種類、カロリー、マクロ栄養素の各列は自動的に対応付けられ、ファイルに含まれていれば食物繊維、総糖質、カフェインも同様です。エクスポートがキロカロリーではなくキロジュールでエネルギーを報告している場合は、4.184倍もの値をそのまま保存するのではなく、正しく変換されます。単に「Calories」とだけ見出された列はどちらの単位も入り得るため、単位はあなた自身のファイルの最初の行から作られた具体例とともに選択肢として提示され、推測に任せて毎日の値が静かに膨らんでしまうのではなく、あなた自身が確認する形になります。
+                        </p>
+                        <p>
+                            その履歴は単に保管されるだけでなく、すぐに役立ちます。数週間分の摂取量と体重が取り込まれれば、MacroFactorのアルゴリズムが定期的に答えていた問い——「この3週間を踏まえて、カロリーを調整すべき？」——をこちらから尋ねることができ、その場で根拠のある答えが得られます。同じファイルを2回目にインポートしても何も変わりません。各行にコンテンツ指紋が付与されているため、繰り返しはすでに記録済みとして報告されます。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How to switch -->
+            <section class="section" id="switch">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">切り替え方</p>
+                        <h2 class="section-title">1分足らずで接続</h2>
+                        <p class="section-sub">
+                            OAuth
+                            2.0（PKCE対応）をサポートするMCPクライアントであればどれでも利用できます。初回接続時に、Googleアカウントまたはメールアドレスとパスワードでアカウントを作成します。
+                        </p>
+                    </div>
+                    <div class="card install-card">
+                        <ol class="steps">
+                            <li>
+                                <strong>Claude</strong
+                                >（Webまたはデスクトップ版）を開き、<strong
+                                    >カスタマイズ</strong
+                                >
+                                → <strong>コネクタ</strong>をクリックします。
+                            </li>
+                            <li>
+                                <strong>+</strong
+                                >をクリックし、<strong>カスタムコネクタを追加</strong>を選んで、<strong>Nutrition</strong>のような名前を付けます。
+                            </li>
+                            <li>
+                                <span class="copy-url"
+                                    ><code>https://nutrition-mcp.com/mcp</code
+                                    ><button
+                                        class="copy-mini"
+                                        type="button"
+                                        data-copy="https://nutrition-mcp.com/mcp"
+                                        aria-label="サーバーURLをコピー"
+                                    >
+                                        <i
+                                            class="fa-solid fa-copy"
+                                        ></i></button></span
+                                >を<strong>リモートMCPサーバーURL</strong>欄に貼り付け、<strong>追加</strong>をクリックします。
+                            </li>
+                            <li>
+                                <strong>接続</strong
+                                >をクリックしてサインインし、食べたものを話しかけるだけで記録を始められます。
+                            </li>
+                        </ol>
+                        <p class="note">
+                            ChatGPTや他のクライアントを使っていますか？<a
+                                href="/ja#install"
+                                >詳細なインストールガイド</a
+                            >ではChatGPT、Cursor、VS Code、Claude
+                            Codeなどをまとめて解説しています。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section band" id="faq">
+                <div class="container" data-reveal>
+                    <div class="section-head">
+                        <p class="eyebrow">FAQ</p>
+                        <h2 class="section-title">
+                            MacroFactor &amp; MCPに関する質問
+                        </h2>
+                    </div>
+                    <div class="faq">
+                        <details>
+                            <summary>
+                                MacroFactorにMCPサーバーはありますか？
+                            </summary>
+                            <p>
+                                いいえ。MacroFactorはModel Context
+                                Protocol（MCP）サーバーを提供していないため、Claude、ChatGPT、その他のAIアシスタントに接続する公式な方法はありません。Nutrition
+                                MCPは、最初からMCPサーバーとして構築された無料・オープンソースの代替ツールで、食事やマクロ栄養素をAIの中で直接記録できます。
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                MacroFactorをClaudeに接続するにはどうすればいいですか？
+                            </summary>
+                            <p>
+                                MacroFactorには公式のClaude用コネクタはありません。MacroFactorにはMCPサーバーも公開MCP連携もないためです。最も近い選択肢がNutrition
+                                MCPという無料のMCPサーバーです：Claudeにカスタムコネクタとしてhttps://nutrition-mcp.com/mcpを追加し、サインインすれば、会話するだけで記録を始められます。
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Nutrition
+                                MCPはMacroFactorのようにカロリー目標を調整してくれますか？
+                            </summary>
+                            <p>
+                                自動的には調整しません。MacroFactorの週次でアルゴリズムによる再計算は、その有料の中核機能です。Nutrition
+                                MCPでは、「この3週間の摂取量と体重を踏まえて、カロリーを調整すべき？」とこちらから尋ねると、決まった週次更新の代わりに、AIがその場で根拠を考えて答えます。
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                MacroFactorがサブスクリプション限定なのに対し、Nutrition
+                                MCPは本当に無料なのですか？
+                            </summary>
+                            <p>
+                                はい、本当に無料です。Nutrition
+                                MCPは完全に無料でオープンソースであり、トライアル後の課金も無料プランの制限もありません——無料プランがなく、トライアル後にサブスクリプションが必要なMacroFactorとは異なります。必要なのはClaudeかChatGPTのアカウントだけです。
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                Nutrition
+                                MCPはMacroFactorの良い代替になりますか？
+                            </summary>
+                            <p>
+                                別のアプリを開いたり食品データベースを検索したりせずに、カロリー、マクロ栄養素——食物繊維、総糖質、カフェインを含む——、水分、体重を記録したいなら、はいそうです。データベースをタップして探す代わりに、食べたものを普段の言葉で説明したり、写真を送ったり、バーコードをスキャンしたりするだけで、AIが記録してくれます——完全に無料でオープンソースです。
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                MacroFactorのデータをインポートできますか？
+                            </summary>
+                            <p>
+                                はい、できます。インポートを依頼すると、チャット内にインポーターが開きます。MacroFactorのCSVエクスポートを選ぶと、AIではなくブラウザ内で解析され、何も書き込まれる前にプレビューを確認します。MacroFactorのエクスポートは列名で認識されます——日付、食品名、食事の種類、カロリー、タンパク質、炭水化物、脂質は自動的に対応付けられ、ファイルに含まれていれば食物繊維、総糖質、カフェインも同様です——エネルギーがキロジュールで報告されている場合は、あなた自身のファイルの例とともに単位を確認したうえでキロカロリーに変換されます。同じファイルを再インポートしても重複が作られることはありません。
+                                チャット内パネルに対応していないクライアントでは、代わりにエクスポート内容を貼り付けることができます。
+                            </p>
+                        </details>
+                        <details>
+                            <summary>
+                                インポート時にAIがエクスポートファイルを読むことはありますか？
+                            </summary>
+                            <p>
+                                インポーターが開いている間は読みません。CSVはブラウザ内で解析され、何も書き込まれる前に、追加される内容——食事の件数、カロリー合計、警告が必要な項目、そして行データそのもの——が表示されます。長いファイルの場合はすべての行ではなく、先頭の数行と残りの件数が表示されます。送信されるのは確定した行だけで、それらはAIの返答を経由せず構造化データとして送られるため、途中で行が誤記されたり創作されたりすることはありません。各行にはコンテンツフィンガープリントも付与されるため、同じファイルを再度実行しても、それらの食事はすでに記録済みとして扱われ、重複することはありません。チャット内パネルを表示できないクライアントを使っている場合は、代わりにエクスポート内容を貼り付ける方法があります——その場合はAIが内容を読むため、選べるならインポーターを優先してください。
+                            </p>
+                        </details>
+                        <details>
+                            <summary>Nutrition MCPは無料ですか？</summary>
+                            <p>
+                                はい、無料です。Nutrition
+                                MCPは完全に無料でオープンソースであり、サブスクリプションは必要ありません——一方MacroFactorは無料トライアル後に有料サブスクリプションが必要です。接続に必要なのはClaudeかChatGPTのアカウントだけです。
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Closing CTA -->
+            <section class="section cta">
+                <div class="container cta-inner" data-reveal>
+                    <h2 class="cta-title">使い慣れたAIの中で栄養管理を。</h2>
+                    <p class="cta-sub">
+                        無料でオープンソース——MacroFactorのアカウントも、開くアプリも不要です。
+                    </p>
+                    <div class="cta-actions">
+                        <a class="btn btn-on-accent" href="#switch"
+                            >クイックインストール</a
+                        >
+                        <a class="btn btn-ghost-accent" href="/ja/alternatives"
+                            >他の代替ツール</a
+                        >
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="disclaimer-band">
+            <div class="container">
+                <p class="page-disclaimer">
+                    MacroFactorはそれぞれの権利者の商標です。Nutrition
+                    MCPは独立したオープンソースプロジェクトであり、MacroFactorとは提携・承認・提供のいずれの関係もありません。比較内容は執筆時点で公開されている情報に基づいており、変更される場合があります。
+                </p>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-brand">
+                    <span class="brand-mark" aria-hidden="true">🍏</span>
+                    Nutrition MCP
+                </span>
+                <nav class="footer-links" aria-label="Footer">
+                    <a href="/ja/tools">ツール</a>
+                    <a href="/ja/alternatives">代替アプリ</a>
+                    <a
+                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >開発の舞台裏</a
+                    >
+                    <a
+                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >デモ</a
+                    >
+                    <a
+                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                    <a href="mailto:anton@nutrition-mcp.com">お問い合わせ</a>
+                    <a href="/ja/privacy">プライバシーポリシー</a>
+                    <a href="/ja/terms">利用規約</a>
+                </nav>
+                <p class="footer-note">
+                    無料のオープンソースです。栄養データはあくまで目安であり、医療アドバイスではありません。
+                </p>
+            </div>
+        </footer>
+
+        <script src="/site.js" defer></script>
+    </body>
+</html>

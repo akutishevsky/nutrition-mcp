@@ -23,7 +23,7 @@ export const CHROME_UK: ChromeCopy = {
     menu: {
         howSmall: "3 кроки",
         installSmall: "менш ніж за хвилину",
-        toolsSmall: "38 інструментів",
+        toolsSmall: "36 інструментів",
         examplesSmall: "демо наживо",
         liveStatsSmall: "з моменту відкриття",
         alternatives: "Альтернативи",

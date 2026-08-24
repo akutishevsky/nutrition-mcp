@@ -1,0 +1,11 @@
+-- Adds the user's UI-language preference, read by the MCP widgets to render
+-- their strings in something other than English (previously hardcoded).
+--
+-- Nullable with no default, mirroring profiles.timezone since
+-- 20260815071028_nullable_profile_timezone.sql: NULL means "never
+-- explicitly set with set_language", distinguishable from a deliberate
+-- choice of "en". Every reader must coalesce this explicitly (see
+-- localeFromProfile / getUserLocale in src/supabase.ts) rather than reading
+-- the column directly — the same #99 trap timezone had, avoided from the
+-- start this time.
+alter table public.profiles add column if not exists locale text;

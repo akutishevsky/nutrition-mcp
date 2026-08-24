@@ -31,13 +31,13 @@ import {
     deleteWeight,
     getUserTimezone,
     getPreferredWeightUnit,
-    getWidgetsEnabled,
-    getAlcoholTrackingEnabled,
-    getPreferredDrinkUnit,
+    getUserLocale,
     widgetsEnabledFromProfile,
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
+    preferredWeightUnitFromProfile,
     timezoneFromProfile,
+    localeFromProfile,
     upsertProfile,
     getProfile,
     countMeals,
@@ -59,6 +59,7 @@ import {
     LoggedAtError,
     resolveWriteLoggedAt,
 } from "./tz.js";
+import { SITE_LOCALES, LOCALE_NAMES, type SiteLocale } from "./routes.js";
 import {
     buildDailyBuckets,
     computeTrends,
@@ -179,7 +180,7 @@ Importing history from another app — when the user wants to bring in past meal
 1. If they have a FILE, call start_meal_import first and let them drive it. The importer reads and maps the file in the browser, so the rows never pass through you and cannot be mistranscribed, and it handles column mapping, batching and retries. Do not ask them to paste a file you could import properly.
 2. Call bulk_import_meals directly only when the importer is not an option: the data is already pasted into the conversation, the user cannot use the panel, or the importer reports that this client will not let it save. Then parse the rows yourself and follow that tool's description exactly — in particular, compute the row count and calorie total from the source text with real counting rather than by re-reading what you just wrote, and dry-run first.
 3. Never log a backfill by calling log_meal in a loop. It is rate-limited per call, so a single week of meals would exhaust the budget; one bulk_import_meals call carries up to 50 rows for the same cost.
-4. Check get_timezone before any sizeable import and offer set_timezone if it is unset. Times without an explicit UTC offset are placed using the saved timezone, so correcting it afterwards moves every imported meal — onto an adjacent day for anything logged near midnight.
+4. Check get_profile before any sizeable import and offer set_timezone if the timezone is unset. Times without an explicit UTC offset are placed using the saved timezone, so correcting it afterwards moves every imported meal — onto an adjacent day for anything logged near midnight.
 5. Show the user what was resolved before treating an import as done: the dry run echoes back the date, time and meal type for every row, and a misread date column shows up there rather than in the totals. Re-sending the same rows is safe — the server recognises them and skips them — so a retry after a failure or a timeout never duplicates anything.`;
 
 // How alcohol should be rendered for the current user: the drink unit to gloss
@@ -1106,6 +1107,15 @@ function formatClockLine(tz: string): string {
     return `Local time now: ${weekdayInTz(now, tz)} ${formatLocalDateTime(now, tz)} (${tz}). UTC now: ${now.toISOString()}.`;
 }
 
+// The human-readable gloss for a standard-drink unit, shared by
+// set_alcohol_tracking and get_profile so the wording can't drift between
+// the tool that sets it and the one that reports it back.
+function drinkUnitLabel(unit: DrinkUnit): string {
+    return unit === "us"
+        ? "US standard drinks (14 g each)"
+        : "UK units (7.9 g each)";
+}
+
 // Resolve a caller-supplied `logged_at` to an absolute instant before it
 // reaches the timestamptz column. Without this an offset-less string is read in
 // the database session's zone (UTC), so a Kyiv user's 21:00 lands at midnight
@@ -1296,7 +1306,7 @@ export function registerTools(
     // is exactly what a non-HTTP embedding should record.
     protocolEra?: "legacy" | "modern",
 ) {
-    // One context for all 38 tools. clientInfo is a getter, not a value: at
+    // One context for all 36 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
     // modern leg it backfills the identity per request before dispatch.
     const analytics = {
@@ -2206,6 +2216,15 @@ export function registerTools(
                 // client cannot tell a full month from a fortnight of gaps.
                 days_in_range: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
+                // The widget's UI language (get_language / set_language),
+                // resolved server-side so the dashboard renders its own
+                // labels in it without a second round trip. Not the language
+                // of `content` above — that stays whatever the model uses.
+                // z.string(), not z.enum(SITE_LOCALES): SITE_LOCALES is a
+                // `readonly SiteLocale[]`, not a literal tuple, and this is
+                // an output-only field — getUserLocale's own fallback is
+                // what actually guarantees a known code.
+                locale: z.string(),
                 goals: GOALS_ITEM.nullable(),
                 averages: TOTALS_ITEM,
                 // How many of `logged_days` actually record each of the
@@ -2247,6 +2266,7 @@ export function registerTools(
                         dateDiffDays(start_date, end_date) + 1,
                     );
                     const tz = await getUserTimezone(userId);
+                    const locale = await getUserLocale(userId);
                     const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, start_date, end_date, tz),
                         getWaterInRange(userId, start_date, end_date, tz),
@@ -2269,6 +2289,7 @@ export function registerTools(
                                 logged_days: 0,
                                 days_in_range: daysInRange,
                                 drink_unit: alcohol,
+                                locale,
                                 goals: goalsPayload,
                                 averages: totalsPayloadOf(
                                     emptyTotals(),
@@ -2405,6 +2426,7 @@ export function registerTools(
                             logged_days: days.length,
                             days_in_range: daysInRange,
                             drink_unit: alcohol,
+                            locale,
                             goals: goalsPayload,
                             averages,
                             recorded_days: {
@@ -3726,40 +3748,6 @@ export function registerTools(
     );
 
     server.registerTool(
-        "get_weight_unit",
-        {
-            title: "Get Weight Unit",
-            description:
-                "Get the user's preferred weight unit. Reports if none is set.",
-            annotations: {
-                readOnlyHint: true,
-                destructiveHint: false,
-                idempotentHint: true,
-                openWorldHint: false,
-            },
-        },
-        async () => {
-            return withAnalytics(
-                "get_weight_unit",
-                async () => {
-                    const unit = await getPreferredWeightUnit(userId);
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: unit
-                                    ? `Preferred weight unit: ${unit}.`
-                                    : "No preferred weight unit set. Weights display in kg by default, and logging requires an explicit unit ('kg' or 'lb').",
-                            },
-                        ],
-                    };
-                },
-                analytics,
-            );
-        },
-    );
-
-    server.registerTool(
         "set_widget_display",
         {
             title: "Set Widget Display",
@@ -3793,40 +3781,6 @@ export function registerTools(
                                 text: profile.widgets_enabled
                                     ? "Widgets enabled. Supported tools will show a visual widget alongside their text in new conversations."
                                     : "Widgets disabled. Supported tools will return text and data only, with no widget, in new conversations.",
-                            },
-                        ],
-                    };
-                },
-                analytics,
-            );
-        },
-    );
-
-    server.registerTool(
-        "get_widget_display",
-        {
-            title: "Get Widget Display",
-            description:
-                "Get whether the in-chat visual widgets are currently enabled for the user. Enabled by default.",
-            annotations: {
-                readOnlyHint: true,
-                destructiveHint: false,
-                idempotentHint: true,
-                openWorldHint: false,
-            },
-        },
-        async () => {
-            return withAnalytics(
-                "get_widget_display",
-                async () => {
-                    const enabled = await getWidgetsEnabled(userId);
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: enabled
-                                    ? "Widgets are enabled. Supported tools show a visual widget alongside their text."
-                                    : "Widgets are disabled. Supported tools return text and data only.",
                             },
                         ],
                     };
@@ -3888,58 +3842,13 @@ export function registerTools(
                     const unit = isDrinkUnit(profile.preferred_drink_unit)
                         ? profile.preferred_drink_unit
                         : "us";
-                    const unitLabel =
-                        unit === "us"
-                            ? "US standard drinks (14 g each)"
-                            : "UK units (7.9 g each)";
                     return {
                         content: [
                             {
                                 type: "text",
                                 text: profile.alcohol_tracking_enabled
-                                    ? `Alcohol tracking enabled, shown in grams alongside ${unitLabel}. It appears in meals, goals and daily progress from your next tool call — no need to start a new chat.`
+                                    ? `Alcohol tracking enabled, shown in grams alongside ${drinkUnitLabel(unit)}. It appears in meals, goals and daily progress from your next tool call — no need to start a new chat.`
                                     : "Alcohol tracking disabled, effective immediately. Alcohol is no longer shown in meals, goals or progress; anything already logged is kept and reappears if you turn it back on.",
-                            },
-                        ],
-                    };
-                },
-                analytics,
-            );
-        },
-    );
-
-    server.registerTool(
-        "get_alcohol_tracking",
-        {
-            title: "Get Alcohol Tracking",
-            description:
-                "Get whether alcohol tracking is enabled for the user and which standard drink it is displayed in. Disabled by default.",
-            annotations: {
-                readOnlyHint: true,
-                destructiveHint: false,
-                idempotentHint: true,
-                openWorldHint: false,
-            },
-        },
-        async () => {
-            return withAnalytics(
-                "get_alcohol_tracking",
-                async () => {
-                    const [enabled, unit] = await Promise.all([
-                        getAlcoholTrackingEnabled(userId),
-                        getPreferredDrinkUnit(userId),
-                    ]);
-                    const unitLabel =
-                        (unit ?? "us") === "us"
-                            ? "US standard drinks (14 g each)"
-                            : "UK units (7.9 g each)";
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: enabled
-                                    ? `Alcohol tracking is enabled, displayed in grams alongside ${unitLabel}${unit ? "" : " (the default — no preference saved)"}.`
-                                    : "Alcohol tracking is disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so enable tracking before importing an export whose alcohol the user wants to keep. Enable it with set_alcohol_tracking.",
                             },
                         ],
                     };
@@ -4215,6 +4124,65 @@ export function registerTools(
     );
 
     server.registerTool(
+        "get_profile",
+        {
+            title: "Get Profile",
+            description:
+                "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+        },
+        async () => {
+            return withAnalytics(
+                "get_profile",
+                async () => {
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile);
+                    const locale = localeFromProfile(profile);
+                    const weightUnit = preferredWeightUnitFromProfile(profile);
+                    const widgetsEnabled = widgetsEnabledFromProfile(profile);
+                    const alcoholEnabled =
+                        alcoholTrackingEnabledFromProfile(profile);
+                    const drinkUnit =
+                        preferredDrinkUnitFromProfile(profile) ?? "us";
+
+                    const lines = [
+                        tz === null
+                            ? `Timezone: not set (defaulting to UTC). ${formatClockLine("UTC")} Call set_timezone to configure one so 'today' matches the user's local calendar day.`
+                            : `Timezone: ${tz}. ${formatClockLine(tz)}`,
+                        locale === null
+                            ? "Language: not set (defaulting to English). Call set_language to configure one."
+                            : `Language: ${LOCALE_NAMES[locale as SiteLocale] ?? locale} (${locale}).`,
+                        weightUnit
+                            ? `Weight unit: ${weightUnit}.`
+                            : "Weight unit: not set. Weights display in kg by default, and logging requires an explicit unit ('kg' or 'lb').",
+                        widgetsEnabled
+                            ? "Widgets: enabled. Supported tools show a visual widget alongside their text."
+                            : "Widgets: disabled. Supported tools return text and data only.",
+                        alcoholEnabled
+                            ? `Alcohol tracking: enabled, displayed in grams alongside ${drinkUnitLabel(drinkUnit)}${preferredDrinkUnitFromProfile(profile) ? "" : " (the default — no preference saved)"}.`
+                            : "Alcohol tracking: disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so enable tracking before importing an export whose alcohol the user wants to keep. Enable it with set_alcohol_tracking.",
+                    ];
+
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: lines.join("\n"),
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
         "set_timezone",
         {
             title: "Set Timezone",
@@ -4259,38 +4227,39 @@ export function registerTools(
     );
 
     server.registerTool(
-        "get_timezone",
+        "set_language",
         {
-            title: "Get Timezone",
-            description:
-                "Get the user's configured IANA timezone, along with their current local date and time. Returns UTC if no profile has been set.",
+            title: "Set Language",
+            description: `Set the user's UI language for in-chat widgets (dashboards, charts). Supported: ${SITE_LOCALES.map((l) => `'${l}' (${LOCALE_NAMES[l]})`).join(", ")}. This does not change what language the model replies in — only the text rendered inside widget cards. Offer to set this the first time you notice the user writing in a non-English language.`,
             annotations: {
-                readOnlyHint: true,
+                readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
                 openWorldHint: false,
             },
+            inputSchema: z.object({
+                locale: z
+                    .string()
+                    .describe(
+                        `One of: ${SITE_LOCALES.join(", ")} (ISO 639-1 code).`,
+                    ),
+            }),
         },
-        async () => {
+        async ({ locale }) => {
             return withAnalytics(
-                "get_timezone",
+                "set_language",
                 async () => {
-                    const tz = timezoneFromProfile(await getProfile(userId));
-                    if (tz === null) {
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: `No timezone set yet (defaulting to UTC). ${formatClockLine("UTC")} Call set_timezone to configure one so 'today' matches the user's local calendar day.`,
-                                },
-                            ],
-                        };
+                    if (!SITE_LOCALES.includes(locale as SiteLocale)) {
+                        throw new Error(
+                            `Unsupported language: ${locale}. Use one of: ${SITE_LOCALES.join(", ")}.`,
+                        );
                     }
+                    await upsertProfile(userId, { locale });
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Timezone: ${tz}. ${formatClockLine(tz)}`,
+                                text: `Widget language set to ${LOCALE_NAMES[locale as SiteLocale]} (${locale}).`,
                             },
                         ],
                     };
@@ -4303,7 +4272,7 @@ export function registerTools(
     // The clock is the server's to give, not the user's: a host that keeps the
     // wall time out of the model's context otherwise leaves it with no way to
     // resolve "this morning" except asking or guessing (issue #102).
-    // get_timezone answers this too, but only a model that already suspects a
+    // get_profile answers this too, but only a model that already suspects a
     // timezone problem thinks to call it — the tool NAME is the discoverable
     // part, which is why this exists as well as the fuller line above.
     server.registerTool(

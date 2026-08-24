@@ -39,6 +39,9 @@
         <script>
             "use strict";
 
+            /*@i18n@*/
+            /*@include shared/i18n.js@*/
+
             /*@include shared/bridge.js@*/
 
             // ---- Sample data so the file renders on its own (browser preview) ----
@@ -47,6 +50,7 @@
                 end_date: "2026-07-07",
                 logged_days: 3,
                 drink_unit: "us",
+                locale: "en",
                 days_in_range: 3,
                 goals: {
                     calories: 2200,
@@ -286,20 +290,8 @@
             // Parsed by hand rather than through Date: these are calendar dates
             // in the USER's timezone, and new Date("2026-07-05") is UTC midnight,
             // which formats as the 4th for anyone west of Greenwich.
-            const MONTHS = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
+            // Month abbreviations come from T.nutritionSummary.months (set once
+            // the widget's locale is known), not a hardcoded MONTHS array.
             function ymd(s) {
                 const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s ?? ""));
                 if (!m) return null;
@@ -307,10 +299,18 @@
                 if (mon < 1 || mon > 12) return null;
                 return { y: Number(m[1]), m: mon, d: Number(m[3]) };
             }
+            // Every supported locale except Japanese happens to share
+            // English's day-before-month order ("5 Jul"/"5 juillet"/"5
+            // Juli"...), so only `ja` gets a distinct branch here rather
+            // than a per-locale date-order field in WidgetStrings — Y-M-D
+            // with 年/月/日 particles, no separating spaces.
             function dayLabel(s, withYear) {
                 const p = ymd(s);
                 if (!p) return String(s ?? "");
-                return `${p.d} ${MONTHS[p.m - 1]}${withYear ? ` ${p.y}` : ""}`;
+                const month = T.nutritionSummary.months[p.m - 1];
+                return WIDGET_LOCALE === "ja"
+                    ? `${withYear ? `${p.y}年` : ""}${month}${p.d}日`
+                    : `${p.d} ${month}${withYear ? ` ${p.y}` : ""}`;
             }
             // "5–7 Jul" within a month, "28 Jun – 4 Jul" across two. The year
             // shows when the range crosses one (where it is the whole point)
@@ -329,10 +329,19 @@
                 if (a.y !== b.y)
                     return `${dayLabel(start, true)} – ${dayLabel(end, true)}`;
                 const yr = b.y === thisYear ? "" : ` ${b.y}`;
-                if (a.m === b.m)
-                    return a.d === b.d
-                        ? `${dayLabel(end, false)}${yr}`
-                        : `${a.d}–${b.d} ${MONTHS[b.m - 1]}${yr}`;
+                if (a.m === b.m) {
+                    if (a.d === b.d) return `${dayLabel(end, false)}${yr}`;
+                    // "7月5日〜7日": every other branch above and below just
+                    // joins two dayLabel() calls, which is already
+                    // locale-correct — this is the one case where the month
+                    // is factored out once, and English's "day–day month"
+                    // order is backwards for Japanese's "month day〜day".
+                    if (WIDGET_LOCALE === "ja") {
+                        const yearPrefix = b.y === thisYear ? "" : `${b.y}年`;
+                        return `${yearPrefix}${T.nutritionSummary.months[b.m - 1]}${a.d}日〜${b.d}日`;
+                    }
+                    return `${a.d}–${b.d} ${T.nutritionSummary.months[b.m - 1]}${yr}`;
+                }
                 return `${dayLabel(start, false)} – ${dayLabel(end, false)}${yr}`;
             }
 
@@ -393,8 +402,8 @@
                 return `
           <div class="chart">
             <div class="chead">
-              <span class="ctitle">Calories / day</span>
-              <span class="cmeta">avg ${fmt(avg, 0)}${goal && goal > 0 ? ` · goal ${fmt(goal, 0)}` : ""}</span>
+              <span class="ctitle">${esc(T.nutritionSummary.caloriesPerDay)}</span>
+              <span class="cmeta">${esc(T.nutritionSummary.avg)} ${fmt(avg, 0)}${goal && goal > 0 ? ` · ${esc(T.nutritionSummary.goal)} ${fmt(goal, 0)}` : ""}</span>
             </div>
             <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calories per day over the selected range">
               <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
@@ -414,14 +423,28 @@
             function loggedDaysCaption(data) {
                 const logged = data.logged_days;
                 const span = Number(data.days_in_range);
-                const plural = logged === 1 ? "" : "s";
                 return Number.isFinite(span) && span > logged
-                    ? `${logged} of ${span} days logged`
-                    : `${logged} day${plural} logged`;
+                    ? tpl(T.nutritionSummary.daysOfLogged, {
+                          logged,
+                          span,
+                      })
+                    : plural(T.nutritionSummary.daysLogged, logged);
             }
 
             function render(data) {
                 const root = document.getElementById("root");
+                // structuredContent.locale (the user's saved get_language /
+                // set_language preference, resolved server-side) wins over
+                // the host's ambient hostContext.locale — see pickLocale in
+                // shared/i18n.js.
+                setLocale(
+                    pickLocale(
+                        data && data.locale,
+                        __widgetApi && __widgetApi.hostContext
+                            ? __widgetApi.hostContext.locale
+                            : null,
+                    ),
+                );
                 if (
                     !data ||
                     !Array.isArray(data.days) ||
@@ -430,7 +453,7 @@
                     root.innerHTML = `
             <div class="empty">
               <div class="big">🍽️</div>
-              <div>No meals or water logged in this range.</div>
+              <div>${esc(T.nutritionSummary.empty)}</div>
             </div>`;
                     return;
                 }
@@ -442,7 +465,9 @@
                 // actually have a log, while the trends widget's rings divide
                 // by every calendar day in the window. Same macros, different
                 // number — labelling both is the fix for issue #70.
-                const calLabel = multi ? "Daily avg · logged days" : "Total";
+                const calLabel = multi
+                    ? T.nutritionSummary.dailyAvgLoggedDays
+                    : T.nutritionSummary.total;
                 const meta = multi
                     ? `${rangeLabel(data.start_date, data.end_date)} · ${loggedDaysCaption(data)}`
                     : dayLabel(days[0].date, false);
@@ -476,7 +501,7 @@
                 root.innerHTML = `
           <div class="panel">
             <div class="phead">
-              <div class="ptitle">Nutrition summary</div>
+              <div class="ptitle">${esc(T.nutritionSummary.title)}</div>
               <div class="pmeta">${esc(meta)}</div>
             </div>
             ${trend}
@@ -494,6 +519,15 @@
                 return null;
             }
 
+            // Stashed by onReady so render() can fall back to the host's
+            // ambient locale (hostContext.locale) when structuredContent
+            // carries none. Not used for the initial "Loading…" text below:
+            // that is set synchronously before the ui/initialize handshake
+            // (and so before hostContext is known at all) and is shown only
+            // briefly — see shared/i18n.js's doc comment for the full
+            // locale-resolution order.
+            let __widgetApi = null;
+
             initWidget({
                 name: "nutrition-summary-widget",
                 loading:
@@ -501,6 +535,9 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                onReady(api) {
+                    __widgetApi = api;
+                },
             });
         </script>
     </body>

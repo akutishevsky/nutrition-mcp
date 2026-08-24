@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="pl">
     <head>
-        <title>Katalog narzędzi: wszystkie 38 narzędzi — Nutrition MCP</title>
+        <title>Katalog narzędzi: wszystkie 36 narzędzi — Nutrition MCP</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <meta
             name="description"
-            content="Wszystkie 38 narzędzi, które serwer Nutrition MCP daje Twojemu AI — zapisuj posiłki, skanuj kody kreskowe, importuj historię z innej aplikacji, śledź wodę i wagę, ustawiaj cele i przeglądaj trendy. Pełny opis wraz z przykładowymi poleceniami."
+            content="Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI — zapisuj posiłki, skanuj kody kreskowe, importuj historię z innej aplikacji, śledź wodę i wagę, ustawiaj cele i przeglądaj trendy. Pełny opis wraz z przykładowymi poleceniami."
         />
         <link rel="canonical" href="https://nutrition-mcp.com/pl/tools" />
         <link
@@ -51,6 +51,11 @@
         />
         <link
             rel="alternate"
+            hreflang="ja"
+            href="https://nutrition-mcp.com/ja/tools"
+        />
+        <link
+            rel="alternate"
             hreflang="x-default"
             href="https://nutrition-mcp.com/tools"
         />
@@ -62,16 +67,17 @@
         <meta property="og:locale:alternate" content="nl_NL" />
         <meta property="og:locale:alternate" content="it_IT" />
         <meta property="og:locale:alternate" content="uk_UA" />
+        <meta property="og:locale:alternate" content="ja_JP" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#fbfbf9" />
         <meta
             property="og:title"
-            content="Katalog narzędzi: wszystkie 38 narzędzi — Nutrition MCP"
+            content="Katalog narzędzi: wszystkie 36 narzędzi — Nutrition MCP"
         />
         <meta
             property="og:description"
-            content="Wszystkie 38 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV do przenoszenia historii z innej aplikacji — z opisami i przykładowymi poleceniami."
+            content="Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV do przenoszenia historii z innej aplikacji — z opisami i przykładowymi poleceniami."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://nutrition-mcp.com/pl/tools" />
@@ -631,6 +637,12 @@
                                 hreflang="uk"
                                 >Українська</a
                             >
+                            <a
+                                href="https://nutrition-mcp.com/ja/tools"
+                                lang="ja"
+                                hreflang="ja"
+                                >日本語</a
+                            >
                         </div>
                     </details>
                     <button
@@ -695,7 +707,7 @@
                     >Instalacja <small>poniżej minuty</small></a
                 >
                 <a href="/pl/tools" aria-current="page"
-                    >Narzędzia <small>38 narzędzi</small></a
+                    >Narzędzia <small>36 narzędzi</small></a
                 >
                 <a href="/pl#try">Przykłady <small>przykłady na żywo</small></a>
                 <a href="/pl#stats"
@@ -745,7 +757,7 @@
                                 class="fa-solid fa-wrench"
                                 aria-hidden="true"
                             ></i
-                            ><b>38 narzędzi</b> w 7 obszarach</span
+                            ><b>36 narzędzi</b> w 7 obszarach</span
                         >
                     </div>
 
@@ -1993,26 +2005,6 @@
                                     <p>Od teraz pokazuj moją wagę w funtach</p>
                                 </div>
                             </article>
-
-                            <article class="tool-card" id="get_weight_unit">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_weight_unit</code
-                                    >
-                                    <span class="chip chip-view">Podgląd</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Sprawdź, jakiej jednostki wagi obecnie
-                                    używasz.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Spróbuj powiedzieć</span
-                                    >
-                                    <p>Jakiej jednostki wagi używam?</p>
-                                </div>
-                            </article>
                         </div>
                     </section>
 
@@ -2408,6 +2400,28 @@
                             </div>
                         </div>
                         <div class="tool-grid">
+                            <article class="tool-card" id="get_profile">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_profile</code>
+                                    <span class="chip chip-view">Podgląd</span>
+                                </div>
+                                <p class="tool-desc">
+                                    Zobacz wszystkie swoje aktualne ustawienia
+                                    naraz: strefę czasową (a także lokalną datę
+                                    i godzinę), język widżetów, preferowaną
+                                    jednostkę wagi, czy widżety w czacie są
+                                    włączone oraz czy śledzenie alkoholu jest
+                                    włączone.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Spróbuj powiedzieć</span
+                                    >
+                                    <p>Jakie są moje obecne ustawienia?</p>
+                                </div>
+                            </article>
+
                             <article class="tool-card" id="set_timezone">
                                 <div class="tool-head">
                                     <code class="tool-name">set_timezone</code>
@@ -2433,26 +2447,42 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_timezone">
+                            <article class="tool-card" id="set_language">
                                 <div class="tool-head">
-                                    <code class="tool-name">get_timezone</code>
-                                    <span class="chip chip-view">Podgląd</span>
+                                    <code class="tool-name">set_language</code>
+                                    <span class="chip chip-setting"
+                                        >Ustawienie</span
+                                    >
                                 </div>
                                 <p class="tool-desc">
-                                    Sprawdź, jaka strefa czasowa jest u Ciebie
-                                    ustawiona, wraz z aktualną lokalną datą i
-                                    godziną (domyślnie UTC, jeśli nie
-                                    ustawiono).
+                                    Ustaw język interfejsu widżetów w czacie —
+                                    paneli i wykresów, nie treści, które pisze
+                                    do Ciebie AI.
                                 </p>
-
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Parametry</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>locale</code>
+                                            <span class="param-req"
+                                                >wymagane</span
+                                            >
+                                            — Kod ISO 639-1, np.
+                                            <code>de</code>, <code>uk</code>.
+                                            Obsługiwane języki: angielski,
+                                            niemiecki, hiszpański, francuski,
+                                            niderlandzki, polski, włoski,
+                                            ukraiński.
+                                        </li>
+                                    </ul>
+                                </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
                                         >Spróbuj powiedzieć</span
                                     >
-                                    <p>
-                                        Jaka strefa czasowa jest u mnie
-                                        ustawiona?
-                                    </p>
+                                    <p>Pokazuj moje widżety po niemiecku</p>
                                 </div>
                             </article>
 
@@ -2522,26 +2552,6 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_widget_display">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_widget_display</code
-                                    >
-                                    <span class="chip chip-view">Podgląd</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Sprawdź, czy wizualne widżety w czacie są
-                                    obecnie włączone.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Spróbuj powiedzieć</span
-                                    >
-                                    <p>Czy widżety są włączone?</p>
-                                </div>
-                            </article>
-
                             <article
                                 class="tool-card"
                                 id="set_alcohol_tracking"
@@ -2607,30 +2617,6 @@
                                         Zacznij śledzić moje picie, w
                                         jednostkach brytyjskich
                                     </p>
-                                </div>
-                            </article>
-
-                            <article
-                                class="tool-card"
-                                id="get_alcohol_tracking"
-                            >
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_alcohol_tracking</code
-                                    >
-                                    <span class="chip chip-view">Podgląd</span>
-                                </div>
-                                <p class="tool-desc">
-                                    Sprawdź, czy śledzenie alkoholu jest
-                                    włączone i w jakim standardowym drinku
-                                    pokazywane są Twoje gramy.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Spróbuj powiedzieć</span
-                                    >
-                                    <p>Czy śledzę alkohol?</p>
                                 </div>
                             </article>
 

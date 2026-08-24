@@ -8,17 +8,17 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "Toolreferentie: alle 38 tools",
+        title: "Toolreferentie: alle 36 tools",
         description:
-            "Alle 38 tools die de Nutrition MCP-server aan je AI geeft — maaltijden loggen, barcodes scannen, je geschiedenis uit een andere app importeren, water en gewicht bijhouden, doelen instellen en trends bekijken. Volledige referentie met beschrijvingen en voorbeeldzinnen.",
+            "Alle 36 tools die de Nutrition MCP-server aan je AI geeft — maaltijden loggen, barcodes scannen, je geschiedenis uit een andere app importeren, water en gewicht bijhouden, doelen instellen en trends bekijken. Volledige referentie met beschrijvingen en voorbeeldzinnen.",
         ogDescription:
-            "Alle 38 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer voor je geschiedenis uit een andere app — met beschrijvingen en voorbeeldzinnen.",
+            "Alle 36 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer voor je geschiedenis uit een andere app — met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Referentie",
         title: "Alles wat je AI kan doen",
         lead: "Je roept deze tools nooit rechtstreeks aan — je praat gewoon, en de assistent kiest de juiste tool. Hier is de volledige set die de Nutrition MCP-server aanbiedt, met wat elke tool doet en een zin die hem activeert.",
-        countBold: "38 tools",
+        countBold: "36 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -301,12 +301,6 @@ export const TOOLS_NL: ToolsDoc = {
             params: {},
             example: "Gebruik vanaf nu pond voor mijn gewicht",
         },
-        get_weight_unit: {
-            description:
-                "Bekijk welke gewichtseenheid je op dit moment gebruikt.",
-            params: {},
-            example: "Welke gewichtseenheid gebruik ik?",
-        },
         set_nutrition_goals: {
             description:
                 "Stel je dagelijkse doelen in voor calorieën, macro's, vezels, suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; suiker, alcohol en cafeïne zijn limieten om onder te blijven, en de voortgang wordt daarnaar verwoord. Alleen de velden die je noemt worden bijgewerkt; de rest blijft ongewijzigd.",
@@ -371,17 +365,25 @@ export const TOOLS_NL: ToolsDoc = {
             example:
                 "Zitten er patronen in hoe ik eet — zoals late diners of het overslaan van het ontbijt?",
         },
+        get_profile: {
+            description:
+                "Bekijk al je huidige instellingen in één keer: tijdzone (plus je lokale datum en tijd), de widgettaal, je gewichtseenheid, of de widgets in de chat worden getoond, en of alcoholregistratie aanstaat.",
+            params: {},
+            example: "Wat zijn mijn huidige instellingen?",
+        },
         set_timezone: {
             description:
                 "Stel je IANA-tijdzone in zodat dagen om middernacht in jouw tijdzone overgaan — een maaltijd die om 23:00 is gelogd, telt op die dag, niet op de volgende UTC-dag.",
             params: {},
             example: "Ik zit in Berlijn — stel mijn tijdzone in",
         },
-        get_timezone: {
+        set_language: {
             description:
-                "Bekijk voor welke tijdzone je bent ingesteld, samen met je huidige lokale datum en tijd (standaard UTC als niets is ingesteld).",
-            params: {},
-            example: "Op welke tijdzone sta ik ingesteld?",
+                "Stel de taal in voor de widgets in de chat — de dashboards en grafieken, niet wat de AI aan je terugschrijft.",
+            params: {
+                locale: "ISO 639-1-code, bijv. <code>de</code>, <code>uk</code>. Ondersteund: Engels, Duits, Spaans, Frans, Nederlands, Pools, Italiaans en Oekraïens.",
+            },
+            example: "Zet mijn widgets in het Duits",
         },
         get_current_time: {
             description:
@@ -397,12 +399,6 @@ export const TOOLS_NL: ToolsDoc = {
             },
             example: "Zet de widgets uit",
         },
-        get_widget_display: {
-            description:
-                "Bekijk of de visuele widgets in de chat op dit moment zijn ingeschakeld.",
-            params: {},
-            example: "Staan de widgets aan?",
-        },
         set_alcohol_tracking: {
             description:
                 "Zet alcoholregistratie aan of uit, en kies of drankjes worden geteld in Amerikaanse standaardglazen of Britse eenheden. Standaard staat het uit, dus je moet er zelf om vragen. Het weer uitzetten verbergt alcohol uit maaltijden, doelen en voortgang en zorgt dat de bestandsimporter de alcoholkolom van een bestand niet meer leest — niets dat al gelogd is wordt verwijderd, je CSV-export bevat het nog steeds, en het verschijnt weer zodra je het weer aanzet. De wijziging geldt vanaf je volgende bericht, zonder dat er iets herstart hoeft te worden.",
@@ -414,12 +410,6 @@ export const TOOLS_NL: ToolsDoc = {
             },
             example:
                 "Begin met het bijhouden van mijn drankgebruik, in Britse eenheden",
-        },
-        get_alcohol_tracking: {
-            description:
-                "Bekijk of alcoholregistratie aanstaat, en in welk standaardglas je gramwaarden worden getoond.",
-            params: {},
-            example: "Houd ik alcohol bij?",
         },
         delete_account: {
             description:

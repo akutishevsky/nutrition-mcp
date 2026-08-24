@@ -15,6 +15,9 @@ test.each(KEYS)("%s assembles into a self-contained widget", async (key) => {
     // Same for the TS-inlining marker: an unresolved one would ship a widget
     // whose script silently lacks whole functions.
     expect(html.match(/\/\*@inlinets/g)).toBeNull();
+    // Same for the i18n marker: an unresolved one would ship the literal
+    // comment instead of the WIDGET_STRINGS dictionary shared/i18n.js needs.
+    expect(html.match(/\/\*@i18n@\*\//g)).toBeNull();
     // Module syntax must not survive into the inline <script>.
     expect(html).not.toMatch(/^export\s/m);
 

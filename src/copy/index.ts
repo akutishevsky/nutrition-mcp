@@ -39,6 +39,7 @@ import { INDEX_NL } from "./index.nl.js";
 import { INDEX_PL } from "./index.pl.js";
 import { INDEX_IT } from "./index.it.js";
 import { INDEX_UK } from "./index.uk.js";
+import { INDEX_JA } from "./index.ja.js";
 
 /** One FAQ entry. `visibleHtml` is what a human reads in the <details>.
  * `jsonLdText` is optional: when omitted, the generator derives the
@@ -2508,7 +2509,7 @@ const INDEX_EN: IndexDoc = {
         note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
         toolsCta: {
             heading: "Curious what it can actually do?",
-            body: "Browse all 38 tools — logging, barcodes, water, weight, goals, and trends — with a description and an example prompt for each.",
+            body: "Browse all 36 tools — logging, barcodes, water, weight, goals, and trends — with a description and an example prompt for each.",
             arrow: "Explore the tools",
         },
     },
@@ -2742,4 +2743,5 @@ export const INDEX: Partial<Record<SiteLocale, IndexDoc>> = {
     pl: INDEX_PL,
     it: INDEX_IT,
     uk: INDEX_UK,
+    ja: INDEX_JA,
 };
