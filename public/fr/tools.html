@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
     <head>
-        <title>Référence des outils : les 38 outils — Nutrition MCP</title>
+        <title>Référence des outils : les 36 outils — Nutrition MCP</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <meta
             name="description"
-            content="Les 38 outils que le serveur Nutrition MCP donne à ton IA — enregistrer des repas, scanner des codes-barres, importer ton historique depuis une autre app, suivre l'eau et le poids, définir des objectifs et consulter les tendances. Référence complète avec descriptions et exemples de formulations."
+            content="Les 36 outils que le serveur Nutrition MCP donne à ton IA — enregistrer des repas, scanner des codes-barres, importer ton historique depuis une autre app, suivre l'eau et le poids, définir des objectifs et consulter les tendances. Référence complète avec descriptions et exemples de formulations."
         />
         <link rel="canonical" href="https://nutrition-mcp.com/fr/tools" />
         <link
@@ -67,11 +67,11 @@
         <meta name="theme-color" content="#fbfbf9" />
         <meta
             property="og:title"
-            content="Référence des outils : les 38 outils — Nutrition MCP"
+            content="Référence des outils : les 36 outils — Nutrition MCP"
         />
         <meta
             property="og:description"
-            content="Les 38 outils que le serveur Nutrition MCP donne à ton IA, dont un importateur CSV pour ton historique venu d'une autre app — avec descriptions et exemples de formulations."
+            content="Les 36 outils que le serveur Nutrition MCP donne à ton IA, dont un importateur CSV pour ton historique venu d'une autre app — avec descriptions et exemples de formulations."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://nutrition-mcp.com/fr/tools" />
@@ -691,7 +691,7 @@
                     >Installation <small>moins d'une minute</small></a
                 >
                 <a href="/fr/tools" aria-current="page"
-                    >Outils <small>38 outils</small></a
+                    >Outils <small>36 outils</small></a
                 >
                 <a href="/fr#try">Exemples <small>démos en direct</small></a>
                 <a href="/fr#stats"
@@ -741,7 +741,7 @@
                                 class="fa-solid fa-wrench"
                                 aria-hidden="true"
                             ></i
-                            ><b>38 outils</b> répartis en 7 catégories</span
+                            ><b>36 outils</b> répartis en 7 catégories</span
                         >
                     </div>
 
@@ -2026,28 +2026,6 @@
                                     </p>
                                 </div>
                             </article>
-
-                            <article class="tool-card" id="get_weight_unit">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_weight_unit</code
-                                    >
-                                    <span class="chip chip-view"
-                                        >Consulter</span
-                                    >
-                                </div>
-                                <p class="tool-desc">
-                                    Vérifie quelle unité de poids tu utilises
-                                    actuellement.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Essaie de dire</span
-                                    >
-                                    <p>Quelle unité de poids j'utilise ?</p>
-                                </div>
-                            </article>
                         </div>
                     </section>
 
@@ -2458,6 +2436,30 @@
                             </div>
                         </div>
                         <div class="tool-grid">
+                            <article class="tool-card" id="get_profile">
+                                <div class="tool-head">
+                                    <code class="tool-name">get_profile</code>
+                                    <span class="chip chip-view"
+                                        >Consulter</span
+                                    >
+                                </div>
+                                <p class="tool-desc">
+                                    Affiche tes réglages actuels en un coup
+                                    d'œil : fuseau horaire (plus la date et
+                                    l'heure locales), langue des widgets, unité
+                                    de poids préférée, si les widgets
+                                    interactifs dans le chat sont activés, et si
+                                    le suivi de l'alcool est activé.
+                                </p>
+
+                                <div class="tool-ex">
+                                    <span class="tool-ex-label"
+                                        >Essaie de dire</span
+                                    >
+                                    <p>Quels sont mes réglages actuels ?</p>
+                                </div>
+                            </article>
+
                             <article class="tool-card" id="set_timezone">
                                 <div class="tool-head">
                                     <code class="tool-name">set_timezone</code>
@@ -2483,26 +2485,43 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_timezone">
+                            <article class="tool-card" id="set_language">
                                 <div class="tool-head">
-                                    <code class="tool-name">get_timezone</code>
-                                    <span class="chip chip-view"
-                                        >Consulter</span
+                                    <code class="tool-name">set_language</code>
+                                    <span class="chip chip-setting"
+                                        >Paramètre</span
                                     >
                                 </div>
                                 <p class="tool-desc">
-                                    Vérifie le fuseau horaire configuré, ainsi
-                                    que ta date et heure locales actuelles (UTC
-                                    par défaut si non configuré).
+                                    Définis la langue de l'interface pour les
+                                    widgets interactifs dans le chat — les
+                                    tableaux de bord et graphiques, pas ce que
+                                    l'IA t'écrit.
                                 </p>
-
+                                <div class="tool-params">
+                                    <span class="tool-params-label"
+                                        >Paramètres</span
+                                    >
+                                    <ul>
+                                        <li>
+                                            <code>locale</code>
+                                            <span class="param-req"
+                                                >requis</span
+                                            >
+                                            — Code ISO 639-1, par exemple
+                                            <code>de</code>, <code>uk</code>.
+                                            Langues prises en charge : anglais,
+                                            allemand, espagnol, français,
+                                            néerlandais, polonais, italien,
+                                            ukrainien.
+                                        </li>
+                                    </ul>
+                                </div>
                                 <div class="tool-ex">
                                     <span class="tool-ex-label"
                                         >Essaie de dire</span
                                     >
-                                    <p>
-                                        Sur quel fuseau horaire suis-je réglé ?
-                                    </p>
+                                    <p>Affiche mes widgets en allemand</p>
                                 </div>
                             </article>
 
@@ -2579,28 +2598,6 @@
                                 </div>
                             </article>
 
-                            <article class="tool-card" id="get_widget_display">
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_widget_display</code
-                                    >
-                                    <span class="chip chip-view"
-                                        >Consulter</span
-                                    >
-                                </div>
-                                <p class="tool-desc">
-                                    Vérifie si les widgets visuels du chat sont
-                                    actuellement activés.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Essaie de dire</span
-                                    >
-                                    <p>Est-ce que les widgets sont activés ?</p>
-                                </div>
-                            </article>
-
                             <article
                                 class="tool-card"
                                 id="set_alcohol_tracking"
@@ -2664,35 +2661,6 @@
                                     <p>
                                         Commence à suivre ma consommation
                                         d'alcool, en unités britanniques
-                                    </p>
-                                </div>
-                            </article>
-
-                            <article
-                                class="tool-card"
-                                id="get_alcohol_tracking"
-                            >
-                                <div class="tool-head">
-                                    <code class="tool-name"
-                                        >get_alcohol_tracking</code
-                                    >
-                                    <span class="chip chip-view"
-                                        >Consulter</span
-                                    >
-                                </div>
-                                <p class="tool-desc">
-                                    Vérifie si le suivi de l'alcool est activé,
-                                    et à quel verre standard tes grammes sont
-                                    associés.
-                                </p>
-
-                                <div class="tool-ex">
-                                    <span class="tool-ex-label"
-                                        >Essaie de dire</span
-                                    >
-                                    <p>
-                                        Est-ce que je suis ma consommation
-                                        d'alcool ?
                                     </p>
                                 </div>
                             </article>

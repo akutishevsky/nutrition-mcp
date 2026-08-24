@@ -6,17 +6,17 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "Werkzeug-Referenz: Alle 38 Werkzeuge",
+        title: "Werkzeug-Referenz: Alle 36 Werkzeuge",
         description:
-            "Alle 38 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt — Mahlzeiten erfassen, Barcodes scannen, deine Historie aus einer anderen App importieren, Wasser und Gewicht verfolgen, Ziele festlegen und Trends auswerten. Vollständige Referenz mit Beschreibungen und Beispielsätzen.",
+            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt — Mahlzeiten erfassen, Barcodes scannen, deine Historie aus einer anderen App importieren, Wasser und Gewicht verfolgen, Ziele festlegen und Trends auswerten. Vollständige Referenz mit Beschreibungen und Beispielsätzen.",
         ogDescription:
-            "Alle 38 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt, inklusive eines CSV-Importers für deine Historie aus einer anderen App — mit Beschreibungen und Beispielsätzen.",
+            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt, inklusive eines CSV-Importers für deine Historie aus einer anderen App — mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
         title: "Alles, was deine KI kann",
         lead: "Du rufst diese Werkzeuge nie selbst auf — du sprichst einfach, und der Assistent wählt das richtige Werkzeug. Hier ist die vollständige Liste, die der Nutrition-MCP-Server bereitstellt, mit dem, was jedes tut, und einem Satz, der es auslöst.",
-        countBold: "38 Werkzeuge",
+        countBold: "36 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
     categories: {
@@ -300,11 +300,6 @@ export const TOOLS_DE: ToolsDoc = {
             params: {},
             example: "Verwende ab jetzt Pfund für mein Gewicht",
         },
-        get_weight_unit: {
-            description: "Prüf, welche Gewichtseinheit du gerade verwendest.",
-            params: {},
-            example: "Welche Gewichtseinheit verwende ich?",
-        },
         set_nutrition_goals: {
             description:
                 "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser fest, plus optional ein Ziel-Körpergewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Zucker, Alkohol und Koffein sind Grenzwerte, die du unterschreiten willst, und der Fortschritt wird entsprechend formuliert. Aktualisiert werden nur die genannten Felder; der Rest bleibt unverändert.",
@@ -369,17 +364,25 @@ export const TOOLS_DE: ToolsDoc = {
             example:
                 "Gibt es Muster darin, wie ich esse — wie späte Abendessen oder ausgelassenes Frühstück?",
         },
+        get_profile: {
+            description:
+                "Sieh deine aktuellen Einstellungen auf einen Blick: Zeitzone (plus lokales Datum und Uhrzeit), Widget-Sprache, bevorzugte Gewichtseinheit, ob In-Chat-Widgets angezeigt werden und ob die Alkohol-Erfassung aktiviert ist.",
+            params: {},
+            example: "Welche Einstellungen habe ich gerade?",
+        },
         set_timezone: {
             description:
                 "Leg deine IANA-Zeitzone fest, damit der Tag um deine lokale Mitternacht wechselt — eine um 23 Uhr erfasste Mahlzeit zählt zu diesem Tag, nicht zum nächsten UTC-Tag.",
             params: {},
             example: "Ich bin in Berlin — stell meine Zeitzone ein",
         },
-        get_timezone: {
+        set_language: {
             description:
-                "Prüf, auf welche Zeitzone du eingestellt bist, zusammen mit deinem aktuellen lokalen Datum und der Uhrzeit (Standard UTC, falls nicht eingestellt).",
-            params: {},
-            example: "Auf welche Zeitzone bin ich eingestellt?",
+                "Leg die Sprache der In-Chat-Widgets fest — die Dashboards und Diagramme, nicht das, was die KI dir zurückschreibt.",
+            params: {
+                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>uk</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch.",
+            },
+            example: "Zeig meine Widgets auf Deutsch an",
         },
         get_current_time: {
             description:
@@ -396,12 +399,6 @@ export const TOOLS_DE: ToolsDoc = {
             },
             example: "Schalt die Widgets aus",
         },
-        get_widget_display: {
-            description:
-                "Prüf, ob die visuellen In-Chat-Widgets derzeit aktiviert sind.",
-            params: {},
-            example: "Sind die Widgets eingeschaltet?",
-        },
         set_alcohol_tracking: {
             description:
                 "Schalte die Alkohol-Erfassung ein oder aus und wähl, ob Getränke in US-Standard-Drinks oder UK-Einheiten gezählt werden. Standardmäßig ausgeschaltet, du musst also aktiv danach fragen. Schaltest du es wieder aus, wird Alkohol in Mahlzeiten, Zielen und Fortschritt ausgeblendet, und der Datei-Importer liest die Alkohol-Spalte einer Datei nicht mehr — nichts bereits Erfasstes wird gelöscht, dein CSV-Export enthält es weiterhin, und es taucht wieder auf, wenn du es erneut einschaltest. Die Änderung gilt ab deiner nächsten Nachricht, ohne dass etwas neu gestartet werden muss.",
@@ -413,12 +410,6 @@ export const TOOLS_DE: ToolsDoc = {
             },
             example:
                 "Fang an, meinen Alkoholkonsum zu erfassen, in UK-Einheiten",
-        },
-        get_alcohol_tracking: {
-            description:
-                "Prüf, ob die Alkohol-Erfassung aktiviert ist und neben welchem Standard-Drink deine Gramm angezeigt werden.",
-            params: {},
-            example: "Erfasse ich Alkohol?",
         },
         delete_account: {
             description:

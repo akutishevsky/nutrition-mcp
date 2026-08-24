@@ -664,13 +664,22 @@ export async function getUserLocale(userId: string): Promise<string> {
 
 // Returns the user's saved weight-unit preference, or null if they have never
 // chosen one. Write paths use null to refuse guessing; display paths coalesce
-// to "kg".
+// to "kg". Mirrors timezoneFromProfile/localeFromProfile — a caller that
+// already has a fetched profile (get_profile needs all five preferences at
+// once) should use this instead of the *FromProfile-less
+// getPreferredWeightUnit, which was the one preference without a pure
+// derivation until this existed.
+export function preferredWeightUnitFromProfile(
+    profile: Profile | null | undefined,
+): WeightUnit | null {
+    const unit = profile?.preferred_weight_unit;
+    return isWeightUnit(unit) ? unit : null;
+}
+
 export async function getPreferredWeightUnit(
     userId: string,
 ): Promise<WeightUnit | null> {
-    const profile = await getProfile(userId);
-    const unit = profile?.preferred_weight_unit;
-    return isWeightUnit(unit) ? unit : null;
+    return preferredWeightUnitFromProfile(await getProfile(userId));
 }
 
 // The three display preferences below come in two halves: a pure

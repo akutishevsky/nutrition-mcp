@@ -23,7 +23,7 @@ export const CHROME_NL: ChromeCopy = {
     menu: {
         howSmall: "3 stappen",
         installSmall: "binnen een minuut",
-        toolsSmall: "38 tools",
+        toolsSmall: "36 tools",
         examplesSmall: "live demo's",
         liveStatsSmall: "sinds je dit opende",
         alternatives: "Alternatieven",

@@ -2473,7 +2473,7 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
     });
 });
 
-describe("get_alcohol_tracking", () => {
+describe("get_profile > alcohol tracking section", () => {
     test("reports enabled with the saved unit", async () => {
         db.profile = {
             ...PROFILE_BASE,
@@ -2481,8 +2481,8 @@ describe("get_alcohol_tracking", () => {
             preferred_drink_unit: "uk",
         };
         await withTools("uk", async (call) => {
-            const text = textOf(await call("get_alcohol_tracking", {}));
-            expect(text).toContain("is enabled");
+            const text = textOf(await call("get_profile", {}));
+            expect(text).toContain("Alcohol tracking: enabled");
             expect(text).toContain("UK units");
             expect(text).not.toContain("no preference saved");
         });
@@ -2491,7 +2491,7 @@ describe("get_alcohol_tracking", () => {
     test("flags the US fallback as a default, not a choice", async () => {
         db.profile = { ...PROFILE_BASE, alcohol_tracking_enabled: true };
         await withTools("us", async (call) => {
-            const text = textOf(await call("get_alcohol_tracking", {}));
+            const text = textOf(await call("get_profile", {}));
             expect(text).toContain("US standard drinks");
             expect(text).toContain("no preference saved");
         });
@@ -2499,8 +2499,8 @@ describe("get_alcohol_tracking", () => {
 
     test("reports disabled, and that stored alcohol is kept", async () => {
         await withTools(null, async (call) => {
-            const text = textOf(await call("get_alcohol_tracking", {}));
-            expect(text).toContain("is disabled");
+            const text = textOf(await call("get_profile", {}));
+            expect(text).toContain("Alcohol tracking: disabled");
             expect(text).toContain("still stored");
             expect(text).toContain("set_alcohol_tracking");
         });
@@ -2511,8 +2511,8 @@ describe("get_alcohol_tracking", () => {
     test("no profile row at all reads as disabled", async () => {
         db.profile = null;
         await withTools(null, async (call) => {
-            expect(textOf(await call("get_alcohol_tracking", {}))).toContain(
-                "is disabled",
+            expect(textOf(await call("get_profile", {}))).toContain(
+                "Alcohol tracking: disabled",
             );
         });
     });
@@ -2767,10 +2767,10 @@ describe("delete_account analytics", () => {
 
     test("other tools still record the real user id", async () => {
         await withTools(null, async (call) => {
-            await call("get_timezone");
+            await call("get_profile");
         });
 
-        const rows = rowsFor("get_timezone");
+        const rows = rowsFor("get_profile");
         expect(rows).toHaveLength(1);
         expect(rows[0]!.user_id).toBe("u1");
     });
@@ -3490,27 +3490,24 @@ describe("current-time disclosure", () => {
         return { text, sampled: [...new Set([before, after])] };
     }
 
-    test("get_timezone reports the zone AND the user's current wall clock", async () => {
+    test("get_profile reports the zone AND the user's current wall clock", async () => {
         db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
         await withTools(null, async (call) => {
             const { text, sampled } = await around("Europe/Kyiv", async () =>
-                textOf(await call("get_timezone")),
+                textOf(await call("get_profile")),
             );
             expect(text).toContain("Timezone: Europe/Kyiv.");
             expectClockIn(text, "Europe/Kyiv", sampled);
-            // The old line gave a date and no time, which is what left the
-            // model reconstructing an hour.
-            expect(text).not.toContain("Local today is");
         });
     });
 
-    test("get_timezone still gives a clock when no timezone is set", async () => {
+    test("get_profile still gives a clock when no timezone is set", async () => {
         db.profile = null;
         await withTools(null, async (call) => {
             const { text, sampled } = await around("UTC", async () =>
-                textOf(await call("get_timezone")),
+                textOf(await call("get_profile")),
             );
-            expect(text).toContain("No timezone set yet (defaulting to UTC).");
+            expect(text).toContain("Timezone: not set (defaulting to UTC).");
             expectClockIn(text, "UTC", sampled);
             // Knowing the time must not cost the caller the nudge to configure
             // a zone — UTC is a fallback, not the user's clock.
@@ -3520,13 +3517,13 @@ describe("current-time disclosure", () => {
 
     // #99: a profile row created by some other set_* tool, with timezone still
     // null, must read the same as no profile at all.
-    test("get_timezone treats a profile with no timezone as unset", async () => {
+    test("get_profile treats a profile with no timezone as unset", async () => {
         db.profile = { ...PROFILE_BASE, timezone: null };
         await withTools(null, async (call) => {
             const { text, sampled } = await around("UTC", async () =>
-                textOf(await call("get_timezone")),
+                textOf(await call("get_profile")),
             );
-            expect(text).toContain("No timezone set yet (defaulting to UTC).");
+            expect(text).toContain("Timezone: not set (defaulting to UTC).");
             expectClockIn(text, "UTC", sampled);
             expect(text).toContain("set_timezone");
         });
@@ -3551,31 +3548,57 @@ describe("current-time disclosure", () => {
         });
     });
 
-    test("get_language defaults to English when never set", async () => {
+    test("get_profile defaults language to English when never set", async () => {
         db.profile = { ...PROFILE_BASE, locale: null };
         await withTools(null, async (call) => {
-            const text = textOf(await call("get_language"));
-            expect(text).toContain("No language set yet");
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain(
+                "Language: not set (defaulting to English).",
+            );
             expect(text).toContain("set_language");
         });
     });
 
     // #99-shaped case, same as timezone: a profile row created by some other
     // set_* tool with locale still null must read the same as no profile at all.
-    test("get_language treats a profile with no locale as unset", async () => {
+    test("get_profile treats a profile with no locale as unset", async () => {
         db.profile = { ...PROFILE_BASE, locale: null, timezone: "UTC" };
         await withTools(null, async (call) => {
-            const text = textOf(await call("get_language"));
-            expect(text).toContain("No language set yet");
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain(
+                "Language: not set (defaulting to English).",
+            );
         });
     });
 
-    test("get_language reports a saved locale", async () => {
+    test("get_profile reports a saved locale", async () => {
         db.profile = { ...PROFILE_BASE, locale: "fr" };
         await withTools(null, async (call) => {
-            const text = textOf(await call("get_language"));
+            const text = textOf(await call("get_profile"));
             expect(text).toContain("Français");
             expect(text).toContain("fr");
+        });
+    });
+
+    test("get_profile reports weight unit and widget display together", async () => {
+        db.profile = {
+            ...PROFILE_BASE,
+            preferred_weight_unit: "lb",
+            widgets_enabled: false,
+        };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain("Weight unit: lb.");
+            expect(text).toContain("Widgets: disabled.");
+        });
+    });
+
+    test("get_profile flags weight unit as unset and widgets as enabled by default", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain("Weight unit: not set.");
+            expect(text).toContain("Widgets: enabled.");
         });
     });
 
@@ -3939,7 +3962,7 @@ describe("/mcp serves one tool surface on both protocol eras", () => {
     test.each(ERAS)("tools/call returns text content (%p)", async (mode) => {
         await withHttpClient("u1", mode, async (client) => {
             const r = await client.callTool({
-                name: "get_timezone",
+                name: "get_profile",
                 arguments: {},
             });
             expect(r.isError).toBeFalsy();
@@ -4167,7 +4190,7 @@ describe("/mcp transport posture", () => {
                 id: 8,
                 method: "tools/call",
                 params: {
-                    name: "get_timezone",
+                    name: "get_profile",
                     arguments: {},
                     _meta: {
                         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
@@ -4178,7 +4201,7 @@ describe("/mcp transport posture", () => {
             {
                 "mcp-protocol-version": "2026-07-28",
                 "mcp-method": "subscriptions/listen",
-                "mcp-name": "get_timezone",
+                "mcp-name": "get_profile",
             },
         );
         expect(r.status).toBe(400);

@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 38 tools" reference page), rendered
+// Typed content for /tools (the "all 36 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -127,11 +127,11 @@ export interface ToolIdentity {
 }
 
 /**
- * All 38 tools, in the exact document order of public/tools.html (grouped
+ * All 36 tools, in the exact document order of public/tools.html (grouped
  * by category — see CategoryId — for the reader). Cross-checked against
- * the 38 `server.registerTool()` calls in src/mcp.ts: the two orders
+ * the 36 `server.registerTool()` calls in src/mcp.ts: the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
- * reader-facing grouping) but the *set* of 38 tool names is identical —
+ * reader-facing grouping) but the *set* of 36 tool names is identical —
  * nothing here was dropped or invented.
  */
 export const TOOLS: ToolIdentity[] = [
@@ -345,13 +345,6 @@ export const TOOLS: ToolIdentity[] = [
         hasPhotoHint: false,
     },
     {
-        name: "get_weight_unit",
-        category: "weight",
-        badges: ["view"],
-        params: [],
-        hasPhotoHint: false,
-    },
-    {
         name: "set_nutrition_goals",
         category: "goals-progress",
         badges: ["setting"],
@@ -408,6 +401,13 @@ export const TOOLS: ToolIdentity[] = [
         hasPhotoHint: false,
     },
     {
+        name: "get_profile",
+        category: "settings-account",
+        badges: ["view"],
+        params: [],
+        hasPhotoHint: false,
+    },
+    {
         name: "set_timezone",
         category: "settings-account",
         badges: ["setting"],
@@ -415,10 +415,10 @@ export const TOOLS: ToolIdentity[] = [
         hasPhotoHint: false,
     },
     {
-        name: "get_timezone",
+        name: "set_language",
         category: "settings-account",
-        badges: ["view"],
-        params: [],
+        badges: ["setting"],
+        params: [{ name: "locale", required: true }],
         hasPhotoHint: false,
     },
     {
@@ -436,13 +436,6 @@ export const TOOLS: ToolIdentity[] = [
         hasPhotoHint: false,
     },
     {
-        name: "get_widget_display",
-        category: "settings-account",
-        badges: ["view"],
-        params: [],
-        hasPhotoHint: false,
-    },
-    {
         name: "set_alcohol_tracking",
         category: "settings-account",
         badges: ["setting"],
@@ -450,13 +443,6 @@ export const TOOLS: ToolIdentity[] = [
             { name: "enabled", required: true },
             { name: "drink_unit", required: false },
         ],
-        hasPhotoHint: false,
-    },
-    {
-        name: "get_alcohol_tracking",
-        category: "settings-account",
-        badges: ["view"],
-        params: [],
         hasPhotoHint: false,
     },
     {
@@ -549,17 +535,17 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "Tools Reference: All 38 Tools",
+        title: "Tools Reference: All 36 Tools",
         description:
-            "All 38 tools the Nutrition MCP server gives your AI — log meals, scan barcodes, import your history from another app, track water and weight, set goals, and review trends. Full reference with descriptions and example prompts.",
+            "All 36 tools the Nutrition MCP server gives your AI — log meals, scan barcodes, import your history from another app, track water and weight, set goals, and review trends. Full reference with descriptions and example prompts.",
         ogDescription:
-            "All 38 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
+            "All 36 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
         title: "Everything your AI can do",
         lead: "You never call these directly — you just talk, and the assistant picks the right tool. Here's the full set the Nutrition MCP server exposes, with what each one does and a phrase that triggers it.",
-        countBold: "38 tools",
+        countBold: "36 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -831,11 +817,6 @@ const TOOLS_EN: ToolsDoc = {
             params: {},
             example: "Use pounds for my weight from now on",
         },
-        get_weight_unit: {
-            description: "Check which weight unit you're currently using.",
-            params: {},
-            example: "What weight unit am I using?",
-        },
         set_nutrition_goals: {
             description:
                 "Set your daily calorie, macro, fiber, sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
@@ -897,17 +878,25 @@ const TOOLS_EN: ToolsDoc = {
             example:
                 "Any patterns in how I eat — like late dinners or skipping breakfast?",
         },
+        get_profile: {
+            description:
+                "See your current settings in one go: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on.",
+            params: {},
+            example: "What are my current settings?",
+        },
         set_timezone: {
             description:
                 "Set your IANA timezone so days roll over at your local midnight — a meal logged at 11pm counts on that day, not the next UTC one.",
             params: {},
             example: "I'm in Berlin — set my timezone",
         },
-        get_timezone: {
+        set_language: {
             description:
-                "Check the timezone you're configured for, along with your current local date and time (defaults to UTC if unset).",
-            params: {},
-            example: "What timezone am I set to?",
+                "Set the UI language for in-chat widgets — the dashboards and charts, not what the AI writes back to you.",
+            params: {
+                locale: "ISO 639-1 code, e.g. <code>de</code>, <code>uk</code>. Supported: English, German, Spanish, French, Dutch, Polish, Italian, Ukrainian.",
+            },
+            example: "Show my widgets in German",
         },
         get_current_time: {
             description:
@@ -923,12 +912,6 @@ const TOOLS_EN: ToolsDoc = {
             },
             example: "Turn off the widgets",
         },
-        get_widget_display: {
-            description:
-                "Check whether the in-chat visual widgets are currently enabled.",
-            params: {},
-            example: "Are the widgets turned on?",
-        },
         set_alcohol_tracking: {
             description:
                 "Turn alcohol tracking on or off, and choose whether drinks are counted in US standard drinks or UK units. It's off by default, so you have to ask for it. Turning it off again hides alcohol from meals, goals and progress and stops the file importer reading a file's alcohol column — nothing already logged is deleted, your CSV export still includes it, and it reappears if you switch it back on. The change applies from your next message, with nothing to restart.",
@@ -939,12 +922,6 @@ const TOOLS_EN: ToolsDoc = {
                     "Which standard drink to show alongside the grams: <code>us</code> (14 g per drink) or <code>uk</code> (7.9 g per unit). Defaults to <code>us</code>; grams of pure ethanol are what's actually stored.",
             },
             example: "Start tracking my drinking, in UK units",
-        },
-        get_alcohol_tracking: {
-            description:
-                "Check whether alcohol tracking is on, and which standard drink your grams are shown alongside.",
-            params: {},
-            example: "Am I tracking alcohol?",
         },
         delete_account: {
             description:

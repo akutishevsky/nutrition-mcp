@@ -2327,7 +2327,7 @@ export const INDEX_FR: IndexDoc = {
         note: "Tout ceci est facultatif. Tu peux le faire maintenant, plus tard, ou jamais — commence simplement à enregistrer et règle ça quand tu veux.",
         toolsCta: {
             heading: "Curieux de voir tout ce que ça peut faire ?",
-            body: "Parcours les 38 outils — enregistrement, codes-barres, eau, poids, objectifs et tendances — avec une description et un exemple de formulation pour chacun.",
+            body: "Parcours les 36 outils — enregistrement, codes-barres, eau, poids, objectifs et tendances — avec une description et un exemple de formulation pour chacun.",
             arrow: "Explorer les outils",
         },
     },

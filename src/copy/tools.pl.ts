@@ -2,17 +2,17 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "Katalog narzędzi: wszystkie 38 narzędzi",
+        title: "Katalog narzędzi: wszystkie 36 narzędzi",
         description:
-            "Wszystkie 38 narzędzi, które serwer Nutrition MCP daje Twojemu AI — zapisuj posiłki, skanuj kody kreskowe, importuj historię z innej aplikacji, śledź wodę i wagę, ustawiaj cele i przeglądaj trendy. Pełny opis wraz z przykładowymi poleceniami.",
+            "Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI — zapisuj posiłki, skanuj kody kreskowe, importuj historię z innej aplikacji, śledź wodę i wagę, ustawiaj cele i przeglądaj trendy. Pełny opis wraz z przykładowymi poleceniami.",
         ogDescription:
-            "Wszystkie 38 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV do przenoszenia historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV do przenoszenia historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
         title: "Wszystko, co potrafi Twój AI",
         lead: "Nigdy nie wywołujesz tych narzędzi bezpośrednio — po prostu mówisz, a asystent sam wybiera właściwe. Oto pełny zestaw udostępniany przez serwer Nutrition MCP, wraz z opisem działania i przykładowym poleceniem, które je uruchamia.",
-        countBold: "38 narzędzi",
+        countBold: "36 narzędzi",
         countTail: "w 7 obszarach",
     },
     categories: {
@@ -289,11 +289,6 @@ export const TOOLS_PL: ToolsDoc = {
             params: {},
             example: "Od teraz pokazuj moją wagę w funtach",
         },
-        get_weight_unit: {
-            description: "Sprawdź, jakiej jednostki wagi obecnie używasz.",
-            params: {},
-            example: "Jakiej jednostki wagi używam?",
-        },
         set_nutrition_goals: {
             description:
                 "Ustaw dzienne cele dotyczące kalorii, makroskładników, błonnika, cukru, alkoholu, kofeiny i wody, a także opcjonalną docelową masę ciała. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; cukier, alkohol i kofeina to limity, których nie należy przekraczać, a postęp jest opisywany odpowiednio do tego. Aktualizowane są tylko wskazane pola; reszta pozostaje bez zmian.",
@@ -359,17 +354,25 @@ export const TOOLS_PL: ToolsDoc = {
             example:
                 "Czy widać jakieś wzorce w moim jedzeniu — na przykład późne kolacje albo pomijanie śniadań?",
         },
+        get_profile: {
+            description:
+                "Zobacz wszystkie swoje aktualne ustawienia naraz: strefę czasową (a także lokalną datę i godzinę), język widżetów, preferowaną jednostkę wagi, czy widżety w czacie są włączone oraz czy śledzenie alkoholu jest włączone.",
+            params: {},
+            example: "Jakie są moje obecne ustawienia?",
+        },
         set_timezone: {
             description:
                 "Ustaw swoją strefę czasową IANA, żeby dni zmieniały się o Twojej lokalnej północy — posiłek zapisany o 23:00 liczy się do tego dnia, nie do kolejnego dnia UTC.",
             params: {},
             example: "Jestem w Berlinie — ustaw moją strefę czasową",
         },
-        get_timezone: {
+        set_language: {
             description:
-                "Sprawdź, jaka strefa czasowa jest u Ciebie ustawiona, wraz z aktualną lokalną datą i godziną (domyślnie UTC, jeśli nie ustawiono).",
-            params: {},
-            example: "Jaka strefa czasowa jest u mnie ustawiona?",
+                "Ustaw język interfejsu widżetów w czacie — paneli i wykresów, nie treści, które pisze do Ciebie AI.",
+            params: {
+                locale: "Kod ISO 639-1, np. <code>de</code>, <code>uk</code>. Obsługiwane języki: angielski, niemiecki, hiszpański, francuski, niderlandzki, polski, włoski, ukraiński.",
+            },
+            example: "Pokazuj moje widżety po niemiecku",
         },
         get_current_time: {
             description:
@@ -386,12 +389,6 @@ export const TOOLS_PL: ToolsDoc = {
             },
             example: "Wyłącz widżety",
         },
-        get_widget_display: {
-            description:
-                "Sprawdź, czy wizualne widżety w czacie są obecnie włączone.",
-            params: {},
-            example: "Czy widżety są włączone?",
-        },
         set_alcohol_tracking: {
             description:
                 "Włącz lub wyłącz śledzenie alkoholu i wybierz, czy drinki mają być liczone w standardowych drinkach amerykańskich czy jednostkach brytyjskich. Domyślnie jest wyłączone, więc musisz o to poprosić. Ponowne wyłączenie ukrywa alkohol z posiłków, celów i postępów oraz sprawia, że importer plików przestaje odczytywać kolumnę alkoholu — nic, co już zapisano, nie zostaje usunięte, Twój eksport CSV nadal to zawiera, a wszystko pojawia się z powrotem po ponownym włączeniu. Zmiana obowiązuje od kolejnej wiadomości, bez potrzeby restartu czegokolwiek.",
@@ -402,12 +399,6 @@ export const TOOLS_PL: ToolsDoc = {
                     "Który standardowy drink pokazywać obok gramów: <code>us</code> (14 g na drinka) lub <code>uk</code> (7,9 g na jednostkę). Domyślnie <code>us</code>; faktycznie przechowywane są gramy czystego etanolu.",
             },
             example: "Zacznij śledzić moje picie, w jednostkach brytyjskich",
-        },
-        get_alcohol_tracking: {
-            description:
-                "Sprawdź, czy śledzenie alkoholu jest włączone i w jakim standardowym drinku pokazywane są Twoje gramy.",
-            params: {},
-            example: "Czy śledzę alkohol?",
         },
         delete_account: {
             description:

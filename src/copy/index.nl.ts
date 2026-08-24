@@ -2329,7 +2329,7 @@ export const INDEX_NL: IndexDoc = {
         note: "Dit alles is optioneel. Je kunt het nu doen, later, of nooit — begin gewoon met loggen en stel dit in wanneer je wilt.",
         toolsCta: {
             heading: "Benieuwd wat het écht allemaal kan?",
-            body: "Bekijk alle 38 tools — loggen, barcodes, water, gewicht, doelen en trends — met een beschrijving en een voorbeeldzin voor elk.",
+            body: "Bekijk alle 36 tools — loggen, barcodes, water, gewicht, doelen en trends — met een beschrijving en een voorbeeldzin voor elk.",
             arrow: "Bekijk de tools",
         },
     },

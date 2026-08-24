@@ -13,17 +13,17 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_IT: ToolsDoc = {
     meta: {
-        title: "Guida agli strumenti: tutti i 38 strumenti",
+        title: "Guida agli strumenti: tutti i 36 strumenti",
         description:
-            "Tutti i 38 strumenti che il server Nutrition MCP mette a disposizione della tua IA — registra i pasti, scansiona codici a barre, importa il tuo storico da un'altra app, monitora acqua e peso, imposta obiettivi e rivedi gli andamenti. Guida completa con descrizioni ed esempi di richieste.",
+            "Tutti i 36 strumenti che il server Nutrition MCP mette a disposizione della tua IA — registra i pasti, scansiona codici a barre, importa il tuo storico da un'altra app, monitora acqua e peso, imposta obiettivi e rivedi gli andamenti. Guida completa con descrizioni ed esempi di richieste.",
         ogDescription:
-            "Tutti i 38 strumenti che il server Nutrition MCP mette a disposizione della tua IA, incluso un importatore CSV per il tuo storico da un'altra app — con descrizioni ed esempi di richieste.",
+            "Tutti i 36 strumenti che il server Nutrition MCP mette a disposizione della tua IA, incluso un importatore CSV per il tuo storico da un'altra app — con descrizioni ed esempi di richieste.",
     },
     hero: {
         eyebrow: "Guida di riferimento",
         title: "Tutto quello che la tua IA può fare",
         lead: "Non li chiami mai direttamente — parli e basta, e l'assistente sceglie lo strumento giusto. Ecco l'elenco completo che il server Nutrition MCP mette a disposizione, con cosa fa ciascuno e una frase che lo attiva.",
-        countBold: "38 strumenti",
+        countBold: "36 strumenti",
         countTail: "in 7 aree",
     },
     categories: {
@@ -303,12 +303,6 @@ export const TOOLS_IT: ToolsDoc = {
             params: {},
             example: "Usa le libbre per il mio peso da ora in poi",
         },
-        get_weight_unit: {
-            description:
-                "Controlla quale unità di peso stai usando attualmente.",
-            params: {},
-            example: "Quale unità di peso sto usando?",
-        },
         set_nutrition_goals: {
             description:
                 "Imposta i tuoi obiettivi giornalieri di calorie, macro, fibre, zuccheri, alcol, caffeina e acqua, più un peso corporeo obiettivo facoltativo. Calorie, proteine, carboidrati, grassi, fibre e acqua sono target da raggiungere; zuccheri, alcol e caffeina sono limiti da non superare, e i progressi sono espressi di conseguenza. Aggiorna solo i campi che indichi; il resto rimane invariato.",
@@ -374,17 +368,25 @@ export const TOOLS_IT: ToolsDoc = {
             example:
                 "Ci sono pattern in come mangio — tipo cene tardive o saltare la colazione?",
         },
+        get_profile: {
+            description:
+                "Vedi tutte le tue impostazioni attuali in un'unica volta: fuso orario (più data e ora locali), lingua dei widget, unità di peso preferita, se i widget in chat sono attivati e se il tracciamento dell'alcol è attivo.",
+            params: {},
+            example: "Quali sono le mie impostazioni attuali?",
+        },
         set_timezone: {
             description:
                 "Imposta il tuo fuso orario IANA così i giorni cambiano alla tua mezzanotte locale — un pasto registrato alle 23 conta per quel giorno, non per quello successivo UTC.",
             params: {},
             example: "Sono a Berlino — imposta il mio fuso orario",
         },
-        get_timezone: {
+        set_language: {
             description:
-                "Controlla il fuso orario per cui sei configurato, insieme alla tua data e ora locale attuale (predefinito UTC se non impostato).",
-            params: {},
-            example: "A quale fuso orario sono impostato?",
+                "Imposta la lingua dell'interfaccia per i widget in chat — le dashboard e i grafici, non ciò che l'IA ti scrive.",
+            params: {
+                locale: "Codice ISO 639-1, ad es. <code>de</code>, <code>uk</code>. Lingue supportate: inglese, tedesco, spagnolo, francese, olandese, polacco, italiano, ucraino.",
+            },
+            example: "Mostra i miei widget in tedesco",
         },
         get_current_time: {
             description:
@@ -401,12 +403,6 @@ export const TOOLS_IT: ToolsDoc = {
             },
             example: "Disattiva i widget",
         },
-        get_widget_display: {
-            description:
-                "Controlla se i widget visivi in chat sono attualmente attivati.",
-            params: {},
-            example: "I widget sono attivati?",
-        },
         set_alcohol_tracking: {
             description:
                 "Attiva o disattiva il tracciamento dell'alcol, e scegli se i drink vengono contati in drink standard USA o unità britanniche. È disattivato per impostazione predefinita, quindi devi chiederlo esplicitamente. Disattivarlo di nuovo nasconde l'alcol da pasti, obiettivi e progressi e impedisce all'importatore di file di leggere la colonna dell'alcol di un file — nulla di già registrato viene eliminato, la tua esportazione CSV lo include comunque, e riappare se lo riattivi. Il cambiamento si applica dal tuo prossimo messaggio, senza bisogno di riavviare nulla.",
@@ -417,12 +413,6 @@ export const TOOLS_IT: ToolsDoc = {
                     "Quale drink standard mostrare accanto ai grammi: <code>us</code> (14 g per drink) o <code>uk</code> (7,9 g per unità). Predefinito <code>us</code>; ciò che viene effettivamente memorizzato sono i grammi di etanolo puro.",
             },
             example: "Inizia a tracciare quanto bevo, in unità britanniche",
-        },
-        get_alcohol_tracking: {
-            description:
-                "Controlla se il tracciamento dell'alcol è attivo, e con quale drink standard sono mostrati i tuoi grammi.",
-            params: {},
-            example: "Sto tracciando l'alcol?",
         },
         delete_account: {
             description:

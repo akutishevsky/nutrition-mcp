@@ -2232,7 +2232,7 @@ export const INDEX_ES: IndexDoc = {
         note: "Todo esto es opcional. Puedes hacerlo ahora, más tarde o nunca: simplemente empieza a registrar y ajusta esto cuando quieras.",
         toolsCta: {
             heading: "¿Curiosidad por saber qué puede hacer de verdad?",
-            body: "Explora las 38 herramientas (registro, códigos de barras, agua, peso, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
+            body: "Explora las 36 herramientas (registro, códigos de barras, agua, peso, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
             arrow: "Explorar las herramientas",
         },
     },
