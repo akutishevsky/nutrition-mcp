@@ -2500,10 +2500,11 @@ const INDEX_EN: IndexDoc = {
     onboarding: {
         eyebrow: "Onboarding",
         title: "Set up once — or just start talking",
-        sub: "This is completely optional — Nutrition MCP works the moment you connect. If you want, these two quick steps make it more accurate, but you can skip straight to logging.",
+        sub: "This is completely optional — Nutrition MCP works the moment you connect. If you want, these three quick steps make it more accurate, but you can skip straight to logging.",
         steps: [
             '<strong>Set your timezone</strong> — so days roll over at your local midnight and today\'s totals stay accurate wherever you are. <span class="step-say">Just say <q>Set my timezone to New York</q>.</span>',
             '<strong>Set your goals</strong> — daily calorie, macro, and water targets, plus an optional target weight and your preferred weight unit (kg or lb), to track your progress against. <span class="step-say">Just say <q>Set my daily goal to 2,000 calories and 150g of protein</q>.</span>',
+            '<strong>Set your language</strong> — the language in-chat widgets (dashboards, charts) are shown in, not what the AI writes back to you. <span class="step-say">Just say <q>Show my widgets in German</q>.</span>',
             '<strong>Start logging</strong> — just say what you ate, send a photo or scan a barcode. That\'s it. <span class="step-say">Just say <q>I had oatmeal with berries for breakfast</q>.</span>',
         ],
         note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",

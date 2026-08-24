@@ -637,10 +637,11 @@ export const INDEX_PL: IndexDoc = {
     onboarding: {
         eyebrow: "Pierwsze kroki",
         title: "Skonfiguruj raz — albo po prostu zacznij mówić",
-        sub: "To całkowicie opcjonalne — Nutrition MCP działa od razu po połączeniu. Jeśli chcesz, te dwa szybkie kroki zwiększą dokładność, ale możesz też od razu przejść do zapisywania.",
+        sub: "To całkowicie opcjonalne — Nutrition MCP działa od razu po połączeniu. Jeśli chcesz, te trzy szybkie kroki zwiększą dokładność, ale możesz też od razu przejść do zapisywania.",
         steps: [
             '<strong>Ustaw strefę czasową</strong> — żeby dni zmieniały się o Twojej lokalnej północy, a dzisiejsze podsumowania były trafne, gdziekolwiek jesteś. <span class="step-say">Po prostu powiedz <q>Ustaw moją strefę czasową na Nowy Jork</q>.</span>',
             '<strong>Ustaw swoje cele</strong> — dzienne cele kaloryczne, makroskładnikowe i wodne, a także opcjonalną wagę docelową i preferowaną jednostkę wagi (kg lub lb), względem których będziesz śledzić postępy. <span class="step-say">Po prostu powiedz <q>Ustaw mój dzienny cel na 2000 kalorii i 150 g białka</q>.</span>',
+            '<strong>Ustaw swój język</strong> — język, w jakim wyświetlają się widżety w czacie (panele, wykresy), a nie treści, które pisze do Ciebie AI. <span class="step-say">Po prostu powiedz <q>Pokazuj moje widżety po niemiecku</q>.</span>',
             '<strong>Zacznij zapisywać</strong> — po prostu powiedz, co zjadłeś/aś, wyślij zdjęcie albo zeskanuj kod kreskowy. To wszystko. <span class="step-say">Po prostu powiedz <q>Zjadłem/am owsiankę z owocami na śniadanie</q>.</span>',
         ],
         note: "Wszystko tutaj jest opcjonalne. Możesz to zrobić teraz, później albo wcale — po prostu zacznij zapisywać, a to ustaw, kiedy tylko zechcesz.",

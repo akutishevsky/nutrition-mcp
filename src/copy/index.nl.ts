@@ -2320,10 +2320,11 @@ export const INDEX_NL: IndexDoc = {
     onboarding: {
         eyebrow: "Onboarding",
         title: "Eén keer instellen — of begin gewoon te praten",
-        sub: "Dit is volledig optioneel — Nutrition MCP werkt zodra je verbonden bent. Als je wilt, maken deze twee korte stappen het nauwkeuriger, maar je kunt ook meteen beginnen met loggen.",
+        sub: "Dit is volledig optioneel — Nutrition MCP werkt zodra je verbonden bent. Als je wilt, maken deze drie korte stappen het nauwkeuriger, maar je kunt ook meteen beginnen met loggen.",
         steps: [
             '<strong>Stel je tijdzone in</strong> — zodat dagen om middernacht in jouw tijdzone overgaan en de totalen van vandaag altijd kloppen, waar je ook bent. <span class="step-say">Zeg gewoon <q>Zet mijn tijdzone op New York</q>.</span>',
             '<strong>Stel je doelen in</strong> — dagelijkse doelen voor calorieën, macro\'s en water, plus een optioneel streefgewicht en je gewenste gewichtseenheid (kg of lb), om je voortgang tegen af te zetten. <span class="step-say">Zeg gewoon <q>Zet mijn dagelijkse doel op 2.000 calorieën en 150 g eiwit</q>.</span>',
+            '<strong>Stel je taal in</strong> — de taal waarin in-chat widgets (dashboards, grafieken) worden getoond, niet wat de AI je terugschrijft. <span class="step-say">Zeg gewoon <q>Zet mijn widgets in het Duits</q>.</span>',
             '<strong>Begin met loggen</strong> — zeg gewoon wat je hebt gegeten, stuur een foto of scan een barcode. Dat is alles. <span class="step-say">Zeg gewoon <q>Ik had havermout met bessen als ontbijt</q>.</span>',
         ],
         note: "Dit alles is optioneel. Je kunt het nu doen, later, of nooit — begin gewoon met loggen en stel dit in wanneer je wilt.",

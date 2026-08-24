@@ -676,10 +676,11 @@ export const INDEX_DE: IndexDoc = {
     onboarding: {
         eyebrow: "Erste Schritte",
         title: "Einmal einrichten — oder einfach loslegen",
-        sub: "Das ist völlig optional — Nutrition MCP funktioniert, sobald du verbunden bist. Wenn du willst, machen dich diese zwei kurzen Schritte genauer, aber du kannst auch direkt mit dem Erfassen loslegen.",
+        sub: "Das ist völlig optional — Nutrition MCP funktioniert, sobald du verbunden bist. Wenn du willst, machen dich diese drei kurzen Schritte genauer, aber du kannst auch direkt mit dem Erfassen loslegen.",
         steps: [
             '<strong>Zeitzone einstellen</strong> — damit der Tag um deine lokale Mitternacht wechselt und die heutigen Werte stimmen, egal wo du bist. <span class="step-say">Sag einfach <q>Stell meine Zeitzone auf New York</q>.</span>',
             '<strong>Ziele festlegen</strong> — tägliche Kalorien-, Makro- und Wasserziele, dazu optional ein Zielgewicht und deine bevorzugte Gewichtseinheit (kg oder lb), um deinen Fortschritt daran zu messen. <span class="step-say">Sag einfach <q>Setze mein Tagesziel auf 2.000 Kalorien und 150 g Protein</q>.</span>',
+            '<strong>Sprache einstellen</strong> — die Sprache, in der In-Chat-Widgets (Dashboards, Diagramme) angezeigt werden, nicht das, was die KI dir zurückschreibt. <span class="step-say">Sag einfach <q>Zeig meine Widgets auf Deutsch an</q>.</span>',
             '<strong>Loslegen</strong> — sag einfach, was du gegessen hast, schick ein Foto oder scanne einen Barcode. Das war\'s. <span class="step-say">Sag einfach <q>Ich hatte Haferflocken mit Beeren zum Frühstück</q>.</span>',
         ],
         note: "Das alles ist optional. Du kannst es jetzt, später oder nie machen — leg einfach mit dem Erfassen los und stell das ein, wann immer du willst.",

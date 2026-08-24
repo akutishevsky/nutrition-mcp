@@ -2318,10 +2318,11 @@ export const INDEX_FR: IndexDoc = {
     onboarding: {
         eyebrow: "Prise en main",
         title: "Configure une fois — ou commence direct à parler",
-        sub: "C'est entièrement facultatif — Nutrition MCP fonctionne dès que tu te connectes. Si tu veux, ces deux étapes rapides le rendent plus précis, mais tu peux aussi passer directement à l'enregistrement.",
+        sub: "C'est entièrement facultatif — Nutrition MCP fonctionne dès que tu te connectes. Si tu veux, ces trois étapes rapides le rendent plus précis, mais tu peux aussi passer directement à l'enregistrement.",
         steps: [
             '<strong>Définis ton fuseau horaire</strong> — pour que tes journées basculent à minuit heure locale et que les totaux du jour restent justes où que tu sois. <span class="step-say">Dis simplement <q>Mets mon fuseau horaire sur New York</q>.</span>',
             '<strong>Définis tes objectifs</strong> — cibles quotidiennes de calories, macros et eau, plus un poids cible facultatif et ton unité de poids préférée (kg ou lb), pour suivre ta progression. <span class="step-say">Dis simplement <q>Mets mon objectif quotidien à 2 000 calories et 150g de protéines</q>.</span>',
+            "<strong>Définis ta langue</strong> — la langue dans laquelle les widgets du chat (tableaux de bord, graphiques) s'affichent, pas ce que l'IA t'écrit. <span class=\"step-say\">Dis simplement <q>Affiche mes widgets en allemand</q>.</span>",
             "<strong>Commence à enregistrer</strong> — dis simplement ce que tu as mangé, envoie une photo ou scanne un code-barres. C'est tout. <span class=\"step-say\">Dis simplement <q>J'ai pris du porridge avec des fruits rouges au petit-déjeuner</q>.</span>",
         ],
         note: "Tout ceci est facultatif. Tu peux le faire maintenant, plus tard, ou jamais — commence simplement à enregistrer et règle ça quand tu veux.",

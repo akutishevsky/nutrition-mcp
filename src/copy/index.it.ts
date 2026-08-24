@@ -2230,10 +2230,11 @@ export const INDEX_IT: IndexDoc = {
     onboarding: {
         eyebrow: "Onboarding",
         title: "Configura una volta sola — o inizia subito a parlare",
-        sub: "È del tutto facoltativo — Nutrition MCP funziona non appena ti connetti. Se vuoi, questi due rapidi passaggi lo rendono più preciso, ma puoi anche passare direttamente alla registrazione.",
+        sub: "È del tutto facoltativo — Nutrition MCP funziona non appena ti connetti. Se vuoi, questi tre rapidi passaggi lo rendono più preciso, ma puoi anche passare direttamente alla registrazione.",
         steps: [
             '<strong>Imposta il tuo fuso orario</strong> — così i giorni cambiano alla tua mezzanotte locale e i totali di oggi restano corretti ovunque tu sia. <span class="step-say">Dì semplicemente <q>Imposta il mio fuso orario su New York</q>.</span>',
             '<strong>Imposta i tuoi obiettivi</strong> — target giornalieri di calorie, macro e acqua, oltre a un peso obiettivo facoltativo e alla tua unità di peso preferita (kg o lb), per monitorare i tuoi progressi. <span class="step-say">Dì semplicemente <q>Imposta il mio obiettivo giornaliero a 2.000 calorie e 150g di proteine</q>.</span>',
+            '<strong>Imposta la tua lingua</strong> — la lingua in cui vengono mostrati i widget in chat (dashboard, grafici), non ciò che l\'IA ti scrive. <span class="step-say">Dì semplicemente <q>Mostra i miei widget in tedesco</q>.</span>',
             '<strong>Inizia a registrare</strong> — dì semplicemente cosa hai mangiato, invia una foto o scansiona un codice a barre. Tutto qui. <span class="step-say">Dì semplicemente <q>Ho mangiato porridge con frutti di bosco a colazione</q>.</span>',
         ],
         note: "Tutto questo è facoltativo. Puoi farlo ora, più tardi o mai — inizia semplicemente a registrare e imposta queste opzioni quando vuoi.",
