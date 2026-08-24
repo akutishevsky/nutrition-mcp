@@ -39,6 +39,7 @@ import { INDEX_NL } from "./index.nl.js";
 import { INDEX_PL } from "./index.pl.js";
 import { INDEX_IT } from "./index.it.js";
 import { INDEX_UK } from "./index.uk.js";
+import { INDEX_JA } from "./index.ja.js";
 
 /** One FAQ entry. `visibleHtml` is what a human reads in the <details>.
  * `jsonLdText` is optional: when omitted, the generator derives the
@@ -2742,4 +2743,5 @@ export const INDEX: Partial<Record<SiteLocale, IndexDoc>> = {
     pl: INDEX_PL,
     it: INDEX_IT,
     uk: INDEX_UK,
+    ja: INDEX_JA,
 };

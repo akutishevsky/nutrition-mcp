@@ -23,6 +23,7 @@ import { CHROME_NL } from "./chrome.nl.js";
 import { CHROME_PL } from "./chrome.pl.js";
 import { CHROME_IT } from "./chrome.it.js";
 import { CHROME_UK } from "./chrome.uk.js";
+import { CHROME_JA } from "./chrome.ja.js";
 
 export interface ChromeCopy {
     skipToContent: string;
@@ -137,6 +138,7 @@ export const CHROME_COPY: Partial<Record<SiteLocale, ChromeCopy>> = {
     pl: CHROME_PL,
     it: CHROME_IT,
     uk: CHROME_UK,
+    ja: CHROME_JA,
 };
 
 export function chromeFor(locale: SiteLocale): ChromeCopy {

@@ -299,10 +299,18 @@
                 if (mon < 1 || mon > 12) return null;
                 return { y: Number(m[1]), m: mon, d: Number(m[3]) };
             }
+            // Every supported locale except Japanese happens to share
+            // English's day-before-month order ("5 Jul"/"5 juillet"/"5
+            // Juli"...), so only `ja` gets a distinct branch here rather
+            // than a per-locale date-order field in WidgetStrings — Y-M-D
+            // with 年/月/日 particles, no separating spaces.
             function dayLabel(s, withYear) {
                 const p = ymd(s);
                 if (!p) return String(s ?? "");
-                return `${p.d} ${T.nutritionSummary.months[p.m - 1]}${withYear ? ` ${p.y}` : ""}`;
+                const month = T.nutritionSummary.months[p.m - 1];
+                return WIDGET_LOCALE === "ja"
+                    ? `${withYear ? `${p.y}年` : ""}${month}${p.d}日`
+                    : `${p.d} ${month}${withYear ? ` ${p.y}` : ""}`;
             }
             // "5–7 Jul" within a month, "28 Jun – 4 Jul" across two. The year
             // shows when the range crosses one (where it is the whole point)
@@ -321,10 +329,19 @@
                 if (a.y !== b.y)
                     return `${dayLabel(start, true)} – ${dayLabel(end, true)}`;
                 const yr = b.y === thisYear ? "" : ` ${b.y}`;
-                if (a.m === b.m)
-                    return a.d === b.d
-                        ? `${dayLabel(end, false)}${yr}`
-                        : `${a.d}–${b.d} ${T.nutritionSummary.months[b.m - 1]}${yr}`;
+                if (a.m === b.m) {
+                    if (a.d === b.d) return `${dayLabel(end, false)}${yr}`;
+                    // "7月5日〜7日": every other branch above and below just
+                    // joins two dayLabel() calls, which is already
+                    // locale-correct — this is the one case where the month
+                    // is factored out once, and English's "day–day month"
+                    // order is backwards for Japanese's "month day〜day".
+                    if (WIDGET_LOCALE === "ja") {
+                        const yearPrefix = b.y === thisYear ? "" : `${b.y}年`;
+                        return `${yearPrefix}${T.nutritionSummary.months[b.m - 1]}${a.d}日〜${b.d}日`;
+                    }
+                    return `${a.d}–${b.d} ${T.nutritionSummary.months[b.m - 1]}${yr}`;
+                }
                 return `${dayLabel(start, false)} – ${dayLabel(end, false)}${yr}`;
             }
 
