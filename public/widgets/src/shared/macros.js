@@ -471,12 +471,12 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // unrecognised unit: "us" is what src/mcp.ts uses for an
         // alcohol-tracking user with no saved preference.
         drinkUnit: DRINK_GRAMS[unit] ? unit : "us",
-        // "Calories today" is not yet in WIDGET_STRINGS — every current
-        // caller (the four production templates) passes its own calLabel,
-        // so this default only fires for the dev-only component gallery.
-        // Add a macros.calLabelDefault key here when a widget that relies
-        // on it is translated.
-        calLabel: (opts && opts.calLabel) || "Calories today",
+        // The shared default calorie-ring label, translated via
+        // T.macros.caloriesToday. goal-progress.html and meal-logged.html
+        // don't override it and rely on this default in production;
+        // nutrition-summary.html and trends.html always pass their own more
+        // specific calLabel (day count / range-averaged wording).
+        calLabel: (opts && opts.calLabel) || T.macros.caloriesToday,
         // Set by a widget that puts something of its own — a chart, a range
         // toggle's chart — between the header line and the strip, so the strip
         // opens with the same hairline that separates its own sections.
