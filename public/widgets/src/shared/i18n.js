@@ -57,6 +57,18 @@ function setLocale(locale) {
     return T;
 }
 
+// Convenience wrapper combining pickLocale+setLocale for the common "resolve
+// this render's locale from the payload and host context" case every widget
+// template needs.
+function setLocaleFrom(data, api) {
+    return setLocale(
+        pickLocale(
+            data && data.locale,
+            api && api.hostContext ? api.hostContext.locale : null,
+        ),
+    );
+}
+
 // Fill {placeholders} in a translated template string, e.g.
 // tpl(T.macros.byMealTitle, { label: "Protein" }) -> "Protein by meal".
 function tpl(s, vars) {

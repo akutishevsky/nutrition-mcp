@@ -55,6 +55,7 @@
             // ---- Sample data so the file renders on its own (browser preview) ----
             const SAMPLE = {
                 date: "2026-07-11",
+                locale: "en",
                 logged_meal: {
                     description: "Grilled chicken salad",
                     meal_type: "lunch",
@@ -193,6 +194,8 @@
 
             /*@include shared/macros.js@*/
 
+            let __widgetApi = null;
+
             function render(data) {
                 const root = document.getElementById("root");
 
@@ -202,6 +205,7 @@
                     root.innerHTML = "";
                     return;
                 }
+                setLocaleFrom(data, __widgetApi);
 
                 const totals = data.totals || {};
                 const panel = macroPanel(
@@ -227,13 +231,17 @@
                 const sub = bits.join(" · ");
                 const added =
                     meal && meal.calories != null
-                        ? `+${fmt(meal.calories, 0)} kcal`
+                        ? tpl(T.mealLogged.addedKcal, {
+                              kcal: fmt(meal.calories, 0),
+                          })
                         : "";
 
                 // Same widget for log_meal and update_meal — the action only
                 // changes the header wording.
                 const title =
-                    data.action === "updated" ? "Meal updated" : "Meal logged";
+                    data.action === "updated"
+                        ? T.mealLogged.titleUpdated
+                        : T.mealLogged.titleLogged;
 
                 root.innerHTML = `
           <div class="panel">
@@ -268,6 +276,9 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                onReady(api) {
+                    __widgetApi = api;
+                },
             });
         </script>
     </body>

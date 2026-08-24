@@ -1060,6 +1060,7 @@ describe("start_meal_import payload", () => {
         tz: "Europe/Kyiv",
         tzConfigured: true,
         widgetsEnabled: true,
+        locale: "en",
     };
 
     // drink_unit is the whole alcohol gate for this flow: non-null means the
