@@ -25,6 +25,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         ofPrefix: "von",
         drinkLabels: { us: "US-Drinks", uk: "UK-Einheiten" },
         noneLogged: "nichts protokolliert",
+        caloriesToday: "Kalorien heute",
         tapHint: "Für die zugehörigen Mahlzeiten auf einen Wert tippen",
         showMealsContributed:
             "Zeigt die Mahlzeiten, die dazu beigetragen haben.",
@@ -43,6 +44,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         loading: "Ernährungsübersicht wird geladen…",
         empty: "In diesem Zeitraum wurden keine Mahlzeiten oder kein Wasser protokolliert.",
         caloriesPerDay: "Kalorien / Tag",
+        chartAriaLabel: "Kalorien pro Tag im ausgewählten Zeitraum",
         avg: "Ø",
         goal: "Ziel",
         dailyAvgLoggedDays: "Tagesdurchschnitt · protokollierte Tage",

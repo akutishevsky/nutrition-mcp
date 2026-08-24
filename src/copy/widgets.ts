@@ -79,6 +79,11 @@ export interface WidgetStrings {
         drinkLabels: { us: string; uk: string };
         /** A limit metric with nothing recorded at all. */
         noneLogged: string;
+        /** Default label above the calorie ring/figure when a widget doesn't
+         * override it with its own calLabel (nutrition-summary and trends
+         * always override; goal-progress and meal-logged rely on this
+         * default). */
+        caloriesToday: string;
         /** Hint line under an interactive strip. */
         tapHint: string;
         /** Appended sentence in an interactive tile's aria-label, e.g.
@@ -106,6 +111,10 @@ export interface WidgetStrings {
         empty: string;
         /** Trend chart title. */
         caloriesPerDay: string;
+        /** aria-label on the calorie trend chart's <svg>. Unlike
+         * trends.caloriesOverRange, this widget's range is fixed by the
+         * tool call (no in-widget toggle), so there's no {range} placeholder. */
+        chartAriaLabel: string;
         /** Trend chart caption prefix, e.g. "avg 2,035". */
         avg: string;
         /** Trend chart caption prefix, e.g. "goal 2,200". */
@@ -391,6 +400,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         ofPrefix: "of",
         drinkLabels: { us: "US drinks", uk: "UK units" },
         noneLogged: "none logged",
+        caloriesToday: "Calories today",
         tapHint: "Tap a metric for the meals behind it",
         showMealsContributed: "Show the meals that contributed.",
         byMealTitle: "{label} by meal",
@@ -407,6 +417,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         loading: "Loading your nutrition summary…",
         empty: "No meals or water logged in this range.",
         caloriesPerDay: "Calories / day",
+        chartAriaLabel: "Calories per day over the selected range",
         avg: "avg",
         goal: "goal",
         dailyAvgLoggedDays: "Daily avg · logged days",

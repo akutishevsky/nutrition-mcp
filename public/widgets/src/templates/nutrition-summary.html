@@ -405,7 +405,7 @@
               <span class="ctitle">${esc(T.nutritionSummary.caloriesPerDay)}</span>
               <span class="cmeta">${esc(T.nutritionSummary.avg)} ${fmt(avg, 0)}${goal && goal > 0 ? ` · ${esc(T.nutritionSummary.goal)} ${fmt(goal, 0)}` : ""}</span>
             </div>
-            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calories per day over the selected range">
+            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.nutritionSummary.chartAriaLabel)}">
               <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
               ${goalLine}
               <path d="${area}" fill="var(--calories)" opacity="0.16"/>
