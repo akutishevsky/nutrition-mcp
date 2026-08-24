@@ -4411,7 +4411,7 @@ function newMcpServer(baseUrl: string): McpServer {
     return new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.27.0",
+            version: "1.27.1",
             icons: [
                 {
                     src: `${baseUrl}/favicon.ico`,
