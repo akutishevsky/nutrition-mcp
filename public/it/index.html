@@ -4256,6 +4256,11 @@
                 var baseStats = null;
                 var pollTimer = null;
                 var liveEl = document.getElementById("facts-live");
+                // The translated word the generator rendered into that node
+                // ("Live", "En direct", "Na zywo"). Captured before the first
+                // live update overwrites it, so the line below is rebuilt from
+                // it rather than replaced with English.
+                var liveLabel = liveEl ? liveEl.textContent.trim() : "";
 
                 // ---------- kg / lb toggle ----------
                 var unitBtns = [].slice.call(
@@ -4361,7 +4366,8 @@
                                 hour: "numeric",
                                 minute: "2-digit",
                             });
-                            liveEl.textContent = "Live \u00b7 since " + t;
+                            liveEl.textContent =
+                                (liveLabel ? liveLabel + " \u00b7 " : "") + t;
                         }
                         schedule();
                     })
