@@ -3700,9 +3700,15 @@
                     "(prefers-reduced-motion: reduce)",
                 ).matches;
 
+                // The page's own language, stamped on <html lang> by the
+                // generator. One script serves all nine locales, so it can
+                // never name a locale of its own: it reads the one it was
+                // rendered in.
+                var NUM_LOCALE = document.documentElement.lang || "en";
+
                 // ---------- animated stat numbers ----------
                 function fmtInt(n) {
-                    return Math.round(n).toLocaleString("en-US");
+                    return Math.round(n).toLocaleString(NUM_LOCALE);
                 }
                 // ---------- weight unit ----------
                 // Every weight the API returns is in grams and is only ever
@@ -4159,7 +4165,7 @@
                         if (liveEl) {
                             liveEl.classList.add("on");
                             // The deltas are measured from this moment.
-                            var t = new Date().toLocaleTimeString([], {
+                            var t = new Date().toLocaleTimeString(NUM_LOCALE, {
                                 hour: "numeric",
                                 minute: "2-digit",
                             });
