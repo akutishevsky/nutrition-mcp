@@ -471,11 +471,18 @@ kbd,
 .nav-badge {
     position: absolute;
     top: 0.02rem;
-    /* Clears the label's last glyph rather than overlapping it: the badge
-       is 1.05rem wide and the nav link carries 0.55rem of right padding,
-       so hanging it 0.55rem past the box puts its left edge exactly where
-       the text ends. .nav-has-badge's margin then buys back the overhang. */
-    right: -0.55rem;
+    /* Anchored by its LEFT edge, a hair past the label's last glyph, so a
+       second or third digit grows the pill outward into the space
+       .nav-has-badge reserves. Anchoring the RIGHT edge instead — which is
+       what this used to do — makes every added digit grow leftward over
+       the word the badge belongs to, and the pill is opaque, so it covers
+       the glyph rather than sitting beside it. The 0.25rem eats part of
+       the nav link's 0.55rem right padding so the pill still reads as
+       attached to the label. Bounded by the 99+ cap in setNavBadge
+       (scripts/gen-index.ts): three characters is the widest it can get,
+       which is what the reserved margins below are sized for. */
+    left: calc(100% - 0.25rem);
+    right: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -515,8 +522,11 @@ kbd,
         transform: scale(1);
     }
 }
+/* Room for the widest the badge can get ("99+", ~1.72rem) plus a gap, so
+   it never reaches the next item and the nav never reflows when it
+   appears. */
 .head-nav a.nav-has-badge {
-    margin-right: 0.95rem;
+    margin-right: 1.5rem;
 }
 .head-tools {
     display: flex;
@@ -664,9 +674,13 @@ body[data-theme="dark"] .theme-switch .moon {
    lifts it off the burger's top bar, which it otherwise sits on. It hides
    while the menu is open, because the copy on the Live stats item is on
    screen by then and two badges for one count reads as two counts. */
+/* The one copy with no label beside it, so this is the only place the
+   right edge is still the anchored one — it hangs off the button's corner
+   the way an app-icon badge does, and there is no glyph to grow over. */
 .menu-btn .nav-badge {
     top: 3px;
     right: 3px;
+    left: auto;
     box-shadow: 0 0 0 2px var(--bg);
 }
 body.menu-open .menu-btn .nav-badge {
@@ -824,14 +838,20 @@ body.menu-open .menu-btn .nav-badge {
 }
 .site-menu .nav-badge {
     top: 0.1rem;
-    right: -1.15rem;
+    /* .menu-label hugs the text with no padding of its own, so 100% is the
+       last glyph exactly; the 0.3rem is the gap. Grows rightward from
+       there into the reserved margin below. */
+    left: calc(100% + 0.3rem);
+    right: auto;
     min-width: 1.3rem;
     height: 1.3rem;
     padding: 0 0.35rem;
     font-size: 0.75rem;
 }
+/* Wider than the nav's reserve because this badge is bigger: 0.3rem of gap
+   plus ~2.05rem for a three-character "99+". */
 .site-menu .menu-label.nav-has-badge {
-    margin-right: 1.15rem;
+    margin-right: 2.4rem;
 }
 .menu-secondary {
     display: flex;

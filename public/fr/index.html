@@ -4030,7 +4030,12 @@
                 // [hidden] in the nav of every page (liveBadge in
                 // scripts/site-partials.ts); this is the only page that
                 // ever fills it in.
-                var NAV_BADGE_MAX = 999;
+                // Capped low on purpose: the badge is anchored by its left edge and
+                // grows rightward into a fixed reserved margin (.nav-has-badge in
+                // styles.css), so the cap is what bounds that reserve. Three
+                // characters is also as much as fits beside the label without
+                // crowding the next nav item.
+                var NAV_BADGE_MAX = 99;
                 var navBadges = null;
                 function setNavBadge(n) {
                     if (navBadges === null)
