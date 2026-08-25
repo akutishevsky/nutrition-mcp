@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { HTML_LANG, SITE_LOCALES, type SiteLocale } from "./routes.js";
 import { INDEX } from "./copy/index.js";
+import { LANDING_SCRIPT } from "../scripts/gen-index.js";
 
 // The landing page's inline JS lives as one hand-escaped string constant
 // (LANDING_SCRIPT in scripts/gen-index.ts) that is embedded verbatim into all
@@ -243,4 +244,36 @@ test("the odometer announces the caption the page rendered", async () => {
 test("the landing script parses", async () => {
     const script = await theScript();
     expect(() => new Function(script)).not.toThrow();
+});
+
+// ------------------------------------------------------- generator vs. page
+
+// Everything above reads the script back out of the generated HTML, so the
+// suite catches a script that was REVERTED and one that diverged across
+// locales — but not the opposite and likelier mistake: an edit to
+// LANDING_SCRIPT in scripts/gen-index.ts that was never regenerated. All nine
+// files agree with each other and with every contract, and every assertion
+// stays green while the shipped script is the old one. That is the
+// generator-drift failure CLAUDE.md warns about on every generated page.
+//
+// So pin the artifact against its source, the way src/alt-pages.test.ts pins
+// nav strings against src/copy/chrome.ts rather than against scraped HTML.
+// The generator's write loop is guarded by `import.meta.main` so that
+// importing the constant here does not regenerate the pages and repair the
+// drift before it is measured.
+//
+// A raw substring check is enough because prettier leaves the block alone:
+// LANDING_SCRIPT is already written in prettier's own style at the exact
+// indentation the <script> tag puts it at, so `bun run format` over the
+// generated HTML reproduces it byte for byte. If that ever stops being true
+// the failure is loud, and the fix is to compare collapsed whitespace here
+// rather than to hand-reformat the constant.
+test("every landing page carries the generator's current LANDING_SCRIPT", async () => {
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { path, html } of pages) {
+        expect(`${path}: ${html.includes(LANDING_SCRIPT)}`).toBe(
+            `${path}: true`,
+        );
+    }
 });
