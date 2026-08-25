@@ -18,7 +18,13 @@ export const CHROME_IT: ChromeCopy = {
     githubAriaLabel: "Repository GitHub",
     changeLanguageAriaLabel: "Cambia lingua",
     languageTitle: "Lingua",
-    switchToDarkModeAriaLabel: "Passa alla modalità scura",
+    theme: {
+        ariaLabel: "Cambia tema",
+        title: "Tema",
+        system: "Sistema",
+        light: "Chiaro",
+        dark: "Scuro",
+    },
     connectCta: "Connetti",
     openMenuAriaLabel: "Apri il menu",
 

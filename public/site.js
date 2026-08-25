@@ -13,6 +13,21 @@
     var darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     /* ---------- theme ---------- */
+    // Three modes. "system" is the default and is stored as the ABSENCE of
+    // a key, not as the string: a visitor who has never touched the control
+    // and one who picked System back out of dark are in the same state, and
+    // it is what THEME_PREPAINT (in the page head) already reads. The other
+    // two stamp data-theme on <body>, which every dark rule keys off and
+    // which the pre-paint script re-applies before first paint next time.
+    var THEME_KEY = "theme";
+    function storedTheme() {
+        try {
+            var t = localStorage.getItem(THEME_KEY);
+            return t === "light" || t === "dark" ? t : "system";
+        } catch (e) {
+            return "system";
+        }
+    }
     // Effective theme = explicit override on <body>, else the OS setting.
     function effectiveTheme() {
         return (
@@ -24,24 +39,34 @@
     function syncTheme() {
         var dark = effectiveTheme() === "dark";
         body.classList.toggle("is-dark", dark);
-        var label = dark ? "Switch to light mode" : "Switch to dark mode";
-        doc.querySelectorAll(".theme-toggle").forEach(function (btn) {
-            btn.setAttribute("aria-label", label);
-            btn.setAttribute("title", label);
-        });
         if (metaTheme)
             metaTheme.setAttribute("content", dark ? "#0d1210" : "#fbfbf9");
+        var mode = storedTheme();
+        doc.querySelectorAll("[data-theme-set]").forEach(function (btn) {
+            btn.setAttribute(
+                "aria-pressed",
+                btn.getAttribute("data-theme-set") === mode ? "true" : "false",
+            );
+        });
     }
-    doc.querySelectorAll(".theme-toggle").forEach(function (btn) {
+    function setTheme(mode) {
+        try {
+            if (mode === "system") localStorage.removeItem(THEME_KEY);
+            else localStorage.setItem(THEME_KEY, mode);
+        } catch (e) {}
+        if (mode === "system") body.removeAttribute("data-theme");
+        else body.setAttribute("data-theme", mode);
+        syncTheme();
+    }
+    doc.querySelectorAll("[data-theme-set]").forEach(function (btn) {
         btn.addEventListener("click", function () {
-            var next = effectiveTheme() === "dark" ? "light" : "dark";
-            body.setAttribute("data-theme", next);
-            try {
-                localStorage.setItem("theme", next);
-            } catch (e) {}
-            syncTheme();
+            setTheme(btn.getAttribute("data-theme-set"));
+            var disclosure = btn.closest("details");
+            if (disclosure) disclosure.open = false;
         });
     });
+    // Only meaningful in System mode — with an override on <body> the OS
+    // flipping changes nothing on the page.
     darkQuery.addEventListener("change", function () {
         if (!body.getAttribute("data-theme")) syncTheme();
     });
@@ -290,18 +315,36 @@
         });
     });
 
-    /* ---------- language switcher (light-dismiss for the <details>) ---------- */
-    var langSwitch = doc.querySelector(".lang-switch");
-    if (langSwitch) {
+    /* ---------- header disclosures (light-dismiss for the <details>) ---------- */
+    // The language and theme switchers, which sit next to each other and
+    // are the same control twice over.
+    var disclosures = [].slice.call(
+        doc.querySelectorAll(".lang-switch, .theme-switch"),
+    );
+    if (disclosures.length) {
         doc.addEventListener("click", function (e) {
-            if (langSwitch.open && !langSwitch.contains(e.target))
-                langSwitch.open = false;
+            disclosures.forEach(function (d) {
+                if (d.open && !d.contains(e.target)) d.open = false;
+            });
         });
         doc.addEventListener("keydown", function (e) {
-            if (e.key === "Escape" && langSwitch.open) {
-                langSwitch.open = false;
-                langSwitch.querySelector("summary").focus();
-            }
+            if (e.key !== "Escape") return;
+            disclosures.forEach(function (d) {
+                if (!d.open) return;
+                d.open = false;
+                d.querySelector("summary").focus();
+            });
+        });
+        // Two open menus overlapping each other is the one thing the
+        // outside-click handler above cannot catch, since opening one is a
+        // click inside it.
+        disclosures.forEach(function (d) {
+            d.addEventListener("toggle", function () {
+                if (!d.open) return;
+                disclosures.forEach(function (other) {
+                    if (other !== d) other.open = false;
+                });
+            });
         });
     }
 

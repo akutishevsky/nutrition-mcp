@@ -532,24 +532,37 @@ kbd,
     width: 20px;
     height: 20px;
 }
-.theme-toggle .sun,
-.theme-toggle .moon {
+/* Theme switcher: the same native <details> disclosure as .lang-switch
+   below, sharing its menu styles and its light-dismiss handler in site.js.
+   Three modes, not two — System is the default and stores no override at
+   all, so the OS setting drives the page and goes on driving it if it
+   flips mid-visit. */
+.theme-switch {
+    position: relative;
+}
+.theme-switch summary {
+    list-style: none;
+}
+.theme-switch summary::-webkit-details-marker {
+    display: none;
+}
+/* The summary shows the mode that is ACTIVE, read straight off <body> —
+   which THEME_PREPAINT stamps before first paint, so the right icon is
+   there from the start rather than being corrected once site.js loads. No
+   data-theme attribute at all is System. */
+.theme-switch summary svg {
     grid-area: 1 / 1;
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
     transition:
         transform 0.4s var(--ease-out),
         opacity 0.25s ease;
 }
-.theme-toggle .sun {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.6);
-}
-body.is-dark .theme-toggle .sun {
+body:not([data-theme]) .theme-switch .auto,
+body[data-theme="light"] .theme-switch .sun,
+body[data-theme="dark"] .theme-switch .moon {
     opacity: 1;
     transform: none;
-}
-body.is-dark .theme-toggle .moon {
-    opacity: 0;
-    transform: rotate(90deg) scale(0.6);
 }
 .head-tools .head-cta {
     display: none;
@@ -572,7 +585,8 @@ body.is-dark .theme-toggle .moon {
     font-weight: 600;
     letter-spacing: 0.02em;
 }
-.lang-menu {
+.lang-menu,
+.theme-menu {
     position: absolute;
     top: calc(100% + 0.5rem);
     right: 0;
@@ -587,7 +601,8 @@ body.is-dark .theme-toggle .moon {
     border-radius: var(--radius);
     box-shadow: var(--shadow-float);
 }
-.lang-menu a {
+.lang-menu a,
+.theme-menu button {
     padding: 0.5rem 0.7rem;
     border-radius: 8px;
     font-size: 0.92rem;
@@ -597,13 +612,25 @@ body.is-dark .theme-toggle .moon {
         background 0.15s ease,
         color 0.15s ease;
 }
-.lang-menu a:hover {
+.lang-menu a:hover,
+.theme-menu button:hover {
     background: var(--surface-2);
     color: var(--ink);
 }
-.lang-menu a[aria-current="page"] {
+.lang-menu a[aria-current="page"],
+.theme-menu button[aria-pressed="true"] {
     color: var(--accent-hover);
     font-weight: 600;
+}
+/* The language items are links and the theme items are buttons, so these
+   are the differences a shared rule cannot carry. */
+.theme-menu button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
 }
 /* The GitHub icon lives in the sheet too; on a narrow phone the bar keeps
    only brand, theme and menu. */

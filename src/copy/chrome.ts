@@ -49,7 +49,25 @@ export interface ChromeCopy {
     githubAriaLabel: string;
     changeLanguageAriaLabel: string;
     languageTitle: string;
-    switchToDarkModeAriaLabel: string;
+    /**
+     * The theme switcher — a <details> disclosure, the same shape as the
+     * language one beside it. Three modes, not two: "System" is the default
+     * and means no override is stored at all, so the OS setting drives the
+     * page and keeps driving it if it flips mid-visit. `ariaLabel`/`title`
+     * name the control; the rest are the menu items.
+     *
+     * These labels are static, unlike the aria-label the old two-state
+     * button carried: site.js used to rewrite it on every toggle, in
+     * hardcoded English, so a translated page announced the control in
+     * English the moment anyone used it.
+     */
+    theme: {
+        ariaLabel: string;
+        title: string;
+        system: string;
+        light: string;
+        dark: string;
+    };
     /** The header's primary CTA button, e.g. "Connect". */
     connectCta: string;
     openMenuAriaLabel: string;
@@ -104,7 +122,13 @@ export const CHROME_EN: ChromeCopy = {
     githubAriaLabel: "GitHub repository",
     changeLanguageAriaLabel: "Change language",
     languageTitle: "Language",
-    switchToDarkModeAriaLabel: "Switch to dark mode",
+    theme: {
+        ariaLabel: "Change theme",
+        title: "Theme",
+        system: "System",
+        light: "Light",
+        dark: "Dark",
+    },
     connectCta: "Connect",
     openMenuAriaLabel: "Open menu",
 

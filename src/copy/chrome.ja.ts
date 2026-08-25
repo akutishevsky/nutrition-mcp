@@ -17,7 +17,13 @@ export const CHROME_JA: ChromeCopy = {
     githubAriaLabel: "GitHubリポジトリ",
     changeLanguageAriaLabel: "言語を変更",
     languageTitle: "言語",
-    switchToDarkModeAriaLabel: "ダークモードに切り替え",
+    theme: {
+        ariaLabel: "テーマを変更",
+        title: "テーマ",
+        system: "システム",
+        light: "ライト",
+        dark: "ダーク",
+    },
     connectCta: "接続する",
     openMenuAriaLabel: "メニューを開く",
 

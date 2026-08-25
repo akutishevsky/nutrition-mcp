@@ -17,7 +17,13 @@ export const CHROME_UK: ChromeCopy = {
     githubAriaLabel: "Репозиторій на GitHub",
     changeLanguageAriaLabel: "Змінити мову",
     languageTitle: "Мова",
-    switchToDarkModeAriaLabel: "Увімкнути темну тему",
+    theme: {
+        ariaLabel: "Змінити тему",
+        title: "Тема",
+        system: "Системна",
+        light: "Світла",
+        dark: "Темна",
+    },
     connectCta: "Підключити",
     openMenuAriaLabel: "Відкрити меню",
 

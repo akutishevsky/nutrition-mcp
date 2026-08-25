@@ -268,3 +268,46 @@ test("the stats unit toggle is labelled in every locale's own words", async () =
         expect(html).toContain('data-unit="lb"');
     }
 });
+
+// The theme switcher, which replaced a two-state button. Two things are
+// worth pinning. Its labels: they used to be rewritten by site.js on every
+// toggle, in hardcoded English, so a translated page announced the control
+// in English the moment anyone used it — they are static and translated
+// now, and this is what keeps them that way. And its resting state: the
+// markup ships with "system" pressed because that IS the default (no
+// override stored, prefers-color-scheme drives the page), so a page whose
+// script has not run yet still shows the truth rather than a lit pill that
+// has to be corrected.
+test("the theme switcher is labelled in every locale's own words", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const c = chromeFor(locale).theme;
+        const html = await Bun.file(path).text();
+        for (const attr of [
+            `aria-label="${c.ariaLabel}"`,
+            `title="${c.title}"`,
+            `aria-label="${c.title}"`,
+        ]) {
+            expect(`${path}: ${html.includes(attr)}`).toBe(`${path}: true`);
+        }
+        const modes = [
+            ["system", c.system],
+            ["light", c.light],
+            ["dark", c.dark],
+        ] as const;
+        for (const [mode, label] of modes) {
+            const at = html.indexOf(`data-theme-set="${mode}"`);
+            expect(`${path}/${mode}: ${at !== -1}`).toBe(
+                `${path}/${mode}: true`,
+            );
+            const button = html.slice(at, html.indexOf("</button>", at));
+            expect(`${path}/${mode}: ${collapse(button).includes(label)}`).toBe(
+                `${path}/${mode}: true`,
+            );
+            // Only System rests pressed — it is the default.
+            expect(
+                `${path}/${mode}: ${button.includes('aria-pressed="true"')}`,
+            ).toBe(`${path}/${mode}: ${mode === "system"}`);
+        }
+    }
+});
