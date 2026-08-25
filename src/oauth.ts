@@ -21,6 +21,7 @@ import {
     type SiteLocale,
 } from "./routes.js";
 import { LOGIN_ERRORS, type LoginErrors } from "./copy/login.js";
+import { chromeFor } from "./copy/chrome.js";
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
@@ -123,15 +124,23 @@ async function renderLangSwitcher(
                             >`;
         })
         .join("\n");
+    // Hand-written twin of the static switcher in scripts/site-partials.ts
+    // (this one has to rebuild every href from the in-flight session, which
+    // pathFor cannot do), so every fix there has to be repeated here — its
+    // three labels sat in English on all nine locales until this, long after
+    // the generated pages were translated. role="group" is load-bearing, not
+    // decoration: an aria-label on a bare <div> is exposed to nothing, so
+    // without it the menu's label is inert however well translated.
+    const c = chromeFor(locale);
     return `<details class="lang-switch">
                         <summary
                             class="icon-btn"
-                            aria-label="Change language"
-                            title="Language"
+                            aria-label="${escapeHtml(c.changeLanguageAriaLabel)}"
+                            title="${escapeHtml(c.languageTitle)}"
                         >
                             <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
                         </summary>
-                        <div class="lang-menu" aria-label="Choose a language">
+                        <div class="lang-menu" role="group" aria-label="${escapeHtml(c.languageTitle)}">
 ${items}
                         </div>
                     </details>`;
