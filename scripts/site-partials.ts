@@ -216,7 +216,7 @@ export function nav(
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     <span>Nutrition&nbsp;MCP</span>
                 </a>
-                <nav class="head-nav" aria-label="Primary">
+                <nav class="head-nav" aria-label="${esc(c.landmarks.primaryNav)}">
                     <a href="${h("how")}">${esc(c.nav.how)}</a>
                     <a href="${h("install")}">${esc(c.nav.install)}</a>
                     <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
@@ -250,7 +250,7 @@ ${
                         >
                             <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
                         </summary>
-                        <div class="lang-menu" aria-label="Choose a language">
+                        <div class="lang-menu" role="group" aria-label="${esc(c.languageTitle)}">
 ${switcherItems}
                         </div>
                     </details>`
@@ -297,7 +297,7 @@ ${switcherItems}
             </div>
         </header>
         <div class="site-menu" id="site-menu" hidden>
-            <nav aria-label="Menu">
+            <nav aria-label="${esc(c.landmarks.menu)}">
                 <a href="${h("how")}">${esc(c.nav.how)} <small>${esc(c.menu.howSmall)}</small></a>
                 <a href="${h("install")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
                 <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
@@ -347,7 +347,7 @@ export function footer(locale: SiteLocale, currentSuffix?: string): string {
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     Nutrition MCP
                 </span>
-                <nav class="footer-links" aria-label="Footer">
+                <nav class="footer-links" aria-label="${esc(c.landmarks.footer)}">
                     <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
                     <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
                     <a

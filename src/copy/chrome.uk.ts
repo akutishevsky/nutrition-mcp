@@ -14,6 +14,12 @@ export const CHROME_UK: ChromeCopy = {
         faq: "FAQ",
     },
 
+    landmarks: {
+        primaryNav: "Основна навігація",
+        menu: "Меню",
+        footer: "Нижній колонтитул",
+    },
+
     githubAriaLabel: "Репозиторій на GitHub",
     changeLanguageAriaLabel: "Змінити мову",
     languageTitle: "Мова",

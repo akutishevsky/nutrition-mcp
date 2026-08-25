@@ -14,6 +14,12 @@ export const CHROME_FR: ChromeCopy = {
         faq: "FAQ",
     },
 
+    landmarks: {
+        primaryNav: "Navigation principale",
+        menu: "Menu",
+        footer: "Pied de page",
+    },
+
     githubAriaLabel: "Dépôt GitHub",
     changeLanguageAriaLabel: "Changer de langue",
     languageTitle: "Langue",

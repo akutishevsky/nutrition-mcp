@@ -14,6 +14,12 @@ export const CHROME_JA: ChromeCopy = {
         faq: "よくある質問",
     },
 
+    landmarks: {
+        primaryNav: "メインナビゲーション",
+        menu: "メニュー",
+        footer: "フッター",
+    },
+
     githubAriaLabel: "GitHubリポジトリ",
     changeLanguageAriaLabel: "言語を変更",
     languageTitle: "言語",

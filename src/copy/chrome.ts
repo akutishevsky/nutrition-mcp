@@ -46,6 +46,28 @@ export interface ChromeCopy {
         faq: string;
     };
 
+    /**
+     * The aria-labels on the three <nav> landmarks — the header's primary
+     * nav, the mobile sheet, and the footer. These are the region names a
+     * screen reader reads out when jumping between landmarks, and they
+     * were hardcoded English ("Primary" / "Menu" / "Footer") on all nine
+     * locales: invisible on the page, so nothing in a visual review would
+     * ever catch them.
+     *
+     * `primaryNav` wants the name a native speaker would give the region,
+     * not a gloss of the English adjective — German says
+     * "Hauptnavigation", not "Primär".
+     *
+     * There is no fourth entry for the language menu's own label: that one
+     * reuses `languageTitle`, exactly as the theme menu beside it reuses
+     * `theme.title`.
+     */
+    landmarks: {
+        primaryNav: string;
+        menu: string;
+        footer: string;
+    };
+
     githubAriaLabel: string;
     changeLanguageAriaLabel: string;
     languageTitle: string;
@@ -129,6 +151,12 @@ export const CHROME_EN: ChromeCopy = {
         liveStats: "Live stats",
         liveStatsBadgeLabel: "new food logs since you opened",
         faq: "FAQ",
+    },
+
+    landmarks: {
+        primaryNav: "Primary",
+        menu: "Menu",
+        footer: "Footer",
     },
 
     githubAriaLabel: "GitHub repository",

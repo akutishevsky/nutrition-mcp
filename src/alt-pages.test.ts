@@ -337,3 +337,31 @@ test("the menu button carries both of its labels, translated", async () => {
         }
     }
 });
+
+// The three <nav> landmark names, plus the language menu's own. These are
+// the region names a screen reader announces when moving between
+// landmarks, and they were hardcoded English on all nine locales —
+// "Primary", "Menu", "Footer" — which nothing in a visual review can
+// catch, because they never paint. The language menu was worse than
+// untranslated: its aria-label sat on a bare <div>, which exposes nothing
+// at all, so the label was inert in English too. It has role="group" now
+// and reuses languageTitle, matching the .theme-menu beside it.
+test("every landmark region is named in the page's own language", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const c = chromeFor(locale);
+        const html = collapse(await Bun.file(path).text());
+        const regions: [string, string][] = [
+            [`<nav class="head-nav" aria-label="`, c.landmarks.primaryNav],
+            [`<nav aria-label="`, c.landmarks.menu],
+            [`<nav class="footer-links" aria-label="`, c.landmarks.footer],
+            // Not a nav: a .lang-menu div, inert without role="group".
+            [`class="lang-menu" role="group" aria-label="`, c.languageTitle],
+        ];
+        for (const [open, label] of regions) {
+            expect(
+                `${path} [${label}]: ${html.includes(open + label + '"')}`,
+            ).toBe(`${path} [${label}]: true`);
+        }
+    }
+});
