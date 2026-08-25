@@ -97,6 +97,18 @@
     /* ---------- mobile menu ---------- */
     var menuBtn = doc.getElementById("menu-btn");
     var menu = doc.getElementById("site-menu");
+    // The button's two accessible names come out of the markup, which the
+    // generator wrote in this page's language. This one script is served to
+    // all nine locales, so naming either state here would be English on
+    // eight of them — which is exactly what it used to do, overwriting the
+    // translated label with "Close menu" on the first tap. Read once, from
+    // the pristine attribute: after openMenu() has run, aria-label holds
+    // the CLOSE label, so re-reading it later captures the wrong string.
+    var openMenuLabel = menuBtn && menuBtn.getAttribute("aria-label");
+    var closeMenuLabel = menuBtn && menuBtn.getAttribute("data-close-label");
+    function setMenuLabel(label) {
+        if (menuBtn && label) menuBtn.setAttribute("aria-label", label);
+    }
     var lastFocus = null;
     var FOCUSABLE =
         'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -126,7 +138,7 @@
             });
         });
         menuBtn.setAttribute("aria-expanded", "true");
-        menuBtn.setAttribute("aria-label", "Close menu");
+        setMenuLabel(closeMenuLabel);
         body.classList.add("menu-open");
         setInert(true);
         doc.addEventListener("keydown", onMenuKey);
@@ -135,7 +147,7 @@
         if (!menu || !menuBtn) return;
         menu.removeAttribute("data-open");
         menuBtn.setAttribute("aria-expanded", "false");
-        menuBtn.setAttribute("aria-label", "Open menu");
+        setMenuLabel(openMenuLabel);
         body.classList.remove("menu-open");
         setInert(false);
         doc.removeEventListener("keydown", onMenuKey);

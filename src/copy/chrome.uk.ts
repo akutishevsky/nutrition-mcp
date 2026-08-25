@@ -26,6 +26,7 @@ export const CHROME_UK: ChromeCopy = {
     },
     connectCta: "Підключити",
     openMenuAriaLabel: "Відкрити меню",
+    closeMenuAriaLabel: "Закрити меню",
 
     menu: {
         howSmall: "3 кроки",

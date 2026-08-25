@@ -289,6 +289,7 @@ ${switcherItems}
                         aria-expanded="false"
                         aria-controls="site-menu"
                         aria-label="${esc(c.openMenuAriaLabel)}"
+                        data-close-label="${esc(c.closeMenuAriaLabel)}"
                     >
                         <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
                     </button>

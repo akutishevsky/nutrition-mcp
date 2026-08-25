@@ -311,3 +311,29 @@ test("the theme switcher is labelled in every locale's own words", async () => {
         }
     }
 });
+
+// The hamburger's two accessible names. It is one control that toggles, so
+// its label has to change with its state — and public/site.js is a single
+// static file served to all nine locales, which means it cannot own either
+// string. It used to: openMenu()/closeMenu() wrote hardcoded English, so a
+// German visitor got "Menü öffnen" until the first tap and "Open menu" for
+// the rest of the visit. Both strings live in the markup now — the open one
+// as the button's initial aria-label, the close one in data-close-label —
+// and the script reads them off the DOM. This pins that both are present
+// and in this page's own language, on every generated page.
+test("the menu button carries both of its labels, translated", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const c = chromeFor(locale);
+        const html = await Bun.file(path).text();
+        const at = html.indexOf('id="menu-btn"');
+        expect(`${path}: ${at !== -1}`).toBe(`${path}: true`);
+        const button = collapse(html.slice(at, html.indexOf(">", at)));
+        for (const attr of [
+            `aria-label="${c.openMenuAriaLabel}"`,
+            `data-close-label="${c.closeMenuAriaLabel}"`,
+        ]) {
+            expect(`${path}: ${button.includes(attr)}`).toBe(`${path}: true`);
+        }
+    }
+});

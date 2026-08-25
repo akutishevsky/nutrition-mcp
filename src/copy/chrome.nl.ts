@@ -26,6 +26,7 @@ export const CHROME_NL: ChromeCopy = {
     },
     connectCta: "Verbind",
     openMenuAriaLabel: "Menu openen",
+    closeMenuAriaLabel: "Menu sluiten",
 
     menu: {
         howSmall: "3 stappen",

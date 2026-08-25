@@ -26,6 +26,7 @@ export const CHROME_PL: ChromeCopy = {
     },
     connectCta: "Połącz",
     openMenuAriaLabel: "Otwórz menu",
+    closeMenuAriaLabel: "Zamknij menu",
 
     menu: {
         howSmall: "3 kroki",

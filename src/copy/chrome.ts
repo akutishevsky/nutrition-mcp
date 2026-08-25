@@ -70,7 +70,19 @@ export interface ChromeCopy {
     };
     /** The header's primary CTA button, e.g. "Connect". */
     connectCta: string;
+    /**
+     * The hamburger button's two accessible names. The button is one
+     * control that toggles, so its label has to change with its state —
+     * and site.js is a single static file served to all nine locales, so
+     * it cannot own either string. `openMenuAriaLabel` is rendered as the
+     * button's initial aria-label and `closeMenuAriaLabel` rides along in
+     * a `data-close-label` attribute; site.js reads both off the DOM.
+     * Before that it swapped in hardcoded English on the first tap, so a
+     * German visitor got "Menü öffnen" until they used the menu once and
+     * "Open menu" forever after.
+     */
     openMenuAriaLabel: string;
+    closeMenuAriaLabel: string;
 
     /** The mobile slide-out menu — nav items repeat nav.* concepts with a
      * trailing <small> hint, plus items the desktop nav omits. */
@@ -131,6 +143,7 @@ export const CHROME_EN: ChromeCopy = {
     },
     connectCta: "Connect",
     openMenuAriaLabel: "Open menu",
+    closeMenuAriaLabel: "Close menu",
 
     menu: {
         howSmall: "3 steps",

@@ -26,6 +26,7 @@ export const CHROME_JA: ChromeCopy = {
     },
     connectCta: "接続する",
     openMenuAriaLabel: "メニューを開く",
+    closeMenuAriaLabel: "メニューを閉じる",
 
     menu: {
         howSmall: "3ステップ",
