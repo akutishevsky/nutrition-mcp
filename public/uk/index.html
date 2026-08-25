@@ -4033,7 +4033,20 @@
                 var ODO_MAX_CYCLES = 6;
                 function setOdometer(el, value) {
                     var text = fmtInt(value);
-                    el.setAttribute("aria-label", text + " calories tracked");
+                    // The translated caption already sits beside the reel, in
+                    // the sibling .odo-cap the generator renders from
+                    // stats.calCaption. Read it rather than name the nutrient
+                    // in English, which is what every locale used to announce.
+                    var cap =
+                        el.parentNode &&
+                        el.parentNode.querySelector(".odo-cap");
+                    var capText = cap ? cap.textContent.trim() : "";
+                    el.setAttribute(
+                        "aria-label",
+                        capText
+                            ? text + " " + capText
+                            : text + " calories tracked",
+                    );
                     el.textContent = "";
                     if (reduceMotion) {
                         el.textContent = text;
