@@ -725,7 +725,12 @@ export const INDEX_DE: IndexDoc = {
         rowFat: "Fett",
         unitGroupLabel: "Gewichtseinheit",
         unitKgLabel: "Kilogramm",
-        unitLbLabel: "Pfund",
+        // "Pfund" on its own is 500 g in everyday German — not the unit
+        // this button switches to, and close enough to half a kilo that
+        // the figures would not give the mistake away. The symbol rides
+        // along so the announced name is unmistakably the anglo-american
+        // pound, and so the accessible name contains the visible "lb".
+        unitLbLabel: "Pfund (lb)",
         foot: "Summen über alle Konten, aktualisiert bei jeder erfassten Mahlzeit. Individuelle Daten werden nie angezeigt.",
         mapPrefix: "Erfasst in",
         mapSuffix: "Zeitzonen weltweit",

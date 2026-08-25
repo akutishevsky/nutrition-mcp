@@ -2367,7 +2367,10 @@ export const INDEX_FR: IndexDoc = {
         rowFat: "Lipides",
         unitGroupLabel: "Unité de poids",
         unitKgLabel: "Kilogrammes",
-        unitLbLabel: "Livres",
+        // "Une livre" is 500 g in everyday French (it is the pound in
+        // Canadian French), so the symbol rides along the way it does in
+        // de/nl. See the note in src/copy/index.de.ts.
+        unitLbLabel: "Livres (lb)",
         foot: "Totaux tous comptes confondus, mis à jour à chaque repas enregistré. Les données individuelles ne sont jamais affichées.",
         mapPrefix: "Enregistré dans",
         mapSuffix: "fuseaux horaires à travers le monde",

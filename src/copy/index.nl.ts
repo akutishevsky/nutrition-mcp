@@ -2369,7 +2369,10 @@ export const INDEX_NL: IndexDoc = {
         rowFat: "Vet",
         unitGroupLabel: "Gewichtseenheid",
         unitKgLabel: "Kilogram",
-        unitLbLabel: "Pond",
+        // A Dutch "pond" is 500 g, not the unit this button switches to;
+        // the symbol disambiguates it and matches the visible label.
+        // See the same note in src/copy/index.de.ts.
+        unitLbLabel: "Pond (lb)",
         foot: "Totalen over alle accounts, bijgewerkt zodra maaltijden worden gelogd. Individuele gegevens worden nooit getoond.",
         mapPrefix: "Gelogd in",
         mapSuffix: "tijdzones wereldwijd",
