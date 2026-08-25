@@ -52,6 +52,16 @@ body {
     --cal: #d98a1d; /* calories, as in the widgets */
     --danger: #a8432a;
 
+    /* Closing CTA band. Light mode inverts to the ink slab, which is the
+       whole point of it. Dark mode cannot follow: inverting there lands on
+       near-white and turns the section into a floodlight between two dark
+       ones. It gets a deep forest panel instead — still plainly its own
+       band under the accent rule, just not a glare. Everything inside the
+       band (title, sub, both buttons) reads these two rather than
+       --bg/--ink, so the whole block flips together. */
+    --cta-bg: var(--ink);
+    --cta-ink: var(--bg);
+
     /* world map (figure must out-contrast ground in both themes) */
     --map-land: #b6bdb8;
     --map-core: #2f6440;
@@ -96,6 +106,9 @@ body {
         --accent-soft-2: #223a2b;
         --cal: #f0a340;
         --danger: #e08a74;
+        /* Not an inversion — see --cta-bg in the base palette above. */
+        --cta-bg: #223a2b;
+        --cta-ink: #edf1ee;
         --map-land: #3a463f;
         --map-core: #9ad6a8;
         --map-halo: #79c28c;
@@ -127,6 +140,9 @@ body[data-theme="dark"] {
     --accent-soft-2: #223a2b;
     --cal: #f0a340;
     --danger: #e08a74;
+    /* Not an inversion — see --cta-bg in the base palette above. */
+    --cta-bg: #223a2b;
+    --cta-ink: #edf1ee;
     --map-land: #3a463f;
     --map-core: #9ad6a8;
     --map-halo: #79c28c;
@@ -923,19 +939,25 @@ body.is-dark .btn-primary:hover,
 .btn-link:hover::after {
     transform: translateX(3px);
 }
+/* Both of these live only inside .section.cta (the landing page's closing
+   band and the two on every comparison page), so they read the band's own
+   tokens instead of --bg/--ink — otherwise dark mode leaves a dark pill and
+   dark-on-dark ghost text sitting on the dark panel. The hovers mix toward
+   the band rather than naming a surface, which would be the wrong end of
+   the palette in one mode or the other. */
 .btn-on-accent {
-    background: var(--bg);
-    color: var(--ink);
+    background: var(--cta-ink);
+    color: var(--cta-bg);
 }
 .btn-on-accent:hover {
-    background: var(--surface-2);
+    background: color-mix(in srgb, var(--cta-ink) 88%, var(--cta-bg));
 }
 .btn-ghost-accent {
-    color: var(--bg);
-    border-color: color-mix(in srgb, var(--bg) 45%, transparent);
+    color: var(--cta-ink);
+    border-color: color-mix(in srgb, var(--cta-ink) 45%, transparent);
 }
 .btn-ghost-accent:hover {
-    background: color-mix(in srgb, var(--bg) 12%, transparent);
+    background: color-mix(in srgb, var(--cta-ink) 12%, transparent);
 }
 
 /* ---------- cards ---------- */
@@ -2027,8 +2049,8 @@ html.js .facts-unit {
 
 /* ---------- closing CTA: ink block ---------- */
 .section.cta {
-    background: var(--ink);
-    color: var(--bg);
+    background: var(--cta-bg);
+    color: var(--cta-ink);
     position: relative;
     overflow: clip;
 }
@@ -2040,7 +2062,7 @@ html.js .facts-unit {
     text-align: center;
 }
 .cta-title {
-    color: var(--bg);
+    color: var(--cta-ink);
     font-size: clamp(2rem, 4.5vw, 3.2rem);
 }
 .cta-sub {
@@ -2048,7 +2070,7 @@ html.js .facts-unit {
     max-width: 44ch;
     font-size: 1.1rem;
     line-height: 1.5;
-    color: color-mix(in srgb, var(--bg) 78%, transparent);
+    color: color-mix(in srgb, var(--cta-ink) 78%, transparent);
 }
 .cta-actions {
     display: flex;
