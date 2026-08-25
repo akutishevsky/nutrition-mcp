@@ -10,6 +10,7 @@ export const CHROME_UK: ChromeCopy = {
         tools: "Інструменти",
         examples: "Приклади",
         liveStats: "Статистика наживо",
+        liveStatsBadgeLabel: "нових записів про їжу з моменту відкриття",
         faq: "FAQ",
     },
 

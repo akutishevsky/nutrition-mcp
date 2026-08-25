@@ -553,7 +553,17 @@
                     <a href="/ja#install">インストール</a>
                     <a href="/ja/tools" aria-current="page">ツール</a>
                     <a href="/ja#try">使用例</a>
-                    <a href="/ja#stats">ライブ統計</a>
+                    <a class="nav-has-badge" href="/ja#stats"
+                        >ライブ統計<span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            ><span class="nav-badge-n">0</span>
+                            <span class="vh"
+                                >件の新しい食事記録（開いてから）</span
+                            ></span
+                        ></a
+                    >
                     <a href="/ja#faq">よくある質問</a>
                 </nav>
                 <div class="head-tools">
@@ -691,7 +701,14 @@
                         aria-controls="site-menu"
                         aria-label="メニューを開く"
                     >
-                        <span class="burger" aria-hidden="true"></span>
+                        <span class="burger" aria-hidden="true"></span
+                        ><span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            aria-hidden="true"
+                            ><span class="nav-badge-n">0</span></span
+                        >
                     </button>
                 </div>
             </div>
@@ -704,7 +721,20 @@
                     >ツール <small>36個のツール</small></a
                 >
                 <a href="/ja#try">使用例 <small>ライブデモ</small></a>
-                <a href="/ja#stats">ライブ統計 <small>開いてから</small></a>
+                <a href="/ja#stats"
+                    ><span class="menu-label nav-has-badge"
+                        >ライブ統計<span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            ><span class="nav-badge-n">0</span>
+                            <span class="vh"
+                                >件の新しい食事記録（開いてから）</span
+                            ></span
+                        ></span
+                    >
+                    <small>開いてから</small></a
+                >
                 <a href="/ja#faq">よくある質問</a>
                 <a href="/ja/alternatives"
                     >代替アプリ <small>アプリの乗り換え</small></a

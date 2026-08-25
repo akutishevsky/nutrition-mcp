@@ -243,7 +243,17 @@
                     <a href="/#install">Install</a>
                     <a href="/tools">Tools</a>
                     <a href="/#try">Examples</a>
-                    <a href="/#stats">Live stats</a>
+                    <a class="nav-has-badge" href="/#stats"
+                        >Live stats<span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            ><span class="nav-badge-n">0</span>
+                            <span class="vh"
+                                >new food logs since you opened</span
+                            ></span
+                        ></a
+                    >
                     <a href="/#faq">FAQ</a>
                 </nav>
                 <div class="head-tools">
@@ -379,7 +389,14 @@
                         aria-controls="site-menu"
                         aria-label="Open menu"
                     >
-                        <span class="burger" aria-hidden="true"></span>
+                        <span class="burger" aria-hidden="true"></span
+                        ><span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            aria-hidden="true"
+                            ><span class="nav-badge-n">0</span></span
+                        >
                     </button>
                 </div>
             </div>
@@ -390,7 +407,20 @@
                 <a href="/#install">Install <small>under a minute</small></a>
                 <a href="/tools">Tools <small>36 tools</small></a>
                 <a href="/#try">Examples <small>live demos</small></a>
-                <a href="/#stats">Live stats <small>since you opened</small></a>
+                <a href="/#stats"
+                    ><span class="menu-label nav-has-badge"
+                        >Live stats<span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            ><span class="nav-badge-n">0</span>
+                            <span class="vh"
+                                >new food logs since you opened</span
+                            ></span
+                        ></span
+                    >
+                    <small>since you opened</small></a
+                >
                 <a href="/#faq">FAQ</a>
                 <a href="/alternatives"
                     >Alternatives <small>switching apps</small></a

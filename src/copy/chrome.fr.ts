@@ -10,6 +10,7 @@ export const CHROME_FR: ChromeCopy = {
         tools: "Outils",
         examples: "Exemples",
         liveStats: "Stats en direct",
+        liveStatsBadgeLabel: "nouveaux repas enregistrés depuis l'ouverture",
         faq: "FAQ",
     },
 

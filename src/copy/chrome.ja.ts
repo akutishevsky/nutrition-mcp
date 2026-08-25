@@ -10,6 +10,7 @@ export const CHROME_JA: ChromeCopy = {
         tools: "ツール",
         examples: "使用例",
         liveStats: "ライブ統計",
+        liveStatsBadgeLabel: "件の新しい食事記録（開いてから）",
         faq: "よくある質問",
     },
 

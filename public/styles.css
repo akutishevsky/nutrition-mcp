@@ -445,6 +445,63 @@ kbd,
 .head-nav a.active::after {
     transform: scaleX(1);
 }
+/* Live-stats notification badge — the number of food logs written since
+   this page loaded, hung off the top-right corner of the nav item the way
+   an app-icon badge is. Only the landing page's stats poller ever fills it
+   in (see LANDING_SCRIPT in scripts/gen-index.ts); elsewhere it stays
+   [hidden]. .nav-has-badge reserves the space it will occupy on every page
+   whether or not it ever appears, so the badge's arrival mid-read never
+   nudges the nav items beside it. */
+.nav-badge {
+    position: absolute;
+    top: 0.02rem;
+    /* Clears the label's last glyph rather than overlapping it: the badge
+       is 1.05rem wide and the nav link carries 0.55rem of right padding,
+       so hanging it 0.55rem past the box puts its left edge exactly where
+       the text ends. .nav-has-badge's margin then buys back the overhang. */
+    right: -0.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+/* display:inline-flex above would otherwise beat the UA's [hidden] rule. */
+.nav-badge[hidden] {
+    display: none;
+}
+/* Replayed on every change, so a second arrival is noticed too. */
+.nav-badge.pop {
+    animation: badgepop 0.45s var(--ease-out) both;
+}
+@keyframes badgepop {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    65% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+.head-nav a.nav-has-badge {
+    margin-right: 0.95rem;
+}
 .head-tools {
     display: flex;
     align-items: center;
@@ -558,6 +615,19 @@ body.is-dark .theme-toggle .moon {
 .menu-btn {
     position: relative;
     z-index: 60;
+}
+/* Below the .head-nav breakpoint the nav — and with it the Live stats item
+   — lives behind this button, so the badge rides the button itself. The ring
+   lifts it off the burger's top bar, which it otherwise sits on. It hides
+   while the menu is open, because the copy on the Live stats item is on
+   screen by then and two badges for one count reads as two counts. */
+.menu-btn .nav-badge {
+    top: 3px;
+    right: 3px;
+    box-shadow: 0 0 0 2px var(--bg);
+}
+body.menu-open .menu-btn .nav-badge {
+    display: none;
 }
 .burger,
 .burger::before,
@@ -701,6 +771,24 @@ body.is-dark .theme-toggle .moon {
 .site-menu nav a[aria-current="page"] small,
 .site-menu nav a[aria-current="page"] {
     color: var(--accent-hover);
+}
+/* The menu's own badge. The link is a baseline-aligned flex row (label left,
+   hint right), so the label gets its own positioning context rather than
+   the badge anchoring to the whole row. */
+.menu-label {
+    position: relative;
+    display: inline-block;
+}
+.site-menu .nav-badge {
+    top: 0.1rem;
+    right: -1.15rem;
+    min-width: 1.3rem;
+    height: 1.3rem;
+    padding: 0 0.35rem;
+    font-size: 0.75rem;
+}
+.site-menu .menu-label.nav-has-badge {
+    margin-right: 1.15rem;
 }
 .menu-secondary {
     display: flex;

@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import { ALT_PAGES, PAGE_ROUTES, SITE_LOCALES, urlFor } from "./routes.js";
+import { chromeFor } from "./copy/chrome.js";
 
 // The SEO "alternative to X" routes, and every locale's version of every
 // page, are wired data-driven via src/routes.ts (imported directly here —
@@ -189,5 +190,52 @@ test("every generated non-English page discloses it's AI-translated; English nev
                 `${page.path} is missing the translation-notice disclosure`,
             ).toContain('class="translation-notice"');
         }
+    }
+});
+
+// ---------------------------------------------------------------------
+// The "Live stats" notification badge (liveBadge() in
+// scripts/site-partials.ts). It ships in the nav of EVERY page — desktop
+// nav and mobile menu — but only the landing page's stats poller ever
+// fills it in, so everywhere else it must be inert: present, hidden, and
+// carrying that locale's own screen-reader label. The label is the part
+// that rots. It is a nav()/footer() string, and those were the one piece
+// of chrome that stayed English on every translated page until
+// src/copy/chrome.ts existed; a new key added to ChromeCopy without a
+// translation is exactly how that happens again. Whitespace is normalized
+// because prettier re-wraps these <span>s and a long label lands split
+// across two lines.
+const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
+
+test("every generated page ships the live-stats badge, hidden", async () => {
+    for (const { path } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const html = await Bun.file(path).text();
+        const badges = html.match(/<span\s+class="nav-badge"[\s\S]*?hidden/g);
+        // One in .head-nav, one in .site-menu, one on the hamburger.
+        expect(`${path}: ${badges?.length}`).toBe(`${path}: 3`);
+        expect(html).toContain('<span class="nav-badge-n">0</span>');
+        // Exactly one of the three is the hamburger's, and it is the
+        // decorative one — a .vh label inside a button never gets read,
+        // since the button's aria-label is its accessible name.
+        const decorative = html.match(
+            /aria-hidden="true"\s*><span class="nav-badge-n"/g,
+        );
+        expect(`${path}: ${decorative?.length}`).toBe(`${path}: 1`);
+    }
+});
+
+test("the badge's screen-reader label is translated on every locale", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const expected = chromeFor(locale).nav.liveStatsBadgeLabel;
+        const found = [
+            ...(await Bun.file(path).text()).matchAll(
+                /<span class="vh"\s*>([\s\S]*?)<\/span/g,
+            ),
+        ].map((m) => collapse(m[1]!));
+        expect(`${path}: ${found.includes(collapse(expected))}`).toBe(
+            `${path}: true`,
+        );
     }
 });

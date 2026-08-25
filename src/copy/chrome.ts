@@ -36,6 +36,13 @@ export interface ChromeCopy {
         tools: string;
         examples: string;
         liveStats: string;
+        /**
+         * Screen-reader-only text inside the "Live stats" notification
+         * badge, read straight after the digits: "Live stats 3 new food
+         * logs since you opened". The badge itself shows the number and
+         * nothing else, so this is the only thing naming what it counts.
+         */
+        liveStatsBadgeLabel: string;
         faq: string;
     };
 
@@ -90,6 +97,7 @@ export const CHROME_EN: ChromeCopy = {
         tools: "Tools",
         examples: "Examples",
         liveStats: "Live stats",
+        liveStatsBadgeLabel: "new food logs since you opened",
         faq: "FAQ",
     },
 

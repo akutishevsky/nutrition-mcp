@@ -22,7 +22,7 @@ import {
     urlFor,
     type SiteLocale,
 } from "../src/routes.js";
-import { chromeFor } from "../src/copy/chrome.js";
+import { chromeFor, type ChromeCopy } from "../src/copy/chrome.js";
 
 export { SITE };
 
@@ -137,6 +137,41 @@ ${ogAlternates}`;
 }
 
 /**
+ * The "Live stats" notification badge — an app-icon-style count that hangs
+ * off the top-right corner of the nav item. It ships [hidden] on every
+ * page and is only ever painted by the landing page's stats poller (the
+ * LANDING_SCRIPT in scripts/gen-index.ts), which fills it with the number
+ * of food logs written since this page loaded — the same page-load
+ * baseline the .delta tags in the stats panel are measured from, which is
+ * what the menu's "since you opened" hint already promises. On /tools,
+ * /privacy and the rest the link is a cross-page "/#stats" and nothing
+ * updates it, so it simply stays hidden.
+ *
+ * The digits alone would say nothing to a screen reader, so the count is
+ * followed by a visually-hidden label naming what it counts. Deliberately
+ * NOT aria-live: the poller runs every 5s and announcing each change would
+ * make the page unusable with a screen reader open.
+ *
+ * There are three copies per page, not two: below the .head-nav breakpoint
+ * the whole nav collapses behind the hamburger, so the badge rides the
+ * hamburger itself — otherwise the one surface that tells a phone visitor
+ * something arrived is hidden inside the menu they have not opened.
+ */
+function liveBadge(c: ChromeCopy, decorative?: boolean): string {
+    // The hamburger's copy carries no label. A button's aria-label IS its
+    // accessible name and swallows any text inside it, so a .vh span there
+    // would never be read; the count is announced properly on the Live
+    // stats item, which is on screen exactly when the menu is open and
+    // this copy is hidden (see .menu-btn .nav-badge in styles.css).
+    const label = decorative
+        ? ""
+        : ` <span class="vh">${esc(c.nav.liveStatsBadgeLabel)}</span>`;
+    return `<span class="nav-badge" data-live-badge hidden${
+        decorative ? ' aria-hidden="true"' : ""
+    }><span class="nav-badge-n">0</span>${label}</span>`;
+}
+
+/**
  * Shared site header + mobile menu. site.js owns the theme toggle, menu and
  * scroll state. `suffix` is the current page's PAGE_ROUTES key ("" for
  * home, "/tools", "/myfitnesspal-mcp", ...) — used to build the language
@@ -186,7 +221,7 @@ export function nav(
                     <a href="${h("install")}">${esc(c.nav.install)}</a>
                     <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
                     <a href="${h("try")}">${esc(c.nav.examples)}</a>
-                    <a href="${h("stats")}">${esc(c.nav.liveStats)}</a>
+                    <a class="nav-has-badge" href="${h("stats")}">${esc(c.nav.liveStats)}${liveBadge(c)}</a>
                     <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 </nav>
                 <div class="head-tools">
@@ -246,7 +281,7 @@ ${switcherItems}
                         aria-controls="site-menu"
                         aria-label="${esc(c.openMenuAriaLabel)}"
                     >
-                        <span class="burger" aria-hidden="true"></span>
+                        <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
                     </button>
                 </div>
             </div>
@@ -257,7 +292,7 @@ ${switcherItems}
                 <a href="${h("install")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
                 <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
                 <a href="${h("try")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
-                <a href="${h("stats")}">${esc(c.nav.liveStats)} <small>${esc(c.menu.liveStatsSmall)}</small></a>
+                <a href="${h("stats")}"><span class="menu-label nav-has-badge">${esc(c.nav.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
                 <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
             </nav>

@@ -255,7 +255,18 @@
                     <a href="/es#install">Instalación</a>
                     <a href="/es/tools">Herramientas</a>
                     <a href="/es#try">Ejemplos</a>
-                    <a href="/es#stats">Estadísticas en vivo</a>
+                    <a class="nav-has-badge" href="/es#stats"
+                        >Estadísticas en vivo<span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            ><span class="nav-badge-n">0</span>
+                            <span class="vh"
+                                >nuevos registros de comida desde que abriste
+                                esto</span
+                            ></span
+                        ></a
+                    >
                     <a href="/es#faq">FAQ</a>
                 </nav>
                 <div class="head-tools">
@@ -393,7 +404,14 @@
                         aria-controls="site-menu"
                         aria-label="Abrir menú"
                     >
-                        <span class="burger" aria-hidden="true"></span>
+                        <span class="burger" aria-hidden="true"></span
+                        ><span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            aria-hidden="true"
+                            ><span class="nav-badge-n">0</span></span
+                        >
                     </button>
                 </div>
             </div>
@@ -409,7 +427,18 @@
                 >
                 <a href="/es#try">Ejemplos <small>demos en vivo</small></a>
                 <a href="/es#stats"
-                    >Estadísticas en vivo
+                    ><span class="menu-label nav-has-badge"
+                        >Estadísticas en vivo<span
+                            class="nav-badge"
+                            data-live-badge
+                            hidden
+                            ><span class="nav-badge-n">0</span>
+                            <span class="vh"
+                                >nuevos registros de comida desde que abriste
+                                esto</span
+                            ></span
+                        ></span
+                    >
                     <small>desde que abriste esto</small></a
                 >
                 <a href="/es#faq">FAQ</a>
@@ -3912,6 +3941,37 @@
                     void tag.offsetWidth;
                     tag.classList.add("pop");
                 }
+                // ---------- nav badge ----------
+                // An app-icon-style count on the "Live stats" nav item, so
+                // someone reading down the page can see that other people
+                // are logging meals while they read. The markup ships
+                // [hidden] in the nav of every page (liveBadge in
+                // scripts/site-partials.ts); this is the only page that
+                // ever fills it in.
+                var NAV_BADGE_MAX = 999;
+                var navBadges = null;
+                function setNavBadge(n) {
+                    if (navBadges === null)
+                        navBadges =
+                            document.querySelectorAll("[data-live-badge]");
+                    var text =
+                        n > NAV_BADGE_MAX ? NAV_BADGE_MAX + "+" : fmtInt(n);
+                    navBadges.forEach(function (b) {
+                        if (n <= 0) {
+                            b.hidden = true;
+                            return;
+                        }
+                        var num = b.querySelector(".nav-badge-n");
+                        if (!b.hidden && num.textContent === text) return;
+                        num.textContent = text;
+                        b.hidden = false;
+                        // Restart the pop so a second arrival is noticed
+                        // too, not just the first.
+                        b.classList.remove("pop");
+                        void b.offsetWidth;
+                        b.classList.add("pop");
+                    });
+                }
                 // ---------- odometer ----------
                 // Builds one reel per digit of the real total, so the digits
                 // that roll are the digits that are true — nothing is invented
@@ -4009,6 +4069,13 @@
                             setOdometer(el, v);
                             if (base) showDelta(el, key, v - base[key]);
                         });
+                    // The badge counts food logs alone, and off the same
+                    // page-load baseline as the delta tags — so it agrees
+                    // with the delta on that row and with the menu's
+                    // "since you opened" hint instead of keeping its own
+                    // clock.
+                    if (base && typeof stats.food_logs === "number")
+                        setNavBadge(stats.food_logs - base.food_logs);
                 }
 
                 // ---------- world map ----------
