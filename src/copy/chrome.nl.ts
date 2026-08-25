@@ -42,7 +42,7 @@ export const CHROME_NL: ChromeCopy = {
         installSmall: "binnen een minuut",
         toolsSmall: "36 tools",
         examplesSmall: "live demo's",
-        liveStatsSmall: "sinds je dit opende",
+        liveStatsSmall: "sinds je de pagina opende",
         alternatives: "Alternatieven",
         alternativesSmall: "van app wisselen",
         support: "Steun",

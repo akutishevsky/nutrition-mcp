@@ -42,7 +42,7 @@ export const CHROME_IT: ChromeCopy = {
         installSmall: "meno di un minuto",
         toolsSmall: "36 strumenti",
         examplesSmall: "demo live",
-        liveStatsSmall: "da quando hai aperto",
+        liveStatsSmall: "da quando hai aperto la pagina",
         alternatives: "Alternative",
         alternativesSmall: "cambio app",
         support: "Supporto",
