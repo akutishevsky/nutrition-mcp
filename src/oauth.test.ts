@@ -135,7 +135,7 @@ test("a Google sign-in failure re-renders the error in the session's locale", as
     const errorHtml = await callbackRes.text();
     expect(errorHtml).toContain("error-banner");
     expect(errorHtml).toContain(
-        "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuch es erneut.",
+        "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuche es erneut.",
     );
     expect(errorHtml).not.toContain("Google sign-in failed");
 });

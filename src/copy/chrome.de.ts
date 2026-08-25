@@ -10,15 +10,32 @@ export const CHROME_DE: ChromeCopy = {
         tools: "Werkzeuge",
         examples: "Beispiele",
         liveStats: "Live-Statistiken",
+        liveStatsBadgeLabel: {
+            one: "neuer Mahlzeiten-Eintrag seit dem Öffnen",
+            other: "neue Mahlzeiten-Einträge seit dem Öffnen",
+        },
         faq: "FAQ",
+    },
+
+    landmarks: {
+        primaryNav: "Hauptnavigation",
+        menu: "Menü",
+        footer: "Fußzeile",
     },
 
     githubAriaLabel: "GitHub-Repository",
     changeLanguageAriaLabel: "Sprache ändern",
     languageTitle: "Sprache",
-    switchToDarkModeAriaLabel: "In den Dunkelmodus wechseln",
+    theme: {
+        ariaLabel: "Design ändern",
+        title: "Design",
+        system: "System",
+        light: "Hell",
+        dark: "Dunkel",
+    },
     connectCta: "Verbinden",
     openMenuAriaLabel: "Menü öffnen",
+    closeMenuAriaLabel: "Menü schließen",
 
     menu: {
         howSmall: "3 Schritte",

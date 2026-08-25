@@ -8,17 +8,27 @@
 // from nowhere crawlable, and has zero SEO surface. Translating it is a
 // pure UX call for the human going through the flow, not an SEO one.
 //
-// LOGIN is `Partial<Record<SiteLocale, LoginDoc>>` for the same reason
-// src/copy/legal.ts's PRIVACY/TERMS are: translation lands one locale at a
-// time. src/oauth.ts checks which locale's public/{locale}/login.html
-// actually exists on disk at request time rather than importing this
-// module directly, so LOGIN's own completeness isn't independently
-// type-enforced the way PRIVACY/TERMS's paired check is — tighten this to
-// the full Record once every locale has a translation, as a reminder that
-// the file-existence check in oauth.ts is standing in for that guarantee
-// today.
+// LOGIN and LOGIN_ERRORS are full `Record<SiteLocale, ...>`s, not the
+// `Partial` src/copy/legal.ts still uses: every locale in SITE_LOCALES is
+// translated, so the type can now do the enforcing. Adding a locale to
+// src/routes.ts's LOCALES without adding its login copy here is a
+// `bun run typecheck` failure — which is the whole completeness guarantee,
+// since nothing else checks it. src/oauth.ts still decides availability by
+// asking whether public/{locale}/login.html exists on disk rather than by
+// importing this module, matching how src/index.ts's locale routes work:
+// a locale is available when its page is built, not when a data object
+// claims it should be. Keep the two in step by re-running
+// scripts/gen-login.ts after touching this file.
 
 import type { SiteLocale } from "../routes.js";
+import { LOGIN_DE, LOGIN_ERRORS_DE } from "./login.de.js";
+import { LOGIN_ES, LOGIN_ERRORS_ES } from "./login.es.js";
+import { LOGIN_FR, LOGIN_ERRORS_FR } from "./login.fr.js";
+import { LOGIN_NL, LOGIN_ERRORS_NL } from "./login.nl.js";
+import { LOGIN_PL, LOGIN_ERRORS_PL } from "./login.pl.js";
+import { LOGIN_IT, LOGIN_ERRORS_IT } from "./login.it.js";
+import { LOGIN_UK, LOGIN_ERRORS_UK } from "./login.uk.js";
+import { LOGIN_JA, LOGIN_ERRORS_JA } from "./login.ja.js";
 
 export interface LoginDoc {
     title: string;
@@ -71,35 +81,29 @@ const EN: LoginDoc = {
         "After successful connection in your client, save your password somewhere and close this browser tab.",
 };
 
-const DE: LoginDoc = {
-    title: "Nutrition MCP",
-    subtitle: "Anmelden, um zu verbinden",
-    googleButton: "Weiter mit Google",
-    dividerText: "oder E-Mail verwenden",
-    emailLabel: "E-Mail",
-    passwordLabel: "Passwort",
-    continueButton: "Weiter",
-    consentNote:
-        "Mit dem Fortfahren bestätigst du, mindestens 16 Jahre alt zu sein, und stimmst den {terms} und der {privacy} zu.",
-    termsLinkText: "Nutzungsbedingungen",
-    privacyLinkText: "Datenschutzerklärung",
-    newHereNote:
-        "Neu hier? Gib einfach deine E-Mail-Adresse und ein Passwort ein — ein Konto wird automatisch erstellt.",
-    afterConnectNote:
-        "Speichere dein Passwort nach erfolgreicher Verbindung in deinem Client an einem sicheren Ort und schließe diesen Browser-Tab.",
+export const LOGIN: Record<SiteLocale, LoginDoc> = {
+    en: EN,
+    de: LOGIN_DE,
+    es: LOGIN_ES,
+    fr: LOGIN_FR,
+    nl: LOGIN_NL,
+    pl: LOGIN_PL,
+    it: LOGIN_IT,
+    uk: LOGIN_UK,
+    ja: LOGIN_JA,
 };
 
-export const LOGIN: Partial<Record<SiteLocale, LoginDoc>> = { en: EN, de: DE };
-
-export const LOGIN_ERRORS: Partial<Record<SiteLocale, LoginErrors>> = {
+export const LOGIN_ERRORS: Record<SiteLocale, LoginErrors> = {
     en: {
         googleCancelled: "Google sign-in was cancelled. Please try again.",
         googleFailed: "Google sign-in failed. Please try again.",
     },
-    de: {
-        googleCancelled:
-            "Die Anmeldung mit Google wurde abgebrochen. Bitte versuch es erneut.",
-        googleFailed:
-            "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuch es erneut.",
-    },
+    de: LOGIN_ERRORS_DE,
+    es: LOGIN_ERRORS_ES,
+    fr: LOGIN_ERRORS_FR,
+    nl: LOGIN_ERRORS_NL,
+    pl: LOGIN_ERRORS_PL,
+    it: LOGIN_ERRORS_IT,
+    uk: LOGIN_ERRORS_UK,
+    ja: LOGIN_ERRORS_JA,
 };

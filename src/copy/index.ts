@@ -155,6 +155,16 @@ export interface IndexDoc {
         rowProtein: string;
         rowCarbs: string;
         rowFat: string;
+        /**
+         * The kg / lb toggle on the Nutrition Facts title line. The visible
+         * text is the symbol ("kg" / "lb"), which is the same in every
+         * locale and is left alone the way "kcal" is; these are the
+         * accessible names, where the spelled-out word is what a screen
+         * reader should read. unitGroupLabel names the pair.
+         */
+        unitGroupLabel: string;
+        unitKgLabel: string;
+        unitLbLabel: string;
         foot: string;
         mapPrefix: string;
         mapSuffix: string;
@@ -2547,6 +2557,9 @@ const INDEX_EN: IndexDoc = {
         rowProtein: "Protein",
         rowCarbs: "Carbohydrates",
         rowFat: "Fat",
+        unitGroupLabel: "Weight unit",
+        unitKgLabel: "Kilograms",
+        unitLbLabel: "Pounds",
         foot: "Totals across every account, updated as meals are logged. Individual data is never shown.",
         mapPrefix: "Logged across",
         mapSuffix: "timezones worldwide",

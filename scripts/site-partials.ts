@@ -22,7 +22,7 @@ import {
     urlFor,
     type SiteLocale,
 } from "../src/routes.js";
-import { chromeFor } from "../src/copy/chrome.js";
+import { chromeFor, type ChromeCopy } from "../src/copy/chrome.js";
 
 export { SITE };
 
@@ -137,6 +137,63 @@ ${ogAlternates}`;
 }
 
 /**
+ * The "Live stats" notification badge — an app-icon-style count that hangs
+ * off the top-right corner of the nav item. It ships [hidden] on every
+ * page and is only ever painted by the landing page's stats poller (the
+ * LANDING_SCRIPT in scripts/gen-index.ts), which fills it with the number
+ * of food logs written since this page loaded — the same page-load
+ * baseline the .delta tags in the stats panel are measured from, which is
+ * what the menu's "since you opened" hint already promises. On /tools,
+ * /privacy and the rest the link is a cross-page "/#stats" and nothing
+ * updates it, so it simply stays hidden.
+ *
+ * The digits alone would say nothing to a screen reader, so the count is
+ * followed by a visually-hidden label naming what it counts. Deliberately
+ * NOT aria-live: the poller runs every 5s and announcing each change would
+ * make the page unusable with a screen reader open.
+ *
+ * That label is count-sensitive, so every grammatical form ships in the
+ * markup as a data-plural-<category> attribute and setNavBadge picks one
+ * with Intl.PluralRules. The forms cannot live in the script: LANDING_SCRIPT
+ * is one file embedded byte-identically into all nine locales' index.html,
+ * so anything it names in its own source is wrong on eight of them — the
+ * same contract the odometer caption and the #facts-live word already have.
+ * The rendered .vh text is the `other` form, which is what a count of 0 (the
+ * markup's resting state) selects in every locale that distinguishes forms.
+ *
+ * There are three copies per page, not two: below the .head-nav breakpoint
+ * the whole nav collapses behind the hamburger, so the badge rides the
+ * hamburger itself — otherwise the one surface that tells a phone visitor
+ * something arrived is hidden inside the menu they have not opened.
+ */
+const PLURAL_CATEGORIES = ["one", "few", "many", "other"] as const;
+
+function liveBadge(c: ChromeCopy, decorative?: boolean): string {
+    // esc() leaves quotes alone — fine for text nodes, not for the attribute
+    // values below, where an apostrophe is harmless but a double quote would
+    // end the attribute early.
+    const attr = (s: string) => esc(s).replace(/"/g, "&quot;");
+    const forms = c.nav.liveStatsBadgeLabel;
+    // The hamburger's copy carries no label, and so needs no forms either. A
+    // button's aria-label IS its accessible name and swallows any text inside
+    // it, so a .vh span there would never be read; the count is announced
+    // properly on the Live stats item, which is on screen exactly when the
+    // menu is open and this copy is hidden (see .menu-btn .nav-badge in
+    // styles.css).
+    const label = decorative
+        ? ""
+        : ` <span class="vh">${esc(forms.other)}</span>`;
+    const plurals = decorative
+        ? ""
+        : PLURAL_CATEGORIES.filter((k) => forms[k])
+              .map((k) => ` data-plural-${k}="${attr(forms[k]!)}"`)
+              .join("");
+    return `<span class="nav-badge" data-live-badge hidden${
+        decorative ? ' aria-hidden="true"' : ""
+    }${plurals}><span class="nav-badge-n">0</span>${label}</span>`;
+}
+
+/**
  * Shared site header + mobile menu. site.js owns the theme toggle, menu and
  * scroll state. `suffix` is the current page's PAGE_ROUTES key ("" for
  * home, "/tools", "/myfitnesspal-mcp", ...) — used to build the language
@@ -181,12 +238,12 @@ export function nav(
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     <span>Nutrition&nbsp;MCP</span>
                 </a>
-                <nav class="head-nav" aria-label="Primary">
+                <nav class="head-nav" aria-label="${esc(c.landmarks.primaryNav)}">
                     <a href="${h("how")}">${esc(c.nav.how)}</a>
                     <a href="${h("install")}">${esc(c.nav.install)}</a>
                     <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
                     <a href="${h("try")}">${esc(c.nav.examples)}</a>
-                    <a href="${h("stats")}">${esc(c.nav.liveStats)}</a>
+                    <a class="nav-has-badge" href="${h("stats")}">${esc(c.nav.liveStats)}${liveBadge(c)}</a>
                     <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 </nav>
                 <div class="head-tools">
@@ -215,26 +272,35 @@ ${
                         >
                             <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
                         </summary>
-                        <div class="lang-menu" aria-label="Choose a language">
+                        <div class="lang-menu" role="group" aria-label="${esc(c.languageTitle)}">
 ${switcherItems}
                         </div>
                     </details>`
 }
-                    <button
-                        class="icon-btn theme-toggle"
-                        type="button"
-                        id="theme-toggle"
-                        aria-label="${esc(c.switchToDarkModeAriaLabel)}"
-                        title="${esc(c.switchToDarkModeAriaLabel)}"
-                    >
-                        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-                        </svg>
-                        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="4" />
-                            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-                        </svg>
-                    </button>
+                    <details class="theme-switch" id="theme-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="${esc(c.theme.ariaLabel)}"
+                            title="${esc(c.theme.title)}"
+                        >
+                            <svg class="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9" />
+                                <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
+                            </svg>
+                            <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                            </svg>
+                            <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                            </svg>
+                        </summary>
+                        <div class="theme-menu" role="group" aria-label="${esc(c.theme.title)}">
+                            <button type="button" data-theme-set="system" aria-pressed="true">${esc(c.theme.system)}</button>
+                            <button type="button" data-theme-set="light" aria-pressed="false">${esc(c.theme.light)}</button>
+                            <button type="button" data-theme-set="dark" aria-pressed="false">${esc(c.theme.dark)}</button>
+                        </div>
+                    </details>
                     <a class="btn btn-primary btn-sm head-cta" href="${h("install")}"
                         >${esc(c.connectCta)}</a
                     >
@@ -245,19 +311,20 @@ ${switcherItems}
                         aria-expanded="false"
                         aria-controls="site-menu"
                         aria-label="${esc(c.openMenuAriaLabel)}"
+                        data-close-label="${esc(c.closeMenuAriaLabel)}"
                     >
-                        <span class="burger" aria-hidden="true"></span>
+                        <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
                     </button>
                 </div>
             </div>
         </header>
         <div class="site-menu" id="site-menu" hidden>
-            <nav aria-label="Menu">
+            <nav aria-label="${esc(c.landmarks.menu)}">
                 <a href="${h("how")}">${esc(c.nav.how)} <small>${esc(c.menu.howSmall)}</small></a>
                 <a href="${h("install")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
                 <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
                 <a href="${h("try")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
-                <a href="${h("stats")}">${esc(c.nav.liveStats)} <small>${esc(c.menu.liveStatsSmall)}</small></a>
+                <a href="${h("stats")}"><span class="menu-label nav-has-badge">${esc(c.nav.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
                 <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
             </nav>
@@ -302,7 +369,7 @@ export function footer(locale: SiteLocale, currentSuffix?: string): string {
                     <span class="brand-mark" aria-hidden="true">🍏</span>
                     Nutrition MCP
                 </span>
-                <nav class="footer-links" aria-label="Footer">
+                <nav class="footer-links" aria-label="${esc(c.landmarks.footer)}">
                     <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
                     <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
                     <a

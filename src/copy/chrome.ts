@@ -25,6 +25,23 @@ import { CHROME_IT } from "./chrome.it.js";
 import { CHROME_UK } from "./chrome.uk.js";
 import { CHROME_JA } from "./chrome.ja.js";
 
+/**
+ * A count-sensitive string, picked at render time with `Intl.PluralRules`.
+ * Same shape and same degradation as the widgets' PluralForms
+ * (src/copy/widgets.ts) with one addition: `few` and `many`, which Polish
+ * and Ukrainian genuinely need — their noun case turns on the digit class
+ * (1 / 2-4 / 5+), and a badge counting arrivals since page-open sits in the
+ * 1-4 band almost all of the time, which is exactly where the single
+ * genitive form those two used to carry was wrong. Only `other` is
+ * required; any category a locale omits falls back to it.
+ */
+export interface PluralForms {
+    one?: string;
+    few?: string;
+    many?: string;
+    other: string;
+}
+
 export interface ChromeCopy {
     skipToContent: string;
     /** aria-label on the brand link, e.g. "Nutrition MCP home". */
@@ -36,16 +53,92 @@ export interface ChromeCopy {
         tools: string;
         examples: string;
         liveStats: string;
+        /**
+         * Screen-reader-only text inside the "Live stats" notification
+         * badge, read straight after the digits: "Live stats 3 new food
+         * logs since you opened". The badge itself shows the number and
+         * nothing else, so this is the only thing naming what it counts.
+         *
+         * Count-sensitive, because the badge spends most of its life at 1:
+         * "1 new food logs" is wrong in English and ungrammatical in Polish
+         * and Ukrainian, where the case is chosen by the digit class.
+         * liveBadge() emits every form as a data-plural-* attribute and
+         * setNavBadge (LANDING_SCRIPT in scripts/gen-index.ts) picks one
+         * with Intl.PluralRules — one script serves all nine locales, so
+         * the forms have to reach it through the markup rather than live in
+         * its source.
+         *
+         * The number always comes FIRST and the label second, in every
+         * locale: Japanese counts with a prefix ("3件の…"), so a reorder
+         * that fixed Polish would break it. Only the label swaps.
+         *
+         * Whatever word a locale uses here must be the word its own stats
+         * row uses for the same counter (IndexDoc.stats.rowFoodLogs) — the
+         * badge and the row it links to are counting the same thing.
+         */
+        liveStatsBadgeLabel: PluralForms;
         faq: string;
+    };
+
+    /**
+     * The aria-labels on the three <nav> landmarks — the header's primary
+     * nav, the mobile sheet, and the footer. These are the region names a
+     * screen reader reads out when jumping between landmarks, and they
+     * were hardcoded English ("Primary" / "Menu" / "Footer") on all nine
+     * locales: invisible on the page, so nothing in a visual review would
+     * ever catch them.
+     *
+     * `primaryNav` wants the name a native speaker would give the region,
+     * not a gloss of the English adjective — German says
+     * "Hauptnavigation", not "Primär".
+     *
+     * There is no fourth entry for the language menu's own label: that one
+     * reuses `languageTitle`, exactly as the theme menu beside it reuses
+     * `theme.title`.
+     */
+    landmarks: {
+        primaryNav: string;
+        menu: string;
+        footer: string;
     };
 
     githubAriaLabel: string;
     changeLanguageAriaLabel: string;
     languageTitle: string;
-    switchToDarkModeAriaLabel: string;
+    /**
+     * The theme switcher — a <details> disclosure, the same shape as the
+     * language one beside it. Three modes, not two: "System" is the default
+     * and means no override is stored at all, so the OS setting drives the
+     * page and keeps driving it if it flips mid-visit. `ariaLabel`/`title`
+     * name the control; the rest are the menu items.
+     *
+     * These labels are static, unlike the aria-label the old two-state
+     * button carried: site.js used to rewrite it on every toggle, in
+     * hardcoded English, so a translated page announced the control in
+     * English the moment anyone used it.
+     */
+    theme: {
+        ariaLabel: string;
+        title: string;
+        system: string;
+        light: string;
+        dark: string;
+    };
     /** The header's primary CTA button, e.g. "Connect". */
     connectCta: string;
+    /**
+     * The hamburger button's two accessible names. The button is one
+     * control that toggles, so its label has to change with its state —
+     * and site.js is a single static file served to all nine locales, so
+     * it cannot own either string. `openMenuAriaLabel` is rendered as the
+     * button's initial aria-label and `closeMenuAriaLabel` rides along in
+     * a `data-close-label` attribute; site.js reads both off the DOM.
+     * Before that it swapped in hardcoded English on the first tap, so a
+     * German visitor got "Menü öffnen" until they used the menu once and
+     * "Open menu" forever after.
+     */
     openMenuAriaLabel: string;
+    closeMenuAriaLabel: string;
 
     /** The mobile slide-out menu — nav items repeat nav.* concepts with a
      * trailing <small> hint, plus items the desktop nav omits. */
@@ -90,15 +183,32 @@ export const CHROME_EN: ChromeCopy = {
         tools: "Tools",
         examples: "Examples",
         liveStats: "Live stats",
+        liveStatsBadgeLabel: {
+            one: "new food log since you opened",
+            other: "new food logs since you opened",
+        },
         faq: "FAQ",
+    },
+
+    landmarks: {
+        primaryNav: "Primary",
+        menu: "Menu",
+        footer: "Footer",
     },
 
     githubAriaLabel: "GitHub repository",
     changeLanguageAriaLabel: "Change language",
     languageTitle: "Language",
-    switchToDarkModeAriaLabel: "Switch to dark mode",
+    theme: {
+        ariaLabel: "Change theme",
+        title: "Theme",
+        system: "System",
+        light: "Light",
+        dark: "Dark",
+    },
     connectCta: "Connect",
     openMenuAriaLabel: "Open menu",
+    closeMenuAriaLabel: "Close menu",
 
     menu: {
         howSmall: "3 steps",

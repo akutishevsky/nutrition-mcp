@@ -10,15 +10,32 @@ export const CHROME_FR: ChromeCopy = {
         tools: "Outils",
         examples: "Exemples",
         liveStats: "Stats en direct",
+        liveStatsBadgeLabel: {
+            one: "nouveau repas enregistré depuis l'ouverture de la page",
+            other: "nouveaux repas enregistrés depuis l'ouverture de la page",
+        },
         faq: "FAQ",
+    },
+
+    landmarks: {
+        primaryNav: "Navigation principale",
+        menu: "Menu",
+        footer: "Pied de page",
     },
 
     githubAriaLabel: "Dépôt GitHub",
     changeLanguageAriaLabel: "Changer de langue",
     languageTitle: "Langue",
-    switchToDarkModeAriaLabel: "Passer en mode sombre",
+    theme: {
+        ariaLabel: "Changer de thème",
+        title: "Thème",
+        system: "Système",
+        light: "Clair",
+        dark: "Sombre",
+    },
     connectCta: "Connecter",
     openMenuAriaLabel: "Ouvrir le menu",
+    closeMenuAriaLabel: "Fermer le menu",
 
     menu: {
         howSmall: "3 étapes",

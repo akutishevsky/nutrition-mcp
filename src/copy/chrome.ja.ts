@@ -10,15 +10,31 @@ export const CHROME_JA: ChromeCopy = {
         tools: "ツール",
         examples: "使用例",
         liveStats: "ライブ統計",
+        liveStatsBadgeLabel: {
+            other: "件の新しい食事ログがページを開いてから追加されました",
+        },
         faq: "よくある質問",
+    },
+
+    landmarks: {
+        primaryNav: "メインナビゲーション",
+        menu: "メニュー",
+        footer: "フッター",
     },
 
     githubAriaLabel: "GitHubリポジトリ",
     changeLanguageAriaLabel: "言語を変更",
     languageTitle: "言語",
-    switchToDarkModeAriaLabel: "ダークモードに切り替え",
+    theme: {
+        ariaLabel: "テーマを変更",
+        title: "テーマ",
+        system: "システム",
+        light: "ライト",
+        dark: "ダーク",
+    },
     connectCta: "接続する",
     openMenuAriaLabel: "メニューを開く",
+    closeMenuAriaLabel: "メニューを閉じる",
 
     menu: {
         howSmall: "3ステップ",

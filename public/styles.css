@@ -52,6 +52,16 @@ body {
     --cal: #d98a1d; /* calories, as in the widgets */
     --danger: #a8432a;
 
+    /* Closing CTA band. Light mode inverts to the ink slab, which is the
+       whole point of it. Dark mode cannot follow: inverting there lands on
+       near-white and turns the section into a floodlight between two dark
+       ones. It gets a deep forest panel instead — still plainly its own
+       band under the accent rule, just not a glare. Everything inside the
+       band (title, sub, both buttons) reads these two rather than
+       --bg/--ink, so the whole block flips together. */
+    --cta-bg: var(--ink);
+    --cta-ink: var(--bg);
+
     /* world map (figure must out-contrast ground in both themes) */
     --map-land: #b6bdb8;
     --map-core: #2f6440;
@@ -96,6 +106,9 @@ body {
         --accent-soft-2: #223a2b;
         --cal: #f0a340;
         --danger: #e08a74;
+        /* Not an inversion — see --cta-bg in the base palette above. */
+        --cta-bg: #223a2b;
+        --cta-ink: #edf1ee;
         --map-land: #3a463f;
         --map-core: #9ad6a8;
         --map-halo: #79c28c;
@@ -127,6 +140,9 @@ body[data-theme="dark"] {
     --accent-soft-2: #223a2b;
     --cal: #f0a340;
     --danger: #e08a74;
+    /* Not an inversion — see --cta-bg in the base palette above. */
+    --cta-bg: #223a2b;
+    --cta-ink: #edf1ee;
     --map-land: #3a463f;
     --map-core: #9ad6a8;
     --map-halo: #79c28c;
@@ -445,6 +461,73 @@ kbd,
 .head-nav a.active::after {
     transform: scaleX(1);
 }
+/* Live-stats notification badge — the number of food logs written since
+   this page loaded, hung off the top-right corner of the nav item the way
+   an app-icon badge is. Only the landing page's stats poller ever fills it
+   in (see LANDING_SCRIPT in scripts/gen-index.ts); elsewhere it stays
+   [hidden]. .nav-has-badge reserves the space it will occupy on every page
+   whether or not it ever appears, so the badge's arrival mid-read never
+   nudges the nav items beside it. */
+.nav-badge {
+    position: absolute;
+    top: 0.02rem;
+    /* Anchored by its LEFT edge, a hair past the label's last glyph, so a
+       second or third digit grows the pill outward into the space
+       .nav-has-badge reserves. Anchoring the RIGHT edge instead — which is
+       what this used to do — makes every added digit grow leftward over
+       the word the badge belongs to, and the pill is opaque, so it covers
+       the glyph rather than sitting beside it. The 0.25rem eats part of
+       the nav link's 0.55rem right padding so the pill still reads as
+       attached to the label. Bounded by the 99+ cap in setNavBadge
+       (scripts/gen-index.ts): three characters is the widest it can get,
+       which is what the reserved margins below are sized for. */
+    left: calc(100% - 0.25rem);
+    right: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+/* display:inline-flex above would otherwise beat the UA's [hidden] rule. */
+.nav-badge[hidden] {
+    display: none;
+}
+/* Replayed on every change, so a second arrival is noticed too. */
+.nav-badge.pop {
+    animation: badgepop 0.45s var(--ease-out) both;
+}
+@keyframes badgepop {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    65% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+/* Room for the widest the badge can get ("99+", ~1.72rem) plus a gap, so
+   it never reaches the next item and the nav never reflows when it
+   appears. */
+.head-nav a.nav-has-badge {
+    margin-right: 1.5rem;
+}
 .head-tools {
     display: flex;
     align-items: center;
@@ -475,24 +558,37 @@ kbd,
     width: 20px;
     height: 20px;
 }
-.theme-toggle .sun,
-.theme-toggle .moon {
+/* Theme switcher: the same native <details> disclosure as .lang-switch
+   below, sharing its menu styles and its light-dismiss handler in site.js.
+   Three modes, not two — System is the default and stores no override at
+   all, so the OS setting drives the page and goes on driving it if it
+   flips mid-visit. */
+.theme-switch {
+    position: relative;
+}
+.theme-switch summary {
+    list-style: none;
+}
+.theme-switch summary::-webkit-details-marker {
+    display: none;
+}
+/* The summary shows the mode that is ACTIVE, read straight off <body> —
+   which THEME_PREPAINT stamps before first paint, so the right icon is
+   there from the start rather than being corrected once site.js loads. No
+   data-theme attribute at all is System. */
+.theme-switch summary svg {
     grid-area: 1 / 1;
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
     transition:
         transform 0.4s var(--ease-out),
         opacity 0.25s ease;
 }
-.theme-toggle .sun {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.6);
-}
-body.is-dark .theme-toggle .sun {
+body:not([data-theme]) .theme-switch .auto,
+body[data-theme="light"] .theme-switch .sun,
+body[data-theme="dark"] .theme-switch .moon {
     opacity: 1;
     transform: none;
-}
-body.is-dark .theme-toggle .moon {
-    opacity: 0;
-    transform: rotate(90deg) scale(0.6);
 }
 .head-tools .head-cta {
     display: none;
@@ -515,7 +611,8 @@ body.is-dark .theme-toggle .moon {
     font-weight: 600;
     letter-spacing: 0.02em;
 }
-.lang-menu {
+.lang-menu,
+.theme-menu {
     position: absolute;
     top: calc(100% + 0.5rem);
     right: 0;
@@ -530,7 +627,8 @@ body.is-dark .theme-toggle .moon {
     border-radius: var(--radius);
     box-shadow: var(--shadow-float);
 }
-.lang-menu a {
+.lang-menu a,
+.theme-menu button {
     padding: 0.5rem 0.7rem;
     border-radius: 8px;
     font-size: 0.92rem;
@@ -540,13 +638,25 @@ body.is-dark .theme-toggle .moon {
         background 0.15s ease,
         color 0.15s ease;
 }
-.lang-menu a:hover {
+.lang-menu a:hover,
+.theme-menu button:hover {
     background: var(--surface-2);
     color: var(--ink);
 }
-.lang-menu a[aria-current="page"] {
+.lang-menu a[aria-current="page"],
+.theme-menu button[aria-pressed="true"] {
     color: var(--accent-hover);
     font-weight: 600;
+}
+/* The language items are links and the theme items are buttons, so these
+   are the differences a shared rule cannot carry. */
+.theme-menu button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
 }
 /* The GitHub icon lives in the sheet too; on a narrow phone the bar keeps
    only brand, theme and menu. */
@@ -558,6 +668,23 @@ body.is-dark .theme-toggle .moon {
 .menu-btn {
     position: relative;
     z-index: 60;
+}
+/* Below the .head-nav breakpoint the nav — and with it the Live stats item
+   — lives behind this button, so the badge rides the button itself. The ring
+   lifts it off the burger's top bar, which it otherwise sits on. It hides
+   while the menu is open, because the copy on the Live stats item is on
+   screen by then and two badges for one count reads as two counts. */
+/* The one copy with no label beside it, so this is the only place the
+   right edge is still the anchored one — it hangs off the button's corner
+   the way an app-icon badge does, and there is no glyph to grow over. */
+.menu-btn .nav-badge {
+    top: 3px;
+    right: 3px;
+    left: auto;
+    box-shadow: 0 0 0 2px var(--bg);
+}
+body.menu-open .menu-btn .nav-badge {
+    display: none;
 }
 .burger,
 .burger::before,
@@ -702,6 +829,30 @@ body.is-dark .theme-toggle .moon {
 .site-menu nav a[aria-current="page"] {
     color: var(--accent-hover);
 }
+/* The menu's own badge. The link is a baseline-aligned flex row (label left,
+   hint right), so the label gets its own positioning context rather than
+   the badge anchoring to the whole row. */
+.menu-label {
+    position: relative;
+    display: inline-block;
+}
+.site-menu .nav-badge {
+    top: 0.1rem;
+    /* .menu-label hugs the text with no padding of its own, so 100% is the
+       last glyph exactly; the 0.3rem is the gap. Grows rightward from
+       there into the reserved margin below. */
+    left: calc(100% + 0.3rem);
+    right: auto;
+    min-width: 1.3rem;
+    height: 1.3rem;
+    padding: 0 0.35rem;
+    font-size: 0.75rem;
+}
+/* Wider than the nav's reserve because this badge is bigger: 0.3rem of gap
+   plus ~2.05rem for a three-character "99+". */
+.site-menu .menu-label.nav-has-badge {
+    margin-right: 2.4rem;
+}
 .menu-secondary {
     display: flex;
     flex-wrap: wrap;
@@ -808,19 +959,25 @@ body.is-dark .btn-primary:hover,
 .btn-link:hover::after {
     transform: translateX(3px);
 }
+/* Both of these live only inside .section.cta (the landing page's closing
+   band and the two on every comparison page), so they read the band's own
+   tokens instead of --bg/--ink — otherwise dark mode leaves a dark pill and
+   dark-on-dark ghost text sitting on the dark panel. The hovers mix toward
+   the band rather than naming a surface, which would be the wrong end of
+   the palette in one mode or the other. */
 .btn-on-accent {
-    background: var(--bg);
-    color: var(--ink);
+    background: var(--cta-ink);
+    color: var(--cta-bg);
 }
 .btn-on-accent:hover {
-    background: var(--surface-2);
+    background: color-mix(in srgb, var(--cta-ink) 88%, var(--cta-bg));
 }
 .btn-ghost-accent {
-    color: var(--bg);
-    border-color: color-mix(in srgb, var(--bg) 45%, transparent);
+    color: var(--cta-ink);
+    border-color: color-mix(in srgb, var(--cta-ink) 45%, transparent);
 }
 .btn-ghost-accent:hover {
-    background: color-mix(in srgb, var(--bg) 12%, transparent);
+    background: color-mix(in srgb, var(--cta-ink) 12%, transparent);
 }
 
 /* ---------- cards ---------- */
@@ -1409,6 +1566,10 @@ body.is-dark .btn-primary:hover,
     box-shadow: var(--shadow-card);
 }
 .facts-title {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
     font-family: var(--font-display);
     font-weight: 800;
     font-size: clamp(2rem, 5vw, 2.9rem);
@@ -1416,6 +1577,47 @@ body.is-dark .btn-primary:hover,
     line-height: 1;
     padding-bottom: 0.35rem;
     border-bottom: 1px solid var(--rule);
+}
+/* kg / lb toggle on the title line. Real buttons, unlike .wdg-seg (which is
+   a decorative mock inside the hero's fake widget): flipping it repaints the
+   three weight rows and their delta tags in place. Hidden without JS, since
+   nothing would answer a click — the same reason the figures themselves
+   start as em dashes. */
+.facts-unit {
+    display: none;
+    flex: none;
+    gap: 2px;
+    padding: 2px;
+    margin-bottom: 0.35rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+}
+html.js .facts-unit {
+    display: inline-flex;
+}
+.facts-unit button {
+    padding: 0.2rem 0.62rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-2);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+.facts-unit button:hover {
+    color: var(--ink);
+}
+.facts-unit button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
 }
 .facts-serving {
     display: flex;
@@ -1867,8 +2069,8 @@ body.is-dark .btn-primary:hover,
 
 /* ---------- closing CTA: ink block ---------- */
 .section.cta {
-    background: var(--ink);
-    color: var(--bg);
+    background: var(--cta-bg);
+    color: var(--cta-ink);
     position: relative;
     overflow: clip;
 }
@@ -1880,7 +2082,7 @@ body.is-dark .btn-primary:hover,
     text-align: center;
 }
 .cta-title {
-    color: var(--bg);
+    color: var(--cta-ink);
     font-size: clamp(2rem, 4.5vw, 3.2rem);
 }
 .cta-sub {
@@ -1888,7 +2090,7 @@ body.is-dark .btn-primary:hover,
     max-width: 44ch;
     font-size: 1.1rem;
     line-height: 1.5;
-    color: color-mix(in srgb, var(--bg) 78%, transparent);
+    color: color-mix(in srgb, var(--cta-ink) 78%, transparent);
 }
 .cta-actions {
     display: flex;

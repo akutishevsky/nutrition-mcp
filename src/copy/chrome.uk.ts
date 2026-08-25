@@ -10,15 +10,34 @@ export const CHROME_UK: ChromeCopy = {
         tools: "Інструменти",
         examples: "Приклади",
         liveStats: "Статистика наживо",
+        liveStatsBadgeLabel: {
+            one: "новий запис їжі з моменту відкриття сторінки",
+            few: "нові записи їжі з моменту відкриття сторінки",
+            many: "нових записів їжі з моменту відкриття сторінки",
+            other: "нових записів їжі з моменту відкриття сторінки",
+        },
         faq: "FAQ",
+    },
+
+    landmarks: {
+        primaryNav: "Основна навігація",
+        menu: "Меню",
+        footer: "Нижній колонтитул",
     },
 
     githubAriaLabel: "Репозиторій на GitHub",
     changeLanguageAriaLabel: "Змінити мову",
     languageTitle: "Мова",
-    switchToDarkModeAriaLabel: "Увімкнути темну тему",
+    theme: {
+        ariaLabel: "Змінити тему",
+        title: "Тема",
+        system: "Системна",
+        light: "Світла",
+        dark: "Темна",
+    },
     connectCta: "Підключити",
     openMenuAriaLabel: "Відкрити меню",
+    closeMenuAriaLabel: "Закрити меню",
 
     menu: {
         howSmall: "3 кроки",

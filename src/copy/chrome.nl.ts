@@ -10,22 +10,39 @@ export const CHROME_NL: ChromeCopy = {
         tools: "Tools",
         examples: "Voorbeelden",
         liveStats: "Live statistieken",
+        liveStatsBadgeLabel: {
+            one: "nieuwe voedingslog sinds je de pagina opende",
+            other: "nieuwe voedingslogs sinds je de pagina opende",
+        },
         faq: "FAQ",
+    },
+
+    landmarks: {
+        primaryNav: "Hoofdnavigatie",
+        menu: "Menu",
+        footer: "Voettekst",
     },
 
     githubAriaLabel: "GitHub-repository",
     changeLanguageAriaLabel: "Taal wijzigen",
     languageTitle: "Taal",
-    switchToDarkModeAriaLabel: "Schakel naar donkere modus",
+    theme: {
+        ariaLabel: "Thema wijzigen",
+        title: "Thema",
+        system: "Systeem",
+        light: "Licht",
+        dark: "Donker",
+    },
     connectCta: "Verbind",
     openMenuAriaLabel: "Menu openen",
+    closeMenuAriaLabel: "Menu sluiten",
 
     menu: {
         howSmall: "3 stappen",
         installSmall: "binnen een minuut",
         toolsSmall: "36 tools",
         examplesSmall: "live demo's",
-        liveStatsSmall: "sinds je dit opende",
+        liveStatsSmall: "sinds je de pagina opende",
         alternatives: "Alternatieven",
         alternativesSmall: "van app wisselen",
         support: "Steun",

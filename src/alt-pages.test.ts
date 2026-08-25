@@ -1,5 +1,8 @@
 import { test, expect } from "bun:test";
 import { ALT_PAGES, PAGE_ROUTES, SITE_LOCALES, urlFor } from "./routes.js";
+import { chromeFor } from "./copy/chrome.js";
+import { INDEX } from "./copy/index.js";
+import { LOGIN, LOGIN_ERRORS } from "./copy/login.js";
 
 // The SEO "alternative to X" routes, and every locale's version of every
 // page, are wired data-driven via src/routes.ts (imported directly here —
@@ -188,6 +191,313 @@ test("every generated non-English page discloses it's AI-translated; English nev
                 html,
                 `${page.path} is missing the translation-notice disclosure`,
             ).toContain('class="translation-notice"');
+        }
+    }
+});
+
+// ---------------------------------------------------------------------
+// The "Live stats" notification badge (liveBadge() in
+// scripts/site-partials.ts). It ships in the nav of EVERY page — desktop
+// nav and mobile menu — but only the landing page's stats poller ever
+// fills it in, so everywhere else it must be inert: present, hidden, and
+// carrying that locale's own screen-reader label. The label is the part
+// that rots. It is a nav()/footer() string, and those were the one piece
+// of chrome that stayed English on every translated page until
+// src/copy/chrome.ts existed; a new key added to ChromeCopy without a
+// translation is exactly how that happens again. Whitespace is normalized
+// because prettier re-wraps these <span>s and a long label lands split
+// across two lines.
+const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
+
+test("every generated page ships the live-stats badge, hidden", async () => {
+    for (const { path } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const html = await Bun.file(path).text();
+        const badges = html.match(/<span\s+class="nav-badge"[\s\S]*?hidden/g);
+        // One in .head-nav, one in .site-menu, one on the hamburger.
+        expect(`${path}: ${badges?.length}`).toBe(`${path}: 3`);
+        expect(html).toContain('<span class="nav-badge-n">0</span>');
+        // Exactly one of the three is the hamburger's, and it is the
+        // decorative one — a .vh label inside a button never gets read,
+        // since the button's aria-label is its accessible name.
+        const decorative = html.match(
+            /aria-hidden="true"\s*><span class="nav-badge-n"/g,
+        );
+        expect(`${path}: ${decorative?.length}`).toBe(`${path}: 1`);
+    }
+});
+
+// The label is count-sensitive, so what ships is every grammatical form the
+// locale has, as data-plural-* attributes setNavBadge picks from at runtime
+// (one script, nine locales — it cannot hold a translation of its own). Both
+// halves are pinned: the forms must all reach the markup, and the .vh text
+// the page renders before any script runs must be the "other" form, which is
+// what a count of 0 selects. Asserting only the rendered text would let a
+// locale ship with its "one" and "few" forms silently missing from the
+// attributes and still pass.
+test("the badge's screen-reader label is translated on every locale", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const forms = chromeFor(locale).nav.liveStatsBadgeLabel;
+        const html = await Bun.file(path).text();
+        const found = [
+            ...html.matchAll(/<span class="vh"\s*>([\s\S]*?)<\/span/g),
+        ].map((m) => collapse(m[1]!));
+        expect(`${path}: ${found.includes(collapse(forms.other))}`).toBe(
+            `${path}: true`,
+        );
+        for (const category of ["one", "few", "many", "other"] as const) {
+            const form = forms[category];
+            if (!form) continue;
+            const attr = `data-plural-${category}="${form}"`;
+            // Both labelled copies, not just one: the page carries three
+            // badges (see the test above), of which the hamburger's is the
+            // decorative one and deliberately carries no forms. Counting is
+            // what makes this catch a half-regenerated page — an
+            // includes() check passes on a file where only the nav copy was
+            // rewritten and the menu copy is still the old string.
+            const count = html.split(attr).length - 1;
+            expect(`${path} [${category}]: ${count}`).toBe(
+                `${path} [${category}]: 2`,
+            );
+        }
+    }
+});
+
+// Polish and Ukrainian are the reason this whole mechanism exists: their
+// noun case turns on the digit class (1 / 2-4 / 5+), and a badge counting
+// arrivals since page-open sits in the first two bands almost all of the
+// time. A locale that carries "few" but copied it from "many" would render
+// grammatically, pass every check above, and still be wrong at the counts
+// it actually reaches.
+test("the digit-class locales carry three distinct badge forms", async () => {
+    for (const locale of ["pl", "uk"] as const) {
+        const f = chromeFor(locale).nav.liveStatsBadgeLabel;
+        const distinct = new Set([f.one, f.few, f.many]);
+        expect(`${locale}: ${distinct.size} of 3`).toBe(`${locale}: 3 of 3`);
+    }
+});
+
+// The kg / lb toggle in the landing page's live-stats panel. Same failure
+// mode as the badge label above and the same reason to pin it: the visible
+// text is the symbol, which is identical in every locale, so a locale that
+// never translated the accessible names would look completely fine on the
+// page and read as English to anyone using a screen reader.
+test("the stats unit toggle is labelled in every locale's own words", async () => {
+    for (const { path, locale, suffix } of await existingPages()) {
+        if (suffix !== "") continue;
+        const doc = INDEX[locale];
+        expect(`${path}: ${!!doc}`).toBe(`${path}: true`);
+        const html = await Bun.file(path).text();
+        for (const label of [
+            doc!.stats.unitGroupLabel,
+            doc!.stats.unitKgLabel,
+            doc!.stats.unitLbLabel,
+        ]) {
+            expect(`${path}: ${html.includes(`aria-label="${label}"`)}`).toBe(
+                `${path}: true`,
+            );
+        }
+        // Both buttons, and kg pre-pressed — the markup's resting state has
+        // to be the script's default, or a visitor with JS still loading
+        // sees neither pill lit.
+        expect(html).toContain('data-unit="kg"');
+        expect(html).toContain('data-unit="lb"');
+    }
+});
+
+// The theme switcher, which replaced a two-state button. Two things are
+// worth pinning. Its labels: they used to be rewritten by site.js on every
+// toggle, in hardcoded English, so a translated page announced the control
+// in English the moment anyone used it — they are static and translated
+// now, and this is what keeps them that way. And its resting state: the
+// markup ships with "system" pressed because that is the setting a visitor
+// with nothing stored is actually on. It is NOT true that the pressed pill
+// is always the truth before site.js runs — THEME_PREPAINT stamps
+// data-theme from localStorage before first paint, so a visitor with a
+// stored light/dark override sees the page already in that theme while
+// "system" is still the pressed pill until site.js corrects it. That window
+// is harmless (the menu holding the switcher is closed), but the resting
+// state is a default, not a guarantee.
+test("the theme switcher is labelled in every locale's own words", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const c = chromeFor(locale).theme;
+        const html = await Bun.file(path).text();
+        for (const attr of [
+            `aria-label="${c.ariaLabel}"`,
+            `title="${c.title}"`,
+            `aria-label="${c.title}"`,
+        ]) {
+            expect(`${path}: ${html.includes(attr)}`).toBe(`${path}: true`);
+        }
+        const modes = [
+            ["system", c.system],
+            ["light", c.light],
+            ["dark", c.dark],
+        ] as const;
+        for (const [mode, label] of modes) {
+            const at = html.indexOf(`data-theme-set="${mode}"`);
+            expect(`${path}/${mode}: ${at !== -1}`).toBe(
+                `${path}/${mode}: true`,
+            );
+            const button = html.slice(at, html.indexOf("</button>", at));
+            expect(`${path}/${mode}: ${collapse(button).includes(label)}`).toBe(
+                `${path}/${mode}: true`,
+            );
+            // Only System rests pressed — it is the default.
+            expect(
+                `${path}/${mode}: ${button.includes('aria-pressed="true"')}`,
+            ).toBe(`${path}/${mode}: ${mode === "system"}`);
+        }
+    }
+});
+
+// The hamburger's two accessible names. It is one control that toggles, so
+// its label has to change with its state — and public/site.js is a single
+// static file served to all nine locales, which means it cannot own either
+// string. It used to: openMenu()/closeMenu() wrote hardcoded English, so a
+// German visitor got "Menü öffnen" until the first tap and "Open menu" for
+// the rest of the visit. Both strings live in the markup now — the open one
+// as the button's initial aria-label, the close one in data-close-label —
+// and the script reads them off the DOM. This pins that both are present
+// and in this page's own language, on every generated page.
+test("the menu button carries both of its labels, translated", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const c = chromeFor(locale);
+        const html = await Bun.file(path).text();
+        const at = html.indexOf('id="menu-btn"');
+        expect(`${path}: ${at !== -1}`).toBe(`${path}: true`);
+        const button = collapse(html.slice(at, html.indexOf(">", at)));
+        for (const attr of [
+            `aria-label="${c.openMenuAriaLabel}"`,
+            `data-close-label="${c.closeMenuAriaLabel}"`,
+        ]) {
+            expect(`${path}: ${button.includes(attr)}`).toBe(`${path}: true`);
+        }
+    }
+});
+
+// The three <nav> landmark names, plus the language menu's own. These are
+// the region names a screen reader announces when moving between
+// landmarks, and they were hardcoded English on all nine locales —
+// "Primary", "Menu", "Footer" — which nothing in a visual review can
+// catch, because they never paint. The language menu was worse than
+// untranslated: its aria-label sat on a bare <div>, which exposes nothing
+// at all, so the label was inert in English too. It has role="group" now
+// and reuses languageTitle, matching the .theme-menu beside it.
+test("every landmark region is named in the page's own language", async () => {
+    for (const { path, locale } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const c = chromeFor(locale);
+        const html = collapse(await Bun.file(path).text());
+        const regions: [string, string][] = [
+            [`<nav class="head-nav" aria-label="`, c.landmarks.primaryNav],
+            [`<nav aria-label="`, c.landmarks.menu],
+            [`<nav class="footer-links" aria-label="`, c.landmarks.footer],
+            // Not a nav: a .lang-menu div, inert without role="group".
+            [`class="lang-menu" role="group" aria-label="`, c.languageTitle],
+        ];
+        for (const [open, label] of regions) {
+            expect(
+                `${path} [${label}]: ${html.includes(open + label + '"')}`,
+            ).toBe(`${path} [${label}]: true`);
+        }
+    }
+});
+
+// The OAuth login page. It sits outside every check above because it is
+// outside PAGE_ROUTES: it has no fixed URL (src/oauth.ts renders it per
+// in-flight session), no sitemap entry and no hreflang, so existingPages()
+// never sees it — which is exactly how it stayed English-only on seven
+// locales long after the rest of the site was translated. It is also the
+// one page whose availability is decided by a file-existence check
+// (availableLoginLocales() in src/oauth.ts) rather than by data, so a
+// locale whose copy exists but whose page was never regenerated silently
+// drops out of the language switcher.
+const loginPath = (locale: (typeof SITE_LOCALES)[number]) =>
+    locale === "en" ? "./public/login.html" : `./public/${locale}/login.html`;
+
+test("every locale has a built login page, in its own language", async () => {
+    for (const locale of SITE_LOCALES) {
+        const path = loginPath(locale);
+        expect(`${path}: ${await Bun.file(path).exists()}`).toBe(
+            `${path}: true`,
+        );
+        const doc = LOGIN[locale];
+        const html = collapse(await Bun.file(path).text());
+        // Every visible string except consentNote, which is checked
+        // through its two link texts instead — the sentence itself is
+        // split by the injected <a> markup.
+        for (const line of [
+            doc.subtitle,
+            doc.googleButton,
+            doc.dividerText,
+            doc.emailLabel,
+            doc.passwordLabel,
+            doc.continueButton,
+            doc.termsLinkText,
+            doc.privacyLinkText,
+            doc.newHereNote,
+            doc.afterConnectNote,
+        ]) {
+            expect(`${path} [${line}]: ${html.includes(line)}`).toBe(
+                `${path} [${line}]: true`,
+            );
+        }
+        // And not the English original underneath it: a page that renders
+        // its own strings AND keeps English ones is a half-regenerated
+        // file, which is what a stale public/{locale}/login.html looks
+        // like. title is exempt — it's the untranslated product name.
+        if (locale !== "en") {
+            for (const en of [
+                LOGIN.en.subtitle,
+                LOGIN.en.newHereNote,
+                LOGIN.en.afterConnectNote,
+            ]) {
+                expect(`${path} [en: ${en}]: ${html.includes(en)}`).toBe(
+                    `${path} [en: ${en}]: false`,
+                );
+            }
+        }
+    }
+});
+
+// This page is a TEMPLATE, not a finished document: renderLoginPage() in
+// src/oauth.ts fills these four in per request. A token lost to a
+// generator change wouldn't fail a build or a typecheck — it would ship a
+// login form whose submit button posts an empty session_id.
+test("every login page keeps its four runtime placeholders", async () => {
+    for (const locale of SITE_LOCALES) {
+        const path = loginPath(locale);
+        const html = await Bun.file(path).text();
+        for (const token of [
+            "{{SESSION_ID}}",
+            "{{ERROR}}",
+            "{{LANG_SWITCHER}}",
+            "{{TRANSLATION_NOTICE}}",
+        ]) {
+            expect(`${path} ${token}: ${html.includes(token)}`).toBe(
+                `${path} ${token}: true`,
+            );
+        }
+    }
+});
+
+// The two Google-flow errors never reach a generated file — they're
+// substituted into {{ERROR}} at request time — so nothing above would
+// notice a locale that shipped a translated page beside English errors.
+// (The third error kind, a message from Supabase Auth itself, is
+// deliberately untranslated; see LOGIN_ERRORS's doc comment.)
+test("every locale's Google sign-in errors are translated", () => {
+    for (const locale of SITE_LOCALES) {
+        if (locale === "en") continue;
+        const errors = LOGIN_ERRORS[locale];
+        for (const kind of ["googleCancelled", "googleFailed"] as const) {
+            expect(
+                `${locale}.${kind}: ${errors[kind] === LOGIN_ERRORS.en[kind]}`,
+            ).toBe(`${locale}.${kind}: false`);
         }
     }
 });
