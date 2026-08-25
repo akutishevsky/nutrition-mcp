@@ -2,14 +2,14 @@ import type { LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_DE: LoginDoc = {
     title: "Nutrition MCP",
-    subtitle: "Anmelden, um zu verbinden",
+    subtitle: "Anmelden, um die Verbindung herzustellen",
     googleButton: "Weiter mit Google",
     dividerText: "oder E-Mail verwenden",
     emailLabel: "E-Mail",
     passwordLabel: "Passwort",
     continueButton: "Weiter",
     consentNote:
-        "Mit dem Fortfahren bestätigst du, mindestens 16 Jahre alt zu sein, und stimmst den {terms} und der {privacy} zu.",
+        "Wenn du fortfährst, bestätigst du, mindestens 16 Jahre alt zu sein, und stimmst den {terms} und der {privacy} zu.",
     termsLinkText: "Nutzungsbedingungen",
     privacyLinkText: "Datenschutzerklärung",
     newHereNote:
@@ -20,7 +20,7 @@ export const LOGIN_DE: LoginDoc = {
 
 export const LOGIN_ERRORS_DE: LoginErrors = {
     googleCancelled:
-        "Die Anmeldung mit Google wurde abgebrochen. Bitte versuch es erneut.",
+        "Die Anmeldung mit Google wurde abgebrochen. Bitte versuche es erneut.",
     googleFailed:
-        "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuch es erneut.",
+        "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuche es erneut.",
 };

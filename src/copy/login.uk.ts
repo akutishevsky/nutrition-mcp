@@ -2,7 +2,7 @@ import type { LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_UK: LoginDoc = {
     title: "Nutrition MCP",
-    subtitle: "Увійди, щоб під'єднатися",
+    subtitle: "Увійди, щоб підключитися",
     googleButton: "Продовжити через Google",
     dividerText: "або через електронну пошту",
     emailLabel: "Електронна пошта",
@@ -17,7 +17,7 @@ export const LOGIN_UK: LoginDoc = {
     newHereNote:
         "Уперше тут? Просто введи свою електронну пошту та пароль — обліковий запис створиться автоматично.",
     afterConnectNote:
-        "Після успішного під'єднання у твоєму клієнті збережи пароль у надійному місці й закрий цю вкладку браузера.",
+        "Після успішного підключення у твоєму клієнті збережи пароль у надійному місці й закрий цю вкладку браузера.",
 };
 
 export const LOGIN_ERRORS_UK: LoginErrors = {
