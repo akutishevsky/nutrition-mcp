@@ -2,6 +2,7 @@ import { test, expect } from "bun:test";
 import { ALT_PAGES, PAGE_ROUTES, SITE_LOCALES, urlFor } from "./routes.js";
 import { chromeFor } from "./copy/chrome.js";
 import { INDEX } from "./copy/index.js";
+import { LOGIN, LOGIN_ERRORS } from "./copy/login.js";
 
 // The SEO "alternative to X" routes, and every locale's version of every
 // page, are wired data-driven via src/routes.ts (imported directly here —
@@ -362,6 +363,101 @@ test("every landmark region is named in the page's own language", async () => {
             expect(
                 `${path} [${label}]: ${html.includes(open + label + '"')}`,
             ).toBe(`${path} [${label}]: true`);
+        }
+    }
+});
+
+// The OAuth login page. It sits outside every check above because it is
+// outside PAGE_ROUTES: it has no fixed URL (src/oauth.ts renders it per
+// in-flight session), no sitemap entry and no hreflang, so existingPages()
+// never sees it — which is exactly how it stayed English-only on seven
+// locales long after the rest of the site was translated. It is also the
+// one page whose availability is decided by a file-existence check
+// (availableLoginLocales() in src/oauth.ts) rather than by data, so a
+// locale whose copy exists but whose page was never regenerated silently
+// drops out of the language switcher.
+const loginPath = (locale: (typeof SITE_LOCALES)[number]) =>
+    locale === "en" ? "./public/login.html" : `./public/${locale}/login.html`;
+
+test("every locale has a built login page, in its own language", async () => {
+    for (const locale of SITE_LOCALES) {
+        const path = loginPath(locale);
+        expect(`${path}: ${await Bun.file(path).exists()}`).toBe(
+            `${path}: true`,
+        );
+        const doc = LOGIN[locale];
+        const html = collapse(await Bun.file(path).text());
+        // Every visible string except consentNote, which is checked
+        // through its two link texts instead — the sentence itself is
+        // split by the injected <a> markup.
+        for (const line of [
+            doc.subtitle,
+            doc.googleButton,
+            doc.dividerText,
+            doc.emailLabel,
+            doc.passwordLabel,
+            doc.continueButton,
+            doc.termsLinkText,
+            doc.privacyLinkText,
+            doc.newHereNote,
+            doc.afterConnectNote,
+        ]) {
+            expect(`${path} [${line}]: ${html.includes(line)}`).toBe(
+                `${path} [${line}]: true`,
+            );
+        }
+        // And not the English original underneath it: a page that renders
+        // its own strings AND keeps English ones is a half-regenerated
+        // file, which is what a stale public/{locale}/login.html looks
+        // like. title is exempt — it's the untranslated product name.
+        if (locale !== "en") {
+            for (const en of [
+                LOGIN.en.subtitle,
+                LOGIN.en.newHereNote,
+                LOGIN.en.afterConnectNote,
+            ]) {
+                expect(`${path} [en: ${en}]: ${html.includes(en)}`).toBe(
+                    `${path} [en: ${en}]: false`,
+                );
+            }
+        }
+    }
+});
+
+// This page is a TEMPLATE, not a finished document: renderLoginPage() in
+// src/oauth.ts fills these four in per request. A token lost to a
+// generator change wouldn't fail a build or a typecheck — it would ship a
+// login form whose submit button posts an empty session_id.
+test("every login page keeps its four runtime placeholders", async () => {
+    for (const locale of SITE_LOCALES) {
+        const path = loginPath(locale);
+        const html = await Bun.file(path).text();
+        for (const token of [
+            "{{SESSION_ID}}",
+            "{{ERROR}}",
+            "{{LANG_SWITCHER}}",
+            "{{TRANSLATION_NOTICE}}",
+        ]) {
+            expect(`${path} ${token}: ${html.includes(token)}`).toBe(
+                `${path} ${token}: true`,
+            );
+        }
+    }
+});
+
+// The two Google-flow errors never reach a generated file — they're
+// substituted into {{ERROR}} at request time — so nothing above would
+// notice a locale that shipped a translated page beside English errors.
+// (The third error kind, a message from Supabase Auth itself, is
+// deliberately untranslated; see LOGIN_ERRORS's doc comment.)
+test("every locale's Google sign-in errors are translated", () => {
+    for (const locale of SITE_LOCALES) {
+        if (locale === "en") continue;
+        const errors = LOGIN_ERRORS[locale];
+        for (const kind of ["googleCancelled", "googleFailed"] as const) {
+            expect(
+                `${locale}.${kind}: ${errors[kind] === LOGIN_ERRORS.en[kind]}`,
+            ).toBe(`${locale}.${kind}: false`);
         }
     }
 });

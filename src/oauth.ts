@@ -427,13 +427,14 @@ export function createOAuthRouter() {
 
         // Surface user-cancelled / denied consent without treating it as a
         // crash. Translated via LOGIN_ERRORS in the session's own locale
-        // (falling back to English if that locale's errors aren't
-        // translated yet) rather than a raw message, so every call site
-        // below gets the right language for free.
+        // rather than a raw message, so every call site below gets the
+        // right language for free. No English fallback: LOGIN_ERRORS is a
+        // total Record<SiteLocale, LoginErrors> now, so every locale a
+        // session can carry has an entry and missing one is a typecheck
+        // failure, not a runtime undefined.
         const renderError = async (kind: keyof LoginErrors) => {
             entry.session.googleNonce = undefined;
-            const message = (LOGIN_ERRORS[entry.session.locale] ??
-                LOGIN_ERRORS.en!)[kind];
+            const message = LOGIN_ERRORS[entry.session.locale][kind];
             return c.html(
                 await renderLoginPage(sessionId, entry.session, message),
                 400,
