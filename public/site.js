@@ -20,13 +20,14 @@
     // two stamp data-theme on <body>, which every dark rule keys off and
     // which the pre-paint script re-applies before first paint next time.
     var THEME_KEY = "theme";
-    function storedTheme() {
-        try {
-            var t = localStorage.getItem(THEME_KEY);
-            return t === "light" || t === "dark" ? t : "system";
-        } catch (e) {
-            return "system";
-        }
+    // The selected MODE ("system" / "light" / "dark") is read back off <body>,
+    // never out of localStorage: setTheme() stamps the attribute even when the
+    // write throws (Safari private browsing, site data blocked), so storage is
+    // the one source that can disagree with what the visitor is looking at.
+    // Absence of the attribute is System — the same encoding the key uses, and
+    // what THEME_PREPAINT leaves behind when there is nothing stored.
+    function selectedMode() {
+        return body.getAttribute("data-theme") || "system";
     }
     // Effective theme = explicit override on <body>, else the OS setting.
     function effectiveTheme() {
@@ -41,7 +42,7 @@
         body.classList.toggle("is-dark", dark);
         if (metaTheme)
             metaTheme.setAttribute("content", dark ? "#0d1210" : "#fbfbf9");
-        var mode = storedTheme();
+        var mode = selectedMode();
         doc.querySelectorAll("[data-theme-set]").forEach(function (btn) {
             btn.setAttribute(
                 "aria-pressed",
