@@ -1497,6 +1497,10 @@ body.is-dark .btn-primary:hover,
     box-shadow: var(--shadow-card);
 }
 .facts-title {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
     font-family: var(--font-display);
     font-weight: 800;
     font-size: clamp(2rem, 5vw, 2.9rem);
@@ -1504,6 +1508,47 @@ body.is-dark .btn-primary:hover,
     line-height: 1;
     padding-bottom: 0.35rem;
     border-bottom: 1px solid var(--rule);
+}
+/* kg / lb toggle on the title line. Real buttons, unlike .wdg-seg (which is
+   a decorative mock inside the hero's fake widget): flipping it repaints the
+   three weight rows and their delta tags in place. Hidden without JS, since
+   nothing would answer a click — the same reason the figures themselves
+   start as em dashes. */
+.facts-unit {
+    display: none;
+    flex: none;
+    gap: 2px;
+    padding: 2px;
+    margin-bottom: 0.35rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+}
+html.js .facts-unit {
+    display: inline-flex;
+}
+.facts-unit button {
+    padding: 0.2rem 0.62rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-2);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+.facts-unit button:hover {
+    color: var(--ink);
+}
+.facts-unit button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
 }
 .facts-serving {
     display: flex;

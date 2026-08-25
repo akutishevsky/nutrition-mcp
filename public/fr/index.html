@@ -3246,7 +3246,31 @@
                     </div>
 
                     <div class="facts" id="stat-row" data-reveal>
-                        <p class="facts-title">Valeurs nutritionnelles</p>
+                        <p class="facts-title">
+                            <span>Valeurs nutritionnelles</span>
+                            <span
+                                class="facts-unit"
+                                role="group"
+                                aria-label="Unité de poids"
+                            >
+                                <button
+                                    type="button"
+                                    data-unit="kg"
+                                    aria-pressed="true"
+                                    aria-label="Kilogrammes"
+                                >
+                                    kg
+                                </button>
+                                <button
+                                    type="button"
+                                    data-unit="lb"
+                                    aria-pressed="false"
+                                    aria-label="Livres"
+                                >
+                                    lb
+                                </button>
+                            </span>
+                        </p>
                         <p class="facts-serving">
                             <span>Portion <b>tout le monde, jusqu'ici</b></span>
                             <span class="facts-live" id="facts-live"
@@ -3837,8 +3861,34 @@
                 function fmtInt(n) {
                     return Math.round(n).toLocaleString("en-US");
                 }
-                function fmtKg(n) {
-                    return fmtInt(n) + " kg";
+                // ---------- weight unit ----------
+                // Every weight the API returns is in grams and is only ever
+                // rendered through these, so the kg/lb toggle is a repaint
+                // and never a refetch.
+                var UNIT_STORE = "stats-unit";
+                var GRAMS_PER = { kg: 1000, lb: 453.59237 };
+                var OUNCE_G = 28.349523125;
+                var WEIGHT_KEYS = [
+                    "total_protein_g",
+                    "total_carbs_g",
+                    "total_fat_g",
+                ];
+                // A remembered choice wins; failing that, the visitor's own
+                // measurement system, since "512 kg" is not a quantity most
+                // readers of the English page have a feel for.
+                var unit = "kg";
+                try {
+                    var savedUnit = localStorage.getItem(UNIT_STORE);
+                    if (savedUnit === "kg" || savedUnit === "lb")
+                        unit = savedUnit;
+                    else if (/^en-US\b/i.test(navigator.language || ""))
+                        unit = "lb";
+                } catch (e) {}
+                function toWeight(g) {
+                    return g / GRAMS_PER[unit];
+                }
+                function fmtWeight(n) {
+                    return fmtInt(n) + " " + unit;
                 }
                 var FORMATS = {
                     food_logs: {
@@ -3853,24 +3903,9 @@
                         },
                         fmt: fmtInt,
                     },
-                    total_protein_g: {
-                        to: function (v) {
-                            return v / 1000;
-                        },
-                        fmt: fmtKg,
-                    },
-                    total_carbs_g: {
-                        to: function (v) {
-                            return v / 1000;
-                        },
-                        fmt: fmtKg,
-                    },
-                    total_fat_g: {
-                        to: function (v) {
-                            return v / 1000;
-                        },
-                        fmt: fmtKg,
-                    },
+                    total_protein_g: { to: toWeight, fmt: fmtWeight },
+                    total_carbs_g: { to: toWeight, fmt: fmtWeight },
+                    total_fat_g: { to: toWeight, fmt: fmtWeight },
                 };
                 // Counts from `from` (0 on first paint, the previous value on
                 // a live update) to `target`.
@@ -3901,12 +3936,21 @@
                     food_logs: "",
                     timezones: "",
                     total_calories: " kcal",
-                    total_protein_g: " g",
-                    total_carbs_g: " g",
-                    total_fat_g: " g",
                 };
-                function showDelta(el, key, diff) {
-                    var n = Math.round(diff);
+                // A weight row's delta is read in the small unit of whichever
+                // system is on screen — grams under kg, ounces under lb.
+                function deltaFor(key, diff) {
+                    if (key in DELTA_UNIT)
+                        return { n: Math.round(diff), unit: DELTA_UNIT[key] };
+                    return unit === "kg"
+                        ? { n: Math.round(diff), unit: " g" }
+                        : { n: Math.round(diff / OUNCE_G), unit: " oz" };
+                }
+                // `quiet` repaints the tag without replaying the pop — used
+                // when the unit changed but the underlying figure did not.
+                function showDelta(el, key, diff, quiet) {
+                    var d = deltaFor(key, diff);
+                    var n = d.n;
                     var host = el.closest(".facts-row, .facts-cal") || el;
                     var tag = host.querySelector(".delta");
                     if (!n) {
@@ -3925,9 +3969,8 @@
                     }
                     tag.classList.toggle("down", n < 0);
                     tag.textContent =
-                        (n > 0 ? "+" : "\u2212") +
-                        fmtInt(Math.abs(n)) +
-                        (DELTA_UNIT[key] || "");
+                        (n > 0 ? "+" : "\u2212") + fmtInt(Math.abs(n)) + d.unit;
+                    if (quiet) return;
                     // Re-trigger the pop so a second change is noticed.
                     tag.classList.remove("pop");
                     void tag.offsetWidth;
@@ -4172,6 +4215,56 @@
                 var baseStats = null;
                 var pollTimer = null;
                 var liveEl = document.getElementById("facts-live");
+
+                // ---------- kg / lb toggle ----------
+                var unitBtns = [].slice.call(
+                    document.querySelectorAll("[data-unit]"),
+                );
+                function paintUnitToggle() {
+                    unitBtns.forEach(function (b) {
+                        b.setAttribute(
+                            "aria-pressed",
+                            b.getAttribute("data-unit") === unit
+                                ? "true"
+                                : "false",
+                        );
+                    });
+                }
+                // Repainted in place rather than through setStats: counting
+                // 512 up to 1,129 would read as the figure changing, when
+                // all that changed is the unit it is written in.
+                function repaintWeights() {
+                    if (!lastStats) return;
+                    WEIGHT_KEYS.forEach(function (key) {
+                        var v = lastStats[key];
+                        if (typeof v !== "number") return;
+                        document
+                            .querySelectorAll('[data-stat="' + key + '"]')
+                            .forEach(function (el) {
+                                el.textContent = fmtWeight(toWeight(v));
+                                if (baseStats)
+                                    showDelta(
+                                        el,
+                                        key,
+                                        v - baseStats[key],
+                                        true,
+                                    );
+                            });
+                    });
+                }
+                paintUnitToggle();
+                unitBtns.forEach(function (b) {
+                    b.addEventListener("click", function () {
+                        var next = b.getAttribute("data-unit");
+                        if (next === unit) return;
+                        unit = next;
+                        try {
+                            localStorage.setItem(UNIT_STORE, unit);
+                        } catch (e) {}
+                        paintUnitToggle();
+                        repaintWeights();
+                    });
+                });
                 function fetchStats() {
                     return fetch("/api/stats", { cache: "no-store" }).then(
                         function (r) {

@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { ALT_PAGES, PAGE_ROUTES, SITE_LOCALES, urlFor } from "./routes.js";
 import { chromeFor } from "./copy/chrome.js";
+import { INDEX } from "./copy/index.js";
 
 // The SEO "alternative to X" routes, and every locale's version of every
 // page, are wired data-driven via src/routes.ts (imported directly here —
@@ -237,5 +238,33 @@ test("the badge's screen-reader label is translated on every locale", async () =
         expect(`${path}: ${found.includes(collapse(expected))}`).toBe(
             `${path}: true`,
         );
+    }
+});
+
+// The kg / lb toggle in the landing page's live-stats panel. Same failure
+// mode as the badge label above and the same reason to pin it: the visible
+// text is the symbol, which is identical in every locale, so a locale that
+// never translated the accessible names would look completely fine on the
+// page and read as English to anyone using a screen reader.
+test("the stats unit toggle is labelled in every locale's own words", async () => {
+    for (const { path, locale, suffix } of await existingPages()) {
+        if (suffix !== "") continue;
+        const doc = INDEX[locale];
+        expect(`${path}: ${!!doc}`).toBe(`${path}: true`);
+        const html = await Bun.file(path).text();
+        for (const label of [
+            doc!.stats.unitGroupLabel,
+            doc!.stats.unitKgLabel,
+            doc!.stats.unitLbLabel,
+        ]) {
+            expect(`${path}: ${html.includes(`aria-label="${label}"`)}`).toBe(
+                `${path}: true`,
+            );
+        }
+        // Both buttons, and kg pre-pressed — the markup's resting state has
+        // to be the script's default, or a visitor with JS still loading
+        // sees neither pill lit.
+        expect(html).toContain('data-unit="kg"');
+        expect(html).toContain('data-unit="lb"');
     }
 });
