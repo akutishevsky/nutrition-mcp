@@ -4377,9 +4377,15 @@
                         })
                         .then(function (d) {
                             if (d && typeof d.stargazers_count === "number") {
+                                // Grouped in the page's language like every
+                                // other figure. Latent until the repo passes
+                                // 999 stars, at which point a German page
+                                // would have read 1,024 rather than 1.024.
                                 ghEl.textContent =
                                     "· ★ " +
-                                    d.stargazers_count.toLocaleString("en-US");
+                                    d.stargazers_count.toLocaleString(
+                                        NUM_LOCALE,
+                                    );
                             }
                         })
                         .catch(function () {});
