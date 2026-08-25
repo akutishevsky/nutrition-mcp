@@ -227,18 +227,54 @@ test("every generated page ships the live-stats badge, hidden", async () => {
     }
 });
 
+// The label is count-sensitive, so what ships is every grammatical form the
+// locale has, as data-plural-* attributes setNavBadge picks from at runtime
+// (one script, nine locales — it cannot hold a translation of its own). Both
+// halves are pinned: the forms must all reach the markup, and the .vh text
+// the page renders before any script runs must be the "other" form, which is
+// what a count of 0 selects. Asserting only the rendered text would let a
+// locale ship with its "one" and "few" forms silently missing from the
+// attributes and still pass.
 test("the badge's screen-reader label is translated on every locale", async () => {
     for (const { path, locale } of await existingPages()) {
         if (!(await isGenerated(path))) continue;
-        const expected = chromeFor(locale).nav.liveStatsBadgeLabel;
+        const forms = chromeFor(locale).nav.liveStatsBadgeLabel;
+        const html = await Bun.file(path).text();
         const found = [
-            ...(await Bun.file(path).text()).matchAll(
-                /<span class="vh"\s*>([\s\S]*?)<\/span/g,
-            ),
+            ...html.matchAll(/<span class="vh"\s*>([\s\S]*?)<\/span/g),
         ].map((m) => collapse(m[1]!));
-        expect(`${path}: ${found.includes(collapse(expected))}`).toBe(
+        expect(`${path}: ${found.includes(collapse(forms.other))}`).toBe(
             `${path}: true`,
         );
+        for (const category of ["one", "few", "many", "other"] as const) {
+            const form = forms[category];
+            if (!form) continue;
+            const attr = `data-plural-${category}="${form}"`;
+            // Both labelled copies, not just one: the page carries three
+            // badges (see the test above), of which the hamburger's is the
+            // decorative one and deliberately carries no forms. Counting is
+            // what makes this catch a half-regenerated page — an
+            // includes() check passes on a file where only the nav copy was
+            // rewritten and the menu copy is still the old string.
+            const count = html.split(attr).length - 1;
+            expect(`${path} [${category}]: ${count}`).toBe(
+                `${path} [${category}]: 2`,
+            );
+        }
+    }
+});
+
+// Polish and Ukrainian are the reason this whole mechanism exists: their
+// noun case turns on the digit class (1 / 2-4 / 5+), and a badge counting
+// arrivals since page-open sits in the first two bands almost all of the
+// time. A locale that carries "few" but copied it from "many" would render
+// grammatically, pass every check above, and still be wrong at the counts
+// it actually reaches.
+test("the digit-class locales carry three distinct badge forms", async () => {
+    for (const locale of ["pl", "uk"] as const) {
+        const f = chromeFor(locale).nav.liveStatsBadgeLabel;
+        const distinct = new Set([f.one, f.few, f.many]);
+        expect(`${locale}: ${distinct.size} of 3`).toBe(`${locale}: 3 of 3`);
     }
 });
 
@@ -275,10 +311,14 @@ test("the stats unit toggle is labelled in every locale's own words", async () =
 // toggle, in hardcoded English, so a translated page announced the control
 // in English the moment anyone used it — they are static and translated
 // now, and this is what keeps them that way. And its resting state: the
-// markup ships with "system" pressed because that IS the default (no
-// override stored, prefers-color-scheme drives the page), so a page whose
-// script has not run yet still shows the truth rather than a lit pill that
-// has to be corrected.
+// markup ships with "system" pressed because that is the setting a visitor
+// with nothing stored is actually on. It is NOT true that the pressed pill
+// is always the truth before site.js runs — THEME_PREPAINT stamps
+// data-theme from localStorage before first paint, so a visitor with a
+// stored light/dark override sees the page already in that theme while
+// "system" is still the pressed pill until site.js corrects it. That window
+// is harmless (the menu holding the switcher is closed), but the resting
+// state is a default, not a guarantee.
 test("the theme switcher is labelled in every locale's own words", async () => {
     for (const { path, locale } of await existingPages()) {
         if (!(await isGenerated(path))) continue;

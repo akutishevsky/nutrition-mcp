@@ -10,7 +10,12 @@ export const CHROME_PL: ChromeCopy = {
         tools: "Narzędzia",
         examples: "Przykłady",
         liveStats: "Statystyki na żywo",
-        liveStatsBadgeLabel: "nowych wpisów o posiłkach od otwarcia strony",
+        liveStatsBadgeLabel: {
+            one: "nowy wpis jedzenia od otwarcia strony",
+            few: "nowe wpisy jedzenia od otwarcia strony",
+            many: "nowych wpisów jedzenia od otwarcia strony",
+            other: "nowych wpisów jedzenia od otwarcia strony",
+        },
         faq: "FAQ",
     },
 

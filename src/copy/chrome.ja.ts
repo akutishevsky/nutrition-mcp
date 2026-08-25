@@ -10,7 +10,9 @@ export const CHROME_JA: ChromeCopy = {
         tools: "ツール",
         examples: "使用例",
         liveStats: "ライブ統計",
-        liveStatsBadgeLabel: "件の新しい食事記録（開いてから）",
+        liveStatsBadgeLabel: {
+            other: "件の新しい食事ログがページを開いてから追加されました",
+        },
         faq: "よくある質問",
     },
 

@@ -260,9 +260,14 @@
                             class="nav-badge"
                             data-live-badge
                             hidden
+                            data-plural-one="новий запис їжі з моменту відкриття сторінки"
+                            data-plural-few="нові записи їжі з моменту відкриття сторінки"
+                            data-plural-many="нових записів їжі з моменту відкриття сторінки"
+                            data-plural-other="нових записів їжі з моменту відкриття сторінки"
                             ><span class="nav-badge-n">0</span>
                             <span class="vh"
-                                >нових записів про їжу з моменту відкриття</span
+                                >нових записів їжі з моменту відкриття
+                                сторінки</span
                             ></span
                         ></a
                     >
@@ -472,9 +477,14 @@
                             class="nav-badge"
                             data-live-badge
                             hidden
+                            data-plural-one="новий запис їжі з моменту відкриття сторінки"
+                            data-plural-few="нові записи їжі з моменту відкриття сторінки"
+                            data-plural-many="нових записів їжі з моменту відкриття сторінки"
+                            data-plural-other="нових записів їжі з моменту відкриття сторінки"
                             ><span class="nav-badge-n">0</span>
                             <span class="vh"
-                                >нових записів про їжу з моменту відкриття</span
+                                >нових записів їжі з моменту відкриття
+                                сторінки</span
                             ></span
                         ></span
                     >
@@ -4007,6 +4017,37 @@
                 // crowding the next nav item.
                 var NAV_BADGE_MAX = 99;
                 var navBadges = null;
+                var navPlurals = null;
+                // The label after the digits is count-sensitive ("1 new food
+                // log", not "1 new food logs"), and in Polish and Ukrainian
+                // the noun case turns on the digit class. This script is
+                // byte-identical across all nine locales, so it can no more
+                // hold those forms than it can hold the odometer caption:
+                // liveBadge in scripts/site-partials.ts ships every form the
+                // locale has as a data-plural-* attribute and this picks one.
+                // Selected on the true count rather than the capped text, so
+                // "99+" still reads in the right form.
+                function navBadgeLabel(b, n) {
+                    if (navPlurals === null) {
+                        try {
+                            navPlurals = new Intl.PluralRules(NUM_LOCALE);
+                        } catch (e) {
+                            navPlurals = false;
+                        }
+                    }
+                    var cat = "other";
+                    if (navPlurals) {
+                        try {
+                            cat = navPlurals.select(n);
+                        } catch (e) {}
+                    }
+                    // Falls back to "other" for any category this locale
+                    // does not carry, the same degradation the widgets use.
+                    return (
+                        b.getAttribute("data-plural-" + cat) ||
+                        b.getAttribute("data-plural-other")
+                    );
+                }
                 function setNavBadge(n) {
                     if (navBadges === null)
                         navBadges =
@@ -4019,8 +4060,21 @@
                             return;
                         }
                         var num = b.querySelector(".nav-badge-n");
-                        if (!b.hidden && num.textContent === text) return;
+                        // The hamburger copy is aria-hidden and carries no
+                        // label span, so there is nothing to reword on it.
+                        var vh = b.querySelector(".vh");
+                        var label = vh ? navBadgeLabel(b, n) : null;
+                        // Two counts can share one capped text ("99+") and
+                        // still want different forms, so the label is part of
+                        // what counts as unchanged.
+                        if (
+                            !b.hidden &&
+                            num.textContent === text &&
+                            (!vh || !label || vh.textContent === label)
+                        )
+                            return;
                         num.textContent = text;
+                        if (vh && label) vh.textContent = label;
                         b.hidden = false;
                         // Restart the pop so a second arrival is noticed
                         // too, not just the first.

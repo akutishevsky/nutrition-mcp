@@ -25,6 +25,23 @@ import { CHROME_IT } from "./chrome.it.js";
 import { CHROME_UK } from "./chrome.uk.js";
 import { CHROME_JA } from "./chrome.ja.js";
 
+/**
+ * A count-sensitive string, picked at render time with `Intl.PluralRules`.
+ * Same shape and same degradation as the widgets' PluralForms
+ * (src/copy/widgets.ts) with one addition: `few` and `many`, which Polish
+ * and Ukrainian genuinely need — their noun case turns on the digit class
+ * (1 / 2-4 / 5+), and a badge counting arrivals since page-open sits in the
+ * 1-4 band almost all of the time, which is exactly where the single
+ * genitive form those two used to carry was wrong. Only `other` is
+ * required; any category a locale omits falls back to it.
+ */
+export interface PluralForms {
+    one?: string;
+    few?: string;
+    many?: string;
+    other: string;
+}
+
 export interface ChromeCopy {
     skipToContent: string;
     /** aria-label on the brand link, e.g. "Nutrition MCP home". */
@@ -41,8 +58,25 @@ export interface ChromeCopy {
          * badge, read straight after the digits: "Live stats 3 new food
          * logs since you opened". The badge itself shows the number and
          * nothing else, so this is the only thing naming what it counts.
+         *
+         * Count-sensitive, because the badge spends most of its life at 1:
+         * "1 new food logs" is wrong in English and ungrammatical in Polish
+         * and Ukrainian, where the case is chosen by the digit class.
+         * liveBadge() emits every form as a data-plural-* attribute and
+         * setNavBadge (LANDING_SCRIPT in scripts/gen-index.ts) picks one
+         * with Intl.PluralRules — one script serves all nine locales, so
+         * the forms have to reach it through the markup rather than live in
+         * its source.
+         *
+         * The number always comes FIRST and the label second, in every
+         * locale: Japanese counts with a prefix ("3件の…"), so a reorder
+         * that fixed Polish would break it. Only the label swaps.
+         *
+         * Whatever word a locale uses here must be the word its own stats
+         * row uses for the same counter (IndexDoc.stats.rowFoodLogs) — the
+         * badge and the row it links to are counting the same thing.
          */
-        liveStatsBadgeLabel: string;
+        liveStatsBadgeLabel: PluralForms;
         faq: string;
     };
 
@@ -149,7 +183,10 @@ export const CHROME_EN: ChromeCopy = {
         tools: "Tools",
         examples: "Examples",
         liveStats: "Live stats",
-        liveStatsBadgeLabel: "new food logs since you opened",
+        liveStatsBadgeLabel: {
+            one: "new food log since you opened",
+            other: "new food logs since you opened",
+        },
         faq: "FAQ",
     },
 

@@ -152,23 +152,45 @@ ${ogAlternates}`;
  * NOT aria-live: the poller runs every 5s and announcing each change would
  * make the page unusable with a screen reader open.
  *
+ * That label is count-sensitive, so every grammatical form ships in the
+ * markup as a data-plural-<category> attribute and setNavBadge picks one
+ * with Intl.PluralRules. The forms cannot live in the script: LANDING_SCRIPT
+ * is one file embedded byte-identically into all nine locales' index.html,
+ * so anything it names in its own source is wrong on eight of them — the
+ * same contract the odometer caption and the #facts-live word already have.
+ * The rendered .vh text is the `other` form, which is what a count of 0 (the
+ * markup's resting state) selects in every locale that distinguishes forms.
+ *
  * There are three copies per page, not two: below the .head-nav breakpoint
  * the whole nav collapses behind the hamburger, so the badge rides the
  * hamburger itself — otherwise the one surface that tells a phone visitor
  * something arrived is hidden inside the menu they have not opened.
  */
+const PLURAL_CATEGORIES = ["one", "few", "many", "other"] as const;
+
 function liveBadge(c: ChromeCopy, decorative?: boolean): string {
-    // The hamburger's copy carries no label. A button's aria-label IS its
-    // accessible name and swallows any text inside it, so a .vh span there
-    // would never be read; the count is announced properly on the Live
-    // stats item, which is on screen exactly when the menu is open and
-    // this copy is hidden (see .menu-btn .nav-badge in styles.css).
+    // esc() leaves quotes alone — fine for text nodes, not for the attribute
+    // values below, where an apostrophe is harmless but a double quote would
+    // end the attribute early.
+    const attr = (s: string) => esc(s).replace(/"/g, "&quot;");
+    const forms = c.nav.liveStatsBadgeLabel;
+    // The hamburger's copy carries no label, and so needs no forms either. A
+    // button's aria-label IS its accessible name and swallows any text inside
+    // it, so a .vh span there would never be read; the count is announced
+    // properly on the Live stats item, which is on screen exactly when the
+    // menu is open and this copy is hidden (see .menu-btn .nav-badge in
+    // styles.css).
     const label = decorative
         ? ""
-        : ` <span class="vh">${esc(c.nav.liveStatsBadgeLabel)}</span>`;
+        : ` <span class="vh">${esc(forms.other)}</span>`;
+    const plurals = decorative
+        ? ""
+        : PLURAL_CATEGORIES.filter((k) => forms[k])
+              .map((k) => ` data-plural-${k}="${attr(forms[k]!)}"`)
+              .join("");
     return `<span class="nav-badge" data-live-badge hidden${
         decorative ? ' aria-hidden="true"' : ""
-    }><span class="nav-badge-n">0</span>${label}</span>`;
+    }${plurals}><span class="nav-badge-n">0</span>${label}</span>`;
 }
 
 /**
