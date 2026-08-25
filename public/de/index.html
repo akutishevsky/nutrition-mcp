@@ -3996,10 +3996,29 @@
                     total_carbs_g: { to: toWeight, fmt: fmtWeight },
                     total_fat_g: { to: toWeight, fmt: fmtWeight },
                 };
+                // A count-up owns its element's text until the last frame,
+                // so anything repainting that element behind its back is undone
+                // by the next one. The kg/lb toggle is exactly that, and the
+                // frame that wins writes the OLD unit's magnitude under the NEW
+                // unit's suffix - "600 lb" where "1,323 lb" is right. It then
+                // sticks, because setStats leaves a key alone whose value did
+                // not change on the next poll. So every pending frame is parked
+                // here, and a repaint cancels the loop that would overwrite it.
+                var pending = new WeakMap();
+                function cancelAnim(el) {
+                    var h = pending.get(el);
+                    if (h) {
+                        cancelAnimationFrame(h);
+                        pending.delete(el);
+                    }
+                }
                 // Counts from `from` (0 on first paint, the previous value on
                 // a live update) to `target`.
                 function animate(el, target, fmt, from) {
                     from = from || 0;
+                    // A second update landing mid-count-up replaces the first
+                    // rather than racing it for the same textContent.
+                    cancelAnim(el);
                     if (reduceMotion) {
                         el.textContent = fmt(target);
                         return;
@@ -4011,9 +4030,10 @@
                         var p = Math.min((ts - start) / dur, 1);
                         var e = 1 - Math.pow(1 - p, 3);
                         el.textContent = fmt(from + (target - from) * e);
-                        if (p < 1) requestAnimationFrame(step);
+                        if (p < 1) pending.set(el, requestAnimationFrame(step));
+                        else pending.delete(el);
                     }
-                    requestAnimationFrame(step);
+                    pending.set(el, requestAnimationFrame(step));
                 }
                 // ---------- live deltas ----------
                 // Every figure is compared with the baseline captured when
@@ -4388,7 +4408,9 @@
                 }
                 // Repainted in place rather than through setStats: counting
                 // 512 up to 1,129 would read as the figure changing, when
-                // all that changed is the unit it is written in.
+                // all that changed is the unit it is written in. Cancelling
+                // first is what makes the toggle win over a count-up already
+                // in flight on the same row; see animate().
                 function repaintWeights() {
                     if (!lastStats) return;
                     WEIGHT_KEYS.forEach(function (key) {
@@ -4397,6 +4419,7 @@
                         document
                             .querySelectorAll('[data-stat="' + key + '"]')
                             .forEach(function (el) {
+                                cancelAnim(el);
                                 el.textContent = fmtWeight(toWeight(v));
                                 if (baseStats)
                                     showDelta(
