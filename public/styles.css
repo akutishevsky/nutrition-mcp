@@ -1344,7 +1344,9 @@ body.is-dark .btn-primary:hover,
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
     gap: 0.45rem;
+    min-width: 0;
     min-height: 40px;
     font-size: 0.9rem;
     font-weight: 500;
@@ -1634,8 +1636,9 @@ html.js .facts-unit {
 }
 .facts-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 1rem;
     padding: 0.55rem 0;
     border-bottom: 1px solid var(--line);
