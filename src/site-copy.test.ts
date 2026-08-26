@@ -1,4 +1,6 @@
 import { test, expect } from "bun:test";
+import { INDEX } from "./copy/index.js";
+import type { SiteLocale } from "./routes.js";
 
 // The public pages are the only place the product describes ITSELF, and they
 // are the surface that goes stale first: a nutrient ships across the server,
@@ -260,5 +262,72 @@ test("the comparison-page card names every table it promises back", async () => 
         ).toContain(
             "one ZIP with your meals, water, weight, goals and profile",
         );
+    }
+});
+
+// The kg / lb toggle in the landing page's live-stats panel. Its visible text
+// is the bare symbol — hardcoded in scripts/gen-index.ts, never localized —
+// while the accessible name is the spelled-out unit, so WCAG 2.5.3 Label in
+// Name only holds while the name CONTAINS the symbol: a voice-control user
+// saying "click lb" is otherwise addressing a control named "Pounds", and
+// nothing happens. de/nl/fr paired word and symbol first, for the unrelated
+// reason that their word for "pound" is 500 g (see src/copy/index.de.ts);
+// these two tests are what make the pairing the rule for every locale rather
+// than a coincidence in three, including a locale added later.
+test("every locale's unit-toggle accessible name contains its symbol", () => {
+    const locales = Object.keys(INDEX) as SiteLocale[];
+    // Guard the guard: an empty INDEX would make the loop vacuously pass.
+    expect(locales).toContain("en");
+    for (const locale of locales) {
+        const stats = INDEX[locale]!.stats;
+        expect(
+            stats.unitKgLabel,
+            `${locale}: unitKgLabel must contain the visible "kg"`,
+        ).toContain("kg");
+        expect(
+            stats.unitLbLabel,
+            `${locale}: unitLbLabel must contain the visible "lb"`,
+        ).toContain("lb");
+    }
+});
+
+// And the same thing one step later, on the rendered page: the pairing only
+// reaches a user if the generator was re-run, and this reads the visible text
+// out of the same markup as the name instead of trusting that the symbol is
+// still what the button shows.
+test("each unit button's aria-label contains that button's visible text", async () => {
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        // gen-index.ts writes exactly one page per INDEX entry, so a missing
+        // file here is a page that was never regenerated.
+        const path =
+            locale === "en"
+                ? "./public/index.html"
+                : `./public/${locale}/index.html`;
+        const html = await Bun.file(path).text();
+        const buttons = [
+            ...html.matchAll(
+                /<button\b([^>]*\bdata-unit="(kg|lb)"[^>]*)>([\s\S]*?)<\/button>/g,
+            ),
+        ];
+        expect(
+            buttons.map((m) => m[2]),
+            `${path}: the kg and lb buttons`,
+        ).toEqual(["kg", "lb"]);
+        for (const [, attrs, unit, body] of buttons) {
+            const name = /aria-label="([^"]*)"/.exec(attrs!)?.[1];
+            const visible = body!.trim();
+            expect(
+                visible,
+                `${path}: the ${unit} button's visible text is not the bare symbol`,
+            ).toBe(unit!);
+            expect(
+                name,
+                `${path}: the ${unit} button has no aria-label`,
+            ).toBeTruthy();
+            expect(
+                name!,
+                `${path}: aria-label "${name}" does not contain the visible "${visible}" (WCAG 2.5.3 Label in Name)`,
+            ).toContain(visible);
+        }
     }
 });

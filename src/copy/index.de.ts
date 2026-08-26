@@ -724,7 +724,7 @@ export const INDEX_DE: IndexDoc = {
         rowCarbs: "Kohlenhydrate",
         rowFat: "Fett",
         unitGroupLabel: "Gewichtseinheit",
-        unitKgLabel: "Kilogramm",
+        unitKgLabel: "Kilogramm (kg)",
         // "Pfund" on its own is 500 g in everyday German — not the unit
         // this button switches to, and close enough to half a kilo that
         // the figures would not give the mistake away. The symbol rides

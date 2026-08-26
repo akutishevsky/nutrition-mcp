@@ -2334,8 +2334,12 @@ export const INDEX_JA: IndexDoc = {
         rowCarbs: "炭水化物",
         rowFat: "脂質",
         unitGroupLabel: "重量の単位",
-        unitKgLabel: "キログラム",
-        unitLbLabel: "ポンド",
+        // Full-width parentheses around half-width Latin, as everywhere
+        // else in this file (「カフェイン（mg）」). The symbol is what the
+        // button shows, and it also separates ポンド the mass from ポンド
+        // the currency. See the note on the field in src/copy/index.ts.
+        unitKgLabel: "キログラム（kg）",
+        unitLbLabel: "ポンド（lb）",
         foot: "全アカウントの合計値で、食事が記録されるたびに更新されます。個人のデータが表示されることはありません。",
         mapPrefix: "世界の",
         mapSuffix: "のタイムゾーンで記録",

@@ -2266,8 +2266,12 @@ export const INDEX_UK: IndexDoc = {
         rowCarbs: "Вуглеводи",
         rowFat: "Жири",
         unitGroupLabel: "Одиниця ваги",
-        unitKgLabel: "Кілограми",
-        unitLbLabel: "Фунти",
+        // The symbol in the parentheses is the Latin "kg" / "lb" on the
+        // button, not the Ukrainian "кг": the accessible name has to
+        // contain the glyph that is on screen. See the note on the field
+        // in src/copy/index.ts.
+        unitKgLabel: "Кілограми (kg)",
+        unitLbLabel: "Фунти (lb)",
         foot: `Загальні суми з усіх акаунтів, оновлюються під час запису прийомів їжі. Дані окремих користувачів ніколи не показуються.`,
         mapPrefix: "Записано в",
         mapSuffix: "часових поясах світу",
