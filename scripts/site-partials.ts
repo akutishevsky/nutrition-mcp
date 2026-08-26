@@ -138,26 +138,34 @@ ${ogAlternates}`;
 
 /**
  * The "Live stats" notification badge — an app-icon-style count that hangs
- * off the top-right corner of the nav item. It ships [hidden] on every
- * page and is only ever painted by the landing page's stats poller (the
- * LANDING_SCRIPT in scripts/gen-index.ts), which fills it with the number
- * of food logs written since this page loaded — the same page-load
- * baseline the .delta tags in the stats panel are measured from, which is
- * what the menu's "since you opened" hint already promises. On /tools,
- * /privacy and the rest the link is a cross-page "/#stats" and nothing
- * updates it, so it simply stays hidden.
+ * off the top-right corner of the nav item. It ships [hidden] on every page
+ * and is painted by public/site.js, which every page loads: the count is the
+ * number of food logs written since the visitor arrived on the SITE, so it
+ * keeps counting across a click from /tools to /privacy rather than
+ * restarting at zero, which is what the menu's "since you opened" hint
+ * promises. It used to be painted by the landing page's own stats poller
+ * (LANDING_SCRIPT in scripts/gen-index.ts) instead, and the consequence was
+ * that on /tools, /privacy and every /alternatives page the badge shipped,
+ * reserved its space in the nav, and then never moved.
+ *
+ * The landing page keeps its 5s poller for the figures it animates and hands
+ * them to site.js through a "live-stats" event rather than let it poll a
+ * second time; it sends its own page-load baseline along, so on that page the
+ * badge shows exactly what the .delta tag on the food-logs row shows.
  *
  * The digits alone would say nothing to a screen reader, so the count is
  * followed by a visually-hidden label naming what it counts. Deliberately
- * NOT aria-live: the poller runs every 5s and announcing each change would
- * make the page unusable with a screen reader open.
+ * NOT aria-live: the poller runs every few seconds and announcing each change
+ * would make the page unusable with a screen reader open.
  *
  * That label is count-sensitive, so every grammatical form ships in the
- * markup as a data-plural-<category> attribute and setNavBadge picks one
- * with Intl.PluralRules. The forms cannot live in the script: LANDING_SCRIPT
- * is one file embedded byte-identically into all nine locales' index.html,
- * so anything it names in its own source is wrong on eight of them — the
- * same contract the odometer caption and the #facts-live word already have.
+ * markup as a data-plural-<category> attribute and setNavBadge (in
+ * public/site.js, which every page loads) picks one
+ * with Intl.PluralRules. The forms cannot live in the script: site.js is one
+ * file served to all nine locales (as LANDING_SCRIPT is one string embedded
+ * byte-identically into all nine index.html files), so anything it names in
+ * its own source is wrong on eight of them — the same contract the odometer
+ * caption and the #facts-live word already have.
  * The rendered .vh text is the `other` form, which is what a count of 0 (the
  * markup's resting state) selects in every locale that distinguishes forms.
  *

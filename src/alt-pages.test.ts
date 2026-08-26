@@ -198,9 +198,8 @@ test("every generated non-English page discloses it's AI-translated; English nev
 // ---------------------------------------------------------------------
 // The "Live stats" notification badge (liveBadge() in
 // scripts/site-partials.ts). It ships in the nav of EVERY page — desktop
-// nav and mobile menu — but only the landing page's stats poller ever
-// fills it in, so everywhere else it must be inert: present, hidden, and
-// carrying that locale's own screen-reader label. The label is the part
+// nav and mobile menu — hidden until public/site.js has a count to put in
+// it, carrying that locale's own screen-reader label. The label is the part
 // that rots. It is a nav()/footer() string, and those were the one piece
 // of chrome that stayed English on every translated page until
 // src/copy/chrome.ts existed; a new key added to ChromeCopy without a
@@ -208,6 +207,30 @@ test("every generated non-English page discloses it's AI-translated; English nev
 // because prettier re-wraps these <span>s and a long label lands split
 // across two lines.
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
+
+// The markup shipping everywhere is only half of it. The driver used to live
+// inside the landing page's inline script (LANDING_SCRIPT in
+// scripts/gen-index.ts), which is embedded in index.html and nowhere else —
+// so on /tools, /privacy and every /alternatives page the badge was rendered,
+// reserved its margin in the nav, and then never moved. It lives in
+// public/site.js now, which every page loads with `defer`. Both halves are
+// pinned: the driver has to be able to reach the markup and to get a number,
+// and every generated page has to actually load the file it lives in.
+test("the badge has a driver on every page, not just the landing page", async () => {
+    const siteJs = await Bun.file("./public/site.js").text();
+    expect(siteJs).toContain("[data-live-badge]");
+    expect(siteJs).toContain("/api/stats");
+    // The count-sensitive label is read off the markup, not held in the file
+    // (one file, nine locales) — same contract as before the move.
+    expect(siteJs).toContain("data-plural-");
+    for (const { path } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const html = await Bun.file(path).text();
+        expect(`${path}: ${html.includes('src="/site.js"')}`).toBe(
+            `${path}: true`,
+        );
+    }
+});
 
 test("every generated page ships the live-stats badge, hidden", async () => {
     for (const { path } of await existingPages()) {

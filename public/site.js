@@ -361,6 +361,176 @@
         });
     }
 
+    /* ---------- live-stats nav badge ---------- */
+    // An app-icon-style count on the "Live stats" nav item, so someone
+    // reading the site can see that other people are logging meals while
+    // they read. The markup ships [hidden] in the nav of EVERY page
+    // (liveBadge() in scripts/site-partials.ts), which is why the driver
+    // belongs here and not where it started: it lived inside the landing
+    // page's own inline script, so on /tools, /privacy and every
+    // /alternatives page the badge was rendered, reserved space for, and
+    // then never moved.
+    var badgeEls = doc.querySelectorAll("[data-live-badge]");
+    if (badgeEls.length) {
+        // Capped low on purpose: the badge is anchored by its left edge and
+        // grows rightward into a fixed reserved margin (.nav-has-badge in
+        // styles.css), so the cap is what bounds that reserve. Three
+        // characters is also as much as fits beside the label without
+        // crowding the next nav item.
+        var NAV_BADGE_MAX = 99;
+        var BADGE_BASE_KEY = "live-base";
+        // The landing page polls every 5s because its figures are on screen
+        // and animate; a badge in the corner does not need that, and this
+        // poll now runs on every page rather than one.
+        var BADGE_POLL_MS = 15000;
+        // The page's own language, stamped on <html lang> by the generator.
+        // One file serves all nine locales, so it can never name a locale of
+        // its own — the same contract LANDING_SCRIPT works under.
+        var badgeLocale = root.lang || "en";
+        var navPlurals = null;
+
+        function badgeInt(n) {
+            return Math.round(n).toLocaleString(badgeLocale);
+        }
+
+        // The label after the digits is count-sensitive ("1 new food log",
+        // not "1 new food logs"), and in Polish and Ukrainian the noun case
+        // turns on the digit class. liveBadge() ships every form the locale
+        // has as a data-plural-* attribute and this picks one. Selected on
+        // the true count rather than the capped text, so "99+" still reads
+        // in the right form.
+        function navBadgeLabel(b, n) {
+            if (navPlurals === null) {
+                try {
+                    navPlurals = new Intl.PluralRules(badgeLocale);
+                } catch (e) {
+                    navPlurals = false;
+                }
+            }
+            var cat = "other";
+            if (navPlurals) {
+                try {
+                    cat = navPlurals.select(n);
+                } catch (e) {}
+            }
+            // Falls back to "other" for any category this locale does not
+            // carry, the same degradation the widgets use.
+            return (
+                b.getAttribute("data-plural-" + cat) ||
+                b.getAttribute("data-plural-other")
+            );
+        }
+
+        function setNavBadge(n) {
+            var text = n > NAV_BADGE_MAX ? NAV_BADGE_MAX + "+" : badgeInt(n);
+            badgeEls.forEach(function (b) {
+                if (n <= 0) {
+                    b.hidden = true;
+                    return;
+                }
+                var num = b.querySelector(".nav-badge-n");
+                // The hamburger copy is aria-hidden and carries no label
+                // span, so there is nothing to reword on it.
+                var vh = b.querySelector(".vh");
+                var label = vh ? navBadgeLabel(b, n) : null;
+                // Two counts can share one capped text ("99+") and still want
+                // different forms, so the label is part of what counts as
+                // unchanged.
+                if (
+                    !b.hidden &&
+                    num.textContent === text &&
+                    (!vh || !label || vh.textContent === label)
+                )
+                    return;
+                num.textContent = text;
+                if (vh && label) vh.textContent = label;
+                b.hidden = false;
+                // Restart the pop so a second arrival is noticed too, not
+                // just the first.
+                b.classList.remove("pop");
+                void b.offsetWidth;
+                b.classList.add("pop");
+            });
+        }
+
+        // "Since you opened" means since you opened the SITE, not this page:
+        // the count carries across a click from /tools to /privacy instead of
+        // restarting at zero on every navigation, which is what the badge was
+        // asked for. sessionStorage is per-tab and dies with the visit, so
+        // that is exactly the scope wanted. Kept in a variable as well, so a
+        // browser that refuses the write (private mode, site data blocked)
+        // still counts correctly for as long as the page is open.
+        var badgeBase = null;
+        try {
+            var stored = sessionStorage.getItem(BADGE_BASE_KEY);
+            if (stored !== null && stored !== "") badgeBase = Number(stored);
+            if (!isFinite(badgeBase)) badgeBase = null;
+        } catch (e) {}
+
+        // `pageBase` is the landing page's own page-load baseline, sent with
+        // its figures. On that page the same number also carries a delta tag
+        // on its row ("+3"), measured from that moment, so the badge shows
+        // the row's number rather than the session's and the two can never
+        // disagree on screen. The session baseline keeps accumulating
+        // underneath either way, for whichever page is opened next.
+        function feedBadge(foodLogs, pageBase) {
+            if (typeof foodLogs !== "number" || !isFinite(foodLogs)) return;
+            if (badgeBase === null) {
+                badgeBase = foodLogs;
+                try {
+                    sessionStorage.setItem(BADGE_BASE_KEY, String(badgeBase));
+                } catch (e) {}
+            }
+            var from = typeof pageBase === "number" ? pageBase : badgeBase;
+            setNavBadge(foodLogs - from);
+        }
+
+        // The landing page already polls /api/stats for the figures it
+        // animates and hands them over here rather than let this poll a
+        // second time alongside it (see setStats in scripts/gen-index.ts).
+        doc.addEventListener("live-stats", function (e) {
+            var d = e.detail || {};
+            var stats = d.stats || {};
+            feedBadge(stats.food_logs, d.base ? d.base.food_logs : null);
+        });
+
+        // Every other page has to ask for itself. #facts-live is the landing
+        // page's own live indicator and so the marker for "someone else is
+        // already fetching this".
+        if (!doc.getElementById("facts-live")) {
+            var badgeTimer = null;
+            var badgePoll = function () {
+                badgeTimer = null;
+                if (doc.hidden) return;
+                fetch("/api/stats", { cache: "no-store" })
+                    .then(function (r) {
+                        if (!r.ok) throw new Error("stats");
+                        return r.json();
+                    })
+                    .then(function (s) {
+                        feedBadge(s.food_logs, null);
+                    })
+                    .catch(function () {})
+                    .then(badgeSchedule);
+            };
+            var badgeSchedule = function () {
+                if (badgeTimer || doc.hidden) return;
+                badgeTimer = setTimeout(badgePoll, BADGE_POLL_MS);
+            };
+            // A background tab stops polling; the badge is ambient and a
+            // hidden tab has nobody to be ambient for.
+            doc.addEventListener("visibilitychange", function () {
+                if (doc.hidden) {
+                    clearTimeout(badgeTimer);
+                    badgeTimer = null;
+                } else {
+                    badgeSchedule();
+                }
+            });
+            badgePoll();
+        }
+    }
+
     onScroll();
     // Lets CSS run the load choreography (hero underline etc.).
     requestAnimationFrame(function () {
