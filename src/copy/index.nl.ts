@@ -2368,7 +2368,7 @@ export const INDEX_NL: IndexDoc = {
         rowCarbs: "Koolhydraten",
         rowFat: "Vet",
         unitGroupLabel: "Gewichtseenheid",
-        unitKgLabel: "Kilogram",
+        unitKgLabel: "Kilogram (kg)",
         // A Dutch "pond" is 500 g, not the unit this button switches to;
         // the symbol disambiguates it and matches the visible label.
         // See the same note in src/copy/index.de.ts.

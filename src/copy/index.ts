@@ -157,10 +157,20 @@ export interface IndexDoc {
         rowFat: string;
         /**
          * The kg / lb toggle on the Nutrition Facts title line. The visible
-         * text is the symbol ("kg" / "lb"), which is the same in every
-         * locale and is left alone the way "kcal" is; these are the
-         * accessible names, where the spelled-out word is what a screen
-         * reader should read. unitGroupLabel names the pair.
+         * text is the symbol ("kg" / "lb") — hardcoded in the generator, the
+         * same in every locale, left alone the way "kcal" is. These are the
+         * accessible names, and each one has to CONTAIN its own button's
+         * symbol: WCAG 2.5.3 Label in Name, so that a voice-control user
+         * saying "click lb" reaches a control that is actually named "lb". A
+         * bare "Pounds" is a control they cannot speak to. Hence
+         * "Word (symbol)" in every locale — the word leads, so a screen
+         * reader still announces the unit rather than spelling two letters,
+         * and the symbol rides along for the match. That token is the Latin
+         * symbol even where the locale abbreviates differently (uk is
+         * "Кілограми (kg)", not "кг"): it has to be the glyph that is on
+         * screen. de/nl/fr reached the same shape earlier for an unrelated
+         * reason — see the note in src/copy/index.de.ts. unitGroupLabel
+         * names the pair.
          */
         unitGroupLabel: string;
         unitKgLabel: string;
@@ -2558,8 +2568,8 @@ const INDEX_EN: IndexDoc = {
         rowCarbs: "Carbohydrates",
         rowFat: "Fat",
         unitGroupLabel: "Weight unit",
-        unitKgLabel: "Kilograms",
-        unitLbLabel: "Pounds",
+        unitKgLabel: "Kilograms (kg)",
+        unitLbLabel: "Pounds (lb)",
         foot: "Totals across every account, updated as meals are logged. Individual data is never shown.",
         mapPrefix: "Logged across",
         mapSuffix: "timezones worldwide",

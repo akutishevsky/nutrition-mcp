@@ -2366,7 +2366,7 @@ export const INDEX_FR: IndexDoc = {
         rowCarbs: "Glucides",
         rowFat: "Lipides",
         unitGroupLabel: "Unité de poids",
-        unitKgLabel: "Kilogrammes",
+        unitKgLabel: "Kilogrammes (kg)",
         // "Une livre" is 500 g in everyday French (it is the pound in
         // Canadian French), so the symbol rides along the way it does in
         // de/nl. See the note in src/copy/index.de.ts.
