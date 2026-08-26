@@ -331,3 +331,19 @@ test("each unit button's aria-label contains that button's visible text", async 
         }
     }
 });
+
+// Layout itself needs a browser, so what is pinned here is the pair of
+// declarations the fix rests on. The calorie odometer is one reel per digit:
+// it cannot shrink and cannot break mid-number, so .facts-cal has to be free
+// to wrap it onto its own line when the live delta tag joins the row, or the
+// digits run out past the panel's right edge at 390px (#129). flex-end is the
+// other half: space-between would park the odometer at the LEFT of that
+// second line, and it is a no-op on any line holding the label, whose
+// margin-right:auto absorbs the free space first.
+test("the Nutrition Facts calorie row can wrap its odometer", async () => {
+    const css = await Bun.file("./public/styles.css").text();
+    const rule = css.match(/\.facts-cal \{([^}]*)\}/)?.[1];
+    expect(rule, ".facts-cal rule not found in public/styles.css").toBeTruthy();
+    expect(rule).toContain("flex-wrap: wrap");
+    expect(rule).toContain("justify-content: flex-end");
+});

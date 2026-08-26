@@ -1657,10 +1657,22 @@ html.js .facts-unit {
     color: var(--ink);
     font-size: 1.05rem;
 }
+/* The odometer is one reel per digit: it cannot shrink, and it cannot break
+   mid-number, so it is the one figure on this panel that has to be allowed
+   off the label's line. Once showDelta() inserts a .delta tag between the
+   two there is no room for label + tag + odometer at 390px, and the digits
+   ran out past the panel's right edge (scrollWidth 346 against clientWidth
+   308). Wrap only engages on a line that genuinely overflows, so every width
+   that fits today is untouched. flex-end rather than space-between is what
+   keeps the figure right-aligned once it is alone on the second line; on any
+   line carrying the label it changes nothing, because that label's
+   margin-right:auto below eats the free space before justify-content is
+   consulted. */
 .facts-cal {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 1rem;
     padding: 0.6rem 0 0.4rem;
     border-bottom: 5px solid var(--rule);
