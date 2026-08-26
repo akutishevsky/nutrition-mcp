@@ -277,3 +277,41 @@ test("every landing page carries the generator's current LANDING_SCRIPT", async 
         );
     }
 });
+
+// ---------------------------------------------------------------------
+// The "Live stats" nav badge is driven from public/site.js, which every page
+// loads — not from here, which ships on the landing page alone. This script
+// keeps its own 5s poll (its figures are on screen and animate) and hands the
+// result over through a "live-stats" event, so the landing page still makes
+// one request per tick rather than two.
+//
+// Every way that handoff can break is silent. Drop the dispatch and the badge
+// freezes at whatever site.js last saw, with no error anywhere; leave a copy
+// of the painter behind here and two pollers repaint the same three spans off
+// two different baselines, on the landing page only. So pin the event name
+// against the listener that consumes it, and pin that this file no longer
+// paints.
+test("the landing script hands its figures to site.js instead of painting the badge", async () => {
+    const siteJs = await Bun.file("./public/site.js").text();
+    expect(LANDING_SCRIPT).toContain('new CustomEvent("live-stats"');
+    expect(siteJs).toContain('doc.addEventListener("live-stats"');
+    expect(LANDING_SCRIPT).not.toContain("data-live-badge");
+    expect(LANDING_SCRIPT).not.toContain("setNavBadge");
+});
+
+// site.js polls /api/stats for itself on every page EXCEPT this one, and the
+// marker it checks for is #facts-live — the landing page's live indicator.
+// That is a generator/script contract exactly like .odo-cap above: rename or
+// drop the id and the landing page silently starts polling twice, which no
+// assertion elsewhere would notice.
+test("#facts-live is what stops site.js polling a second time on the landing page", async () => {
+    const siteJs = await Bun.file("./public/site.js").text();
+    expect(siteJs).toContain('getElementById("facts-live")');
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { path, html } of pages) {
+        expect(`${path}: ${html.includes('id="facts-live"')}`).toBe(
+            `${path}: true`,
+        );
+    }
+});

@@ -63,7 +63,7 @@ export interface ChromeCopy {
          * "1 new food logs" is wrong in English and ungrammatical in Polish
          * and Ukrainian, where the case is chosen by the digit class.
          * liveBadge() emits every form as a data-plural-* attribute and
-         * setNavBadge (LANDING_SCRIPT in scripts/gen-index.ts) picks one
+         * setNavBadge (in public/site.js, which every page loads) picks one
          * with Intl.PluralRules — one script serves all nine locales, so
          * the forms have to reach it through the markup rather than live in
          * its source.

@@ -479,7 +479,7 @@ kbd,
        the glyph rather than sitting beside it. The 0.25rem eats part of
        the nav link's 0.55rem right padding so the pill still reads as
        attached to the label. Bounded by the 99+ cap in setNavBadge
-       (scripts/gen-index.ts): three characters is the widest it can get,
+       (public/site.js): three characters is the widest it can get,
        which is what the reserved margins below are sized for. */
     left: calc(100% - 0.25rem);
     right: auto;

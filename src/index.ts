@@ -199,6 +199,9 @@ app.all(
 // The landing page polls this every 5 s to show totals ticking up live, so the
 // server-side TTL is the same 5 s: one aggregate RPC per interval at most,
 // however many tabs are open. The RPC is a handful of sums over a small table.
+// Every other page polls it too, at 15 s, for the "Live stats" nav badge alone
+// (public/site.js) — more HTTP, but not more database: the cache is what they
+// all land on, and a caller arriving off-tick gets whatever is already there.
 const STATS_TTL_MS = 5 * 1000;
 let statsCache: { data: LandingStats; expiresAt: number } | null = null;
 
