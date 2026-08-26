@@ -1662,8 +1662,12 @@ html.js .facts-unit {
    off the label's line. Once showDelta() inserts a .delta tag between the
    two there is no room for label + tag + odometer at 390px, and the digits
    ran out past the panel's right edge (scrollWidth 346 against clientWidth
-   308). Wrap only engages on a line that genuinely overflows, so every width
-   that fits today is untouched. flex-end rather than space-between is what
+   308). Wrap engages only where the row runs out of width, which above about
+   485px of content is nowhere — the rects at 768px and 1280px are identical
+   with the rule on and off. Below that it can also change a line that had NOT
+   overflowed, by giving the label and the tag one line each instead of
+   squeezing both to two; that is a height change and the better of the two
+   layouts, but it is not "nothing moves". flex-end rather than space-between is what
    keeps the figure right-aligned once it is alone on the second line; on any
    line carrying the label it changes nothing, because that label's
    margin-right:auto below eats the free space before justify-content is

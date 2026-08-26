@@ -342,8 +342,21 @@ test("each unit button's aria-label contains that button's visible text", async 
 // margin-right:auto absorbs the free space first.
 test("the Nutrition Facts calorie row can wrap its odometer", async () => {
     const css = await Bun.file("./public/styles.css").text();
-    const rule = css.match(/\.facts-cal \{([^}]*)\}/)?.[1];
-    expect(rule, ".facts-cal rule not found in public/styles.css").toBeTruthy();
-    expect(rule).toContain("flex-wrap: wrap");
-    expect(rule).toContain("justify-content: flex-end");
+    // Every bare `.facts-cal {` block, not the first one: a later
+    // `@media (max-width: 640px) { .facts-cal { flex-wrap: nowrap } }` wins
+    // the cascade at exactly the widths this fix is about, and a
+    // first-match-only check would still pass while #129 was back. Requiring
+    // the selector to appear once makes adding a second block a loud failure
+    // rather than a silent revert. The descendant rules (.facts-cal .label,
+    // .facts-cal > :first-child) do not match — the selector has to be
+    // followed by the brace.
+    const blocks = [...css.matchAll(/\.facts-cal\s*\{([^}]*)\}/g)];
+    expect(
+        blocks.length,
+        "expected exactly one `.facts-cal {` block in public/styles.css",
+    ).toBe(1);
+    // Anchored on the semicolon so `wrap-reverse` — which would put the
+    // odometer ABOVE the label rather than below it — does not read as wrap.
+    expect(blocks[0]![1]).toMatch(/flex-wrap:\s*wrap;/);
+    expect(blocks[0]![1]).toMatch(/justify-content:\s*flex-end;/);
 });
