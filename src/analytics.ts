@@ -44,13 +44,117 @@ interface AnalyticsContext {
     clientInfo?: () => { name?: string; version?: string } | undefined;
 }
 
-function categorizeError(error: unknown): string {
+/**
+ * Bucket a thrown error for `tool_analytics.error_category`.
+ *
+ * Checked in three tiers. Tier 1 matches the *literal, fixed wording* of
+ * validation/config errors this codebase throws itself (resolveWriteLoggedAt,
+ * set_timezone, assertPlausibleWeight, widget assembly, missing env config,
+ * …) — checked first so they don't get swallowed by tier 3's looser
+ * keyword heuristics. Tier 2 is every src/supabase.ts persistence throw,
+ * matched generically by its "Failed to <verb> <noun>: <cause>" prefix —
+ * this runs *before* tier 3's auth/rate/date keyword checks specifically so
+ * that a message like "Failed to store token" or "Failed to delete auth
+ * codes" (which legitimately contain "token"/"auth" as our own noun, not as
+ * a signal about the failure) is bucketed as `supabase_error`, not
+ * `auth_expired`, before tier 3 ever sees it. Tier 3 is for third-party text
+ * we didn't author (Postgres/PostgREST, native fetch/DNS errors) where only
+ * a keyword heuristic is possible.
+ */
+export function categorizeError(error: unknown): string {
     const msg =
         error instanceof Error ? error.message.toLowerCase() : String(error);
+
+    // ---- Tier 1: our own fixed message wording ----
+
+    // resolveWriteLoggedAt (src/tz.ts) and its unset-timezone re-throw
+    // (src/mcp.ts) — both always carry one of these phrases regardless of
+    // which parseLoggedAt failure reason produced them.
+    if (
+        msg.includes("logged_at is invalid") ||
+        msg.includes("logged_at is in the future") ||
+        msg.includes("carries no utc offset")
+    )
+        return "invalid_date_format";
+
+    // Thrown by set_timezone in src/mcp.ts (not src/tz.ts — that file only
+    // ever throws the logged_at-shaped messages matched above).
+    if (msg.includes("invalid timezone")) return "invalid_timezone";
+
+    // toGrams / gramsFromDrink (src/units.ts, src/alcohol.ts) and
+    // assertPlausibleWeight (src/mcp.ts) — a bad number, not a bad shape.
+    if (
+        msg.includes("outside the plausible body-weight range") ||
+        msg.includes("invalid weight value") ||
+        msg.includes("invalid drink volume") ||
+        msg.includes("invalid abv")
+    )
+        return "invalid_numeric_value";
+
+    if (
+        msg.includes("unsupported language") ||
+        msg.includes("invalid weight unit")
+    )
+        return "invalid_param_value";
+
+    // pickWriteUnit (src/units.ts) — semantically missing_required_param,
+    // but its wording doesn't contain "missing" or "required".
+    if (msg.includes("no weight unit given and no preference set"))
+        return "missing_required_param";
+
+    // updateMeal / updateWeight (src/supabase.ts) pre-checks — a stale or
+    // wrong id, not a DB outage, so it shouldn't share supabase_error's bucket.
+    if (msg.includes("meal not found") || msg.includes("entry not found"))
+        return "record_not_found";
+
+    // Deploy/env config problems, not user- or DB-caused. The only throw site
+    // for the first is the single literal "Missing SUPABASE_URL or
+    // SUPABASE_SECRET_KEY" (src/supabase.ts) — one substring check covers it.
+    if (
+        msg.includes("missing supabase_url or supabase_secret_key") ||
+        msg.includes("off_user_agent is not configured")
+    )
+        return "service_misconfigured";
+
+    // src/widgets.ts assembly — should only fire on a deploy defect, never
+    // in ordinary operation, so it gets its own bucket rather than "unknown".
+    if (
+        msg.includes("@inlinets") ||
+        msg.includes("widget source partial not found") ||
+        msg.includes("@include cycle") ||
+        msg.startsWith("unknown widget:")
+    )
+        return "internal_asset_error";
+
+    // export_all_data (src/export.ts / src/supabase.ts) — upload, signed-URL,
+    // and row-count-mismatch failures.
+    if (
+        msg.includes("failed to upload export") ||
+        msg.includes("failed to create download link") ||
+        msg.includes("export would be truncated")
+    )
+        return "export_error";
+
+    // ---- Tier 2: every src/supabase.ts persistence throw ----
+
+    // Every one follows "Failed to <verb> <noun>: <cause>" — match the prefix
+    // generically rather than enumerating verbs, or a verb added later (as
+    // happened with "look up", "resolve", "count", "check", "save", "store",
+    // "upload") silently falls through to "unknown" again. Deliberately
+    // checked *before* tier 3's auth/rate/date keywords below: our own nouns
+    // ("Failed to store token", "Failed to delete auth codes") would
+    // otherwise false-positive on tier 3's "token"/"auth" check.
+    if (msg.includes("failed to ") || msg.includes("supabase"))
+        return "supabase_error";
+
+    // ---- Tier 3: keyword heuristics for third-party error text ----
 
     if (
         msg.includes("auth") ||
         msg.includes("token") ||
+        msg.includes("jwt") ||
+        msg.includes("unauthorized") ||
+        msg.includes("invalid api key") ||
         msg.includes("expired")
     )
         return "auth_expired";
@@ -61,18 +165,11 @@ function categorizeError(error: unknown): string {
     if (msg.includes("required") || msg.includes("missing"))
         return "missing_required_param";
     if (
-        msg.includes("supabase") ||
-        msg.includes("failed to insert") ||
-        msg.includes("failed to get") ||
-        msg.includes("failed to delete") ||
-        msg.includes("failed to update") ||
-        msg.includes("failed to search")
-    )
-        return "supabase_error";
-    if (
         msg.includes("network") ||
         msg.includes("fetch") ||
-        msg.includes("ECONNREFUSED")
+        msg.includes("econnrefused") ||
+        msg.includes("timeout") ||
+        msg.includes("timed out")
     )
         return "network_error";
 
@@ -172,8 +269,12 @@ export async function withAnalytics<T>(
         const durationMs = Math.round(performance.now() - start);
         const errorCategory = categorizeError(error);
 
+        // The raw message never reaches tool_analytics (no column for it —
+        // error_category is the only stored signal), so this line is the
+        // only place a future "unknown" bucket is diagnosable from, and only
+        // for as long as the runtime log ring buffer retains it.
         console.warn(
-            `[analytics] ${toolName} error=${errorCategory} ${durationMs}ms user=${context.userId}`,
+            `[analytics] ${toolName} error=${errorCategory} ${durationMs}ms user=${context.userId}: ${error instanceof Error ? error.message : String(error)}`,
         );
 
         persistAnalytics({
