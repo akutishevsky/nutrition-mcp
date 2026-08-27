@@ -1261,16 +1261,23 @@ export async function updateWeight(
                 ? decodeEscapeSequences(fields.notes)
                 : fields.notes;
 
+    // No `.single()` here (unlike updateMeal, which pre-checks existence in a
+    // separate query): a stale/wrong/other-user's id then matches zero rows,
+    // which `.select()` reports as an empty array rather than PostgREST's
+    // opaque "JSON object requested, multiple (or no) rows returned" — one
+    // round trip, and no window between a check and the update itself where
+    // a concurrent delete could reintroduce that same opaque error.
     const { data, error } = await getSupabase()
         .from("weight_log")
         .update(update)
         .eq("id", id)
         .eq("user_id", userId)
-        .select()
-        .single();
+        .select();
 
     if (error) throw new Error(`Failed to update weight: ${error.message}`);
-    return data as WeightEntry;
+    if (!data || data.length === 0)
+        throw new Error("Failed to update weight: entry not found");
+    return data[0] as WeightEntry;
 }
 
 /** Returns true if an entry was deleted, false if no matching row was found. */

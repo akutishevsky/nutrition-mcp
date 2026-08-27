@@ -48,7 +48,11 @@ import {
     type WaterEntry,
     type WeightEntry,
 } from "./supabase.js";
-import { DELETED_ACCOUNT_ANALYTICS_ID, withAnalytics } from "./analytics.js";
+import {
+    DELETED_ACCOUNT_ANALYTICS_ID,
+    withAnalytics,
+    categorizeError,
+} from "./analytics.js";
 import {
     todayInTz,
     validateTz,
@@ -1778,6 +1782,16 @@ export function registerTools(
             }),
         },
         async ({ barcode }) => {
+            // lookupBarcode's own failures (OFF down, timeout, bad config) are
+            // caught below and turned into a normal (non-isError) content
+            // response so the model can fall back to estimating — but that
+            // means withAnalytics never sees a thrown error. Without this flag
+            // an OFF outage silently records as `success: true`, which is how
+            // it stayed invisible to tool_analytics entirely.
+            // Safe only because withAnalytics awaits the handler to
+            // completion before reading this via `outcome` below — it is not
+            // read concurrently with the handler running.
+            let offFailure: string | null = null;
             return withAnalytics(
                 "lookup_barcode",
                 async () => {
@@ -1799,6 +1813,16 @@ export function registerTools(
                     } catch (err) {
                         const msg =
                             err instanceof Error ? err.message : String(err);
+                        // Route through the same categorizeError used for
+                        // thrown errors elsewhere, so a config problem
+                        // ("OFF_USER_AGENT is not configured") or an OFF rate
+                        // limit lands in service_misconfigured/rate_limited
+                        // instead of a generic bucket local to this tool.
+                        const category = categorizeError(err);
+                        offFailure =
+                            category === "unknown"
+                                ? "external_api_error"
+                                : category;
                         return {
                             content: [
                                 {
@@ -1831,6 +1855,12 @@ export function registerTools(
                 },
                 analytics,
                 { barcode },
+                {
+                    outcome: () =>
+                        offFailure
+                            ? { success: false, errorCategory: offFailure }
+                            : { success: true },
+                },
             );
         },
     );
