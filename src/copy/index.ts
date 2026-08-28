@@ -206,6 +206,22 @@ export interface IndexDoc {
         eyebrow: string;
         title: string;
         sub: string;
+        updatesTitle: string;
+        /** Reassurance that reading these posts costs nothing — sits directly
+         *  under updatesTitle, right where the paid-tier card above it could
+         *  make a reader assume otherwise. */
+        updatesNote: string;
+        /** aria-labels for the recent-posts carousel, which pages through
+         *  groups of 3 cards (up to 12 posts -> up to 4 pages) — mirrors
+         *  try.prevLabel / try.nextLabel / try.exampleLabel's shape, but that
+         *  pair reads "Previous/Next example" which only fits the chat demo,
+         *  so this carousel gets its own. updatesDotLabel is a bare noun
+         *  ("Update"), suffixed client-side with " 1", " 2", ... per dot
+         *  (one dot per PAGE, not per post), the same way try.exampleLabel is
+         *  used server-side in renderDoc. */
+        updatesPrevLabel: string;
+        updatesNextLabel: string;
+        updatesDotLabel: string;
         free: { tier: string; price: string; desc: string; cta: string };
         paid: { tier: string; price: string; desc: string; cta: string };
     };
@@ -2664,6 +2680,11 @@ const INDEX_EN: IndexDoc = {
         eyebrow: "Support",
         title: "Help keep it running.",
         sub: "Nutrition MCP is free and ad-free. Patreon covers the server and database bills.",
+        updatesTitle: "Latest from Patreon",
+        updatesNote: "Free to read — no membership needed.",
+        updatesPrevLabel: "Previous update",
+        updatesNextLabel: "Next update",
+        updatesDotLabel: "Update",
         free: {
             tier: "Free member",
             price: "$0",

@@ -785,6 +785,11 @@ export const INDEX_PL: IndexDoc = {
         eyebrow: "Wsparcie",
         title: "Pomóż utrzymać to w ruchu.",
         sub: "Nutrition MCP jest darmowy i bez reklam. Patreon pokrywa rachunki za serwer i bazę danych.",
+        updatesTitle: "Najnowsze na Patreon",
+        updatesNote: "Bezpłatne do czytania — nie trzeba być członkiem.",
+        updatesPrevLabel: "Poprzednia aktualizacja",
+        updatesNextLabel: "Następna aktualizacja",
+        updatesDotLabel: "Aktualizacja",
         free: {
             tier: "Darmowy członek",
             price: "0 zł",

@@ -4,6 +4,7 @@ import { decodeEscapeSequences } from "./normalize.js";
 import { isWeightUnit, toStoredInteger, type WeightUnit } from "./units.js";
 import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { escapeLikePattern, tokenizeQuery } from "./search.js";
+import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 
 let supabase: SupabaseClient;
 
@@ -1462,6 +1463,91 @@ export async function getUserIdByToken(token: string): Promise<TokenLookup> {
         // Network-level failure never reaches the `error` field.
         return { status: "unavailable" };
     }
+}
+
+// ---------- Patreon tokens ----------
+
+/**
+ * Backed by the single `patreon_tokens` row (id = "default") — one campaign,
+ * one token pair, server-only (RLS has no policy for anon/authenticated; see
+ * the patreon_tokens migration). Simplified to a plain null return on any
+ * lookup failure: unlike getUserIdByToken's valid/invalid/unavailable
+ * TokenLookup, getRecentPosts already treats null as "nothing to show", so a
+ * three-state return here would be unused precision for a landing-page
+ * nicety with no auth/security stakes.
+ */
+export function getPatreonTokenStore(): PatreonTokenStore {
+    return {
+        async getTokens(): Promise<PatreonTokens | null> {
+            const { data, error } = await getSupabase()
+                .from("patreon_tokens")
+                .select("access_token, refresh_token, expires_at")
+                .eq("id", "default")
+                .single();
+
+            if (error && error.code !== PGRST_NO_ROWS) {
+                console.error("getPatreonTokenStore.getTokens failed:", error);
+            }
+            if (error || !data) return null;
+            return {
+                accessToken: data.access_token as string,
+                refreshToken: data.refresh_token as string,
+                expiresAt: data.expires_at as string,
+            };
+        },
+
+        async saveTokens(tokens: PatreonTokens): Promise<void> {
+            const { error } = await getSupabase().from("patreon_tokens").upsert(
+                {
+                    id: "default",
+                    access_token: tokens.accessToken,
+                    refresh_token: tokens.refreshToken,
+                    expires_at: tokens.expiresAt,
+                    updated_at: new Date().toISOString(),
+                },
+                { onConflict: "id" },
+            );
+
+            if (error)
+                throw new Error(
+                    `Failed to save Patreon tokens: ${error.message}`,
+                );
+        },
+    };
+}
+
+/**
+ * One-time bootstrap. PATREON_ACCESS_TOKEN / PATREON_REFRESH_TOKEN are named
+ * for exactly what Patreon's client-management page calls them ("Creator's
+ * Access Token" / "Creator's Refresh Token") for a manually-registered OAuth
+ * client — pasting them here lets a fresh deploy seed patreon_tokens without
+ * a hand-run SQL insert. expires_at is seeded already-past (the epoch): these
+ * env vars carry no expiry, so the very next call through getRecentPosts
+ * refreshes immediately and replaces both with a freshly-minted pair. From
+ * then on this is a permanent no-op (`ignoreDuplicates` = INSERT ... ON
+ * CONFLICT DO NOTHING on the `id` row) — the env vars can be left in place
+ * forever without ever clobbering a token pair that has since rotated past
+ * them, and this can safely run on every boot of every replica.
+ */
+export async function seedPatreonTokensFromEnv(): Promise<void> {
+    const accessToken = process.env.PATREON_ACCESS_TOKEN;
+    const refreshToken = process.env.PATREON_REFRESH_TOKEN;
+    if (!accessToken || !refreshToken) return;
+
+    const { error } = await getSupabase()
+        .from("patreon_tokens")
+        .upsert(
+            {
+                id: "default",
+                access_token: accessToken,
+                refresh_token: refreshToken,
+                expires_at: new Date(0).toISOString(),
+                updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id", ignoreDuplicates: true },
+        );
+
+    if (error) console.error("Failed to seed Patreon tokens:", error.message);
 }
 
 // ---------- Auth codes ----------
