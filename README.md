@@ -100,18 +100,25 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 ### 2. Environment variables
 
-| Variable               | Description                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| `SUPABASE_URL`         | Your Supabase project URL                                                     |
-| `SUPABASE_SECRET_KEY`  | Supabase service role key (bypasses RLS)                                      |
-| `OAUTH_CLIENT_ID`      | Random string for OAuth client identification                                 |
-| `OAUTH_CLIENT_SECRET`  | Random string for OAuth client authentication                                 |
-| `GOOGLE_CLIENT_ID`     | _(optional)_ Google OAuth client ID for "Sign in with Google"                 |
-| `GOOGLE_CLIENT_SECRET` | _(optional)_ Google OAuth client secret                                       |
-| `OFF_USER_AGENT`       | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)` |
-| `PORT`                 | Server port (default: `8080`)                                                 |
+| Variable                | Description                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`          | Your Supabase project URL                                                                                      |
+| `SUPABASE_SECRET_KEY`   | Supabase service role key (bypasses RLS)                                                                       |
+| `OAUTH_CLIENT_ID`       | Random string for OAuth client identification                                                                  |
+| `OAUTH_CLIENT_SECRET`   | Random string for OAuth client authentication                                                                  |
+| `GOOGLE_CLIENT_ID`      | _(optional)_ Google OAuth client ID for "Sign in with Google"                                                  |
+| `GOOGLE_CLIENT_SECRET`  | _(optional)_ Google OAuth client secret                                                                        |
+| `OFF_USER_AGENT`        | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)`                                  |
+| `PATREON_CLIENT_ID`     | _(optional)_ Patreon OAuth client ID, for showing recent posts on the landing page's Support section           |
+| `PATREON_CLIENT_SECRET` | _(optional)_ Patreon OAuth client secret                                                                       |
+| `PATREON_CAMPAIGN_ID`   | _(optional)_ Patreon campaign ID to fetch posts from                                                           |
+| `PATREON_ACCESS_TOKEN`  | _(optional)_ Creator's Access Token from Patreon's client management page — one-time bootstrap seed, see below |
+| `PATREON_REFRESH_TOKEN` | _(optional)_ Creator's Refresh Token from the same page — one-time bootstrap seed, see below                   |
+| `PORT`                  | Server port (default: `8080`)                                                                                  |
 
 > **Making it yours:** The public site includes the maintainer's personal bits — Google Analytics, Patreon/GitHub/contact links, and the `nutrition-mcp.com` domain. Run `bun run depersonalize` to strip them all in one pass (analytics + CSP, the Support/Contact sections, social links, and the domain → a `your-domain.com` placeholder). Use `bun run depersonalize --dry` to preview without writing. Afterwards, swap in your own `public/og.png`, `favicon.ico`, and `apple-touch-icon.png`, and replace the domain placeholder with your real domain.
+
+> **Patreon posts, one-time setup:** `PATREON_ACCESS_TOKEN` / `PATREON_REFRESH_TOKEN` are only ever read once, at server boot, to seed the `patreon_tokens` table if it's still empty — the server refreshes and stores its own pair from then on, so leaving these two set permanently is safe (every later boot is a no-op). You never need to touch the database by hand.
 
 Generate OAuth credentials:
 

@@ -11,6 +11,7 @@ import {
     exportStoragePaths,
     timezoneLevels,
     TZ_LEVEL_THRESHOLDS,
+    seedPatreonTokensFromEnv,
     type Meal,
     type MealInput,
     type Profile,
@@ -611,5 +612,25 @@ describe("timezoneLevels", () => {
             junk: undefined as unknown as number,
         });
         expect(Object.keys(levels)).toEqual(["real"]);
+    });
+});
+
+describe("seedPatreonTokensFromEnv", () => {
+    // Self-hosted deployments (and CI) never set these, and the function must
+    // return without ever constructing a Supabase client in that case — this
+    // file's whole test suite depends on nothing here touching the network.
+    test("does nothing when PATREON_ACCESS_TOKEN / PATREON_REFRESH_TOKEN are unset", async () => {
+        const savedAccess = process.env.PATREON_ACCESS_TOKEN;
+        const savedRefresh = process.env.PATREON_REFRESH_TOKEN;
+        delete process.env.PATREON_ACCESS_TOKEN;
+        delete process.env.PATREON_REFRESH_TOKEN;
+        try {
+            await expect(seedPatreonTokensFromEnv()).resolves.toBeUndefined();
+        } finally {
+            if (savedAccess !== undefined)
+                process.env.PATREON_ACCESS_TOKEN = savedAccess;
+            if (savedRefresh !== undefined)
+                process.env.PATREON_REFRESH_TOKEN = savedRefresh;
+        }
     });
 });
