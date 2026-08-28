@@ -9,11 +9,17 @@ import {
 } from "./middleware.js";
 import { handleMcp, closeMcpHandler } from "./mcp.js";
 import { startExportCleanup } from "./export.js";
-import { getLandingStats, type LandingStats } from "./supabase.js";
+import {
+    getLandingStats,
+    getPatreonTokenStore,
+    seedPatreonTokensFromEnv,
+} from "./supabase.js";
+import { getRecentPosts } from "./patreon.js";
 import { registerDiscoveryRoutes } from "./discovery.js";
 import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
 import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
+import { createTtlCache } from "./ttl-cache.js";
 
 const app = new Hono();
 
@@ -203,24 +209,67 @@ app.all(
 // (public/site.js) — more HTTP, but not more database: the cache is what they
 // all land on, and a caller arriving off-tick gets whatever is already there.
 const STATS_TTL_MS = 5 * 1000;
-let statsCache: { data: LandingStats; expiresAt: number } | null = null;
+const getStats = createTtlCache(STATS_TTL_MS, getLandingStats);
 
 app.get("/api/stats", async (c) => {
     try {
-        if (!statsCache || statsCache.expiresAt < Date.now()) {
-            statsCache = {
-                data: await getLandingStats(),
-                expiresAt: Date.now() + STATS_TTL_MS,
-            };
-        }
-        return c.json(statsCache.data, 200, {
-            "Cache-Control": "public, max-age=5",
+        const { data, stale } = await getStats();
+        return c.json(data, 200, {
+            // Stale data still moves slowly (see the comment above), so it's
+            // worth a short client-side cache too — much shorter than the
+            // happy-path TTL, so a real recovery is picked up soon, but a
+            // thundering herd during an outage is meaningfully dampened.
+            "Cache-Control": stale ? "public, max-age=60" : "public, max-age=5",
         });
     } catch (err) {
         console.error("Failed to load landing stats:", err);
-        // Serve the last good value if we have one, even if expired.
-        if (statsCache) return c.json(statsCache.data);
-        return c.json({ error: "stats_unavailable" }, 503);
+        // Nothing cached at all: a 503 with a short Retry-After, so retrying
+        // clients back off instead of hammering this route during an outage.
+        return c.json({ error: "stats_unavailable" }, 503, {
+            "Retry-After": "30",
+        });
+    }
+});
+
+// Recent public Patreon posts for the landing page's Support section. A
+// self-hosted deployment won't have Patreon credentials configured, so this
+// degrades to an empty array rather than erroring — the same "optional
+// integration, silent no-op" shape as every other credential-gated feature
+// here. 1-hour TTL, not /api/stats's 5s: posts change far less often than the
+// live totals.
+const PATREON_POSTS_TTL_MS = 60 * 60 * 1000;
+// Reads the credentials fresh from process.env on every cache-miss (not
+// captured once at module scope), matching the pre-extraction behavior and
+// keeping the "not configured" gate below the single source of truth for
+// whether they're set.
+const getPatreonPosts = createTtlCache(PATREON_POSTS_TTL_MS, () =>
+    getRecentPosts(getPatreonTokenStore(), {
+        clientId: process.env.PATREON_CLIENT_ID ?? "",
+        clientSecret: process.env.PATREON_CLIENT_SECRET ?? "",
+        campaignId: process.env.PATREON_CAMPAIGN_ID ?? "",
+    }),
+);
+
+app.get("/api/patreon-posts", async (c) => {
+    const clientId = process.env.PATREON_CLIENT_ID;
+    const clientSecret = process.env.PATREON_CLIENT_SECRET;
+    const campaignId = process.env.PATREON_CAMPAIGN_ID;
+    if (!clientId || !clientSecret || !campaignId) {
+        return c.json([], 200, { "Cache-Control": "public, max-age=3600" });
+    }
+    try {
+        const { data, stale } = await getPatreonPosts();
+        return c.json(data, 200, {
+            "Cache-Control": stale
+                ? "public, max-age=60"
+                : "public, max-age=3600",
+        });
+    } catch (err) {
+        console.error("Failed to load Patreon posts:", err);
+        // Nothing cached at all: degrade to the same empty array the
+        // "not configured" branch above returns, with a short Cache-Control
+        // so an outage doesn't get hammered by clients either.
+        return c.json([], 200, { "Cache-Control": "public, max-age=60" });
     }
 });
 
@@ -381,6 +430,17 @@ if (import.meta.main) {
 
     // Periodically delete expired meal-export files from the storage bucket.
     startExportCleanup();
+
+    // Best-effort, one-time: seed patreon_tokens from PATREON_ACCESS_TOKEN /
+    // PATREON_REFRESH_TOKEN if set (see seedPatreonTokensFromEnv). Fired
+    // without awaiting it — the Patreon strip on the landing page is a
+    // nicety, not a dependency the rest of boot needs to come up, and even a
+    // slow-but-successful Supabase round trip must not hold up the steps
+    // below it (or the server accepting connections). The .catch is only to
+    // keep a rejection from surfacing as an unhandled-rejection warning.
+    void seedPatreonTokensFromEnv().catch((err) =>
+        console.error("Failed to seed Patreon tokens:", err),
+    );
 
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
