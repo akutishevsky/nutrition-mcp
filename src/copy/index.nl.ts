@@ -2474,6 +2474,11 @@ export const INDEX_NL: IndexDoc = {
         eyebrow: "Steun",
         title: "Help het draaiende houden.",
         sub: "Nutrition MCP is gratis en reclamevrij. Patreon dekt de server- en databasekosten.",
+        updatesTitle: "Laatste nieuws van Patreon",
+        updatesNote: "Gratis te lezen — geen lidmaatschap nodig.",
+        updatesPrevLabel: "Vorige update",
+        updatesNextLabel: "Volgende update",
+        updatesDotLabel: "Update",
         free: {
             tier: "Gratis lid",
             price: "$0",

@@ -135,6 +135,13 @@ const LANDING_RULES: Rule[] = [
         name: "live GitHub star-count script",
         find: /[ \t]*\/\/ -+ live GitHub star count -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n/,
     },
+    // The recent-Patreon-posts fetch. Its target block (#patreon-updates) lives
+    // inside the "section: Support (Patreon)" HTML this file already strips
+    // wholesale above, so only the script needs its own rule here.
+    {
+        name: "recent Patreon posts script",
+        find: /[ \t]*\/\/ -+ recent Patreon posts -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n/,
+    },
 ];
 
 /**

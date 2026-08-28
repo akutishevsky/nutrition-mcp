@@ -2443,6 +2443,11 @@ export const INDEX_JA: IndexDoc = {
         eyebrow: "サポート",
         title: "運営を支えてください。",
         sub: "Nutrition MCPは無料・広告なしです。サーバーとデータベースの費用はPatreonでまかなっています。",
+        updatesTitle: "Patreonの最新情報",
+        updatesNote: "無料で読めます — メンバー登録は不要です。",
+        updatesPrevLabel: "前の投稿",
+        updatesNextLabel: "次の投稿",
+        updatesDotLabel: "投稿",
         free: {
             tier: "無料メンバー",
             price: "$0",

@@ -315,3 +315,18 @@ test("#facts-live is what stops site.js polling a second time on the landing pag
         );
     }
 });
+
+// #patreon-updates starts hidden and the script only clears that attribute
+// once /api/patreon-posts actually returns a post — a self-hosted deploy with
+// no Patreon credentials gets [] back forever, so the block must render
+// invisible by default rather than as an empty card.
+test("#patreon-updates renders hidden on every landing page", async () => {
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { path, html } of pages) {
+        const m = html.match(
+            /<div class="patreon-updates" id="patreon-updates"( hidden)?>/,
+        );
+        expect(`${path}: ${m?.[1]}`).toBe(`${path}:  hidden`);
+    }
+});

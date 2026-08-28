@@ -2085,6 +2085,100 @@ html.js .facts-unit {
         grid-template-columns: 1fr 1fr;
     }
 }
+.patreon-updates {
+    /* Wide enough for 3 comfortable columns without matching .container's
+       full 1120px, which would stretch a 1-post grid absurdly thin. */
+    max-width: 1040px;
+    margin: 1.5rem auto 0;
+}
+.patreon-updates-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.3rem 0.9rem;
+    margin: 0 0 0.5rem;
+}
+.patreon-updates-title {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    margin: 0;
+}
+.patreon-updates-note {
+    font-size: 0.82rem;
+    color: var(--ink-3);
+    margin: 0;
+}
+/* Up to MAX_POSTS (12, see src/patreon.ts) posts, paged 3 at a time — reuses
+   the site's generic carousel engine (.carousel-viewport / .carousel-track /
+   .slide / .carousel-controls / .dot, see the "try saying" chat carousel
+   above) for paging between PAGES, while each page itself is a 3-column
+   grid rather than a single card. Grid's default align-items: stretch gives
+   every card in a row the row's full height with no flex/percentage-height
+   chain to fight, which is what made the very first version of this (one
+   card per slide) size inconsistently between slides.
+
+   Scoped under #patreon-carousel-track (rather than a bare .patreon-updates-
+   grid selector) so its `display: grid` reliably beats .slide's own
+   `display: flex` regardless of which rule happens to sit later in this
+   file — both are single-class selectors of equal specificity, so source
+   order alone would decide the winner otherwise. */
+.patreon-carousel {
+    position: relative;
+}
+#patreon-carousel .carousel-viewport {
+    overflow: hidden;
+}
+#patreon-carousel-track .patreon-updates-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+@media (min-width: 860px) {
+    #patreon-carousel-track .patreon-updates-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+.patreon-update-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    /* Grid items default to min-width: auto, sized to their content's
+       min-content — and a nowrap title's min-content is its full unwrapped
+       width. Without this, one long title blows out its 1fr track and the
+       row goes lopsided, which is the very bug this grid replaced the
+       carousel to fix. */
+    min-width: 0;
+    height: 100%;
+    padding: 1.1rem 1.2rem;
+    color: var(--ink);
+    text-decoration: none;
+}
+.patreon-update-link:hover .patreon-update-title {
+    text-decoration: underline;
+}
+.patreon-update-title {
+    font-weight: 700;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.patreon-update-preview {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+    /* Server-side already truncates to ~160 chars at a word boundary, but a
+       hard clamp keeps every tile's height consistent regardless — 3 lines
+       reads comfortably at a 1-of-3-column card's narrower width. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 
 /* ---------- closing CTA: ink block ---------- */
 .section.cta {

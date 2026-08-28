@@ -2372,6 +2372,11 @@ export const INDEX_UK: IndexDoc = {
         eyebrow: "Підтримка",
         title: `Допоможи це підтримувати.`,
         sub: `Nutrition MCP безкоштовний і без реклами. Patreon покриває рахунки за сервер і базу даних.`,
+        updatesTitle: "Останні новини з Patreon",
+        updatesNote: "Безкоштовно читати — членство не потрібне.",
+        updatesPrevLabel: "Попереднє оновлення",
+        updatesNextLabel: "Наступне оновлення",
+        updatesDotLabel: "Оновлення",
         free: {
             tier: "Безкоштовний учасник",
             price: "$0",

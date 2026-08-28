@@ -3634,6 +3634,52 @@
                             >
                         </div>
                     </div>
+                    <div class="patreon-updates" id="patreon-updates" hidden>
+                        <div class="patreon-updates-head">
+                            <p class="patreon-updates-title">
+                                Le ultime novità da Patreon
+                            </p>
+                            <p class="patreon-updates-note">
+                                Gratuito da leggere — nessun abbonamento
+                                necessario.
+                            </p>
+                        </div>
+                        <div class="patreon-carousel" id="patreon-carousel">
+                            <div class="carousel-viewport">
+                                <div
+                                    class="carousel-track"
+                                    id="patreon-carousel-track"
+                                ></div>
+                            </div>
+                            <div
+                                class="carousel-controls"
+                                id="patreon-carousel-controls"
+                                hidden
+                            >
+                                <button
+                                    class="carousel-arrow"
+                                    type="button"
+                                    data-dir="prev"
+                                    aria-label="Aggiornamento precedente"
+                                >
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+                                <div
+                                    class="carousel-dots"
+                                    id="patreon-carousel-dots"
+                                    data-dot-label="Aggiornamento"
+                                ></div>
+                                <button
+                                    class="carousel-arrow"
+                                    type="button"
+                                    data-dir="next"
+                                    aria-label="Aggiornamento successivo"
+                                >
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -4419,14 +4465,214 @@
                         .catch(function () {});
                 }
 
+                // ---------- shared carousel paging engine ----------
+                // Powers both the "try saying" chat carousel below and the
+                // recent-Patreon-posts carousel that precedes it: paging,
+                // dot navigation, arrow clicks, hover/focus autoplay pause,
+                // and touch swipe, in one place so a future fix (swipe
+                // threshold, keyboard nav, dot ARIA labeling) only has to
+                // land once instead of drifting between two copies.
+                //
+                // opts:
+                //   root          element that owns the hover/focus/touch
+                //                 and arrow-click listeners (the outer
+                //                 carousel container)
+                //   track         element whose transform pages the slides
+                //   slides        NodeList/array of slide elements
+                //   dots          existing NodeList/array of dot buttons,
+                //                 OR a number of dots to build fresh into
+                //                 dotsContainer -- used when the slide
+                //                 count is only known once async data
+                //                 arrives, rather than at render time
+                //   dotsContainer container to build dots into when `dots`
+                //                 is a number
+                //   interval      autoplay delay in ms
+                //   onActivate    optional callback(slideEl), run on every
+                //                 goTo, for a carousel-specific per-slide
+                //                 effect (the chat carousel's typing/reply
+                //                 animation)
+                //
+                // Returns { goTo, start, stop, wireControls }. wireControls
+                // is separate from construction because the Patreon
+                // carousel only wants dot/arrow/hover/touch listeners once
+                // it knows there is more than one page.
+                function initCarousel(opts) {
+                    var slides = opts.slides;
+                    var track = opts.track;
+                    var root = opts.root;
+                    var idx = 0;
+                    var timer = null;
+                    var dotEls = [];
+                    if (typeof opts.dots === "number") {
+                        var dotLabel =
+                            (opts.dotsContainer &&
+                                opts.dotsContainer.dataset.dotLabel) ||
+                            "";
+                        for (var k = 0; k < opts.dots; k++) {
+                            var dot = document.createElement("button");
+                            dot.type = "button";
+                            dot.className = "dot";
+                            dot.setAttribute(
+                                "aria-label",
+                                dotLabel + " " + (k + 1),
+                            );
+                            opts.dotsContainer.appendChild(dot);
+                        }
+                        dotEls = opts.dotsContainer.querySelectorAll(".dot");
+                    } else if (opts.dots) {
+                        dotEls = opts.dots;
+                    }
+                    function goTo(n) {
+                        idx = (n + slides.length) % slides.length;
+                        track.style.transform =
+                            "translateX(" + -idx * 100 + "%)";
+                        dotEls.forEach(function (d, k) {
+                            d.classList.toggle("active", k === idx);
+                        });
+                        if (opts.onActivate) opts.onActivate(slides[idx]);
+                    }
+                    function stop() {
+                        if (timer) clearInterval(timer);
+                        timer = null;
+                    }
+                    function start() {
+                        if (reduceMotion || slides.length < 2) return;
+                        stop();
+                        timer = setInterval(function () {
+                            goTo(idx + 1);
+                        }, opts.interval);
+                    }
+                    function wireControls() {
+                        dotEls.forEach(function (d, k) {
+                            d.addEventListener("click", function () {
+                                goTo(k);
+                                start();
+                            });
+                        });
+                        root.querySelectorAll(".carousel-arrow").forEach(
+                            function (arrow) {
+                                arrow.addEventListener("click", function () {
+                                    goTo(
+                                        idx +
+                                            (arrow.getAttribute("data-dir") ===
+                                            "next"
+                                                ? 1
+                                                : -1),
+                                    );
+                                    start();
+                                });
+                            },
+                        );
+                        root.addEventListener("mouseenter", stop);
+                        root.addEventListener("mouseleave", start);
+                        root.addEventListener("focusin", stop);
+                        root.addEventListener("focusout", start);
+                        var x0 = null;
+                        root.addEventListener(
+                            "touchstart",
+                            function (e) {
+                                x0 = e.touches[0].clientX;
+                            },
+                            { passive: true },
+                        );
+                        root.addEventListener("touchend", function (e) {
+                            if (x0 === null) return;
+                            var dx = e.changedTouches[0].clientX - x0;
+                            if (Math.abs(dx) > 40)
+                                goTo(idx + (dx < 0 ? 1 : -1));
+                            x0 = null;
+                            start();
+                        });
+                    }
+                    return {
+                        goTo: goTo,
+                        start: start,
+                        stop: stop,
+                        wireControls: wireControls,
+                    };
+                }
+
+                // ---------- recent Patreon posts ----------
+                var patreonBlock = document.getElementById("patreon-updates");
+                var patreonCarousel =
+                    document.getElementById("patreon-carousel");
+                var patreonTrack = document.getElementById(
+                    "patreon-carousel-track",
+                );
+                var patreonDots = document.getElementById(
+                    "patreon-carousel-dots",
+                );
+                var patreonControls = document.getElementById(
+                    "patreon-carousel-controls",
+                );
+                if (patreonBlock && patreonCarousel && patreonTrack) {
+                    fetch("/api/patreon-posts")
+                        .then(function (r) {
+                            return r.ok ? r.json() : [];
+                        })
+                        .then(function (posts) {
+                            if (!posts || !posts.length) return;
+                            var pageSize = 3;
+                            var pages = [];
+                            for (var i = 0; i < posts.length; i += pageSize) {
+                                pages.push(posts.slice(i, i + pageSize));
+                            }
+                            pages.forEach(function (pagePosts) {
+                                var slide = document.createElement("div");
+                                slide.className = "slide patreon-updates-grid";
+                                pagePosts.forEach(function (p) {
+                                    var a = document.createElement("a");
+                                    a.href = p.url;
+                                    a.target = "_blank";
+                                    a.rel = "noopener noreferrer";
+                                    a.className = "card patreon-update-link";
+                                    var titleEl =
+                                        document.createElement("span");
+                                    titleEl.className = "patreon-update-title";
+                                    titleEl.textContent = p.title;
+                                    a.appendChild(titleEl);
+                                    if (p.preview) {
+                                        var previewEl =
+                                            document.createElement("span");
+                                        previewEl.className =
+                                            "patreon-update-preview";
+                                        previewEl.textContent = p.preview;
+                                        a.appendChild(previewEl);
+                                    }
+                                    slide.appendChild(a);
+                                });
+                                patreonTrack.appendChild(slide);
+                            });
+                            var slides =
+                                patreonTrack.querySelectorAll(".slide");
+                            var multiPage =
+                                slides.length > 1 &&
+                                patreonDots &&
+                                patreonControls;
+                            var patreonCarouselApi = initCarousel({
+                                root: patreonCarousel,
+                                track: patreonTrack,
+                                slides: slides,
+                                dots: multiPage ? slides.length : null,
+                                dotsContainer: patreonDots,
+                                interval: 6000,
+                            });
+                            if (multiPage) {
+                                patreonControls.hidden = false;
+                                patreonCarouselApi.wireControls();
+                            }
+                            patreonCarouselApi.goTo(0);
+                            patreonCarouselApi.start();
+                            patreonBlock.hidden = false;
+                        })
+                        .catch(function () {});
+                }
                 // ---------- "try saying" chat carousel ----------
                 var carousel = document.getElementById("try-carousel");
                 if (carousel) {
                     var track = carousel.querySelector(".carousel-track");
                     var slides = carousel.querySelectorAll(".slide");
                     var dots = carousel.querySelectorAll(".dot");
-                    var idx = 0;
-                    var timer = null;
                     // Play the typing -> reply animation for the active slide.
                     function play(active) {
                         slides.forEach(function (s) {
@@ -4491,68 +4737,17 @@
                             }
                         });
                     }
-                    function goTo(n) {
-                        idx = (n + slides.length) % slides.length;
-                        track.style.transform =
-                            "translateX(" + -idx * 100 + "%)";
-                        dots.forEach(function (d, k) {
-                            d.classList.toggle("active", k === idx);
-                        });
-                        play(slides[idx]);
-                    }
-                    function start() {
-                        if (reduceMotion) return;
-                        stop();
-                        timer = setInterval(function () {
-                            goTo(idx + 1);
-                        }, 5200);
-                    }
-                    function stop() {
-                        if (timer) clearInterval(timer);
-                        timer = null;
-                    }
-                    dots.forEach(function (d, k) {
-                        d.addEventListener("click", function () {
-                            goTo(k);
-                            start();
-                        });
+                    var chatCarouselApi = initCarousel({
+                        root: carousel,
+                        track: track,
+                        slides: slides,
+                        dots: dots,
+                        interval: 5200,
+                        onActivate: play,
                     });
-                    carousel
-                        .querySelectorAll(".carousel-arrow")
-                        .forEach(function (arrow) {
-                            arrow.addEventListener("click", function () {
-                                goTo(
-                                    idx +
-                                        (arrow.getAttribute("data-dir") ===
-                                        "next"
-                                            ? 1
-                                            : -1),
-                                );
-                                start();
-                            });
-                        });
-                    carousel.addEventListener("mouseenter", stop);
-                    carousel.addEventListener("mouseleave", start);
-                    carousel.addEventListener("focusin", stop);
-                    carousel.addEventListener("focusout", start);
-                    // basic touch swipe
-                    var x0 = null;
-                    carousel.addEventListener(
-                        "touchstart",
-                        function (e) {
-                            x0 = e.touches[0].clientX;
-                        },
-                        { passive: true },
-                    );
-                    carousel.addEventListener("touchend", function (e) {
-                        if (x0 === null) return;
-                        var dx = e.changedTouches[0].clientX - x0;
-                        if (Math.abs(dx) > 40) goTo(idx + (dx < 0 ? 1 : -1));
-                        x0 = null;
-                        start();
-                    });
-                    goTo(0);
-                    start();
+                    chatCarouselApi.wireControls();
+                    chatCarouselApi.goTo(0);
+                    chatCarouselApi.start();
                 }
             })();
         </script>
