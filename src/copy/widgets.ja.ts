@@ -23,6 +23,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         drinkLabels: { us: "US基準の杯数", uk: "UK基準のユニット" },
         noneLogged: "記録なし",
         caloriesToday: "本日のカロリー",
+        caloriesOn: "{date}のカロリー",
         tapHint: "数値をタップすると内訳の食事が表示されます",
         showMealsContributed: "内訳となった食事を表示します。",
         byMealTitle: "{label}の内訳",

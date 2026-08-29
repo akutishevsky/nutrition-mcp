@@ -23,6 +23,7 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         drinkLabels: { us: "порції США", uk: "од. Великобританії" },
         noneLogged: "немає записів",
         caloriesToday: "Калорії сьогодні",
+        caloriesOn: "Калорії · {date}",
         tapHint: "Торкніться показника, щоб побачити страви",
         showMealsContributed: "Показати страви, що це склали.",
         byMealTitle: "{label} за стравами",

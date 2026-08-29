@@ -23,6 +23,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         drinkLabels: { us: "VS-drankjes", uk: "VK-eenheden" },
         noneLogged: "niets gelogd",
         caloriesToday: "Calorieën vandaag",
+        caloriesOn: "Calorieën · {date}",
         tapHint: "Tik op een waarde voor de bijbehorende maaltijden",
         showMealsContributed: "Toon de maaltijden die hieraan bijdroegen.",
         byMealTitle: "{label} per maaltijd",

@@ -50,6 +50,8 @@
             /*@i18n@*/
             /*@include shared/i18n.js@*/
 
+            /*@include shared/date.js@*/
+
             /*@include shared/bridge.js@*/
 
             // ---- Sample data so the file renders on its own (browser preview) ----
@@ -208,6 +210,14 @@
                 setLocaleFrom(data, __widgetApi);
 
                 const totals = data.totals || {};
+                // update_meal (and log_meal, via a backdated logged_at) can
+                // show a day that is not the viewer's today, so the ring only
+                // claims "today" when data.date actually is that day (#114);
+                // otherwise it names the day, which is also why that day is
+                // now on the header line below.
+                const calLabel = isToday(data.date)
+                    ? T.macros.caloriesToday
+                    : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
                 const panel = macroPanel(
                     totals,
                     data.goals,
@@ -217,13 +227,15 @@
                     // alcohol, which is also the case in which no alcohol
                     // figure reaches the strip; macroCtxOf falls back to the
                     // server's own default of "us".
-                    { drinkUnit: data.drink_unit },
+                    { drinkUnit: data.drink_unit, calLabel },
                 );
 
                 // The meal that was just logged names itself on the header
-                // line; the strip below is the whole day.
+                // line, alongside the day it landed on (#114) — the strip
+                // below is that whole day's totals, not necessarily today's.
                 const meal = data.logged_meal;
                 const bits = [];
+                if (data.date) bits.push(esc(shortDate(data.date)));
                 if (meal && meal.description) {
                     bits.push(esc(meal.description));
                     if (meal.meal_type) bits.push(esc(meal.meal_type));

@@ -23,6 +23,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         drinkLabels: { us: "verres US", uk: "unités UK" },
         noneLogged: "aucun enregistré",
         caloriesToday: "Calories aujourd'hui",
+        caloriesOn: "Calories · {date}",
         tapHint: "Touchez une valeur pour voir les repas correspondants",
         showMealsContributed: "Afficher les repas qui y ont contribué.",
         byMealTitle: "{label} par repas",

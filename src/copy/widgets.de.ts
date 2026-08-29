@@ -26,6 +26,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         drinkLabels: { us: "US-Drinks", uk: "UK-Einheiten" },
         noneLogged: "nichts protokolliert",
         caloriesToday: "Kalorien heute",
+        caloriesOn: "Kalorien · {date}",
         tapHint: "Für die zugehörigen Mahlzeiten auf einen Wert tippen",
         showMealsContributed:
             "Zeigt die Mahlzeiten, die dazu beigetragen haben.",

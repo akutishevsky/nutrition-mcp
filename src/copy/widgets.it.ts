@@ -23,6 +23,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         drinkLabels: { us: "drink USA", uk: "unità UK" },
         noneLogged: "nessuno registrato",
         caloriesToday: "Calorie di oggi",
+        caloriesOn: "Calorie · {date}",
         tapHint: "Tocca un valore per vedere i pasti che lo compongono",
         showMealsContributed: "Mostra i pasti che hanno contribuito.",
         byMealTitle: "{label} per pasto",
