@@ -465,9 +465,12 @@ kbd,
    this page loaded, hung off the top-right corner of the nav item the way
    an app-icon badge is. Only the landing page's stats poller ever fills it
    in (see LANDING_SCRIPT in scripts/gen-index.ts); elsewhere it stays
-   [hidden]. .nav-has-badge reserves the space it will occupy on every page
-   whether or not it ever appears, so the badge's arrival mid-read never
-   nudges the nav items beside it. */
+   [hidden]. .nav-has-badge reserves --badge-reserve, a custom property
+   site.js sets to the badge's actual measured overflow past the nav item's
+   right edge (updateBadgeReserve in site.js) — 0 while hidden, growing only
+   as far as the current digit count needs, not a permanent worst-case
+   reserve for "99+" that would otherwise sit empty next to FAQ almost all
+   the time. */
 .nav-badge {
     position: absolute;
     top: 0.02rem;
@@ -522,11 +525,10 @@ kbd,
         transform: scale(1);
     }
 }
-/* Room for the widest the badge can get ("99+", ~1.72rem) plus a gap, so
-   it never reaches the next item and the nav never reflows when it
-   appears. */
+/* See the .nav-badge comment above: reserved width tracks the badge's
+   actual current size instead of permanently budgeting for "99+". */
 .head-nav a.nav-has-badge {
-    margin-right: 1.5rem;
+    margin-right: var(--badge-reserve, 0px);
 }
 .head-tools {
     display: flex;
@@ -848,10 +850,10 @@ body.menu-open .menu-btn .nav-badge {
     padding: 0 0.35rem;
     font-size: 0.75rem;
 }
-/* Wider than the nav's reserve because this badge is bigger: 0.3rem of gap
-   plus ~2.05rem for a three-character "99+". */
+/* Same measured reserve as .head-nav a.nav-has-badge, set independently
+   here since this badge is a different size. */
 .site-menu .menu-label.nav-has-badge {
-    margin-right: 2.4rem;
+    margin-right: var(--badge-reserve, 0px);
 }
 .menu-secondary {
     display: flex;

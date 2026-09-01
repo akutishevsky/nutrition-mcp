@@ -421,11 +421,38 @@
             );
         }
 
+        // .nav-has-badge (the nav item / menu label the badge is pinned to)
+        // used to permanently reserve enough margin for the worst case
+        // ("99+"), which left a dead gap next to it whenever the real count
+        // was shorter — nearly always. Instead, --badge-reserve is measured
+        // off the badge's actual box each time it changes, so the reserve
+        // tracks the current digit count rather than the max possible one.
+        function updateBadgeReserve(b) {
+            var host = b.closest(".nav-has-badge");
+            if (!host) return; // the hamburger's decorative badge has none
+            if (b.hidden) {
+                host.style.removeProperty("--badge-reserve");
+                return;
+            }
+            // Deferred a frame so the text just written above has already
+            // resized the badge's box before it's measured.
+            requestAnimationFrame(function () {
+                var overflow =
+                    b.getBoundingClientRect().right -
+                    host.getBoundingClientRect().right;
+                host.style.setProperty(
+                    "--badge-reserve",
+                    (overflow > 0 ? overflow + 4 : 0) + "px",
+                );
+            });
+        }
+
         function setNavBadge(n) {
             var text = n > NAV_BADGE_MAX ? NAV_BADGE_MAX + "+" : badgeInt(n);
             badgeEls.forEach(function (b) {
                 if (n <= 0) {
                     b.hidden = true;
+                    updateBadgeReserve(b);
                     return;
                 }
                 var num = b.querySelector(".nav-badge-n");
@@ -450,6 +477,7 @@
                 b.classList.remove("pop");
                 void b.offsetWidth;
                 b.classList.add("pop");
+                updateBadgeReserve(b);
             });
         }
 
