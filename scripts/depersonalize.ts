@@ -24,6 +24,9 @@
  * redesign, the run reports "0 matches" for that rule so you can spot it.
  * Re-running is safe (idempotent): already-clean rules simply report 0.
  *
+ * public/*.html is generated, not checked into git — run `bun run gen:all`
+ * first, or this has nothing to depersonalize on a fresh clone.
+ *
  * NOT auto-handled (edit by hand if you want): marketing copy/tone, the
  * brand images (public/og.png, favicon.ico, apple-touch-icon.png), the
  * page <title>/meta description wording, and the alternatives-page generator
@@ -79,32 +82,53 @@ const HUB_MAILTO_RULE: Rule = {
     optional: true, // hub-only; absent from the per-app pages
 };
 
+/**
+ * Nav links to the Support/Contact sections we're deleting. nav() is shared
+ * chrome, so these render on every page (landing page and alternatives
+ * pages alike), not just the landing page. hashPath() prefixes a
+ * locale-aware path ("/#support" in English, "/de#support" in German, ...)
+ * and the label is translated per locale, so match on the hash target only
+ * and capture-drop the label rather than hardcoding either.
+ */
+const NAV_SUPPORT_RULE: Rule = {
+    name: "nav: Support link",
+    find: /[ \t]*<a href="[^"]*#support">[^<]*<\/a>\n/g,
+};
+const NAV_CONTACT_RULE: Rule = {
+    name: "nav: Contact link",
+    find: /[ \t]*<a href="[^"]*#contact">[^<]*<\/a>\n/g,
+};
+
 /** Personal content that only lives in the landing page. */
 const LANDING_RULES: Rule[] = [
     // Rewrite prose links first so the generic GitHub sweep can't gut a sentence.
     {
+        // The anchor text itself is already translated per locale (e.g. DE
+        // "GitHub-Repository"), so this captures it rather than hardcoding
+        // the English label — only the href/attributes are locale-constant.
         name: "FAQ 'GitHub repository' prose link -> plain text",
-        find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub repository<\/a\s*>/,
-        replace: "repository",
+        find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>([^<]*)<\/a\s*>/,
+        replace: "$1",
     },
     {
+        // English-only: this sentence has no stable wrapper/class to key on
+        // in the other 8 locales' FAQ prose (different words, different
+        // order), so it can't be matched structurally. 0 matches on a
+        // translated public/{locale}/index.html is expected, not a warning
+        // sign — strip it by hand there if self-hosting a translated page.
         name: "FAQ Patreon donation sentence",
         find: /\s*Donations on Patreon\s+help cover server costs\./g,
         replace: "",
+        optional: true,
     },
-    // Nav links to sections we're deleting + the repo link.
-    {
-        name: "nav: Support link",
-        find: /[ \t]*<a href="#support">Support<\/a>\n/,
-    },
-    {
-        name: "nav: Contact link",
-        find: /[ \t]*<a href="#contact">Contact<\/a>\n/,
-    },
-    // Hero secondary "Support" button.
+    NAV_SUPPORT_RULE,
+    NAV_CONTACT_RULE,
+    // Hero secondary "Support" button. Label captured rather than hardcoded
+    // (translated per locale); href keeps the same "#support" drift as the
+    // nav link above.
     {
         name: "hero: Support button",
-        find: /[ \t]*<a class="btn btn-secondary" href="#support"[\s\S]*?>Support<\/a\s*>\n/,
+        find: /[ \t]*<a class="btn btn-secondary" href="#support"[\s\S]*?<\/a\s*>\n/,
     },
     // Whole Support (Patreon) and Contact sections.
     {
@@ -126,7 +150,7 @@ const LANDING_RULES: Rule[] = [
     },
     {
         name: "footer: Contact (mailto) link",
-        find: /[ \t]*<a href="mailto:anton@nutrition-mcp\.com">Contact<\/a>\n/,
+        find: /[ \t]*<a href="mailto:anton@nutrition-mcp\.com">[^<]*<\/a>\n/,
     },
     // Every remaining link to the maintainer's repo (nav, footer, CTA button).
     GITHUB_LINKS_RULE,
@@ -159,7 +183,7 @@ const GLAMA_RULE: Rule = {
 const CSP_RULES: Rule[] = [
     {
         name: "CSP: connect-src GA + github hosts",
-        find: / https:\/\/www\.google-analytics\.com https:\/\/\*\.google-analytics\.com https:\/\/\*\.analytics\.google\.com https:\/\/\*\.googletagmanager\.com https:\/\/api\.github\.com/,
+        find: / https:\/\/www\.google-analytics\.com https:\/\/\*\.google-analytics\.com https:\/\/\*\.analytics\.google\.com https:\/\/analytics\.google\.com https:\/\/www\.google\.com https:\/\/\*\.googletagmanager\.com https:\/\/api\.github\.com/,
         replace: "",
     },
     {
@@ -179,11 +203,15 @@ const DOMAIN_RULE: Rule = {
 // The generated "alternative to X" comparison pages carry the same personal
 // bits as the landing page (GA, GitHub links, contact mailto, the domain) but
 // none of the Patreon/Medium/Contact-section markup, so they get a focused set.
+// They do still render the shared nav() chrome, though, which links to the
+// landing page's #support/#contact anchors — those need stripping here too.
 // Mailto rules run before DOMAIN_RULE so the email is removed before the domain
 // sweep could rewrite it to a placeholder address.
 const ALT_RULES: Rule[] = [
     ...ANALYTICS_RULES,
     GITHUB_LINKS_RULE,
+    NAV_SUPPORT_RULE,
+    NAV_CONTACT_RULE,
     // Unwrap the inline prose mailto first, so the standalone-link rule below
     // only sees the footer "Contact" links (and can't over-match across tags).
     HUB_MAILTO_RULE,
@@ -223,25 +251,59 @@ const altPageJobs = (
 // by hand when you change one, the same as the rest of this file already
 // asks for GITHUB_LINKS_RULE / DOMAIN_RULE etc.
 const RULES_BY_FILENAME: Record<string, Rule[]> = {
-    "login.html": [...ANALYTICS_RULES, DOMAIN_RULE],
-    "privacy.html": [...ANALYTICS_RULES, DOMAIN_RULE],
+    "login.html": [
+        ...ANALYTICS_RULES,
+        NAV_SUPPORT_RULE,
+        NAV_CONTACT_RULE,
+        GITHUB_LINKS_RULE,
+        MAILTO_RULE,
+        DOMAIN_RULE,
+    ],
+    "privacy.html": [
+        ...ANALYTICS_RULES,
+        NAV_SUPPORT_RULE,
+        NAV_CONTACT_RULE,
+        GITHUB_LINKS_RULE,
+        MAILTO_RULE,
+        DOMAIN_RULE,
+    ],
     "terms.html": [
         ...ANALYTICS_RULES,
+        NAV_SUPPORT_RULE,
+        NAV_CONTACT_RULE,
+        // Prose-embedded, so unwrap to text first — same reasoning as
+        // LANDING_RULES: run before the generic sweeps below so they can't
+        // gut a sentence. The footer and mobile-menu also render a
+        // same-labeled "GitHub" link, but always immediately followed by a
+        // newline (each sits alone on its own line) where the prose mention
+        // is followed by more sentence text — (?!\n) tells them apart so
+        // this rule only fires on the prose one, and GITHUB_LINKS_RULE below
+        // cleanly deletes the other two as whole lines instead of leaving
+        // dangling plain-text "GitHub". The mailto rule is scoped the same
+        // way, by anchor text: the prose link's visible text is the email
+        // address itself, unlike the footer's "Contact" label.
         {
             name: "terms: 'GitHub' prose link -> plain text",
-            find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>/,
+            find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>(?!\n)/,
             replace: "GitHub",
         },
         {
             name: "terms: contact mailto -> placeholder address",
-            find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>[^<]*<\/a\s*>/,
+            find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>anton@nutrition-mcp\.com<\/a\s*>/,
             replace: "your@email.com",
         },
+        // Sweeps the header icon-button GitHub link and the footer/mobile-menu
+        // GitHub + Contact links the prose-scoped rules above deliberately
+        // don't touch.
+        GITHUB_LINKS_RULE,
+        MAILTO_RULE,
         DOMAIN_RULE,
     ],
     "tools.html": [
         ...ANALYTICS_RULES,
         GITHUB_LINKS_RULE,
+        NAV_SUPPORT_RULE,
+        NAV_CONTACT_RULE,
         MAILTO_RULE,
         DOMAIN_RULE,
     ],
@@ -286,26 +348,53 @@ const JOBS: { path: string; rules: Rule[] }[] = [
         path: "public/index.html",
         rules: [...ANALYTICS_RULES, ...LANDING_RULES, DOMAIN_RULE],
     },
-    { path: "public/login.html", rules: [...ANALYTICS_RULES, DOMAIN_RULE] },
-    { path: "public/privacy.html", rules: [...ANALYTICS_RULES, DOMAIN_RULE] },
+    {
+        path: "public/login.html",
+        rules: [
+            ...ANALYTICS_RULES,
+            NAV_SUPPORT_RULE,
+            NAV_CONTACT_RULE,
+            GITHUB_LINKS_RULE,
+            MAILTO_RULE,
+            DOMAIN_RULE,
+        ],
+    },
+    {
+        path: "public/privacy.html",
+        rules: [
+            ...ANALYTICS_RULES,
+            NAV_SUPPORT_RULE,
+            NAV_CONTACT_RULE,
+            GITHUB_LINKS_RULE,
+            MAILTO_RULE,
+            DOMAIN_RULE,
+        ],
+    },
     // Terms page. Its GitHub link and contact mailto sit mid-sentence, so the
     // generic GITHUB_LINKS_RULE / MAILTO_RULE (which delete the whole anchor
-    // line) would leave dangling prose — unwrap them to text instead. Both run
-    // before DOMAIN_RULE so the email goes before the domain sweep sees it.
+    // line) would leave dangling prose — unwrap them to text instead, scoped
+    // (via (?!\n) / exact anchor text) so they don't also swallow the
+    // footer/mobile-menu "GitHub"/"Contact" links, which the generic rules
+    // below handle instead. Both run before DOMAIN_RULE so the email goes
+    // before the domain sweep sees it.
     {
         path: "public/terms.html",
         rules: [
             ...ANALYTICS_RULES,
+            NAV_SUPPORT_RULE,
+            NAV_CONTACT_RULE,
             {
                 name: "terms: 'GitHub' prose link -> plain text",
-                find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>/,
+                find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>(?!\n)/,
                 replace: "GitHub",
             },
             {
                 name: "terms: contact mailto -> placeholder address",
-                find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>[^<]*<\/a\s*>/,
+                find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>anton@nutrition-mcp\.com<\/a\s*>/,
                 replace: "your@email.com",
             },
+            GITHUB_LINKS_RULE,
+            MAILTO_RULE,
             DOMAIN_RULE,
         ],
     },
@@ -316,6 +405,8 @@ const JOBS: { path: string; rules: Rule[] }[] = [
         rules: [
             ...ANALYTICS_RULES,
             GITHUB_LINKS_RULE,
+            NAV_SUPPORT_RULE,
+            NAV_CONTACT_RULE,
             MAILTO_RULE,
             DOMAIN_RULE,
         ],
@@ -366,10 +457,14 @@ for (const job of JOBS) {
     const report: string[] = [];
 
     for (const rule of rules(job)) {
-        const count = (
-            text.match(new RegExp(rule.find.source, flags(rule.find))) || []
-        ).length;
-        text = text.replace(rule.find, rule.replace ?? "");
+        // Always replace with a global-flagged clone, matching what count
+        // below measures — text.replace(rule.find, ...) with a non-global
+        // rule.find silently replaces only the first occurrence, which used
+        // to under-strip every rule with >1 match and no explicit /g (this
+        // is how terms.html kept 2 of its 3 GitHub links after a "✓ 3×" report).
+        const globalFind = new RegExp(rule.find.source, flags(rule.find));
+        const count = (text.match(globalFind) || []).length;
+        text = text.replace(globalFind, rule.replace ?? "");
         if (count === 0) {
             if (rule.optional) {
                 report.push(`    – 0×  ${rule.name}`);
