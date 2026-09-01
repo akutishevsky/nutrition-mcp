@@ -80,10 +80,15 @@ export interface WidgetStrings {
         /** A limit metric with nothing recorded at all. */
         noneLogged: string;
         /** Default label above the calorie ring/figure when a widget doesn't
-         * override it with its own calLabel (nutrition-summary and trends
+         * override it with its own calLabel. nutrition-summary and trends
          * always override; goal-progress and meal-logged rely on this
-         * default). */
+         * default only when data.date is the viewer's current local day —
+         * otherwise they pass caloriesOn instead (#114). */
         caloriesToday: string;
+        /** calLabel for a day-scoped widget (goal-progress, meal-logged)
+         * showing a date other than the viewer's today. Placeholder: {date}
+         * (pre-formatted via shared/date.js's shortDate). */
+        caloriesOn: string;
         /** Hint line under an interactive strip. */
         tapHint: string;
         /** Appended sentence in an interactive tile's aria-label, e.g.
@@ -401,6 +406,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         drinkLabels: { us: "US drinks", uk: "UK units" },
         noneLogged: "none logged",
         caloriesToday: "Calories today",
+        caloriesOn: "Calories · {date}",
         tapHint: "Tap a metric for the meals behind it",
         showMealsContributed: "Show the meals that contributed.",
         byMealTitle: "{label} by meal",

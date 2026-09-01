@@ -473,7 +473,9 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         drinkUnit: DRINK_GRAMS[unit] ? unit : "us",
         // The shared default calorie-ring label, translated via
         // T.macros.caloriesToday. goal-progress.html and meal-logged.html
-        // don't override it and rely on this default in production;
+        // pass this same default explicitly when data.date is the viewer's
+        // today, and T.macros.caloriesOn (day-scoped) otherwise, so the ring
+        // never claims "today" for a date it knows is not (#114);
         // nutrition-summary.html and trends.html always pass their own more
         // specific calLabel (day count / range-averaged wording).
         calLabel: (opts && opts.calLabel) || T.macros.caloriesToday,

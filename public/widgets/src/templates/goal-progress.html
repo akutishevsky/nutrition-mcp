@@ -90,6 +90,8 @@
             /*@i18n@*/
             /*@include shared/i18n.js@*/
 
+            /*@include shared/date.js@*/
+
             /*@include shared/bridge.js@*/
 
             // ---- Sample data so the file renders on its own (browser preview) ----
@@ -229,19 +231,6 @@
 
             /*@include shared/macros.js@*/
 
-            // "2026-07-10" → "10 Jul", for the header line where the year is
-            // noise. Split on the string rather than through Date: the payload
-            // is a calendar date already resolved in the user's timezone, and
-            // new Date("2026-07-10") is UTC midnight, which renders as the 9th
-            // for anyone west of Greenwich. Anything not date-shaped is passed
-            // through untouched. Reuses T.nutritionSummary.months (identical
-            // Jan..Dec shape) rather than its own MONTHS array.
-            function shortDate(iso) {
-                const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
-                if (!m) return String(iso || "");
-                return `${Number(m[3])} ${T.nutritionSummary.months[Number(m[2]) - 1]}`;
-            }
-
             // The weight section: one compact row on the strip's own idiom
             // (label · track · figure), or one line of text when there is
             // nothing to plot. Never a card — it is the last section of the
@@ -374,17 +363,22 @@
                     return;
                 }
 
+                // The date this widget shows is arbitrary — get_goal_progress
+                // takes any date — so the calorie label only says "today" when
+                // it actually is the viewer's today (#114); otherwise it names
+                // the day, matching the date already printed in `meta` below.
+                const calLabel = isToday(data.date)
+                    ? T.macros.caloriesToday
+                    : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
+
                 const panel = macroPanel(
                     totals,
                     data.goals,
                     undefined,
                     data.meals,
                     // Nothing sits between the header line and the strip, so no
-                    // leading hairline; the label above the calorie figure is
-                    // the shared default (T.macros.caloriesToday in
-                    // shared/macros.js, translated), which is exactly what
-                    // this widget shows.
-                    { drinkUnit: data.drink_unit },
+                    // leading hairline.
+                    { drinkUnit: data.drink_unit, calLabel },
                 );
 
                 // The day itself and what was logged on it — the context the
