@@ -4,7 +4,26 @@ A remote MCP server for personal nutrition tracking — log meals with calories,
 
 [Help me pay for the servers on Patreon][patreon]
 
-[patreon]: https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink
+[patreon]: https://patreon.com/akutishevskyi
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Demo](#demo)
+- [Tech Stack](#tech-stack)
+- [MCP Tools](#mcp-tools)
+- [MCP Resources](#mcp-resources)
+- [Self-hosting](#self-hosting)
+    - [0. Get the code](#0-get-the-code)
+    - [1. Supabase setup](#1-supabase-setup)
+    - [2. Environment variables](#2-environment-variables)
+    - [3. Google sign-in (optional)](#3-google-sign-in-optional)
+- [Development](#development)
+    - [Testing and quality](#testing-and-quality)
+- [Connect to Claude.ai](#connect-to-claudeai)
+- [API Endpoints](#api-endpoints)
+- [Deploy](#deploy)
+- [License](#license)
 
 ## Quick Start
 
@@ -14,7 +33,7 @@ Already hosted and ready to use — just connect it to your MCP client:
 https://nutrition-mcp.com/mcp
 ```
 
-**On Claude.ai:** Customize → Connectors → + → Add custom connector → paste the URL → Connect
+**On Claude.ai:** Customize → Connectors → + → Add custom connector → paste the URL → Connect (see [Connect to Claude.ai](#connect-to-claudeai) below for the full walkthrough)
 
 On first connect you'll be asked to register with an email and password. Your data persists across reconnections.
 
@@ -83,6 +102,19 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 ## Self-hosting
 
+### 0. Get the code
+
+```bash
+git clone https://github.com/akutishevsky/nutrition-mcp.git
+cd nutrition-mcp
+bun install
+cp .env.example .env   # fill in real values as you go through the steps below
+```
+
+Requires Bun 1.x (matches the Dockerfile's `oven/bun:1` base image; no exact minor version is pinned).
+
+> **Making it yours:** The public site includes the maintainer's personal bits — Google Analytics, Patreon/GitHub/contact links, and the `nutrition-mcp.com` domain. Run `bun run gen:all` to produce the public pages, then `bun run depersonalize` to strip the personal bits in one pass (analytics + CSP, the Support/Contact sections, social links, and the domain → a `your-domain.com` placeholder). Use `bun run depersonalize --dry` to preview without writing. Afterwards, swap in your own `public/og.png`, `favicon.ico`, and `apple-touch-icon.png`, and replace the domain placeholder with your real domain. This script only touches `public/*.html` and `src/index.ts` — it doesn't touch this README, so if you're publishing your own fork, also edit or remove the Patreon line near the top of this file and the Medium link in [Demo](#demo).
+
 ### 1. Supabase setup
 
 1. Create a [Supabase](https://supabase.com) project.
@@ -100,47 +132,68 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 ### 2. Environment variables
 
-| Variable                | Description                                                                                                    |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`          | Your Supabase project URL                                                                                      |
-| `SUPABASE_SECRET_KEY`   | Supabase service role key (bypasses RLS)                                                                       |
-| `OAUTH_CLIENT_ID`       | Random string for OAuth client identification                                                                  |
-| `OAUTH_CLIENT_SECRET`   | Random string for OAuth client authentication                                                                  |
-| `GOOGLE_CLIENT_ID`      | _(optional)_ Google OAuth client ID for "Sign in with Google"                                                  |
-| `GOOGLE_CLIENT_SECRET`  | _(optional)_ Google OAuth client secret                                                                        |
-| `OFF_USER_AGENT`        | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)`                                  |
-| `PATREON_CLIENT_ID`     | _(optional)_ Patreon OAuth client ID, for showing recent posts on the landing page's Support section           |
-| `PATREON_CLIENT_SECRET` | _(optional)_ Patreon OAuth client secret                                                                       |
-| `PATREON_CAMPAIGN_ID`   | _(optional)_ Patreon campaign ID to fetch posts from                                                           |
-| `PATREON_ACCESS_TOKEN`  | _(optional)_ Creator's Access Token from Patreon's client management page — one-time bootstrap seed, see below |
-| `PATREON_REFRESH_TOKEN` | _(optional)_ Creator's Refresh Token from the same page — one-time bootstrap seed, see below                   |
-| `PORT`                  | Server port (default: `8080`)                                                                                  |
-
-> **Making it yours:** The public site includes the maintainer's personal bits — Google Analytics, Patreon/GitHub/contact links, and the `nutrition-mcp.com` domain. Run `bun run depersonalize` to strip them all in one pass (analytics + CSP, the Support/Contact sections, social links, and the domain → a `your-domain.com` placeholder). Use `bun run depersonalize --dry` to preview without writing. Afterwards, swap in your own `public/og.png`, `favicon.ico`, and `apple-touch-icon.png`, and replace the domain placeholder with your real domain.
-
-> **Patreon posts, one-time setup:** `PATREON_ACCESS_TOKEN` / `PATREON_REFRESH_TOKEN` are only ever read once, at server boot, to seed the `patreon_tokens` table if it's still empty — the server refreshes and stores its own pair from then on, so leaving these two set permanently is safe (every later boot is a no-op). You never need to touch the database by hand.
+| Variable                | Description                                                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`          | Your Supabase project URL                                                                                                                                      |
+| `SUPABASE_SECRET_KEY`   | Supabase service role key (bypasses RLS)                                                                                                                       |
+| `OAUTH_CLIENT_ID`       | Random string for OAuth client identification                                                                                                                  |
+| `OAUTH_CLIENT_SECRET`   | Random string for OAuth client authentication                                                                                                                  |
+| `ALLOWED_ORIGINS`       | _(optional)_ Comma-separated list of extra browser origins allowed to call `/mcp` via CORS — `localhost`/`127.0.0.1` on any port are always allowed regardless |
+| `GOOGLE_CLIENT_ID`      | _(optional)_ Google OAuth client ID for "Sign in with Google"                                                                                                  |
+| `GOOGLE_CLIENT_SECRET`  | _(optional)_ Google OAuth client secret                                                                                                                        |
+| `OFF_USER_AGENT`        | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)`                                                                                  |
+| `PATREON_CLIENT_ID`     | _(optional)_ Patreon OAuth client ID, for showing recent posts on the landing page's Support section                                                           |
+| `PATREON_CLIENT_SECRET` | _(optional)_ Patreon OAuth client secret                                                                                                                       |
+| `PATREON_CAMPAIGN_ID`   | _(optional)_ Patreon campaign ID to fetch posts from                                                                                                           |
+| `PATREON_ACCESS_TOKEN`  | _(optional)_ Creator's Access Token from Patreon's client management page — one-time bootstrap seed, see below                                                 |
+| `PATREON_REFRESH_TOKEN` | _(optional)_ Creator's Refresh Token from the same page — one-time bootstrap seed, see below                                                                   |
+| `PORT`                  | Server port (default: `8080`)                                                                                                                                  |
 
 Generate OAuth credentials:
+
+```bash
+bun run generate-oauth-creds
+```
+
+or manually:
 
 ```bash
 openssl rand -hex 16   # use as OAUTH_CLIENT_ID
 openssl rand -hex 32   # use as OAUTH_CLIENT_SECRET
 ```
 
+> **Patreon posts, one-time setup:** `PATREON_ACCESS_TOKEN` / `PATREON_REFRESH_TOKEN` are only ever read once, at server boot, to seed the `patreon_tokens` table if it's still empty — the server refreshes and stores its own pair from then on, so leaving these two set permanently is safe (every later boot is a no-op). You never need to touch the database by hand.
+
 ### 3. Google sign-in (optional)
 
 Email/password works out of the box. To also offer **"Continue with Google"**,
 follow [`docs/google-auth-setup.md`](docs/google-auth-setup.md) to create a
 Google OAuth client, enable the Google provider in Supabase, and set
-`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. This adds the `GET /authorize/google`
+and `GET /auth/google/callback` routes — see [API Endpoints](#api-endpoints).
 
 ## Development
 
 ```bash
 bun install
-cp .env.example .env   # fill in your credentials
-bun run dev             # starts with hot reload on http://localhost:8080
+cp .env.example .env   # fill in your credentials — see Self-hosting above for what to put here
+bun run dev             # regenerates public/ pages, then starts with hot reload on http://localhost:8080
 ```
+
+The generated pages under `public/` (index, tools, privacy, terms, login, `/alternatives`, locale mirrors, `sitemap.xml`) are build artifacts, not tracked in git — they're regenerated on every Docker build, in CI, and once at each `bun run dev` start. `--watch` only restarts the `src/index.ts` process on save, so it does **not** rerun generation — after editing `src/copy/`, `src/routes.ts`, or `scripts/site-partials.ts`, run `bun run gen:all` yourself to pick up the change.
+
+### Testing and quality
+
+```bash
+bun test                # run the test suite
+bun run format           # format with Prettier (4-space indentation)
+bun run format:check     # verify the tree is prettier-clean
+bun run typecheck        # typecheck src/
+```
+
+CI runs `format:check` and `typecheck` on every PR; `typecheck` is scoped to `src/`, so a type error in a test file or under `scripts/` won't be caught by it.
+
+For in-chat widget development (`public/widgets/`), `bun run harness` starts a local host simulator so you can test widgets without a real MCP client.
 
 ## Connect to Claude.ai
 
@@ -155,16 +208,19 @@ bun run dev             # starts with hot reload on http://localhost:8080
 
 ## API Endpoints
 
-| Endpoint                                      | Description                            |
-| --------------------------------------------- | -------------------------------------- |
-| `GET /health`                                 | Health check                           |
-| `GET /.well-known/oauth-authorization-server` | OAuth metadata discovery               |
-| `POST /register`                              | Dynamic client registration            |
-| `GET /authorize`                              | OAuth authorization (shows login page) |
-| `POST /approve`                               | Login/register handler                 |
-| `POST /token`                                 | Token exchange                         |
-| `GET /favicon.ico`                            | Server icon                            |
-| `ALL /mcp`                                    | MCP endpoint (authenticated)           |
+| Endpoint                                      | Description                                                                 |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| `GET /health`                                 | Health check                                                                |
+| `GET /.well-known/oauth-authorization-server` | OAuth metadata discovery (root + `/mcp`-scoped variants)                    |
+| `GET /.well-known/oauth-protected-resource`   | OAuth protected-resource metadata discovery (root + `/mcp`-scoped variants) |
+| `POST /register`                              | Dynamic client registration                                                 |
+| `GET /authorize`                              | OAuth authorization (shows login page)                                      |
+| `GET /authorize/google`                       | Redirects to Google's OAuth consent screen ("Continue with Google")         |
+| `GET /auth/google/callback`                   | Google OAuth callback — exchanges the code, completes sign-in               |
+| `POST /approve`                               | Login/register handler                                                      |
+| `POST /token`                                 | Token exchange                                                              |
+| `GET /favicon.ico`                            | Server icon                                                                 |
+| `ALL /mcp`                                    | MCP endpoint (authenticated)                                                |
 
 ## Deploy
 

@@ -28,13 +28,15 @@
     },
     "scripts": {
         "start": "bun src/index.ts",
-        "dev": "bun --watch src/index.ts",
+        "dev": "bun run gen:all && bun --watch src/index.ts",
         "inspect": "bunx @modelcontextprotocol/inspector",
         "harness": "bun run scripts/widget-harness.ts",
         "test": "bun test",
         "format": "bunx prettier --write .",
         "format:check": "bunx prettier --check .",
         "typecheck": "bun run scripts/typecheck.ts",
+        "gen:pages": "bun run scripts/gen-index.ts && bun run scripts/gen-legal.ts && bun run scripts/gen-tools.ts && bun run scripts/gen-alternatives.ts && bun run scripts/gen-login.ts",
+        "gen:all": "bun run gen:pages && bun run scripts/gen-sitemap.ts",
         "depersonalize": "bun run scripts/depersonalize.ts",
         "generate-oauth-creds": "echo \"OAUTH_CLIENT_ID=$(openssl rand -hex 16)\" && echo \"OAUTH_CLIENT_SECRET=$(openssl rand -hex 32)\""
     },
