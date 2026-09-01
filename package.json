@@ -28,7 +28,7 @@
     },
     "scripts": {
         "start": "bun src/index.ts",
-        "dev": "bun --watch src/index.ts",
+        "dev": "bun run gen:all && bun --watch src/index.ts",
         "inspect": "bunx @modelcontextprotocol/inspector",
         "harness": "bun run scripts/widget-harness.ts",
         "test": "bun test",

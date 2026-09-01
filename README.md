@@ -139,11 +139,10 @@ Google OAuth client, enable the Google provider in Supabase, and set
 ```bash
 bun install
 cp .env.example .env   # fill in your credentials
-bun run gen:all          # generates public/index.html, /tools, locale pages, sitemap.xml, etc.
-bun run dev              # starts with hot reload on http://localhost:8080
+bun run dev             # regenerates public/ pages, then starts with hot reload on http://localhost:8080
 ```
 
-The generated pages under `public/` (index, tools, privacy, terms, login, `/alternatives`, locale mirrors, `sitemap.xml`) are build artifacts, not tracked in git — they're regenerated on every Docker build and in CI. Re-run `bun run gen:all` after editing anything under `src/copy/`, `src/routes.ts`, or `scripts/site-partials.ts`.
+The generated pages under `public/` (index, tools, privacy, terms, login, `/alternatives`, locale mirrors, `sitemap.xml`) are build artifacts, not tracked in git — they're regenerated on every Docker build, in CI, and once at each `bun run dev` start. `--watch` only restarts the `src/index.ts` process on save, so it does **not** rerun generation — after editing `src/copy/`, `src/routes.ts`, or `scripts/site-partials.ts`, run `bun run gen:all` yourself to pick up the change.
 
 ## Connect to Claude.ai
 
