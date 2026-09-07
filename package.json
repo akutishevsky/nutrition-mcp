@@ -42,9 +42,9 @@
     },
     "dependencies": {
         "@modelcontextprotocol/server": "^2.0.0",
-        "@supabase/supabase-js": "^2.112.4",
-        "hono": "^4.13.5",
+        "@supabase/supabase-js": "^2.116.0",
+        "hono": "^4.13.7",
         "prettier": "^3.9.6",
-        "zod": "^4.4.3"
+        "zod": "^4.5.4"
     }
 }
