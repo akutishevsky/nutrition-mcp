@@ -508,9 +508,17 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         var scale = Math.pow(10, d.dec);
                         var n = Math.round(d.n * scale) / scale;
                         tag.classList.toggle("down", n < 0);
-                        tag.textContent = n
-                            ? (n > 0 ? "+" : "\u2212") + fmtDec(Math.abs(n), d.dec) + d.unit
-                            : "\u00b10";
+                        // Nothing changed means nothing to say: an empty tag rather
+                        // than a "+-0" placeholder on every card while the page is
+                        // still, so the eye lands only on figures that moved.
+                        if (!n) {
+                            tag.textContent = "";
+                            tag.hidden = true;
+                            return;
+                        }
+                        tag.textContent =
+                            (n > 0 ? "+" : "\u2212") + fmtDec(Math.abs(n), d.dec) + d.unit;
+                        tag.hidden = false;
                         if (quiet) return;
                         tag.classList.remove("pop");
                         void tag.offsetWidth;
@@ -1424,7 +1432,7 @@ function renderStatCard(s: StatCard): string {
     return `                    <div class="nm-stat${s.dark ? " nm-stat-dark" : ""}" data-stat-card="${s.key}">
                         <div class="nm-stat-top">
                             <span class="nm-tile nm-tile-md ${s.tint}" aria-hidden="true"><i class="fa-solid ${s.icon}"></i></span>
-                            <span class="nm-delta" data-delta="${s.key}"${deltaUnit}>±0</span>
+                            <span class="nm-delta" data-delta="${s.key}"${deltaUnit} hidden></span>
                         </div>
                         <div>
                             <b class="nm-stat-v"><span data-stat="${s.key}">—</span><span class="nm-stat-u" data-stat-unit="${s.key}">${s.unit}</span></b>
@@ -1468,8 +1476,10 @@ function renderLive(doc: IndexDoc): string {
         },
         {
             key: "total_fat_g",
-            icon: "fa-droplet",
-            tint: "nm-c-fat",
+            // An oil bottle in a golden tint, not a droplet in the fat series'
+            // pink - that read as a drop of blood next to the weight card.
+            icon: "fa-bottle-droplet",
+            tint: "nm-c-oil",
             label: l.cards.fat,
             unit: "kg",
         },

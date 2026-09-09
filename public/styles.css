@@ -71,6 +71,9 @@ body {
     --fib: #0d9488;
     --sug: #84cc16;
     --caf: #a16207;
+    /* The fat stat card's oil-bottle tile: golden, because the fat series'
+       pink on a droplet read as blood. Never used for the fat bar itself. */
+    --oil: #d19a1e;
     --shadow:
         0 1px 2px rgba(16, 19, 24, 0.04),
         0 30px 70px -30px rgba(16, 19, 24, 0.25);
@@ -132,6 +135,7 @@ body {
         --fib: #14b8a6;
         --sug: #a3e635;
         --caf: #d4a56a;
+        --oil: #f0c04a;
         --shadow:
             0 1px 2px rgba(0, 0, 0, 0.4), 0 30px 70px -30px rgba(0, 0, 0, 0.8);
         --cta-bg: #161a22;
@@ -165,6 +169,7 @@ body[data-theme="dark"] {
     --fib: #14b8a6;
     --sug: #a3e635;
     --caf: #d4a56a;
+    --oil: #f0c04a;
     --shadow:
         0 1px 2px rgba(0, 0, 0, 0.4), 0 30px 70px -30px rgba(0, 0, 0, 0.8);
     --cta-bg: #161a22;
@@ -477,6 +482,9 @@ html.js [data-reveal="stagger"].in > :nth-child(n + 7) {
 }
 .nm-c-sug {
     --c: var(--sug);
+}
+.nm-c-oil {
+    --c: var(--oil);
 }
 .nm-c-caf {
     --c: var(--caf);
@@ -2446,16 +2454,31 @@ body.menu-open {
     align-items: center;
     gap: 8px;
 }
+/* The since-you-opened change on a stat card. A bold pill rather than a
+   bare mono figure: at 11.5px/500 it was barely there. Empty and hidden
+   while the figure has not moved. */
 .nm-delta {
     font-family: var(--mono);
-    font-size: 11.5px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 700;
     color: var(--acc-text);
+    background: var(--acc-soft);
+    padding: 4px 9px;
+    border-radius: 999px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 .nm-delta.down {
-    color: var(--fat);
+    color: var(--over);
+    background: color-mix(in srgb, var(--over) 14%, var(--panel));
+}
+.nm-stat-dark .nm-delta {
+    color: var(--acc);
+    background: color-mix(in srgb, var(--acc) 22%, transparent);
+}
+.nm-stat-dark .nm-delta.down {
+    color: var(--over);
+    background: color-mix(in srgb, var(--over) 22%, transparent);
 }
 .nm-delta.pop {
     animation: nm-rise 0.35s both;
