@@ -258,7 +258,7 @@ export function nav(
     currentSuffix?: string,
     opts?: {
         /**
-         * The static per-locale switcher below links to `urlFor(l, suffix)`
+         * The static per-locale switcher below links to `pathFor(l, suffix)`
          * — wrong for a page that isn't really "at" a locale-prefixed URL
          * (public/login.html is rendered per in-flight OAuth session, not
          * routed by path). When true, the whole <details class="lang-switch">
@@ -273,10 +273,15 @@ export function nav(
     const h = (id: string) => hashPath(locale, id);
     const c = chromeFor(locale);
     const n = c.nav;
+    // Site-relative (`/de/tools`), not the absolute `urlFor()` the head's
+    // canonical/hreflang tags use: those are for crawlers and must name the
+    // live origin, but a visitor's click should stay on whatever host they
+    // are on — a local dev server, a preview deploy or a self-hosted copy
+    // — instead of jumping to nutrition-mcp.com.
     const switcherItems = SITE_LOCALES.map((l) => {
         const active = l === locale;
         return `                    <a
-                        href="${urlFor(l, suffix)}"
+                        href="${pathFor(l, suffix)}"
                         lang="${HTML_LANG[l]}"
                         hreflang="${HTML_LANG[l]}"${active ? '\n                        aria-current="page"' : ""}
                         ><span>${esc(LOCALE_NAMES[l])}</span
