@@ -1640,6 +1640,13 @@ export interface LandingStats {
     total_protein_g: number;
     total_carbs_g: number;
     total_fat_g: number;
+    // Behind the landing page's "Water logged" and "Weight lost" cards.
+    // Optional on purpose: they arrive with the
+    // 20260909120000_landing_stats_water_weight migration, and the DB can
+    // lag the app on a deploy, so an older public_landing_stats() simply
+    // omits them and the page hides those two cards rather than showing NaN.
+    total_water_ml?: number;
+    weight_lost_g?: number;
     timezones: number;
     // IANA names of every distinct timezone in use — drives the landing-page
     // world map. Aggregate-only; no per-user data.
