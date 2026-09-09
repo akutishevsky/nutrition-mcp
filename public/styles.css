@@ -767,17 +767,23 @@ html.js [data-reveal="stagger"].in > :nth-child(n + 7) {
    arrived on the site, hung off the top-right corner of the nav item the
    way an app-icon badge is. Ships [hidden] on every page (liveBadge() in
    scripts/site-partials.ts) and is painted by site.js's setNavBadge.
-   Anchored by its LEFT edge, a hair past the label's last glyph, so a
-   second or third digit grows the pill outward into the space
-   .nav-has-badge reserves (--badge-reserve, measured by site.js from the
-   badge's actual overflow — 0 while hidden, never a permanent worst-case
-   reserve for "99+"). Anchoring the right edge instead makes every added
-   digit grow leftward over the word the badge belongs to. Bounded by the
-   99+ cap in setNavBadge: three characters is the widest it gets. */
+   Anchored by its LEFT edge, so a second or third digit grows the pill
+   outward into the space .nav-has-badge reserves (--badge-reserve,
+   measured by site.js from the badge's actual overflow — 0 while hidden,
+   never a permanent worst-case reserve for "99+"). Anchoring the right
+   edge instead makes every added digit grow leftward over the word the
+   badge belongs to. Bounded by the 99+ cap in setNavBadge: three
+   characters is the widest it gets.
+
+   It sits ON the pill's top-right corner, not past the corner of its
+   bounding box: the nav item is fully rounded, so the box corner is ~6px
+   clear of the actual edge and a badge parked there floats in space
+   detached from the word it counts for. The ring in --bg is what keeps it
+   legible once it overlaps the ink fill of the active item. */
 .nav-badge {
     position: absolute;
-    top: 0.02rem;
-    left: calc(100% - 0.25rem);
+    top: -0.18rem;
+    left: calc(100% - 0.65rem);
     right: auto;
     display: inline-flex;
     align-items: center;
@@ -794,6 +800,7 @@ html.js [data-reveal="stagger"].in > :nth-child(n + 7) {
     line-height: 1;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--bg);
     pointer-events: none;
 }
 .nav-badge[hidden] {
@@ -964,9 +971,12 @@ body.menu-open .menu-btn .nav-badge {
     position: relative;
     display: inline-block;
 }
+/* The sheet's copy hangs off a plain inline label rather than a rounded
+   pill, so it keeps sitting beside the word instead of on a corner. */
 .site-menu .nav-badge {
     top: 0.1rem;
     left: calc(100% + 0.3rem);
+    box-shadow: none;
     right: auto;
     min-width: 1.3rem;
     height: 1.3rem;
