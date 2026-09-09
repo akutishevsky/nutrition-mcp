@@ -387,8 +387,8 @@ ${themeBtn("dark", "fa-moon")}
 }
 
 /**
- * The four-column footer: brand block (blurb, endpoint copy pill, social
- * circle), then Product / Open source / Your data columns inside one
+ * The three-column footer: brand block (blurb, endpoint copy pill, social
+ * circle), then the Product and Open source columns inside one
  * <nav class="footer-links"> landmark, and the legal line. `currentSuffix`
  * is a PAGE_ROUTES key (e.g. "/privacy") when the current page has a link
  * in this footer (Tools, Alternatives, Privacy, Terms) — every copy of
@@ -436,23 +436,15 @@ ${link(h("examples"), f.product.examples)}
 ${link(h("live"), f.product.live)}
 ${link(p("/tools"), f.product.tools)}
 ${link(p("/alternatives"), f.product.alternatives)}
+${link(h("contact"), f.product.contact)}
                     </div>
                     <div class="nm-fcol">
                         <b>${esc(f.openSource.heading)}</b>
 ${link(GITHUB, f.openSource.source, true)}
-${link(GITHUB + "#readme", f.openSource.selfHost, true)}
+${link(GITHUB + "#self-hosting", f.openSource.selfHost, true)}
 ${link(GITHUB + "/issues", f.openSource.bug, true)}
 ${link("/llms.txt", f.openSource.llms)}
 ${link(GITHUB + "/blob/main/LICENSE", f.openSource.licence, true)}
-                    </div>
-                    <div class="nm-fcol">
-                        <b>${esc(f.yourData.heading)}</b>
-${link(p("/privacy"), f.yourData.privacy)}
-${link(p("/terms"), f.yourData.terms)}
-${link(h("faq"), f.yourData.exportCsv)}
-${link(h("faq"), f.yourData.deleteAccount)}
-${link(PATREON, f.yourData.patreon, true)}
-${link(h("contact"), f.yourData.contact)}
                     </div>
                 </nav>
             </div>

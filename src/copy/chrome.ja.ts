@@ -64,6 +64,7 @@ export const CHROME_JA: ChromeCopy = {
             live: "ライブ統計",
             tools: "36個の栄養ツールすべて",
             alternatives: "MyFitnessPalなどの代替アプリ",
+            contact: "お問い合わせ",
         },
         openSource: {
             heading: "オープンソース",
@@ -72,15 +73,6 @@ export const CHROME_JA: ChromeCopy = {
             bug: "バグを報告",
             llms: "llms.txt",
             licence: "MITライセンス",
-        },
-        yourData: {
-            heading: "あなたのデータ",
-            privacy: "プライバシーポリシー",
-            terms: "利用規約",
-            exportCsv: "CSVでエクスポート",
-            deleteAccount: "アカウントを削除",
-            patreon: "Patreonで支援",
-            contact: "お問い合わせ",
         },
         copyright:
             "© 2026 akutishevsky · MIT · バーコードデータはOpen Food Facts提供",

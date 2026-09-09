@@ -187,11 +187,19 @@ export interface ChromeCopy {
     };
 
     /**
-     * The four-column footer: the brand block (blurb, endpoint copy pill,
-     * social circle), then Product / Open source / Your data link columns,
-     * then the legal line. The product links point at landing-page
-     * sections (#connect, #onboarding, #examples, #live, #faq, #contact)
-     * via hashPath, so they resolve from every page.
+     * The three-column footer: the brand block (blurb, endpoint copy pill,
+     * social circle), then the Product and Open source link columns, then
+     * the legal line. The product links point at landing-page sections
+     * (#connect, #onboarding, #examples, #live, #contact) via hashPath, so
+     * they resolve from every page.
+     *
+     * A third "Your data" column used to sit beside those two and was
+     * dropped rather than repaired: Privacy and Terms already repeat in the
+     * bottom legal line, "Export as CSV" and "Delete account" were labels
+     * on plain #faq anchors rather than the actions they read as, and
+     * Patreon (the Donate pill, the Support section, the footer's own
+     * social circle) and Contact were not data links at all. Contact moved
+     * into Product; nothing else was lost.
      */
     footer: {
         /** Under the logo; names the maintainer's handle, which
@@ -211,6 +219,8 @@ export interface ChromeCopy {
              * tools". */
             tools: string;
             alternatives: string;
+            /** Links to the landing page's Contact section (#contact). */
+            contact: string;
         };
         openSource: {
             heading: string;
@@ -219,15 +229,6 @@ export interface ChromeCopy {
             bug: string;
             llms: string;
             licence: string;
-        };
-        yourData: {
-            heading: string;
-            privacy: string;
-            terms: string;
-            exportCsv: string;
-            deleteAccount: string;
-            patreon: string;
-            contact: string;
         };
         /** e.g. "© 2026 akutishevsky · MIT · Barcode data from Open Food
          * Facts". */
@@ -305,6 +306,7 @@ export const CHROME_EN: ChromeCopy = {
             live: "Live stats",
             tools: "All 36 nutrition tools",
             alternatives: "Alternatives to MyFitnessPal & co.",
+            contact: "Contact",
         },
         openSource: {
             heading: "Open source",
@@ -313,15 +315,6 @@ export const CHROME_EN: ChromeCopy = {
             bug: "Report a bug",
             llms: "llms.txt",
             licence: "MIT licence",
-        },
-        yourData: {
-            heading: "Your data",
-            privacy: "Privacy policy",
-            terms: "Terms of service",
-            exportCsv: "Export as CSV",
-            deleteAccount: "Delete account",
-            patreon: "Support on Patreon",
-            contact: "Contact",
         },
         copyright:
             "© 2026 akutishevsky · MIT · Barcode data from Open Food Facts",

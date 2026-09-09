@@ -77,10 +77,10 @@ const GITHUB_LINKS_RULE: Rule = {
 /**
  * The shared footer() chrome (scripts/site-partials.ts), rendered on every
  * page since the whole site moved onto the Dawn design: the social circle
- * (GitHub / Patreon / Email — each an icon-only link on its own line), the
- * "Support on Patreon" text link, and the repo sub-links (#readme, /issues,
- * /blob/main/LICENSE) that the exact-href GITHUB_LINKS_RULE deliberately
- * does not match. Privacy / Terms / Alternatives stay. Each label is matched
+ * (GitHub / Patreon / Email — each an icon-only link on its own line) and
+ * the repo sub-links (#self-hosting, /issues, /blob/main/LICENSE) that the
+ * exact-href GITHUB_LINKS_RULE deliberately does not match. The bottom
+ * line's Privacy / Terms / Alternatives stay. Each label is matched
  * with an optional <i> icon plus [^<]* (not [\s\S]*) so a link whose </a>
  * isn't followed by a newline can't run on and swallow everything up to the
  * next anchor. The footer's "Source on GitHub" link and the sheet menu's
@@ -88,7 +88,7 @@ const GITHUB_LINKS_RULE: Rule = {
  */
 const FOOTER_RULES: Rule[] = [
     {
-        name: "footer: Patreon links (social icon + 'Support on Patreon')",
+        name: "footer: Patreon social icon link",
         find: /[ \t]*<a\b[^>]*?href="https:\/\/patreon\.com\/[^"]*"[^>]*>(?:<i\b[^>]*><\/i>)?[^<]*<\/a\s*>\n/g,
     },
     {
@@ -131,7 +131,7 @@ const HUB_MAILTO_RULE: Rule = {
 /**
  * Nav / footer links to the Support/Contact sections we're deleting. nav()
  * and footer() are shared chrome, so these render on every page (the
- * header pills, the sheet menu and the footer's "Your data" column), not
+ * header pills, the sheet menu and the footer's Product column), not
  * just the landing page. hashPath() prefixes a locale-aware path
  * ("/#support" in English, "/de#support" in German, ...) and the label is
  * translated per locale, so match on the hash target only and capture-drop

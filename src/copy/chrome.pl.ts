@@ -67,6 +67,7 @@ export const CHROME_PL: ChromeCopy = {
             live: "Statystyki na żywo",
             tools: "Wszystkie 36 narzędzi",
             alternatives: "Alternatywy dla MyFitnessPal i innych",
+            contact: "Kontakt",
         },
         openSource: {
             heading: "Open source",
@@ -75,15 +76,6 @@ export const CHROME_PL: ChromeCopy = {
             bug: "Zgłoś błąd",
             llms: "llms.txt",
             licence: "Licencja MIT",
-        },
-        yourData: {
-            heading: "Twoje dane",
-            privacy: "Polityka prywatności",
-            terms: "Regulamin",
-            exportCsv: "Eksport do CSV",
-            deleteAccount: "Usuń konto",
-            patreon: "Wesprzyj na Patreon",
-            contact: "Kontakt",
         },
         copyright:
             "© 2026 akutishevsky · MIT · Dane kodów kreskowych z Open Food Facts",

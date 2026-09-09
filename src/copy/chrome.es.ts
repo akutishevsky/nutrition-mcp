@@ -65,6 +65,7 @@ export const CHROME_ES: ChromeCopy = {
             live: "Estadísticas en vivo",
             tools: "Las 36 herramientas de nutrición",
             alternatives: "Alternativas a MyFitnessPal y compañía",
+            contact: "Contacto",
         },
         openSource: {
             heading: "Código abierto",
@@ -73,15 +74,6 @@ export const CHROME_ES: ChromeCopy = {
             bug: "Informar de un error",
             llms: "llms.txt",
             licence: "Licencia MIT",
-        },
-        yourData: {
-            heading: "Tus datos",
-            privacy: "Política de privacidad",
-            terms: "Términos de servicio",
-            exportCsv: "Exportar como CSV",
-            deleteAccount: "Eliminar cuenta",
-            patreon: "Apoyar en Patreon",
-            contact: "Contacto",
         },
         copyright:
             "© 2026 akutishevsky · MIT · Datos de códigos de barras de Open Food Facts",

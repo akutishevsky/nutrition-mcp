@@ -67,6 +67,7 @@ export const CHROME_UK: ChromeCopy = {
             live: "Статистика наживо",
             tools: "Усі 36 інструментів",
             alternatives: "Альтернативи MyFitnessPal та іншим",
+            contact: "Контакти",
         },
         openSource: {
             heading: "Відкритий код",
@@ -75,15 +76,6 @@ export const CHROME_UK: ChromeCopy = {
             bug: "Повідомити про баг",
             llms: "llms.txt",
             licence: "Ліцензія MIT",
-        },
-        yourData: {
-            heading: "Твої дані",
-            privacy: "Політика приватності",
-            terms: "Умови використання",
-            exportCsv: "Експорт у CSV",
-            deleteAccount: "Видалити акаунт",
-            patreon: "Підтримати на Patreon",
-            contact: "Контакти",
         },
         copyright:
             "© 2026 akutishevsky · MIT · Дані штрихкодів від Open Food Facts",

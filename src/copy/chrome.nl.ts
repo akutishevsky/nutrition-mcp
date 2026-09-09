@@ -65,6 +65,7 @@ export const CHROME_NL: ChromeCopy = {
             live: "Live statistieken",
             tools: "Alle 36 voedingstools",
             alternatives: "Alternatieven voor MyFitnessPal & co.",
+            contact: "Contact",
         },
         openSource: {
             heading: "Open source",
@@ -73,15 +74,6 @@ export const CHROME_NL: ChromeCopy = {
             bug: "Een bug melden",
             llms: "llms.txt",
             licence: "MIT-licentie",
-        },
-        yourData: {
-            heading: "Je gegevens",
-            privacy: "Privacybeleid",
-            terms: "Gebruiksvoorwaarden",
-            exportCsv: "Exporteren als CSV",
-            deleteAccount: "Account verwijderen",
-            patreon: "Steun op Patreon",
-            contact: "Contact",
         },
         copyright:
             "© 2026 akutishevsky · MIT · Barcodegegevens van Open Food Facts",

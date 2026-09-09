@@ -3152,7 +3152,7 @@ body.menu-open {
     display: grid;
     grid-template-columns:
         minmax(min(100%, 240px), 1.3fr)
-        repeat(3, minmax(140px, 1fr));
+        repeat(2, minmax(140px, 1fr));
     gap: clamp(20px, 3vw, 40px);
 }
 .nm-footer-brand {
@@ -3238,7 +3238,7 @@ body.menu-open {
 .nm-social a:hover {
     border-color: var(--ink);
 }
-/* The <nav class="footer-links"> landmark wraps the three link columns;
+/* The <nav class="footer-links"> landmark wraps the two link columns;
    display: contents lets them sit in the footer grid as siblings of the
    brand block. */
 .footer-links {
