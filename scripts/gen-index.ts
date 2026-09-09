@@ -1,57 +1,1007 @@
 /**
  * Generates public/index.html (the landing page) and its translated
  * counterparts under public/{locale}/ from the typed data in
- * src/copy/index.ts. This page used to be hand-authored HTML with
- * nav()/footer() copy-pasted in by hand; see scripts/gen-legal.ts and
- * scripts/site-partials.ts for why every generated page now shares one
- * copy of that markup instead.
+ * src/copy/index.ts.
+ *
+ * The landing page is its own design ("Dawn", 6a): it has its own header
+ * and footer markup here and its own stylesheet, public/landing.css, and
+ * does NOT load /styles.css or the shared nav()/footer() from
+ * scripts/site-partials.ts that every other generated page uses. What it
+ * does share with them is the behaviour in public/site.js — the theme
+ * control, the mobile sheet, scroll-spy, reveals, copy buttons, the live
+ * nav badge — which is why the class and id hooks site.js keys off
+ * (#site-head, #menu-btn / #site-menu, .head-nav, .lang-switch,
+ * [data-theme-set], .copy-mini, [data-reveal], [data-live-badge],
+ * #facts-live) are kept byte-compatible with the shared chrome.
  *
  * Re-run after editing src/copy/index.ts:
  *   bun run scripts/gen-index.ts
  * The generated .html files are the served artifacts — don't hand-edit them.
  */
 
-import { HTML_LANG, pathFor, urlFor, type SiteLocale } from "../src/routes.js";
+import {
+    HTML_LANG,
+    LOCALE_NAMES,
+    SITE_LOCALES,
+    hashPath,
+    pathFor,
+    urlFor,
+    type SiteLocale,
+} from "../src/routes.js";
 import {
     SITE,
     esc,
-    footer,
     generatedBanner,
     jsonLd,
+    liveBadge,
     localeHead,
-    nav,
     translationNotice,
-    HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
 } from "./site-partials.js";
-import { INDEX, type FaqEntry, type IndexDoc } from "../src/copy/index.js";
+import { chromeFor } from "../src/copy/chrome.js";
+import {
+    INDEX,
+    type FaqEntry,
+    type HeroExchange,
+    type IndexDoc,
+} from "../src/copy/index.js";
 
-// The landing page's own stats-odometer / world-map / theme-tilt / carousel
-// / copy-button JS. Not prose — page behaviour, kept byte-for-byte as it was
-// in the hand-authored file. It contains backticks of its own (template
-// literals inside the script), so it is embedded via JSON.stringify rather
-// than as a TS template literal, which sidesteps escaping them by hand.
+// The landing page's own JS: the hero chat replay, the examples picker, the
+// live-stats poller (count-ups, deltas, unit toggle, countdown, world map),
+// the GitHub star count and the Patreon posts. Not prose — page behaviour.
+// It holds no copy of its own: everything it shows it reads back out of the
+// markup the generator wrote (<html lang>, data-* attributes, the static
+// chat thread, the <template> for a post card), because this one string is
+// embedded byte-identically into all nine locales' index.html.
 //
+// Written as a String.raw block so it reads as plain JS; the one rule that
+// follows is that the script may contain neither a backtick nor "${".
 // Exported for src/landing-script.test.ts, which pins the nine generated
-// pages against THIS constant. Everything else that test knows about the
-// script it reads back out of the HTML, which cannot tell an edit that was
-// never regenerated from no edit at all.
-export const LANDING_SCRIPT: string =
-    '            (function () {\n                var reduceMotion = window.matchMedia(\n                    "(prefers-reduced-motion: reduce)",\n                ).matches;\n\n                // The page\'s own language, stamped on <html lang> by the\n                // generator. One script serves all nine locales, so it can\n                // never name a locale of its own: it reads the one it was\n                // rendered in.\n                var NUM_LOCALE = document.documentElement.lang || "en";\n\n                // ---------- animated stat numbers ----------\n                function fmtInt(n) {\n                    return Math.round(n).toLocaleString(NUM_LOCALE);\n                }\n                // ---------- weight unit ----------\n                // Every weight the API returns is in grams and is only ever\n                // rendered through these, so the kg/lb toggle is a repaint\n                // and never a refetch.\n                var UNIT_STORE = "stats-unit";\n                var GRAMS_PER = { kg: 1000, lb: 453.59237 };\n                var OUNCE_G = 28.349523125;\n                var WEIGHT_KEYS = [\n                    "total_protein_g",\n                    "total_carbs_g",\n                    "total_fat_g",\n                ];\n                // A remembered choice wins; failing that, the visitor\'s own\n                // measurement system, since "512 kg" is not a quantity most\n                // readers of the English page have a feel for.\n                var unit = "kg";\n                try {\n                    var savedUnit = localStorage.getItem(UNIT_STORE);\n                    if (savedUnit === "kg" || savedUnit === "lb")\n                        unit = savedUnit;\n                    else if (/^en-US\\b/i.test(navigator.language || ""))\n                        unit = "lb";\n                } catch (e) {}\n                function toWeight(g) {\n                    return g / GRAMS_PER[unit];\n                }\n                function fmtWeight(n) {\n                    return fmtInt(n) + " " + unit;\n                }\n                var FORMATS = {\n                    food_logs: {\n                        to: function (v) {\n                            return v;\n                        },\n                        fmt: fmtInt,\n                    },\n                    timezones: {\n                        to: function (v) {\n                            return v;\n                        },\n                        fmt: fmtInt,\n                    },\n                    total_protein_g: { to: toWeight, fmt: fmtWeight },\n                    total_carbs_g: { to: toWeight, fmt: fmtWeight },\n                    total_fat_g: { to: toWeight, fmt: fmtWeight },\n                };\n                // A count-up owns its element\'s text until the last frame,\n                // so anything repainting that element behind its back is undone\n                // by the next one. The kg/lb toggle is exactly that, and the\n                // frame that wins writes the OLD unit\'s magnitude under the NEW\n                // unit\'s suffix - "600 lb" where "1,323 lb" is right. It then\n                // sticks, because setStats leaves a key alone whose value did\n                // not change on the next poll. So every pending frame is parked\n                // here, and a repaint cancels the loop that would overwrite it.\n                var pending = new WeakMap();\n                function cancelAnim(el) {\n                    var h = pending.get(el);\n                    if (h) {\n                        cancelAnimationFrame(h);\n                        pending.delete(el);\n                    }\n                }\n                // Counts from `from` (0 on first paint, the previous value on\n                // a live update) to `target`.\n                function animate(el, target, fmt, from) {\n                    from = from || 0;\n                    // A second update landing mid-count-up replaces the first\n                    // rather than racing it for the same textContent.\n                    cancelAnim(el);\n                    if (reduceMotion) {\n                        el.textContent = fmt(target);\n                        return;\n                    }\n                    var dur = 1300,\n                        start = null;\n                    function step(ts) {\n                        if (start === null) start = ts;\n                        var p = Math.min((ts - start) / dur, 1);\n                        var e = 1 - Math.pow(1 - p, 3);\n                        el.textContent = fmt(from + (target - from) * e);\n                        if (p < 1) pending.set(el, requestAnimationFrame(step));\n                        else pending.delete(el);\n                    }\n                    pending.set(el, requestAnimationFrame(step));\n                }\n                // ---------- live deltas ----------\n                // Every figure is compared with the baseline captured when\n                // the page loaded, and the tag shows the net change since\n                // then ("+150 kcal") for as long as the page is open. Raw\n                // units, not the display ones: a 40 g change is invisible\n                // once rounded to kg.\n                var DELTA_UNIT = {\n                    food_logs: "",\n                    timezones: "",\n                    total_calories: " kcal",\n                };\n                // A weight row\'s delta is read in the small unit of whichever\n                // system is on screen — grams under kg, ounces under lb.\n                function deltaFor(key, diff) {\n                    if (key in DELTA_UNIT)\n                        return { n: Math.round(diff), unit: DELTA_UNIT[key] };\n                    return unit === "kg"\n                        ? { n: Math.round(diff), unit: " g" }\n                        : { n: Math.round(diff / OUNCE_G), unit: " oz" };\n                }\n                // `quiet` repaints the tag without replaying the pop — used\n                // when the unit changed but the underlying figure did not.\n                function showDelta(el, key, diff, quiet) {\n                    var d = deltaFor(key, diff);\n                    var n = d.n;\n                    var host = el.closest(".facts-row, .facts-cal") || el;\n                    var tag = host.querySelector(".delta");\n                    if (!n) {\n                        if (tag) tag.remove();\n                        return;\n                    }\n                    if (!tag) {\n                        tag = document.createElement("span");\n                        tag.className = "delta";\n                        tag.setAttribute("role", "status");\n                        // Sits between the label and the figure.\n                        host.insertBefore(\n                            tag,\n                            host.querySelector("b, .odo-hero") || null,\n                        );\n                    }\n                    tag.classList.toggle("down", n < 0);\n                    tag.textContent =\n                        (n > 0 ? "+" : "\\u2212") + fmtInt(Math.abs(n)) + d.unit;\n                    if (quiet) return;\n                    // Re-trigger the pop so a second change is noticed.\n                    tag.classList.remove("pop");\n                    void tag.offsetWidth;\n                    tag.classList.add("pop");\n                }\n                // ---------- odometer ----------\n                // Builds one reel per digit of the real total, so the digits\n                // that roll are the digits that are true — nothing is invented\n                // to make the motion look better. Reels further right spin\n                // through more cycles and take longer, so the leading digits\n                // settle first and the tail is still turning, the way a\n                // mechanical counter reads.\n                var ODO_MAX_CYCLES = 6;\n                function setOdometer(el, value) {\n                    var text = fmtInt(value);\n                    // The translated caption already sits beside the reel, in\n                    // the sibling .odo-cap the generator renders from\n                    // stats.calCaption. Read it rather than name the nutrient\n                    // in English, which is what every locale used to announce.\n                    var cap =\n                        el.parentNode &&\n                        el.parentNode.querySelector(".odo-cap");\n                    var capText = cap ? cap.textContent.trim() : "";\n                    el.setAttribute(\n                        "aria-label",\n                        capText\n                            ? text + " " + capText\n                            : text + " calories tracked",\n                    );\n                    el.textContent = "";\n                    if (reduceMotion) {\n                        el.textContent = text;\n                        return;\n                    }\n                    var strips = [],\n                        i = 0;\n                    text.split("").forEach(function (ch) {\n                        if (ch < "0" || ch > "9") {\n                            var sep = document.createElement("span");\n                            sep.className = "odo-sep";\n                            sep.textContent = ch;\n                            el.appendChild(sep);\n                            return;\n                        }\n                        var cycles = Math.min(ODO_MAX_CYCLES, 2 + i);\n                        var reel = document.createElement("span");\n                        reel.className = "odo-reel";\n                        var strip = document.createElement("span");\n                        strip.className = "odo-strip";\n                        for (var c = 0; c <= cycles; c++) {\n                            for (var d = 0; d < 10; d++) {\n                                var cell = document.createElement("span");\n                                cell.textContent = d;\n                                strip.appendChild(cell);\n                            }\n                        }\n                        strip.style.transitionDuration = 1.1 + i * 0.12 + "s";\n                        // Land on a cell whose face is ch, `cycles` turns down.\n                        // Expressed as a share of the strip\'s own height so the\n                        // reel stays in register at any font size.\n                        var cells = (cycles + 1) * 10;\n                        var stop = cycles * 10 + Number(ch);\n                        strips.push([strip, (stop / cells) * 100]);\n                        reel.appendChild(strip);\n                        el.appendChild(reel);\n                        i++;\n                    });\n                    // Paint at rest first. Moving in the same frame as the\n                    // insert gives the strip no start value to animate from, so\n                    // the transition is skipped and the number just appears.\n                    requestAnimationFrame(function () {\n                        requestAnimationFrame(function () {\n                            strips.forEach(function (s) {\n                                s[0].style.transform =\n                                    "translateY(-" + s[1] + "%)";\n                            });\n                        });\n                    });\n                }\n\n                // `prev` is the last stats object painted, or null on first\n                // load. Unchanged figures are left alone so the page is still\n                // while nothing happens; changed ones count from old to new.\n                function setStats(stats, prev, base) {\n                    Object.keys(FORMATS).forEach(function (key) {\n                        if (typeof stats[key] !== "number") return;\n                        var before = prev ? prev[key] : null;\n                        if (prev && before === stats[key]) return;\n                        document\n                            .querySelectorAll(\'[data-stat="\' + key + \'"]\')\n                            .forEach(function (el) {\n                                var c = FORMATS[key];\n                                animate(\n                                    el,\n                                    c.to(stats[key]),\n                                    c.fmt,\n                                    typeof before === "number"\n                                        ? c.to(before)\n                                        : 0,\n                                );\n                                if (base)\n                                    showDelta(el, key, stats[key] - base[key]);\n                            });\n                    });\n                    document\n                        .querySelectorAll("[data-odo]")\n                        .forEach(function (el) {\n                            var key = el.dataset.odo;\n                            var v = stats[key];\n                            if (typeof v !== "number") return;\n                            var before = prev ? prev[key] : null;\n                            if (prev && before === v) return;\n                            setOdometer(el, v);\n                            if (base) showDelta(el, key, v - base[key]);\n                        });\n                    // The "Live stats" nav badge counts food logs alone,\n                    // and it is on the nav of every page — so public/site.js\n                    // owns it site-wide rather than this script, which only\n                    // ships on the landing page. Handing over the figures\n                    // already fetched here keeps this page on one poll\n                    // instead of two, and passing our own page-load baseline\n                    // alongside them keeps the badge showing exactly what the\n                    // delta tag on that row shows.\n                    document.dispatchEvent(\n                        new CustomEvent("live-stats", {\n                            detail: { stats: stats, base: base },\n                        }),\n                    );\n                }\n\n                // ---------- world map ----------\n                var SVGNS = "http://www.w3.org/2000/svg";\n                // UTC-equivalent zones all resolve to the map center [500,250]\n                // (lon 0, lat 0 — open ocean), so plotting them drops a bogus\n                // dot in the middle of the map. Skip them.\n                // gen-map-data.ts parks all of these on null island, so every\n                // one of them has to be skipped — GMT and Etc/Greenwich were\n                // missing here, and a profile on either would have drawn a dot\n                // in the middle of the Atlantic.\n                var UTC_TZS = {\n                    UTC: 1,\n                    "Etc/UTC": 1,\n                    "Etc/GMT": 1,\n                    GMT: 1,\n                    "Etc/Greenwich": 1,\n                };\n                // [halo, core] radius per level. Radii step by roughly √2 in\n                // area terms rather than linearly, because a circle is read by\n                // its area: doubling the radius would look like four times the\n                // share. Level 3 is the old fixed size, so a typical dot is\n                // unchanged and only the extremes move.\n                var TZ_RADII = [\n                    [5.5, 2.0],\n                    [7.0, 2.5],\n                    [9.0, 3.2],\n                    [11.5, 3.9],\n                    [14.5, 4.7],\n                ];\n                // Expect this to render almost empty right now, and NOT because\n                // of a bug here: the 2026-08-15 nullable_profile_timezone\n                // migration reset every profile\'s timezone to NULL (see #99),\n                // and /api/stats\'s timezone_counts/timezone_list only count\n                // `where timezone is not null` — so tzLevels is near-empty\n                // until users call set_timezone again. That warning was itself\n                // silently unreachable for the most common log call (no\n                // logged_at) until #111 fixed it the same day, so expect this\n                // to self-heal gradually as people log meals, not instantly.\n                function buildMap(mapData, tzLevels) {\n                    var svg = document.getElementById("world-svg");\n                    if (!svg || !mapData) return;\n                    var landFrag = document.createDocumentFragment();\n                    mapData.land.forEach(function (p) {\n                        var c = document.createElementNS(SVGNS, "circle");\n                        c.setAttribute("cx", p[0]);\n                        c.setAttribute("cy", p[1]);\n                        c.setAttribute("r", "1.9");\n                        c.setAttribute("class", "land-dot");\n                        landFrag.appendChild(c);\n                    });\n                    svg.appendChild(landFrag);\n                    function sizeDot(dot, level) {\n                        var r = TZ_RADII[level - 1];\n                        dot.halo.setAttribute("r", r[0]);\n                        dot.core.setAttribute("r", r[1]);\n                        dot.level = level;\n                    }\n                    var seen = {};\n                    var plotted = 0;\n                    Object.keys(tzLevels || {}).forEach(function (tz) {\n                        if (UTC_TZS[tz]) return;\n                        var pt = mapData.tz[tz];\n                        if (!pt) return;\n                        var level = Math.min(\n                            TZ_RADII.length,\n                            Math.max(1, Math.round(tzLevels[tz]) || 1),\n                        );\n                        // Alias spellings (Europe/Kiev vs Europe/Kyiv) project\n                        // to the same coordinates and so share one dot. Keep\n                        // the larger level rather than whichever name came\n                        // first, so the dot is never smaller than the busiest\n                        // zone standing on it.\n                        var k = pt[0] + "," + pt[1];\n                        if (seen[k]) {\n                            if (level > seen[k].level) sizeDot(seen[k], level);\n                            return;\n                        }\n                        var halo = document.createElementNS(SVGNS, "circle");\n                        halo.setAttribute("cx", pt[0]);\n                        halo.setAttribute("cy", pt[1]);\n                        halo.setAttribute("class", "tz-halo");\n                        if (!reduceMotion)\n                            halo.style.animationDelay =\n                                (plotted % 6) * 0.45 + "s";\n                        var core = document.createElementNS(SVGNS, "circle");\n                        core.setAttribute("cx", pt[0]);\n                        core.setAttribute("cy", pt[1]);\n                        core.setAttribute("class", "tz-core");\n                        var dot = { halo: halo, core: core, level: 0 };\n                        sizeDot(dot, level);\n                        seen[k] = dot;\n                        svg.appendChild(halo);\n                        svg.appendChild(core);\n                        plotted++;\n                    });\n                }\n\n                // ---------- load data, then keep it live ----------\n                var POLL_MS = 5000;\n                var lastStats = null;\n                var baseStats = null;\n                var pollTimer = null;\n                var liveEl = document.getElementById("facts-live");\n                // The translated word the generator rendered into that node\n                // ("Live", "En direct", "Na zywo"). Captured before the first\n                // live update overwrites it, so the line below is rebuilt from\n                // it rather than replaced with English.\n                var liveLabel = liveEl ? liveEl.textContent.trim() : "";\n\n                // ---------- kg / lb toggle ----------\n                var unitBtns = [].slice.call(\n                    document.querySelectorAll("[data-unit]"),\n                );\n                function paintUnitToggle() {\n                    unitBtns.forEach(function (b) {\n                        b.setAttribute(\n                            "aria-pressed",\n                            b.getAttribute("data-unit") === unit\n                                ? "true"\n                                : "false",\n                        );\n                    });\n                }\n                // Repainted in place rather than through setStats: counting\n                // 512 up to 1,129 would read as the figure changing, when\n                // all that changed is the unit it is written in. Cancelling\n                // first is what makes the toggle win over a count-up already\n                // in flight on the same row; see animate().\n                function repaintWeights() {\n                    if (!lastStats) return;\n                    WEIGHT_KEYS.forEach(function (key) {\n                        var v = lastStats[key];\n                        if (typeof v !== "number") return;\n                        document\n                            .querySelectorAll(\'[data-stat="\' + key + \'"]\')\n                            .forEach(function (el) {\n                                cancelAnim(el);\n                                el.textContent = fmtWeight(toWeight(v));\n                                if (baseStats)\n                                    showDelta(\n                                        el,\n                                        key,\n                                        v - baseStats[key],\n                                        true,\n                                    );\n                            });\n                    });\n                }\n                paintUnitToggle();\n                unitBtns.forEach(function (b) {\n                    b.addEventListener("click", function () {\n                        var next = b.getAttribute("data-unit");\n                        if (next === unit) return;\n                        unit = next;\n                        try {\n                            localStorage.setItem(UNIT_STORE, unit);\n                        } catch (e) {}\n                        paintUnitToggle();\n                        repaintWeights();\n                    });\n                });\n                function fetchStats() {\n                    return fetch("/api/stats", { cache: "no-store" }).then(\n                        function (r) {\n                            if (!r.ok) throw new Error("stats");\n                            return r.json();\n                        },\n                    );\n                }\n                function poll() {\n                    pollTimer = null;\n                    if (document.hidden) return;\n                    fetchStats()\n                        .then(function (stats) {\n                            setStats(stats, lastStats, baseStats);\n                            lastStats = stats;\n                            if (liveEl) liveEl.classList.remove("stale");\n                        })\n                        .catch(function () {\n                            if (liveEl) liveEl.classList.add("stale");\n                        })\n                        .then(schedule);\n                }\n                function schedule() {\n                    if (pollTimer || document.hidden) return;\n                    pollTimer = setTimeout(poll, POLL_MS);\n                }\n                // A background tab stops polling; coming back refetches at\n                // once so the figures are never minutes behind.\n                document.addEventListener("visibilitychange", function () {\n                    if (document.hidden) {\n                        clearTimeout(pollTimer);\n                        pollTimer = null;\n                    } else if (lastStats) {\n                        poll();\n                    }\n                });\n                Promise.all([\n                    fetchStats(),\n                    fetch("/map-data.json").then(function (r) {\n                        return r.ok ? r.json() : null;\n                    }),\n                ])\n                    .then(function (res) {\n                        var stats = res[0];\n                        setStats(stats, null, null);\n                        lastStats = stats;\n                        baseStats = stats;\n                        buildMap(res[1], stats.timezone_levels);\n                        if (liveEl) {\n                            liveEl.classList.add("on");\n                            // The deltas are measured from this moment.\n                            var t = new Date().toLocaleTimeString(NUM_LOCALE, {\n                                hour: "numeric",\n                                minute: "2-digit",\n                            });\n                            liveEl.textContent =\n                                (liveLabel ? liveLabel + " \\u00b7 " : "") + t;\n                        }\n                        schedule();\n                    })\n                    .catch(function () {\n                        var row = document.getElementById("stat-row");\n                        var map = document.getElementById("map-block");\n                        if (row) row.style.display = "none";\n                        if (map) map.style.display = "none";\n                    });\n\n                // ---------- live GitHub star count ----------\n                var ghEl = document.getElementById("gh-stars");\n                if (ghEl) {\n                    fetch(\n                        "https://api.github.com/repos/akutishevsky/nutrition-mcp",\n                    )\n                        .then(function (r) {\n                            return r.ok ? r.json() : null;\n                        })\n                        .then(function (d) {\n                            if (d && typeof d.stargazers_count === "number") {\n                                // Grouped in the page\'s language like every\n                                // other figure. Latent until the repo passes\n                                // 999 stars, at which point a German page\n                                // would have read 1,024 rather than 1.024.\n                                ghEl.textContent =\n                                    "· ★ " +\n                                    d.stargazers_count.toLocaleString(\n                                        NUM_LOCALE,\n                                    );\n                            }\n                        })\n                        .catch(function () {});\n                }\n\n                // ---------- shared carousel paging engine ----------\n                // Powers both the "try saying" chat carousel below and the\n                // recent-Patreon-posts carousel that precedes it: paging,\n                // dot navigation, arrow clicks, hover/focus autoplay pause,\n                // and touch swipe, in one place so a future fix (swipe\n                // threshold, keyboard nav, dot ARIA labeling) only has to\n                // land once instead of drifting between two copies.\n                //\n                // opts:\n                //   root          element that owns the hover/focus/touch\n                //                 and arrow-click listeners (the outer\n                //                 carousel container)\n                //   track         element whose transform pages the slides\n                //   slides        NodeList/array of slide elements\n                //   dots          existing NodeList/array of dot buttons,\n                //                 OR a number of dots to build fresh into\n                //                 dotsContainer -- used when the slide\n                //                 count is only known once async data\n                //                 arrives, rather than at render time\n                //   dotsContainer container to build dots into when `dots`\n                //                 is a number\n                //   interval      autoplay delay in ms\n                //   onActivate    optional callback(slideEl), run on every\n                //                 goTo, for a carousel-specific per-slide\n                //                 effect (the chat carousel\'s typing/reply\n                //                 animation)\n                //\n                // Returns { goTo, start, stop, wireControls }. wireControls\n                // is separate from construction because the Patreon\n                // carousel only wants dot/arrow/hover/touch listeners once\n                // it knows there is more than one page.\n                function initCarousel(opts) {\n                    var slides = opts.slides;\n                    var track = opts.track;\n                    var root = opts.root;\n                    var idx = 0;\n                    var timer = null;\n                    var dotEls = [];\n                    if (typeof opts.dots === "number") {\n                        var dotLabel =\n                            (opts.dotsContainer &&\n                                opts.dotsContainer.dataset.dotLabel) ||\n                            "";\n                        for (var k = 0; k < opts.dots; k++) {\n                            var dot = document.createElement("button");\n                            dot.type = "button";\n                            dot.className = "dot";\n                            dot.setAttribute(\n                                "aria-label",\n                                dotLabel + " " + (k + 1),\n                            );\n                            opts.dotsContainer.appendChild(dot);\n                        }\n                        dotEls = opts.dotsContainer.querySelectorAll(".dot");\n                    } else if (opts.dots) {\n                        dotEls = opts.dots;\n                    }\n                    function goTo(n) {\n                        idx = (n + slides.length) % slides.length;\n                        track.style.transform =\n                            "translateX(" + -idx * 100 + "%)";\n                        dotEls.forEach(function (d, k) {\n                            d.classList.toggle("active", k === idx);\n                        });\n                        if (opts.onActivate) opts.onActivate(slides[idx]);\n                    }\n                    function stop() {\n                        if (timer) clearInterval(timer);\n                        timer = null;\n                    }\n                    function start() {\n                        if (reduceMotion || slides.length < 2) return;\n                        stop();\n                        timer = setInterval(function () {\n                            goTo(idx + 1);\n                        }, opts.interval);\n                    }\n                    function wireControls() {\n                        dotEls.forEach(function (d, k) {\n                            d.addEventListener("click", function () {\n                                goTo(k);\n                                start();\n                            });\n                        });\n                        root.querySelectorAll(".carousel-arrow").forEach(\n                            function (arrow) {\n                                arrow.addEventListener("click", function () {\n                                    goTo(\n                                        idx +\n                                            (arrow.getAttribute("data-dir") ===\n                                            "next"\n                                                ? 1\n                                                : -1),\n                                    );\n                                    start();\n                                });\n                            },\n                        );\n                        root.addEventListener("mouseenter", stop);\n                        root.addEventListener("mouseleave", start);\n                        root.addEventListener("focusin", stop);\n                        root.addEventListener("focusout", start);\n                        var x0 = null;\n                        root.addEventListener(\n                            "touchstart",\n                            function (e) {\n                                x0 = e.touches[0].clientX;\n                            },\n                            { passive: true },\n                        );\n                        root.addEventListener("touchend", function (e) {\n                            if (x0 === null) return;\n                            var dx = e.changedTouches[0].clientX - x0;\n                            if (Math.abs(dx) > 40)\n                                goTo(idx + (dx < 0 ? 1 : -1));\n                            x0 = null;\n                            start();\n                        });\n                    }\n                    return {\n                        goTo: goTo,\n                        start: start,\n                        stop: stop,\n                        wireControls: wireControls,\n                    };\n                }\n\n                // ---------- recent Patreon posts ----------\n                var patreonBlock = document.getElementById("patreon-updates");\n                var patreonCarousel =\n                    document.getElementById("patreon-carousel");\n                var patreonTrack = document.getElementById(\n                    "patreon-carousel-track",\n                );\n                var patreonDots = document.getElementById(\n                    "patreon-carousel-dots",\n                );\n                var patreonControls = document.getElementById(\n                    "patreon-carousel-controls",\n                );\n                if (patreonBlock && patreonCarousel && patreonTrack) {\n                    fetch("/api/patreon-posts")\n                        .then(function (r) {\n                            return r.ok ? r.json() : [];\n                        })\n                        .then(function (posts) {\n                            if (!posts || !posts.length) return;\n                            var pageSize = 3;\n                            var pages = [];\n                            for (var i = 0; i < posts.length; i += pageSize) {\n                                pages.push(posts.slice(i, i + pageSize));\n                            }\n                            pages.forEach(function (pagePosts) {\n                                var slide = document.createElement("div");\n                                slide.className = "slide patreon-updates-grid";\n                                pagePosts.forEach(function (p) {\n                                    var a = document.createElement("a");\n                                    a.href = p.url;\n                                    a.target = "_blank";\n                                    a.rel = "noopener noreferrer";\n                                    a.className = "card patreon-update-link";\n                                    var titleEl =\n                                        document.createElement("span");\n                                    titleEl.className = "patreon-update-title";\n                                    titleEl.textContent = p.title;\n                                    a.appendChild(titleEl);\n                                    if (p.preview) {\n                                        var previewEl =\n                                            document.createElement("span");\n                                        previewEl.className =\n                                            "patreon-update-preview";\n                                        previewEl.textContent = p.preview;\n                                        a.appendChild(previewEl);\n                                    }\n                                    slide.appendChild(a);\n                                });\n                                patreonTrack.appendChild(slide);\n                            });\n                            var slides =\n                                patreonTrack.querySelectorAll(".slide");\n                            var multiPage =\n                                slides.length > 1 &&\n                                patreonDots &&\n                                patreonControls;\n                            var patreonCarouselApi = initCarousel({\n                                root: patreonCarousel,\n                                track: patreonTrack,\n                                slides: slides,\n                                dots: multiPage ? slides.length : null,\n                                dotsContainer: patreonDots,\n                                interval: 6000,\n                            });\n                            if (multiPage) {\n                                patreonControls.hidden = false;\n                                patreonCarouselApi.wireControls();\n                            }\n                            patreonCarouselApi.goTo(0);\n                            patreonCarouselApi.start();\n                            patreonBlock.hidden = false;\n                        })\n                        .catch(function () {});\n                }\n                // ---------- "try saying" chat carousel ----------\n                var carousel = document.getElementById("try-carousel");\n                if (carousel) {\n                    var track = carousel.querySelector(".carousel-track");\n                    var slides = carousel.querySelectorAll(".slide");\n                    var dots = carousel.querySelectorAll(".dot");\n                    // Play the typing -> reply animation for the active slide.\n                    function play(active) {\n                        slides.forEach(function (s) {\n                            var tp = s.querySelector(".typing");\n                            var aiList = s.querySelectorAll(".msg-ai");\n                            var meal = s.querySelector(".meal-pick");\n                            var target = s.querySelector(".meal-pick-target");\n                            clearTimeout(s._t);\n                            clearTimeout(s._t2);\n                            clearTimeout(s._t3);\n                            function complete() {\n                                if (tp) tp.style.display = "none";\n                                aiList.forEach(function (a) {\n                                    a.style.display = "";\n                                    a.style.animation = "none";\n                                });\n                                if (target) target.classList.add("selected");\n                            }\n                            if (s !== active || reduceMotion) {\n                                complete();\n                                return;\n                            }\n                            // reset, then play the sequence\n                            aiList.forEach(function (a) {\n                                a.style.display = "none";\n                                a.style.animation = "none";\n                            });\n                            if (target) target.classList.remove("selected");\n                            if (tp) tp.style.display = "flex";\n                            if (meal) {\n                                var ask = s.querySelector(".step-ask");\n                                var done = s.querySelector(".step-done");\n                                s._t = setTimeout(function () {\n                                    if (tp) tp.style.display = "none";\n                                    if (ask) {\n                                        ask.style.display = "";\n                                        ask.style.animation =\n                                            "msgin 0.4s ease both";\n                                    }\n                                    s._t2 = setTimeout(function () {\n                                        if (target)\n                                            target.classList.add("selected");\n                                        s._t3 = setTimeout(function () {\n                                            if (done) {\n                                                done.style.display = "";\n                                                done.style.animation =\n                                                    "msgin 0.4s ease both";\n                                            }\n                                        }, 750);\n                                    }, 1300);\n                                }, 1000);\n                            } else {\n                                var ai = aiList[0];\n                                s._t = setTimeout(function () {\n                                    if (tp) tp.style.display = "none";\n                                    if (ai) {\n                                        ai.style.display = "";\n                                        ai.style.animation =\n                                            "msgin 0.4s ease both";\n                                    }\n                                }, 1100);\n                            }\n                        });\n                    }\n                    var chatCarouselApi = initCarousel({\n                        root: carousel,\n                        track: track,\n                        slides: slides,\n                        dots: dots,\n                        interval: 5200,\n                        onActivate: play,\n                    });\n                    chatCarouselApi.wireControls();\n                    chatCarouselApi.goTo(0);\n                    chatCarouselApi.start();\n                }\n            })();';
+// pages against THIS constant.
+export const LANDING_SCRIPT: string = String.raw`            (function () {
+                var reduceMotion = window.matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                ).matches;
 
-// src/copy/index.ts's `why.noteHtml` carries a plain
-// href="/alternatives" data-link="alternatives" marker, because the content
-// string itself has no access to `locale` — this rewrites that href to the
-// locale-correct path (e.g. "/de/alternatives") and drops the marker.
-// Without it, a translated landing page's in-prose link to the comparison
-// hub would silently point at the English one (the exact bug the login page
-// shipped once — see scripts/gen-login.ts / gen-legal.ts's own version of
-// this same fix).
+                // The page's own language, stamped on <html lang> by the generator.
+                // One script serves all nine locales, so it can never name a locale of
+                // its own: it reads the one it was rendered in. Every figure, date and
+                // clock on the page is formatted against this.
+                var NUM_LOCALE = document.documentElement.lang || "en";
+
+                function fmtInt(n) {
+                    return Math.round(n).toLocaleString(NUM_LOCALE);
+                }
+                function fmtDec(n, digits) {
+                    return n.toLocaleString(NUM_LOCALE, {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: digits,
+                    });
+                }
+                function wait(ms) {
+                    return new Promise(function (resolve) {
+                        setTimeout(resolve, ms);
+                    });
+                }
+                // Resolves once the tab is visible again - the loops below sleep in a
+                // background tab rather than burn timers nobody is watching.
+                function whenVisible() {
+                    if (!document.hidden) return Promise.resolve();
+                    return new Promise(function (resolve) {
+                        document.addEventListener("visibilitychange", function onShow() {
+                            if (document.hidden) return;
+                            document.removeEventListener("visibilitychange", onShow);
+                            resolve();
+                        });
+                    });
+                }
+                function readJson(el, attr) {
+                    try {
+                        return JSON.parse(el.getAttribute(attr) || "{}");
+                    } catch (e) {
+                        return {};
+                    }
+                }
+
+                // ---------- hero chat: replay the static thread ----------
+                // The generator renders the whole conversation in full, so the page
+                // reads without script and for crawlers. Here it is taken apart into
+                // exchanges (a user or barcode bubble carrying data-add / data-clock /
+                // data-widget, followed by its AI reply) and replayed as the design's
+                // loop: type the user line, show the typing dots, reveal the reply, add
+                // that exchange's nutrients to the summary widget. Every bubble on
+                // screen is a clone of one the generator wrote - the script holds no
+                // copy of its own.
+                var chatList = document.querySelector("[data-chat-list]");
+                var chatClock = document.querySelector("[data-chat-clock]");
+                var chatPause = document.querySelector("[data-chat-pause]");
+                // WCAG 2.2.2: the replay auto-starts and runs longer than 5 s, so
+                // the reader gets a pause. It freezes the loop where it stands - mid
+                // word if that is where it was - and play resumes from there. The
+                // toggle mirrors whenVisible(): the loop awaits it at every step.
+                var chatPaused = false;
+                var chatResume = [];
+                function whenPlaying() {
+                    if (!chatPaused) return Promise.resolve();
+                    return new Promise(function (resolve) {
+                        chatResume.push(resolve);
+                    });
+                }
+                if (chatPause && !reduceMotion) {
+                    chatPause.addEventListener("click", function () {
+                        chatPaused = !chatPaused;
+                        chatPause.setAttribute("aria-pressed", String(chatPaused));
+                        var icon = chatPause.querySelector("i");
+                        if (icon) {
+                            icon.classList.toggle("fa-pause", !chatPaused);
+                            icon.classList.toggle("fa-play", chatPaused);
+                        }
+                        if (!chatPaused) {
+                            var waiting = chatResume;
+                            chatResume = [];
+                            waiting.forEach(function (resolve) {
+                                resolve();
+                            });
+                        }
+                    });
+                }
+                if (chatList && !reduceMotion) {
+                    var widgetTpl = chatList.querySelector(".nm-widget");
+                    var exchanges = [];
+                    [].slice.call(chatList.children).forEach(function (node) {
+                        if (node.matches(".nm-msg-user, .nm-msg-barcode")) {
+                            exchanges.push({
+                                user: node,
+                                ai: null,
+                                add: readJson(node, "data-add"),
+                                clock: node.getAttribute("data-clock") || "",
+                                widget: node.hasAttribute("data-widget"),
+                                barcode: node.classList.contains("nm-msg-barcode"),
+                            });
+                        } else if (node.matches(".nm-msg-ai") && exchanges.length) {
+                            exchanges[exchanges.length - 1].ai = node;
+                        }
+                    });
+                    // The widget's daily goals; the ring is kcal against 2,000 and each
+                    // bar reads its own goal off data-goal in the markup.
+                    var KCAL_GOAL = 2000;
+                    var CHAT_MAX = 12;
+                    var totals = null;
+                    function resetTotals() {
+                        totals = {
+                            kcal: 0,
+                            pro: 0,
+                            car: 0,
+                            fat: 0,
+                            water: 0,
+                            sugar: 0,
+                            caf: 0,
+                        };
+                    }
+                    function paintWidget(w) {
+                        Object.keys(totals).forEach(function (k) {
+                            var el = w.querySelector('[data-w="' + k + '"]');
+                            if (el) el.textContent = fmtInt(totals[k]);
+                        });
+                        var ring = w.querySelector("[data-ring]");
+                        if (ring)
+                            ring.style.setProperty(
+                                "--deg",
+                                Math.min(360, Math.round((totals.kcal / KCAL_GOAL) * 360)) +
+                                    "deg",
+                            );
+                        w.querySelectorAll("[data-bar]").forEach(function (bar) {
+                            var k = bar.getAttribute("data-bar");
+                            var goal = Number(bar.getAttribute("data-goal")) || 1;
+                            bar.style.setProperty(
+                                "--w",
+                                Math.min(100, Math.round((totals[k] / goal) * 100)) + "%",
+                            );
+                        });
+                    }
+                    function push(el) {
+                        var typing = chatList.querySelector(".nm-typing");
+                        if (typing) typing.remove();
+                        chatList.appendChild(el);
+                        while (chatList.children.length > CHAT_MAX)
+                            chatList.removeChild(chatList.firstChild);
+                        chatList.scrollTop = chatList.scrollHeight;
+                    }
+                    function typingBubble() {
+                        var d = document.createElement("div");
+                        d.className = "nm-typing";
+                        d.setAttribute("aria-hidden", "true");
+                        for (var i = 0; i < 3; i++)
+                            d.appendChild(document.createElement("span"));
+                        return d;
+                    }
+                    async function typeUser(src) {
+                        var text = src.textContent.trim();
+                        // Shallow clone keeps the bubble's class and data attributes
+                        // and drops its text, which is typed back in below.
+                        var bubble = src.cloneNode(false);
+                        var textNode = document.createTextNode("");
+                        var caret = document.createElement("span");
+                        caret.className = "nm-caret";
+                        caret.setAttribute("aria-hidden", "true");
+                        bubble.appendChild(textNode);
+                        bubble.appendChild(caret);
+                        push(bubble);
+                        for (var i = 1; i <= text.length; i++) {
+                            await whenPlaying();
+                            textNode.nodeValue = text.slice(0, i);
+                            chatList.scrollTop = chatList.scrollHeight;
+                            await wait(24);
+                        }
+                        caret.remove();
+                    }
+                    async function replay() {
+                        for (;;) {
+                            chatList.textContent = "";
+                            resetTotals();
+                            for (var i = 0; i < exchanges.length; i++) {
+                                await whenVisible();
+                                await whenPlaying();
+                                var ex = exchanges[i];
+                                if (chatClock) chatClock.textContent = ex.clock;
+                                await wait(500);
+                                if (ex.barcode) {
+                                    push(ex.user.cloneNode(true));
+                                    await wait(900);
+                                } else {
+                                    await typeUser(ex.user);
+                                }
+                                await wait(350);
+                                await whenPlaying();
+                                push(typingBubble());
+                                await wait(900);
+                                await whenPlaying();
+                                Object.keys(ex.add).forEach(function (k) {
+                                    if (k in totals) totals[k] += Number(ex.add[k]) || 0;
+                                });
+                                if (ex.ai) push(ex.ai.cloneNode(true));
+                                if (ex.widget && widgetTpl) {
+                                    await wait(500);
+                                    var w = widgetTpl.cloneNode(true);
+                                    paintWidget(w);
+                                    push(w);
+                                    await wait(3600);
+                                } else {
+                                    await wait(2600);
+                                }
+                            }
+                            await wait(2200);
+                            await whenPlaying();
+                        }
+                    }
+                    if (exchanges.length) replay();
+                }
+
+                // ---------- live GitHub star count ----------
+                var starEls = document.querySelectorAll("[data-gh-stars]");
+                if (starEls.length) {
+                    fetch("https://api.github.com/repos/akutishevsky/nutrition-mcp")
+                        .then(function (r) {
+                            return r.ok ? r.json() : null;
+                        })
+                        .then(function (d) {
+                            if (!d || typeof d.stargazers_count !== "number") return;
+                            // Grouped in the page's language like every other figure.
+                            var text = d.stargazers_count.toLocaleString(NUM_LOCALE);
+                            starEls.forEach(function (el) {
+                                el.textContent = text;
+                            });
+                        })
+                        .catch(function () {});
+                }
+
+                // ---------- examples: picker + prev/next ----------
+                // The picker is three radios (the highlight is CSS); the preview panels
+                // sit in the other grid column, out of reach of a sibling selector, so
+                // switching the active panel is the one thing left to script.
+                var exRadios = [].slice.call(document.querySelectorAll('input[name="ex"]'));
+                var exPanels = [].slice.call(document.querySelectorAll(".nm-ex-panel"));
+                if (exRadios.length && exPanels.length) {
+                    function showExample(i) {
+                        exPanels.forEach(function (p, k) {
+                            p.classList.toggle("is-active", k === i);
+                        });
+                    }
+                    function currentExample() {
+                        for (var i = 0; i < exRadios.length; i++)
+                            if (exRadios[i].checked) return i;
+                        return 0;
+                    }
+                    exRadios.forEach(function (r, i) {
+                        r.addEventListener("change", function () {
+                            if (r.checked) showExample(i);
+                        });
+                    });
+                    document.querySelectorAll("[data-ex-dir]").forEach(function (btn) {
+                        btn.addEventListener("click", function () {
+                            var step = btn.getAttribute("data-ex-dir") === "prev" ? -1 : 1;
+                            var n = exRadios.length;
+                            var next = (currentExample() + step + n) % n;
+                            exRadios[next].checked = true;
+                            showExample(next);
+                        });
+                    });
+                    showExample(currentExample());
+                }
+
+                // ---------- live stats: units ----------
+                // Every weight the API returns is in grams and every volume in
+                // millilitres; both are only ever rendered through these, so the
+                // Metric / Imperial toggle is a repaint and never a refetch.
+                var UNIT_STORE = "stats-unit";
+                var GRAMS_PER = { kg: 1000, lb: 453.59237 };
+                var ML_PER = { kg: 1000, lb: 3785.411784 };
+                var OUNCE_G = 28.349523125;
+                // A remembered choice wins; failing that, the visitor's own
+                // measurement system, since "512 kg" is not a quantity most readers of
+                // the English page have a feel for.
+                var unit = "kg";
+                try {
+                    var savedUnit = localStorage.getItem(UNIT_STORE);
+                    if (savedUnit === "kg" || savedUnit === "lb") unit = savedUnit;
+                    else if (/^en-US\b/i.test(navigator.language || "")) unit = "lb";
+                } catch (e) {}
+                function isMetric() {
+                    return unit === "kg";
+                }
+                function same(v) {
+                    return v;
+                }
+                function toWeight(g) {
+                    return g / GRAMS_PER[unit];
+                }
+                function toVolume(ml) {
+                    return ml / ML_PER[unit];
+                }
+                // A weight row's delta is read in the small unit of whichever system
+                // is on screen - grams under kg, ounces under lb. Raw units, not the
+                // display ones: a 40 g change is invisible once rounded to kg.
+                function weightDelta(diff) {
+                    return isMetric()
+                        ? { n: diff, unit: " g", dec: 0 }
+                        : { n: diff / OUNCE_G, unit: " oz", dec: 1 };
+                }
+                // Per /api/stats key: how the raw figure converts for display, the unit
+                // symbol written beside it, and how the change since page load reads.
+                // A key with no "delta" shows none; a key with no "unit" leaves the
+                // markup's own alone.
+                var FORMATS = {
+                    total_calories: {
+                        to: same,
+                        unit: function () {
+                            return "kcal";
+                        },
+                        delta: function (diff) {
+                            return { n: diff, unit: " kcal", dec: 0 };
+                        },
+                    },
+                    food_logs: {
+                        to: same,
+                        unit: null,
+                        // The word after the count ("logs") is the page's own, read
+                        // off the tag's data-delta-unit.
+                        delta: function (diff, tag) {
+                            var word = tag.getAttribute("data-delta-unit") || "";
+                            return { n: diff, unit: word ? " " + word : "", dec: 0 };
+                        },
+                    },
+                    timezones: { to: same, unit: null, delta: null },
+                    total_protein_g: {
+                        to: toWeight,
+                        unit: function () {
+                            return unit;
+                        },
+                        delta: weightDelta,
+                    },
+                    total_carbs_g: {
+                        to: toWeight,
+                        unit: function () {
+                            return unit;
+                        },
+                        delta: weightDelta,
+                    },
+                    total_fat_g: {
+                        to: toWeight,
+                        unit: function () {
+                            return unit;
+                        },
+                        delta: weightDelta,
+                    },
+                    weight_lost_g: {
+                        to: toWeight,
+                        unit: function () {
+                            return unit;
+                        },
+                        delta: function (diff) {
+                            return { n: toWeight(diff), unit: " " + unit, dec: 1 };
+                        },
+                    },
+                    total_water_ml: {
+                        to: toVolume,
+                        unit: function () {
+                            return isMetric() ? "L" : "gal";
+                        },
+                        delta: function (diff) {
+                            return {
+                                n: toVolume(diff),
+                                unit: isMetric() ? " L" : " gal",
+                                dec: 1,
+                            };
+                        },
+                    },
+                };
+                // The keys whose display changes with the unit toggle.
+                var UNIT_KEYS = Object.keys(FORMATS).filter(function (key) {
+                    return FORMATS[key].to !== same;
+                });
+
+                // ---------- live stats: count-ups ----------
+                // A count-up owns its element's text until the last frame, so anything
+                // repainting that element behind its back is undone by the next one.
+                // The unit toggle is exactly that, and the frame that wins writes the
+                // OLD unit's magnitude under the NEW unit's suffix. So every pending
+                // frame is parked here, and a repaint cancels the loop that would
+                // overwrite it.
+                var pending = new WeakMap();
+                function cancelAnim(el) {
+                    var h = pending.get(el);
+                    if (h) {
+                        cancelAnimationFrame(h);
+                        pending.delete(el);
+                    }
+                }
+                // Counts from "from" (0 on first paint, the previous value on a live
+                // update) to "target", 1.3 s ease-out.
+                function animate(el, target, from) {
+                    from = from || 0;
+                    cancelAnim(el);
+                    if (reduceMotion) {
+                        el.textContent = fmtInt(target);
+                        return;
+                    }
+                    var dur = 1300,
+                        start = null;
+                    function step(ts) {
+                        if (start === null) start = ts;
+                        var p = Math.min((ts - start) / dur, 1);
+                        var e = 1 - Math.pow(1 - p, 3);
+                        el.textContent = fmtInt(from + (target - from) * e);
+                        if (p < 1) pending.set(el, requestAnimationFrame(step));
+                        else pending.delete(el);
+                    }
+                    pending.set(el, requestAnimationFrame(step));
+                }
+                // Re-triggered on every change so a second change is noticed too.
+                function flash(el) {
+                    var host = el.closest(".nm-stat-v") || el;
+                    host.classList.remove("nm-flash");
+                    void host.offsetWidth;
+                    host.classList.add("nm-flash");
+                }
+                function statEls(attr, key) {
+                    return document.querySelectorAll("[" + attr + '="' + key + '"]');
+                }
+                function paintUnit(key) {
+                    var c = FORMATS[key];
+                    if (!c.unit) return;
+                    statEls("data-stat-unit", key).forEach(function (el) {
+                        el.textContent = c.unit();
+                    });
+                }
+                // "quiet" repaints the tag without replaying the pop - used when the
+                // unit changed but the underlying figure did not.
+                function showDelta(key, diff, quiet) {
+                    var c = FORMATS[key];
+                    if (!c.delta) return;
+                    statEls("data-delta", key).forEach(function (tag) {
+                        var d = c.delta(diff, tag);
+                        var scale = Math.pow(10, d.dec);
+                        var n = Math.round(d.n * scale) / scale;
+                        tag.classList.toggle("down", n < 0);
+                        tag.textContent = n
+                            ? (n > 0 ? "+" : "\u2212") + fmtDec(Math.abs(n), d.dec) + d.unit
+                            : "\u00b10";
+                        if (quiet) return;
+                        tag.classList.remove("pop");
+                        void tag.offsetWidth;
+                        tag.classList.add("pop");
+                    });
+                }
+
+                // "prev" is the last stats object painted, or null on first load.
+                // Unchanged figures are left alone so the page is still while nothing
+                // happens; changed ones count from old to new and flash.
+                function setStats(stats, prev, base) {
+                    Object.keys(FORMATS).forEach(function (key) {
+                        var c = FORMATS[key];
+                        var v = stats[key];
+                        if (typeof v !== "number") {
+                            // An older public_landing_stats() without this key (the DB
+                            // can lag the app on a deploy): hide the card rather than
+                            // show NaN.
+                            statEls("data-stat-card", key).forEach(function (card) {
+                                card.hidden = true;
+                            });
+                            return;
+                        }
+                        var before = prev ? prev[key] : null;
+                        if (prev && before === v) return;
+                        statEls("data-stat", key).forEach(function (el) {
+                            animate(
+                                el,
+                                c.to(v),
+                                typeof before === "number" ? c.to(before) : 0,
+                            );
+                            if (prev) flash(el);
+                        });
+                        paintUnit(key);
+                        if (base) showDelta(key, v - base[key]);
+                    });
+                    // The "Live" nav badge counts food logs alone, and it is on the nav
+                    // of every page - so public/site.js owns it site-wide rather than
+                    // this script, which only ships on the landing page. Handing over
+                    // the figures already fetched here keeps this page on one poll
+                    // instead of two, and passing our own page-load baseline alongside
+                    // them keeps the badge showing exactly what the delta tag on the
+                    // food-logs card shows.
+                    document.dispatchEvent(
+                        new CustomEvent("live-stats", {
+                            detail: { stats: stats, base: base },
+                        }),
+                    );
+                }
+
+                // ---------- live stats: world map ----------
+                var SVGNS = "http://www.w3.org/2000/svg";
+                // UTC-equivalent zones all resolve to the map center (lon 0, lat 0 -
+                // open ocean), so plotting them drops a bogus dot in the middle of the
+                // Atlantic. gen-map-data.ts parks every one of these on null island.
+                var UTC_TZS = {
+                    UTC: 1,
+                    "Etc/UTC": 1,
+                    "Etc/GMT": 1,
+                    GMT: 1,
+                    "Etc/Greenwich": 1,
+                };
+                // [halo, core] radius per level 1..5. Radii step by roughly sqrt(2) in area
+                // terms rather than linearly, because a circle is read by its area:
+                // doubling the radius would look like four times the share.
+                var TZ_RADII = [
+                    [5.5, 2.0],
+                    [7.0, 2.5],
+                    [9.0, 3.2],
+                    [11.5, 3.9],
+                    [14.5, 4.7],
+                ];
+                var tip = document.querySelector(".nm-tz-tip");
+                var tipOn = null;
+                var tipShownAt = 0;
+                // The tooltip names the zone and nothing else: /api/stats serves
+                // privacy-bucketed levels, never counts, so there is no share to show.
+                function showTip(core) {
+                    if (!tip) return;
+                    if (tipOn && tipOn !== core) tipOn.classList.remove("is-on");
+                    tipShownAt = Date.now();
+                    tipOn = core;
+                    core.classList.add("is-on");
+                    tip.textContent = (core.getAttribute("data-tz") || "").replace(
+                        /_/g,
+                        " ",
+                    );
+                    // Percentages of the 1000x500 viewBox, so the tip tracks the dot at
+                    // any rendered size.
+                    var cx = Number(core.getAttribute("cx"));
+                    var cy = Number(core.getAttribute("cy"));
+                    var r = Number(core.getAttribute("r"));
+                    tip.style.left = cx / 10 + "%";
+                    tip.style.top = (cy - r) / 5 + "%";
+                    tip.hidden = false;
+                }
+                function hideTip() {
+                    if (!tip) return;
+                    if (tipOn) tipOn.classList.remove("is-on");
+                    tipOn = null;
+                    tip.hidden = true;
+                }
+                // Expect this to render sparsely for a while: the 2026-08-15
+                // nullable_profile_timezone migration reset every profile's timezone to
+                // NULL (see #99), and /api/stats only counts profiles that have set one
+                // since - so the map fills back in as people call set_timezone.
+                function buildMap(mapData, tzLevels) {
+                    var svg = document.getElementById("world-svg");
+                    if (!svg || !mapData) return;
+                    // The svg is a role="group" (not "img", whose children are
+                    // presentational) so each focusable timezone dot keeps its <title>
+                    // as an accessible name; the ~1,000 decorative land dots are one
+                    // hidden group so they never enter the tree.
+                    var land = document.createElementNS(SVGNS, "g");
+                    land.setAttribute("aria-hidden", "true");
+                    mapData.land.forEach(function (p) {
+                        var c = document.createElementNS(SVGNS, "circle");
+                        c.setAttribute("cx", p[0]);
+                        c.setAttribute("cy", p[1]);
+                        c.setAttribute("r", "2.5");
+                        c.setAttribute("class", "nm-land");
+                        land.appendChild(c);
+                    });
+                    svg.appendChild(land);
+                    function sizeDot(dot, level) {
+                        var r = TZ_RADII[level - 1];
+                        dot.halo.setAttribute("r", r[0]);
+                        dot.core.setAttribute("r", r[1]);
+                        dot.level = level;
+                    }
+                    var seen = {};
+                    var plotted = 0;
+                    var halos = document.createDocumentFragment();
+                    var cores = document.createDocumentFragment();
+                    Object.keys(tzLevels || {}).forEach(function (tz) {
+                        if (UTC_TZS[tz]) return;
+                        var pt = mapData.tz[tz];
+                        if (!pt) return;
+                        var level = Math.min(
+                            TZ_RADII.length,
+                            Math.max(1, Math.round(tzLevels[tz]) || 1),
+                        );
+                        // Alias spellings (Europe/Kiev vs Europe/Kyiv) project to the
+                        // same coordinates and so share one dot. Keep the larger level
+                        // rather than whichever name came first.
+                        var k = pt[0] + "," + pt[1];
+                        if (seen[k]) {
+                            if (level > seen[k].level) sizeDot(seen[k], level);
+                            return;
+                        }
+                        var halo = document.createElementNS(SVGNS, "circle");
+                        halo.setAttribute("cx", pt[0]);
+                        halo.setAttribute("cy", pt[1]);
+                        halo.setAttribute("class", "nm-halo");
+                        if (!reduceMotion)
+                            halo.style.animationDelay = (plotted % 6) * 0.45 + "s";
+                        var core = document.createElementNS(SVGNS, "circle");
+                        core.setAttribute("cx", pt[0]);
+                        core.setAttribute("cy", pt[1]);
+                        core.setAttribute("class", "nm-tz");
+                        core.setAttribute("data-tz", tz);
+                        // Reachable by keyboard, and named for screen readers by the
+                        // same text the tooltip shows.
+                        core.setAttribute("tabindex", "0");
+                        var title = document.createElementNS(SVGNS, "title");
+                        title.textContent = tz.replace(/_/g, " ");
+                        core.appendChild(title);
+                        var dot = { halo: halo, core: core, level: 0 };
+                        sizeDot(dot, level);
+                        seen[k] = dot;
+                        halos.appendChild(halo);
+                        cores.appendChild(core);
+                        plotted++;
+                    });
+                    // Halos first so no halo paints over a neighbouring core.
+                    svg.appendChild(halos);
+                    svg.appendChild(cores);
+                    // Hover, focus and tap all show the tooltip; tapping the same dot
+                    // again, leaving, blurring or Escape hide it.
+                    svg.addEventListener("mouseover", function (e) {
+                        var core = e.target.closest(".nm-tz");
+                        if (core) showTip(core);
+                    });
+                    svg.addEventListener("mouseout", function (e) {
+                        if (e.target.closest(".nm-tz")) hideTip();
+                    });
+                    svg.addEventListener("focusin", function (e) {
+                        var core = e.target.closest(".nm-tz");
+                        if (core) showTip(core);
+                    });
+                    svg.addEventListener("focusout", function (e) {
+                        if (e.target.closest(".nm-tz")) hideTip();
+                    });
+                    // A tap arrives as mouseover, focusin, click in one gesture - the
+                    // first two show the tip, so the click only counts as "tap again
+                    // to dismiss" when the tip has been up for longer than a gesture.
+                    svg.addEventListener("click", function (e) {
+                        var core = e.target.closest(".nm-tz");
+                        if (!core) return;
+                        if (
+                            tipOn === core &&
+                            !tip.hidden &&
+                            Date.now() - tipShownAt > 300
+                        )
+                            hideTip();
+                        else showTip(core);
+                    });
+                    document.addEventListener("keydown", function (e) {
+                        if (e.key === "Escape") hideTip();
+                    });
+                }
+
+                // ---------- live stats: countdown + since-open ----------
+                var POLL_MS = 5000;
+                var POLL_S = POLL_MS / 1000;
+                var RING_LEN = 37.7;
+                var countdown = POLL_S;
+                var cdEl = document.querySelector("[data-countdown]");
+                var cdRing = document.querySelector("[data-countdown-ring]");
+                function paintCountdown() {
+                    if (cdEl) cdEl.textContent = fmtInt(countdown);
+                    if (cdRing)
+                        cdRing.style.strokeDashoffset = String(
+                            RING_LEN * (1 - countdown / POLL_S),
+                        );
+                }
+                var openedAt = Date.now();
+                var sinceEl = document.querySelector("[data-since-open]");
+                // The "s" / "m" suffixes are copy, and this script holds none: the
+                // browser's own unit data writes them in the page's language ("35s",
+                // "35 с", "35秒"). The bare-letter fallback only runs where Intl has
+                // no unit style at all.
+                var fmtSecs = null;
+                var fmtMins = null;
+                try {
+                    fmtSecs = new Intl.NumberFormat(NUM_LOCALE, {
+                        style: "unit",
+                        unit: "second",
+                        unitDisplay: "narrow",
+                    });
+                    fmtMins = new Intl.NumberFormat(NUM_LOCALE, {
+                        style: "unit",
+                        unit: "minute",
+                        unitDisplay: "narrow",
+                    });
+                } catch (e) {
+                    fmtSecs = fmtMins = null;
+                }
+                function fmtSince(secs) {
+                    var m = Math.floor(secs / 60);
+                    var s = secs % 60;
+                    if (fmtSecs && fmtMins)
+                        return secs < 60
+                            ? fmtSecs.format(secs)
+                            : fmtMins.format(m) + " " + fmtSecs.format(s);
+                    return secs < 60
+                        ? fmtInt(secs) + "s"
+                        : fmtInt(m) + "m " + fmtInt(s) + "s";
+                }
+                function paintSince() {
+                    if (!sinceEl) return;
+                    var secs = Math.max(0, Math.round((Date.now() - openedAt) / 1000));
+                    sinceEl.textContent = fmtSince(secs);
+                }
+
+                // ---------- live stats: load, then keep live ----------
+                var lastStats = null;
+                var baseStats = null;
+                var pollTimer = null;
+                // #facts-live is also what tells public/site.js that this page polls
+                // /api/stats for itself (see the live-stats event above).
+                var liveEl = document.getElementById("facts-live");
+
+                var unitBtns = [].slice.call(document.querySelectorAll("[data-unit]"));
+                function paintUnitToggle() {
+                    unitBtns.forEach(function (b) {
+                        b.setAttribute(
+                            "aria-pressed",
+                            b.getAttribute("data-unit") === unit ? "true" : "false",
+                        );
+                    });
+                }
+                // Repainted in place rather than through setStats: counting 512 up to
+                // 1,129 would read as the figure changing, when all that changed is
+                // the unit it is written in. Cancelling first is what makes the toggle
+                // win over a count-up already in flight on the same card.
+                function repaintUnits() {
+                    UNIT_KEYS.forEach(function (key) {
+                        paintUnit(key);
+                        if (!lastStats) return;
+                        var v = lastStats[key];
+                        if (typeof v !== "number") return;
+                        statEls("data-stat", key).forEach(function (el) {
+                            cancelAnim(el);
+                            el.textContent = fmtInt(FORMATS[key].to(v));
+                        });
+                        if (baseStats) showDelta(key, v - baseStats[key], true);
+                    });
+                }
+                paintUnitToggle();
+                repaintUnits();
+                unitBtns.forEach(function (b) {
+                    b.addEventListener("click", function () {
+                        var next = b.getAttribute("data-unit");
+                        if (next === unit) return;
+                        unit = next;
+                        try {
+                            localStorage.setItem(UNIT_STORE, unit);
+                        } catch (e) {}
+                        paintUnitToggle();
+                        repaintUnits();
+                    });
+                });
+
+                function fetchStats() {
+                    return fetch("/api/stats", { cache: "no-store" }).then(function (r) {
+                        if (!r.ok) throw new Error("stats");
+                        return r.json();
+                    });
+                }
+                function poll() {
+                    pollTimer = null;
+                    if (document.hidden) return;
+                    fetchStats()
+                        .then(function (stats) {
+                            setStats(stats, lastStats, baseStats);
+                            lastStats = stats;
+                            if (liveEl) liveEl.classList.remove("stale");
+                        })
+                        .catch(function () {
+                            if (liveEl) liveEl.classList.add("stale");
+                        })
+                        .then(function () {
+                            countdown = POLL_S;
+                            paintCountdown();
+                            schedule();
+                        });
+                }
+                function schedule() {
+                    if (pollTimer || document.hidden) return;
+                    pollTimer = setTimeout(poll, POLL_MS);
+                }
+                // A background tab stops polling; coming back refetches at once so the
+                // figures are never minutes behind.
+                document.addEventListener("visibilitychange", function () {
+                    if (document.hidden) {
+                        clearTimeout(pollTimer);
+                        pollTimer = null;
+                    } else if (lastStats) {
+                        poll();
+                    }
+                });
+                if (liveEl) {
+                    Promise.all([
+                        fetchStats(),
+                        fetch("/map-data.json").then(function (r) {
+                            return r.ok ? r.json() : null;
+                        }),
+                    ])
+                        .then(function (res) {
+                            var stats = res[0];
+                            setStats(stats, null, null);
+                            lastStats = stats;
+                            // The deltas are measured from this moment.
+                            baseStats = stats;
+                            buildMap(res[1], stats.timezone_levels);
+                            liveEl.classList.add("on");
+                            paintCountdown();
+                            setInterval(function () {
+                                if (document.hidden) return;
+                                countdown = countdown > 1 ? countdown - 1 : POLL_S;
+                                paintCountdown();
+                                paintSince();
+                            }, 1000);
+                            schedule();
+                        })
+                        .catch(function () {
+                            // The countdown row goes too: nothing starts the interval
+                            // on this path, so a visible "next in 5s" would sit frozen
+                            // above an empty section forever.
+                            var row = document.getElementById("stat-row");
+                            var map = document.getElementById("map-block");
+                            var meta = document.getElementById("live-meta");
+                            if (row) row.hidden = true;
+                            if (map) map.hidden = true;
+                            if (meta) meta.hidden = true;
+                        });
+                }
+
+                // ---------- latest Patreon posts ----------
+                // #patreon-updates ships hidden and stays so unless /api/patreon-posts
+                // returns at least one post (a self-hosted deploy with no Patreon
+                // credentials gets [] forever). Cards are built from the <template>
+                // the generator wrote, so the "read post" label is the page's own.
+                var postsBlock = document.getElementById("patreon-updates");
+                var postsGrid = document.getElementById("patreon-posts-grid");
+                var postTpl = document.getElementById("patreon-post-tpl");
+                if (postsBlock && postsGrid && postTpl) {
+                    var POST_ICONS = ["fa-camera", "fa-receipt", "fa-square-poll-vertical"];
+                    var POST_TINTS = ["nm-c-acc", "nm-c-cal", "nm-c-pro"];
+                    fetch("/api/patreon-posts")
+                        .then(function (r) {
+                            return r.ok ? r.json() : [];
+                        })
+                        .then(function (posts) {
+                            if (!posts || !posts.length) return;
+                            posts.slice(0, 3).forEach(function (p, i) {
+                                var card =
+                                    postTpl.content.firstElementChild.cloneNode(true);
+                                card.href = p.url;
+                                var tile = card.querySelector("[data-post-tile]");
+                                if (tile) tile.classList.add(POST_TINTS[i % 3]);
+                                var icon = card.querySelector("[data-post-icon]");
+                                if (icon) icon.className = "fa-solid " + POST_ICONS[i % 3];
+                                var date = card.querySelector("[data-post-date]");
+                                if (date) {
+                                    var when = new Date(p.publishedAt);
+                                    date.textContent = isNaN(when.getTime())
+                                        ? ""
+                                        : when.toLocaleDateString(NUM_LOCALE, {
+                                              month: "short",
+                                              day: "numeric",
+                                          });
+                                }
+                                var title = card.querySelector("[data-post-title]");
+                                if (title) title.textContent = p.title || "";
+                                var preview = card.querySelector("[data-post-preview]");
+                                if (preview) preview.textContent = p.preview || "";
+                                postsGrid.appendChild(card);
+                            });
+                            postsBlock.hidden = false;
+                        })
+                        .catch(function () {});
+                }
+            })();`;
+
+// Everything HEAD_ASSETS (scripts/site-partials.ts) carries except the
+// stylesheet and the fonts: this design is set in Urbanist and Geist Mono
+// and loads /landing.css instead of /styles.css. The Font Awesome link and
+// the GA snippet are kept exactly as HEAD_ASSETS has them so
+// scripts/depersonalize.ts finds them on this page too.
+const LANDING_HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700;800&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/landing.css" />
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-1K4HRB2R8X");
+        </script>`;
+
+const GITHUB = "https://github.com/akutishevsky/nutrition-mcp";
+const PATREON =
+    "https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink";
+const EMAIL = "anton@nutrition-mcp.com";
+const MCP_URL = "https://nutrition-mcp.com/mcp";
+const EXT = 'target="_blank" rel="noopener noreferrer"';
+
+/** esc() leaves quotes alone — fine for text nodes, not for attribute
+ *  values, where a double quote would end the attribute early. */
+function attr(s: string): string {
+    return esc(s).replace(/"/g, "&quot;");
+}
+
+/** The number formatting the script itself uses (toLocaleString against
+ *  <html lang>), so the static render and the replay agree on "1,059". */
+function num(n: number, locale: SiteLocale): string {
+    return Math.round(n).toLocaleString(HTML_LANG[locale]);
+}
+
+// A trusted-HTML field (FAQ answers, install steps, notes) can't call
+// pathFor(locale, …) itself, so an in-prose link to another page of the
+// site is written as href="/alternatives" data-link="alternatives" and
+// rewritten here to the locale-correct path. Without it a translated page
+// silently links to the English version (the exact bug the login page
+// shipped once — see scripts/gen-legal.ts's localizeCrossLinks).
 function localizeLinks(html: string, locale: SiteLocale): string {
     return html.replace(
-        /href="\/alternatives" data-link="alternatives"/,
-        `href="${pathFor(locale, "/alternatives")}"`,
+        /href="\/(alternatives|tools|privacy|terms)" data-link="\1"/g,
+        (_m, page: string) => `href="${pathFor(locale, "/" + page)}"`,
     );
 }
 
@@ -66,55 +1016,879 @@ function faqJsonLdText(entry: FaqEntry): string {
     return entry.jsonLdText ?? stripTags(entry.visibleHtml);
 }
 
-function renderFaq(entry: FaqEntry): string {
-    return `                        <details>
-                            <summary>${esc(entry.question)}</summary>
-                            <p>${entry.visibleHtml}</p>
-                        </details>`;
+// ------------------------------------------------------------------ chrome
+
+/** The 6a floating pill header + the mobile sheet. Same ids and hooks as
+ *  nav() in scripts/site-partials.ts, since public/site.js drives both. */
+function header(doc: IndexDoc, locale: SiteLocale): string {
+    const c = chromeFor(locale);
+    const h = (id: string) => hashPath(locale, id);
+    const p = (id: string) => pathFor(locale, id);
+    const n = doc.header.nav;
+    const switcherItems = SITE_LOCALES.map((l) => {
+        const active = l === locale;
+        return `                    <a
+                        href="${urlFor(l, "")}"
+                        lang="${HTML_LANG[l]}"
+                        hreflang="${HTML_LANG[l]}"${active ? '\n                        aria-current="page"' : ""}
+                        ><span>${esc(LOCALE_NAMES[l])}</span
+                        ><span class="nm-lang-code">${HTML_LANG[l]}</span></a
+                    >`;
+    }).join("\n");
+    const themeBtn = (mode: "system" | "light" | "dark", icon: string) =>
+        `                    <button
+                        type="button"
+                        data-theme-set="${mode}"
+                        aria-pressed="${mode === "system" ? "true" : "false"}"
+                        title="${attr(c.theme[mode])}"
+                    >
+                        <i class="fa-solid ${icon}" aria-hidden="true"></i>
+                        <span class="vh">${esc(c.theme[mode])}</span>
+                    </button>`;
+    return `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>
+        <header class="nm-header" id="site-head">
+            <div class="nm-bar">
+                <a class="nm-brand" href="${p("")}" aria-label="${attr(c.brandHomeAriaLabel)}">
+                    <span class="nm-mark" aria-hidden="true">🍏</span>
+                    <span class="nm-brand-text">Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="${attr(c.landmarks.primaryNav)}">
+                    <a href="${h("how")}">${esc(n.how)}</a>
+                    <a href="${h("examples")}">${esc(n.examples)}</a>
+                    <a class="nav-has-badge" href="${h("live")}">${esc(n.live)}${liveBadge(c)}</a>
+                    <a href="${p("/tools")}">${esc(n.tools)}</a>
+                    <a href="${h("support")}">${esc(n.donate)}</a>
+                    <a href="${h("faq")}">${esc(n.faq)}</a>
+                </nav>
+                <details class="lang-switch">
+                    <summary
+                        aria-label="${attr(c.changeLanguageAriaLabel)}"
+                        title="${attr(c.languageTitle)}"
+                    >
+                        <i class="fa-solid fa-language" aria-hidden="true"></i>
+                        <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
+                    </summary>
+                    <div class="lang-menu" role="group" aria-label="${attr(c.languageTitle)}">
+${switcherItems}
+                    </div>
+                </details>
+                <div
+                    class="nm-theme"
+                    role="group"
+                    aria-label="${attr(c.theme.title)}"
+                    title="${attr(c.theme.title)}"
+                >
+${themeBtn("system", "fa-circle-half-stroke")}
+${themeBtn("light", "fa-sun")}
+${themeBtn("dark", "fa-moon")}
+                </div>
+                <a class="nm-cta head-cta" href="${h("connect")}">${esc(doc.header.connect)}</a>
+                <button
+                    class="icon-btn menu-btn"
+                    type="button"
+                    id="menu-btn"
+                    aria-expanded="false"
+                    aria-controls="site-menu"
+                    aria-label="${attr(c.openMenuAriaLabel)}"
+                    data-close-label="${attr(c.closeMenuAriaLabel)}"
+                >
+                    <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
+                </button>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="${attr(c.landmarks.menu)}">
+                <a href="${h("how")}">${esc(n.how)} <small>${esc(c.menu.howSmall)}</small></a>
+                <a href="${h("examples")}">${esc(n.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
+                <a href="${h("live")}"><span class="menu-label nav-has-badge">${esc(n.live)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
+                <a href="${p("/tools")}">${esc(n.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
+                <a href="${h("support")}">${esc(n.donate)}</a>
+                <a href="${h("faq")}">${esc(n.faq)}</a>
+                <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
+            </nav>
+            <div class="menu-secondary">
+                <a href="${h("support")}">${esc(c.menu.support)}</a>
+                <a href="${h("contact")}">${esc(c.menu.contact)}</a>
+                <a href="${GITHUB}" ${EXT}>${esc(c.menu.github)}</a>
+                <a href="${p("/privacy")}">${esc(c.menu.privacy)}</a>
+                <a href="${p("/terms")}">${esc(c.menu.terms)}</a>
+            </div>
+            <div class="menu-foot">
+                <a class="nm-cta" href="${h("connect")}">${esc(c.menu.connectInMinute)}</a>
+            </div>
+        </div>`;
 }
 
-function renderFeatureCard(
-    card: IndexDoc["features"]["cards"][number],
-): string {
-    return `                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="${card.icon}"></i
-                            ></span>
-                            <h3>${esc(card.title)}</h3>
-                            <p>
-                                ${esc(card.body)}
-                            </p>
-                        </article>`;
+function footer(doc: IndexDoc, locale: SiteLocale): string {
+    const c = chromeFor(locale);
+    const f = doc.footer;
+    const h = (id: string) => hashPath(locale, id);
+    const p = (id: string) => pathFor(locale, id);
+    const link = (href: string, label: string, external = false) =>
+        `                    <a href="${href}"${external ? " " + EXT : ""}>${esc(label)}</a>`;
+    return `        <footer class="nm-footer">
+            <div class="nm-footer-grid">
+                <div class="nm-footer-brand">
+                    <a class="nm-footer-logo" href="${p("")}">
+                        <span class="nm-mark-lg" aria-hidden="true">🍏</span>
+                        <span>Nutrition MCP</span>
+                    </a>
+                    <p class="nm-footer-blurb">${esc(f.blurb)}</p>
+                    <div class="nm-endpoint-sm">
+                        <span class="nm-pulse-dot" aria-hidden="true"></span>
+                        <span class="nm-endpoint-url">nutrition-mcp.com/mcp</span>
+                        <button
+                            type="button"
+                            class="copy-mini nm-copy-round"
+                            data-copy="${MCP_URL}"
+                            aria-label="${attr(f.copyEndpointAriaLabel)}"
+                        >
+                            <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="nm-social">
+                        <a href="${GITHUB}" ${EXT} aria-label="${attr(f.social.github)}"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+                        <a href="${PATREON}" ${EXT} aria-label="${attr(f.social.patreon)}"><i class="fa-brands fa-patreon" aria-hidden="true"></i></a>
+                        <a href="mailto:${EMAIL}" aria-label="${attr(f.social.email)}"><i class="fa-solid fa-envelope" aria-hidden="true"></i></a>
+                    </div>
+                </div>
+                <nav class="footer-links" aria-label="${attr(c.landmarks.footer)}">
+                    <div class="nm-fcol">
+                        <b>${esc(f.product.heading)}</b>
+${link(h("connect"), f.product.connect)}
+${link(h("onboarding"), f.product.onboarding)}
+${link(h("examples"), f.product.examples)}
+${link(h("live"), f.product.live)}
+${link(p("/tools"), f.product.tools)}
+${link(p("/alternatives"), f.product.alternatives)}
+                    </div>
+                    <div class="nm-fcol">
+                        <b>${esc(f.openSource.heading)}</b>
+${link(GITHUB, f.openSource.source, true)}
+${link(GITHUB + "#readme", f.openSource.selfHost, true)}
+${link(GITHUB + "/issues", f.openSource.bug, true)}
+${link("/llms.txt", f.openSource.llms)}
+${link(GITHUB + "/blob/main/LICENSE", f.openSource.licence, true)}
+                    </div>
+                    <div class="nm-fcol">
+                        <b>${esc(f.yourData.heading)}</b>
+${link(p("/privacy"), f.yourData.privacy)}
+${link(p("/terms"), f.yourData.terms)}
+${link(h("faq"), f.yourData.exportCsv)}
+${link(h("faq"), f.yourData.deleteAccount)}
+${link(PATREON, f.yourData.patreon, true)}
+${link(h("contact"), f.yourData.contact)}
+                    </div>
+                </nav>
+            </div>
+            <div class="nm-footer-bottom">
+                <span class="nm-footer-legal">
+                    <span>${esc(f.copyright)}</span>
+                    <a href="${p("/privacy")}">${esc(f.bottomPrivacy)}</a>
+                    <a href="${p("/terms")}">${esc(f.bottomTerms)}</a>
+                    <a href="${p("/alternatives")}">${esc(f.bottomAlternatives)}</a>
+                </span>
+                <span>${esc(f.disclaimer)}</span>
+            </div>
+        </footer>`;
 }
 
-function renderHowStep(
-    step: IndexDoc["how"]["steps"][number],
-    icon: string,
-): string {
-    return `                        <div class="step3">
-                            <span class="step3-icon"
-                                ><i class="${icon}"></i
-                            ></span>
-                            <h3>${esc(step.title)}</h3>
-                            <p>
-                                ${esc(step.body)}
-                            </p>
+// -------------------------------------------------------------------- hero
+
+// The barcode "photo" in the hero chat: the design's bar pattern, drawn
+// once here as <rect>s. Odd entries are gaps.
+const BARCODE_BARS = [
+    3, 1, 1, 2, 1, 3, 1, 1, 2, 2, 1, 1, 3, 1, 2, 1, 1, 1, 3, 2, 1, 1, 2, 1, 1,
+    3, 1, 2, 1, 1, 2, 3, 1, 1, 1, 2, 1, 3, 1, 1, 2, 1, 1, 2, 3, 1, 1,
+];
+const BARCODE_DIGITS = "5449000000996";
+
+function barcodeSvg(): string {
+    let x = 0;
+    const rects: string[] = [];
+    BARCODE_BARS.forEach((w, i) => {
+        const at = x;
+        x += w + (i % 2 ? 1 : 0.6);
+        if (i % 2) return;
+        rects.push(
+            `<rect x="${Number(at.toFixed(1))}" y="0" width="${w}" height="40"></rect>`,
+        );
+    });
+    return `<svg viewBox="0 0 120 40" aria-hidden="true">${rects.join("")}</svg>`;
+}
+
+type Totals = {
+    kcal: number;
+    pro: number;
+    car: number;
+    fat: number;
+    water: number;
+    sugar: number;
+    caf: number;
+};
+
+/** The final state of the widget: every exchange's deltas summed. */
+function sumExchanges(exchanges: HeroExchange[]): Totals {
+    const t: Totals = {
+        kcal: 0,
+        pro: 0,
+        car: 0,
+        fat: 0,
+        water: 0,
+        sugar: 0,
+        caf: 0,
+    };
+    for (const ex of exchanges) {
+        for (const k of Object.keys(t) as (keyof Totals)[]) {
+            t[k] += ex.add[k] ?? 0;
+        }
+    }
+    return t;
+}
+
+// The widget's daily goals as drawn in the design. The script reads the bar
+// goals back off data-goal and the ring's 2,000 is its own constant.
+const WIDGET_GOALS = { kcal: 2000, pro: 160, car: 220, fat: 70 };
+
+/** The in-chat summary widget. Rendered once, in its final state, after
+ *  the last reply; the script clones it and repaints [data-w] / --deg /
+ *  --w as the replay adds each exchange's nutrients. */
+function renderWidget(doc: IndexDoc, totals: Totals, locale: SiteLocale) {
+    const w = doc.hero.chat.widget;
+    const pct = (v: number, goal: number) =>
+        Math.min(100, Math.round((v / goal) * 100));
+    const deg = Math.min(
+        360,
+        Math.round((totals.kcal / WIDGET_GOALS.kcal) * 360),
+    );
+    const bar = (
+        key: "pro" | "car" | "fat",
+        label: string,
+        goal: number,
+    ) => `                                    <div>
+                                        <div class="nm-bar-l">
+                                            <span>${esc(label)}</span>
+                                            <b><span data-w="${key}">${num(totals[key], locale)}</span>/${goal} g</b>
+                                        </div>
+                                        <div class="nm-bar-t">
+                                            <div
+                                                class="nm-bar-f nm-c-${key}"
+                                                data-bar="${key}"
+                                                data-goal="${goal}"
+                                                style="--w: ${pct(totals[key], goal)}%"
+                                            ></div>
+                                        </div>
+                                    </div>`;
+    const chip = (
+        tint: string,
+        label: string,
+        key: "water" | "sugar" | "caf",
+        unit: string,
+    ) =>
+        `                                <span class="nm-chip ${tint}"><span class="nm-chip-dot" aria-hidden="true"></span>${esc(label)} <span class="nm-chip-v"><span data-w="${key}">${num(totals[key], locale)}</span> ${unit}</span></span>`;
+    return `                            <div class="nm-widget">
+                                <div class="nm-w-head">
+                                    <b>${esc(w.title)}</b><span>${esc(w.goal)}</span>
+                                </div>
+                                <div class="nm-w-body">
+                                    <div class="nm-ring" data-ring style="--deg: ${deg}deg">
+                                        <div class="nm-ring-in">
+                                            <div>
+                                                <div class="nm-ring-n" data-w="kcal">${num(totals.kcal, locale)}</div>
+                                                <div class="nm-ring-u">${esc(w.kcalUnit)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="nm-bars">
+${bar("pro", w.protein, WIDGET_GOALS.pro)}
+${bar("car", w.carbs, WIDGET_GOALS.car)}
+${bar("fat", w.fat, WIDGET_GOALS.fat)}
+                                    </div>
+                                </div>
+                                <div class="nm-w-chips">
+${chip("nm-c-wat", w.water, "water", "ml")}
+${chip("nm-c-sug", w.sugar, "sugar", "g")}
+${chip("nm-c-caf", w.caffeine, "caf", "mg")}
+                                </div>
+                                <div class="nm-w-hint">${esc(w.hint)}</div>
+                            </div>`;
+}
+
+/** One exchange of the hero thread, statically. The user / barcode bubble
+ *  carries the deltas and clock the script replays from. */
+function renderExchange(doc: IndexDoc, ex: HeroExchange): string {
+    const data = ` data-add='${JSON.stringify(ex.add)}' data-clock="${attr(ex.clock)}"${ex.widget ? " data-widget" : ""}`;
+    const user = ex.barcode
+        ? `                            <div class="nm-msg nm-msg-barcode"${data}>
+                                <div class="nm-barcode">
+                                    ${barcodeSvg()}
+                                    <span class="nm-barcode-digits">${BARCODE_DIGITS}</span>
+                                </div>
+                                <div class="nm-barcode-cap">${esc(doc.hero.chat.photoCaption)}</div>
+                            </div>`
+        : `                            <div class="nm-msg nm-msg-user"${data}>${esc(ex.userText ?? "")}</div>`;
+    return `${user}
+                            <div class="nm-msg nm-msg-ai">${esc(ex.aiText)}</div>`;
+}
+
+function renderHero(doc: IndexDoc, locale: SiteLocale): string {
+    const hero = doc.hero;
+    const exchanges = hero.chat.exchanges;
+    const totals = sumExchanges(exchanges);
+    const lastClock = exchanges.length
+        ? exchanges[exchanges.length - 1]!.clock
+        : "";
+    return `            <section class="nm-section nm-hero" id="top" aria-labelledby="hero-title">
+                <div>
+                    <h1 class="nm-h1" id="hero-title">
+                        ${esc(hero.titleBeforeEm)}<span class="nm-em">${esc(hero.titleEm)}<span class="nm-underline" aria-hidden="true"></span></span>${esc(hero.titleAfterEm)}
+                    </h1>
+                    <p class="nm-lead">${esc(hero.lead)}</p>
+                    <div class="nm-hero-actions">
+                        <a class="nm-btn nm-btn-primary" href="${hashPath(locale, "connect")}"
+                            >${esc(hero.ctaPrimary)}
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
+                        ></a>
+                        <a class="nm-btn nm-btn-glass" href="${GITHUB}" ${EXT}>
+                            <i class="fa-brands fa-github" aria-hidden="true"></i>
+                            <span>${esc(hero.ctaGithub)}</span>
+                            <span class="nm-stars"><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars>—</span></span>
+                        </a>
+                    </div>
+                </div>
+                <div class="nm-hero-stage">
+                    <div class="nm-chat-shell">
+                        <div class="nm-chat">
+                            <div class="nm-chat-head">
+                                <span class="nm-chat-who">
+                                    <span class="nm-avatar" aria-hidden="true">🍏</span>
+                                    ${esc(hero.chat.status)}
+                                </span>
+                                <span class="nm-chat-tools">
+                                    <span class="nm-chat-clock" data-chat-clock>${esc(lastClock)}</span>
+                                    <button type="button" class="nm-round nm-chat-pause" data-chat-pause aria-pressed="false">
+                                        <i class="fa-solid fa-pause" aria-hidden="true"></i>
+                                        <span class="vh">${esc(hero.chat.pauseLabel)}</span>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="nm-chat-list" data-chat-list>
+${exchanges.map((ex) => renderExchange(doc, ex)).join("\n")}
+${renderWidget(doc, totals, locale)}
+                            </div>
+                        </div>
+                    </div>
+                    <a class="nm-more" href="${hashPath(locale, "examples")}"
+                        >${esc(hero.moreExamples)}
+                        <i class="fa-solid fa-arrow-down" aria-hidden="true"></i
+                    ></a>
+                </div>
+            </section>`;
+}
+
+// ---------------------------------------------------------------- sections
+
+const HOW_ICONS = ["fa-plug", "fa-comment-dots", "fa-chart-area"];
+const HOW_TINTS = ["nm-c-acc", "nm-c-cal", "nm-c-pro"];
+
+function renderHow(doc: IndexDoc): string {
+    const cards = doc.how.steps
+        .map(
+            (
+                s,
+                i,
+            ) => `                    <div class="nm-card ${HOW_TINTS[i] ?? "nm-c-acc"}">
+                        <div class="nm-blob" aria-hidden="true"></div>
+                        <div class="nm-card-top">
+                            <span class="nm-tile" aria-hidden="true"><i class="fa-solid ${HOW_ICONS[i] ?? "fa-circle"}"></i></span>
+                            <span class="nm-count">${esc(doc.how.counter.replace("{n}", String(i + 1)))}</span>
+                        </div>
+                        <div>
+                            <h3>${esc(s.title)}</h3>
+                            <p>${esc(s.body)}</p>
+                        </div>
+                    </div>`,
+        )
+        .join("\n");
+    return `            <section class="nm-section" id="how" aria-labelledby="how-title" data-reveal>
+                <div class="nm-head-row">
+                    <div>
+                        <p class="nm-eyebrow">${esc(doc.how.eyebrow)}</p>
+                        <h2 class="nm-h2 nm-h2-narrow" id="how-title">${esc(doc.how.title)}</h2>
+                    </div>
+                    <p class="nm-sub">${esc(doc.how.sub)}</p>
+                </div>
+                <div class="nm-cards3" data-reveal="stagger">
+${cards}
+                </div>
+            </section>`;
+}
+
+function renderConnect(doc: IndexDoc, locale: SiteLocale): string {
+    const c = doc.connect;
+    const steps = (list: string[]) =>
+        list
+            .map(
+                (s) =>
+                    `                                <li><span>${localizeLinks(s, locale)}</span></li>`,
+            )
+            .join("\n");
+    return `            <section class="nm-section" id="connect" aria-labelledby="connect-title" data-reveal>
+                <div class="nm-split">
+                    <div>
+                        <p class="nm-eyebrow">${esc(c.eyebrow)}</p>
+                        <h2 class="nm-h2" id="connect-title">${esc(c.title)}</h2>
+                        <p class="nm-sub">${esc(c.sub)}</p>
+                        <div class="nm-endpoint">
+                            <span class="nm-endpoint-url">${MCP_URL}</span>
+                            <button
+                                type="button"
+                                class="copy-mini nm-copy"
+                                data-copy="${MCP_URL}"
+                                data-label="${attr(c.copyLabel)}"
+                                data-copied-label="${attr(c.copiedLabel)}"
+                                aria-label="${attr(c.copyAriaLabel)}"
+                            >
+                                <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <ul class="nm-checks">
+${c.bullets.map((b) => `                            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>${esc(b)}</li>`).join("\n")}
+                        </ul>
+                    </div>
+                    <fieldset class="nm-panel nm-tabs">
+                        <legend class="vh">${esc(c.tabsLabel)}</legend>
+                        <input type="radio" name="itab" id="itab-claude" class="tab-input" checked />
+                        <input type="radio" name="itab" id="itab-chatgpt" class="tab-input" />
+                        <input type="radio" name="itab" id="itab-other" class="tab-input" />
+                        <div class="nm-seg">
+                            <label for="itab-claude" class="seg-claude"
+                                ><i class="fa-brands fa-claude" aria-hidden="true"></i>
+                                <span>Claude</span></label
+                            >
+                            <label for="itab-chatgpt" class="seg-chatgpt"
+                                ><i class="fa-brands fa-openai" aria-hidden="true"></i>
+                                <span>ChatGPT</span></label
+                            >
+                            <label for="itab-other" class="seg-other"
+                                ><i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                                <span>${esc(c.otherTabLabel)}</span></label
+                            >
+                        </div>
+                        <div class="nm-tab-panel panel-claude">
+                            <ol class="nm-steps">
+${steps(c.claude.steps)}
+                            </ol>
+                            <p class="nm-note">${esc(c.claude.note)}</p>
+                        </div>
+                        <div class="nm-tab-panel panel-chatgpt">
+                            <ol class="nm-steps">
+${steps(c.chatgpt.steps)}
+                            </ol>
+                            <p class="nm-note">${esc(c.chatgpt.note)}</p>
+                        </div>
+                        <div class="nm-tab-panel panel-other">
+                            <!-- prettier-ignore -->
+                            <pre class="nm-pre">{
+  "mcpServers": {
+    "nutrition": {
+      "url": "${MCP_URL}"
+    }
+  }
+}</pre>
+                            <p>${localizeLinks(c.other.noteHtml, locale)}</p>
+                        </div>
+                    </fieldset>
+                </div>
+            </section>`;
+}
+
+const ONB_ICONS = [
+    "fa-clock-four",
+    "fa-bullseye",
+    "fa-language",
+    "fa-utensils",
+];
+const ONB_TINTS = ["nm-c-wat", "nm-c-pro", "nm-c-car", "nm-c-cal"];
+
+function renderOnboarding(doc: IndexDoc): string {
+    const o = doc.onboarding;
+    const cards = o.steps
+        .map(
+            (s, i) => `                    <div class="nm-onb-card">
+                        <div class="nm-onb-step">
+                            <span class="nm-tile nm-tile-sm ${ONB_TINTS[i] ?? "nm-c-acc"}" aria-hidden="true"><i class="fa-solid ${ONB_ICONS[i] ?? "fa-circle"}"></i></span>
+                            ${esc(o.stepLabel.replace("{n}", String(i + 1)))}
+                        </div>
+                        <h3>${esc(s.title)}</h3>
+                        <p>${esc(s.body)}</p>
+                        <div class="nm-say"><span class="nm-say-l">${esc(o.justSay)}</span>“${esc(s.say)}”</div>
+                    </div>`,
+        )
+        .join("\n");
+    return `            <section class="nm-section" id="onboarding" aria-labelledby="onboarding-title" data-reveal>
+                <div class="nm-head-row">
+                    <h2 class="nm-h2 nm-h2-narrow" id="onboarding-title">${esc(o.title)}</h2>
+                    <p class="nm-sub">${esc(o.sub)}</p>
+                </div>
+                <div class="nm-onb" data-reveal="stagger">
+                    <div class="nm-rail" aria-hidden="true"></div>
+${cards}
+                </div>
+            </section>`;
+}
+
+const EX_ICONS = ["fa-utensils", "fa-barcode", "fa-chart-area"];
+const EX_TINTS = ["nm-c-cal", "nm-c-car", "nm-c-pro"];
+// The trends mini-widget's sparkline, as drawn in the design.
+const TREND_POINTS = "0,40 80,28 160,34 240,20 320,30 400,14 480,22";
+
+function renderExamples(doc: IndexDoc): string {
+    const e = doc.examples;
+    const picks = e.slides
+        .map(
+            (
+                s,
+                i,
+            ) => `                        <input type="radio" name="ex" id="ex-${i + 1}" class="tab-input"${i === 0 ? " checked" : ""} />
+                        <label class="nm-ex-pick" for="ex-${i + 1}">
+                            <span class="nm-ex-ic ${EX_TINTS[i] ?? "nm-c-acc"}" aria-hidden="true"><i class="fa-solid ${EX_ICONS[i] ?? "fa-circle"}"></i></span>
+                            <span><b>${esc(s.title)}</b><small>${esc(s.sub)}</small></span>
+                        </label>`,
+        )
+        .join("\n");
+    const panels = e.slides
+        .map((s, i) => {
+            const widget = s.widget
+                ? `
+                            <div class="nm-trend">
+                                <div class="nm-trend-head"><b>${esc(s.widget.title)}</b><span>${esc(s.widget.sub)}</span></div>
+                                <div class="nm-trend-big"><span class="nm-trend-n">${esc(s.widget.big)}</span><span class="nm-trend-cap">${esc(s.widget.cap)}</span></div>
+                                <svg viewBox="0 0 480 54" preserveAspectRatio="none" aria-hidden="true">
+                                    <polyline class="nm-trend-line" points="${TREND_POINTS}"></polyline>
+                                    <line class="nm-trend-goal" x1="0" y1="26" x2="480" y2="26"></line>
+                                </svg>
+                                <div class="nm-trend-foot"><span>${esc(s.widget.from)}</span><span>${esc(s.widget.goal)}</span><span>${esc(s.widget.today)}</span></div>
+                            </div>`
+                : "";
+            return `                        <div class="nm-ex-panel${i === 0 ? " is-active" : ""}" data-ex="${i}">
+                            <div class="nm-ex-q">${esc(s.userText)}</div>
+                            <div class="nm-ex-a">${esc(s.aiText)}</div>${widget}
                         </div>`;
+        })
+        .join("\n");
+    return `            <section class="nm-section nm-split nm-split-center" id="examples" aria-labelledby="examples-title" data-reveal>
+                <div>
+                    <h2 class="nm-h2" id="examples-title">${esc(e.title)}</h2>
+                    <p class="nm-sub nm-ex-sub">${esc(e.sub)}</p>
+                    <div class="nm-ex-picks" role="radiogroup" aria-label="${attr(e.pickerLabel)}">
+${picks}
+                    </div>
+                </div>
+                <div class="nm-ex-card" aria-live="polite">
+                    <div class="nm-ex-head">
+                        <span class="nm-chat-who">
+                            <span class="nm-avatar" aria-hidden="true">🍏</span>
+                            ${esc(e.status)}
+                        </span>
+                        <span class="nm-ex-nav">
+                            <button type="button" class="nm-round" data-ex-dir="prev" aria-label="${attr(e.prevLabel)}"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                            <button type="button" class="nm-round" data-ex-dir="next" aria-label="${attr(e.nextLabel)}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                        </span>
+                    </div>
+${panels}
+                </div>
+            </section>`;
 }
 
-const HOW_ICONS = [
-    "fa-solid fa-plug",
-    "fa-solid fa-message",
-    "fa-solid fa-chart-area",
-];
-const TRUST_ICONS = [
-    "fa-solid fa-lock",
-    "fa-solid fa-code-branch",
-    "fa-solid fa-file-export",
-    "fa-solid fa-trash",
-];
+type StatCard = {
+    key: string;
+    icon: string;
+    tint: string;
+    label: string;
+    /** The unit the markup rests in (metric); the script repaints it. */
+    unit: string;
+    dark?: boolean;
+    deltaUnit?: string;
+};
 
-function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
+function renderStatCard(s: StatCard): string {
+    const deltaUnit = s.deltaUnit
+        ? ` data-delta-unit="${attr(s.deltaUnit)}"`
+        : "";
+    return `                    <div class="nm-stat${s.dark ? " nm-stat-dark" : ""}" data-stat-card="${s.key}">
+                        <div class="nm-stat-top">
+                            <span class="nm-tile nm-tile-md ${s.tint}" aria-hidden="true"><i class="fa-solid ${s.icon}"></i></span>
+                            <span class="nm-delta" data-delta="${s.key}"${deltaUnit}>±0</span>
+                        </div>
+                        <div>
+                            <b class="nm-stat-v"><span data-stat="${s.key}">—</span><span class="nm-stat-u" data-stat-unit="${s.key}">${s.unit}</span></b>
+                            <span class="nm-stat-l">${esc(s.label)}</span>
+                        </div>
+                    </div>`;
+}
+
+function renderLive(doc: IndexDoc): string {
+    const l = doc.live;
+    const cards: StatCard[] = [
+        {
+            key: "total_calories",
+            icon: "fa-fire",
+            tint: "nm-c-cal",
+            label: l.cards.calories,
+            unit: "kcal",
+            dark: true,
+        },
+        {
+            key: "food_logs",
+            icon: "fa-utensils",
+            tint: "nm-c-cal",
+            label: l.cards.foodLogs,
+            unit: "",
+            deltaUnit: l.foodLogsUnit,
+        },
+        {
+            key: "total_protein_g",
+            icon: "fa-dumbbell",
+            tint: "nm-c-pro",
+            label: l.cards.protein,
+            unit: "kg",
+        },
+        {
+            key: "total_carbs_g",
+            icon: "fa-wheat-awn",
+            tint: "nm-c-car",
+            label: l.cards.carbs,
+            unit: "kg",
+        },
+        {
+            key: "total_fat_g",
+            icon: "fa-droplet",
+            tint: "nm-c-fat",
+            label: l.cards.fat,
+            unit: "kg",
+        },
+        {
+            key: "weight_lost_g",
+            icon: "fa-weight-scale",
+            tint: "nm-c-fib",
+            label: l.cards.weightLost,
+            unit: "kg",
+        },
+        {
+            key: "total_water_ml",
+            icon: "fa-glass-water",
+            tint: "nm-c-wat",
+            label: l.cards.water,
+            unit: "L",
+        },
+    ];
+    return `            <section class="nm-section" id="live" aria-labelledby="live-title" data-reveal>
+                <div class="nm-head-row nm-live-head">
+                    <div>
+                        <p class="nm-eyebrow nm-live-eyebrow">
+                            <span class="nm-pulse-dot" aria-hidden="true"></span>${esc(l.eyebrow)}
+                        </p>
+                        <h2 class="nm-h2" id="live-title">${esc(l.title)}</h2>
+                        <p class="nm-sub">${esc(l.sub)}</p>
+                    </div>
+                    <div class="nm-units" role="group" aria-label="${attr(l.unitGroupLabel)}">
+                        <button type="button" data-unit="kg" aria-pressed="true">${esc(l.unitMetricLabel)}</button>
+                        <button type="button" data-unit="lb" aria-pressed="false">${esc(l.unitImperialLabel)}</button>
+                    </div>
+                </div>
+                <div class="nm-live-meta" id="live-meta">
+                    <span id="facts-live" class="nm-refresh">
+                        <svg class="nm-refresh-ring" viewBox="0 0 16 16" aria-hidden="true">
+                            <circle class="nm-refresh-track" cx="8" cy="8" r="6"></circle>
+                            <circle class="nm-refresh-arc" cx="8" cy="8" r="6" transform="rotate(-90 8 8)" data-countdown-ring></circle>
+                        </svg>
+                        <span>${esc(l.refreshBefore)}<b data-countdown>5</b>${esc(l.refreshAfter)}</span>
+                    </span>
+                    <span class="nm-since"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>${esc(l.sinceOpenLabel)} · <span data-since-open>0s</span></span>
+                </div>
+                <div class="nm-stats" id="stat-row" data-reveal="stagger">
+${cards.map(renderStatCard).join("\n")}
+                </div>
+                <div class="nm-map-card" id="map-block">
+                    <div class="nm-map-head">
+                        <span class="nm-tz-chip"><i class="fa-solid fa-earth-americas" aria-hidden="true"></i><b data-stat="timezones">—</b>${esc(l.timezonesAfter)}</span>
+                        <span class="nm-map-note">${esc(l.mapNote)}</span>
+                    </div>
+                    <div class="nm-map">
+                        <svg
+                            id="world-svg"
+                            viewBox="0 0 1000 500"
+                            preserveAspectRatio="xMidYMid meet"
+                            role="group"
+                            aria-label="${attr(l.mapAriaLabel)}"
+                        ></svg>
+                        <div class="nm-tz-tip" role="tooltip" hidden></div>
+                    </div>
+                </div>
+            </section>`;
+}
+
+function renderSupport(doc: IndexDoc): string {
+    const s = doc.support;
+    return `            <section class="nm-section" id="support" aria-labelledby="support-title" data-reveal>
+                <div class="nm-support-grid">
+                    <div class="nm-card-big">
+                        <p class="nm-eyebrow">${esc(s.eyebrow)}</p>
+                        <h2 class="nm-h2 nm-h2-sm" id="support-title">${esc(s.title)}</h2>
+                        <p class="nm-sub">${esc(s.sub)}</p>
+                        <ul class="nm-checks">
+${s.bullets.map((b) => `                            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>${esc(b)}</li>`).join("\n")}
+                        </ul>
+                    </div>
+                    <div class="nm-card-big nm-card-dark nm-c-acc">
+                        <div class="nm-blob nm-blob-br" aria-hidden="true"></div>
+                        <p class="nm-eyebrow">${esc(s.patreon.eyebrow)}</p>
+                        <h3>${esc(s.patreon.title)}</h3>
+                        <p class="nm-sub">${esc(s.patreon.sub)}</p>
+                        <div class="nm-actions">
+                            <a class="nm-btn nm-btn-primary nm-btn-md" href="${PATREON}" ${EXT}>
+                                <i class="fa-brands fa-patreon" aria-hidden="true"></i>
+                                ${esc(s.patreon.cta)}
+                            </a>
+                            <a class="nm-btn nm-btn-ghost nm-btn-md" href="${GITHUB}" ${EXT}>
+                                <i class="fa-brands fa-github" aria-hidden="true"></i>
+                                <span>${esc(s.patreon.starCta)}</span>
+                                <span class="nm-stars"><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars>—</span></span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="patreon-updates" id="patreon-updates" hidden>
+                    <div class="nm-posts-head">
+                        <h3><i class="fa-brands fa-patreon" aria-hidden="true"></i>${esc(s.postsTitle)}</h3>
+                        <a class="nm-link-acc" href="${PATREON}" ${EXT}
+                            >${esc(s.postsAll)}
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
+                        ></a>
+                    </div>
+                    <div class="nm-posts" id="patreon-posts-grid"></div>
+                    <template id="patreon-post-tpl">
+                        <a class="nm-post" ${EXT}>
+                            <span class="nm-post-top">
+                                <span class="nm-tile nm-tile-36" data-post-tile aria-hidden="true"><i data-post-icon></i></span>
+                                <span class="nm-post-date" data-post-date></span>
+                            </span>
+                            <b data-post-title></b>
+                            <span class="nm-post-preview" data-post-preview></span>
+                            <span class="vh">${esc(s.postLinkLabel)}</span>
+                        </a>
+                    </template>
+                </div>
+            </section>`;
+}
+
+function renderContact(doc: IndexDoc): string {
+    const c = doc.contact;
+    const row = (
+        href: string,
+        tint: string,
+        icon: string,
+        card: { title: string; sub: string },
+        external: boolean,
+    ) => `                        <a class="nm-row-link" href="${href}"${external ? " " + EXT : ""}>
+                            <span class="nm-tile nm-tile-lg ${tint}" aria-hidden="true"><i class="${icon}"></i></span>
+                            <span><b>${esc(card.title)}</b><small>${esc(card.sub)}</small></span>
+                            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                        </a>`;
+    return `            <section class="nm-section" id="contact" aria-labelledby="contact-title" data-reveal>
+                <div class="nm-contact nm-c-acc">
+                    <div class="nm-blob nm-blob-tl" aria-hidden="true"></div>
+                    <div class="nm-contact-l">
+                        <p class="nm-eyebrow">${esc(c.eyebrow)}</p>
+                        <h2 class="nm-h2" id="contact-title">${esc(c.title)}</h2>
+                        <p class="nm-sub">${esc(c.sub)}</p>
+                        <a class="nm-email" href="mailto:${EMAIL}" aria-label="${attr(c.emailAriaLabel)}">
+                            <span class="nm-email-addr">${EMAIL}</span>
+                            <span class="nm-email-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
+                        </a>
+                    </div>
+                    <div class="nm-contact-r">
+${row("mailto:" + EMAIL, "nm-c-acc", "fa-solid fa-envelope", c.cards.email, false)}
+${row(GITHUB + "/issues", "nm-c-pro", "fa-brands fa-github", c.cards.issues, true)}
+${row(PATREON, "nm-c-cal", "fa-brands fa-patreon", c.cards.patreon, true)}
+                    </div>
+                </div>
+            </section>`;
+}
+
+const FAQ_CATEGORIES = [
+    "all",
+    "basics",
+    "clients",
+    "tracking",
+    "data",
+] as const;
+
+function renderFaq(doc: IndexDoc, locale: SiteLocale): string {
+    const f = doc.faqSection;
+    const chips = FAQ_CATEGORIES.map(
+        (
+            cat,
+            i,
+        ) => `                        <input type="radio" name="faqcat" id="faqcat-${cat}" class="tab-input"${i === 0 ? " checked" : ""} />
+                        <label class="nm-faq-chip" for="faqcat-${cat}">${esc(f.categories[cat])}</label>`,
+    ).join("\n");
+    const rows = doc.faq
+        .map(
+            (
+                entry,
+                i,
+            ) => `                    <details class="nm-faq-row" data-cat="${entry.category}">
+                        <summary>
+                            <span class="nm-faq-n">${String(i + 1).padStart(2, "0")}</span>
+                            <span class="nm-faq-q">${esc(entry.question)} <span class="nm-faq-cat">${esc(f.categories[entry.category])}</span></span>
+                            <span class="nm-faq-ic" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+                        </summary>
+                        <p>${localizeLinks(entry.visibleHtml, locale)}</p>
+                    </details>`,
+        )
+        .join("\n");
+    return `            <section class="nm-section nm-faq" id="faq" aria-labelledby="faq-title" data-reveal>
+                <div class="nm-faq-side">
+                    <p class="nm-eyebrow">${esc(f.eyebrow)}</p>
+                    <h2 class="nm-h2" id="faq-title">${esc(f.title)}</h2>
+                    <p class="nm-sub">
+                        ${esc(f.subBefore)}<a href="${hashPath(locale, "contact")}">${esc(f.subLink)}</a>${esc(f.subAfter)}
+                    </p>
+                    <div class="nm-faq-cats" role="radiogroup" aria-label="${attr(f.categoriesLabel)}">
+${chips}
+                    </div>
+                </div>
+                <div class="nm-faq-list">
+${rows}
+                </div>
+            </section>`;
+}
+
+function renderCta(doc: IndexDoc, locale: SiteLocale): string {
+    const c = doc.cta;
+    return `            <section class="nm-section nm-cta-sec" aria-labelledby="cta-title" data-reveal>
+                <div class="nm-cta-band">
+                    <div class="nm-blob nm-blob-bl nm-c-car" aria-hidden="true"></div>
+                    <div class="nm-blob nm-blob-tr nm-c-pro" aria-hidden="true"></div>
+                    <h2 id="cta-title">${esc(c.title)}</h2>
+                    <p>${esc(c.sub)}</p>
+                    <div class="nm-cta-actions">
+                        <a class="nm-btn nm-btn-primary nm-btn-lg" href="${hashPath(locale, "connect")}">${esc(c.primary)}</a>
+                        <a class="nm-btn nm-btn-ghost nm-btn-lg" href="${GITHUB}" ${EXT}>
+                            <i class="fa-brands fa-github" aria-hidden="true"></i>
+                            <span>${esc(c.secondary)}</span>
+                            <span class="nm-stars"><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars>—</span></span>
+                        </a>
+                    </div>
+                </div>
+            </section>`;
+}
+
+// -------------------------------------------------------------------- page
+
+export function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
     const suffix = "";
     const url = urlFor(locale, suffix);
     const title = esc(doc.title);
@@ -148,31 +1922,6 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
         })),
     };
 
-    const dots = doc.try.slides
-        .map(
-            (_, i) =>
-                `                                <button
-                                    class="dot${i === 0 ? " active" : ""}"
-                                    type="button"
-                                    aria-label="${esc(doc.try.exampleLabel)} ${i + 1}"
-                                ></button>`,
-        )
-        .join("\n");
-
-    const slides = doc.try.slides
-        .map(
-            (s) => `                                    <div
-                                        class="slide"
-                                        role="group"
-                                        aria-roledescription="slide"
-                                    >
-                                        <div class="mini-chat">
-${s.html}
-                                        </div>
-                                    </div>`,
-        )
-        .join("\n");
-
     return `<!doctype html>
 <html lang="${HTML_LANG[locale]}">
     <head>
@@ -181,10 +1930,11 @@ ${s.html}
         </title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
-        <meta name="description" content="${esc(doc.metaDescription)}" />
-        <meta name="keywords" content="${esc(doc.keywords)}" />
-        <meta property="og:title" content="${title}" />
-        <meta property="og:description" content="${esc(doc.ogDescription)}" />
+        <meta name="description" content="${attr(doc.metaDescription)}" />
+        <meta name="keywords" content="${attr(doc.keywords)}" />
+        <meta name="robots" content="index,follow,max-image-preview:large" />
+        <meta property="og:title" content="${attr(doc.ogTitle ?? doc.title)}" />
+        <meta property="og:description" content="${attr(doc.ogDescription)}" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="${url}" />
         <meta property="og:image" content="${SITE}/og.png" />
@@ -192,565 +1942,64 @@ ${s.html}
         <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="${SITE}/og.png" />
-        <meta name="twitter:title" content="${title}" />
-        <meta name="twitter:description" content="${esc(doc.ogDescription)}" />
+        <meta name="twitter:title" content="${attr(doc.ogTitle ?? doc.title)}" />
+        <meta name="twitter:description" content="${attr(doc.twitterDescription ?? doc.ogDescription)}" />
 ${localeHead(locale, suffix)}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#fbfbf9" />
+        <meta name="theme-color" content="#f7f7f9" />
 ${jsonLd(softwareAppSchema)}
 ${jsonLd(faqSchema)}
-${HEAD_ASSETS}
+${LANDING_HEAD_ASSETS}
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-index.ts")}
 ${THEME_PREPAINT}
 
-${nav(locale, suffix)}
+        <!-- The three colour blobs behind the hero. -->
+        <div class="nm-bg" aria-hidden="true">
+            <div class="nm-bg-blob nm-bg-1"></div>
+            <div class="nm-bg-blob nm-bg-2"></div>
+            <div class="nm-bg-blob nm-bg-3"></div>
+            <div class="nm-bg-fade"></div>
+        </div>
+
+${header(doc, locale)}
 
         <main id="main">
-            <!-- Hero -->
-            <section class="hero">
-                <div class="container hero-grid">
-                    <div class="hero-copy">
-                        <p class="eyebrow">${esc(doc.hero.eyebrow)}</p>
-                        <h1 class="hero-title">
-                            ${esc(doc.hero.titleBeforeEm)}<em>${esc(doc.hero.titleEm)}</em>${esc(doc.hero.titleAfterEm)}
-                        </h1>
-                        <p class="lead">
-                            ${esc(doc.hero.lead)}
-                        </p>
-                        <div class="hero-actions">
-                            <a class="btn btn-primary" href="#install"
-                                >${esc(doc.hero.ctaPrimary)}</a
-                            >
-                            <a class="btn btn-secondary" href="#support"
-                                >${esc(doc.hero.ctaSecondary)}</a
-                            >
-                        </div>
-                    </div>
-
-                    <!-- Illustrative chat demo (decorative). Three depth
-                         layers: a faint label panel at the back, macro chips
-                         in the middle, the chat card in front. site.js moves
-                         them by scroll × data-depth and tilts the card. -->
-                    <div class="hero-stage" aria-hidden="true">
-                        <div class="hero-panel depth" data-depth="0.22"></div>
-                        <div class="hero-chips depth" data-depth="0.1">
-${doc.hero.chipsHtml}
-                        </div>
-                        <div class="hero-card depth" data-depth="-0.04">
-                            <div class="chat-window">
-${doc.hero.chatHtml}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
+${renderHero(doc, locale)}
 ${
     notice
-        ? `            <div class="container translation-notice-band">
+        ? `
+            <div class="nm-section nm-notice-band">
 ${notice}
-            </div>`
+            </div>
+`
         : ""
 }
+${renderHow(doc)}
 
-            <!-- How it works -->
-            <section class="section band" id="how">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.how.eyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(doc.how.title)}
-                        </h2>
-                    </div>
-                    <div class="steps3" data-reveal="stagger">
-${doc.how.steps.map((s, i) => renderHowStep(s, HOW_ICONS[i]!)).join("\n")}
-                    </div>
-                </div>
-            </section>
+${renderConnect(doc, locale)}
 
-            <!-- Quick install -->
-            <section class="section" id="install">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.install.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.install.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.install.sub)}
-                        </p>
-                    </div>
+${renderOnboarding(doc)}
 
-                    <div class="card install-card">
-                        <div class="tabs-wrap">
-                            <input
-                                type="radio"
-                                name="itab"
-                                id="itab-claude"
-                                class="tab-input"
-                                checked
-                            />
-                            <input
-                                type="radio"
-                                name="itab"
-                                id="itab-chatgpt"
-                                class="tab-input"
-                            />
-                            <input
-                                type="radio"
-                                name="itab"
-                                id="itab-other"
-                                class="tab-input"
-                            />
+${renderExamples(doc)}
 
-                            <div class="seg">
-                                <label for="itab-claude" class="seg-claude"
-                                    ><i class="fa-brands fa-claude" aria-hidden="true"></i>
-                                    Claude</label
-                                >
-                                <label for="itab-chatgpt" class="seg-chatgpt"
-                                    ><i class="fa-brands fa-openai" aria-hidden="true"></i>
-                                    ChatGPT</label
-                                >
-                                <label for="itab-other" class="seg-other"
-                                    ><i class="fa-solid fa-terminal" aria-hidden="true"></i>
-                                    ${esc(doc.install.otherTabLabel)}</label
-                                >
-                            </div>
+${renderLive(doc)}
 
-                            <div class="tab-panel panel-claude">
-                                <ol class="steps">
-${doc.install.claude.steps.map((s) => `                                    <li>${s}</li>`).join("\n")}
-                                </ol>
-                                <p class="note">
-                                    ${esc(doc.install.claude.note)}
-                                </p>
-                            </div>
+${renderSupport(doc)}
 
-                            <div class="tab-panel panel-chatgpt">
-                                <ol class="steps">
-${doc.install.chatgpt.steps.map((s) => `                                    <li>${s}</li>`).join("\n")}
-                                </ol>
-                            </div>
+${renderContact(doc)}
 
-                            <div class="tab-panel panel-other">
-                                <!-- prettier-ignore -->
-                                <pre class="code-block">{
-  "mcpServers": {
-    "nutrition": {
-      "url": "https://nutrition-mcp.com/mcp"
-    }
-  }
-}</pre>
-                                <p class="note">
-                                    ${doc.install.other.note}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+${renderFaq(doc, locale)}
 
-            <!-- Optional onboarding -->
-            <section class="section" id="onboarding">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.onboarding.eyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(doc.onboarding.title)}
-                        </h2>
-                        <p class="section-sub">
-                            ${esc(doc.onboarding.sub)}
-                        </p>
-                    </div>
-
-                    <div class="card install-card">
-                        <ol class="steps">
-${doc.onboarding.steps.map((s) => `                            <li>\n                                ${s}\n                            </li>`).join("\n")}
-                        </ol>
-                        <p class="note">
-                            ${esc(doc.onboarding.note)}
-                        </p>
-                    </div>
-
-                    <a class="tools-cta" href="${pathFor(locale, "/tools")}">
-                        <span class="tools-cta-icon" aria-hidden="true"
-                            ><i class="fa-solid fa-wand-magic-sparkles"></i
-                        ></span>
-                        <span class="tools-cta-text">
-                            <strong>${esc(doc.onboarding.toolsCta.heading)}</strong>
-                            ${esc(doc.onboarding.toolsCta.body)}
-                        </span>
-                        <span class="tools-cta-arrow" aria-hidden="true"
-                            >${esc(doc.onboarding.toolsCta.arrow)}
-                            <i class="fa-solid fa-arrow-right"></i
-                        ></span>
-                    </a>
-                </div>
-            </section>
-
-            <!-- Try saying -->
-            <section class="section band" id="try">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.try.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.try.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.try.sub)}
-                        </p>
-                    </div>
-                    <div class="cw-wrap" id="try-carousel">
-                        <div class="chat-window">
-                            <div class="cw-header">
-                                <span class="cw-avatar" aria-hidden="true"
-                                    ><i class="fa-solid fa-apple-whole"></i
-                                ></span>
-                                <span class="cw-title">${esc(doc.chatChrome.brand)}</span>
-                                <span class="cw-status">${esc(doc.chatChrome.status)}</span>
-                            </div>
-                            <div class="carousel-viewport cw-body">
-                                <div class="carousel-track">
-${slides}
-                                </div>
-                            </div>
-                            <div class="cw-input" aria-hidden="true">
-                                <span class="cw-field">${esc(doc.chatChrome.inputPlaceholder)}</span>
-                                <span class="cw-send"
-                                    ><i class="fa-solid fa-arrow-up"></i
-                                ></span>
-                            </div>
-                        </div>
-                        <div class="carousel-controls">
-                            <button
-                                class="carousel-arrow"
-                                type="button"
-                                data-dir="prev"
-                                aria-label="${esc(doc.try.prevLabel)}"
-                            >
-                                <i class="fa-solid fa-chevron-left"></i>
-                            </button>
-                            <div class="carousel-dots">
-${dots}
-                            </div>
-                            <button
-                                class="carousel-arrow"
-                                type="button"
-                                data-dir="next"
-                                aria-label="${esc(doc.try.nextLabel)}"
-                            >
-                                <i class="fa-solid fa-chevron-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Stats + world map -->
-            <section class="section" id="stats">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.stats.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.stats.title)}</h2>
-                    </div>
-
-                    <div class="facts" id="stat-row" data-reveal>
-                        <p class="facts-title">
-                            <span>${esc(doc.stats.factsTitle)}</span>
-                            <span
-                                class="facts-unit"
-                                role="group"
-                                aria-label="${esc(doc.stats.unitGroupLabel)}"
-                            >
-                                <button
-                                    type="button"
-                                    data-unit="kg"
-                                    aria-pressed="true"
-                                    aria-label="${esc(doc.stats.unitKgLabel)}"
-                                >
-                                    kg
-                                </button>
-                                <button
-                                    type="button"
-                                    data-unit="lb"
-                                    aria-pressed="false"
-                                    aria-label="${esc(doc.stats.unitLbLabel)}"
-                                >
-                                    lb
-                                </button>
-                            </span>
-                        </p>
-                        <p class="facts-serving">
-                            <span>${esc(doc.stats.servingPrefix)}<b>${esc(doc.stats.servingBold)}</b></span>
-                            <span class="facts-live" id="facts-live">${esc(doc.stats.liveLabel)}</span>
-                        </p>
-                        <div class="facts-cal">
-                            <span class="label"
-                                >${esc(doc.stats.calLabel)}<small>${esc(doc.stats.calSmall)}</small></span
-                            >
-                            <div class="odo-hero">
-                                <span
-                                    class="odo"
-                                    data-odo="total_calories"
-                                    role="img"
-                                    aria-label="${esc(doc.stats.calCaption)}"
-                                    >—</span
-                                >
-                                <span class="odo-cap">${esc(doc.stats.calCaption)}</span>
-                            </div>
-                        </div>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowFoodLogs)}</span>
-                            <b data-stat="food_logs">—</b>
-                        </p>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowProtein)}</span>
-                            <b data-stat="total_protein_g">—</b>
-                        </p>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowCarbs)}</span>
-                            <b data-stat="total_carbs_g">—</b>
-                        </p>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowFat)}</span>
-                            <b data-stat="total_fat_g">—</b>
-                        </p>
-                        <p class="facts-foot">
-                            ${esc(doc.stats.foot)}
-                        </p>
-                    </div>
-
-                    <div class="map-block" id="map-block">
-                        <p class="map-head">
-                            ${esc(doc.stats.mapPrefix)}
-                            <span class="map-count" data-stat="timezones"
-                                >35</span
-                            >
-                            ${esc(doc.stats.mapSuffix)}
-                        </p>
-                        <div class="world-map">
-                            <svg
-                                id="world-svg"
-                                viewBox="0 0 1000 500"
-                                preserveAspectRatio="xMidYMid meet"
-                                role="img"
-                                aria-label="${esc(doc.stats.mapAriaLabel)}"
-                            ></svg>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Features -->
-            <section class="section band" id="features">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.features.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.features.title)}</h2>
-                    </div>
-                    <div class="features-grid" data-reveal="stagger">
-${doc.features.cards.map(renderFeatureCard).join("\n")}
-                    </div>
-                </div>
-            </section>
-
-            <!-- Why / comparison -->
-            <section class="section" id="why">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.why.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.why.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.why.sub)}
-                        </p>
-                    </div>
-                    <div class="compare">
-                        <div class="compare-col">
-                            <h3 class="compare-h compare-h-old">
-                                ${esc(doc.why.oldHeading)}
-                            </h3>
-                            <ul>
-${doc.why.oldItems.map((i) => `                                <li>\n                                    <i class="fa-solid fa-xmark"></i> ${esc(i)}\n                                </li>`).join("\n")}
-                            </ul>
-                        </div>
-                        <div class="compare-col compare-col-new">
-                            <h3 class="compare-h compare-h-new">
-                                ${esc(doc.why.newHeading)}
-                            </h3>
-                            <ul>
-${doc.why.newItems.map((i) => `                                <li>\n                                    <i class="fa-solid fa-circle-check"></i> ${esc(i)}\n                                </li>`).join("\n")}
-                            </ul>
-                        </div>
-                    </div>
-                    <p class="note compare-note">
-                        ${localizeLinks(doc.why.noteHtml, locale)}
-                    </p>
-                </div>
-            </section>
-
-            <!-- Trust -->
-            <section class="section band" id="trust">
-                <div class="container trust-grid" data-reveal="stagger">
-${doc.trust.map((t, i) => `                    <div class="trust-item">\n                        <i class="${TRUST_ICONS[i]}"></i>\n                        <span>${esc(t.label)}</span>\n                        <small>${esc(t.small)}</small>\n                    </div>`).join("\n")}
-                </div>
-            </section>
-
-            <!-- Support -->
-            <section class="section" id="support">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.support.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.support.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.support.sub)}
-                        </p>
-                    </div>
-                    <div class="support-grid">
-                        <div class="card support-card">
-                            <h3 class="support-tier">${esc(doc.support.free.tier)}</h3>
-                            <p class="support-price">${esc(doc.support.free.price)}</p>
-                            <p class="support-desc">
-                                ${esc(doc.support.free.desc)}
-                            </p>
-                            <a
-                                class="btn btn-secondary"
-                                href="https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                >${esc(doc.support.free.cta)}</a
-                            >
-                        </div>
-                        <div class="card support-card support-card-paid">
-                            <h3 class="support-tier">${esc(doc.support.paid.tier)}</h3>
-                            <p class="support-price">${esc(doc.support.paid.price)}</p>
-                            <p class="support-desc">
-                                ${esc(doc.support.paid.desc)}
-                            </p>
-                            <a
-                                class="btn btn-primary"
-                                href="https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                >${esc(doc.support.paid.cta)}</a
-                            >
-                        </div>
-                    </div>
-                    <div class="patreon-updates" id="patreon-updates" hidden>
-                        <div class="patreon-updates-head">
-                            <p class="patreon-updates-title">${esc(doc.support.updatesTitle)}</p>
-                            <p class="patreon-updates-note">${esc(doc.support.updatesNote)}</p>
-                        </div>
-                        <div class="patreon-carousel" id="patreon-carousel">
-                            <div class="carousel-viewport">
-                                <div
-                                    class="carousel-track"
-                                    id="patreon-carousel-track"
-                                ></div>
-                            </div>
-                            <div
-                                class="carousel-controls"
-                                id="patreon-carousel-controls"
-                                hidden
-                            >
-                                <button
-                                    class="carousel-arrow"
-                                    type="button"
-                                    data-dir="prev"
-                                    aria-label="${esc(doc.support.updatesPrevLabel)}"
-                                >
-                                    <i class="fa-solid fa-chevron-left"></i>
-                                </button>
-                                <div
-                                    class="carousel-dots"
-                                    id="patreon-carousel-dots"
-                                    data-dot-label="${esc(doc.support.updatesDotLabel)}"
-                                ></div>
-                                <button
-                                    class="carousel-arrow"
-                                    type="button"
-                                    data-dir="next"
-                                    aria-label="${esc(doc.support.updatesNextLabel)}"
-                                >
-                                    <i class="fa-solid fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Closing CTA -->
-            <section class="section cta">
-                <div class="container cta-inner" data-reveal>
-                    <h2 class="cta-title">${esc(doc.cta.title)}</h2>
-                    <p class="cta-sub">
-                        ${esc(doc.cta.sub)}
-                    </p>
-                    <div class="cta-actions">
-                        <a class="btn btn-on-accent" href="#install"
-                            >${esc(doc.cta.primary)}</a
-                        >
-                        <a
-                            class="btn btn-ghost-accent"
-                            href="https://github.com/akutishevsky/nutrition-mcp"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            <i class="fa-brands fa-github"></i> ${esc(doc.cta.secondary)}
-                            <span class="gh-stars" id="gh-stars"></span>
-                        </a>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Contact -->
-            <section class="section band" id="contact">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.contact.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.contact.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.contact.sub)}
-                        </p>
-                    </div>
-                    <div class="card contact-card">
-                        <span class="contact-icon" aria-hidden="true"
-                            ><i class="fa-solid fa-envelope"></i
-                        ></span>
-                        <a
-                            class="contact-email"
-                            href="mailto:anton@nutrition-mcp.com"
-                            >anton@nutrition-mcp.com</a
-                        >
-                        <a
-                            class="btn btn-primary"
-                            href="mailto:anton@nutrition-mcp.com"
-                            >${esc(doc.contact.cta)}</a
-                        >
-                    </div>
-                </div>
-            </section>
-
-            <!-- FAQ -->
-            <section class="section" id="faq">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.faqSection.eyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(doc.faqSection.title)}
-                        </h2>
-                    </div>
-                    <div class="faq">
-${doc.faq.map(renderFaq).join("\n")}
-                    </div>
-                </div>
-            </section>
+${renderCta(doc, locale)}
         </main>
 
-${footer(locale)}
+${footer(doc, locale)}
 
         <script>
-            ${LANDING_SCRIPT}
+${LANDING_SCRIPT}
         </script>
 ${SITE_SCRIPT}
     </body>

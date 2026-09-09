@@ -382,6 +382,15 @@ app.get("/styles.css", async (c) => {
     return c.body(await file.text(), 200, { "Content-Type": "text/css" });
 });
 
+// The landing page's own stylesheet. It is a separate design from the rest
+// of the site (see public/landing.css) and the landing page loads it
+// INSTEAD of /styles.css, so it is served the same way rather than
+// appended to the shared file every other page pays for.
+app.get("/landing.css", async (c) => {
+    const file = Bun.file("./public/landing.css");
+    return c.body(await file.text(), 200, { "Content-Type": "text/css" });
+});
+
 // Shared site script: theme toggle, header, mobile menu, scroll effects.
 // Every public page loads it, so it is served from one place like the CSS.
 app.get("/site.js", async (c) => {
