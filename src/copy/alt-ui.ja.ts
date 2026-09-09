@@ -3,6 +3,7 @@ import type { AltUiCopy } from "./alt-ui.js";
 export const ALT_UI_JA: AltUiCopy = {
     breadcrumbHome: "ホーム",
     breadcrumbAlternatives: "代替ツール",
+    breadcrumbAriaLabel: "パンくずリスト",
     ctaQuickInstall: "クイックインストール",
     ctaClosingTitle: "使い慣れたAIの中で栄養管理を。",
     disclaimerAppHtml:

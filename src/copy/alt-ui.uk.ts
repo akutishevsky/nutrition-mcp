@@ -3,6 +3,7 @@ import type { AltUiCopy } from "./alt-ui.js";
 export const ALT_UI_UK: AltUiCopy = {
     breadcrumbHome: "Головна",
     breadcrumbAlternatives: "Альтернативи",
+    breadcrumbAriaLabel: "Навігаційний ланцюжок",
     ctaQuickInstall: "Швидке підключення",
     ctaClosingTitle:
         "Відстежуй харчування прямо в ШІ, яким ти вже користуєшся.",

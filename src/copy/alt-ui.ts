@@ -60,6 +60,10 @@ export interface AltFaqCopy {
 export interface AltUiCopy {
     breadcrumbHome: string;
     breadcrumbAlternatives: string;
+    /** aria-label naming the breadcrumb <nav> landmark — the one region
+     * name on these pages that never paints, so a screen reader jumping
+     * by landmark hears it in the page's own language. */
+    breadcrumbAriaLabel: string;
     /** "Quick install" — reused on the app closing CTA, hub hero, and hub closing CTA. */
     ctaQuickInstall: string;
     /** "Track nutrition inside the AI you already use." — reused on both closing CTAs. */
@@ -148,6 +152,7 @@ export interface AltUiCopy {
 export const ALT_UI_EN: AltUiCopy = {
     breadcrumbHome: "Home",
     breadcrumbAlternatives: "Alternatives",
+    breadcrumbAriaLabel: "Breadcrumb",
     ctaQuickInstall: "Quick install",
     ctaClosingTitle: "Track nutrition inside the AI you already use.",
     disclaimerAppHtml:

@@ -7,6 +7,14 @@
  * site can't rank for. Each page carries unique title/description/canonical/OG
  * plus FAQPage and BreadcrumbList JSON-LD.
  *
+ * The pages are the "Dawn" design: shared chrome (nav()/footer()) and the
+ * shared primitives in public/styles.css (.nm-*), with the little layout
+ * that only these pages need — the two-column comparison, the sticky-headed
+ * prose panels, the copy pill under the install steps — as an inline
+ * <style> block scoped to body.alt (ALT_CSS below). Content still comes
+ * entirely from src/copy/alt-ui.ts (the shared template prose) and
+ * src/copy/alternatives.ts (the per-app prose).
+ *
  * Edit the APPS data (or the shared template) here and re-run:
  *   bun run scripts/gen-alternatives.ts
  * The generated .html files are the served artifacts — don't hand-edit them.
@@ -32,7 +40,12 @@ import {
 } from "../src/copy/alternatives.js";
 import { altUiFor, type AltUiCopy } from "../src/copy/alt-ui.js";
 import {
+    EMAIL,
+    EXT,
+    GITHUB,
+    MCP_URL,
     SITE,
+    attr,
     esc,
     footer,
     generatedBanner,
@@ -60,8 +73,10 @@ type App = {
     slug: AppSlug;
     /** Output filename under public/alternatives/. */
     file: string;
-    /** Font Awesome icon class for the hub card. */
+    /** Font Awesome icon class for the hub card and the comparison column. */
     icon: string;
+    /** Colour-role class (.nm-c-*) tinting the app's icon tile. */
+    tint: string;
 };
 
 /**
@@ -84,55 +99,227 @@ const APPS: App[] = [
         slug: "myfitnesspal-mcp",
         file: "myfitnesspal.html",
         icon: "fa-fire-flame-curved",
+        tint: "nm-c-cal",
     },
     {
         name: "Cronometer",
         slug: "cronometer-mcp",
         file: "cronometer.html",
         icon: "fa-seedling",
+        tint: "nm-c-car",
     },
     {
         name: "Lose It!",
         slug: "lose-it-mcp",
         file: "lose-it.html",
         icon: "fa-bullseye",
+        tint: "nm-c-fat",
     },
     {
         name: "MacroFactor",
         slug: "macrofactor-mcp",
         file: "macrofactor.html",
         icon: "fa-chart-simple",
+        tint: "nm-c-pro",
     },
     {
         name: "Yazio",
         slug: "yazio-mcp",
         file: "yazio.html",
         icon: "fa-carrot",
+        tint: "nm-c-sug",
     },
     {
         name: "Lifesum",
         slug: "lifesum-mcp",
         file: "lifesum.html",
         icon: "fa-leaf",
+        tint: "nm-c-fib",
     },
 ];
 
-/**
- * Trademark / non-affiliation notice shown near the footer of every comparison
- * page. Keeps the pages clearly independent and hedges the comparisons as
- * point-in-time — the main legal safeguards for "alternative to X" content.
- */
-function disclaimerBand(text: string): string {
-    return `        <div class="disclaimer-band">
-            <div class="container">
-                <p class="page-disclaimer">${text}</p>
-            </div>
+// ---------- page CSS ----------
+
+// Layout only these pages need, on top of the shared primitives. Scoped to
+// body.alt so it can't leak into another page, and kept here rather than in
+// styles.css so page agents never edit the stylesheet concurrently.
+const ALT_CSS = `        <style>
+            /* Hero: the crumb pill sits above the eyebrow. (The accent <em> in
+               the h1 is the shared .nm-h1 em rule.) */
+            body.alt .nm-page-hero .nm-crumb {
+                margin-bottom: 22px;
+            }
+            /* The hero and closing-band buttons wrap on a phone: the widest
+               translations of ctaConnect ("Підключись менш ніж за хвилину")
+               run past the shared nowrap pill's edge at 320px. */
+            @media (max-width: 420px) {
+                body.alt .nm-hero-actions .nm-btn,
+                body.alt .nm-cta-actions .nm-btn {
+                    white-space: normal;
+                    height: auto;
+                    min-height: 54px;
+                    padding: 12px 22px;
+                    line-height: 1.25;
+                    text-align: center;
+                }
+            }
+            body.alt .nm-h2 {
+                margin-bottom: 14px;
+            }
+            body.alt .nm-head-row .nm-h2,
+            body.alt .nm-head-row .nm-h2 + .nm-sub {
+                margin-bottom: 0;
+            }
+            /* The honest answer: heading left, one big paragraph right. */
+            body.alt .alt-answer {
+                margin: 0;
+                max-width: 58ch;
+                font-size: clamp(16px, 1.3vw, 18.5px);
+                line-height: 1.55;
+                color: var(--ink2);
+                text-wrap: pretty;
+            }
+            body.alt .alt-answer em {
+                color: var(--ink);
+                font-weight: 700;
+                font-style: normal;
+            }
+            /* Comparison: the old app's list beside the dark emphasis panel
+               (the landing's support pair). The cards' own grid gap spaces
+               the list; .nm-checks' top margin was written for a column. */
+            body.alt .alt-compare {
+                display: grid;
+                grid-template-columns: repeat(
+                    auto-fit,
+                    minmax(min(100%, 340px), 1fr)
+                );
+                gap: 14px;
+                align-items: stretch;
+            }
+            body.alt .alt-compare .nm-checks {
+                margin: 0;
+            }
+            body.alt .alt-compare .nm-card-top {
+                justify-content: flex-start;
+            }
+            body.alt .alt-compare-old .nm-tile {
+                --c: var(--ink3);
+            }
+            body.alt .alt-compare-note {
+                margin-top: 18px;
+                max-width: 70ch;
+            }
+            /* Prose panels (moving from X, bring your history): a sticky
+               heading column beside the paragraphs; one column below 900px
+               where a sticky heading would sit on the text. */
+            body.alt .alt-doc {
+                display: grid;
+                grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+                gap: clamp(24px, 4vw, 56px);
+                align-items: start;
+            }
+            body.alt .alt-doc-head {
+                position: sticky;
+                top: calc(var(--head-h) + 16px);
+            }
+            body.alt .alt-doc-head .nm-h2 {
+                margin-bottom: 0;
+            }
+            body.alt .alt-doc-head .nm-sub {
+                margin-top: 14px;
+            }
+            body.alt .alt-doc .nm-prose {
+                max-width: none;
+            }
+            @media (max-width: 899.98px) {
+                body.alt .alt-doc {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+                body.alt .alt-doc-head {
+                    position: static;
+                }
+            }
+            /* Install steps: raw <strong> UI labels in the step strings; the
+               server URL is a plain <code> in the sentence (as on the landing
+               page) and the shared copy pill sits under the list. */
+            body.alt .nm-steps strong {
+                color: var(--ink);
+                font-weight: 700;
+            }
+            body.alt .alt-steps .nm-copy-pill {
+                margin-top: 18px;
+            }
+            body.alt .alt-steps .nm-note {
+                margin-top: 18px;
+            }
+            body.alt .alt-steps .nm-note a {
+                color: var(--acc-text);
+                font-weight: 700;
+                text-decoration: underline;
+                text-underline-offset: 2px;
+            }
+            /* Hub: the six app cards are links; the arrow sits where the
+               landing's card index would. */
+            body.alt .alt-card-arrow {
+                color: var(--ink3);
+                font-size: 14px;
+                transition: color 0.2s, transform 0.2s;
+            }
+            body.alt a.nm-card:hover .alt-card-arrow {
+                color: var(--acc);
+                transform: translateX(3px);
+            }
+            body.alt .alt-request {
+                margin-top: 18px;
+            }
+            /* Trademark line under the closing band. */
+            body.alt .alt-disclaimer {
+                padding-top: 0;
+                padding-bottom: clamp(32px, 4vw, 56px);
+            }
+            body.alt .alt-disclaimer .nm-notice {
+                font-size: 13px;
+            }
+        </style>`;
+
+// ---------- shared fragments ----------
+
+const BG_BLOBS = `        <div class="nm-bg" aria-hidden="true">
+            <div class="nm-bg-blob nm-bg-1"></div>
+            <div class="nm-bg-blob nm-bg-2"></div>
+            <div class="nm-bg-blob nm-bg-3"></div>
+            <div class="nm-bg-fade"></div>
         </div>`;
+
+function noticeBand(locale: SiteLocale, suffix: string): string {
+    const notice = translationNotice(locale, suffix);
+    if (!notice) return "";
+    return `
+            <div class="nm-section nm-notice-band">
+${notice}
+            </div>
+`;
+}
+
+/**
+ * Trademark / non-affiliation notice under the closing band of every
+ * comparison page. Keeps the pages clearly independent and hedges the
+ * comparisons as point-in-time — the main legal safeguards for "alternative
+ * to X" content. `html` is already escaped/raw as the caller decided.
+ */
+function disclaimerBand(html: string): string {
+    return `            <div class="nm-section alt-disclaimer">
+                <div class="nm-notice is-muted">
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    <p>${html}</p>
+                </div>
+            </div>`;
 }
 
 // The "What you get instead" feature grid describes Nutrition MCP, so it's the
 // same on every page. Icons are structural (never translated); title/body
-// come from AltUiCopy.app.features, matched by array position.
+// come from AltUiCopy.app.features, matched by array position. The tints
+// are the same kind of thing: one colour role per card, by position.
 const FEATURE_ICONS = [
     "fa-utensils",
     "fa-barcode",
@@ -141,61 +328,66 @@ const FEATURE_ICONS = [
     "fa-file-csv",
     "fa-code-branch",
 ];
+const FEATURE_TINTS = [
+    "nm-c-cal",
+    "nm-c-car",
+    "nm-c-fib",
+    "nm-c-pro",
+    "nm-c-wat",
+    "nm-c-acc",
+];
 
 function featuresBlock(ui: AltUiCopy): string {
     const cards = ui.app.features
         .map(
-            (f, i) => `                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
+            (f, i) => `                    <article class="nm-card">
+                        <div class="nm-card-top">
+                            <span class="nm-tile nm-tile-md ${FEATURE_TINTS[i]}" aria-hidden="true"
                                 ><i class="fa-solid ${FEATURE_ICONS[i]}"></i
                             ></span>
-                            <h3>${f.title}</h3>
-                            <p>
-                                ${f.body}
-                            </p>
-                        </article>`,
+                            <span class="nm-count">${String(i + 1).padStart(2, "0")}</span>
+                        </div>
+                        <h3>${f.title}</h3>
+                        <p>${f.body}</p>
+                    </article>`,
         )
         .join("\n");
-    return `                    <div class="features-grid" data-reveal="stagger">
+    return `                <div class="nm-grid" data-reveal="stagger">
 ${cards}
-                    </div>`;
+                </div>`;
 }
 
+// The URL is written into the step as plain <code>, exactly as the
+// landing's own install steps do; the copy control is the unmodified
+// shared pill under the list, not a restyled one mid-sentence.
 function installBlock(locale: SiteLocale, ui: AltUiCopy): string {
     const steps = ui.app.installSteps
         .map((s, i) => {
             const html =
-                i === 2
-                    ? s.replace(
-                          "{copyUrl}",
-                          `<span class="copy-url"
-                                    ><code>https://nutrition-mcp.com/mcp</code
-                                    ><button
-                                        class="copy-mini"
-                                        type="button"
-                                        data-copy="https://nutrition-mcp.com/mcp"
-                                        aria-label="${esc(ui.app.copyUrlAriaLabel)}"
-                                    >
-                                        <i class="fa-solid fa-copy"></i></button
-                                ></span>`,
-                      )
-                    : s;
-            return `                            <li>
-                                ${html}
-                            </li>`;
+                i === 2 ? s.replace("{copyUrl}", `<code>${MCP_URL}</code>`) : s;
+            return `                        <li><span>${html}</span></li>`;
         })
         .join("\n");
     const note = ui.app.installNoteTemplate.replace(
         "{link}",
         `<a href="${hashPath(locale, "connect")}">${esc(ui.app.installLinkText)}</a>`,
     );
-    return `                    <div class="card install-card">
-                        <ol class="steps">
+    return `                    <div class="nm-panel nm-panel-md alt-steps">
+                        <ol class="nm-steps nm-steps-boxed">
 ${steps}
                         </ol>
-                        <p class="note">
-                            ${note}
-                        </p>
+                        <div class="nm-copy-pill">
+                            <code class="nm-endpoint-url">${MCP_URL}</code>
+                            <button
+                                class="copy-mini nm-copy-round"
+                                type="button"
+                                data-copy="${MCP_URL}"
+                                aria-label="${attr(ui.app.copyUrlAriaLabel)}"
+                            >
+                                <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <p class="nm-note">${note}</p>
                     </div>`;
 }
 
@@ -234,13 +426,77 @@ function faqsFor(
     ];
 }
 
+/** A section heading block: eyebrow, h2 (id for aria-labelledby), sub. */
+function headRow(
+    id: string,
+    eyebrow: string,
+    titleHtml: string,
+    subHtml?: string,
+): string {
+    const sub = subHtml
+        ? `\n                    <p class="nm-sub">${subHtml}</p>`
+        : "";
+    return `                <div class="nm-head-row">
+                    <div>
+                        <p class="nm-eyebrow">${eyebrow}</p>
+                        <h2 class="nm-h2 nm-h2-sm" id="${id}">${titleHtml}</h2>
+                    </div>${sub}
+                </div>`;
+}
+
+/**
+ * A prose panel: sticky eyebrow + title (+ sub) on the left, paragraphs on
+ * the right — the "moving from X" and "bring your history" sections.
+ */
+function docPanel(
+    id: string,
+    eyebrow: string,
+    titleHtml: string,
+    paragraphs: string[],
+    subHtml?: string,
+): string {
+    const sub = subHtml
+        ? `\n                        <p class="nm-sub">${subHtml}</p>`
+        : "";
+    return `                <div class="nm-panel nm-panel-lg">
+                    <div class="alt-doc">
+                        <div class="alt-doc-head">
+                            <p class="nm-eyebrow">${eyebrow}</p>
+                            <h2 class="nm-h2 nm-h2-sm" id="${id}">${titleHtml}</h2>${sub}
+                        </div>
+                        <div class="nm-prose">
+${paragraphs.map((p) => `                            <p>${p}</p>`).join("\n")}
+                        </div>
+                    </div>
+                </div>`;
+}
+
+function faqList(faqs: { q: string; a: string }[]): string {
+    const rows = faqs
+        .map(
+            (f, i) => `                    <details class="nm-faq-row">
+                        <summary>
+                            <span class="nm-faq-n">${String(i + 1).padStart(2, "0")}</span>
+                            <span class="nm-faq-q">${esc(f.q)}</span>
+                            <span class="nm-faq-ic" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+                        </summary>
+                        <p>${esc(f.a)}</p>
+                    </details>`,
+        )
+        .join("\n");
+    return `                <div class="nm-faq-list">
+${rows}
+                </div>`;
+}
+
 // ---------- per-app page ----------
 
 function renderApp(app: App, locale: SiteLocale = "en"): string {
     const copy = copyFor(app.slug, locale);
     const meta = metaFor(locale);
     const ui = altUiFor(locale);
-    const url = urlFor(locale, `/${app.slug}`);
+    const suffix = `/${app.slug}`;
+    const url = urlFor(locale, suffix);
     // The <title> deliberately does NOT mention import: these pages rank on the
     // exact bridge query ("<app> mcp", "connect <app> to claude") and diluting
     // that head term would cost more than an import keyword gains. The
@@ -270,7 +526,10 @@ function renderApp(app: App, locale: SiteLocale = "en"): string {
             {
                 "@type": "ListItem",
                 position: 2,
-                name: "Alternatives",
+                // The visible crumb's word, so a translated page's rich
+                // result does not show an English crumb; the brand names
+                // either side stay untranslated.
+                name: ui.breadcrumbAlternatives,
                 item: urlFor(locale, "/alternatives"),
             },
             {
@@ -294,19 +553,13 @@ function renderApp(app: App, locale: SiteLocale = "en"): string {
     const cons = copy.cons
         .map(
             (c) =>
-                `                                <li>\n                                    <i class="fa-solid fa-xmark"></i> ${esc(c)}\n                                </li>`,
+                `                            <li><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>${esc(c)}</span></li>`,
         )
         .join("\n");
     const pros = ui.app.pros
         .map(
             (p) =>
-                `                                <li>\n                                    <i class="fa-solid fa-circle-check"></i>\n                                    ${p}\n                                </li>`,
-        )
-        .join("\n");
-    const faqDetails = faqs
-        .map(
-            (f) =>
-                `                        <details>\n                            <summary>${esc(f.q)}</summary>\n                            <p>${esc(f.a)}</p>\n                        </details>`,
+                `                            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>${p}</span></li>`,
         )
         .join("\n");
 
@@ -316,9 +569,9 @@ function renderApp(app: App, locale: SiteLocale = "en"): string {
         <title>${esc(title)}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
-        <meta name="description" content="${esc(desc)}" />
-        <meta property="og:title" content="${esc(title)}" />
-        <meta property="og:description" content="${esc(ogDesc)}" />
+        <meta name="description" content="${attr(desc)}" />
+        <meta property="og:title" content="${attr(title)}" />
+        <meta property="og:description" content="${attr(ogDesc)}" />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="${url}" />
         <meta property="og:image" content="${SITE}/og.png" />
@@ -326,200 +579,148 @@ function renderApp(app: App, locale: SiteLocale = "en"): string {
         <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="${SITE}/og.png" />
-        <meta name="twitter:title" content="${esc(title)}" />
-        <meta name="twitter:description" content="${esc(ogDesc)}" />
-${localeHead(locale, `/${app.slug}`)}
+        <meta name="twitter:title" content="${attr(title)}" />
+        <meta name="twitter:description" content="${attr(ogDesc)}" />
+${localeHead(locale, suffix)}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#fbfbf9" />
+        <meta name="theme-color" content="#f7f7f9" />
 ${jsonLd(breadcrumb)}
 ${jsonLd(faqSchema)}
 ${HEAD_ASSETS}
+${ALT_CSS}
     </head>
-    <body class="landing">
+    <body class="alt">
 ${generatedBanner("scripts/gen-alternatives.ts")}
 ${THEME_PREPAINT}
-${nav(locale, `/${app.slug}`)}
+
+${BG_BLOBS}
+
+${nav(locale, suffix)}
 
         <main id="main">
             <!-- Hero -->
-            <section class="hero">
-                <div class="container">
-                    <nav class="crumb" aria-label="Breadcrumb">
-                        <a href="${pathFor(locale, "")}">${esc(ui.breadcrumbHome)}</a>
-                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                        <a href="${pathFor(locale, "/alternatives")}">${esc(ui.breadcrumbAlternatives)}</a>
-                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                        <span>${esc(app.name)}</span>
-                    </nav>
-                    <div class="hero-copy hero-copy-wide">
-                        <p class="eyebrow">${t(ui.app.heroEyebrow)}</p>
-                        <h1 class="hero-title">
-                            ${ui.app.heroTitleHtml.replaceAll("{app}", esc(app.name))}
-                        </h1>
-                        <p class="lead">
-                            ${t(ui.app.heroLead)}
-                        </p>
-                        <div class="hero-actions">
-                            <a class="btn btn-primary" href="#switch"
-                                >${t(ui.app.ctaConnect)}</a
-                            >
-                            <a class="btn btn-secondary" href="#compare"
-                                >${t(ui.app.ctaSeeComparison)}</a
-                            >
-                        </div>
-                    </div>
-${translationNotice(locale, `/${app.slug}`)}
+            <section class="nm-section nm-page-hero" aria-labelledby="hero-title">
+                <nav class="nm-crumb" aria-label="${attr(ui.breadcrumbAriaLabel)}">
+                    <a href="${pathFor(locale, "")}">${esc(ui.breadcrumbHome)}</a>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    <a href="${pathFor(locale, "/alternatives")}">${esc(ui.breadcrumbAlternatives)}</a>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    <span aria-current="page">${esc(app.name)}</span>
+                </nav>
+                <p class="nm-eyebrow">${t(ui.app.heroEyebrow)}</p>
+                <h1 class="nm-h1" id="hero-title">${ui.app.heroTitleHtml.replaceAll("{app}", esc(app.name))}</h1>
+                <p class="nm-lead">${t(ui.app.heroLead)}</p>
+                <div class="nm-hero-actions">
+                    <a class="nm-btn nm-btn-primary" href="#switch"
+                        >${t(ui.app.ctaConnect)}
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
+                    ></a>
+                    <a class="nm-btn nm-btn-glass" href="#compare">${t(ui.app.ctaSeeComparison)}</a>
                 </div>
             </section>
-
+${noticeBand(locale, suffix)}
             <!-- The honest answer -->
-            <section class="section band" id="answer">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${t(ui.app.answerEyebrow)}</p>
-                        <h2 class="section-title">
-                            ${t(ui.app.answerTitle)}
-                        </h2>
-                        <p class="section-sub">
-                            ${ui.app.answerBodyHtml.replaceAll("{app}", esc(app.name))}
-                        </p>
+            <section class="nm-section" id="answer" aria-labelledby="answer-title" data-reveal>
+                <div class="nm-split">
+                    <div>
+                        <p class="nm-eyebrow">${t(ui.app.answerEyebrow)}</p>
+                        <h2 class="nm-h2" id="answer-title">${t(ui.app.answerTitle)}</h2>
                     </div>
+                    <p class="alt-answer">${ui.app.answerBodyHtml.replaceAll("{app}", esc(app.name))}</p>
                 </div>
             </section>
 
             <!-- What you get instead -->
-            <section class="section" id="instead">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${t(ui.app.insteadEyebrow)}</p>
-                        <h2 class="section-title">
-                            ${t(ui.app.insteadTitle)}
-                        </h2>
-                    </div>
+            <section class="nm-section" id="instead" aria-labelledby="instead-title" data-reveal>
+${headRow("instead-title", t(ui.app.insteadEyebrow), t(ui.app.insteadTitle))}
 ${featuresBlock(ui)}
-                </div>
             </section>
 
             <!-- Comparison -->
-            <section class="section band" id="compare">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${t(ui.app.compareEyebrow)}</p>
-                        <h2 class="section-title">${t(ui.app.compareTitle)}</h2>
-                    </div>
-                    <div class="compare">
-                        <div class="compare-col">
-                            <h3 class="compare-h compare-h-old">
-                                ${esc(app.name)}
-                            </h3>
-                            <ul>
+            <section class="nm-section" id="compare" aria-labelledby="compare-title" data-reveal>
+${headRow("compare-title", t(ui.app.compareEyebrow), t(ui.app.compareTitle))}
+                <div class="alt-compare" data-reveal="stagger">
+                    <div class="nm-card nm-card-flat alt-compare-old">
+                        <div class="nm-card-top">
+                            <span class="nm-tile nm-tile-md" aria-hidden="true"
+                                ><i class="fa-solid ${app.icon}"></i
+                            ></span>
+                            <h3>${esc(app.name)}</h3>
+                        </div>
+                        <ul class="nm-checks nm-checks-lg">
 ${cons}
-                            </ul>
-                        </div>
-                        <div class="compare-col compare-col-new">
-                            <h3 class="compare-h compare-h-new">
-                                Nutrition MCP
-                            </h3>
-                            <ul>
-${pros}
-                            </ul>
-                        </div>
+                        </ul>
                     </div>
-                    <p class="note compare-note">
-                        ${esc(copy.note)}
-                    </p>
+                    <div class="nm-card nm-card-flat nm-card-dark nm-c-acc">
+                        <span class="nm-blob nm-blob-br" aria-hidden="true"></span>
+                        <div class="nm-card-top">
+                            <span class="nm-tile nm-tile-md" aria-hidden="true">🍏</span>
+                            <h3>Nutrition MCP</h3>
+                        </div>
+                        <ul class="nm-checks nm-checks-lg">
+${pros}
+                        </ul>
+                    </div>
                 </div>
+                <p class="nm-note alt-compare-note">${esc(copy.note)}</p>
             </section>
 
             <!-- Moving from X (per-app, unique content) -->
-            <section class="section" id="moving">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${t(ui.app.movingEyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(copy.migrate.title)}
-                        </h2>
-                    </div>
-                    <div class="prose">
-${copy.migrate.body
-    .map((p) => `                        <p>${esc(p)}</p>`)
-    .join("\n")}
-                    </div>
-                </div>
+            <section class="nm-section" id="moving" aria-labelledby="moving-title" data-reveal>
+${docPanel(
+    "moving-title",
+    t(ui.app.movingEyebrow),
+    esc(copy.migrate.title),
+    copy.migrate.body.map(esc),
+)}
             </section>
 
             <!-- Bring your history (per-app, unique content) -->
-            <section class="section band" id="import">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${t(ui.app.importEyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(copy.importSection.title)}
-                        </h2>
-                        <p class="section-sub">
-                            ${t(ui.app.importSub)}
-                        </p>
-                    </div>
-                    <div class="prose">
-${copy.importSection.body
-    .map((p) => `                        <p>${esc(p)}</p>`)
-    .join("\n")}
-                    </div>
-                </div>
+            <section class="nm-section" id="import" aria-labelledby="import-title" data-reveal>
+${docPanel(
+    "import-title",
+    t(ui.app.importEyebrow),
+    esc(copy.importSection.title),
+    copy.importSection.body.map(esc),
+    t(ui.app.importSub),
+)}
             </section>
 
             <!-- How to switch -->
-            <section class="section" id="switch">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${t(ui.app.switchEyebrow)}</p>
-                        <h2 class="section-title">${t(ui.app.ctaConnect)}</h2>
-                        <p class="section-sub">
-                            ${t(ui.app.switchSub)}
-                        </p>
+            <section class="nm-section" id="switch" aria-labelledby="switch-title" data-reveal>
+                <div class="nm-split">
+                    <div>
+                        <p class="nm-eyebrow">${t(ui.app.switchEyebrow)}</p>
+                        <h2 class="nm-h2" id="switch-title">${t(ui.app.ctaConnect)}</h2>
+                        <p class="nm-sub">${t(ui.app.switchSub)}</p>
                     </div>
 ${installBlock(locale, ui)}
                 </div>
             </section>
 
             <!-- FAQ -->
-            <section class="section band" id="faq">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${t(ui.app.faqEyebrow)}</p>
-                        <h2 class="section-title">
-                            ${ui.app.faqTitleTemplate.replaceAll("{app}", esc(app.name))}
-                        </h2>
-                    </div>
-                    <div class="faq">
-${faqDetails}
-                    </div>
-                </div>
+            <section class="nm-section" id="faq" aria-labelledby="faq-title" data-reveal>
+${headRow("faq-title", t(ui.app.faqEyebrow), ui.app.faqTitleTemplate.replaceAll("{app}", esc(app.name)))}
+${faqList(faqs)}
             </section>
 
             <!-- Closing CTA -->
-            <section class="section cta">
-                <div class="container cta-inner" data-reveal>
-                    <h2 class="cta-title">
-                        ${esc(ui.ctaClosingTitle)}
-                    </h2>
-                    <p class="cta-sub">
-                        ${t(ui.app.ctaClosingSub)}
-                    </p>
-                    <div class="cta-actions">
-                        <a class="btn btn-on-accent" href="#switch"
-                            >${esc(ui.ctaQuickInstall)}</a
-                        >
-                        <a class="btn btn-ghost-accent" href="${pathFor(locale, "/alternatives")}"
-                            >${t(ui.app.ctaOtherAlternatives)}</a
-                        >
+            <section class="nm-section nm-cta-sec" aria-labelledby="cta-title" data-reveal>
+                <div class="nm-cta-band">
+                    <span class="nm-blob nm-blob-bl nm-c-car" aria-hidden="true"></span>
+                    <span class="nm-blob nm-blob-tr nm-c-pro" aria-hidden="true"></span>
+                    <h2 id="cta-title">${esc(ui.ctaClosingTitle)}</h2>
+                    <p>${t(ui.app.ctaClosingSub)}</p>
+                    <div class="nm-cta-actions">
+                        <a class="nm-btn nm-btn-primary nm-btn-lg" href="#switch">${esc(ui.ctaQuickInstall)}</a>
+                        <a class="nm-btn nm-btn-ghost nm-btn-lg" href="${pathFor(locale, "/alternatives")}">${t(ui.app.ctaOtherAlternatives)}</a>
                     </div>
                 </div>
             </section>
-        </main>
 
 ${disclaimerBand(ui.disclaimerAppHtml.replaceAll("{app}", esc(app.name)))}
+        </main>
 
 ${footer(locale)}
 
@@ -532,7 +733,9 @@ ${SITE_SCRIPT}
 // ---------- hub page ----------
 
 function renderHub(locale: SiteLocale = "en"): string {
-    const url = urlFor(locale, "/alternatives");
+    const suffix = "/alternatives";
+    const url = urlFor(locale, suffix);
+    const ui = altUiFor(locale);
     const breadcrumb = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -546,26 +749,28 @@ function renderHub(locale: SiteLocale = "en"): string {
             {
                 "@type": "ListItem",
                 position: 2,
-                name: "Alternatives",
+                name: ui.breadcrumbAlternatives,
                 item: url,
             },
         ],
     };
     const cards = APPS.map(
         (app) =>
-            `                        <a class="card feature alt-card" href="${pathFor(locale, `/${app.slug}`)}">
-                            <span class="feature-icon" aria-hidden="true"
+            `                    <a class="nm-card ${app.tint}" href="${pathFor(locale, `/${app.slug}`)}">
+                        <div class="nm-card-top">
+                            <span class="nm-tile nm-tile-md" aria-hidden="true"
                                 ><i class="fa-solid ${app.icon}"></i
                             ></span>
-                            <h3>${esc(app.name)} &rarr;</h3>
-                            <p>${esc(copyFor(app.slug, locale).hubBlurb)}</p>
-                        </a>`,
+                            <i class="fa-solid fa-arrow-right alt-card-arrow" aria-hidden="true"></i>
+                        </div>
+                        <h3>${esc(app.name)}</h3>
+                        <p>${esc(copyFor(app.slug, locale).hubBlurb)}</p>
+                    </a>`,
     ).join("\n");
 
     // As on the per-app pages, the title keeps the head term and the description
     // carries the import hook. See renderApp for the reasoning.
     const meta = metaFor(locale);
-    const ui = altUiFor(locale);
     const title = meta.hubTitle;
     const desc = meta.hubDesc;
     const ogDesc = meta.hubOgDesc;
@@ -576,9 +781,9 @@ function renderHub(locale: SiteLocale = "en"): string {
         <title>${esc(title)}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
-        <meta name="description" content="${esc(desc)}" />
-        <meta property="og:title" content="${esc(title)}" />
-        <meta property="og:description" content="${esc(ogDesc)}" />
+        <meta name="description" content="${attr(desc)}" />
+        <meta property="og:title" content="${attr(title)}" />
+        <meta property="og:description" content="${attr(ogDesc)}" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="${url}" />
         <meta property="og:image" content="${SITE}/og.png" />
@@ -586,114 +791,91 @@ function renderHub(locale: SiteLocale = "en"): string {
         <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="${SITE}/og.png" />
-        <meta name="twitter:title" content="${esc(title)}" />
-        <meta name="twitter:description" content="${esc(ogDesc)}" />
-${localeHead(locale, "/alternatives")}
+        <meta name="twitter:title" content="${attr(title)}" />
+        <meta name="twitter:description" content="${attr(ogDesc)}" />
+${localeHead(locale, suffix)}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#fbfbf9" />
+        <meta name="theme-color" content="#f7f7f9" />
 ${jsonLd(breadcrumb)}
 ${HEAD_ASSETS}
+${ALT_CSS}
     </head>
-    <body class="landing">
+    <body class="alt">
 ${generatedBanner("scripts/gen-alternatives.ts")}
 ${THEME_PREPAINT}
-${nav(locale, "/alternatives", "/alternatives")}
+
+${BG_BLOBS}
+
+${nav(locale, suffix, suffix)}
 
         <main id="main">
-            <section class="hero">
-                <div class="container">
-                    <nav class="crumb" aria-label="Breadcrumb">
-                        <a href="${pathFor(locale, "")}">${esc(ui.breadcrumbHome)}</a>
-                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                        <span>${esc(ui.breadcrumbAlternatives)}</span>
-                    </nav>
-                    <div class="hero-copy hero-copy-wide">
-                        <p class="eyebrow">${esc(ui.hub.heroEyebrow)}</p>
-                        <h1 class="hero-title">
-                            ${ui.hub.heroTitleHtml}
-                        </h1>
-                        <p class="lead">
-                            ${esc(ui.hub.heroLead)}
-                        </p>
-                        <div class="hero-actions">
-                            <a class="btn btn-primary" href="${hashPath(locale, "connect")}"
-                                >${esc(ui.ctaQuickInstall)}</a
-                            >
-                            <a class="btn btn-secondary" href="${hashPath(locale, "examples")}"
-                                >${esc(ui.hub.ctaSeeExamples)}</a
-                            >
-                        </div>
-                    </div>
-${translationNotice(locale, "/alternatives")}
+            <!-- Hero -->
+            <section class="nm-section nm-page-hero" aria-labelledby="hero-title">
+                <nav class="nm-crumb" aria-label="${attr(ui.breadcrumbAriaLabel)}">
+                    <a href="${pathFor(locale, "")}">${esc(ui.breadcrumbHome)}</a>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    <span aria-current="page">${esc(ui.breadcrumbAlternatives)}</span>
+                </nav>
+                <p class="nm-eyebrow">${esc(ui.hub.heroEyebrow)}</p>
+                <h1 class="nm-h1" id="hero-title">${ui.hub.heroTitleHtml}</h1>
+                <p class="nm-lead">${esc(ui.hub.heroLead)}</p>
+                <div class="nm-hero-actions">
+                    <a class="nm-btn nm-btn-primary" href="${hashPath(locale, "connect")}"
+                        >${esc(ui.ctaQuickInstall)}
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
+                    ></a>
+                    <a class="nm-btn nm-btn-glass" href="${hashPath(locale, "examples")}">${esc(ui.hub.ctaSeeExamples)}</a>
                 </div>
             </section>
-
-            <section class="section band" id="apps">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(ui.hub.appsEyebrow)}</p>
-                        <h2 class="section-title">${esc(ui.hub.appsTitle)}</h2>
-                        <p class="section-sub">
-                            ${esc(ui.hub.appsSub)}
-                        </p>
-                    </div>
-                    <div class="features-grid" data-reveal="stagger">
+${noticeBand(locale, suffix)}
+            <!-- Pick your app -->
+            <section class="nm-section" id="apps" aria-labelledby="apps-title" data-reveal>
+${headRow("apps-title", esc(ui.hub.appsEyebrow), esc(ui.hub.appsTitle), esc(ui.hub.appsSub))}
+                <div class="nm-grid" data-reveal="stagger">
 ${cards}
-                    </div>
-                    <p class="note compare-note">
+                </div>
+                <div class="nm-notice alt-request">
+                    <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+                    <p>
                         ${esc(ui.hub.noAppNote)}
-                        <a href="mailto:anton@nutrition-mcp.com"
-                            >${esc(ui.hub.requestComparisonLinkText)}</a
-                        >.
+                        <a href="mailto:${EMAIL}">${esc(ui.hub.requestComparisonLinkText)}</a>.
                     </p>
                 </div>
             </section>
 
-            <section class="section" id="import">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(ui.hub.importEyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(ui.hub.importTitle)}
-                        </h2>
-                        <p class="section-sub">
-                            ${esc(ui.hub.importSub)}
-                        </p>
-                    </div>
-                    <div class="prose">
-${ui.hub.importBody.map((p) => `                        <p>\n                            ${p}\n                        </p>`).join("\n")}
-                    </div>
-                </div>
+            <!-- Bringing your history -->
+            <section class="nm-section" id="import" aria-labelledby="import-title" data-reveal>
+${docPanel(
+    "import-title",
+    esc(ui.hub.importEyebrow),
+    esc(ui.hub.importTitle),
+    ui.hub.importBody,
+    esc(ui.hub.importSub),
+)}
             </section>
 
-            <section class="section cta">
-                <div class="container cta-inner" data-reveal>
-                    <h2 class="cta-title">
-                        ${esc(ui.ctaClosingTitle)}
-                    </h2>
-                    <p class="cta-sub">
-                        ${esc(ui.hub.ctaSub)}
-                    </p>
-                    <div class="cta-actions">
-                        <a class="btn btn-on-accent" href="${hashPath(locale, "connect")}"
-                            >${esc(ui.ctaQuickInstall)}</a
-                        >
-                        <a
-                            class="btn btn-ghost-accent"
-                            href="https://github.com/akutishevsky/nutrition-mcp"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            ><i class="fa-brands fa-github"></i> ${esc(ui.hub.ctaStarGithub)}</a
-                        >
+            <!-- Closing CTA -->
+            <section class="nm-section nm-cta-sec" aria-labelledby="cta-title" data-reveal>
+                <div class="nm-cta-band">
+                    <span class="nm-blob nm-blob-bl nm-c-car" aria-hidden="true"></span>
+                    <span class="nm-blob nm-blob-tr nm-c-pro" aria-hidden="true"></span>
+                    <h2 id="cta-title">${esc(ui.ctaClosingTitle)}</h2>
+                    <p>${esc(ui.hub.ctaSub)}</p>
+                    <div class="nm-cta-actions">
+                        <a class="nm-btn nm-btn-primary nm-btn-lg" href="${hashPath(locale, "connect")}">${esc(ui.ctaQuickInstall)}</a>
+                        <a class="nm-btn nm-btn-ghost nm-btn-lg" href="${GITHUB}" ${EXT}>
+                            <i class="fa-brands fa-github" aria-hidden="true"></i>
+                            <span>${esc(ui.hub.ctaStarGithub)}</span>
+                        </a>
                     </div>
                 </div>
             </section>
-        </main>
 
 ${disclaimerBand(ui.disclaimerHubHtml.replace("{apps}", APPS.map((a) => esc(a.name)).join(", ")))}
+        </main>
 
-${footer(locale, "/alternatives")}
+${footer(locale, suffix)}
 
 ${SITE_SCRIPT}
     </body>
