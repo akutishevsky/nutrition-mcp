@@ -23,7 +23,7 @@
 // unit → 体重の単位, widget → ウィジェット, open source / MIT license →
 // オープンソース／MITライセンス（名称として訳さない）.
 
-import type { LegalDoc } from "./legal.js";
+import type { LegalDoc, LegalUi } from "./legal.js";
 
 const p = (html: string): { type: "p"; html: string } => ({
     type: "p",
@@ -279,4 +279,12 @@ export const TERMS_JA: LegalDoc = {
             ],
         },
     ],
+};
+
+// The two page-chrome labels the Dawn document layout needs around a
+// LegalDoc (the "Last updated" eyebrow prefix and the phone TOC fold) —
+// see LEGAL_UI in legal.ts.
+export const LEGAL_UI_JA: LegalUi = {
+    lastUpdated: "最終更新",
+    contents: "目次",
 };

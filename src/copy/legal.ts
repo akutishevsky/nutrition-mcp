@@ -19,13 +19,13 @@
 // rest of the site's copy dictionaries are built around.
 
 import type { SiteLocale } from "../routes.js";
-import { PRIVACY_ES, TERMS_ES } from "./legal.es.js";
-import { PRIVACY_FR, TERMS_FR } from "./legal.fr.js";
-import { PRIVACY_NL, TERMS_NL } from "./legal.nl.js";
-import { PRIVACY_PL, TERMS_PL } from "./legal.pl.js";
-import { PRIVACY_IT, TERMS_IT } from "./legal.it.js";
-import { PRIVACY_UK, TERMS_UK } from "./legal.uk.js";
-import { PRIVACY_JA, TERMS_JA } from "./legal.ja.js";
+import { PRIVACY_ES, TERMS_ES, LEGAL_UI_ES } from "./legal.es.js";
+import { PRIVACY_FR, TERMS_FR, LEGAL_UI_FR } from "./legal.fr.js";
+import { PRIVACY_NL, TERMS_NL, LEGAL_UI_NL } from "./legal.nl.js";
+import { PRIVACY_PL, TERMS_PL, LEGAL_UI_PL } from "./legal.pl.js";
+import { PRIVACY_IT, TERMS_IT, LEGAL_UI_IT } from "./legal.it.js";
+import { PRIVACY_UK, TERMS_UK, LEGAL_UI_UK } from "./legal.uk.js";
+import { PRIVACY_JA, TERMS_JA, LEGAL_UI_JA } from "./legal.ja.js";
 
 export type LegalBlock =
     { type: "p"; html: string } | { type: "ul"; items: string[] };
@@ -48,6 +48,21 @@ export interface LegalDoc {
      * versa). The other doc's own `title` is reused for the cross-link text
      * itself, so only the "back to home" phrase needs to live here. */
     backToHome: string;
+}
+
+/**
+ * The two labels the Dawn document layout puts AROUND a LegalDoc rather
+ * than inside it — the mono "Last updated" prefix on the hero eyebrow
+ * (`lastUpdated` above is the bare date) and the "Contents" label on the
+ * table of contents (the <nav>'s aria-label, and the visible summary of
+ * the <details> it folds into on phones). They are per locale, not per
+ * document, so they live in one small record instead of being repeated
+ * on every PRIVACY_x / TERMS_x object; a full Record, like LOGIN_ERRORS,
+ * so a new locale that forgets them fails `bun run typecheck`.
+ */
+export interface LegalUi {
+    lastUpdated: string;
+    contents: string;
 }
 
 const p = (html: string): LegalBlock => ({ type: "p", html });
@@ -582,4 +597,16 @@ export const TERMS: Partial<Record<SiteLocale, LegalDoc>> = {
     it: TERMS_IT,
     uk: TERMS_UK,
     ja: TERMS_JA,
+};
+
+export const LEGAL_UI: Record<SiteLocale, LegalUi> = {
+    en: { lastUpdated: "Last updated", contents: "Contents" },
+    de: { lastUpdated: "Zuletzt aktualisiert", contents: "Inhalt" },
+    es: LEGAL_UI_ES,
+    fr: LEGAL_UI_FR,
+    nl: LEGAL_UI_NL,
+    pl: LEGAL_UI_PL,
+    it: LEGAL_UI_IT,
+    uk: LEGAL_UI_UK,
+    ja: LEGAL_UI_JA,
 };

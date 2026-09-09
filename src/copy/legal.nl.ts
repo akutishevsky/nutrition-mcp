@@ -7,7 +7,7 @@
 // exactly the page most worth a native-speaker legal review before it's
 // relied on.
 
-import type { LegalDoc } from "./legal.js";
+import type { LegalDoc, LegalUi } from "./legal.js";
 
 export const PRIVACY_NL: LegalDoc = {
     title: "Privacybeleid",
@@ -300,4 +300,12 @@ export const TERMS_NL: LegalDoc = {
             ],
         },
     ],
+};
+
+// The two page-chrome labels the Dawn document layout needs around a
+// LegalDoc (the "Last updated" eyebrow prefix and the phone TOC fold) —
+// see LEGAL_UI in legal.ts.
+export const LEGAL_UI_NL: LegalUi = {
+    lastUpdated: "Laatst bijgewerkt",
+    contents: "Inhoud",
 };

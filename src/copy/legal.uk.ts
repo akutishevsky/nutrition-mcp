@@ -1,4 +1,4 @@
-import type { LegalDoc } from "./legal.js";
+import type { LegalDoc, LegalUi } from "./legal.js";
 
 export const PRIVACY_UK: LegalDoc = {
     title: "Політика приватності",
@@ -291,4 +291,12 @@ export const TERMS_UK: LegalDoc = {
             ],
         },
     ],
+};
+
+// The two page-chrome labels the Dawn document layout needs around a
+// LegalDoc (the "Last updated" eyebrow prefix and the phone TOC fold) —
+// see LEGAL_UI in legal.ts.
+export const LEGAL_UI_UK: LegalUi = {
+    lastUpdated: "Останнє оновлення",
+    contents: "Зміст",
 };

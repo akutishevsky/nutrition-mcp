@@ -6,6 +6,14 @@
  * and scripts/site-partials.ts for why every generated page now shares one
  * copy of that markup instead.
  *
+ * The page is the Dawn document layout: a page hero (mono "Last updated"
+ * eyebrow, h1, lead), the translation-notice band on non-English pages,
+ * then a two-column .nm-doc — a sticky table of contents on the left (the
+ * plain .nm-toc list on desktop, the same list folded into a <details> on
+ * phones) and the prose in one big panel on the right. Everything visible
+ * is a shared primitive from public/styles.css; the <style> block below
+ * is only the page's own layout glue.
+ *
  * Re-run after editing src/copy/legal.ts:
  *   bun run scripts/gen-legal.ts
  * The generated .html files are the served artifacts — don't hand-edit them.
@@ -14,6 +22,7 @@
 import { HTML_LANG, pathFor, type SiteLocale } from "../src/routes.js";
 import {
     SITE,
+    attr,
     esc,
     footer,
     generatedBanner,
@@ -25,118 +34,40 @@ import {
     THEME_PREPAINT,
 } from "./site-partials.js";
 import {
+    LEGAL_UI,
     PRIVACY,
     TERMS,
     type LegalBlock,
     type LegalDoc,
 } from "../src/copy/legal.js";
 
-// Page-layout CSS, identical on both pages in the original hand-authored
-// HTML (verified by diff) except for the metadata around it — kept as one
-// constant here for the same reason nav()/footer() are shared.
+// Page-only layout, identical on both pages. The primitives it arranges
+// (.nm-page-hero, .nm-doc, .nm-toc, .nm-panel, .nm-prose, .nm-btn) are the
+// shared ones in public/styles.css — nothing visual is defined here.
 const LEGAL_STYLE = `        <style>
-            /* Page layout: sticky header, centred stage, footer at the foot.
-               body.auth in styles.css is flex-centred for the old standalone
-               card; here the stage does the centring instead. */
-            body.auth {
-                display: flex;
-                flex-direction: column;
-                align-items: stretch;
-                justify-content: flex-start;
-                padding: 0;
+            /* The document sits directly under the hero (or the translation
+               band); .nm-section's top padding would double the gap. */
+            body.legal .legal-body {
+                padding-top: 0;
             }
-            body.auth > main {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
+            /* A section jumped to from the TOC would land under the sticky
+               pill bar otherwise (same margin .nm-prose h2 carries). */
+            body.legal .legal-section {
+                scroll-margin-top: calc(var(--head-h) + 16px);
             }
-            /* Reading layout: one measured column, no card. */
-            .legal-page {
-                width: 100%;
+            /* The panel frames a 62ch measure; on a wide screen it stops
+               short of the grid column instead of leaving a blank right
+               half inside the surface. */
+            body.legal .legal-panel {
                 max-width: 760px;
-                margin: 0 auto;
-                padding: clamp(2.5rem, 7vw, 5rem) clamp(1.25rem, 4vw, 2.5rem)
-                    clamp(3rem, 8vw, 6rem);
             }
-            .legal-page .auth-card {
-                background: transparent;
-                border: 0;
-                border-radius: 0;
-                box-shadow: none;
-                padding: 0;
-                animation: none;
-            }
-            .legal-page .auth-head {
-                text-align: left;
-                margin-bottom: 0;
-            }
-            .legal-page .auth-mark {
-                display: none;
-            }
-            .legal-page .auth-title {
-                font-size: clamp(2.2rem, 5vw, 3.4rem);
-            }
-            body.auth .legal-page .legal-updated {
-                margin: 0 0 1rem;
-            }
-            body.auth .legal-page .legal-updated.eyebrow {
-                font-size: 0.74rem;
-                color: var(--accent-hover);
-            }
-            .legal-page .translation-notice {
-                margin-bottom: clamp(2rem, 4vw, 2.75rem);
-            }
-            body.auth .legal-page .auth-card .legal-section {
-                margin: 0 0 clamp(2rem, 4vw, 2.75rem);
-                padding-top: 1rem;
-                border-top: 3px solid var(--rule);
-            }
-            body.auth .legal-page .legal-heading {
-                font-size: clamp(1.3rem, 2.4vw, 1.6rem);
-                line-height: 1.15;
-                margin: 0 0 0.85rem;
-            }
-            body.auth .legal-page .legal-section p {
-                font-size: 1.05rem;
-                line-height: 1.65;
-                color: var(--ink-2);
-                text-wrap: pretty;
-            }
-            body.auth .legal-page .legal-section strong {
-                color: var(--ink);
-            }
-            body.auth .legal-page .legal-section p + p,
-            body.auth .legal-page .legal-section ul + p {
-                margin-top: 1rem;
-            }
-            body.auth .legal-page .legal-section ul {
-                list-style: none;
-                margin: 1rem 0 0;
-                padding: 0;
+            body.legal .legal-foot {
+                margin-top: 32px;
+                padding-top: 24px;
                 border-top: 1px solid var(--line);
-                font-size: 1.05rem;
-                line-height: 1.65;
-                color: var(--ink-2);
             }
-            body.auth .legal-page .legal-section li {
-                margin: 0;
-                padding: 0.75rem 0;
-                border-bottom: 1px solid var(--line);
-            }
-            body.auth .legal-page .legal-foot {
-                text-align: left;
-                margin-top: 0;
-                padding-top: 1.25rem;
-                border-top: 3px solid var(--rule);
-                font-family: var(--font-mono);
-                font-size: 0.8rem;
-            }
-            .legal-page .legal-back {
-                font-size: inherit;
-                color: var(--ink-2);
-            }
-            .legal-page .legal-back:hover {
-                color: var(--ink);
+            body.legal .legal-foot .nm-btn i {
+                font-size: 12px;
             }
         </style>`;
 
@@ -162,13 +93,27 @@ function localizeCrossLinks(html: string, locale: SiteLocale): string {
 
 function renderBlock(b: LegalBlock, locale: SiteLocale): string {
     if (b.type === "p")
-        return `                        <p>\n                            ${localizeCrossLinks(b.html, locale)}\n                        </p>`;
-    return `                        <ul>\n${b.items
+        return `                                <p>\n                                    ${localizeCrossLinks(b.html, locale)}\n                                </p>`;
+    return `                                <ul>\n${b.items
         .map(
             (i) =>
-                `                            <li>${localizeCrossLinks(i, locale)}</li>`,
+                `                                    <li>${localizeCrossLinks(i, locale)}</li>`,
         )
-        .join("\n")}\n                        </ul>`;
+        .join("\n")}\n                                </ul>`;
+}
+
+// Section ids are positional ("s1", "s2", …) rather than slugs of the
+// heading: headings are translated, and the same section must keep the
+// same anchor on every locale's page.
+const sectionId = (i: number) => `s${i + 1}`;
+
+function renderToc(doc: LegalDoc): string {
+    return doc.sections
+        .map(
+            (s, i) =>
+                `                                <li><a href="#${sectionId(i)}">${esc(s.heading)}</a></li>`,
+        )
+        .join("\n");
 }
 
 function renderDoc(
@@ -180,16 +125,29 @@ function renderDoc(
 ): string {
     const url = `${SITE}${pathFor(locale, suffix)}`;
     const title = `${esc(doc.title)} — Nutrition MCP`;
+    const ui = LEGAL_UI[locale];
+    const notice = translationNotice(locale, suffix);
 
+    // The entrance reveal sits on the TOC and on each section, never on
+    // the whole document: site.js reveals an element once 8% of it is in
+    // view, and /terms runs to ~16 phone viewports, so a reveal on the body
+    // could never reach that ratio — the prose stayed at opacity 0 on a
+    // phone with JS enabled. A section tops out around two viewports.
     const sections = doc.sections
         .map(
-            (s) =>
-                `                    <div class="legal-section">
-                        <h2 class="legal-heading">${esc(s.heading)}</h2>
+            (s, i) =>
+                `                            <section class="legal-section" id="${sectionId(i)}" data-reveal>
+                                <h2>${esc(s.heading)}</h2>
 ${s.blocks.map((b) => renderBlock(b, locale)).join("\n")}
-                    </div>`,
+                            </section>`,
         )
         .join("\n\n");
+
+    // The TOC is rendered twice — the plain sticky list for ≥900px and the
+    // same list inside a <details> for phones — because a closed <details>
+    // cannot be forced open from CSS; .nm-only-wide / .nm-only-narrow show
+    // exactly one of them at any width.
+    const toc = renderToc(doc);
 
     return `<!doctype html>
 <html lang="${HTML_LANG[locale]}">
@@ -197,9 +155,9 @@ ${s.blocks.map((b) => renderBlock(b, locale)).join("\n")}
         <title>${title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
-        <meta name="description" content="${esc(doc.metaDescription)}" />
+        <meta name="description" content="${attr(doc.metaDescription)}" />
         <meta property="og:title" content="${title}" />
-        <meta property="og:description" content="${esc(doc.ogDescription)}" />
+        <meta property="og:description" content="${attr(doc.ogDescription)}" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="${url}" />
         <meta property="og:image" content="${SITE}/og.png" />
@@ -208,38 +166,68 @@ ${s.blocks.map((b) => renderBlock(b, locale)).join("\n")}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="${SITE}/og.png" />
         <meta name="twitter:title" content="${title}" />
-        <meta name="twitter:description" content="${esc(doc.ogDescription)}" />
+        <meta name="twitter:description" content="${attr(doc.ogDescription)}" />
 ${localeHead(locale, suffix)}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#fbfbf9" />
+        <meta name="theme-color" content="#f7f7f9" />
 ${HEAD_ASSETS}
 ${LEGAL_STYLE}
     </head>
-    <body class="auth">
+    <body class="legal">
 ${generatedBanner("scripts/gen-legal.ts")}
 ${THEME_PREPAINT}
+
+        <!-- The three colour blobs behind the hero. -->
+        <div class="nm-bg" aria-hidden="true">
+            <div class="nm-bg-blob nm-bg-1"></div>
+            <div class="nm-bg-blob nm-bg-2"></div>
+            <div class="nm-bg-blob nm-bg-3"></div>
+            <div class="nm-bg-fade"></div>
+        </div>
 
 ${nav(locale, suffix, suffix)}
 
         <main id="main">
-            <div class="legal-page">
-                <div class="auth-card">
-                    <div class="auth-head">
-                        <span class="auth-mark" aria-hidden="true">🍏</span>
-                        <h1 class="auth-title display">${esc(doc.title)}</h1>
-                    </div>
+            <section class="nm-section nm-page-hero" aria-labelledby="legal-title">
+                <p class="nm-eyebrow">${esc(ui.lastUpdated)} · ${esc(doc.lastUpdated)}</p>
+                <h1 class="nm-h1" id="legal-title">${esc(doc.title)}</h1>
+                <p class="nm-lead">${esc(doc.metaDescription)}</p>
+            </section>
+${
+    notice
+        ? `
+            <div class="nm-section nm-notice-band">
+${notice}
+            </div>
+`
+        : ""
+}
+            <div class="nm-section legal-body">
+                <div class="nm-doc">
+                    <aside class="nm-doc-aside" data-reveal>
+                        <nav aria-label="${attr(ui.contents)}">
+                            <ol class="nm-toc nm-only-wide">
+${toc}
+                            </ol>
+                            <details class="nm-toc-fold nm-only-narrow">
+                                <summary>${esc(ui.contents)} <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+                                <ol class="nm-toc">
+${toc}
+                                </ol>
+                            </details>
+                        </nav>
+                    </aside>
 
-                    <p class="legal-updated eyebrow">${esc(doc.lastUpdated)}</p>
-
-${translationNotice(locale, suffix)}
-
+                    <div class="nm-panel nm-panel-lg legal-panel">
+                        <div class="nm-prose">
 ${sections}
+                        </div>
 
-                    <div class="legal-foot">
-                        <a href="${pathFor(locale, "")}" class="legal-back">&larr; ${esc(doc.backToHome)}</a>
-                        <span class="legal-sep" aria-hidden="true">·</span>
-                        <a href="${pathFor(locale, otherSuffix)}" class="legal-back">${esc(other.title)}</a>
+                        <div class="legal-foot nm-actions-row">
+                            <a class="nm-btn nm-btn-outline nm-btn-md" href="${pathFor(locale, "")}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ${esc(doc.backToHome)}</a>
+                            <a class="nm-btn nm-btn-soft nm-btn-md" href="${pathFor(locale, otherSuffix)}">${esc(other.title)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
