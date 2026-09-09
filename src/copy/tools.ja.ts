@@ -90,6 +90,7 @@ export const TOOLS_JA: ToolsDoc = {
         requiredLabel: "必須",
         optionalLabel: "任意",
         trySayingLabel: "こう話しかけてみましょう",
+        categoriesLabel: "ツールのカテゴリー",
     },
     tools: {
         log_meal: {

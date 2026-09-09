@@ -79,6 +79,7 @@ export const TOOLS_UK: ToolsDoc = {
         requiredLabel: "обов'язковий",
         optionalLabel: "необов'язковий",
         trySayingLabel: "Спробуй сказати",
+        categoriesLabel: "Категорії інструментів",
     },
     tools: {
         log_meal: {

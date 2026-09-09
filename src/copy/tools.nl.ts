@@ -80,6 +80,7 @@ export const TOOLS_NL: ToolsDoc = {
         requiredLabel: "vereist",
         optionalLabel: "optioneel",
         trySayingLabel: "Probeer te zeggen",
+        categoriesLabel: "Toolcategorieën",
     },
     tools: {
         log_meal: {

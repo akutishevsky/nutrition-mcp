@@ -79,6 +79,7 @@ export const TOOLS_DE: ToolsDoc = {
         requiredLabel: "erforderlich",
         optionalLabel: "optional",
         trySayingLabel: "Probier zu sagen",
+        categoriesLabel: "Werkzeugkategorien",
     },
     tools: {
         log_meal: {

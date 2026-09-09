@@ -8,7 +8,7 @@
 // a tool's IDENTITY — its literal MCP tool name, each param's literal API
 // field name, which category it lives in, and which badge chips it shows
 // — is structural and shared by every locale untranslated (TOOLS, plus
-// BADGE_META's CSS/icon wiring). Only PROSE — descriptions, param
+// BADGE_META's icon wiring). Only PROSE — descriptions, param
 // descriptions, "try saying" examples, category copy, hero copy, and the
 // badge label text itself — lives inside ToolsDoc, one entry per locale in
 // TOOLS_COPY. A future translation pass reads ToolsDoc's shape and fills
@@ -47,10 +47,10 @@ export type CategoryId =
     | "insights-trends"
     | "settings-account";
 
-/** Badge ("chip") kinds shown in a tool card's header. Two kinds can
- * share a CSS class but carry different text — "log" and "import" both
- * render as chip-log, "view" and "export" both render as chip-view — see
- * BADGE_META for that structural wiring and ToolsDoc.badges for the
+/** Badge ("tag") kinds shown in a tool card's header. Every kind renders
+ * as the shared .nm-tag — accent-tinted for the kinds that change
+ * something (scripts/gen-tools.ts's ACCENT_BADGES), plain for the rest —
+ * see BADGE_META for the icon wiring and ToolsDoc.badges for the
  * (locale-translatable) label text, kept once here rather than per tool. */
 export type BadgeKind =
     | "log"
@@ -63,19 +63,19 @@ export type BadgeKind =
     | "remove"
     | "widget";
 
-/** CSS class + optional Font Awesome icon per badge kind — structural,
- * identical across every locale, so it lives beside TOOLS rather than
- * inside ToolsDoc. */
-export const BADGE_META: Record<BadgeKind, { cls: string; icon?: string }> = {
-    log: { cls: "chip-log" },
-    import: { cls: "chip-log" },
-    edit: { cls: "chip-edit" },
-    setting: { cls: "chip-setting" },
-    lookup: { cls: "chip-lookup" },
-    view: { cls: "chip-view" },
-    export: { cls: "chip-view" },
-    remove: { cls: "chip-remove" },
-    widget: { cls: "chip-widget", icon: "fa-solid fa-table-cells-large" },
+/** Optional Font Awesome icon per badge kind — structural, identical
+ * across every locale, so it lives beside TOOLS rather than inside
+ * ToolsDoc. Only the widget hint carries one. */
+export const BADGE_META: Record<BadgeKind, { icon?: string }> = {
+    log: {},
+    import: {},
+    edit: {},
+    setting: {},
+    lookup: {},
+    view: {},
+    export: {},
+    remove: {},
+    widget: { icon: "fa-solid fa-table-cells-large" },
 };
 
 /** The 7 categories in page order, and each one's Font Awesome icon class
@@ -95,10 +95,13 @@ export const CATEGORIES: CategoryId[] = [
 export const CATEGORY_META: Record<CategoryId, { icon: string }> = {
     "logging-food-meals": { icon: "fa-solid fa-utensils" },
     "reviewing-your-meals": { icon: "fa-solid fa-clock-rotate-left" },
-    water: { icon: "fa-solid fa-droplet" },
+    // Icon vocabulary is the Dawn system's: water is the glass (the droplet
+    // is Fat's icon in the widget mock), trends the area chart the landing
+    // and the comparison pages use.
+    water: { icon: "fa-solid fa-glass-water" },
     weight: { icon: "fa-solid fa-weight-scale" },
     "goals-progress": { icon: "fa-solid fa-bullseye" },
-    "insights-trends": { icon: "fa-solid fa-chart-line" },
+    "insights-trends": { icon: "fa-solid fa-chart-area" },
     "settings-account": { icon: "fa-solid fa-gear" },
 };
 
@@ -527,6 +530,10 @@ export interface ToolsDoc {
         optionalLabel: string;
         /** The label above each card's example prompt. */
         trySayingLabel: string;
+        /** Accessible name of the sticky category chip row (`aria-label`
+         * on its `<nav>`); not visible, but was hardcoded English in
+         * scripts/gen-tools.ts before the Dawn rebuild. */
+        categoriesLabel: string;
     };
     /** Keyed by ToolIdentity.name. */
     tools: Record<string, ToolProse>;
@@ -607,6 +614,7 @@ const TOOLS_EN: ToolsDoc = {
         requiredLabel: "required",
         optionalLabel: "optional",
         trySayingLabel: "Try saying",
+        categoriesLabel: "Tool categories",
     },
     tools: {
         log_meal: {
