@@ -29,18 +29,6 @@ export const INDEX_FR: IndexDoc = {
     keywords:
         "suivi nutritionnel, compteur de calories, suivi des macros, serveur MCP, connecteur Claude, application ChatGPT, suivi nutritionnel IA, journal alimentaire, scanner de codes-barres, open source, alternative à MyFitnessPal",
 
-    header: {
-        nav: {
-            how: "Comment",
-            examples: "Exemples",
-            live: "En direct",
-            tools: "Outils",
-            donate: "Soutenir",
-            faq: "FAQ",
-        },
-        connect: "Connecter",
-    },
-
     hero: {
         titleBeforeEm: "Suis ta nutrition en ",
         titleEm: "parlant",
@@ -420,44 +408,5 @@ export const INDEX_FR: IndexDoc = {
         sub: "Suivi nutritionnel gratuit et open source pour Claude, ChatGPT et Cursor — et tes données restent les tiennes, à exporter ou supprimer quand tu veux.",
         primary: "Connecter maintenant",
         secondary: "Star sur GitHub",
-    },
-
-    footer: {
-        blurb: "Suivi nutritionnel gratuit et open source, en parlant à ton IA. Conçu et géré par une seule personne, akutishevsky.",
-        copyEndpointAriaLabel: "Copier l'adresse du serveur",
-        social: { github: "GitHub", patreon: "Patreon", email: "E-mail" },
-        product: {
-            heading: "Produit",
-            connect: "Connecter",
-            onboarding: "Les cinq premières minutes",
-            examples: "Exemples",
-            live: "Stats en direct",
-            tools: "Les 36 outils de nutrition",
-            alternatives: "Alternatives à MyFitnessPal et cie",
-        },
-        openSource: {
-            heading: "Open source",
-            source: "Code source sur GitHub",
-            selfHost: "Guide d'auto-hébergement",
-            bug: "Signaler un bug",
-            llms: "llms.txt",
-            licence: "Licence MIT",
-        },
-        yourData: {
-            heading: "Tes données",
-            privacy: "Politique de confidentialité",
-            terms: "Conditions d'utilisation",
-            exportCsv: "Exporter en CSV",
-            deleteAccount: "Supprimer le compte",
-            patreon: "Soutenir sur Patreon",
-            contact: "Contact",
-        },
-        copyright:
-            "© 2026 akutishevsky · MIT · Données de codes-barres d'Open Food Facts",
-        bottomPrivacy: "Confidentialité",
-        bottomTerms: "Conditions",
-        bottomAlternatives: "Alternatives",
-        disclaimer:
-            "Les valeurs nutritionnelles sont des estimations, pas des conseils médicaux.",
     },
 };

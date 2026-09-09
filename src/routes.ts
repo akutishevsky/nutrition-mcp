@@ -99,6 +99,26 @@ export const HTML_LANG: Record<SiteLocale, string> = {
     ja: "ja",
 };
 
+/**
+ * The opening and closing quotation marks a locale wraps a quoted phrase
+ * in — the "Just say …" example boxes on the landing page and /tools.
+ * Punctuation is part of the translation: German quotes as „…“, Japanese
+ * as 「…」, French as « … » (with narrow no-break spaces inside). Held
+ * here rather than in each copy file so the generators can wrap any
+ * string without every locale file carrying the marks in every example.
+ */
+export const QUOTES: Record<SiteLocale, [open: string, close: string]> = {
+    en: ["\u201C", "\u201D"],
+    de: ["\u201E", "\u201C"],
+    es: ["\u00AB", "\u00BB"],
+    fr: ["\u00AB\u202F", "\u202F\u00BB"],
+    nl: ["\u201C", "\u201D"],
+    pl: ["\u201E", "\u201D"],
+    it: ["\u00AB", "\u00BB"],
+    uk: ["\u00AB", "\u00BB"],
+    ja: ["\u300C", "\u300D"],
+};
+
 /** Open Graph's `og:locale` wants language_TERRITORY, not a bare tag. */
 export const OG_LOCALE: Record<SiteLocale, string> = {
     en: "en_US",

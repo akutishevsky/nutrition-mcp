@@ -3,16 +3,14 @@
  * counterparts under public/{locale}/ from the typed data in
  * src/copy/index.ts.
  *
- * The landing page is its own design ("Dawn", 6a): it has its own header
- * and footer markup here and its own stylesheet, public/landing.css, and
- * does NOT load /styles.css or the shared nav()/footer() from
- * scripts/site-partials.ts that every other generated page uses. What it
- * does share with them is the behaviour in public/site.js — the theme
- * control, the mobile sheet, scroll-spy, reveals, copy buttons, the live
- * nav badge — which is why the class and id hooks site.js keys off
- * (#site-head, #menu-btn / #site-menu, .head-nav, .lang-switch,
- * [data-theme-set], .copy-mini, [data-reveal], [data-live-badge],
- * #facts-live) are kept byte-compatible with the shared chrome.
+ * The page is the "Dawn" design (6a). Its header, sheet menu and footer are
+ * the shared chrome — nav()/footer() in scripts/site-partials.ts, the same
+ * markup every other generated page renders — and it loads the one site
+ * stylesheet (/styles.css) through the shared HEAD_ASSETS; this file only
+ * owns the sections between them (hero chat, how, connect, onboarding,
+ * examples, live board, support, contact, FAQ, closing band) and the
+ * page's own script. The design was first built here and then generalised
+ * outward, which is why so many of the site's shared classes are nm-*.
  *
  * Re-run after editing src/copy/index.ts:
  *   bun run scripts/gen-index.ts
@@ -21,25 +19,31 @@
 
 import {
     HTML_LANG,
-    LOCALE_NAMES,
-    SITE_LOCALES,
+    QUOTES,
     hashPath,
     pathFor,
     urlFor,
     type SiteLocale,
 } from "../src/routes.js";
 import {
+    EMAIL,
+    EXT,
+    GITHUB,
+    HEAD_ASSETS,
+    MCP_URL,
+    PATREON,
     SITE,
+    attr,
     esc,
+    footer,
     generatedBanner,
     jsonLd,
-    liveBadge,
     localeHead,
+    nav,
     translationNotice,
     SITE_SCRIPT,
     THEME_PREPAINT,
 } from "./site-partials.js";
-import { chromeFor } from "../src/copy/chrome.js";
 import {
     INDEX,
     type FaqEntry,
@@ -943,49 +947,6 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                 }
             })();`;
 
-// Everything HEAD_ASSETS (scripts/site-partials.ts) carries except the
-// stylesheet and the fonts: this design is set in Urbanist and Geist Mono
-// and loads /landing.css instead of /styles.css. The Font Awesome link and
-// the GA snippet are kept exactly as HEAD_ASSETS has them so
-// scripts/depersonalize.ts finds them on this page too.
-const LANDING_HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700;800&family=Geist+Mono:wght@400;500&display=swap"
-            rel="stylesheet"
-        />
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
-        />
-        <link rel="stylesheet" href="/landing.css" />
-        <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
-        ></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() {
-                dataLayer.push(arguments);
-            }
-            gtag("js", new Date());
-            gtag("config", "G-1K4HRB2R8X");
-        </script>`;
-
-const GITHUB = "https://github.com/akutishevsky/nutrition-mcp";
-const PATREON =
-    "https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink";
-const EMAIL = "anton@nutrition-mcp.com";
-const MCP_URL = "https://nutrition-mcp.com/mcp";
-const EXT = 'target="_blank" rel="noopener noreferrer"';
-
-/** esc() leaves quotes alone — fine for text nodes, not for attribute
- *  values, where a double quote would end the attribute early. */
-function attr(s: string): string {
-    return esc(s).replace(/"/g, "&quot;");
-}
-
 /** The number formatting the script itself uses (toLocaleString against
  *  <html lang>), so the static render and the replay agree on "1,059". */
 function num(n: number, locale: SiteLocale): string {
@@ -1014,183 +975,6 @@ function stripTags(html: string): string {
 
 function faqJsonLdText(entry: FaqEntry): string {
     return entry.jsonLdText ?? stripTags(entry.visibleHtml);
-}
-
-// ------------------------------------------------------------------ chrome
-
-/** The 6a floating pill header + the mobile sheet. Same ids and hooks as
- *  nav() in scripts/site-partials.ts, since public/site.js drives both. */
-function header(doc: IndexDoc, locale: SiteLocale): string {
-    const c = chromeFor(locale);
-    const h = (id: string) => hashPath(locale, id);
-    const p = (id: string) => pathFor(locale, id);
-    const n = doc.header.nav;
-    const switcherItems = SITE_LOCALES.map((l) => {
-        const active = l === locale;
-        return `                    <a
-                        href="${urlFor(l, "")}"
-                        lang="${HTML_LANG[l]}"
-                        hreflang="${HTML_LANG[l]}"${active ? '\n                        aria-current="page"' : ""}
-                        ><span>${esc(LOCALE_NAMES[l])}</span
-                        ><span class="nm-lang-code">${HTML_LANG[l]}</span></a
-                    >`;
-    }).join("\n");
-    const themeBtn = (mode: "system" | "light" | "dark", icon: string) =>
-        `                    <button
-                        type="button"
-                        data-theme-set="${mode}"
-                        aria-pressed="${mode === "system" ? "true" : "false"}"
-                        title="${attr(c.theme[mode])}"
-                    >
-                        <i class="fa-solid ${icon}" aria-hidden="true"></i>
-                        <span class="vh">${esc(c.theme[mode])}</span>
-                    </button>`;
-    return `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>
-        <header class="nm-header" id="site-head">
-            <div class="nm-bar">
-                <a class="nm-brand" href="${p("")}" aria-label="${attr(c.brandHomeAriaLabel)}">
-                    <span class="nm-mark" aria-hidden="true">🍏</span>
-                    <span class="nm-brand-text">Nutrition&nbsp;MCP</span>
-                </a>
-                <nav class="head-nav" aria-label="${attr(c.landmarks.primaryNav)}">
-                    <a href="${h("how")}">${esc(n.how)}</a>
-                    <a href="${h("examples")}">${esc(n.examples)}</a>
-                    <a class="nav-has-badge" href="${h("live")}">${esc(n.live)}${liveBadge(c)}</a>
-                    <a href="${p("/tools")}">${esc(n.tools)}</a>
-                    <a href="${h("support")}">${esc(n.donate)}</a>
-                    <a href="${h("faq")}">${esc(n.faq)}</a>
-                </nav>
-                <details class="lang-switch">
-                    <summary
-                        aria-label="${attr(c.changeLanguageAriaLabel)}"
-                        title="${attr(c.languageTitle)}"
-                    >
-                        <i class="fa-solid fa-language" aria-hidden="true"></i>
-                        <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
-                    </summary>
-                    <div class="lang-menu" role="group" aria-label="${attr(c.languageTitle)}">
-${switcherItems}
-                    </div>
-                </details>
-                <div
-                    class="nm-theme"
-                    role="group"
-                    aria-label="${attr(c.theme.title)}"
-                    title="${attr(c.theme.title)}"
-                >
-${themeBtn("system", "fa-circle-half-stroke")}
-${themeBtn("light", "fa-sun")}
-${themeBtn("dark", "fa-moon")}
-                </div>
-                <a class="nm-cta head-cta" href="${h("connect")}">${esc(doc.header.connect)}</a>
-                <button
-                    class="icon-btn menu-btn"
-                    type="button"
-                    id="menu-btn"
-                    aria-expanded="false"
-                    aria-controls="site-menu"
-                    aria-label="${attr(c.openMenuAriaLabel)}"
-                    data-close-label="${attr(c.closeMenuAriaLabel)}"
-                >
-                    <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
-                </button>
-            </div>
-        </header>
-        <div class="site-menu" id="site-menu" hidden>
-            <nav aria-label="${attr(c.landmarks.menu)}">
-                <a href="${h("how")}">${esc(n.how)} <small>${esc(c.menu.howSmall)}</small></a>
-                <a href="${h("examples")}">${esc(n.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
-                <a href="${h("live")}"><span class="menu-label nav-has-badge">${esc(n.live)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
-                <a href="${p("/tools")}">${esc(n.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
-                <a href="${h("support")}">${esc(n.donate)}</a>
-                <a href="${h("faq")}">${esc(n.faq)}</a>
-                <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
-            </nav>
-            <div class="menu-secondary">
-                <a href="${h("support")}">${esc(c.menu.support)}</a>
-                <a href="${h("contact")}">${esc(c.menu.contact)}</a>
-                <a href="${GITHUB}" ${EXT}>${esc(c.menu.github)}</a>
-                <a href="${p("/privacy")}">${esc(c.menu.privacy)}</a>
-                <a href="${p("/terms")}">${esc(c.menu.terms)}</a>
-            </div>
-            <div class="menu-foot">
-                <a class="nm-cta" href="${h("connect")}">${esc(c.menu.connectInMinute)}</a>
-            </div>
-        </div>`;
-}
-
-function footer(doc: IndexDoc, locale: SiteLocale): string {
-    const c = chromeFor(locale);
-    const f = doc.footer;
-    const h = (id: string) => hashPath(locale, id);
-    const p = (id: string) => pathFor(locale, id);
-    const link = (href: string, label: string, external = false) =>
-        `                    <a href="${href}"${external ? " " + EXT : ""}>${esc(label)}</a>`;
-    return `        <footer class="nm-footer">
-            <div class="nm-footer-grid">
-                <div class="nm-footer-brand">
-                    <a class="nm-footer-logo" href="${p("")}">
-                        <span class="nm-mark-lg" aria-hidden="true">🍏</span>
-                        <span>Nutrition MCP</span>
-                    </a>
-                    <p class="nm-footer-blurb">${esc(f.blurb)}</p>
-                    <div class="nm-endpoint-sm">
-                        <span class="nm-pulse-dot" aria-hidden="true"></span>
-                        <span class="nm-endpoint-url">nutrition-mcp.com/mcp</span>
-                        <button
-                            type="button"
-                            class="copy-mini nm-copy-round"
-                            data-copy="${MCP_URL}"
-                            aria-label="${attr(f.copyEndpointAriaLabel)}"
-                        >
-                            <i class="fa-solid fa-copy" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                    <div class="nm-social">
-                        <a href="${GITHUB}" ${EXT} aria-label="${attr(f.social.github)}"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
-                        <a href="${PATREON}" ${EXT} aria-label="${attr(f.social.patreon)}"><i class="fa-brands fa-patreon" aria-hidden="true"></i></a>
-                        <a href="mailto:${EMAIL}" aria-label="${attr(f.social.email)}"><i class="fa-solid fa-envelope" aria-hidden="true"></i></a>
-                    </div>
-                </div>
-                <nav class="footer-links" aria-label="${attr(c.landmarks.footer)}">
-                    <div class="nm-fcol">
-                        <b>${esc(f.product.heading)}</b>
-${link(h("connect"), f.product.connect)}
-${link(h("onboarding"), f.product.onboarding)}
-${link(h("examples"), f.product.examples)}
-${link(h("live"), f.product.live)}
-${link(p("/tools"), f.product.tools)}
-${link(p("/alternatives"), f.product.alternatives)}
-                    </div>
-                    <div class="nm-fcol">
-                        <b>${esc(f.openSource.heading)}</b>
-${link(GITHUB, f.openSource.source, true)}
-${link(GITHUB + "#readme", f.openSource.selfHost, true)}
-${link(GITHUB + "/issues", f.openSource.bug, true)}
-${link("/llms.txt", f.openSource.llms)}
-${link(GITHUB + "/blob/main/LICENSE", f.openSource.licence, true)}
-                    </div>
-                    <div class="nm-fcol">
-                        <b>${esc(f.yourData.heading)}</b>
-${link(p("/privacy"), f.yourData.privacy)}
-${link(p("/terms"), f.yourData.terms)}
-${link(h("faq"), f.yourData.exportCsv)}
-${link(h("faq"), f.yourData.deleteAccount)}
-${link(PATREON, f.yourData.patreon, true)}
-${link(h("contact"), f.yourData.contact)}
-                    </div>
-                </nav>
-            </div>
-            <div class="nm-footer-bottom">
-                <span class="nm-footer-legal">
-                    <span>${esc(f.copyright)}</span>
-                    <a href="${p("/privacy")}">${esc(f.bottomPrivacy)}</a>
-                    <a href="${p("/terms")}">${esc(f.bottomTerms)}</a>
-                    <a href="${p("/alternatives")}">${esc(f.bottomAlternatives)}</a>
-                </span>
-                <span>${esc(f.disclaimer)}</span>
-            </div>
-        </footer>`;
 }
 
 // -------------------------------------------------------------------- hero
@@ -1285,7 +1069,7 @@ function renderWidget(doc: IndexDoc, totals: Totals, locale: SiteLocale) {
         key: "water" | "sugar" | "caf",
         unit: string,
     ) =>
-        `                                <span class="nm-chip ${tint}"><span class="nm-chip-dot" aria-hidden="true"></span>${esc(label)} <span class="nm-chip-v"><span data-w="${key}">${num(totals[key], locale)}</span> ${unit}</span></span>`;
+        `                                <span class="nm-w-chip ${tint}"><span class="nm-w-chip-dot" aria-hidden="true"></span>${esc(label)} <span class="nm-w-chip-v"><span data-w="${key}">${num(totals[key], locale)}</span> ${unit}</span></span>`;
     return `                            <div class="nm-widget">
                                 <div class="nm-w-head">
                                     <b>${esc(w.title)}</b><span>${esc(w.goal)}</span>
@@ -1511,8 +1295,11 @@ const ONB_ICONS = [
 ];
 const ONB_TINTS = ["nm-c-wat", "nm-c-pro", "nm-c-car", "nm-c-cal"];
 
-function renderOnboarding(doc: IndexDoc): string {
+function renderOnboarding(doc: IndexDoc, locale: SiteLocale): string {
     const o = doc.onboarding;
+    // The example phrase is quoted in the locale's own marks („…“, 「…」),
+    // not English curly quotes — punctuation is part of the translation.
+    const [q1, q2] = QUOTES[locale];
     const cards = o.steps
         .map(
             (s, i) => `                    <div class="nm-onb-card">
@@ -1522,7 +1309,7 @@ function renderOnboarding(doc: IndexDoc): string {
                         </div>
                         <h3>${esc(s.title)}</h3>
                         <p>${esc(s.body)}</p>
-                        <div class="nm-say"><span class="nm-say-l">${esc(o.justSay)}</span>“${esc(s.say)}”</div>
+                        <div class="nm-say"><span class="nm-say-l">${esc(o.justSay)}</span>${q1}${esc(s.say)}${q2}</div>
                     </div>`,
         )
         .join("\n");
@@ -1950,7 +1737,7 @@ ${localeHead(locale, suffix)}
         <meta name="theme-color" content="#f7f7f9" />
 ${jsonLd(softwareAppSchema)}
 ${jsonLd(faqSchema)}
-${LANDING_HEAD_ASSETS}
+${HEAD_ASSETS}
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-index.ts")}
@@ -1964,7 +1751,7 @@ ${THEME_PREPAINT}
             <div class="nm-bg-fade"></div>
         </div>
 
-${header(doc, locale)}
+${nav(locale, suffix)}
 
         <main id="main">
 ${renderHero(doc, locale)}
@@ -1981,7 +1768,7 @@ ${renderHow(doc)}
 
 ${renderConnect(doc, locale)}
 
-${renderOnboarding(doc)}
+${renderOnboarding(doc, locale)}
 
 ${renderExamples(doc)}
 
@@ -1996,7 +1783,7 @@ ${renderFaq(doc, locale)}
 ${renderCta(doc, locale)}
         </main>
 
-${footer(doc, locale)}
+${footer(locale)}
 
         <script>
 ${LANDING_SCRIPT}

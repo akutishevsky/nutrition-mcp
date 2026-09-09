@@ -5,15 +5,15 @@ export const CHROME_DE: ChromeCopy = {
     brandHomeAriaLabel: "Nutrition MCP Startseite",
 
     nav: {
-        how: "So funktioniert's",
-        install: "Installieren",
+        how: "So geht's",
         tools: "Werkzeuge",
         examples: "Beispiele",
-        liveStats: "Live-Statistiken",
+        liveStats: "Live",
         liveStatsBadgeLabel: {
             one: "neuer Mahlzeiten-Eintrag seit dem Öffnen",
             other: "neue Mahlzeiten-Einträge seit dem Öffnen",
         },
+        donate: "Spenden",
         faq: "FAQ",
     },
 
@@ -54,14 +54,40 @@ export const CHROME_DE: ChromeCopy = {
     },
 
     footer: {
-        tools: "Werkzeuge",
-        alternatives: "Alternativen",
-        howIBuiltThis: "Wie ich das gebaut habe",
-        demo: "Demo",
-        github: "GitHub",
-        contact: "Kontakt",
-        privacyPolicy: "Datenschutzerklärung",
-        termsOfService: "Nutzungsbedingungen",
-        note: "Kostenlos und quelloffen. Ernährungswerte sind Schätzungen, kein medizinischer Rat.",
+        blurb: "Kostenloses, quelloffenes Ernährungs-Tracking im Gespräch mit deiner KI. Gebaut und betrieben von einer Person, akutishevsky.",
+        copyEndpointAriaLabel: "Endpunkt kopieren",
+        social: { github: "GitHub", patreon: "Patreon", email: "E-Mail" },
+        product: {
+            heading: "Produkt",
+            connect: "Verbinden",
+            onboarding: "Die ersten fünf Minuten",
+            examples: "Beispiele",
+            live: "Live-Statistiken",
+            tools: "Alle 36 Ernährungs-Werkzeuge",
+            alternatives: "Alternativen zu MyFitnessPal & Co.",
+        },
+        openSource: {
+            heading: "Quelloffen",
+            source: "Quellcode auf GitHub",
+            selfHost: "Anleitung zum Selbst-Hosten",
+            bug: "Bug melden",
+            llms: "llms.txt",
+            licence: "MIT-Lizenz",
+        },
+        yourData: {
+            heading: "Deine Daten",
+            privacy: "Datenschutzerklärung",
+            terms: "Nutzungsbedingungen",
+            exportCsv: "Als CSV exportieren",
+            deleteAccount: "Konto löschen",
+            patreon: "Auf Patreon unterstützen",
+            contact: "Kontakt",
+        },
+        copyright:
+            "© 2026 akutishevsky · MIT · Barcode-Daten von Open Food Facts",
+        bottomPrivacy: "Datenschutz",
+        bottomTerms: "Bedingungen",
+        bottomAlternatives: "Alternativen",
+        disclaimer: "Ernährungswerte sind Schätzungen, kein medizinischer Rat.",
     },
 };

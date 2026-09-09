@@ -4,13 +4,14 @@
 // English file sitting next to generated ones (see CLAUDE.md's "Public site"
 // section, and src/copy/legal.ts for the pattern this follows).
 //
-// This is the 6a "Dawn" landing page: a floating pill header, the hero with
-// its auto-playing chat, How it works, Connect (the tabbed install card),
-// the first-five-minutes onboarding rail, the Examples picker, the Live
-// stats board with the timezone map, Support (Patreon), Contact, the
-// filterable FAQ, the closing CTA band and a four-column footer. Every
-// string a visitor reads on that page comes from here; the generator holds
-// icons, hrefs, SVG and layout only.
+// This is the 6a "Dawn" landing page: the hero with its auto-playing chat,
+// How it works, Connect (the tabbed install card), the first-five-minutes
+// onboarding rail, the Examples picker, the Live stats board with the
+// timezone map, Support (Patreon), Contact, the filterable FAQ and the
+// closing CTA band. Every string a visitor reads in those sections comes
+// from here; the generator holds icons, hrefs, SVG and layout only. The
+// header pills, sheet menu and footer around them are the shared chrome —
+// their strings live in src/copy/chrome.ts (ChromeCopy), not here.
 //
 // TRUSTED HTML. Exactly four places carry inline markup, and nothing else
 // does — the generator inserts these four unescaped and runs every other
@@ -31,10 +32,11 @@
 // data-add / data-clock attributes and drive the replay script; they are
 // the same in every locale, so a locale file copies them verbatim.
 //
-// The registered-tool count ("36") is hand-typed in three strings here
-// (support.bullets[0], footer.product.tools, the "What is an MCP server?"
-// FAQ answer) and in every locale mirror — see CLAUDE.md's "Registered tool
-// set" for the full list of places that move together.
+// The registered-tool count ("36") is hand-typed in two strings here
+// (support.bullets[0], the "What is an MCP server?" FAQ answer) and in
+// every locale mirror — plus the footer's product.tools link and the
+// sheet's toolsSmall hint in src/copy/chrome.ts. See CLAUDE.md's
+// "Registered tool set" for the full list of places that move together.
 //
 // INDEX is `Partial<Record<SiteLocale, IndexDoc>>`, not the full `Record`,
 // while translation is still in progress — see legal.ts's PRIVACY/TERMS for
@@ -128,21 +130,6 @@ export interface IndexDoc {
      * `ogDescription` on a locale that doesn't set them. */
     ogTitle?: string;
     twitterDescription?: string;
-
-    /** The six pill links in the floating header and its Connect CTA. The
-     * brand, language switcher, theme group and hamburger reuse
-     * ChromeCopy (src/copy/chrome.ts). */
-    header: {
-        nav: {
-            how: string;
-            examples: string;
-            live: string;
-            tools: string;
-            donate: string;
-            faq: string;
-        };
-        connect: string;
-    };
 
     hero: {
         /** The h1 is `titleBeforeEm` + <em>`titleEm`</em> + `titleAfterEm`;
@@ -357,48 +344,6 @@ export interface IndexDoc {
     faq: FaqEntry[];
 
     cta: { title: string; sub: string; primary: string; secondary: string };
-
-    footer: {
-        blurb: string;
-        /** aria-label of the round copy button in the endpoint pill. */
-        copyEndpointAriaLabel: string;
-        /** aria-labels of the three social circle links. */
-        social: { github: string; patreon: string; email: string };
-        product: {
-            heading: string;
-            connect: string;
-            onboarding: string;
-            examples: string;
-            live: string;
-            tools: string;
-            alternatives: string;
-        };
-        openSource: {
-            heading: string;
-            source: string;
-            selfHost: string;
-            bug: string;
-            llms: string;
-            licence: string;
-        };
-        yourData: {
-            heading: string;
-            privacy: string;
-            terms: string;
-            exportCsv: string;
-            deleteAccount: string;
-            patreon: string;
-            contact: string;
-        };
-        /** e.g. "© 2026 akutishevsky · MIT · Barcode data from Open Food
-         * Facts". */
-        copyright: string;
-        bottomPrivacy: string;
-        bottomTerms: string;
-        bottomAlternatives: string;
-        /** e.g. "Nutrition figures are estimates, not medical advice." */
-        disclaimer: string;
-    };
 }
 
 export const INDEX_EN: IndexDoc = {
@@ -412,18 +357,6 @@ export const INDEX_EN: IndexDoc = {
         "Free, open-source MCP server for calorie and macro tracking in Claude, ChatGPT and Cursor.",
     keywords:
         "nutrition tracker, calorie tracker, macro tracker, MCP server, Claude connector, ChatGPT app, AI nutrition tracking, food log, barcode scanner, open source, MyFitnessPal alternative",
-
-    header: {
-        nav: {
-            how: "How",
-            examples: "Examples",
-            live: "Live",
-            tools: "Tools",
-            donate: "Donate",
-            faq: "FAQ",
-        },
-        connect: "Connect",
-    },
 
     hero: {
         titleBeforeEm: "Track your nutrition by ",
@@ -805,44 +738,6 @@ export const INDEX_EN: IndexDoc = {
         sub: "Free, open-source nutrition tracking for Claude, ChatGPT and Cursor — and your data is yours to export or delete whenever you like.",
         primary: "Connect now",
         secondary: "Star on GitHub",
-    },
-
-    footer: {
-        blurb: "Free, open-source nutrition tracking by talking to your AI. Made and run by one person, akutishevsky.",
-        copyEndpointAriaLabel: "Copy endpoint",
-        social: { github: "GitHub", patreon: "Patreon", email: "Email" },
-        product: {
-            heading: "Product",
-            connect: "Connect",
-            onboarding: "First five minutes",
-            examples: "Examples",
-            live: "Live stats",
-            tools: "All 36 nutrition tools",
-            alternatives: "Alternatives to MyFitnessPal & co.",
-        },
-        openSource: {
-            heading: "Open source",
-            source: "Source on GitHub",
-            selfHost: "Self-hosting guide",
-            bug: "Report a bug",
-            llms: "llms.txt",
-            licence: "MIT licence",
-        },
-        yourData: {
-            heading: "Your data",
-            privacy: "Privacy policy",
-            terms: "Terms of service",
-            exportCsv: "Export as CSV",
-            deleteAccount: "Delete account",
-            patreon: "Support on Patreon",
-            contact: "Contact",
-        },
-        copyright:
-            "© 2026 akutishevsky · MIT · Barcode data from Open Food Facts",
-        bottomPrivacy: "Privacy",
-        bottomTerms: "Terms",
-        bottomAlternatives: "Alternatives",
-        disclaimer: "Nutrition figures are estimates, not medical advice.",
     },
 };
 

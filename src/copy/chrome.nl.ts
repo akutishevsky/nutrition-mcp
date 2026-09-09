@@ -5,15 +5,15 @@ export const CHROME_NL: ChromeCopy = {
     brandHomeAriaLabel: "Nutrition MCP startpagina",
 
     nav: {
-        how: "Hoe het werkt",
-        install: "Installeren",
+        how: "Hoe",
         tools: "Tools",
         examples: "Voorbeelden",
-        liveStats: "Live statistieken",
+        liveStats: "Live",
         liveStatsBadgeLabel: {
             one: "nieuwe voedingslog sinds je de pagina opende",
             other: "nieuwe voedingslogs sinds je de pagina opende",
         },
+        donate: "Doneer",
         faq: "FAQ",
     },
 
@@ -54,14 +54,40 @@ export const CHROME_NL: ChromeCopy = {
     },
 
     footer: {
-        tools: "Tools",
-        alternatives: "Alternatieven",
-        howIBuiltThis: "Hoe ik dit heb gebouwd",
-        demo: "Demo",
-        github: "GitHub",
-        contact: "Contact",
-        privacyPolicy: "Privacybeleid",
-        termsOfService: "Gebruiksvoorwaarden",
-        note: "Gratis en open source. Voedingswaarden zijn schattingen, geen medisch advies.",
+        blurb: "Gratis, open-source voeding bijhouden door met je AI te praten. Gemaakt en gerund door één persoon, akutishevsky.",
+        copyEndpointAriaLabel: "Endpoint kopiëren",
+        social: { github: "GitHub", patreon: "Patreon", email: "E-mail" },
+        product: {
+            heading: "Product",
+            connect: "Verbind",
+            onboarding: "Eerste vijf minuten",
+            examples: "Voorbeelden",
+            live: "Live statistieken",
+            tools: "Alle 36 voedingstools",
+            alternatives: "Alternatieven voor MyFitnessPal & co.",
+        },
+        openSource: {
+            heading: "Open source",
+            source: "Broncode op GitHub",
+            selfHost: "Zelfhostingshandleiding",
+            bug: "Een bug melden",
+            llms: "llms.txt",
+            licence: "MIT-licentie",
+        },
+        yourData: {
+            heading: "Je gegevens",
+            privacy: "Privacybeleid",
+            terms: "Gebruiksvoorwaarden",
+            exportCsv: "Exporteren als CSV",
+            deleteAccount: "Account verwijderen",
+            patreon: "Steun op Patreon",
+            contact: "Contact",
+        },
+        copyright:
+            "© 2026 akutishevsky · MIT · Barcodegegevens van Open Food Facts",
+        bottomPrivacy: "Privacy",
+        bottomTerms: "Voorwaarden",
+        bottomAlternatives: "Alternatieven",
+        disclaimer: "Voedingswaarden zijn schattingen, geen medisch advies.",
     },
 };

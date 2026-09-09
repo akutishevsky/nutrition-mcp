@@ -24,18 +24,6 @@ export const INDEX_PL: IndexDoc = {
     keywords:
         "tracker odżywiania, licznik kalorii, tracker makroskładników, serwer MCP, konektor Claude, aplikacja ChatGPT, śledzenie diety AI, dziennik jedzenia, skaner kodów kreskowych, open source, alternatywa dla MyFitnessPal",
 
-    header: {
-        nav: {
-            how: "Jak to działa",
-            examples: "Przykłady",
-            live: "Na żywo",
-            tools: "Narzędzia",
-            donate: "Wsparcie",
-            faq: "FAQ",
-        },
-        connect: "Połącz",
-    },
-
     hero: {
         titleBeforeEm: "Śledź swoją dietę, po prostu ",
         titleEm: "rozmawiając",
@@ -415,44 +403,5 @@ export const INDEX_PL: IndexDoc = {
         sub: "Darmowe, otwartoźródłowe śledzenie diety dla Claude, ChatGPT i Cursor — a Twoje dane są Twoje: eksportuj je albo usuń, kiedy tylko chcesz.",
         primary: "Połącz teraz",
         secondary: "Gwiazdka na GitHub",
-    },
-
-    footer: {
-        blurb: "Darmowe, otwartoźródłowe śledzenie diety przez rozmowę ze swoim AI. Tworzone i prowadzone przez jedną osobę, akutishevsky.",
-        copyEndpointAriaLabel: "Kopiuj adres endpointu",
-        social: { github: "GitHub", patreon: "Patreon", email: "E-mail" },
-        product: {
-            heading: "Produkt",
-            connect: "Połącz",
-            onboarding: "Pierwsze pięć minut",
-            examples: "Przykłady",
-            live: "Statystyki na żywo",
-            tools: "Wszystkie 36 narzędzi",
-            alternatives: "Alternatywy dla MyFitnessPal i innych",
-        },
-        openSource: {
-            heading: "Open source",
-            source: "Kod na GitHub",
-            selfHost: "Przewodnik po samodzielnym hostingu",
-            bug: "Zgłoś błąd",
-            llms: "llms.txt",
-            licence: "Licencja MIT",
-        },
-        yourData: {
-            heading: "Twoje dane",
-            privacy: "Polityka prywatności",
-            terms: "Regulamin",
-            exportCsv: "Eksport do CSV",
-            deleteAccount: "Usuń konto",
-            patreon: "Wesprzyj na Patreon",
-            contact: "Kontakt",
-        },
-        copyright:
-            "© 2026 akutishevsky · MIT · Dane kodów kreskowych z Open Food Facts",
-        bottomPrivacy: "Prywatność",
-        bottomTerms: "Regulamin",
-        bottomAlternatives: "Alternatywy",
-        disclaimer:
-            "Wartości odżywcze są szacunkowe, nie stanowią porady medycznej.",
     },
 };

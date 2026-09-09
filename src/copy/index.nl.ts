@@ -24,18 +24,6 @@ export const INDEX_NL: IndexDoc = {
     keywords:
         "voedingstracker, calorieënteller, macrotracker, MCP-server, Claude-connector, ChatGPT-app, AI-voedingstracking, eten loggen, barcodescanner, open source, MyFitnessPal-alternatief",
 
-    header: {
-        nav: {
-            how: "Hoe",
-            examples: "Voorbeelden",
-            live: "Live",
-            tools: "Tools",
-            donate: "Doneer",
-            faq: "FAQ",
-        },
-        connect: "Verbind",
-    },
-
     hero: {
         titleBeforeEm: "Houd je voeding bij door te ",
         titleEm: "praten",
@@ -418,43 +406,5 @@ export const INDEX_NL: IndexDoc = {
         sub: "Gratis, open-source voeding bijhouden voor Claude, ChatGPT en Cursor — en je gegevens zijn van jou, om te exporteren of te verwijderen wanneer je maar wilt.",
         primary: "Verbind nu",
         secondary: "Ster op GitHub",
-    },
-
-    footer: {
-        blurb: "Gratis, open-source voeding bijhouden door met je AI te praten. Gemaakt en gerund door één persoon, akutishevsky.",
-        copyEndpointAriaLabel: "Endpoint kopiëren",
-        social: { github: "GitHub", patreon: "Patreon", email: "E-mail" },
-        product: {
-            heading: "Product",
-            connect: "Verbind",
-            onboarding: "Eerste vijf minuten",
-            examples: "Voorbeelden",
-            live: "Live statistieken",
-            tools: "Alle 36 voedingstools",
-            alternatives: "Alternatieven voor MyFitnessPal & co.",
-        },
-        openSource: {
-            heading: "Open source",
-            source: "Broncode op GitHub",
-            selfHost: "Zelfhostingshandleiding",
-            bug: "Een bug melden",
-            llms: "llms.txt",
-            licence: "MIT-licentie",
-        },
-        yourData: {
-            heading: "Je gegevens",
-            privacy: "Privacybeleid",
-            terms: "Gebruiksvoorwaarden",
-            exportCsv: "Exporteren als CSV",
-            deleteAccount: "Account verwijderen",
-            patreon: "Steun op Patreon",
-            contact: "Contact",
-        },
-        copyright:
-            "© 2026 akutishevsky · MIT · Barcodegegevens van Open Food Facts",
-        bottomPrivacy: "Privacy",
-        bottomTerms: "Voorwaarden",
-        bottomAlternatives: "Alternatieven",
-        disclaimer: "Voedingswaarden zijn schattingen, geen medisch advies.",
     },
 };

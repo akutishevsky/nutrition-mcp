@@ -43,18 +43,6 @@ export const INDEX_JA: IndexDoc = {
     keywords:
         "栄養トラッカー, カロリートラッカー, 栄養素トラッカー, MCPサーバー, Claudeコネクタ, ChatGPTアプリ, AI栄養管理, 食事記録, バーコードスキャナー, オープンソース, MyFitnessPal 代替",
 
-    header: {
-        nav: {
-            how: "使い方",
-            examples: "使用例",
-            live: "ライブ",
-            tools: "ツール",
-            donate: "寄付",
-            faq: "FAQ",
-        },
-        connect: "接続する",
-    },
-
     hero: {
         titleBeforeEm: "AIに",
         titleEm: "話しかける",
@@ -432,44 +420,5 @@ export const INDEX_JA: IndexDoc = {
         sub: "Claude、ChatGPT、Cursorで使える無料・オープンソースの栄養管理 — データはあなたのもので、いつでもエクスポートも削除もできます。",
         primary: "今すぐ接続",
         secondary: "GitHubでStar",
-    },
-
-    footer: {
-        blurb: "AIに話しかけるだけの、無料・オープンソースの栄養管理。akutishevskyが一人で開発・運営しています。",
-        copyEndpointAriaLabel: "エンドポイントをコピー",
-        social: { github: "GitHub", patreon: "Patreon", email: "メール" },
-        product: {
-            heading: "プロダクト",
-            connect: "接続",
-            onboarding: "最初の5分",
-            examples: "使用例",
-            live: "ライブ統計",
-            tools: "36個の栄養ツールすべて",
-            alternatives: "MyFitnessPalなどの代替アプリ",
-        },
-        openSource: {
-            heading: "オープンソース",
-            source: "GitHubのソースコード",
-            selfHost: "セルフホスティングガイド",
-            bug: "バグを報告",
-            llms: "llms.txt",
-            licence: "MITライセンス",
-        },
-        yourData: {
-            heading: "あなたのデータ",
-            privacy: "プライバシーポリシー",
-            terms: "利用規約",
-            exportCsv: "CSVでエクスポート",
-            deleteAccount: "アカウントを削除",
-            patreon: "Patreonで支援",
-            contact: "お問い合わせ",
-        },
-        copyright:
-            "© 2026 akutishevsky · MIT · バーコードデータはOpen Food Facts提供",
-        bottomPrivacy: "プライバシー",
-        bottomTerms: "利用規約",
-        bottomAlternatives: "代替アプリ",
-        disclaimer:
-            "栄養データはあくまで目安であり、医療アドバイスではありません。",
     },
 };

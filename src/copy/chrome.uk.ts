@@ -6,16 +6,16 @@ export const CHROME_UK: ChromeCopy = {
 
     nav: {
         how: "Як це працює",
-        install: "Підключення",
         tools: "Інструменти",
         examples: "Приклади",
-        liveStats: "Статистика наживо",
+        liveStats: "Наживо",
         liveStatsBadgeLabel: {
             one: "новий запис їжі з моменту відкриття сторінки",
             few: "нові записи їжі з моменту відкриття сторінки",
             many: "нових записів їжі з моменту відкриття сторінки",
             other: "нових записів їжі з моменту відкриття сторінки",
         },
+        donate: "Підтримати",
         faq: "FAQ",
     },
 
@@ -56,14 +56,40 @@ export const CHROME_UK: ChromeCopy = {
     },
 
     footer: {
-        tools: "Інструменти",
-        alternatives: "Альтернативи",
-        howIBuiltThis: "Як це зроблено",
-        demo: "Демо",
-        github: "GitHub",
-        contact: "Контакти",
-        privacyPolicy: "Політика приватності",
-        termsOfService: "Умови використання",
-        note: "Безкоштовний і з відкритим кодом. Харчові показники — оцінки, а не медична консультація.",
+        blurb: "Безкоштовне відстеження харчування з відкритим кодом через розмову зі своїм ШІ. Створила й підтримує одна людина — akutishevsky.",
+        copyEndpointAriaLabel: "Копіювати адресу сервера",
+        social: { github: "GitHub", patreon: "Patreon", email: "Email" },
+        product: {
+            heading: "Продукт",
+            connect: "Підключення",
+            onboarding: "Перші п'ять хвилин",
+            examples: "Приклади",
+            live: "Статистика наживо",
+            tools: "Усі 36 інструментів",
+            alternatives: "Альтернативи MyFitnessPal та іншим",
+        },
+        openSource: {
+            heading: "Відкритий код",
+            source: "Код на GitHub",
+            selfHost: "Гайд із самостійного розгортання",
+            bug: "Повідомити про баг",
+            llms: "llms.txt",
+            licence: "Ліцензія MIT",
+        },
+        yourData: {
+            heading: "Твої дані",
+            privacy: "Політика приватності",
+            terms: "Умови використання",
+            exportCsv: "Експорт у CSV",
+            deleteAccount: "Видалити акаунт",
+            patreon: "Підтримати на Patreon",
+            contact: "Контакти",
+        },
+        copyright:
+            "© 2026 akutishevsky · MIT · Дані штрихкодів від Open Food Facts",
+        bottomPrivacy: "Приватність",
+        bottomTerms: "Умови",
+        bottomAlternatives: "Альтернативи",
+        disclaimer: "Харчові показники — оцінки, а не медична консультація.",
     },
 };

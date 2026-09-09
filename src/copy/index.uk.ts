@@ -33,18 +33,6 @@ export const INDEX_UK: IndexDoc = {
     keywords:
         "трекер харчування, лічильник калорій, трекер макронутрієнтів, MCP сервер, конектор Claude, застосунок ChatGPT, ШІ відстеження харчування, щоденник їжі, сканер штрихкодів, відкритий код, альтернатива MyFitnessPal",
 
-    header: {
-        nav: {
-            how: "Як це працює",
-            examples: "Приклади",
-            live: "Наживо",
-            tools: "Інструменти",
-            donate: "Підтримати",
-            faq: "FAQ",
-        },
-        connect: "Підключити",
-    },
-
     hero: {
         titleBeforeEm: "Відстежуй харчування, просто ",
         titleEm: "розмовляючи",
@@ -424,43 +412,5 @@ export const INDEX_UK: IndexDoc = {
         sub: "Безкоштовне відстеження харчування з відкритим кодом для Claude, ChatGPT і Cursor — а твої дані завжди твої: експортуй або видаляй їх, коли захочеш.",
         primary: "Підключити зараз",
         secondary: "Постав зірку на GitHub",
-    },
-
-    footer: {
-        blurb: "Безкоштовне відстеження харчування з відкритим кодом через розмову зі своїм ШІ. Створила й підтримує одна людина — akutishevsky.",
-        copyEndpointAriaLabel: "Копіювати адресу сервера",
-        social: { github: "GitHub", patreon: "Patreon", email: "Email" },
-        product: {
-            heading: "Продукт",
-            connect: "Підключення",
-            onboarding: "Перші п'ять хвилин",
-            examples: "Приклади",
-            live: "Статистика наживо",
-            tools: "Усі 36 інструментів",
-            alternatives: "Альтернативи MyFitnessPal та іншим",
-        },
-        openSource: {
-            heading: "Відкритий код",
-            source: "Код на GitHub",
-            selfHost: "Гайд із самостійного розгортання",
-            bug: "Повідомити про баг",
-            llms: "llms.txt",
-            licence: "Ліцензія MIT",
-        },
-        yourData: {
-            heading: "Твої дані",
-            privacy: "Політика приватності",
-            terms: "Умови використання",
-            exportCsv: "Експорт у CSV",
-            deleteAccount: "Видалити акаунт",
-            patreon: "Підтримати на Patreon",
-            contact: "Контакти",
-        },
-        copyright:
-            "© 2026 akutishevsky · MIT · Дані штрихкодів від Open Food Facts",
-        bottomPrivacy: "Приватність",
-        bottomTerms: "Умови",
-        bottomAlternatives: "Альтернативи",
-        disclaimer: "Харчові показники — оцінки, а не медична консультація.",
     },
 };

@@ -6,14 +6,14 @@ export const CHROME_IT: ChromeCopy = {
 
     nav: {
         how: "Come funziona",
-        install: "Installazione",
         tools: "Strumenti",
         examples: "Esempi",
-        liveStats: "Statistiche live",
+        liveStats: "Live",
         liveStatsBadgeLabel: {
             one: "nuovo pasto registrato da quando hai aperto la pagina",
             other: "nuovi pasti registrati da quando hai aperto la pagina",
         },
+        donate: "Dona",
         faq: "FAQ",
     },
 
@@ -54,14 +54,40 @@ export const CHROME_IT: ChromeCopy = {
     },
 
     footer: {
-        tools: "Strumenti",
-        alternatives: "Alternative",
-        howIBuiltThis: "Come l'ho costruito",
-        demo: "Demo",
-        github: "GitHub",
-        contact: "Contatti",
-        privacyPolicy: "Informativa sulla privacy",
-        termsOfService: "Termini di servizio",
-        note: "Gratuito e open source. I valori nutrizionali sono stime, non consigli medici.",
+        blurb: "Tracciamento nutrizionale gratuito e open source, parlando con la tua IA. Creato e gestito da una sola persona, akutishevsky.",
+        copyEndpointAriaLabel: "Copia l'endpoint",
+        social: { github: "GitHub", patreon: "Patreon", email: "Email" },
+        product: {
+            heading: "Prodotto",
+            connect: "Connetti",
+            onboarding: "I primi cinque minuti",
+            examples: "Esempi",
+            live: "Statistiche live",
+            tools: "Tutti i 36 strumenti per la nutrizione",
+            alternatives: "Alternative a MyFitnessPal e simili",
+        },
+        openSource: {
+            heading: "Open source",
+            source: "Codice sorgente su GitHub",
+            selfHost: "Guida al self-hosting",
+            bug: "Segnala un bug",
+            llms: "llms.txt",
+            licence: "Licenza MIT",
+        },
+        yourData: {
+            heading: "I tuoi dati",
+            privacy: "Informativa sulla privacy",
+            terms: "Termini di servizio",
+            exportCsv: "Esporta in CSV",
+            deleteAccount: "Elimina l'account",
+            patreon: "Sostieni su Patreon",
+            contact: "Contatti",
+        },
+        copyright:
+            "© 2026 akutishevsky · MIT · Dati dei codici a barre da Open Food Facts",
+        bottomPrivacy: "Privacy",
+        bottomTerms: "Termini",
+        bottomAlternatives: "Alternative",
+        disclaimer: "I valori nutrizionali sono stime, non consigli medici.",
     },
 };

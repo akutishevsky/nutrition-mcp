@@ -6,16 +6,16 @@ export const CHROME_PL: ChromeCopy = {
 
     nav: {
         how: "Jak to działa",
-        install: "Instalacja",
         tools: "Narzędzia",
         examples: "Przykłady",
-        liveStats: "Statystyki na żywo",
+        liveStats: "Na żywo",
         liveStatsBadgeLabel: {
             one: "nowy wpis jedzenia od otwarcia strony",
             few: "nowe wpisy jedzenia od otwarcia strony",
             many: "nowych wpisów jedzenia od otwarcia strony",
             other: "nowych wpisów jedzenia od otwarcia strony",
         },
+        donate: "Wsparcie",
         faq: "FAQ",
     },
 
@@ -56,14 +56,41 @@ export const CHROME_PL: ChromeCopy = {
     },
 
     footer: {
-        tools: "Narzędzia",
-        alternatives: "Alternatywy",
-        howIBuiltThis: "Jak to zbudowałem",
-        demo: "Demo",
-        github: "GitHub",
-        contact: "Kontakt",
-        privacyPolicy: "Polityka prywatności",
-        termsOfService: "Regulamin",
-        note: "Darmowy i open source. Wartości odżywcze są szacunkowe, nie stanowią porady medycznej.",
+        blurb: "Darmowe, otwartoźródłowe śledzenie diety przez rozmowę ze swoim AI. Tworzone i prowadzone przez jedną osobę, akutishevsky.",
+        copyEndpointAriaLabel: "Kopiuj adres endpointu",
+        social: { github: "GitHub", patreon: "Patreon", email: "E-mail" },
+        product: {
+            heading: "Produkt",
+            connect: "Połącz",
+            onboarding: "Pierwsze pięć minut",
+            examples: "Przykłady",
+            live: "Statystyki na żywo",
+            tools: "Wszystkie 36 narzędzi",
+            alternatives: "Alternatywy dla MyFitnessPal i innych",
+        },
+        openSource: {
+            heading: "Open source",
+            source: "Kod na GitHub",
+            selfHost: "Przewodnik po samodzielnym hostingu",
+            bug: "Zgłoś błąd",
+            llms: "llms.txt",
+            licence: "Licencja MIT",
+        },
+        yourData: {
+            heading: "Twoje dane",
+            privacy: "Polityka prywatności",
+            terms: "Regulamin",
+            exportCsv: "Eksport do CSV",
+            deleteAccount: "Usuń konto",
+            patreon: "Wesprzyj na Patreon",
+            contact: "Kontakt",
+        },
+        copyright:
+            "© 2026 akutishevsky · MIT · Dane kodów kreskowych z Open Food Facts",
+        bottomPrivacy: "Prywatność",
+        bottomTerms: "Regulamin",
+        bottomAlternatives: "Alternatywy",
+        disclaimer:
+            "Wartości odżywcze są szacunkowe, nie stanowią porady medycznej.",
     },
 };

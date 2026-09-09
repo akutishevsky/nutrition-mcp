@@ -116,12 +116,13 @@ async function renderLangSwitcher(
     const items = available
         .map((l) => {
             const active = l === locale;
-            return `                            <a
-                                href="${escapeHtml(authorizeUrl(session, l))}"
-                                lang="${HTML_LANG[l]}"
-                                hreflang="${HTML_LANG[l]}"${active ? '\n                                aria-current="page"' : ""}
-                                >${escapeHtml(LOCALE_NAMES[l])}</a
-                            >`;
+            return `                    <a
+                        href="${escapeHtml(authorizeUrl(session, l))}"
+                        lang="${HTML_LANG[l]}"
+                        hreflang="${HTML_LANG[l]}"${active ? '\n                        aria-current="page"' : ""}
+                        ><span>${escapeHtml(LOCALE_NAMES[l])}</span
+                        ><span class="nm-lang-code">${HTML_LANG[l]}</span></a
+                    >`;
         })
         .join("\n");
     // Hand-written twin of the static switcher in scripts/site-partials.ts
@@ -133,17 +134,17 @@ async function renderLangSwitcher(
     // without it the menu's label is inert however well translated.
     const c = chromeFor(locale);
     return `<details class="lang-switch">
-                        <summary
-                            class="icon-btn"
-                            aria-label="${escapeHtml(c.changeLanguageAriaLabel)}"
-                            title="${escapeHtml(c.languageTitle)}"
-                        >
-                            <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
-                        </summary>
-                        <div class="lang-menu" role="group" aria-label="${escapeHtml(c.languageTitle)}">
+                    <summary
+                        aria-label="${escapeHtml(c.changeLanguageAriaLabel)}"
+                        title="${escapeHtml(c.languageTitle)}"
+                    >
+                        <i class="fa-solid fa-language" aria-hidden="true"></i>
+                        <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
+                    </summary>
+                    <div class="lang-menu" role="group" aria-label="${escapeHtml(c.languageTitle)}">
 ${items}
-                        </div>
-                    </details>`;
+                    </div>
+                </details>`;
 }
 
 // "This page is machine-translated" disclosure, linking back to THIS same

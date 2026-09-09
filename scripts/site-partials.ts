@@ -1,10 +1,16 @@
 // Shared HTML fragments for every generated public page (the landing page,
-// /tools, /privacy, /terms, and the /alternatives comparison pages). Used to
-// live duplicated inside scripts/gen-alternatives.ts; pulled out here so
-// every generator shares one nav()/footer() — including the locale-aware
-// links and the language switcher — instead of each page type forking its
-// own copy and drifting the way public/index.html's hand-authored nav
-// already had to be kept in sync by hand with this file's predecessor.
+// /tools, /privacy, /terms, the /alternatives comparison pages and the
+// OAuth login template). Used to live duplicated inside
+// scripts/gen-alternatives.ts; pulled out here so every generator shares
+// one nav()/footer() — including the locale-aware links and the language
+// switcher — instead of each page type forking its own copy and drifting.
+// The chrome is the "Dawn" design's: a floating glass pill bar (brand, six
+// pill links, language <details>, three-button theme group, Connect CTA,
+// hamburger), the full-screen sheet menu behind the hamburger, and the
+// four-column footer. It was first built inside scripts/gen-index.ts for
+// the landing page alone and moved back here, byte for byte, once the rest
+// of the site followed — the header markup is what public/site.js and
+// src/alt-pages.test.ts key off, so change it here and nowhere else.
 //
 // Nothing here is escaped against untrusted input — every caller passes
 // developer-authored constants (page copy, not visitor input), the same
@@ -26,9 +32,27 @@ import { chromeFor, type ChromeCopy } from "../src/copy/chrome.js";
 
 export { SITE };
 
+// The maintainer's links, in one place: the footer's social circle and
+// Open-source column render them on every page, and the landing page's
+// hero / support / contact sections reuse the same constants.
+// scripts/depersonalize.ts strips every one of them for a self-hoster.
+export const GITHUB = "https://github.com/akutishevsky/nutrition-mcp";
+export const PATREON =
+    "https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink";
+export const EMAIL = "anton@nutrition-mcp.com";
+export const MCP_URL = "https://nutrition-mcp.com/mcp";
+/** The attribute pair every external link carries. */
+export const EXT = 'target="_blank" rel="noopener noreferrer"';
+
 /** Minimal HTML-entity escaping for text interpolated into element bodies. */
 export function esc(s: string): string {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** esc() leaves quotes alone — fine for text nodes, not for attribute
+ *  values, where a double quote would end the attribute early. */
+export function attr(s: string): string {
+    return esc(s).replace(/"/g, "&quot;");
 }
 
 /**
@@ -62,11 +86,15 @@ export function jsonLd(obj: unknown): string {
         .join("\n")}\n        </script>`;
 }
 
+// The <head> every page shares: the two faces the design is set in
+// (Urbanist for everything read, Geist Mono for everything copied), Font
+// Awesome 7 for the icons, the one stylesheet, and the GA snippet (kept in
+// exactly this shape because scripts/depersonalize.ts matches on it).
 export const HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700;800&family=Geist+Mono:wght@400;500&display=swap"
             rel="stylesheet"
         />
         <link
@@ -176,9 +204,9 @@ ${ogAlternates}`;
  */
 const PLURAL_CATEGORIES = ["one", "few", "many", "other"] as const;
 
-// Exported because the landing page (scripts/gen-index.ts) builds its own
-// header on a different design and still has to ship the exact same badge
-// markup — site.js's setNavBadge and src/alt-pages.test.ts both pin it.
+// Exported (rather than private to nav()) because site.js's setNavBadge and
+// src/alt-pages.test.ts both pin this exact markup, and a page that ever
+// needs the badge outside the shared chrome must ship the same bytes.
 export function liveBadge(c: ChromeCopy, decorative?: boolean): string {
     // esc() leaves quotes alone — fine for text nodes, not for the attribute
     // values below, where an apostrophe is harmless but a double quote would
@@ -205,13 +233,24 @@ export function liveBadge(c: ChromeCopy, decorative?: boolean): string {
 }
 
 /**
- * Shared site header + mobile menu. site.js owns the theme toggle, menu and
- * scroll state. `suffix` is the current page's PAGE_ROUTES key ("" for
- * home, "/tools", "/myfitnesspal-mcp", ...) — used to build the language
- * switcher (every switcher link points at the SAME page in another locale)
- * and, via `currentSuffix`, to mark the matching nav/menu link
- * aria-current="page" (a PAGE_ROUTES key, e.g. "/tools" — NOT a locale-
- * prefixed href, since that's computed here from the locale + suffix).
+ * Shared site header (the floating glass pill bar) + the mobile sheet menu.
+ * site.js owns the theme group, the sheet, the switcher's light-dismiss,
+ * scroll-spy and scroll state; the class and id hooks it keys off
+ * (#site-head, #menu-btn / #site-menu, .head-nav, .lang-switch,
+ * [data-theme-set], .nav-has-badge / [data-live-badge]) live here.
+ *
+ * `suffix` is the current page's PAGE_ROUTES key ("" for home, "/tools",
+ * "/myfitnesspal-mcp", ...) — used to build the language switcher (every
+ * switcher link points at the SAME page in another locale) and, via
+ * `currentSuffix`, to mark the matching nav/menu link aria-current="page"
+ * (a PAGE_ROUTES key, e.g. "/tools" — NOT a locale-prefixed href, since
+ * that's computed here from the locale + suffix).
+ *
+ * The six pills link to the landing page's sections through hashPath()
+ * ("/#how" in English, "/de#live" in German), which on the landing page
+ * itself resolves to the same in-page anchors — so the same markup serves
+ * every page, and site.js's scroll-spy simply finds nothing to light on a
+ * page without those sections.
  */
 export function nav(
     locale: SiteLocale,
@@ -233,126 +272,103 @@ export function nav(
     const p = (id: string) => pathFor(locale, id);
     const h = (id: string) => hashPath(locale, id);
     const c = chromeFor(locale);
+    const n = c.nav;
     const switcherItems = SITE_LOCALES.map((l) => {
         const active = l === locale;
         return `                    <a
                         href="${urlFor(l, suffix)}"
                         lang="${HTML_LANG[l]}"
                         hreflang="${HTML_LANG[l]}"${active ? '\n                        aria-current="page"' : ""}
-                        >${esc(LOCALE_NAMES[l])}</a
+                        ><span>${esc(LOCALE_NAMES[l])}</span
+                        ><span class="nm-lang-code">${HTML_LANG[l]}</span></a
                     >`;
     }).join("\n");
-    const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>
-        <header class="site-head" id="site-head">
-            <div class="head-inner">
-                <a class="brand" href="${p("")}" aria-label="${esc(c.brandHomeAriaLabel)}">
-                    <span class="brand-mark" aria-hidden="true">🍏</span>
-                    <span>Nutrition&nbsp;MCP</span>
-                </a>
-                <nav class="head-nav" aria-label="${esc(c.landmarks.primaryNav)}">
-                    <a href="${h("how")}">${esc(c.nav.how)}</a>
-                    <a href="${h("connect")}">${esc(c.nav.install)}</a>
-                    <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
-                    <a href="${h("examples")}">${esc(c.nav.examples)}</a>
-                    <a class="nav-has-badge" href="${h("live")}">${esc(c.nav.liveStats)}${liveBadge(c)}</a>
-                    <a href="${h("faq")}">${esc(c.nav.faq)}</a>
-                </nav>
-                <div class="head-tools">
-                    <a
-                        class="icon-btn head-gh"
-                        href="https://github.com/akutishevsky/nutrition-mcp"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="${esc(c.githubAriaLabel)}"
-                        title="GitHub"
+    // Three modes as a segmented group, not a disclosure: System is the
+    // default and rests pressed until site.js reads the saved override.
+    const themeBtn = (mode: "system" | "light" | "dark", icon: string) =>
+        `                    <button
+                        type="button"
+                        data-theme-set="${mode}"
+                        aria-pressed="${mode === "system" ? "true" : "false"}"
+                        title="${attr(c.theme[mode])}"
                     >
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path
-                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
-                            />
-                        </svg>
-                    </a>
+                        <i class="fa-solid ${icon}" aria-hidden="true"></i>
+                        <span class="vh">${esc(c.theme[mode])}</span>
+                    </button>`;
+    const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>
+        <header class="nm-header" id="site-head">
+            <div class="nm-bar">
+                <a class="nm-brand" href="${p("")}" aria-label="${attr(c.brandHomeAriaLabel)}">
+                    <span class="nm-mark" aria-hidden="true">🍏</span>
+                    <span class="nm-brand-text">Nutrition&nbsp;MCP</span>
+                </a>
+                <nav class="head-nav" aria-label="${attr(c.landmarks.primaryNav)}">
+                    <a href="${h("how")}">${esc(n.how)}</a>
+                    <a href="${h("examples")}">${esc(n.examples)}</a>
+                    <a class="nav-has-badge" href="${h("live")}">${esc(n.liveStats)}${liveBadge(c)}</a>
+                    <a href="${p("/tools")}">${esc(n.tools)}</a>
+                    <a href="${h("support")}">${esc(n.donate)}</a>
+                    <a href="${h("faq")}">${esc(n.faq)}</a>
+                </nav>
 ${
     opts?.dynamicSwitcher
-        ? "                    {{LANG_SWITCHER}}"
-        : `                    <details class="lang-switch">
-                        <summary
-                            class="icon-btn"
-                            aria-label="${esc(c.changeLanguageAriaLabel)}"
-                            title="${esc(c.languageTitle)}"
-                        >
-                            <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
-                        </summary>
-                        <div class="lang-menu" role="group" aria-label="${esc(c.languageTitle)}">
+        ? "                {{LANG_SWITCHER}}"
+        : `                <details class="lang-switch">
+                    <summary
+                        aria-label="${attr(c.changeLanguageAriaLabel)}"
+                        title="${attr(c.languageTitle)}"
+                    >
+                        <i class="fa-solid fa-language" aria-hidden="true"></i>
+                        <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
+                    </summary>
+                    <div class="lang-menu" role="group" aria-label="${attr(c.languageTitle)}">
 ${switcherItems}
-                        </div>
-                    </details>`
+                    </div>
+                </details>`
 }
-                    <details class="theme-switch" id="theme-switch">
-                        <summary
-                            class="icon-btn"
-                            aria-label="${esc(c.theme.ariaLabel)}"
-                            title="${esc(c.theme.title)}"
-                        >
-                            <svg class="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="9" />
-                                <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
-                            </svg>
-                            <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-                            </svg>
-                            <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="4" />
-                                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-                            </svg>
-                        </summary>
-                        <div class="theme-menu" role="group" aria-label="${esc(c.theme.title)}">
-                            <button type="button" data-theme-set="system" aria-pressed="true">${esc(c.theme.system)}</button>
-                            <button type="button" data-theme-set="light" aria-pressed="false">${esc(c.theme.light)}</button>
-                            <button type="button" data-theme-set="dark" aria-pressed="false">${esc(c.theme.dark)}</button>
-                        </div>
-                    </details>
-                    <a class="btn btn-primary btn-sm head-cta" href="${h("connect")}"
-                        >${esc(c.connectCta)}</a
-                    >
-                    <button
-                        class="icon-btn menu-btn"
-                        type="button"
-                        id="menu-btn"
-                        aria-expanded="false"
-                        aria-controls="site-menu"
-                        aria-label="${esc(c.openMenuAriaLabel)}"
-                        data-close-label="${esc(c.closeMenuAriaLabel)}"
-                    >
-                        <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
-                    </button>
+                <div
+                    class="nm-theme"
+                    role="group"
+                    aria-label="${attr(c.theme.title)}"
+                    title="${attr(c.theme.title)}"
+                >
+${themeBtn("system", "fa-circle-half-stroke")}
+${themeBtn("light", "fa-sun")}
+${themeBtn("dark", "fa-moon")}
                 </div>
+                <a class="nm-cta head-cta" href="${h("connect")}">${esc(c.connectCta)}</a>
+                <button
+                    class="icon-btn menu-btn"
+                    type="button"
+                    id="menu-btn"
+                    aria-expanded="false"
+                    aria-controls="site-menu"
+                    aria-label="${attr(c.openMenuAriaLabel)}"
+                    data-close-label="${attr(c.closeMenuAriaLabel)}"
+                >
+                    <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
+                </button>
             </div>
         </header>
         <div class="site-menu" id="site-menu" hidden>
-            <nav aria-label="${esc(c.landmarks.menu)}">
-                <a href="${h("how")}">${esc(c.nav.how)} <small>${esc(c.menu.howSmall)}</small></a>
-                <a href="${h("connect")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
-                <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
-                <a href="${h("examples")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
-                <a href="${h("live")}"><span class="menu-label nav-has-badge">${esc(c.nav.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
-                <a href="${h("faq")}">${esc(c.nav.faq)}</a>
+            <nav aria-label="${attr(c.landmarks.menu)}">
+                <a href="${h("how")}">${esc(n.how)} <small>${esc(c.menu.howSmall)}</small></a>
+                <a href="${h("examples")}">${esc(n.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
+                <a href="${h("live")}"><span class="menu-label nav-has-badge">${esc(n.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
+                <a href="${p("/tools")}">${esc(n.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
+                <a href="${h("support")}">${esc(n.donate)}</a>
+                <a href="${h("faq")}">${esc(n.faq)}</a>
                 <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
             </nav>
             <div class="menu-secondary">
                 <a href="${h("support")}">${esc(c.menu.support)}</a>
                 <a href="${h("contact")}">${esc(c.menu.contact)}</a>
-                <a
-                    href="https://github.com/akutishevsky/nutrition-mcp"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >${esc(c.menu.github)}</a
-                >
+                <a href="${GITHUB}" ${EXT}>${esc(c.menu.github)}</a>
                 <a href="${p("/privacy")}">${esc(c.menu.privacy)}</a>
                 <a href="${p("/terms")}">${esc(c.menu.terms)}</a>
             </div>
             <div class="menu-foot">
-                <a class="btn btn-primary" href="${h("connect")}">${esc(c.menu.connectInMinute)}</a>
+                <a class="nm-cta" href="${h("connect")}">${esc(c.menu.connectInMinute)}</a>
             </div>
         </div>`;
     if (!currentSuffix) return html;
@@ -366,48 +382,83 @@ ${switcherItems}
 }
 
 /**
- * `currentSuffix` is a PAGE_ROUTES key (e.g. "/privacy") when the current
- * page has a link in this footer (Tools, Alternatives, Privacy, Terms) —
- * that link gets aria-current="page", matching what every hand-authored
- * legal/tools page already did before it moved to a generator.
+ * The four-column footer: brand block (blurb, endpoint copy pill, social
+ * circle), then Product / Open source / Your data columns inside one
+ * <nav class="footer-links"> landmark, and the legal line. `currentSuffix`
+ * is a PAGE_ROUTES key (e.g. "/privacy") when the current page has a link
+ * in this footer (Tools, Alternatives, Privacy, Terms) — every copy of
+ * that link gets aria-current="page".
  */
 export function footer(locale: SiteLocale, currentSuffix?: string): string {
     const p = (id: string) => pathFor(locale, id);
+    const h = (id: string) => hashPath(locale, id);
     const c = chromeFor(locale);
-    const html = `        <footer class="footer">
-            <div class="footer-inner">
-                <span class="footer-brand">
-                    <span class="brand-mark" aria-hidden="true">🍏</span>
-                    Nutrition MCP
-                </span>
-                <nav class="footer-links" aria-label="${esc(c.landmarks.footer)}">
-                    <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
-                    <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
-                    <a
-                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >${esc(c.footer.howIBuiltThis)}</a
-                    >
-                    <a
-                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >${esc(c.footer.demo)}</a
-                    >
-                    <a
-                        href="https://github.com/akutishevsky/nutrition-mcp"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >${esc(c.footer.github)}</a
-                    >
-                    <a href="mailto:anton@nutrition-mcp.com">${esc(c.footer.contact)}</a>
-                    <a href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a>
-                    <a href="${p("/terms")}">${esc(c.footer.termsOfService)}</a>
+    const f = c.footer;
+    const link = (href: string, label: string, external = false) =>
+        `                    <a href="${href}"${external ? " " + EXT : ""}>${esc(label)}</a>`;
+    const html = `        <footer class="nm-footer">
+            <div class="nm-footer-grid">
+                <div class="nm-footer-brand">
+                    <a class="nm-footer-logo" href="${p("")}">
+                        <span class="nm-mark-lg" aria-hidden="true">🍏</span>
+                        <span>Nutrition MCP</span>
+                    </a>
+                    <p class="nm-footer-blurb">${esc(f.blurb)}</p>
+                    <div class="nm-endpoint-sm">
+                        <span class="nm-pulse-dot" aria-hidden="true"></span>
+                        <span class="nm-endpoint-url">nutrition-mcp.com/mcp</span>
+                        <button
+                            type="button"
+                            class="copy-mini nm-copy-round"
+                            data-copy="${MCP_URL}"
+                            aria-label="${attr(f.copyEndpointAriaLabel)}"
+                        >
+                            <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="nm-social">
+                        <a href="${GITHUB}" ${EXT} aria-label="${attr(f.social.github)}"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+                        <a href="${PATREON}" ${EXT} aria-label="${attr(f.social.patreon)}"><i class="fa-brands fa-patreon" aria-hidden="true"></i></a>
+                        <a href="mailto:${EMAIL}" aria-label="${attr(f.social.email)}"><i class="fa-solid fa-envelope" aria-hidden="true"></i></a>
+                    </div>
+                </div>
+                <nav class="footer-links" aria-label="${attr(c.landmarks.footer)}">
+                    <div class="nm-fcol">
+                        <b>${esc(f.product.heading)}</b>
+${link(h("connect"), f.product.connect)}
+${link(h("onboarding"), f.product.onboarding)}
+${link(h("examples"), f.product.examples)}
+${link(h("live"), f.product.live)}
+${link(p("/tools"), f.product.tools)}
+${link(p("/alternatives"), f.product.alternatives)}
+                    </div>
+                    <div class="nm-fcol">
+                        <b>${esc(f.openSource.heading)}</b>
+${link(GITHUB, f.openSource.source, true)}
+${link(GITHUB + "#readme", f.openSource.selfHost, true)}
+${link(GITHUB + "/issues", f.openSource.bug, true)}
+${link("/llms.txt", f.openSource.llms)}
+${link(GITHUB + "/blob/main/LICENSE", f.openSource.licence, true)}
+                    </div>
+                    <div class="nm-fcol">
+                        <b>${esc(f.yourData.heading)}</b>
+${link(p("/privacy"), f.yourData.privacy)}
+${link(p("/terms"), f.yourData.terms)}
+${link(h("faq"), f.yourData.exportCsv)}
+${link(h("faq"), f.yourData.deleteAccount)}
+${link(PATREON, f.yourData.patreon, true)}
+${link(h("contact"), f.yourData.contact)}
+                    </div>
                 </nav>
-                <p class="footer-note">
-                    ${esc(c.footer.note)}
-                </p>
+            </div>
+            <div class="nm-footer-bottom">
+                <span class="nm-footer-legal">
+                    <span>${esc(f.copyright)}</span>
+                    <a href="${p("/privacy")}">${esc(f.bottomPrivacy)}</a>
+                    <a href="${p("/terms")}">${esc(f.bottomTerms)}</a>
+                    <a href="${p("/alternatives")}">${esc(f.bottomAlternatives)}</a>
+                </span>
+                <span>${esc(f.disclaimer)}</span>
             </div>
         </footer>`;
     if (!currentSuffix) return html;

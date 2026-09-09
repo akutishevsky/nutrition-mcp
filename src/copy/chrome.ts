@@ -1,6 +1,15 @@
-// Translatable strings for the site-wide header nav, mobile menu, and
-// footer — scripts/site-partials.ts's nav()/footer(), shared by every
-// generated page (landing page, /tools, /privacy, /terms, /alternatives).
+// Translatable strings for the site-wide header (the "Dawn" floating pill
+// bar: six short pill labels, the language/theme controls, the Connect
+// CTA, the hamburger), the mobile sheet menu and the four-column footer —
+// scripts/site-partials.ts's nav()/footer(), shared by every generated
+// page (landing page, /tools, /privacy, /terms, /alternatives, /login).
+//
+// The pill labels and the footer used to live in IndexDoc (src/copy/
+// index.ts) while the landing page had a chrome of its own; they moved
+// here, values untouched, when that chrome became every page's. The
+// registered-tool count ("36") is hand-typed in footer.product.tools and
+// menu.toolsSmall, in every locale — see CLAUDE.md's "Registered tool
+// set" for the full list of places that move together.
 //
 // This was a real, systemic gap: nav()/footer() already localized every
 // HREF (via pathFor/hashPath) and built a full hreflang/language-switcher
@@ -12,8 +21,8 @@
 // generator and nobody had translated their labels. Found via a 7-locale
 // proofreading pass (see PR description) before this file existed.
 //
-// "Nutrition MCP" and "GitHub" are brand/product nouns and stay in Latin
-// script in every locale — see ChromeCopy.footer.github's doc comment.
+// "Nutrition MCP", "GitHub", "Patreon" and "llms.txt" are brand/product
+// nouns and stay in Latin script in every locale.
 
 import type { SiteLocale } from "../routes.js";
 import { CHROME_DE } from "./chrome.de.js";
@@ -47,9 +56,17 @@ export interface ChromeCopy {
     /** aria-label on the brand link, e.g. "Nutrition MCP home". */
     brandHomeAriaLabel: string;
 
+    /**
+     * The six pill links in the header bar, in this order: how, examples,
+     * liveStats, tools, donate, faq. They are SHORT — the bar is a 58px
+     * pill and the six have to fit beside the brand and the controls at
+     * 1120px in every locale ("How", "Examples", "Live", "Tools", "Donate",
+     * "FAQ" in English); the sheet menu repeats them with a <small> hint
+     * from menu.* beside each. The Connect item in the sheet's foot uses
+     * menu.connectInMinute and the header's uses connectCta.
+     */
     nav: {
         how: string;
-        install: string;
         tools: string;
         examples: string;
         liveStats: string;
@@ -77,6 +94,8 @@ export interface ChromeCopy {
          * badge and the row it links to are counting the same thing.
          */
         liveStatsBadgeLabel: PluralForms;
+        /** Links to the landing page's Support section (#support). */
+        donate: string;
         faq: string;
     };
 
@@ -102,15 +121,20 @@ export interface ChromeCopy {
         footer: string;
     };
 
+    /** Kept for a GitHub icon button in the bar; the Dawn header has none
+     * (GitHub sits in the sheet's secondary row and the footer's social
+     * circle), so nothing renders it today. */
     githubAriaLabel: string;
     changeLanguageAriaLabel: string;
     languageTitle: string;
     /**
-     * The theme switcher — a <details> disclosure, the same shape as the
-     * language one beside it. Three modes, not two: "System" is the default
-     * and means no override is stored at all, so the OS setting drives the
-     * page and keeps driving it if it flips mid-visit. `ariaLabel`/`title`
-     * name the control; the rest are the menu items.
+     * The theme control — a three-button segmented group in the header bar
+     * (System / Light / Dark icons, each named by `title` + a visually
+     * hidden label). Three modes, not two: "System" is the default and
+     * means no override is stored at all, so the OS setting drives the
+     * page and keeps driving it if it flips mid-visit. `title` names the
+     * group; `ariaLabel` is kept for a disclosure-style switcher and is
+     * unused by the current markup.
      *
      * These labels are static, unlike the aria-label the old two-state
      * button carried: site.js used to rewrite it on every toggle, in
@@ -140,8 +164,11 @@ export interface ChromeCopy {
     openMenuAriaLabel: string;
     closeMenuAriaLabel: string;
 
-    /** The mobile slide-out menu — nav items repeat nav.* concepts with a
-     * trailing <small> hint, plus items the desktop nav omits. */
+    /** The mobile sheet menu — nav items repeat nav.* with a trailing
+     * <small> hint, plus items the desktop nav omits. `installSmall` is
+     * unused since the Install item went (the sheet's Connect item in its
+     * foot is connectInMinute) and is kept only so no locale has to be
+     * touched for it. */
     menu: {
         howSmall: string;
         installSmall: string;
@@ -152,24 +179,64 @@ export interface ChromeCopy {
         alternativesSmall: string;
         support: string;
         contact: string;
-        /** The GitHub text link (distinct from the header's icon-button aria-label). */
+        /** The GitHub text link in the sheet's secondary row. */
         github: string;
         privacy: string;
         terms: string;
         connectInMinute: string;
     };
 
+    /**
+     * The four-column footer: the brand block (blurb, endpoint copy pill,
+     * social circle), then Product / Open source / Your data link columns,
+     * then the legal line. The product links point at landing-page
+     * sections (#connect, #onboarding, #examples, #live, #faq, #contact)
+     * via hashPath, so they resolve from every page.
+     */
     footer: {
-        tools: string;
-        alternatives: string;
-        howIBuiltThis: string;
-        demo: string;
-        github: string;
-        contact: string;
-        privacyPolicy: string;
-        termsOfService: string;
-        /** The one-sentence tagline under the footer links. */
-        note: string;
+        /** Under the logo; names the maintainer's handle, which
+         * scripts/depersonalize.ts swaps for a placeholder. */
+        blurb: string;
+        /** aria-label of the round copy button in the endpoint pill. */
+        copyEndpointAriaLabel: string;
+        /** aria-labels of the three social circle links. */
+        social: { github: string; patreon: string; email: string };
+        product: {
+            heading: string;
+            connect: string;
+            onboarding: string;
+            examples: string;
+            live: string;
+            /** Carries the registered-tool count, e.g. "All 36 nutrition
+             * tools". */
+            tools: string;
+            alternatives: string;
+        };
+        openSource: {
+            heading: string;
+            source: string;
+            selfHost: string;
+            bug: string;
+            llms: string;
+            licence: string;
+        };
+        yourData: {
+            heading: string;
+            privacy: string;
+            terms: string;
+            exportCsv: string;
+            deleteAccount: string;
+            patreon: string;
+            contact: string;
+        };
+        /** e.g. "© 2026 akutishevsky · MIT · Barcode data from Open Food
+         * Facts". */
+        copyright: string;
+        bottomPrivacy: string;
+        bottomTerms: string;
+        bottomAlternatives: string;
+        /** e.g. "Nutrition figures are estimates, not medical advice." */
+        disclaimer: string;
     };
 }
 
@@ -178,15 +245,15 @@ export const CHROME_EN: ChromeCopy = {
     brandHomeAriaLabel: "Nutrition MCP home",
 
     nav: {
-        how: "How it works",
-        install: "Install",
+        how: "How",
         tools: "Tools",
         examples: "Examples",
-        liveStats: "Live stats",
+        liveStats: "Live",
         liveStatsBadgeLabel: {
             one: "new food log since you opened",
             other: "new food logs since you opened",
         },
+        donate: "Donate",
         faq: "FAQ",
     },
 
@@ -227,15 +294,41 @@ export const CHROME_EN: ChromeCopy = {
     },
 
     footer: {
-        tools: "Tools",
-        alternatives: "Alternatives",
-        howIBuiltThis: "How I built this",
-        demo: "Demo",
-        github: "GitHub",
-        contact: "Contact",
-        privacyPolicy: "Privacy Policy",
-        termsOfService: "Terms of Service",
-        note: "Free and open source. Nutrition figures are estimates, not medical advice.",
+        blurb: "Free, open-source nutrition tracking by talking to your AI. Made and run by one person, akutishevsky.",
+        copyEndpointAriaLabel: "Copy endpoint",
+        social: { github: "GitHub", patreon: "Patreon", email: "Email" },
+        product: {
+            heading: "Product",
+            connect: "Connect",
+            onboarding: "First five minutes",
+            examples: "Examples",
+            live: "Live stats",
+            tools: "All 36 nutrition tools",
+            alternatives: "Alternatives to MyFitnessPal & co.",
+        },
+        openSource: {
+            heading: "Open source",
+            source: "Source on GitHub",
+            selfHost: "Self-hosting guide",
+            bug: "Report a bug",
+            llms: "llms.txt",
+            licence: "MIT licence",
+        },
+        yourData: {
+            heading: "Your data",
+            privacy: "Privacy policy",
+            terms: "Terms of service",
+            exportCsv: "Export as CSV",
+            deleteAccount: "Delete account",
+            patreon: "Support on Patreon",
+            contact: "Contact",
+        },
+        copyright:
+            "© 2026 akutishevsky · MIT · Barcode data from Open Food Facts",
+        bottomPrivacy: "Privacy",
+        bottomTerms: "Terms",
+        bottomAlternatives: "Alternatives",
+        disclaimer: "Nutrition figures are estimates, not medical advice.",
     },
 };
 
