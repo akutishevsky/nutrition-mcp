@@ -2554,6 +2554,11 @@ body.menu-open {
     display: block;
     width: 100%;
     height: auto;
+    /* Auckland, Fiji and Anadyr sit within a halo's radius of the viewBox
+       edge, and an SVG clips to its viewBox by default - so their halos,
+       and at the largest level the dots themselves, were cut in half. The
+       card's padding is the room they overflow into. */
+    overflow: visible;
 }
 .nm-land {
     fill: var(--ink3);
@@ -2596,7 +2601,20 @@ body.menu-open {
     white-space: nowrap;
     box-shadow: var(--tip-shadow);
     pointer-events: none;
-    animation: nm-rise 0.2s both;
+    /* Its own keyframes, not nm-rise: that one ends on `transform: none`,
+       which won the cascade over the centring translate above and left the
+       tip hanging off the dot's right - and off the card's edge. */
+    animation: nm-tip 0.2s both;
+}
+@keyframes nm-tip {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -100%) translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -100%) translateY(-14px);
+    }
 }
 
 /* ---------- support ---------- */

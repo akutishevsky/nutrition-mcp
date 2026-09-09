@@ -598,14 +598,31 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         /_/g,
                         " ",
                     );
-                    // Percentages of the 1000x500 viewBox, so the tip tracks the dot at
-                    // any rendered size.
+                    // Percentages of the 1000x440 viewBox (map-data.json projects into
+                    // 1000x500, but nothing but Antarctica sits below 440, so the box is
+                    // cropped like the design's), so the tip tracks the dot at any size.
                     var cx = Number(core.getAttribute("cx"));
                     var cy = Number(core.getAttribute("cy"));
                     var r = Number(core.getAttribute("r"));
                     tip.style.left = cx / 10 + "%";
-                    tip.style.top = (cy - r) / 5 + "%";
+                    tip.style.top = ((cy - r) / 440) * 100 + "%";
                     tip.hidden = false;
+                    // The tip is centred on its dot, so on Auckland or Fiji half of
+                    // it hung past the card's edge and was clipped. Once it has a
+                    // width, slide it back inside the map by however much it
+                    // overhangs; the transform keeps centring it on the dot otherwise.
+                    var map = tip.parentNode;
+                    if (map && map.getBoundingClientRect) {
+                        var box = map.getBoundingClientRect();
+                        var half = tip.offsetWidth / 2;
+                        var x = (cx / 1000) * box.width;
+                        var min = half + 4;
+                        var max = box.width - half - 4;
+                        if (x < min || x > max) {
+                            tip.style.left =
+                                Math.max(min, Math.min(max, x)) + "px";
+                        }
+                    }
                 }
                 function hideTip() {
                     if (!tip) return;
@@ -621,8 +638,8 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     var svg = document.getElementById("world-svg");
                     if (!svg || !mapData) return;
                     // The svg is a role="group" (not "img", whose children are
-                    // presentational) so each focusable timezone dot keeps its <title>
-                    // as an accessible name; the ~1,000 decorative land dots are one
+                    // presentational) so each focusable timezone dot keeps its own
+                    // accessible name; the ~1,000 decorative land dots are one
                     // hidden group so they never enter the tree.
                     var land = document.createElementNS(SVGNS, "g");
                     land.setAttribute("aria-hidden", "true");
@@ -673,11 +690,12 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         core.setAttribute("class", "nm-tz");
                         core.setAttribute("data-tz", tz);
                         // Reachable by keyboard, and named for screen readers by the
-                        // same text the tooltip shows.
+                        // same text the tooltip shows. An aria-label rather than a
+                        // <title>: browsers render <title> as a native tooltip too,
+                        // which showed up as a second, grey copy under ours.
                         core.setAttribute("tabindex", "0");
-                        var title = document.createElementNS(SVGNS, "title");
-                        title.textContent = tz.replace(/_/g, " ");
-                        core.appendChild(title);
+                        core.setAttribute("role", "img");
+                        core.setAttribute("aria-label", tz.replace(/_/g, " "));
                         var dot = { halo: halo, core: core, level: 0 };
                         sizeDot(dot, level);
                         seen[k] = dot;
@@ -1505,7 +1523,7 @@ ${cards.map(renderStatCard).join("\n")}
                     <div class="nm-map">
                         <svg
                             id="world-svg"
-                            viewBox="0 0 1000 500"
+                            viewBox="0 0 1000 440"
                             preserveAspectRatio="xMidYMid meet"
                             role="group"
                             aria-label="${attr(l.mapAriaLabel)}"
