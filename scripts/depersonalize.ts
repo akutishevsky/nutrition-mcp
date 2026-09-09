@@ -9,12 +9,13 @@
  * What it removes / neutralizes:
  *   - Google Analytics (gtag) from every public HTML page + the CSP allow-list
  *   - The Glama connector-ownership route (embeds the maintainer's email)
- *   - Patreon "Support" section and hero button
- *   - GitHub repo links (nav, footer, "Star on GitHub" CTA) and the live
- *     star-count fetch
- *   - Contact section, footer contact link
+ *   - The landing page's Patreon "Support" section (incl. the latest-posts
+ *     block + its fetch) and Contact section, the nav / footer links into
+ *     them, and the maintainer's handle in the footer blurb and copyright
+ *   - GitHub repo links (sheet menu, hero + CTA "GitHub" buttons, footer
+ *     social icon and Open-source column) and the live star-count fetch
+ *   - Footer Patreon / email icon links
  *   - The support email embedded in the bulk-import widget
- *   - Medium / YouTube footer links
  *   - The nutrition-mcp.com domain -> your-domain.com placeholder
  *     (install/MCP URL, canonical/OG tags, sitemap, robots)
  *   - The "alternative to X" comparison pages under public/alternatives/
@@ -49,8 +50,13 @@ type Rule = {
 /** Remove Google Analytics from any HTML page. */
 const ANALYTICS_RULES: Rule[] = [
     {
+        // Anchored on the loader's OWN opening tag (its src is the
+        // googletagmanager URL), not on "the first <script> that is followed
+        // by googletagmanager somewhere": every page's JSON-LD blocks sit
+        // before the GA snippet in <head>, and a lazy [\s\S]*? from the
+        // first <script> ate both of them along with the loader.
         name: "GA loader <script>",
-        find: /[ \t]*<script\b[\s\S]*?googletagmanager[\s\S]*?<\/script>\n/,
+        find: /[ \t]*<script\b[^>]*googletagmanager[^>]*>\s*<\/script>\n/,
     },
     {
         name: "GA inline config <script>",
@@ -99,72 +105,109 @@ const NAV_CONTACT_RULE: Rule = {
     find: /[ \t]*<a href="[^"]*#contact">[^<]*<\/a>\n/g,
 };
 
-/** Personal content that only lives in the landing page. */
+/**
+ * Personal content that only lives in the landing page (the 6a "Dawn"
+ * design, scripts/gen-index.ts). The page has its own header/footer rather
+ * than the shared nav()/footer() chrome, so the shared NAV_*_RULEs still
+ * apply (the sheet menu links to #support / #contact the same way) but the
+ * footer, the sections and the inline script are matched on this page's own
+ * markup: sections by `id="…"` (there are no <!-- Support --> comments any
+ * more), footer links by href, script blocks by their `// ---------- … ----------`
+ * banner comments.
+ */
 const LANDING_RULES: Rule[] = [
-    // Rewrite prose links first so the generic GitHub sweep can't gut a sentence.
+    // Rewrite prose links first so the generic sweeps can't gut a sentence.
     {
+        // The FAQ's "Can I self-host it?" answer links the repo mid-sentence.
         // The anchor text itself is already translated per locale (e.g. DE
         // "GitHub-Repository"), so this captures it rather than hardcoding
         // the English label — only the href/attributes are locale-constant.
+        // (?!\n) keeps it off the sheet-menu "GitHub" and footer "Source on
+        // GitHub" links, which sit alone on a line and are deleted whole by
+        // GITHUB_LINKS_RULE below instead of being left as dangling text.
         name: "FAQ 'GitHub repository' prose link -> plain text",
-        find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>([^<]*)<\/a\s*>/,
+        find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>([^<]*)<\/a\s*>(?!\n)/,
         replace: "$1",
     },
     {
-        // English-only: this sentence has no stable wrapper/class to key on
-        // in the other 8 locales' FAQ prose (different words, different
-        // order), so it can't be matched structurally. 0 matches on a
-        // translated public/{locale}/index.html is expected, not a warning
-        // sign — strip it by hand there if self-hosting a translated page.
+        // The FAQ side column's "Anything missing? Ask me directly." links
+        // to the Contact section this file deletes. Same shape as above:
+        // unwrap to text (translated label captured), scoped by (?!\n) so
+        // the whole-line #contact links stay NAV_CONTACT_RULE's.
+        name: "FAQ 'Ask me directly' link -> plain text",
+        find: /<a href="[^"]*#contact">([^<]*)<\/a\s*>(?!\n)/,
+        replace: "$1",
+    },
+    {
+        // English-only: this sentence ("Is Nutrition MCP free?") has no
+        // stable wrapper/class to key on in the other 8 locales' FAQ prose
+        // (different words, different order), so it can't be matched
+        // structurally. It is matched globally so the JSON-LD twin of the
+        // answer loses it too. 0 matches on a translated
+        // public/{locale}/index.html is expected, not a warning sign — strip
+        // it by hand there if self-hosting a translated page.
         name: "FAQ Patreon donation sentence",
-        find: /\s*Donations on Patreon\s+help cover server costs\./g,
+        find: /\s*Patreon donations cover the server bill\./g,
         replace: "",
         optional: true,
     },
+    // Header pills, sheet menu and footer links to the two sections below.
     NAV_SUPPORT_RULE,
     NAV_CONTACT_RULE,
-    // Hero secondary "Support" button. Label captured rather than hardcoded
-    // (translated per locale); href keeps the same "#support" drift as the
-    // nav link above.
-    {
-        name: "hero: Support button",
-        find: /[ \t]*<a class="btn btn-secondary" href="#support"[\s\S]*?<\/a\s*>\n/,
-    },
-    // Whole Support (Patreon) and Contact sections.
+    // Whole Support (Patreon, incl. #patreon-updates and its <template>) and
+    // Contact sections. Neither nests another <section>, so the first
+    // </section> after the opening tag is the right one.
     {
         name: "section: Support (Patreon)",
-        find: /[ \t]*<!-- Support -->[\s\S]*?<\/section>\n/,
+        find: /[ \t]*<section\b[^>]*\bid="support"[^>]*>[\s\S]*?<\/section>\n/,
     },
     {
         name: "section: Contact",
-        find: /[ \t]*<!-- Contact -->[\s\S]*?<\/section>\n/,
+        find: /[ \t]*<section\b[^>]*\bid="contact"[^>]*>[\s\S]*?<\/section>\n/,
     },
-    // Footer social/contact links (Privacy stays).
+    // Footer: the social circle (GitHub / Patreon / Email — each an icon-only
+    // link on its own line), the "Support on Patreon" text link, and the
+    // repo sub-links (#readme, /issues, /blob/main/LICENSE) that the exact-href
+    // GITHUB_LINKS_RULE deliberately does not match. Privacy / Terms /
+    // Alternatives stay.
     {
-        name: "footer: Medium link",
-        find: /[ \t]*<a\b[^>]*?href="https:\/\/medium\.com[\s\S]*?<\/a\s*>\n/,
+        name: "footer: Patreon links (social icon + 'Support on Patreon')",
+        find: /[ \t]*<a\b[^>]*?href="https:\/\/patreon\.com\/[^"]*"[^>]*>(?:<i\b[^>]*><\/i>)?[^<]*<\/a\s*>\n/g,
     },
     {
-        name: "footer: YouTube link",
-        find: /[ \t]*<a\b[^>]*?href="https:\/\/youtube\.com[\s\S]*?<\/a\s*>\n/,
+        name: "footer: Email (mailto) icon link",
+        find: /[ \t]*<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>(?:<i\b[^>]*><\/i>)?[^<]*<\/a\s*>\n/g,
     },
     {
-        name: "footer: Contact (mailto) link",
-        find: /[ \t]*<a href="mailto:anton@nutrition-mcp\.com">[^<]*<\/a>\n/,
+        name: "footer: GitHub repo sub-links (readme / issues / licence)",
+        find: /[ \t]*<a\b[^>]*?href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp[#/][^"]*"[^>]*>[^<]*<\/a\s*>\n/g,
     },
-    // Every remaining link to the maintainer's repo (nav, footer, CTA button).
+    // Every remaining link to the maintainer's repo: the sheet menu, the hero
+    // "GitHub" button, the CTA band's "Star on GitHub", the footer's social
+    // icon and "Source on GitHub". The multi-line buttons carry a
+    // [data-gh-stars] span, which is why the star-count script below can go.
     GITHUB_LINKS_RULE,
-    // The live star-count fetch (its target span was in the CTA button above).
+    // The maintainer's handle in the footer blurb and the copyright line.
+    // Locale-agnostic on purpose: the handle is the one token every locale
+    // renders verbatim, so it is swapped for a placeholder rather than the
+    // sentence being rewritten — fix the grammar by hand if it reads oddly.
+    {
+        name: "footer: maintainer handle -> placeholder",
+        find: /\bakutishevsky\b(?![\w/-])/g,
+        replace: "your-name",
+    },
+    // The live star-count fetch (its target spans were in the buttons above).
     {
         name: "live GitHub star-count script",
         find: /[ \t]*\/\/ -+ live GitHub star count -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n/,
     },
-    // The recent-Patreon-posts fetch. Its target block (#patreon-updates) lives
-    // inside the "section: Support (Patreon)" HTML this file already strips
-    // wholesale above, so only the script needs its own rule here.
+    // The latest-Patreon-posts fetch. Its target block (#patreon-updates) and
+    // the <template> it clones live inside the "section: Support (Patreon)"
+    // HTML this file already strips wholesale above, so only the script needs
+    // its own rule here.
     {
-        name: "recent Patreon posts script",
-        find: /[ \t]*\/\/ -+ recent Patreon posts -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n/,
+        name: "latest Patreon posts script",
+        find: /[ \t]*\/\/ -+ latest Patreon posts -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n/,
     },
 ];
 
