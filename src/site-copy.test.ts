@@ -20,6 +20,20 @@ const normalize = (s: string) =>
 
 const index = await Bun.file("./public/index.html").text();
 
+/** The visible answer under a FAQ question. The landing page's FAQ rows are
+ *  `<details class="nm-faq-row"><summary>` with the question wrapped in
+ *  spans (number, question + category chip, plus/minus icon), so this
+ *  anchors on the question's text node rather than on `<summary>Q</summary>`
+ *  and takes the first <p> after that summary closes. */
+function visibleFaqAnswer(html: string, question: string): string | undefined {
+    const q = question.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return html.match(
+        new RegExp(
+            `<span class="nm-faq-q">${q}\\s*<span[\\s\\S]*?</summary>\\s*<p>([\\s\\S]*?)</p>`,
+        ),
+    )?.[1];
+}
+
 // The FAQ answer exists twice: once as JSON-LD, which is what Google indexes
 // and may surface as a rich result, and once as the visible <details> a human
 // reads. Two copies of one sentence is a drift generator — this is the guard.
@@ -27,9 +41,7 @@ function trackAnswers() {
     const jsonLd = index.match(
         /"name": "What can I track\?",\s*"acceptedAnswer": \{\s*"@type": "Answer",\s*"text": "([^"]+)"/,
     )?.[1];
-    const visible = index.match(
-        /<summary>What can I track\?<\/summary>\s*<p>([\s\S]*?)<\/p>/,
-    )?.[1];
+    const visible = visibleFaqAnswer(index, "What can I track?");
     return { jsonLd, visible };
 }
 
@@ -49,30 +61,54 @@ test("both name caffeine, and name it in milligrams", () => {
     }
 });
 
-// The two feature cards that enumerate what is logged and what limits can be
-// set. The barcode card is deliberately excluded: Open Food Facts' caffeine
-// path is out of scope, so lookup_barcode still leaves caffeine null and the
-// card must keep saying so by omission.
-test("the landing page's feature cards list caffeine where they list nutrients", () => {
-    const cards = [
-        ...index.matchAll(/<h3>([^<]+)<\/h3>\s*<p>([\s\S]*?)<\/p>/g),
-    ];
-    const byTitle = new Map(
-        cards.map((m) => [normalize(m[1]!), normalize(m[2]!)]),
-    );
+// The hero lead is where the landing page enumerates what gets tracked —
+// "calories, protein, carbs, fat, fiber, sugar and caffeine" — and the one
+// sentence a visitor is guaranteed to read. It is also what the meta
+// description and the JSON-LD SoftwareApplication carry, so the four
+// copies are pinned together.
+test("the hero lead enumerates the tracked set, caffeine included", () => {
+    const lead = index.match(/<p class="nm-lead">([\s\S]*?)<\/p>/)?.[1];
+    expect(lead).toBeTruthy();
+    const t = normalize(lead!);
+    for (const nutrient of [
+        "calories",
+        "protein",
+        "carbs",
+        "fat",
+        "fiber",
+        "sugar",
+        "caffeine",
+    ]) {
+        expect(t, `hero lead omits ${nutrient}`).toContain(nutrient);
+    }
+    // The summary widget in the hero chat carries a caffeine chip too — the
+    // static render is what a crawler and a no-JS visitor see.
+    expect(index).toMatch(/<span data-w="caf">\d+<\/span> mg/);
+    const meta = index.match(/<meta name="description" content="([^"]*)"/)?.[1];
+    expect(normalize(meta ?? "")).toContain("caffeine");
+});
 
-    const meals = byTitle.get("Meals in plain language");
-    expect(meals).toBeTruthy();
-    expect(meals).toContain("caffeine");
-
-    const goals = byTitle.get("Goals & progress");
-    expect(goals).toBeTruthy();
-    expect(goals).toContain("caffeine");
-
-    // And the one that must NOT claim it.
-    const barcode = byTitle.get("Scan a barcode");
-    expect(barcode).toBeTruthy();
-    expect(barcode).not.toContain("caffeine");
+// The barcode exchange is deliberately excluded from that claim: Open Food
+// Facts' caffeine path is out of scope, so lookup_barcode still leaves
+// caffeine null and the hero's barcode reply must keep saying so by
+// omission — its deltas add no caffeine to the widget, in any locale (the
+// deltas are the same numbers on every page, see HeroExchange.add).
+test("the hero's barcode exchange does not claim caffeine", () => {
+    const locales = Object.keys(INDEX) as SiteLocale[];
+    expect(locales).toContain("en");
+    for (const locale of locales) {
+        const barcode = INDEX[locale]!.hero.chat.exchanges.filter(
+            (ex) => ex.barcode,
+        );
+        expect(barcode.length, `${locale}: one barcode exchange`).toBe(1);
+        expect(
+            barcode[0]!.add.caf,
+            `${locale}: the barcode reply must not add caffeine`,
+        ).toBeUndefined();
+        expect(normalize(barcode[0]!.aiText).toLowerCase()).not.toContain(
+            "caffeine",
+        );
+    }
 });
 
 // The comparison pages are generated. Editing the HTML directly is silently
@@ -127,12 +163,13 @@ test("the Cronometer page says its caffeine column crosses over", async () => {
 });
 
 // What `export_all_data` puts in the ZIP. Every page now makes some version of
-// an "everything" claim — the landing page's export card, its trust badge,
-// llms.txt, the tool card, and the switching-cost card on all six comparison
-// pages — and "everything" is only true relative to this list. Add a table to
-// the schema, leave the archive as it is, and each of those claims turns false
-// with nothing to catch it, which is the caffeine failure again in a different
-// costume. So the copy is pinned to the file names, not to the adjectives.
+// an "everything" claim — the landing page's export FAQ, its "always free"
+// bullets, llms.txt, the tool card, and the switching-cost card on all six
+// comparison pages — and "everything" is only true relative to this list.
+// Add a table to the schema, leave the archive as it is, and each of those
+// claims turns false with nothing to catch it, which is the caffeine failure
+// again in a different costume. So the copy is pinned to the file names, not
+// to the adjectives.
 const ARCHIVE_FILES = [
     "meals.csv",
     "water.csv",
@@ -175,20 +212,33 @@ test("the pinned archive list matches what src/export.ts actually writes", async
     ).toEqual([...ARCHIVE_FILES].sort());
 });
 
-test("the landing page's export card names every table in the archive", () => {
-    const cards = [
-        ...index.matchAll(/<h3>([^<]+)<\/h3>\s*<p>([\s\S]*?)<\/p>/g),
-    ];
-    const card = new Map(
-        cards.map((m) => [normalize(m[1]!), normalize(m[2]!)]),
-    ).get("Export & own your data");
-    expect(card).toBeTruthy();
+// The landing page's export claim moved from a feature card into the FAQ
+// ("Who can see my data, and can I export it?"), and the half of it that is
+// easy to over-promise — the ZIP comes out, but only meals go back in — sits
+// in the import FAQ next to it. Both are read out of the visible answers, so
+// the copy AND the regeneration have to be right; the JSON-LD twin of each
+// is derived from the same field by the generator.
+test("the landing page's export FAQ names every table in the archive", () => {
+    const answer = visibleFaqAnswer(
+        index,
+        "Who can see my data, and can I export it?",
+    );
+    expect(answer).toBeTruthy();
+    const t = normalize(answer!);
     for (const table of ARCHIVE_TABLES) {
-        expect(card, `export card omits ${table}`).toContain(table);
+        expect(t, `export FAQ omits ${table}`).toContain(table);
     }
-    // And the half of the claim that is easy to over-promise: the ZIP comes
-    // out, but only meals go back in.
-    expect(card).toContain("only part that can be imported back in");
+});
+
+test("the landing page's import FAQ says only meals come back in", () => {
+    const answer = visibleFaqAnswer(
+        index,
+        "Can I import my MyFitnessPal or Cronometer history?",
+    );
+    expect(answer).toBeTruthy();
+    expect(normalize(answer!)).toContain(
+        "Meals are the only part that can be imported back in for now.",
+    );
 });
 
 test("tools.html documents export_all_data and what is in the ZIP", async () => {
@@ -265,37 +315,38 @@ test("the comparison-page card names every table it promises back", async () => 
     }
 });
 
-// The kg / lb toggle in the landing page's live-stats panel. Its visible text
-// is the bare symbol — hardcoded in scripts/gen-index.ts, never localized —
-// while the accessible name is the spelled-out unit, so WCAG 2.5.3 Label in
-// Name only holds while the name CONTAINS the symbol: a voice-control user
-// saying "click lb" is otherwise addressing a control named "Pounds", and
-// nothing happens. de/nl/fr paired word and symbol first, for the unrelated
-// reason that their word for "pound" is 500 g (see src/copy/index.de.ts);
-// these two tests are what make the pairing the rule for every locale rather
-// than a coincidence in three, including a locale added later.
-test("every locale's unit-toggle accessible name contains its symbol", () => {
+// The Metric / Imperial toggle in the landing page's live-stats board. Its
+// visible text IS its accessible name — "Metric" / "Imperial", translated
+// per locale, with no aria-label layered over it — so WCAG 2.5.3 Label in
+// Name holds by construction as long as nobody adds one. The two data-unit
+// values stay "kg" / "lb" regardless of locale: they are the stored
+// preference key's vocabulary (stats-unit in localStorage) and what the
+// script's en-US default writes, not anything a visitor reads. Two halves
+// pinned: the source labels exist and differ (a locale that copied one into
+// the other renders two identical pills), and the rendered buttons carry no
+// aria-label that could name them something other than what they show.
+test("every locale's unit labels are present and distinct", () => {
     const locales = Object.keys(INDEX) as SiteLocale[];
     // Guard the guard: an empty INDEX would make the loop vacuously pass.
     expect(locales).toContain("en");
     for (const locale of locales) {
-        const stats = INDEX[locale]!.stats;
+        const live = INDEX[locale]!.live;
         expect(
-            stats.unitKgLabel,
-            `${locale}: unitKgLabel must contain the visible "kg"`,
-        ).toContain("kg");
+            live.unitMetricLabel.trim().length,
+            `${locale}: metric`,
+        ).toBeGreaterThan(0);
         expect(
-            stats.unitLbLabel,
-            `${locale}: unitLbLabel must contain the visible "lb"`,
-        ).toContain("lb");
+            live.unitImperialLabel.trim().length,
+            `${locale}: imperial`,
+        ).toBeGreaterThan(0);
+        expect(
+            live.unitMetricLabel,
+            `${locale}: the two unit labels are identical`,
+        ).not.toBe(live.unitImperialLabel);
     }
 });
 
-// And the same thing one step later, on the rendered page: the pairing only
-// reaches a user if the generator was re-run, and this reads the visible text
-// out of the same markup as the name instead of trusting that the symbol is
-// still what the button shows.
-test("each unit button's aria-label contains that button's visible text", async () => {
+test("each unit button's visible text is its accessible name", async () => {
     for (const locale of Object.keys(INDEX) as SiteLocale[]) {
         // gen-index.ts writes exactly one page per INDEX entry, so a missing
         // file here is a page that was never regenerated.
@@ -313,50 +364,29 @@ test("each unit button's aria-label contains that button's visible text", async 
             buttons.map((m) => m[2]),
             `${path}: the kg and lb buttons`,
         ).toEqual(["kg", "lb"]);
+        const live = INDEX[locale]!.live;
         for (const [, attrs, unit, body] of buttons) {
-            const name = /aria-label="([^"]*)"/.exec(attrs!)?.[1];
-            const visible = body!.trim();
+            const visible = normalize(body!);
             expect(
                 visible,
-                `${path}: the ${unit} button's visible text is not the bare symbol`,
-            ).toBe(unit!);
-            expect(
-                name,
-                `${path}: the ${unit} button has no aria-label`,
-            ).toBeTruthy();
-            expect(
-                name!,
-                `${path}: aria-label "${name}" does not contain the visible "${visible}" (WCAG 2.5.3 Label in Name)`,
-            ).toContain(visible);
+                `${path}: the ${unit} button's visible text is not the locale's label`,
+            ).toBe(
+                normalize(
+                    unit === "kg"
+                        ? live.unitMetricLabel
+                        : live.unitImperialLabel,
+                ),
+            );
+            // No aria-label: the visible word is the name. An aria-label
+            // that does not contain the visible text would break voice
+            // control ("click Metric" addressing a control named "Kilograms").
+            const name = /aria-label="([^"]*)"/.exec(attrs!)?.[1];
+            if (name !== undefined) {
+                expect(
+                    normalize(name),
+                    `${path}: aria-label "${name}" does not contain the visible "${visible}" (WCAG 2.5.3 Label in Name)`,
+                ).toContain(visible);
+            }
         }
     }
-});
-
-// Layout itself needs a browser, so what is pinned here is the pair of
-// declarations the fix rests on. The calorie odometer is one reel per digit:
-// it cannot shrink and cannot break mid-number, so .facts-cal has to be free
-// to wrap it onto its own line when the live delta tag joins the row, or the
-// digits run out past the panel's right edge at 390px (#129). flex-end is the
-// other half: space-between would park the odometer at the LEFT of that
-// second line, and it is a no-op on any line holding the label, whose
-// margin-right:auto absorbs the free space first.
-test("the Nutrition Facts calorie row can wrap its odometer", async () => {
-    const css = await Bun.file("./public/styles.css").text();
-    // Every bare `.facts-cal {` block, not the first one: a later
-    // `@media (max-width: 640px) { .facts-cal { flex-wrap: nowrap } }` wins
-    // the cascade at exactly the widths this fix is about, and a
-    // first-match-only check would still pass while #129 was back. Requiring
-    // the selector to appear once makes adding a second block a loud failure
-    // rather than a silent revert. The descendant rules (.facts-cal .label,
-    // .facts-cal > :first-child) do not match — the selector has to be
-    // followed by the brace.
-    const blocks = [...css.matchAll(/\.facts-cal\s*\{([^}]*)\}/g)];
-    expect(
-        blocks.length,
-        "expected exactly one `.facts-cal {` block in public/styles.css",
-    ).toBe(1);
-    // Anchored on the semicolon so `wrap-reverse` — which would put the
-    // odometer ABOVE the label rather than below it — does not read as wrap.
-    expect(blocks[0]![1]).toMatch(/flex-wrap:\s*wrap;/);
-    expect(blocks[0]![1]).toMatch(/justify-content:\s*flex-end;/);
 });

@@ -3,21 +3,24 @@ import { HTML_LANG, SITE_LOCALES, type SiteLocale } from "./routes.js";
 import { INDEX } from "./copy/index.js";
 import { LANDING_SCRIPT } from "../scripts/gen-index.js";
 
-// The landing page's inline JS lives as one hand-escaped string constant
-// (LANDING_SCRIPT in scripts/gen-index.ts) that is embedded verbatim into all
-// nine locales' index.html. Nothing else in the suite looks inside it, so
-// every i18n fix in it was revertible without a red test.
+// The landing page's inline JS lives as one string constant (LANDING_SCRIPT
+// in scripts/gen-index.ts) that is embedded verbatim into all nine locales'
+// index.html. Nothing else in the suite looks inside it, so every i18n fix
+// in it was revertible without a red test.
 //
 // Two halves here, and the DOM-contract half is the load-bearing one. The
 // script deliberately holds no copy of its own — one script serves nine
 // pages, so any language it named in its own source would be wrong on eight
-// of them. Instead it READS three things out of the markup the generator
-// produced: <html lang> (drives every number and the clock), the translated
-// word already sitting in #facts-live, and the translated caption in the
-// .odo-cap span beside the odometer. Those are contracts between generator
-// and script: rename .odo-cap, empty #facts-live, or drop lang= and the
-// script silently degrades to English or to a broken locale with no error
-// anywhere. The tests below pin them against the real generated HTML.
+// of them. Instead it READS everything it shows out of the markup the
+// generator produced: <html lang> (drives every number, date and clock), the
+// static hero thread (each user bubble's data-add / data-clock, cloned and
+// replayed), the translated word on the food-logs delta tag
+// (data-delta-unit), the countdown / since-open spans inside #facts-live,
+// and the <template> a Patreon post card is built from. Those are contracts
+// between generator and script: drop an attribute, rename an id, and the
+// script silently degrades — the chat stops replaying, a card shows "—"
+// forever, the delta reads "+3" with no noun — with no error anywhere. The
+// tests below pin them against the real generated HTML.
 
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
 
@@ -33,6 +36,7 @@ function unescapeHtml(s: string): string {
 }
 
 const text = (s: string) => unescapeHtml(collapse(s));
+const stripTags = (s: string) => text(s.replace(/<[^>]+>/g, ""));
 
 function pathFor(locale: SiteLocale): string {
     return locale === "en"
@@ -54,31 +58,14 @@ async function landingPages(): Promise<Page[]> {
     return out;
 }
 
-/** Prettier splits long tags as `<span class="x"\n    >text</span\n>`, so the
- *  closing `>` of the open tag cannot be assumed to sit on the same line. */
-function spanText(html: string, attr: string): string | null {
-    const m = html.match(
-        new RegExp(`<span[^>]*${attr}[^>]*>([\\s\\S]*?)</span`),
-    );
-    return m ? text(m[1]!) : null;
-}
-
 /** The landing script is the one bare <script> block that wires the live
- *  stats panel; the others are the pre-paint theme shim and JSON-LD. */
+ *  stats board; the others are the pre-paint theme shim and JSON-LD. */
 function landingScript(html: string): string | null {
     for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
         const body = m[1]!;
         if (body.includes('getElementById("facts-live")')) return body;
     }
     return null;
-}
-
-/** The statement beginning at `start`, up to and including its terminator. */
-function statementAt(script: string, start: string, end: string): string {
-    const at = script.indexOf(start);
-    if (at === -1) return "";
-    const stop = script.indexOf(end, at + start.length);
-    return stop === -1 ? "" : script.slice(at, stop + end.length);
 }
 
 test("there is a landing page and a landing script on every locale", async () => {
@@ -94,8 +81,9 @@ test("there is a landing page and a landing script on every locale", async () =>
 // ---------------------------------------------------------------- contracts
 
 // NUM_LOCALE is `document.documentElement.lang || "en"`. Without the
-// attribute every figure in the Nutrition Facts panel and the clock beside
-// it silently fall back to English grouping on all eight translated pages.
+// attribute every figure on the live board, the chat clock and the Patreon
+// post dates silently fall back to English grouping on all eight translated
+// pages.
 test("every landing page stamps its own <html lang>", async () => {
     for (const { locale, path, html } of await landingPages()) {
         const m = html.match(/<html[^>]*\slang="([^"]+)"/);
@@ -103,44 +91,197 @@ test("every landing page stamps its own <html lang>", async () => {
     }
 });
 
-// The script captures #facts-live's text before the first stats fetch and
-// rebuilds the line from it. An empty node means the live line loses its
-// label entirely on every locale, English included.
-test("#facts-live carries this locale's own translated live label", async () => {
+// The hero chat replays the STATIC thread: the script takes the generator's
+// bubbles apart into exchanges (a user or barcode bubble followed by its AI
+// reply), reads each exchange's nutrient deltas and clock off data-add /
+// data-clock, and clones the bubbles back in one at a time. So the static
+// markup is the whole contract — it is also what a no-JS visitor and every
+// crawler read. Pinned per locale against the source data: one user bubble
+// per exchange, in order, each carrying the deltas and clock the copy
+// declares, the widget flag where the copy sets it, and the summary widget
+// rendered once in its final state with the deltas already summed.
+const BUBBLE_RE =
+    /<div class="nm-msg (nm-msg-user|nm-msg-barcode)" data-add='([^']*)' data-clock="([^"]*)"( data-widget)?>([\s\S]*?)(?=\n\s*<div class="nm-msg nm-msg-ai">)/g;
+
+test("the hero chat bubbles carry data-add / data-clock for the replay", async () => {
     for (const { locale, path, html } of await landingPages()) {
         const doc = INDEX[locale];
         expect(`${path}: ${!!doc}`).toBe(`${path}: true`);
-        const found = spanText(html, 'id="facts-live"');
-        expect(`${path}: ${found}`).toBe(
-            `${path}: ${text(doc!.stats.liveLabel)}`,
+        const exchanges = doc!.hero.chat.exchanges;
+        const bubbles = [...html.matchAll(BUBBLE_RE)];
+        expect(`${path}: ${bubbles.length} bubbles`).toBe(
+            `${path}: ${exchanges.length} bubbles`,
         );
-        expect(`${path}: ${(found ?? "").length > 0}`).toBe(`${path}: true`);
+        expect(bubbles.length).toBeGreaterThan(0);
+        bubbles.forEach((m, i) => {
+            const [, kind, add, clock, widget, body] = m;
+            const ex = exchanges[i]!;
+            expect(`${path} #${i}: ${kind}`).toBe(
+                `${path} #${i}: ${ex.barcode ? "nm-msg-barcode" : "nm-msg-user"}`,
+            );
+            expect(JSON.parse(add!), `${path} #${i}: data-add`).toEqual(ex.add);
+            expect(`${path} #${i}: ${clock}`).toBe(
+                `${path} #${i}: ${ex.clock}`,
+            );
+            expect(`${path} #${i}: widget=${!!widget}`).toBe(
+                `${path} #${i}: widget=${!!ex.widget}`,
+            );
+            if (!ex.barcode)
+                expect(`${path} #${i}: ${stripTags(body!)}`).toBe(
+                    `${path} #${i}: ${text(ex.userText ?? "")}`,
+                );
+        });
+        // Every AI reply is on the page, in the copy's own words.
+        const replies = [
+            ...html.matchAll(
+                /<div class="nm-msg nm-msg-ai">([\s\S]*?)<\/div>/g,
+            ),
+        ].map((m) => text(m[1]!));
+        expect(replies).toEqual(exchanges.map((ex) => text(ex.aiText)));
+        // The static widget is the thread's final state: every delta summed.
+        const totals: Record<string, number> = {};
+        for (const ex of exchanges)
+            for (const [k, v] of Object.entries(ex.add))
+                totals[k] = (totals[k] ?? 0) + (v ?? 0);
+        for (const [k, v] of Object.entries(totals)) {
+            const shown = html.match(
+                new RegExp(`<[a-z]+ [^>]*data-w="${k}"[^>]*>([^<]*)<`),
+            )?.[1];
+            expect(`${path} widget ${k}: ${shown}`).toBe(
+                `${path} widget ${k}: ${Math.round(v).toLocaleString(HTML_LANG[locale])}`,
+            );
+        }
     }
 });
 
-// setOdometer copies this into the odometer's aria-label. Rename the class
-// and every locale goes back to announcing "N calories tracked" in English
-// to screen readers, with the page still looking perfect.
-test("the odometer's caption sits in a .odo-cap span, translated", async () => {
-    for (const { locale, path, html } of await landingPages()) {
-        const doc = INDEX[locale];
-        expect(`${path}: ${!!doc}`).toBe(`${path}: true`);
-        expect(`${path}: ${spanText(html, 'class="odo-cap"')}`).toBe(
-            `${path}: ${text(doc!.stats.calCaption)}`,
-        );
-    }
-});
-
-// The script reaches the caption via `el.parentNode.querySelector(".odo-cap")`
-// — so it has to be a SIBLING of the odometer, not merely present somewhere.
-// No intervening </div> between the two is exactly that, for this markup.
-test("the .odo-cap span is a sibling of the odometer it captions", async () => {
+// The script clones the static widget and re-derives the ring from
+// kcal / 2,000 and each bar from data-goal; the same numbers the generator
+// used, or the replay's last frame disagrees with the static render.
+test("the hero widget's bars declare the goals the script reads back", async () => {
     for (const { path, html } of await landingPages()) {
-        const odo = html.indexOf('data-odo="total_calories"');
-        const cap = html.indexOf('class="odo-cap"');
-        expect(`${path}: ${odo !== -1 && cap > odo}`).toBe(`${path}: true`);
-        const between = html.slice(odo, cap);
-        expect(`${path}: ${between.includes("</div>")}`).toBe(`${path}: false`);
+        const bars = [
+            ...html.matchAll(/data-bar="(\w+)"\s+data-goal="(\d+)"/g),
+        ];
+        expect(`${path}: ${bars.map((m) => m[1]).join(",")}`).toBe(
+            `${path}: pro,car,fat`,
+        );
+        expect(`${path}: ${html.includes('data-ring style="--deg:')}`).toBe(
+            `${path}: true`,
+        );
+    }
+});
+
+// #facts-live is the live board's refresh line. It holds the countdown the
+// script ticks (a <b data-countdown> inside the translated sentence, plus the
+// ring's arc) — so the translated words around the number have to come from
+// the page, split around the number exactly as the copy declares them.
+test("#facts-live carries this locale's own refresh sentence around the countdown", async () => {
+    for (const { locale, path, html } of await landingPages()) {
+        const doc = INDEX[locale];
+        expect(`${path}: ${!!doc}`).toBe(`${path}: true`);
+        const block = html.match(
+            /<span id="facts-live"[^>]*>([\s\S]*?<\/span>)\s*<\/span>/,
+        )?.[1];
+        expect(`${path}: has #facts-live`).toBe(
+            `${path}: ${block ? "has #facts-live" : "no #facts-live"}`,
+        );
+        expect(`${path}: ${block!.includes("data-countdown-ring")}`).toBe(
+            `${path}: true`,
+        );
+        const line = block!.match(/<span>([\s\S]*?)<\/span>/)?.[1] ?? "";
+        expect(line).toContain("<b data-countdown>");
+        expect(`${path}: ${stripTags(line)}`).toBe(
+            `${path}: ${text(doc!.live.refreshBefore + "5" + doc!.live.refreshAfter)}`,
+        );
+        const since = html.match(
+            /<span class="nm-since">([\s\S]*?)<\/span>\s*<\/span>/,
+        )?.[1];
+        expect(`${path}: ${!!since}`).toBe(`${path}: true`);
+        expect(since!).toContain("<span data-since-open>");
+        expect(`${path}: ${stripTags(since!)}`).toBe(
+            `${path}: ${text(doc!.live.sinceOpenLabel + " · 0s")}`,
+        );
+    }
+});
+
+// The food-logs delta tag reads "+3 logs": the number is the script's, the
+// noun is the page's, read off data-delta-unit. Hardcode it and eight
+// locales read "+3 logs" in English.
+test("the food-logs delta noun is read off the page, translated", async () => {
+    for (const { locale, path, html } of await landingPages()) {
+        const doc = INDEX[locale];
+        const tag = html.match(
+            /<span class="nm-delta" data-delta="food_logs"([^>]*)>/,
+        )?.[1];
+        expect(`${path}: ${!!tag}`).toBe(`${path}: true`);
+        const word = /data-delta-unit="([^"]*)"/.exec(tag!)?.[1];
+        expect(`${path}: ${text(word ?? "")}`).toBe(
+            `${path}: ${text(doc!.live.foodLogsUnit)}`,
+        );
+    }
+});
+
+// Every hook the script queries, on every page. Each one is a silent
+// failure when missing: no stat card animates, the map never draws, the
+// countdown never ticks, the Patreon block stays hidden even with posts.
+test("every id / attribute hook the script queries exists on every landing page", async () => {
+    const hooks: [string, string][] = [
+        ['getElementById("facts-live")', 'id="facts-live"'],
+        ['getElementById("stat-row")', 'id="stat-row"'],
+        ['getElementById("map-block")', 'id="map-block"'],
+        ['getElementById("world-svg")', 'id="world-svg"'],
+        ['getElementById("patreon-updates")', 'id="patreon-updates"'],
+        ['getElementById("patreon-posts-grid")', 'id="patreon-posts-grid"'],
+        [
+            'getElementById("patreon-post-tpl")',
+            '<template id="patreon-post-tpl">',
+        ],
+        ['querySelector("[data-chat-list]")', "data-chat-list>"],
+        ['querySelector("[data-chat-clock]")', "data-chat-clock>"],
+        ['querySelector("[data-countdown]")', "<b data-countdown>"],
+        ['querySelector("[data-countdown-ring]")', "data-countdown-ring>"],
+        ['querySelector("[data-since-open]")', "<span data-since-open>"],
+        ['querySelector(".nm-tz-tip")', 'class="nm-tz-tip"'],
+        ['querySelectorAll("[data-unit]")', 'data-unit="kg"'],
+        ['querySelectorAll("[data-gh-stars]")', "<span data-gh-stars>"],
+        ["[data-ex-dir]", 'data-ex-dir="prev"'],
+        ["[data-post-title]", "data-post-title"],
+        ["[data-post-preview]", "data-post-preview"],
+        ["[data-post-date]", "data-post-date"],
+    ];
+    for (const [inScript] of hooks) {
+        expect(
+            `script queries ${inScript}: ${LANDING_SCRIPT.includes(inScript)}`,
+        ).toBe(`script queries ${inScript}: true`);
+    }
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { path, html } of pages) {
+        for (const [, inPage] of hooks) {
+            expect(`${path} has ${inPage}: ${html.includes(inPage)}`).toBe(
+                `${path} has ${inPage}: true`,
+            );
+        }
+        // One card per /api/stats key the script formats, each addressable
+        // by data-stat-card so a key the DB does not serve yet can be hidden
+        // rather than shown as NaN.
+        for (const key of [
+            "total_calories",
+            "food_logs",
+            "total_protein_g",
+            "total_carbs_g",
+            "total_fat_g",
+            "weight_lost_g",
+            "total_water_ml",
+        ]) {
+            expect(
+                `${path} card ${key}: ${html.includes(`data-stat-card="${key}"`)}`,
+            ).toBe(`${path} card ${key}: true`);
+            expect(
+                `${path} stat ${key}: ${html.includes(`data-stat="${key}"`)}`,
+            ).toBe(`${path} stat ${key}: true`);
+        }
+        expect(html).toContain('data-stat="timezones"');
     }
 });
 
@@ -207,40 +348,31 @@ test("the only locale tag in the landing script is the kg/lb picker", async () =
     );
 });
 
-// The live line used to be replaced wholesale with "Live · since " + time,
-// throwing away the one translated word on it a second after paint.
-test("the live line is rebuilt from the label already on the page", async () => {
-    const script = await theScript();
-    expect(script).toContain("var liveLabel = liveEl ? liveEl.textContent");
-    const assign = statementAt(script, "liveEl.textContent =", ";");
-    expect(`live assignment: ${assign.includes("liveLabel")}`).toBe(
-        "live assignment: true",
-    );
-    expect(`live assignment: ${/"Live/.test(assign)}`).toBe(
-        "live assignment: false",
-    );
+// The script must hold no copy: every visible string it writes is either a
+// number, a unit symbol, or text it read off the page. A quick smell test
+// for the likeliest regression — an English word from the live board or
+// the chat sneaking into the source as a literal.
+test("the landing script holds none of the page's copy", async () => {
+    // Comments may name a word as an example; only code counts.
+    const script = (await theScript()).replace(/^\s*\/\/.*$/gm, "");
+    const en = INDEX.en!;
+    for (const literal of [
+        en.live.foodLogsUnit,
+        en.live.sinceOpenLabel,
+        en.live.refreshBefore.trim(),
+        en.hero.chat.status,
+        en.support.postLinkLabel,
+        en.hero.chat.widget.hint,
+    ]) {
+        expect(
+            `script contains "${literal}": ${script.includes(`"${literal}`)}`,
+        ).toBe(`script contains "${literal}": false`);
+    }
 });
 
-// The aria-label used to be built as text + " calories tracked" outright.
-// The English string survives only as a fallback for a missing caption node,
-// so the assertion is that the caption is what is preferred.
-test("the odometer announces the caption the page rendered", async () => {
-    const script = await theScript();
-    expect(script).toContain('querySelector(".odo-cap")');
-    const stmt = statementAt(script, "el.setAttribute(", ");");
-    expect(`aria-label: ${stmt.includes("capText")}`).toBe("aria-label: true");
-    // English strictly after capText in the statement == English is the
-    // else-branch. If it ever leads, the caption stopped being preferred.
-    const caption = stmt.indexOf("capText");
-    const english = stmt.indexOf("calories tracked");
-    expect(
-        `aria-label fallback last: ${caption !== -1 && caption < english}`,
-    ).toBe("aria-label fallback last: true");
-});
-
-// The script is a hand-escaped string literal in the generator, so a bad
-// edit can ship a syntax error that no typecheck and no test would see.
-// new Function compiles without running.
+// The script is a String.raw block in the generator, so a bad edit can ship
+// a syntax error that no typecheck and no test would see. new Function
+// compiles without running.
 test("the landing script parses", async () => {
     const script = await theScript();
     expect(() => new Function(script)).not.toThrow();
@@ -279,7 +411,7 @@ test("every landing page carries the generator's current LANDING_SCRIPT", async 
 });
 
 // ---------------------------------------------------------------------
-// The "Live stats" nav badge is driven from public/site.js, which every page
+// The "Live" nav badge is driven from public/site.js, which every page
 // loads — not from here, which ships on the landing page alone. This script
 // keeps its own 5s poll (its figures are on screen and animate) and hands the
 // result over through a "live-stats" event, so the landing page still makes
@@ -300,10 +432,10 @@ test("the landing script hands its figures to site.js instead of painting the ba
 });
 
 // site.js polls /api/stats for itself on every page EXCEPT this one, and the
-// marker it checks for is #facts-live — the landing page's live indicator.
-// That is a generator/script contract exactly like .odo-cap above: rename or
-// drop the id and the landing page silently starts polling twice, which no
-// assertion elsewhere would notice.
+// marker it checks for is #facts-live — the landing page's refresh line.
+// That is a generator/script contract exactly like the hooks above: rename
+// or drop the id and the landing page silently starts polling twice, which
+// no assertion elsewhere would notice.
 test("#facts-live is what stops site.js polling a second time on the landing page", async () => {
     const siteJs = await Bun.file("./public/site.js").text();
     expect(siteJs).toContain('getElementById("facts-live")');

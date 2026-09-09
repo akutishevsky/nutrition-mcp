@@ -301,31 +301,39 @@ test("the digit-class locales carry three distinct badge forms", async () => {
     }
 });
 
-// The kg / lb toggle in the landing page's live-stats panel. Same failure
-// mode as the badge label above and the same reason to pin it: the visible
-// text is the symbol, which is identical in every locale, so a locale that
-// never translated the accessible names would look completely fine on the
-// page and read as English to anyone using a screen reader.
+// The Metric / Imperial toggle in the landing page's live-stats board. Same
+// failure mode as the badge label above and the same reason to pin it: the
+// group's name is an aria-label nothing visual ever shows, so a locale that
+// never translated it would look completely fine on the page and read as
+// English to anyone using a screen reader. The two buttons show their
+// labels as text, so those are pinned as the rendered button bodies; their
+// data-unit values stay "kg" / "lb" on every locale because that is the
+// stored preference's vocabulary (stats-unit in localStorage), not copy.
 test("the stats unit toggle is labelled in every locale's own words", async () => {
     for (const { path, locale, suffix } of await existingPages()) {
         if (suffix !== "") continue;
         const doc = INDEX[locale];
         expect(`${path}: ${!!doc}`).toBe(`${path}: true`);
         const html = await Bun.file(path).text();
-        for (const label of [
-            doc!.stats.unitGroupLabel,
-            doc!.stats.unitKgLabel,
-            doc!.stats.unitLbLabel,
-        ]) {
-            expect(`${path}: ${html.includes(`aria-label="${label}"`)}`).toBe(
-                `${path}: true`,
-            );
-        }
-        // Both buttons, and kg pre-pressed — the markup's resting state has
-        // to be the script's default, or a visitor with JS still loading
-        // sees neither pill lit.
-        expect(html).toContain('data-unit="kg"');
-        expect(html).toContain('data-unit="lb"');
+        const group = html.match(
+            /<div class="nm-units" role="group" aria-label="([^"]*)">([\s\S]*?)<\/div>/,
+        );
+        expect(`${path}: ${!!group}`).toBe(`${path}: true`);
+        expect(`${path}: ${group![1]}`).toBe(
+            `${path}: ${doc!.live.unitGroupLabel}`,
+        );
+        const buttons = [
+            ...group![2]!.matchAll(
+                /<button type="button" data-unit="(kg|lb)" aria-pressed="(true|false)">([\s\S]*?)<\/button>/g,
+            ),
+        ].map((m) => [m[1], m[2], collapse(m[3]!)]);
+        // Both buttons, in order, and kg pre-pressed — the markup's resting
+        // state has to be the script's default, or a visitor with JS still
+        // loading sees neither pill lit.
+        expect(buttons).toEqual([
+            ["kg", "true", collapse(doc!.live.unitMetricLabel)],
+            ["lb", "false", collapse(doc!.live.unitImperialLabel)],
+        ]);
     }
 });
 
@@ -342,16 +350,34 @@ test("the stats unit toggle is labelled in every locale's own words", async () =
 // "system" is still the pressed pill until site.js corrects it. That window
 // is harmless (the menu holding the switcher is closed), but the resting
 // state is a default, not a guarantee.
+//
+// Two markups carry the same three buttons. Every page on the shared chrome
+// (nav() in scripts/site-partials.ts) has the <details class="theme-switch">
+// disclosure: its <summary> is named by aria-label + title, and the
+// .theme-menu inside it is the group named by theme.title. The landing page
+// has no disclosure — its three buttons sit in the header bar as one
+// `role="group"` named by theme.title alone (one aria-label per element, so
+// there is no second "Change theme" name to pin). The summary checks
+// therefore apply only where the disclosure exists; the group name and the
+// per-button labels apply everywhere.
 test("the theme switcher is labelled in every locale's own words", async () => {
     for (const { path, locale } of await existingPages()) {
         if (!(await isGenerated(path))) continue;
         const c = chromeFor(locale).theme;
         const html = await Bun.file(path).text();
-        for (const attr of [
-            `aria-label="${c.ariaLabel}"`,
-            `title="${c.title}"`,
-            `aria-label="${c.title}"`,
-        ]) {
+        const attrs = [`aria-label="${c.title}"`];
+        if (html.includes('class="theme-switch"')) {
+            attrs.push(`aria-label="${c.ariaLabel}"`, `title="${c.title}"`);
+        } else {
+            // The landing page's segmented group: named once, as a group.
+            expect(`${path}: ${html.includes(`class="nm-theme"`)}`).toBe(
+                `${path}: true`,
+            );
+            expect(
+                `${path}: ${/class="nm-theme"\s+role="group"/.test(html)}`,
+            ).toBe(`${path}: true`);
+        }
+        for (const attr of attrs) {
             expect(`${path}: ${html.includes(attr)}`).toBe(`${path}: true`);
         }
         const modes = [
