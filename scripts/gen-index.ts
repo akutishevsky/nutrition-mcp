@@ -204,13 +204,30 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             );
                         });
                     }
+                    // Keeping the thread pinned to its bottom means reading
+                    // scrollHeight, and reading it forces the browser to lay the
+                    // thread out then and there. Doing that per typed character —
+                    // roughly forty times a second — kept a layout running
+                    // continuously underneath the sticky bar, which has to re-blur
+                    // whatever moves behind it, and that is what made the bar flicker
+                    // while the page sat still. Coalesced to at most one per frame,
+                    // and taken inside the frame rather than between two timers.
+                    var pinQueued = false;
+                    function pinToBottom() {
+                        if (pinQueued) return;
+                        pinQueued = true;
+                        requestAnimationFrame(function () {
+                            pinQueued = false;
+                            chatList.scrollTop = chatList.scrollHeight;
+                        });
+                    }
                     function push(el) {
                         var typing = chatList.querySelector(".nm-typing");
                         if (typing) typing.remove();
                         chatList.appendChild(el);
                         while (chatList.children.length > CHAT_MAX)
                             chatList.removeChild(chatList.firstChild);
-                        chatList.scrollTop = chatList.scrollHeight;
+                        pinToBottom();
                     }
                     function typingBubble() {
                         var d = document.createElement("div");
@@ -235,7 +252,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         for (var i = 1; i <= text.length; i++) {
                             await whenPlaying();
                             textNode.nodeValue = text.slice(0, i);
-                            chatList.scrollTop = chatList.scrollHeight;
+                            pinToBottom();
                             await wait(24);
                         }
                         caret.remove();

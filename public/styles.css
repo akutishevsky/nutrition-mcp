@@ -1525,6 +1525,12 @@ body.menu-open {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    /* The thread rewrites itself continuously — a character at a time while a
+       message types, then cleared and replayed. Containment scopes that work
+       to this box, so laying the thread out again cannot pull the rest of the
+       document with it. The card is a fixed height and this list scrolls
+       inside it, so nothing here ever needed to size anything outside. */
+    contain: layout paint;
     scrollbar-width: none;
     display: flex;
     flex-direction: column;
