@@ -2478,7 +2478,9 @@ body.menu-open {
 }
 /* The since-you-opened change on a stat card. A bold pill rather than a
    bare mono figure: at 11.5px/500 it was barely there. Empty and hidden
-   while the figure has not moved. */
+   while the figure has not moved. The dark card gets the same soft pill as
+   every other tile, not an accent tinted into its own surface: a 22% wash
+   of --acc over #101318 left the figure barely readable. */
 .nm-delta {
     font-family: var(--mono);
     font-size: 12px;
@@ -2493,14 +2495,6 @@ body.menu-open {
 .nm-delta.down {
     color: var(--over);
     background: color-mix(in srgb, var(--over) 14%, var(--panel));
-}
-.nm-stat-dark .nm-delta {
-    color: var(--acc);
-    background: color-mix(in srgb, var(--acc) 22%, transparent);
-}
-.nm-stat-dark .nm-delta.down {
-    color: var(--over);
-    background: color-mix(in srgb, var(--over) 22%, transparent);
 }
 .nm-delta.pop {
     animation: nm-rise 0.35s both;
