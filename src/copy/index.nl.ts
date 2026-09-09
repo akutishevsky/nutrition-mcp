@@ -249,6 +249,7 @@ export const INDEX_NL: IndexDoc = {
         timezonesAfter:
             " tijdzones · dagen gaan over om ieders eigen middernacht",
         mapNote: "stipgrootte = aandeel accounts · beweeg over een stip",
+        mapShare: "{share} van de accounts",
         mapAriaLabel:
             "Wereldkaart van stippen met Nutrition MCP-accounts per tijdzone; grotere stippen betekenen een groter aandeel",
     },

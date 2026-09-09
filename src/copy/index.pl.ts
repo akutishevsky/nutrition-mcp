@@ -247,6 +247,7 @@ export const INDEX_PL: IndexDoc = {
         timezonesAfter:
             " stref czasowych · dni zmieniają się o lokalnej północy każdej osoby",
         mapNote: "wielkość kropki = udział kont · najedź na kropkę",
+        mapShare: "{share} kont",
         mapAriaLabel:
             "Mapa świata z kropek pokazująca konta Nutrition MCP według stref czasowych; większa kropka oznacza większy udział",
     },

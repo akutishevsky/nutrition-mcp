@@ -254,6 +254,7 @@ export const INDEX_FR: IndexDoc = {
         timezonesAfter:
             " fuseaux horaires · les journées basculent au minuit de chacun",
         mapNote: "taille du point = part des comptes · survole un point",
+        mapShare: "{share} des comptes",
         mapAriaLabel:
             "Carte du monde en points des comptes Nutrition MCP par fuseau horaire ; un point plus grand signifie une part plus grande",
     },

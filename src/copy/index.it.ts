@@ -257,6 +257,7 @@ export const INDEX_IT: IndexDoc = {
             " fusi orari · i giorni cambiano alla mezzanotte di ciascuno",
         mapNote:
             "dimensione del punto = quota di account · passa il mouse su un punto",
+        mapShare: "{share} degli account",
         mapAriaLabel:
             "Mappa del mondo a punti degli account Nutrition MCP per fuso orario; i punti più grandi indicano una quota maggiore",
     },

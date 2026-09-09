@@ -592,20 +592,52 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     [14.5, 4.7],
                 ];
                 var tip = document.querySelector(".nm-tz-tip");
+                var tipName = tip && tip.querySelector(".nm-tz-tip-n");
+                var tipShare = tip && tip.querySelector(".nm-tz-tip-s");
+                // "{share} of accounts", in the page's language — the sentence is
+                // copy and rides in on the markup, this script holds none.
+                var SHARE_PATTERN = tip
+                    ? tip.getAttribute("data-share-pattern") || ""
+                    : "";
                 var tipOn = null;
                 var tipShownAt = 0;
-                // The tooltip names the zone and nothing else: /api/stats serves
-                // privacy-bucketed levels, never counts, so there is no share to show.
+                var fmtPct = null;
+                try {
+                    fmtPct = new Intl.NumberFormat(NUM_LOCALE, { style: "percent" });
+                } catch (e) {
+                    fmtPct = null;
+                }
+                // The API rounds every share to whole percent and buckets the whole
+                // long tail into 0, which reads as "under 1%" rather than pinpointing
+                // the zones holding a single person — see timezoneShares() in
+                // src/supabase.ts. The "<" is punctuation, not a word, so it needs no
+                // translation; the number beside it is formatted by the browser.
+                function shareLine(share) {
+                    if (!SHARE_PATTERN) return "";
+                    var pct = fmtPct
+                        ? fmtPct.format((share > 0 ? share : 1) / 100)
+                        : (share > 0 ? share : 1) + "%";
+                    return SHARE_PATTERN.replace(
+                        "{share}",
+                        share > 0 ? pct : "<" + pct,
+                    );
+                }
                 function showTip(core) {
                     if (!tip) return;
                     if (tipOn && tipOn !== core) tipOn.classList.remove("is-on");
                     tipShownAt = Date.now();
                     tipOn = core;
                     core.classList.add("is-on");
-                    tip.textContent = (core.getAttribute("data-tz") || "").replace(
-                        /_/g,
-                        " ",
-                    );
+                    if (tipName)
+                        tipName.textContent = (
+                            core.getAttribute("data-tz") || ""
+                        ).replace(/_/g, " ");
+                    if (tipShare) {
+                        var raw = core.getAttribute("data-share");
+                        var line = raw === null ? "" : shareLine(Number(raw));
+                        tipShare.textContent = line;
+                        tipShare.hidden = !line;
+                    }
                     // Percentages of the 1000x440 viewBox (map-data.json projects into
                     // 1000x500, but nothing but Antarctica sits below 440, so the box is
                     // cropped like the design's), so the tip tracks the dot at any size.
@@ -642,7 +674,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                 // nullable_profile_timezone migration reset every profile's timezone to
                 // NULL (see #99), and /api/stats only counts profiles that have set one
                 // since - so the map fills back in as people call set_timezone.
-                function buildMap(mapData, tzLevels) {
+                function buildMap(mapData, tzLevels, tzShares) {
                     var svg = document.getElementById("world-svg");
                     if (!svg || !mapData) return;
                     // The svg is a role="group" (not "img", whose children are
@@ -666,6 +698,24 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         dot.core.setAttribute("r", r[1]);
                         dot.level = level;
                     }
+                    // The dot's accessible name carries whatever the tooltip shows,
+                    // so the share is not sighted-only. A database that predates
+                    // timezone_counts serves no shares at all, and then the name is
+                    // just the zone and the tooltip's second line stays hidden.
+                    function nameDot(dot, share) {
+                        var tz = (dot.core.getAttribute("data-tz") || "").replace(
+                            /_/g,
+                            " ",
+                        );
+                        var line = typeof share === "number" ? shareLine(share) : "";
+                        if (typeof share === "number")
+                            dot.core.setAttribute("data-share", String(share));
+                        dot.core.setAttribute(
+                            "aria-label",
+                            line ? tz + ", " + line : tz,
+                        );
+                        dot.share = share;
+                    }
                     var seen = {};
                     var plotted = 0;
                     var halos = document.createDocumentFragment();
@@ -678,12 +728,23 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             TZ_RADII.length,
                             Math.max(1, Math.round(tzLevels[tz]) || 1),
                         );
+                        var share = tzShares ? tzShares[tz] : undefined;
+                        if (typeof share !== "number" || !isFinite(share))
+                            share = undefined;
                         // Alias spellings (Europe/Kiev vs Europe/Kyiv) project to the
                         // same coordinates and so share one dot. Keep the larger level
-                        // rather than whichever name came first.
+                        // and the larger share rather than whichever name came first —
+                        // summing them would double-count a zone the API already
+                        // counted once under each spelling.
                         var k = pt[0] + "," + pt[1];
                         if (seen[k]) {
                             if (level > seen[k].level) sizeDot(seen[k], level);
+                            if (
+                                share !== undefined &&
+                                (seen[k].share === undefined ||
+                                    share > seen[k].share)
+                            )
+                                nameDot(seen[k], share);
                             return;
                         }
                         var halo = document.createElementNS(SVGNS, "circle");
@@ -703,9 +764,9 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         // which showed up as a second, grey copy under ours.
                         core.setAttribute("tabindex", "0");
                         core.setAttribute("role", "img");
-                        core.setAttribute("aria-label", tz.replace(/_/g, " "));
                         var dot = { halo: halo, core: core, level: 0 };
                         sizeDot(dot, level);
+                        nameDot(dot, share);
                         seen[k] = dot;
                         halos.appendChild(halo);
                         cores.appendChild(core);
@@ -917,7 +978,11 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             lastStats = stats;
                             // The deltas are measured from this moment.
                             baseStats = stats;
-                            buildMap(res[1], stats.timezone_levels);
+                            buildMap(
+                                res[1],
+                                stats.timezone_levels,
+                                stats.timezone_shares,
+                            );
                             liveEl.classList.add("on");
                             paintCountdown();
                             setInterval(function () {
@@ -1553,7 +1618,15 @@ ${cards.map(renderStatCard).join("\n")}
                             role="group"
                             aria-label="${attr(l.mapAriaLabel)}"
                         ></svg>
-                        <div class="nm-tz-tip" role="tooltip" hidden></div>
+                        <div
+                            class="nm-tz-tip"
+                            role="tooltip"
+                            data-share-pattern="${attr(l.mapShare)}"
+                            hidden
+                        >
+                            <span class="nm-tz-tip-n"></span
+                            ><span class="nm-tz-tip-s" hidden></span>
+                        </div>
                     </div>
                 </div>
             </section>`;

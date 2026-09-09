@@ -2645,6 +2645,24 @@ body.menu-open {
        tip hanging off the dot's right - and off the card's edge. */
     animation: nm-tip 0.2s both;
 }
+/* Two lines: the zone, then its share of all accounts. The share is mono
+   and dimmed — it is a figure under a name, not a second heading — and it
+   hides itself when the API served no shares (a database older than
+   timezone_counts), leaving the tip as the single name line it used to be. */
+.nm-tz-tip-n {
+    display: block;
+}
+.nm-tz-tip-s {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    opacity: 0.75;
+}
+.nm-tz-tip-s[hidden] {
+    display: none;
+}
 @keyframes nm-tip {
     from {
         opacity: 0;

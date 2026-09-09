@@ -275,6 +275,12 @@ export interface IndexDoc {
         /** Mono note beside the timezone count, e.g. "dot size = share of
          * accounts · hover a dot". */
         mapNote: string;
+        /** The map tooltip's second line, under the timezone name. `{share}`
+         *  is substituted with that zone's share of all profiles, already
+         *  formatted as a percent in the page's own language ("18%", "18 %",
+         *  "<1%" for anything rounding below one — see timezoneShares() in
+         *  src/supabase.ts for why the tail is bucketed rather than exact). */
+        mapShare: string;
         mapAriaLabel: string;
     };
 
@@ -583,6 +589,7 @@ export const INDEX_EN: IndexDoc = {
         timezonesAfter:
             " timezones · days roll over at each person's own midnight",
         mapNote: "dot size = share of accounts · hover a dot",
+        mapShare: "{share} of accounts",
         mapAriaLabel:
             "Dot-grid world map of Nutrition MCP accounts by timezone; larger dots mean a larger share",
     },

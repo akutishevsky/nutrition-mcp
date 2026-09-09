@@ -266,6 +266,7 @@ export const INDEX_JA: IndexDoc = {
         timezonesAfter:
             "か所のタイムゾーン · 日付はそれぞれの現地時間の深夜0時に切り替わります",
         mapNote: "点の大きさ = アカウントの割合 · 点にカーソルを合わせると詳細",
+        mapShare: "アカウントの{share}",
         mapAriaLabel:
             "Nutrition MCPアカウントをタイムゾーン別に示したドット地図。点が大きいほど割合が高いことを表します",
     },

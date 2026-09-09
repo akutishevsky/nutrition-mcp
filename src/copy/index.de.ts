@@ -250,6 +250,7 @@ export const INDEX_DE: IndexDoc = {
         timezonesAfter:
             " Zeitzonen · der Tag wechselt um die jeweils eigene Mitternacht",
         mapNote: "Punktgröße = Anteil der Konten · fahr über einen Punkt",
+        mapShare: "{share} der Konten",
         mapAriaLabel:
             "Punktraster-Weltkarte der Nutrition-MCP-Konten nach Zeitzone; größere Punkte bedeuten einen größeren Anteil",
     },

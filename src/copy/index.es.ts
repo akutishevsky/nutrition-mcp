@@ -250,6 +250,7 @@ export const INDEX_ES: IndexDoc = {
             " zonas horarias · los días cambian a la medianoche de cada persona",
         mapNote:
             "tamaño del punto = proporción de cuentas · pasa el cursor por un punto",
+        mapShare: "{share} de las cuentas",
         mapAriaLabel:
             "Mapa mundial de puntos con las cuentas de Nutrition MCP por zona horaria; los puntos más grandes indican una proporción mayor",
     },
