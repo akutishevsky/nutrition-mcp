@@ -1662,6 +1662,11 @@ export interface LandingStats {
     // IANA name -> 1..5, that timezone's share of all profiles. Sizes each dot
     // on the world map. Levels, never counts: see timezoneLevels().
     timezone_levels: Record<string, number>;
+    // IANA name -> that timezone's share of all profiles, in WHOLE percent,
+    // for the map's tooltip. 0 is not "none" — it is "rounds to under 1%",
+    // which the page renders as "<1%". See timezoneShares() for why it is
+    // rounded rather than exact.
+    timezone_shares: Record<string, number>;
 }
 
 // What the SQL function actually returns. `timezone_counts` is exact and stays
@@ -1708,6 +1713,34 @@ export function timezoneLevels(
     return levels;
 }
 
+// Each timezone's share of all profiles, in whole percent, for the map's
+// tooltip.
+//
+// Rounded, and deliberately so. The same privacy boundary as timezoneLevels()
+// applies — /api/stats is public and unauthenticated, and most timezones hold
+// a single profile — but a share is a softer disclosure than a count only as
+// long as the count cannot be read back out of it. An exact share can be: the
+// smallest one on the map divides into 100 to give the total, and every other
+// share then multiplies back into its own count. Whole percent breaks that,
+// and it also folds the entire long tail into one bucket: everything under
+// half a percent rounds to 0, which the page renders as "<1%" rather than
+// pinpointing the zones with one person in them. The zones anyone actually
+// reads a number off — the ones with real share — are unaffected.
+export function timezoneShares(
+    counts: Record<string, number>,
+): Record<string, number> {
+    const entries = Object.entries(counts).filter(
+        ([, n]) => typeof n === "number" && n > 0,
+    );
+    const total = entries.reduce((sum, [, n]) => sum + n, 0);
+    const shares: Record<string, number> = {};
+    if (total <= 0) return shares;
+    for (const [tz, n] of entries) {
+        shares[tz] = Math.round((n / total) * 100);
+    }
+    return shares;
+}
+
 // Aggregate-only totals for the public landing page. Backed by the
 // `public_landing_stats` SQL function so the whole thing is one round trip and
 // the database does the summing. Never returns per-user rows.
@@ -1716,6 +1749,7 @@ export async function getLandingStats(): Promise<LandingStats> {
     if (error) throw new Error(`Failed to get landing stats: ${error.message}`);
     const { timezone_counts, ...rest } = data as RawLandingStats;
     const timezone_levels = timezoneLevels(timezone_counts ?? {});
+    const timezone_shares = timezoneShares(timezone_counts ?? {});
     // Deploy-order safety. The app and the database ship separately, so this
     // code can be live before the migration that adds `timezone_counts` has
     // run. Without a fallback the map would render its land grid and not a
@@ -1726,7 +1760,10 @@ export async function getLandingStats(): Promise<LandingStats> {
             timezone_levels[tz] = LEGACY_TZ_LEVEL;
         }
     }
-    return { ...rest, timezone_levels };
+    // No fallback for the shares: a database without timezone_counts cannot
+    // say what any zone's share is, and the tooltip drops the line rather
+    // than inventing one.
+    return { ...rest, timezone_levels, timezone_shares };
 }
 
 // ---------- Registered clients ----------

@@ -10,6 +10,7 @@ import {
     exportArchivePath,
     exportStoragePaths,
     timezoneLevels,
+    timezoneShares,
     TZ_LEVEL_THRESHOLDS,
     seedPatreonTokensFromEnv,
     type Meal,
@@ -534,6 +535,50 @@ describe("fetchAllPages", () => {
         const { fetchPage } = paged(rows);
         const result = await fetchAllPages(fetchPage, 5);
         expect(result.map((r) => r.id)).toEqual(rows.map((r) => r.id));
+    });
+});
+
+describe("timezoneShares", () => {
+    // The number the map's tooltip reads out. It sits behind the same privacy
+    // boundary as timezoneLevels(): /api/stats is public, so what is served has
+    // to be coarse enough that the exact per-timezone counts cannot be read
+    // back out of it.
+
+    test("the user's own example — 10 of 100 reads as 10%", () => {
+        const shares = timezoneShares({ "Europe/Kyiv": 10, rest: 90 });
+        expect(shares["Europe/Kyiv"]).toBe(10);
+    });
+
+    test("shares are whole percent, never a fraction", () => {
+        // Exact shares would give the total away: the smallest one divides
+        // into 100, and every other share then multiplies back into its count.
+        const shares = timezoneShares({ a: 37, b: 61, c: 143, d: 9 });
+        for (const value of Object.values(shares)) {
+            expect(Number.isInteger(value)).toBe(true);
+        }
+    });
+
+    test("the long tail collapses into one bucket rather than pinpointing", () => {
+        // A single profile among 250 is the case the boundary exists for —
+        // it must not come out as its own distinguishable figure.
+        const shares = timezoneShares({
+            "Pacific/Apia": 1,
+            "Pacific/Fiji": 1,
+            rest: 248,
+        });
+        expect(shares["Pacific/Apia"]).toBe(0);
+        expect(shares["Pacific/Fiji"]).toBe(0);
+    });
+
+    test("shares are shares, not counts — scaling everything changes nothing", () => {
+        const small = timezoneShares({ a: 10, b: 20, c: 70 });
+        const large = timezoneShares({ a: 1000, b: 2000, c: 7000 });
+        expect(large).toEqual(small);
+    });
+
+    test("no profiles yields no shares rather than a divide by zero", () => {
+        expect(timezoneShares({})).toEqual({});
+        expect(timezoneShares({ a: 0 })).toEqual({});
     });
 });
 
