@@ -512,23 +512,25 @@ html.js [data-reveal="stagger"].in > :nth-child(n + 7) {
        hairline under its bottom edge. Translucent, so the glass and its blur
        still read through and the nav labels keep their contrast.
 
-       The wash thins from the left edge to the progress mark and then stops
-       dead, so the cut at the leading edge is a step down from a faint tint
-       rather than from a solid one — a hard edge at full strength read as a
-       rendering artifact across the middle of the nav.
+       The wash thins from the left edge and then feathers out over the last
+       56px into the progress mark, so the leading edge has no cut in it at
+       all — at full strength a hard edge across the middle of the nav read
+       as a rendering artifact.
 
-       The last stop sits at 0, which CSS clamps up to the one before it, so
-       at zero progress every stop collapses onto 0% and nothing paints: no
-       "only once scrolled" gate, the way the hairline needed. The pill's
-       border-radius clips the fill, which gives it a rounded left cap for
-       free. */
+       The feather ends ON the mark rather than overshooting it, which is
+       what keeps it honest at both extremes. Its start, progress - 56px,
+       goes negative below ~5% and CSS clamps it up to the stop before it,
+       so the fade simply shortens to whatever room it has; at zero every
+       stop collapses onto 0% and nothing paints at all. That is why this
+       needs no "only once scrolled" gate the way the hairline did. The
+       pill's border-radius clips the fill into a rounded left cap. */
     background:
         linear-gradient(
             90deg,
             color-mix(in srgb, var(--acc) 20%, transparent) 0%,
-            color-mix(in srgb, var(--acc) 7%, transparent)
-                calc(var(--progress, 0) * 100%),
-            transparent 0
+            color-mix(in srgb, var(--acc) 9%, transparent)
+                calc(var(--progress, 0) * 100% - 56px),
+            transparent calc(var(--progress, 0) * 100%)
         ),
         var(--glass);
     -webkit-backdrop-filter: blur(18px) saturate(160%);
