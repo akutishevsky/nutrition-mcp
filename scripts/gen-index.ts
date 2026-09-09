@@ -771,6 +771,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                 // no unit style at all.
                 var fmtSecs = null;
                 var fmtMins = null;
+                var fmtHours = null;
                 try {
                     fmtSecs = new Intl.NumberFormat(NUM_LOCALE, {
                         style: "unit",
@@ -782,19 +783,33 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         unit: "minute",
                         unitDisplay: "narrow",
                     });
+                    fmtHours = new Intl.NumberFormat(NUM_LOCALE, {
+                        style: "unit",
+                        unit: "hour",
+                        unitDisplay: "narrow",
+                    });
                 } catch (e) {
-                    fmtSecs = fmtMins = null;
+                    fmtSecs = fmtMins = fmtHours = null;
                 }
+                // Two units at a time, coarsening as the tab stays open: seconds,
+                // then minutes and seconds, then hours and minutes. Past an hour the
+                // seconds are dropped rather than making a third segment — nobody
+                // reads them at that scale, and the chip stops growing.
                 function fmtSince(secs) {
-                    var m = Math.floor(secs / 60);
+                    var h = Math.floor(secs / 3600);
+                    var m = Math.floor((secs % 3600) / 60);
                     var s = secs % 60;
-                    if (fmtSecs && fmtMins)
+                    if (fmtSecs && fmtMins && fmtHours)
                         return secs < 60
                             ? fmtSecs.format(secs)
-                            : fmtMins.format(m) + " " + fmtSecs.format(s);
+                            : secs < 3600
+                              ? fmtMins.format(m) + " " + fmtSecs.format(s)
+                              : fmtHours.format(h) + " " + fmtMins.format(m);
                     return secs < 60
                         ? fmtInt(secs) + "s"
-                        : fmtInt(m) + "m " + fmtInt(s) + "s";
+                        : secs < 3600
+                          ? fmtInt(m) + "m " + fmtInt(s) + "s"
+                          : fmtInt(h) + "h " + fmtInt(m) + "m";
                 }
                 function paintSince() {
                     if (!sinceEl) return;
