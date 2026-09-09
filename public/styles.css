@@ -506,32 +506,36 @@ html.js [data-reveal="stagger"].in > :nth-child(n + 7) {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: var(--glass);
+    /* Reading progress: site.js sets --progress (0..1) on .nm-header and it
+       inherits down here. The whole pill is the gauge — it fills with a soft
+       accent wash from the left as the page is read, rather than carrying a
+       hairline under its bottom edge. Translucent, so the glass and its blur
+       still read through and the nav labels keep their contrast.
+
+       The wash thins from the left edge to the progress mark and then stops
+       dead, so the cut at the leading edge is a step down from a faint tint
+       rather than from a solid one — a hard edge at full strength read as a
+       rendering artifact across the middle of the nav.
+
+       The last stop sits at 0, which CSS clamps up to the one before it, so
+       at zero progress every stop collapses onto 0% and nothing paints: no
+       "only once scrolled" gate, the way the hairline needed. The pill's
+       border-radius clips the fill, which gives it a rounded left cap for
+       free. */
+    background:
+        linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--acc) 20%, transparent) 0%,
+            color-mix(in srgb, var(--acc) 7%, transparent)
+                calc(var(--progress, 0) * 100%),
+            transparent 0
+        ),
+        var(--glass);
     -webkit-backdrop-filter: blur(18px) saturate(160%);
     backdrop-filter: blur(18px) saturate(160%);
     border: 1px solid var(--line);
     border-radius: 999px;
     box-shadow: var(--shadow);
-}
-/* Reading progress: site.js sets --progress (0..1) on #site-head. Drawn
-   as a hairline inside the pill's bottom edge, only once scrolled. */
-.nm-bar::after {
-    content: "";
-    position: absolute;
-    left: 24px;
-    right: 24px;
-    bottom: 0;
-    height: 2px;
-    border-radius: 2px;
-    background: var(--acc);
-    opacity: 0;
-    transform: scaleX(var(--progress, 0));
-    transform-origin: left;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-.nm-header.scrolled .nm-bar::after {
-    opacity: 0.7;
 }
 .nm-brand {
     flex: none;
