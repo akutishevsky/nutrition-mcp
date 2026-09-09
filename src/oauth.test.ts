@@ -113,7 +113,9 @@ test("a Google sign-in failure re-renders the error in the session's locale", as
     const authorizeRes = await fire(
         app,
         "GET",
-        `/authorize?response_type=code&client_id=${encodeURIComponent(process.env.OAUTH_CLIENT_ID!)}&redirect_uri=https://example.com/cb&state=xyz&locale=de`,
+        // Loopback, because /authorize now rejects unregistered redirect_uris
+        // and this test is about locale, not about the allowlist.
+        `/authorize?response_type=code&client_id=${encodeURIComponent(process.env.OAUTH_CLIENT_ID!)}&redirect_uri=${encodeURIComponent("http://localhost:9876/cb")}&state=xyz&locale=de`,
         "198.51.100.1",
     );
     expect(authorizeRes.status).toBe(200);
@@ -138,6 +140,82 @@ test("a Google sign-in failure re-renders the error in the session's locale", as
         "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuche es erneut.",
     );
     expect(errorHtml).not.toContain("Google sign-in failed");
+});
+
+// ---------- redirect_uri allowlist ----------
+
+// The bug these guard: /authorize used to accept any redirect_uri and
+// finishAuthorization delivered the authorization code to it. /register hands
+// client_id and client_secret to anyone, and PKCE binds the code to whoever
+// started the flow — the attacker — so a single crafted link was enough to
+// collect a victim's code and trade it for a year-long token.
+function authorizePath(redirectUri: string): string {
+    return `/authorize?response_type=code&client_id=${encodeURIComponent(
+        process.env.OAUTH_CLIENT_ID!,
+    )}&redirect_uri=${encodeURIComponent(redirectUri)}&state=xyz`;
+}
+
+test("/authorize refuses an unregistered redirect_uri", async () => {
+    _resetBuckets();
+    const { app } = buildTestApp();
+
+    const res = await fire(
+        app,
+        "GET",
+        authorizePath("https://evil.example/collect"),
+        "203.0.113.20",
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: "invalid_request" });
+    // Never a 302: a redirect here is the vulnerability, whatever the body says.
+    expect(res.headers.get("location")).toBeNull();
+});
+
+// A prefix or substring test on the allowed host would let this through, which
+// is the same class of mistake as having no check at all.
+test("/authorize refuses a lookalike host that merely starts with an allowed one", async () => {
+    _resetBuckets();
+    const { app } = buildTestApp();
+
+    const res = await fire(
+        app,
+        "GET",
+        authorizePath("https://claude.ai.evil.example/api/mcp/auth_callback"),
+        "203.0.113.21",
+    );
+
+    expect(res.status).toBe(400);
+    expect(res.headers.get("location")).toBeNull();
+});
+
+test("/authorize accepts the Claude connector callback", async () => {
+    _resetBuckets();
+    const { app } = buildTestApp();
+
+    const res = await fire(
+        app,
+        "GET",
+        authorizePath("https://claude.ai/api/mcp/auth_callback"),
+        "203.0.113.22",
+    );
+
+    expect(res.status).toBe(200);
+});
+
+// The MCP Inspector and locally-run clients bind an ephemeral port, so loopback
+// has to be allowed on any port rather than enumerated.
+test("/authorize accepts loopback on an arbitrary port", async () => {
+    _resetBuckets();
+    const { app } = buildTestApp();
+
+    for (const uri of [
+        "http://localhost:6274/oauth/callback",
+        "http://127.0.0.1:51789/cb",
+    ]) {
+        const res = await fire(app, "GET", authorizePath(uri), "203.0.113.23");
+        expect(res.status).toBe(200);
+    }
 });
 
 // ---------- OAuth rate-limit scoping ----------
