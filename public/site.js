@@ -451,10 +451,21 @@
                 var overflow =
                     b.getBoundingClientRect().right -
                     host.getBoundingClientRect().right;
-                host.style.setProperty(
-                    "--badge-reserve",
-                    (overflow > 0 ? overflow + 4 : 0) + "px",
-                );
+                // Whole pixels, and it only ever grows while the badge is up.
+                // The count changes every few seconds, and re-measuring to a
+                // fresh fractional width each time slid the whole right-hand
+                // side of the bar — the nav items, both switchers, the CTA —
+                // back and forth by a pixel or two, which is the twitch this
+                // reserve was meant to prevent. The count only climbs during a
+                // visit, so growing-only settles after a digit is added rather
+                // than leaving a gap.
+                var next = overflow > 0 ? Math.ceil(overflow) + 4 : 0;
+                var current =
+                    parseFloat(
+                        host.style.getPropertyValue("--badge-reserve"),
+                    ) || 0;
+                if (next <= current) return;
+                host.style.setProperty("--badge-reserve", next + "px");
             });
         }
 
