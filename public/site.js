@@ -37,11 +37,23 @@
         );
     }
     var metaTheme = doc.querySelector('meta[name="theme-color"]');
+    // The browser chrome colour follows the page's own --bg, read back off
+    // <body> after the theme attribute has been stamped, so a page on a
+    // different palette (the landing page's landing.css against every
+    // other page's styles.css) gets its own ground rather than the shared
+    // stylesheet's. The literals are only the fallback for a page whose
+    // stylesheet has not defined the token (or has not loaded yet).
+    function pageBackground(dark) {
+        var bg = "";
+        try {
+            bg = getComputedStyle(body).getPropertyValue("--bg").trim();
+        } catch (e) {}
+        return bg || (dark ? "#0d1210" : "#fbfbf9");
+    }
     function syncTheme() {
         var dark = effectiveTheme() === "dark";
         body.classList.toggle("is-dark", dark);
-        if (metaTheme)
-            metaTheme.setAttribute("content", dark ? "#0d1210" : "#fbfbf9");
+        if (metaTheme) metaTheme.setAttribute("content", pageBackground(dark));
         var mode = selectedMode();
         doc.querySelectorAll("[data-theme-set]").forEach(function (btn) {
             btn.setAttribute(

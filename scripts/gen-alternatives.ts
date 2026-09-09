@@ -187,7 +187,7 @@ function installBlock(locale: SiteLocale, ui: AltUiCopy): string {
         .join("\n");
     const note = ui.app.installNoteTemplate.replace(
         "{link}",
-        `<a href="${hashPath(locale, "install")}">${esc(ui.app.installLinkText)}</a>`,
+        `<a href="${hashPath(locale, "connect")}">${esc(ui.app.installLinkText)}</a>`,
     );
     return `                    <div class="card install-card">
                         <ol class="steps">
@@ -617,10 +617,10 @@ ${nav(locale, "/alternatives", "/alternatives")}
                             ${esc(ui.hub.heroLead)}
                         </p>
                         <div class="hero-actions">
-                            <a class="btn btn-primary" href="${hashPath(locale, "install")}"
+                            <a class="btn btn-primary" href="${hashPath(locale, "connect")}"
                                 >${esc(ui.ctaQuickInstall)}</a
                             >
-                            <a class="btn btn-secondary" href="${hashPath(locale, "try")}"
+                            <a class="btn btn-secondary" href="${hashPath(locale, "examples")}"
                                 >${esc(ui.hub.ctaSeeExamples)}</a
                             >
                         </div>
@@ -676,7 +676,7 @@ ${ui.hub.importBody.map((p) => `                        <p>\n                   
                         ${esc(ui.hub.ctaSub)}
                     </p>
                     <div class="cta-actions">
-                        <a class="btn btn-on-accent" href="${hashPath(locale, "install")}"
+                        <a class="btn btn-on-accent" href="${hashPath(locale, "connect")}"
                             >${esc(ui.ctaQuickInstall)}</a
                         >
                         <a

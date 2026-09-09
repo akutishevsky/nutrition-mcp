@@ -176,7 +176,10 @@ ${ogAlternates}`;
  */
 const PLURAL_CATEGORIES = ["one", "few", "many", "other"] as const;
 
-function liveBadge(c: ChromeCopy, decorative?: boolean): string {
+// Exported because the landing page (scripts/gen-index.ts) builds its own
+// header on a different design and still has to ship the exact same badge
+// markup — site.js's setNavBadge and src/alt-pages.test.ts both pin it.
+export function liveBadge(c: ChromeCopy, decorative?: boolean): string {
     // esc() leaves quotes alone — fine for text nodes, not for the attribute
     // values below, where an apostrophe is harmless but a double quote would
     // end the attribute early.
@@ -248,10 +251,10 @@ export function nav(
                 </a>
                 <nav class="head-nav" aria-label="${esc(c.landmarks.primaryNav)}">
                     <a href="${h("how")}">${esc(c.nav.how)}</a>
-                    <a href="${h("install")}">${esc(c.nav.install)}</a>
+                    <a href="${h("connect")}">${esc(c.nav.install)}</a>
                     <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
-                    <a href="${h("try")}">${esc(c.nav.examples)}</a>
-                    <a class="nav-has-badge" href="${h("stats")}">${esc(c.nav.liveStats)}${liveBadge(c)}</a>
+                    <a href="${h("examples")}">${esc(c.nav.examples)}</a>
+                    <a class="nav-has-badge" href="${h("live")}">${esc(c.nav.liveStats)}${liveBadge(c)}</a>
                     <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 </nav>
                 <div class="head-tools">
@@ -309,7 +312,7 @@ ${switcherItems}
                             <button type="button" data-theme-set="dark" aria-pressed="false">${esc(c.theme.dark)}</button>
                         </div>
                     </details>
-                    <a class="btn btn-primary btn-sm head-cta" href="${h("install")}"
+                    <a class="btn btn-primary btn-sm head-cta" href="${h("connect")}"
                         >${esc(c.connectCta)}</a
                     >
                     <button
@@ -329,10 +332,10 @@ ${switcherItems}
         <div class="site-menu" id="site-menu" hidden>
             <nav aria-label="${esc(c.landmarks.menu)}">
                 <a href="${h("how")}">${esc(c.nav.how)} <small>${esc(c.menu.howSmall)}</small></a>
-                <a href="${h("install")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
+                <a href="${h("connect")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
                 <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
-                <a href="${h("try")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
-                <a href="${h("stats")}"><span class="menu-label nav-has-badge">${esc(c.nav.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
+                <a href="${h("examples")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
+                <a href="${h("live")}"><span class="menu-label nav-has-badge">${esc(c.nav.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
                 <a href="${h("faq")}">${esc(c.nav.faq)}</a>
                 <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
             </nav>
@@ -349,7 +352,7 @@ ${switcherItems}
                 <a href="${p("/terms")}">${esc(c.menu.terms)}</a>
             </div>
             <div class="menu-foot">
-                <a class="btn btn-primary" href="${h("install")}">${esc(c.menu.connectInMinute)}</a>
+                <a class="btn btn-primary" href="${h("connect")}">${esc(c.menu.connectInMinute)}</a>
             </div>
         </div>`;
     if (!currentSuffix) return html;
