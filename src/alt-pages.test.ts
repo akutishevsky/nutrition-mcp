@@ -1,6 +1,9 @@
 import { test, expect } from "bun:test";
 import { ALT_PAGES, PAGE_ROUTES, SITE_LOCALES, urlFor } from "./routes.js";
 import { chromeFor } from "./copy/chrome.js";
+import { altUiFor } from "./copy/alt-ui.js";
+import { LEGAL_UI } from "./copy/legal.js";
+import { TOOLS_COPY } from "./copy/tools.js";
 import { INDEX } from "./copy/index.js";
 import { LOGIN, LOGIN_ERRORS } from "./copy/login.js";
 
@@ -351,35 +354,25 @@ test("the stats unit toggle is labelled in every locale's own words", async () =
 // is harmless (the menu holding the switcher is closed), but the resting
 // state is a default, not a guarantee.
 //
-// Two markups carry the same three buttons. Every page on the shared chrome
-// (nav() in scripts/site-partials.ts) has the <details class="theme-switch">
-// disclosure: its <summary> is named by aria-label + title, and the
-// .theme-menu inside it is the group named by theme.title. The landing page
-// has no disclosure — its three buttons sit in the header bar as one
-// `role="group"` named by theme.title alone (one aria-label per element, so
-// there is no second "Change theme" name to pin). The summary checks
-// therefore apply only where the disclosure exists; the group name and the
-// per-button labels apply everywhere.
+// The three buttons sit in the header bar as one `role="group"` (the
+// .nm-theme segmented control nav() in scripts/site-partials.ts renders on
+// every page) named by theme.title alone — one aria-label per element, so
+// there is no second "Change theme" name to pin; each button is named by
+// its title plus a visually hidden label.
 test("the theme switcher is labelled in every locale's own words", async () => {
     for (const { path, locale } of await existingPages()) {
         if (!(await isGenerated(path))) continue;
         const c = chromeFor(locale).theme;
         const html = await Bun.file(path).text();
-        const attrs = [`aria-label="${c.title}"`];
-        if (html.includes('class="theme-switch"')) {
-            attrs.push(`aria-label="${c.ariaLabel}"`, `title="${c.title}"`);
-        } else {
-            // The landing page's segmented group: named once, as a group.
-            expect(`${path}: ${html.includes(`class="nm-theme"`)}`).toBe(
-                `${path}: true`,
-            );
-            expect(
-                `${path}: ${/class="nm-theme"\s+role="group"/.test(html)}`,
-            ).toBe(`${path}: true`);
-        }
-        for (const attr of attrs) {
-            expect(`${path}: ${html.includes(attr)}`).toBe(`${path}: true`);
-        }
+        expect(`${path}: ${html.includes(`class="nm-theme"`)}`).toBe(
+            `${path}: true`,
+        );
+        expect(`${path}: ${/class="nm-theme"\s+role="group"/.test(html)}`).toBe(
+            `${path}: true`,
+        );
+        expect(`${path}: ${html.includes(`aria-label="${c.title}"`)}`).toBe(
+            `${path}: true`,
+        );
         const modes = [
             ["system", c.system],
             ["light", c.light],
@@ -435,9 +428,15 @@ test("the menu button carries both of its labels, translated", async () => {
 // catch, because they never paint. The language menu was worse than
 // untranslated: its aria-label sat on a bare <div>, which exposes nothing
 // at all, so the label was inert in English too. It has role="group" now
-// and reuses languageTitle, matching the .theme-menu beside it.
+// and reuses languageTitle, matching the .nm-theme group beside it.
+//
+// The per-page landmarks are pinned the same way: the breadcrumb on the
+// alternatives pages (the one <nav> whose name stayed a hardcoded English
+// "Breadcrumb" on all eight locales after everything else was moved into
+// copy), the category chip row on /tools, and the table of contents on
+// the legal pages.
 test("every landmark region is named in the page's own language", async () => {
-    for (const { path, locale } of await existingPages()) {
+    for (const { path, locale, suffix } of await existingPages()) {
         if (!(await isGenerated(path))) continue;
         const c = chromeFor(locale);
         const html = collapse(await Bun.file(path).text());
@@ -448,6 +447,19 @@ test("every landmark region is named in the page's own language", async () => {
             // Not a nav: a .lang-menu div, inert without role="group".
             [`class="lang-menu" role="group" aria-label="`, c.languageTitle],
         ];
+        if (suffix in ALT_PAGES) {
+            regions.push([
+                `<nav class="nm-crumb" aria-label="`,
+                altUiFor(locale).breadcrumbAriaLabel,
+            ]);
+        } else if (suffix === "/tools") {
+            regions.push([
+                `<nav class="nm-chips nm-chips-scroll nm-chips-sticky tools-cats" aria-label="`,
+                TOOLS_COPY[locale]!.ui.categoriesLabel,
+            ]);
+        } else if (suffix === "/privacy" || suffix === "/terms") {
+            regions.push([`<nav aria-label="`, LEGAL_UI[locale].contents]);
+        }
         for (const [open, label] of regions) {
             expect(
                 `${path} [${label}]: ${html.includes(open + label + '"')}`,
