@@ -25,6 +25,58 @@ import { chromeFor } from "./copy/chrome.js";
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
+// Redirect URIs /authorize is willing to deliver an authorization code to.
+//
+// Nothing else constrains that destination: /register hands the same client_id
+// and client_secret to any anonymous caller, and PKCE binds the code to whoever
+// *started* the flow — which, in the attack this closes, is the attacker, so
+// they hold the verifier themselves. /token's existing check compares the
+// presented redirect_uri against the one stored alongside the code, so it only
+// ever confirms the value agrees with itself. This list is therefore the only
+// thing standing between a crafted /authorize link and someone else's account.
+//
+// The defaults are the Claude connector callbacks this server exists to serve.
+const DEFAULT_ALLOWED_REDIRECT_URIS = [
+    "https://claude.ai/api/mcp/auth_callback",
+    "https://claude.com/api/mcp/auth_callback",
+];
+
+// Additional clients, comma-separated — same shape and reasoning as
+// ALLOWED_ORIGINS in src/index.ts, so a self-hoster pointing another MCP client
+// at their instance configures it rather than patching this file.
+function resolveAllowedRedirectUris(): Set<string> {
+    const extra =
+        process.env.ALLOWED_REDIRECT_URIS?.split(",")
+            .map((u) => u.trim())
+            .filter(Boolean) ?? [];
+    return new Set([...DEFAULT_ALLOWED_REDIRECT_URIS, ...extra]);
+}
+
+// Loopback is always allowed, on any port and path: the MCP Inspector and
+// locally-run clients bind an ephemeral port, so there is no fixed value to
+// list. Mirrors the localhost exemption the CORS origin check already makes.
+//
+// Parsed rather than pattern-matched, and compared on `hostname` alone, because
+// a substring or prefix test admits "https://localhost.evil.example" — the same
+// class of mistake as the missing check itself.
+function isLoopbackRedirect(uri: string): boolean {
+    let parsed: URL;
+    try {
+        parsed = new URL(uri);
+    } catch {
+        return false;
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return false;
+    }
+    return (
+        parsed.hostname === "localhost" ||
+        parsed.hostname === "127.0.0.1" ||
+        // URL.hostname keeps the brackets on an IPv6 literal.
+        parsed.hostname === "[::1]"
+    );
+}
+
 interface OAuthSession {
     state: string;
     redirectUri: string;
@@ -255,6 +307,11 @@ export function createOAuthRouter() {
         throw new Error("Missing OAUTH_CLIENT_ID or OAUTH_CLIENT_SECRET");
     }
 
+    // Resolved here rather than at module load, so it reads the environment at
+    // the same moment clientId does — a test (or a caller) that sets
+    // ALLOWED_REDIRECT_URIS before building the router gets what it set.
+    const allowedRedirectUris = resolveAllowedRedirectUris();
+
     // Dynamic client registration (required by MCP spec)
     oauth.post("/register", async (c) => {
         const body = await c.req.json();
@@ -292,6 +349,20 @@ export function createOAuthRouter() {
         }
         if (reqClientId !== clientId) {
             return c.json({ error: "invalid_client" }, 400);
+        }
+        // Exact match, never a prefix: a prefix test on
+        // "https://claude.ai" also admits "https://claude.ai.evil.example".
+        if (
+            !allowedRedirectUris.has(redirectUri) &&
+            !isLoopbackRedirect(redirectUri)
+        ) {
+            return c.json(
+                {
+                    error: "invalid_request",
+                    error_description: "redirect_uri is not registered",
+                },
+                400,
+            );
         }
 
         cleanExpiredSessions();
