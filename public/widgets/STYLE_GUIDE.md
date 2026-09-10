@@ -539,7 +539,8 @@ work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
 - **Water is not on the ladder, so it goes under it.** It is not food, no meal
   carries it, it is logged through a different tool, and it is the only metric on
   the strip that never opens the drawer — ranking it among the nutrients puts it
-  on a scale it is not standing on. Last, then, and shaped differently: nothing
+  on a scale it is not standing on. Last of the readings, then (the drawer sits
+  below it — §6), and shaped differently: nothing
   else on the strip is a bar, so it is legible as a different _kind_ of thing
   before a word of it is read, and its wash — the same left-to-right ramp every
   tile carries — becomes a glass filling across the whole card instead of a
@@ -807,7 +808,15 @@ There are exactly **three** disclosure affordances and only three: the chip
 
 ## 6. The drawer
 
-One per card, one open at a time, always directly under the rails.
+One per card, one open at a time, and **last** — under every rail, the water row
+included. It briefly sat between the limits and water on the reasoning that
+water can never open it (no meal carries `water_ml`), so the breakdown belonged
+beside the tiles that can. That optimised the wrong thing: an open drawer is a
+tall panel, and putting it there cut the metrics in two and left the water bar
+stranded below it, reading as something that had come loose. Adjacency was never
+the prize anyway — the drawer is already nowhere near its trigger when the
+calorie panel at the top opens it. It is detail for the whole strip, so it goes
+under the whole strip, and the metric rows stay contiguous open or closed.
 
 ```html
 <div class="drawer" id="macro-drawer" tabindex="-1" hidden>

@@ -254,11 +254,11 @@
    at when it followed the macros — there it was closing a block, here it is
    opening one of its own.
 
-   Declared on the rail itself and NOT as `.rail + .rail.r-water`: the drawer is
-   emitted between the limits and this row (see macroPanel), so a sibling
-   selector matched only while nothing was open and let water snap up against
-   the breakdown the moment a tile was tapped. `.rail.r-water` outranks `.rail`'s
-   own `margin: -2px` shorthand, so this holds whatever precedes it. */
+   Declared on the rail itself and NOT as `.rail + .rail.r-water`: a sibling
+   selector ties this spacing to whatever happens to precede the row, and what
+   precedes it has already changed once (the drawer sat between the limits and
+   water before moving below both). `.rail.r-water` outranks `.rail`'s own
+   `margin: -2px` shorthand, so this holds whatever ends up above it. */
 .rail.r-water {
     margin-top: 8px;
 }

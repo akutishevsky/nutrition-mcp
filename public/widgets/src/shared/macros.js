@@ -1082,17 +1082,20 @@ function macroPanel(vals, goal, wording, meals, opts) {
     const drawer = discloses
         ? `<div class="drawer" id="${MACRO_DRAWER_ID}" tabindex="-1" hidden></div>`
         : "";
-    // THE DRAWER GOES ABOVE THE WATER ROW, not after every rail. Water is the
-    // one metric that can never open it — no meal carries water_ml — so every
-    // tile the drawer can belong to is above it, and putting the breakdown last
-    // detached it from its own trigger by the width of a bar. It also cost
-    // water the position that is now its whole identity: tapping Sugar pushed
-    // the card's closing line into the middle of the card.
+    // THE DRAWER IS LAST, under every rail including water. It sat between the
+    // limits and the water row for a while, on the reasoning that water can
+    // never open it (no meal carries water_ml) so the breakdown belonged next
+    // to the tiles that can — but that reasoning optimised the wrong thing. An
+    // open drawer is a tall panel, and putting it there cut the metrics in two
+    // and left the water bar stranded below it, reading as something that had
+    // come loose rather than as the last of the readings.
     //
-    // The untiered strip is unchanged: there, water is a tile on the one rail
-    // and the drawer really is under everything.
+    // Adjacency was never really the prize: the drawer is already nowhere near
+    // its trigger when the calorie panel at the top opens it. What it actually
+    // is, is detail for the whole strip — so it goes under the whole strip, and
+    // the metric rows stay contiguous whether or not anything is open.
     const body = tieredRails
-        ? tieredRails.join("") + drawer + water
+        ? tieredRails.join("") + water + drawer
         : railOf("", macros.concat(waters, limits)) + drawer;
     return `
       <div class="strip${ctx.tiers ? " tiered" : ""}${ctx.divided ? " sec" : ""}"${interactive ? " data-macro-panel" : ""}>
