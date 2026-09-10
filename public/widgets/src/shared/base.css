@@ -1,4 +1,22 @@
-* {
+/* The widget shell: reset, type scale, the one card, the header line, the
+   hairline section, the empty state, the nutrient role classes and the icon
+   primitive. Everything here is used by every widget; anything used by one
+   widget belongs in that template's own scoped block. */
+
+/* `--p` is the fraction a tile's wash fills to. Registering it is what lets it
+   be ANIMATED: an unregistered custom property is an untyped token and CSS has
+   no idea how to interpolate "0%" toward "92.5%", so a keyframe on it would
+   snap rather than sweep. Typed as a percentage it tweens like any length.
+   `inherits: false` because every tile carries its own. */
+@property --p {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+}
+
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 html,
@@ -6,173 +24,329 @@ body {
     margin: 0;
     padding: 0;
 }
+
+/* Three declarations carry Dawn's voice through a system font stack, since the
+   CSP forbids fetching Urbanist:
+     font-weight 500 — Urbanist ships no 400, so the site's "unweighted" text is
+       really 500. A stack resolving to a genuine 400 reads visibly lighter and
+       instantly wrong, and this single line closes most of the gap.
+     negative tracking — one step tighter than the site at every display size,
+       because SF Pro / Segoe UI Variable / Roboto all set looser than Urbanist.
+     antialiased — the site's own smoothing, or the heavier weight goes chunky.
+   Do NOT give body a min-height: bridge.js measures documentElement at
+   max-content, and a viewport-height floor fights content-based measurement. */
 body {
-    color: var(--text);
+    color: var(--ink);
     background: var(--bg);
-    font-family:
-        ui-sans-serif,
-        system-ui,
-        -apple-system,
-        "Segoe UI",
-        Roboto,
-        Helvetica,
-        Arial,
-        sans-serif;
-    font-size: 14px;
-    line-height: 1.45;
+    font-family: var(--font);
+    font-size: 13.5px;
+    line-height: 1.4;
+    font-weight: 500;
+    letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
+
+/* #root IS .wrap — every template's render() replaces its contents wholesale,
+   and bridge.js appends its footer note inside it.
+
+   NO OUTER GUTTER. The widget does not sit on a page of its own: Claude and
+   ChatGPT each wrap the iframe in their own framed, rounded container, so a
+   gutter here is an inset strip of our --bg showing inside their frame, and
+   our radius is a second curve just inside theirs. The card goes edge to edge
+   and the host's frame IS the widget's frame. Interior padding still belongs
+   to the card — content must not touch the frame.
+
+   This also makes meal-logged's zero-height contract automatic: with no goals
+   it writes "" and the host collapses the iframe to nothing, which the 10px of
+   padding that used to be here would have held open. */
 .wrap {
     max-width: 760px;
     margin: 0 auto;
-    padding: 18px 16px 22px;
+    padding: 0;
+}
+/* …and the ground goes with it. bridge.js appends its footer note INSIDE .wrap
+   but outside the card, so once the card runs edge to edge the only body left
+   showing is the strip under that note — which in --bg is a second tone across
+   the bottom of an otherwise single surface. `.page` keeps --bg: there the
+   gutter is deliberate and the sections are separate cards on a ground. */
+.wrap:not(.page) {
+    background: var(--panel);
+}
+/* The full-page widgets (import-meals, the dev gallery) keep a real gutter:
+   their sections are their own cards, so the outermost thing is a page rather
+   than one surface, and butting a form against the host's frame reads as a
+   layout fault rather than as full bleed. */
+.wrap.page {
+    padding: 14px;
 }
 
-header.head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
-}
-.head h1 {
-    font-size: 21px;
-    font-weight: 800;
-    margin: 0;
-    letter-spacing: -0.03em;
-}
-.head .range {
-    color: var(--text-dim);
-    font-size: 13px;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-}
-
-.section-title {
-    font-size: 11.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--accent);
-    margin: 0 2px 9px;
-}
-
-/* The shared surface. Every card — stat tile, chart panel, form panel — is this
-   same fill/border/radius/shadow. Previously documented in STYLE_GUIDE.md as a
-   recipe to copy, which meant each component re-declared it; now it is real so
-   new widgets can just use it. */
+/* THE card. One per widget, never nested, never a second border, never a
+   shadow inside a shadow. */
 .card {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-}
-
-/* ---- Compact widget shell ------------------------------------------------
-   Every in-chat widget is ONE card: a header line, then sections separated by
-   hairlines. It replaces the older stack of header + section-title + several
-   cards, which spent most of a phone screen on chrome before the first number.
-   Opt-in and additive — `.wrap` keeps its roomier gutter for the full-page
-   form widget (import-meals), and `.wrap.tight` is what an in-chat widget
-   uses. */
-.wrap.tight {
-    padding: 12px;
-}
-
-.panel {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 12px 13px;
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow);
+}
+/* Lift every real child above the glow without giving the glow a z-index (a
+   z-index would create a stacking context the drawer's animation sits under). */
+.card > :not(.glow) {
+    position: relative;
 }
 
-/* Header line. On a phone the title and its right-hand meta share row one and
-   the subtitle drops to row two (`order` + a 100% basis); from 560px up all
-   three sit on one line with the subtitle taking the slack. */
-.phead {
+/* THE OUTERMOST card is flat: no radius, no border, no shadow. It is flush
+   with the host's own frame, and each of those would double an edge the host
+   has already drawn — a hairline just inside its border, a curve just inside
+   its curve, a shadow with nothing to fall on. Scoped to a direct child of
+   .wrap so a NESTED card (import-meals' sections, every gallery specimen)
+   keeps all three: those sit inside the page, not against the frame. */
+.wrap > .card {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* Dawn's drifting colour blob, one per card, tinted by the card's own --c.
+   Pure CSS, zero assets — by far the cheapest piece of the Dawn feel to bring
+   inside a deny-all iframe. */
+.glow {
+    position: absolute;
+    right: -70px;
+    top: -90px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: var(--c, var(--acc));
+    opacity: 0.13;
+    filter: blur(46px);
+    pointer-events: none;
+}
+
+/* Header line: title, right-aligned meta, subtitle on its own row.
+   `flex-wrap: wrap` is unconditional. It used to be gated on `:has(.csub)`
+   specifically so an over-long `.cmeta` would ellipsise rather than drop — the
+   layout audit measured what that cost: the meta clipped at 360px in 6 of 9
+   locales on nutrition-summary and 7 of 9 on goal-progress, and in plain
+   English at 320px. The meta is the header's only quantitative content, so it
+   now takes a second row instead of losing its second half. */
+.chead {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
-    gap: 2px 10px;
-}
-.phead.mid {
     align-items: center;
+    gap: 10px;
+    min-height: 26px;
 }
-.ptitle {
-    font-size: 13.5px;
+.ctitle {
+    flex: none;
+    margin: 0;
+    font-size: 15px;
     font-weight: 800;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.025em;
     white-space: nowrap;
 }
-/* nowrap so a date range never breaks mid-figure, but it must still be able
-   to shrink: "28 Dec 2025 – 4 Jan 2026 · 300 of 365 days logged" is wider than
-   a 320px card, and without a min-width of 0 a nowrap flex item refuses to go
-   below its content width and simply leaves the card. */
-.pmeta {
+/* Three stages of degradation, replacing the single-line ellipsis the layout
+   audit caught (see .chead above). Nothing is ever clipped:
+     1. it fits beside the title            -> one line, flush right;
+     2. its max-content does not fit there  -> the flex line breaks and the meta
+        gets the card's full width (this is what `flex-wrap: wrap` buys, and it
+        is enough for every locale measured at 320px: de needed 264px in a
+        154px slot beside the title, and gets 274px on its own row);
+     3. even a full row is too narrow ("28 Dec 2025 – 4 Jan 2026 · 300 of 365
+        days logged", or a wide locale at 320px) -> it wraps inside its own box.
+   The mono uppercase eyebrow is kept on purpose even though the treatment costs
+   ~33% width over sentence case: it is the same eyebrow as .slab and the table
+   head, and stages 2–3 are what pay for it. `overflow-wrap: anywhere` is the
+   last resort for an unbreakable compound (de "PROTOKOLLIERT"); it does not
+   affect stages 1–2, which are decided by max-content. Only in stage 3 can a
+   date range break mid-figure — a break that used to be a truncation.
+   min-width: 0 stays: a flex item must be allowed below its content width. */
+.cmeta {
     margin-left: auto;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 11px;
-    color: var(--text-dim);
+    text-align: right;
+    overflow-wrap: anywhere;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink3);
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
 }
-/* The one header figure that is a value rather than context: the calories the
-   meal just added. */
-.pmeta.kcal {
-    color: var(--calories);
+/* The one meta that is a value rather than context: the calories the meal just
+   added. A figure is not an eyebrow, so it drops the uppercase treatment.
+
+   a11y audit, BLOCKER: this was `color: var(--cal)` on --panel — 2.06:1 in
+   light mode at 10.5px/700, on the single most important number of the
+   meal-logged card. The rule the whole system already follows is that a series
+   token is an identity, not something you have to read: the text goes to --ink
+   on a soft --cal tint (16.8:1 light / 12.0:1 dark, measured on the composited
+   tint, not on the bare panel) and the calorie identity moves to the tint, the
+   hairline and the dot below — exactly what a chip does. Never paint 10.5px
+   text in a series token again. */
+.cmeta.kcal {
+    padding: 2px 8px;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--cal) 14%, var(--panel));
+    border: 1px solid color-mix(in srgb, var(--cal) 32%, var(--line));
+    color: var(--ink);
     font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: none;
 }
-.psub {
+/* The dot, not the text, carries --cal. Drawn as a pseudo-element because the
+   markup is a bare `<span class="cmeta kcal">`; inline-block rather than a flex
+   child so the pill keeps shrink-to-fit text behaviour inside .chead. */
+.cmeta.kcal::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: var(--cal);
+    vertical-align: 1px; /* optical centre on a 10.5px line box */
+}
+/* The header's third slot, always on its own row. TWO LINES, not one ellipsised
+   line: on meal-logged this element is not context, it IS the confirmation —
+   the only place the card says what was just logged — and a single line cut a
+   real meal name at "…with ce…" at 320px and was still 117px short at the
+   `.wrap`'s own 760px cap (layout audit). The clamp lived as a template-local
+   override in meal-logged for one round, which left component-gallery's
+   specimen — the surface that is supposed to BE the reference for this class —
+   showing one ellipsised line while the shipping card showed two (measured:
+   145px of overflow on the gallery specimen at 320px against a 2-line
+   clientHeight of 32 on meal-logged). One class, one behaviour; the gallery now
+   shows what ships. -webkit-line-clamp brings its own ellipsis, which is why
+   there is no `text-overflow` here. */
+.csub {
     order: 3;
     flex: 1 1 100%;
     min-width: 0;
-    font-size: 11.5px;
-    color: var(--text-dim);
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 11.5px;
+    color: var(--ink2);
 }
 
-/* A hairline-separated section inside the panel. */
-.psec {
-    padding-top: 9px;
-    border-top: 1px solid var(--panel-border);
+/* A hairline-topped block inside the card. Exactly one idea, no variants. */
+.sec {
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
 }
 
-@media (min-width: 560px) {
-    .wrap.tight {
-        padding: 14px;
-    }
-    .panel {
-        padding: 12px 16px;
-        gap: 10px;
-    }
-    .psub {
-        order: 0;
-        flex: 1 1 auto;
-    }
-    .psec {
-        padding-top: 10px;
-    }
-}
-
+/* Empty and loading states. bridge.js paints its connect-failure card with
+   these two exact class names (`.empty` wrapping `.empty .big`), so they cannot
+   be renamed here independently of that file. */
 .empty {
+    padding: 26px 18px;
     text-align: center;
-    color: var(--text-dim);
-    padding: 40px 20px;
+    color: var(--ink2);
     background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
     box-shadow: var(--shadow);
 }
+/* The emoji line. Emoji, not an SVG icon: a system glyph costs no fetch and an
+   empty state is the one place warmth beats precision. */
 .empty .big {
-    font-size: 26px;
     margin-bottom: 6px;
+    font-size: 26px;
+}
+/* Used inside a card (a section with no rows yet) it must not become a second
+   card — there are never nested surfaces. */
+.card .empty {
+    padding: 18px 12px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* Nutrient role classes: Dawn's --c indirection. Every consumer — chip dot,
+   chip underbar, gauge arc, chart stroke, drawer dot, card glow — reads
+   var(--c, var(--acc)) and never names a nutrient, so adding one is one MACROS
+   entry, one token and one line here. --over and --warn are signals rather than
+   series and deliberately get no role class. */
+.c-acc {
+    --c: var(--acc);
+}
+.c-cal {
+    --c: var(--cal);
+}
+.c-pro {
+    --c: var(--pro);
+}
+.c-car {
+    --c: var(--car);
+}
+.c-fat {
+    --c: var(--fat);
+}
+.c-wat {
+    --c: var(--wat);
+}
+.c-fib {
+    --c: var(--fib);
+}
+.c-sug {
+    --c: var(--sug);
+}
+.c-caf {
+    --c: var(--caf);
+}
+.c-alc {
+    --c: var(--alc);
+}
+
+/* Icons: one 16-unit drawing scaled by width/height, so a 9px chevron and a
+   16px warning triangle are the same path. currentColor means an icon follows
+   the theme, the inverted chip and the role class with no extra rule. */
+.ic {
+    display: block;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.ic-sm {
+    stroke-width: 1.75; /* optical correction below 13px */
+}
+
+/* Nothing in this design is made visible BY an animation — the drawer's
+   visibility is its `hidden` attribute and `rise` only decorates it — so a
+   cancelled animation can never leave content invisible. The un-hide clause is
+   !important because chip.css defines `.drawer { animation: rise … }` at equal
+   specificity and later in the cascade; a media query adds no specificity. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        /* DELAY TOO, not just duration. Every entrance here is staggered with
+           `animation-delay` and `animation-fill-mode: both`, which holds the
+           element at its `from` — invisible — until the delay elapses. Killing
+           the duration alone would leave the last tile hidden for a third of a
+           second on a machine that asked for no motion at all. */
+        animation-delay: 0s !important;
+    }
+    .drawer {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
 }

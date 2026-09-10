@@ -1,103 +1,198 @@
-:root {
-    /* Light theme (default). Dark overridden below.
-                   Apple-like neutral grays/whites with the brand green
-                   accent, matching the landing page's clean section. */
-    --text: #1d1d1f;
-    --text-dim: #6e6e73;
-    --bg: #f5f5f7;
-    --panel: #ffffff;
-    --panel-border: #e6e6ea;
-    --track: #e6e6ea;
-    --accent: #4a7c59;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 22px rgba(0, 0, 0, 0.05);
+/* Dawn, ported into the widget.
 
-    --calories: #ff9f0a;
-    --protein: #8b5cf6;
-    --carbs: #10b981;
-    --fiber: #0d9488;
-    --sugar: #65a30d;
+   The token NAMES deliberately match public/styles.css. A colour decided on the
+   site is then a one-line change here rather than a translation exercise, and a
+   nutrient that looks one way on /tools looks the same way in chat.
+
+   Three deliberate departures from styles.css, all noted inline below:
+     --ink3  and  --acc   carry the AA-corrected values the site itself ships
+                          (the design file's #9399a5 / #16a34a fail 4.5:1 at the
+                          10–12px sizes this card uses), not the design file's.
+     --alc                extends Dawn: the site never charts alcohol, so it has
+                          no token for it, and the widget does.
+   --warn is likewise widget-only: Dawn has one signal colour (--over), and
+   import-meals genuinely needs a third severity between "fine" and "wrong".
+
+   Four blocks, light written twice and dark written twice, byte-identical
+   copies — same discipline as styles.css. The media query serves the host's
+   "system" setting; the [data-theme] pair is an explicit host override and has
+   to win in BOTH directions, which a media query alone cannot do. */
+
+:root {
+    /* Ground & surface */
+    --bg: #f7f7f9;
+    --bg2: #eeeef3;
+    --panel: #ffffff;
+
+    /* Ink */
+    --ink: #101318;
+    --ink2: #5b6270;
+    --ink3: #646b78; /* AA-corrected; NOT the design file's #9399a5 */
+
+    /* Hairlines */
+    --line: #e3e4ea;
+    --line2: #d2d4dd;
+
+    /* Brand */
+    --acc: #15803d; /* AA-corrected; NOT the design file's #16a34a */
+    --acc-text: #147538;
+    --acc-ink: #ffffff;
+    --acc-soft: #dcf5e4;
+
+    /* Series palette */
+    --track: #e8e9ee;
+    --cal: #ff9f0a;
+    --pro: #8b5cf6;
+    --car: #10b981;
     --fat: #f43f7e;
-    --alcohol: #a21caf;
-    --caffeine: #8b5e34;
-    --water: #0ea5e9;
-    --over: #d0452b;
-    --warn: #b26a00;
+    --wat: #0ea5e9;
+    --fib: #0d9488;
+    --sug: #84cc16;
+    --caf: #a16207;
+    --alc: #a21caf; /* extends Dawn */
+
+    /* Signals. States, never series — neither gets a .c-* role class.
+
+       Both light values are one step darker than the hues they read as, and
+       that is what the a11y audit forced: a signal here is almost always TEXT
+       (`.dcap.over`, `.pill-bad`, `.pill-warn`, `.hsub.over`, `.field-error`)
+       and almost always sits on a surface LIGHTER than --panel is dark —
+       --bg2, or the signal's own 9–12% tint of itself. Measured, light:
+         --over  #d0452b -> #bb3a22   on --bg2       3.98 -> 4.85
+                                      on a 12% tint  3.90 -> 4.69
+                                      on --panel     4.60 -> 5.61
+         --warn  #b26a00 -> #8a5a00   on a 12% tint  3.66 -> 5.00
+       (The earlier numbers that passed were measured against a bare --panel
+       without compositing the pill's own translucent fill; the tint is the
+       ground that actually paints.) Both stay ≥3:1 where they are a graphic —
+       a chip dot, an underbar, a gauge stroke, a notice icon — and both dark
+       values are untouched: they already cleared 4.5:1 everywhere. */
+    --over: #bb3a22;
+    --warn: #8a5a00;
+
+    /* Elevation & motion */
+    --shadow:
+        0 1px 2px rgba(16, 19, 24, 0.04),
+        0 30px 70px -30px rgba(16, 19, 24, 0.25);
+    --seg-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Geometry. --r-card is 20px, not the site's 26–28: on a 336px-wide card a
+       28px radius eats visible corner area and reads as a lozenge. Same
+       decision rule as the site (radius steps with surface size), different
+       surface. */
+    --r-card: 20px;
+    --r-in: 14px;
+    --r-pill: 999px;
+
+    /* Type. Urbanist and Geist Mono are network fetches and the iframe CSP is
+       deny-all, so the stacks are system-only. What carries Dawn's identity is
+       weight plus negative tracking (see base.css), not the typeface. */
+    --font:
+        ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+        Arial, sans-serif;
+    --mono:
+        ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Mono",
+        "Roboto Mono", monospace;
 
     /* Native controls (select, input, scrollbars) follow the theme only when
        color-scheme is declared; without it a dark widget renders light OS
-       chrome that ignores every token. */
+       chrome that ignores every token above. Present in all four blocks. */
     color-scheme: light;
-
-    --radius: 18px;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --text: #f5f5f7;
-        --text-dim: #98989d;
-        --bg: #000000;
-        --panel: #1c1c1e;
-        --panel-border: #2c2c2e;
-        --track: #2c2c2e;
-        --accent: #6ab98a;
-        --shadow: none;
-        --calories: #ffab2e;
-        --protein: #a78bfa;
-        --carbs: #34d399;
-        --fiber: #14b8a6;
-        --sugar: #a3e635;
+        --bg: #0b0d12;
+        --bg2: #12151c;
+        --panel: #161a22;
+        --ink: #f2f3f6;
+        --ink2: #a3a9b6;
+        --ink3: #8b92a0;
+        --line: #232833;
+        --line2: #2f3542;
+        --acc: #4ade80;
+        --acc-text: #4ade80;
+        --acc-ink: #062a14;
+        --acc-soft: #14301f;
+        --track: #242935;
+        --cal: #ffab2e;
+        --pro: #a78bfa;
+        --car: #34d399;
         --fat: #fb7199;
-        --alcohol: #e879f9;
-        --caffeine: #c69a6d;
-        --water: #38bdf8;
+        --wat: #38bdf8;
+        --fib: #14b8a6;
+        --sug: #a3e635;
+        --caf: #d4a56a;
+        --alc: #e879f9;
         --over: #ff6b52;
         --warn: #e0a030;
+        /* Contact line only. Dawn's dark ambient (0 30px 70px -30px) has
+           nothing outside the card to fall on inside an iframe and reads as a
+           grey smudge; the 1px line is what separates the card from the host's
+           chat ground, so this must not go back to `none` either. */
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
         color-scheme: dark;
     }
 }
 
 /* Explicit host override wins over the media query in both directions. */
 :root[data-theme="light"] {
-    --text: #1d1d1f;
-    --text-dim: #6e6e73;
-    --bg: #f5f5f7;
+    --bg: #f7f7f9;
+    --bg2: #eeeef3;
     --panel: #ffffff;
-    --panel-border: #e6e6ea;
-    --track: #e6e6ea;
-    --accent: #4a7c59;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 22px rgba(0, 0, 0, 0.05);
-    --calories: #ff9f0a;
-    --protein: #8b5cf6;
-    --carbs: #10b981;
-    --fiber: #0d9488;
-    --sugar: #65a30d;
+    --ink: #101318;
+    --ink2: #5b6270;
+    --ink3: #646b78;
+    --line: #e3e4ea;
+    --line2: #d2d4dd;
+    --acc: #15803d;
+    --acc-text: #147538;
+    --acc-ink: #ffffff;
+    --acc-soft: #dcf5e4;
+    --track: #e8e9ee;
+    --cal: #ff9f0a;
+    --pro: #8b5cf6;
+    --car: #10b981;
     --fat: #f43f7e;
-    --alcohol: #a21caf;
-    --caffeine: #8b5e34;
-    --water: #0ea5e9;
-    --over: #d0452b;
-    --warn: #b26a00;
+    --wat: #0ea5e9;
+    --fib: #0d9488;
+    --sug: #84cc16;
+    --caf: #a16207;
+    --alc: #a21caf;
+    --over: #bb3a22;
+    --warn: #8a5a00;
+    --shadow:
+        0 1px 2px rgba(16, 19, 24, 0.04),
+        0 30px 70px -30px rgba(16, 19, 24, 0.25);
     color-scheme: light;
 }
+
 :root[data-theme="dark"] {
-    --text: #f5f5f7;
-    --text-dim: #98989d;
-    --bg: #000000;
-    --panel: #1c1c1e;
-    --panel-border: #2c2c2e;
-    --track: #2c2c2e;
-    --accent: #6ab98a;
-    --shadow: none;
-    --calories: #ffab2e;
-    --protein: #a78bfa;
-    --carbs: #34d399;
-    --fiber: #14b8a6;
-    --sugar: #a3e635;
+    --bg: #0b0d12;
+    --bg2: #12151c;
+    --panel: #161a22;
+    --ink: #f2f3f6;
+    --ink2: #a3a9b6;
+    --ink3: #8b92a0;
+    --line: #232833;
+    --line2: #2f3542;
+    --acc: #4ade80;
+    --acc-text: #4ade80;
+    --acc-ink: #062a14;
+    --acc-soft: #14301f;
+    --track: #242935;
+    --cal: #ffab2e;
+    --pro: #a78bfa;
+    --car: #34d399;
     --fat: #fb7199;
-    --alcohol: #e879f9;
-    --caffeine: #c69a6d;
-    --water: #38bdf8;
+    --wat: #38bdf8;
+    --fib: #14b8a6;
+    --sug: #a3e635;
+    --caf: #d4a56a;
+    --alc: #e879f9;
     --over: #ff6b52;
     --warn: #e0a030;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
     color-scheme: dark;
 }
