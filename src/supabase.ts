@@ -330,6 +330,23 @@ export async function getMealsByDate(
     return (data as Meal[]) ?? [];
 }
 
+/**
+ * Meals in a date range, oldest first. PAGES through `.range()` for the same
+ * reason getAllMeals does (issue #66): PostgREST's default db-max-rows is 1000,
+ * so a single unbounded select silently returns the first 1000 rows and no
+ * error. This one is not the export — it is what get_nutrition_summary,
+ * get_trends, get_meals_by_date_range and get_meal_patterns read — and those
+ * take an arbitrary window (the summary and the range listing cap at nothing;
+ * trends and patterns at 365 days), so a year of ~4 meals a day is ~1,460 rows
+ * and was being cut to 1,000 with the totals, averages and chart quietly
+ * computed off the remainder. `id` is a secondary sort key so rows sharing a
+ * `logged_at` still order stably across page boundaries — without it, ties
+ * straddling a page edge can be skipped or duplicated.
+ *
+ * No count reconciliation, unlike getAllMeals: an exact count would need a
+ * second range-scoped query per call on a hot read path, and paging alone
+ * removes the truncation — fetchAllPages stops only on a short page.
+ */
 export async function getMealsInRange(
     userId: string,
     startDate: string,
@@ -339,16 +356,20 @@ export async function getMealsInRange(
     const startUtc = zonedDayStartUtc(startDate, tz);
     const endUtc = zonedNextDayStartUtc(endDate, tz);
 
-    const { data, error } = await getSupabase()
-        .from("meals")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
+    return fetchAllPages<Meal>(async (from, to) => {
+        const { data, error } = await getSupabase()
+            .from("meals")
+            .select("*")
+            .eq("user_id", userId)
+            .gte("logged_at", startUtc.toISOString())
+            .lt("logged_at", endUtc.toISOString())
+            .order("logged_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to);
 
-    if (error) throw new Error(`Failed to get meals: ${error.message}`);
-    return (data as Meal[]) ?? [];
+        if (error) throw new Error(`Failed to get meals: ${error.message}`);
+        return (data as Meal[]) ?? [];
+    });
 }
 
 /**
@@ -975,6 +996,12 @@ export async function getWaterByDate(
     return (data as WaterEntry[]) ?? [];
 }
 
+/**
+ * Water entries in a date range, oldest first. Paged for the same reason as
+ * getMealsInRange above, and it hits the 1000-row cap SOONER than meals do:
+ * water is logged a glass at a time, so a heavy logger can clear 1,000 rows in
+ * four or five months.
+ */
 export async function getWaterInRange(
     userId: string,
     startDate: string,
@@ -984,16 +1011,20 @@ export async function getWaterInRange(
     const startUtc = zonedDayStartUtc(startDate, tz);
     const endUtc = zonedNextDayStartUtc(endDate, tz);
 
-    const { data, error } = await getSupabase()
-        .from("water_log")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
+    return fetchAllPages<WaterEntry>(async (from, to) => {
+        const { data, error } = await getSupabase()
+            .from("water_log")
+            .select("*")
+            .eq("user_id", userId)
+            .gte("logged_at", startUtc.toISOString())
+            .lt("logged_at", endUtc.toISOString())
+            .order("logged_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to);
 
-    if (error) throw new Error(`Failed to get water: ${error.message}`);
-    return (data as WaterEntry[]) ?? [];
+        if (error) throw new Error(`Failed to get water: ${error.message}`);
+        return (data as WaterEntry[]) ?? [];
+    });
 }
 
 /**
@@ -1162,6 +1193,13 @@ export async function getWeightByDate(
     return (data as WeightEntry[]) ?? [];
 }
 
+/**
+ * Weight entries in a date range, oldest first. Paged for the same reason as
+ * getMealsInRange above. The slowest of the three to reach 1,000 rows — roughly
+ * a daily weigh-in for three years — but get_weight_trends draws its chart
+ * straight off this, so a truncated read would silently redraw someone's whole
+ * history.
+ */
 export async function getWeightInRange(
     userId: string,
     startDate: string,
@@ -1171,16 +1209,20 @@ export async function getWeightInRange(
     const startUtc = zonedDayStartUtc(startDate, tz);
     const endUtc = zonedNextDayStartUtc(endDate, tz);
 
-    const { data, error } = await getSupabase()
-        .from("weight_log")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
+    return fetchAllPages<WeightEntry>(async (from, to) => {
+        const { data, error } = await getSupabase()
+            .from("weight_log")
+            .select("*")
+            .eq("user_id", userId)
+            .gte("logged_at", startUtc.toISOString())
+            .lt("logged_at", endUtc.toISOString())
+            .order("logged_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to);
 
-    if (error) throw new Error(`Failed to get weight: ${error.message}`);
-    return (data as WeightEntry[]) ?? [];
+        if (error) throw new Error(`Failed to get weight: ${error.message}`);
+        return (data as WeightEntry[]) ?? [];
+    });
 }
 
 /**

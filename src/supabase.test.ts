@@ -454,6 +454,43 @@ describe("exportStoragePaths", () => {
     });
 });
 
+// ---------- every bulk reader pages ----------
+//
+// fetchAllPages is well covered below, but the bug it exists for is a reader
+// that FORGETS to call it: #66 was an unbounded `.select()` returning
+// PostgREST's first db-max-rows (1000) with no error and no signal. The export
+// readers were fixed then; the RANGE readers were not, and they feed
+// get_nutrition_summary, get_trends, get_meals_by_date_range,
+// get_meal_patterns, get_weight_by_date_range and get_weight_trends — where the
+// window is arbitrary (the summary and the range listing cap at nothing) so a
+// year of ordinary logging silently lost rows off the end.
+//
+// Asserted against the SOURCE because there is no fake Supabase here to drive:
+// what makes a reader safe is the presence of `.range(from, to)` and the `id`
+// tiebreaker, both of which are visible without a client. A new bulk reader
+// added without them fails this.
+test("every bulk reader pages, with a stable tiebreaker", async () => {
+    const src = await Bun.file(
+        new URL("./supabase.ts", import.meta.url),
+    ).text();
+    const readers = [...src.matchAll(/export async function (get\w+)\(/g)]
+        .map((m) => m[1]!)
+        .filter((n) => /InRange$|^getAll/.test(n));
+    // The list is derived, not hand-written: a seventh reader joins it by
+    // existing.
+    expect(readers.length).toBeGreaterThanOrEqual(6);
+    for (const name of readers) {
+        const start = src.indexOf(`export async function ${name}(`);
+        const body = src.slice(start, src.indexOf("\n}", start));
+        expect(`${name}: ${body.includes(".range(from, to)")}`).toBe(
+            `${name}: true`,
+        );
+        expect(
+            `${name}: ${body.includes('.order("id", { ascending: true })')}`,
+        ).toBe(`${name}: true`);
+    }
+});
+
 // ---------- fetchAllPages (issue #66: the meal export silently truncated at
 // PostgREST's default db-max-rows of 1000, since getAllMeals had no .range()
 // pagination) ----------
