@@ -1,0 +1,198 @@
+/* The one chart grammar: a 2.5px line, a fading area under it on zero-based
+   charts, an optional dashed goal line, a single dot on the last point, and
+   HTML labels underneath. Three instances share it (calories, a switched
+   nutrient series, weight — the last without the area, see .carea); the
+   geometry that feeds it is in shared/svg.js.
+
+   The svg is viewBox "0 0 480 52" with preserveAspectRatio="none" and a fixed
+   52px CSS height, so the chart stretches horizontally and never grows
+   vertically — card height stays independent of card width. */
+
+/* THE DATA LINE IS A DARKER VARIANT OF ITS SERIES TOKEN IN LIGHT MODE, and
+   only the line: SC 1.4.11 asks 3:1 of a graphical object that carries
+   information, and this one does. What the chart draws is the DAY-BY-DAY
+   shape; only its average, its goal and its two end dates are also printed as
+   text in .cfoot, so the line is not supplementary and cannot be documented
+   away.
+
+   Measured against the card's --panel (#fff) and, because the wash sits
+   directly under the stroke, against .cstop-a's 20% tint of the same token —
+   the closer of the two grounds and so the binding one:
+
+     raw token   sug 1.98/1.72  cal 2.06/1.77  car 2.54/2.10  wat 2.77/2.26
+                 fat 3.58/2.76  fib 3.74/2.95  pro 4.23/3.29  caf 4.92/3.77
+                 alc 6.32/4.52                      (vs --panel / vs the wash)
+     70% mix     sug 3.90/3.40  cal 4.04/3.49  car 4.85/4.01  wat 5.23/4.27
+                 fat 6.50/5.01  fib 6.68/5.26  pro 7.37/5.73  caf 8.26/6.33
+                 alc 10.06/7.19
+
+   Six of the nine failed against the wash and four against the panel; one
+   uniform mix clears all nine with the worst at 3.40, and being uniform it
+   keeps the series distinguishable from each other exactly as before. 75%
+   would leave sugar at 3.01 — inside the measurement error of a composited
+   ground, so not a margin.
+
+   DARK IS UNTOUCHED and must stay so: the dark tokens are already 4.59:1 at
+   worst (protein against its own wash on --panel #161a22), and darkening
+   there would push the line INTO the ground. Hence the two override blocks,
+   which mirror tokens.css's own discipline — the media query serves the
+   host's "system" setting and the [data-theme] rule an explicit override,
+   and neither alone covers both.
+
+   The variant is stroke-only. .cstop-a/.cstop-b (the wash) and every chip dot
+   keep the bright token: they are large or paired with text, they are the
+   card's colour identity, and darkening them would only lower the very
+   contrast this exists to raise. */
+.cwrap {
+    --cstroke: color-mix(in srgb, var(--c, var(--cal)) 70%, #000);
+    display: block;
+    min-width: 0;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .cwrap {
+        --cstroke: var(--c, var(--cal));
+    }
+}
+:root[data-theme="dark"] .cwrap {
+    --cstroke: var(--c, var(--cal));
+}
+/* weight-trends' line is the BRAND accent, not a series token, and --acc is
+   already the AA-corrected value (see tokens.css): 5.02:1 light, 10.00:1 dark
+   against --panel. It has nothing to fix, so it keeps the brand colour rather
+   than being darkened for symmetry — that card's whole subject is a target
+   drawn in the same green as everything else that means "goal". */
+.cwrap.c-acc {
+    --cstroke: var(--c, var(--cal));
+}
+.cwrap svg {
+    display: block;
+    width: 100%;
+    height: 52px;
+}
+
+/* vector-effect is mandatory, not decoration: preserveAspectRatio="none" scales
+   x and y by different factors, which would stretch the stroke with them and
+   leave the near-vertical segments visibly thinner than the near-horizontal
+   ones (worse the wider the card gets). non-scaling-stroke makes 2.5 mean 2.5
+   device-independent px at every width. Every stroked element needs it. */
+.cline {
+    fill: none;
+    stroke: var(--cstroke, var(--c, var(--cal)));
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    transition: stroke 0.25s var(--ease-out);
+}
+/* The wash under the line, on ZERO-BASED charts only (calories, and whichever
+   nutrient series a chip has switched the chart to).
+
+   It is not decoration. Without it, a series that lives in the top third of a
+   zero-based box — 2,035 kcal against a 2,200 goal draws a near-flat line at
+   80% height — leaves the card's largest single block empty and reads as a
+   rendering fault rather than as "this is how much of the day's energy that
+   is". The fill is what makes the zero baseline visible at 52px.
+
+   NOT on weight-trends, and this is a correctness rule rather than a taste
+   one: that chart's y domain is the data's own min/max padded by 18%, so the
+   floor of the box is an arbitrary weight a few hundred grams under the
+   lightest weigh-in. Filling down to it would draw a quantity that does not
+   exist and invite the area to be read as a total. A data-scaled chart gets a
+   line and nothing else. */
+.carea {
+    stroke: none;
+}
+/* A true fade, not a flat color-mix() wash: at 52px a solid block reads as a
+   bar-chart column, and it is the bottom of the box dissolving that says "this
+   is the line's shadow, not a second series". stop-color is set here as a CSS
+   property (not the SVG presentation attribute) so var(--c) resolves against
+   the .cwrap role class the gradient inherits from — the reason every chart
+   carries its own <linearGradient>; see chAreaMarkup in shared/svg.js.
+   Gradient coordinates are objectBoundingBox, so the fade always spans exactly
+   the filled shape however tall the series is. */
+.cstop-a {
+    stop-color: var(--c, var(--cal));
+    stop-opacity: 0.2;
+}
+.cstop-b {
+    stop-color: var(--c, var(--cal));
+    stop-opacity: 0;
+}
+
+/* Painted BEHIND the area, not merely behind the line: markup order is
+   goal → area → line. On a near-flat series the goal sits two or three viewBox
+   units off the average, and two bare hairlines that close together read as one
+   thick smudge; once the series is the top edge of a filled region, a dashed
+   line running through (or above) that wash is unmistakably the other thing.
+
+   The two alternatives were rejected for concrete reasons. Lowering --ink3's
+   opacity would dim weight-trends' target line too, and reaching that target is
+   the entire subject of that card. And widening the y-domain headroom moves the
+   two lines CLOSER, not apart: both values are divided by the same `top`, so a
+   larger headroom shrinks the gap between them — the current 1.15 is already
+   the compromise. */
+.cgoal {
+    fill: none;
+    stroke: var(--ink3);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+    vector-effect: non-scaling-stroke;
+}
+/* The last point sits on a --panel halo so it stays legible where the line
+   doubles back under it. It is the only marker: it says which end is now. */
+.chalo {
+    fill: var(--panel);
+}
+/* Same variant as the line it terminates: it is the same mark, and a bright
+   dot on a darkened line reads as a second object. It also inherits the line's
+   ratios above rather than the raw token's, on a --panel halo. */
+.cdot {
+    fill: var(--cstroke, var(--c, var(--cal)));
+}
+
+/* Every label is HTML here rather than <text> inside the svg, for three
+   reasons that all follow from preserveAspectRatio="none": svg text would be
+   stretched horizontally with the viewBox, it cannot ellipsise, and it ignores
+   the flex layout that keeps the two ends pinned to the card's edges. */
+/* Three columns, not space-between: the middle span is the series' own figure
+   and belongs on the card's centre line, but flex distribution centred it
+   between its neighbours instead, so a short left date and a long right one
+   pushed it off-centre. `1fr auto 1fr` pins it to the middle whatever the two
+   dates measure. A two-span foot (weight-trends) still reads left/right,
+   because the empty middle column collapses to nothing. */
+.cfoot {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    font-variant-numeric: tabular-nums;
+}
+/* The outer two hug the card's edges; the middle is already centred by its
+   column. Without these the 1fr columns would centre their own text. */
+.cfoot > :first-child {
+    text-align: left;
+}
+.cfoot > :last-child {
+    text-align: right;
+}
+.cfoot b {
+    color: var(--ink2);
+    font-weight: 500;
+}
+
+/* Same 52px box when there is nothing to draw, so a range toggle never makes
+   the card jump. */
+.cempty {
+    height: 52px;
+    display: grid;
+    place-items: center;
+    font-size: 11.5px;
+    color: var(--ink3);
+}

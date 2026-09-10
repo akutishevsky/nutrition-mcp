@@ -62,6 +62,30 @@ export interface WidgetStrings {
             fiber_g: string;
             water_ml: string;
         };
+        /** How a meal's `meal_type` reads. The four values log_meal and
+         * update_meal actually store (their inputSchema is
+         * z.enum(["breakfast","lunch","dinner","snack"]), and bulk_import_meals
+         * coerces anything unrecognized to "snack"), keyed by the stored
+         * lowercase value.
+         *
+         * Looked up CASE-INSENSITIVELY and with a fallback to the raw stored
+         * string: rows predating the enum, or written by some other path, must
+         * still render their own word rather than disappear. That is why this
+         * is a plain map and not a union type — a missing key is a display
+         * fallback, not an error.
+         *
+         * It exists because this was the one string left in English inside an
+         * otherwise fully translated card: a Japanese meal-logged confirmation
+         * read "7月15日 · lunch · …", and the layout round had just moved the
+         * type to the FRONT of that line, making it the second thing a
+         * non-English reader saw (layout recheck, minor). No plural forms —
+         * these never carry a count. */
+        mealTypes: {
+            breakfast: string;
+            lunch: string;
+            dinner: string;
+            snack: string;
+        };
         /** A tile/ring with no goal set for that metric. */
         noGoalSet: string;
         /** Exactly at a ceiling (delta === 0). */
@@ -95,6 +119,17 @@ export interface WidgetStrings {
          * "Protein 120 g, of 160 g · 40 g left. Show the meals that
          * contributed." */
         showMealsContributed: string;
+        /** Appended to an interactive chip's aria-label when tapping THAT chip
+         * re-targets the chart — the extra effect of tapping must not be
+         * signalled by the chart's colour alone. The gate is per-chip
+         * (`macroOnChart(m, ctx)` in shared/macros.js's chipLabel), not
+         * per-widget: it was once "whenever ctx.chartKeys is non-empty", which
+         * made nutrition-summary's calorie hero promise a chart change it never
+         * makes, since the hero is not one of the series a chip can select
+         * (regression audit). The exact-equality aria assertions in
+         * public/widgets/macros.test.ts still match because they call
+         * macroPanel without chartKeys at all. */
+        alsoChart: string;
         /** Template for the breakdown panel's title. Placeholder: {label}. */
         byMealTitle: string;
         /** aria-label on the breakdown panel's close button. */
@@ -120,9 +155,14 @@ export interface WidgetStrings {
          * trends.caloriesOverRange, this widget's range is fixed by the
          * tool call (no in-widget toggle), so there's no {range} placeholder. */
         chartAriaLabel: string;
-        /** Trend chart caption prefix, e.g. "avg 2,035". */
+        /** Trend chart caption prefix, e.g. "avg 2,035". Read by
+         * templates/trends.html too, whose chart foot names the switched
+         * series with the same two words — deliberately NOT duplicated into
+         * the `trends` namespace, where the copies would drift apart while
+         * labelling the identical figure on the identical chart grammar. */
         avg: string;
-        /** Trend chart caption prefix, e.g. "goal 2,200". */
+        /** Trend chart caption prefix, e.g. "goal 2,200". Shared with
+         * templates/trends.html — see `avg` above. */
         goal: string;
         /** calLabel for a multi-day range. */
         dailyAvgLoggedDays: string;
@@ -203,6 +243,15 @@ export interface WidgetStrings {
         loggedOfTotal: string;
         /** Template for the calories chart's aria-label. Placeholder: {range}. */
         caloriesOverRange: string;
+        /** Template for the chart's aria-label once a chip has switched the
+         * chart to another nutrient. Placeholders: {metric} (a translated
+         * macros.labels entry), {range}. The chart is role="img", so this
+         * string is its entire accessible description — it used to fall back to
+         * the bare metric name, which read as one word for a 30-day chart.
+         * Phrased without a count on purpose: Intl.PluralRules falls back to
+         * "other" for Polish/Ukrainian few/many, so a PluralForms key would
+         * read wrong at n = 2–4 (SPEC-DECISIONS §4). */
+        metricOverRange: string;
         /** aria-label on the 7/14/30-day segmented control. */
         windowAriaLabel: string;
         /** Template for a range button's aria-label. Placeholder: {n}. */
@@ -252,6 +301,10 @@ export interface WidgetStrings {
         stepMap: string;
         stepPreview: string;
         stepImport: string;
+        /** The line under the import progress rail naming where the flow is.
+         * Placeholders: {n}, {total}, {label} — {label} is one of the four
+         * step names above. */
+        stepOf: string;
         /** Labels for the column-mapping UI, keyed exactly like FIELDS[].key
          * in import-meals.html — every key here must have a match there. */
         fieldLabels: {
@@ -381,6 +434,21 @@ export interface WidgetStrings {
         /** Template. Placeholder: {email}. */
         emailNotice: string;
     };
+
+    /** The chrome shared/bridge.js paints around whatever a template renders,
+     * which is why it sits outside every widget's namespace: the bridge does
+     * not know which widget it is hosting, and noHost replaces that widget's
+     * output entirely. Read as T.chrome.* — including on the failure path,
+     * before any template has called setLocale(), which works because
+     * shared/i18n.js initialises T to WIDGET_STRINGS.en. */
+    chrome: {
+        /** Appended under every painted widget: widget display is a user
+         * setting, and this is the only place that says so. */
+        widgetsNote: string;
+        /** Replaces the widget when the ui/initialize handshake never
+         * completes — otherwise the iframe sits on "Loading…" forever. */
+        noHost: string;
+    };
 }
 
 export const WIDGET_STRINGS_EN: WidgetStrings = {
@@ -396,6 +464,12 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             fiber_g: "Fiber",
             water_ml: "Water",
         },
+        mealTypes: {
+            breakfast: "breakfast",
+            lunch: "lunch",
+            dinner: "dinner",
+            snack: "snack",
+        },
         noGoalSet: "no goal set",
         atLimit: "at limit",
         floorUnder: "left",
@@ -409,6 +483,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         caloriesOn: "Calories · {date}",
         tapHint: "Tap a metric for the meals behind it",
         showMealsContributed: "Show the meals that contributed.",
+        alsoChart: "Also shows this nutrient on the chart.",
         byMealTitle: "{label} by meal",
         closeBreakdown: "Close breakdown",
         noMealsContributed: "No logged meals contributed {label}.",
@@ -479,6 +554,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         avgUnder: "under",
         loggedOfTotal: "{logged}/{total} days logged",
         caloriesOverRange: "Calories per day over the last {range} days",
+        metricOverRange: "{metric} per day over the last {range} days",
         windowAriaLabel: "Trend window",
         rangeDaysAriaLabel: "{n} days",
         avgAllDays: "{range}-day avg · all days",
@@ -505,6 +581,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         stepMap: "Map columns",
         stepPreview: "Preview",
         stepImport: "Import",
+        stepOf: "Step {n} of {total} · {label}",
         fieldLabels: {
             logged_at: "Date / time",
             description: "Food name",
@@ -620,6 +697,11 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         noDataRows: "No data rows found in that file.",
         emailNotice:
             "Not working as expected? Email {email} and include the lines below — that is everything needed to diagnose it.",
+    },
+    chrome: {
+        widgetsNote:
+            "You can enable or disable these widgets anytime — just ask to update your settings.",
+        noHost: "This view could not connect to its host.",
     },
 };
 

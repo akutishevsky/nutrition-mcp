@@ -1,0 +1,1301 @@
+/* Every interaction primitive the widgets have: the wrapping rails, the chip,
+   the calorie hero, the `.more` row, the one shared drawer, and the segmented
+   control. Pairs with shared/macros.js, which emits this markup.
+
+   Nothing in here names a nutrient. Colour arrives as `--c`, set by the `.c-*`
+   role class base.css defines, so a chip, its dot, its underbar, the gauge arc
+   and the drawer head all tint from one class on one element.
+
+   Three disclosure affordances exist and only three: the chip (inline), the
+   `.more` row (section-sized), and the drawer both of them open into. */
+
+/* ---- rails --------------------------------------------------------------- */
+
+/* An equal-column GRID of tiles, and it never scrolls sideways. A horizontal
+   swipe inside a chat iframe fights the host's own scrolling, a post-paint
+   scrollWidth measurement races bridge.js's rAF-debounced ResizeObserver, and
+   a metric parked off-screen is a metric nobody finds.
+
+   TWO COLUMNS OR FOUR, never three. There are eight metrics at full house
+   (three macros, water, four limits), so 2 and 4 both divide it into a whole
+   rectangle with no half-empty last row — which is the entire point of a grid
+   over the wrapping row this used to be. Three columns would leave a 2-wide
+   gap on the last row at the one width it applies to.
+
+   The 2px padding / -2px margin pair is room for a focus ring that an
+   ancestor's `overflow: hidden` would otherwise clip. */
+.rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 2px;
+    margin: -2px;
+}
+/* 580px, not the 480 this started at. At 480 the four columns are 109.5px —
+   NARROWER than a two-column tile at 300px — and measurement found the widest
+   English value ("187/400 mg") clearing the chevron by 0.6px while five
+   locales' carbohydrate and fibre labels were already ellipsising. Four
+   columns were arriving at the exact width they stopped fitting. 580 gives
+   each tile ~130px, which clears every locale's label and leaves the figure
+   ~20px of room; below it the two-column layout it already rendered
+   correctly. */
+@media (min-width: 580px) {
+    .rail {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+/* ONE RAIL PER STRIP, so the two rules that spaced a second one (`.rail + .rail`
+   and `.more + .rail.limits`) matched nothing in any widget and are gone;
+   macros.js emits a single `<div class="rail">` and never the `limits` class.
+   `.rail[hidden]` stays as cheap insurance for a widget that ever hides one:
+   the `display: grid` above outranks the UA sheet's `[hidden] { display: none }`,
+   so without it a hidden rail would render wide open. (That note used to say
+   `display: flex`, from before this became a grid — a wrong comment on a
+   defensive rule is how the defence gets deleted for the wrong reason.) */
+.rail[hidden] {
+    display: none;
+}
+
+/* The macro strip's own wrapper: hero, rails, drawer. `.sec` (base.css) is
+   added by macros.js when the widget put something of its own above it. */
+.strip > .focus + .rail {
+    margin-top: 10px;
+}
+
+/* ---- motion --------------------------------------------------------------- */
+
+/* EVERY animation here only DECORATES a value that is already in the markup.
+   Each one runs `from` a neutral state to the element's own declared value, so
+   `animation-duration: 0.01ms` under reduced motion lands on exactly what the
+   markup said and nothing is ever made visible BY the animation.
+   base.css zeroes the delays there too — see the note in that block.
+
+   And none of them touch a layout property. bridge.js measures
+   documentElement at max-content on a ResizeObserver tick, so an animated
+   height, margin or padding would become a 60Hz `size-changed` storm and a
+   visibly lurching iframe. Everything below is opacity, transform, stroke or
+   a registered custom property. */
+@keyframes tileIn {
+    from {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+}
+@keyframes washIn {
+    from {
+        --p: 0%;
+    }
+}
+@keyframes ringIn {
+    from {
+        stroke-dashoffset: 106.81;
+    }
+}
+@keyframes drawIn {
+    from {
+        stroke-dashoffset: 1;
+    }
+}
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes rowIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+}
+
+/* ---- the progress wash --------------------------------------------------- */
+
+/* Everything that shows a fraction paints it the same way: a soft ramp in the
+   metric's own colour from transparent at the left to full strength AT the
+   mark, then a hard cut. The edge IS the value, so it is not feathered — a 6px
+   feather was tried and turns a position into a smear. Lifted from the site
+   header's reading-progress wash (`.nm-bar` in public/styles.css) but running
+   the other way: the header is densest at the left because its subject is
+   distance already covered, while a tile's subject is the reading, and the
+   reading is its leading edge.
+
+   DECLARED ON THE TILE ITSELF, not once on an ancestor. A custom property
+   resolves its own `var()`s at the element that DECLARES it and inherits the
+   resolved value — so hoisting this to `.card` computed it there against an
+   unset `--p` and handed every descendant a wash frozen at 0%. Anything else
+   that wants a wash has to declare this too.
+
+   The focus panel does NOT: its ring is what encodes the fraction, and a wash
+   behind it would be the same number a second time. */
+.chip {
+    --wash: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(
+                in srgb,
+                var(--c, var(--acc)) var(--wash-mix, 30%),
+                transparent
+            )
+            var(--p, 0%),
+        transparent var(--p, 0%)
+    );
+}
+/* PER-HUE MIX, because a flat 30% is a flat 30% of PIGMENT, not of weight. At
+   one declared strength the nine series landed between ΔL* 8.1 (sugar's lime)
+   and 19.5 (alcohol's magenta) against --panel — a 2.4x spread — so two tiles
+   at the same fraction of goal read as very different fills, and a barely-
+   started loud hue out-shouted a nearly-finished quiet one. That is the
+   opposite of what a gauge is for. These four are the outliers, tuned toward a
+   common ΔL*; the rest sit near it already at 30%. Every value is still far
+   inside the --ink headroom the contrast pass measured (73% light / 47% dark),
+   so the "all text on a tinted tile is --ink" rule is untouched. */
+.c-sug {
+    --wash-mix: 44%;
+}
+.c-alc {
+    --wash-mix: 21%;
+}
+.c-caf {
+    --wash-mix: 27%;
+}
+.c-fat {
+    --wash-mix: 28%;
+}
+
+/* ---- the metric tile ----------------------------------------------------- */
+
+/* A TILE, not a pill. Two rows — the dot and the metric's name above, the
+   figure against its goal below — inside a rounded rect on the recessed
+   surface. The pill it replaced put name and figure on one line, which read as
+   a row of tags rather than as readings, gave the figure no size worth having,
+   and left the grid symmetric across but not down. Stacked, a column of tiles
+   lines up on both axes and the number is the thing the eye lands on.
+
+   THE TILE IS ITS OWN GAUGE. Progress is the BACKGROUND filling from the left,
+   lifted from the site header's reading-progress wash (`.nm-bar` in
+   public/styles.css): a soft wash of the metric's own colour ending at the
+   mark `--p`.
+
+   The ramp runs the OPPOSITE way to the header's, and deliberately. The header
+   is densest at the LEFT because its subject is how much you have read — the
+   distance already covered, so the ink is behind you. A tile's subject is the
+   READING, and the reading is its leading edge: this ramps from transparent at
+   the left to full strength exactly AT the mark, then cuts. The dense end and
+   the number it stands for are the same place, and the soft end is the empty
+   part of the tile where there is nothing to say.
+
+   Two stops share the position `--p`, which is what makes the leading edge a
+   HARD cut and not a fade. That is the design, not an oversight: the edge IS
+   the value, and a feather over it — 6px was tried — turns a position into a
+   smear and costs the tile its precision at exactly the place a gauge is read.
+   Everything past the mark is transparent, so the fill can never overshoot the
+   figure it stands for.
+
+   At zero both stops collapse onto 0% and nothing paints at all, which is why
+   this needs no "only once there is data" gate.
+
+   It replaces the 2.5px underbar that used to hug the tile's bottom edge. A
+   hairline that thin reads as a border artifact at a glance, and it could only
+   ever say "how far along" in one dimension of a shape whose whole area was
+   available. Filling the surface says it at the size of the tile.
+
+   30% at the mark rather than the header's 20% at its left edge: the header
+   washes a whole 1160px bar and only has to be felt, while a 106px tile has to
+   read as a gauge against seven others at a glance — and a ramp from
+   transparent spends most of its length well under its peak.
+
+   The wash sits UNDER the border and inside the radius (background-clip is the
+   default padding-box, and the tile has no background-image on its border), so
+   the fill takes the tile's rounded left cap for free. */
+.chip {
+    position: relative;
+    overflow: hidden;
+    /* The rail deals itself out left to right, and each tile's wash then runs
+       up to its own figure a beat later. `--i` is the tile's index, set by
+       chipMarkup — the stagger is what turns eight simultaneous fades into a
+       sequence you can follow. */
+    animation:
+        tileIn 0.4s var(--ease-out) both,
+        washIn 0.9s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 35ms), calc(var(--i, 0) * 35ms + 140ms);
+    /* TWO COLUMNS: the label row and the figure stack in column one, the
+       chevron takes column two and spans both rows, so it centres on the tile
+       rather than sitting on the label's line. Kept in flow rather than
+       absolutely positioned — in flow the grid reserves its width, and an
+       absolute chevron would need padding to fake that back, costing the label
+       the same room at four columns where there is least of it. */
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-content: center;
+    gap: 2px 6px;
+    min-width: 0;
+    padding: 6px 9px 7px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-in);
+    background: var(--wash), var(--panel);
+    color: var(--ink2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    /* ONE CURVE, and the ground is on the list. Every keyframe in this system
+       names `--ease-out` and so does `.chev`'s rotation, but the transitions
+       fell back to the browser's own `ease` — so on one open tile the chevron
+       turned on the Dawn curve while the border and ring under it moved on a
+       different one. And the selected/over states change the GROUND, which was
+       not transitioned at all: the tint snapped while the hairline eased.
+       `background-color` specifically, never the `background` shorthand — the
+       shorthand carries the wash gradient, and interpolating that would fight
+       the `washIn` keyframe animating `--p` on the same property. */
+    transition:
+        background-color 0.18s var(--ease-out),
+        border-color 0.18s var(--ease-out),
+        box-shadow 0.18s var(--ease-out);
+}
+/* Row one: the dot, the name, and the chevron pinned right. */
+.chip .ktop {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+.dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c, var(--acc));
+}
+/* The name is the one thing here allowed to shrink: at two columns on a 320px
+   card a long translated label would otherwise widen the whole grid. It is
+   never abbreviated to a short form — it ellipsises only at the extreme, and
+   the accessible name carries it in full either way. */
+/* ON A TINTED TILE ALL TEXT IS --ink, AND HIERARCHY IS SIZE AND WEIGHT.
+   Measured, not preference: against the worst series on the worst ground
+   (alcohol on --bg2 in light, sugar on --panel in dark), --ink2 clears 4.5:1
+   only up to a 10% wash and --ink3 up to 2% — neither survives a gauge you can
+   actually see. --ink clears to 73% light / 47% dark, so at the 30% peak it is
+   the only ink with headroom (worst measured 7.22:1). The label is therefore
+   separated from the figure by 12px/600 against 15px/800, not by being paler. */
+.chip .k {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink);
+}
+/* Row two: the figure. Big enough to read across the card, tabular so a column
+   of them does not jitter when a range toggle repaints. */
+.chip .v {
+    /* Degrade to an ellipsis rather than sliding under the chevron and being
+       guillotined by `.chip`'s overflow:hidden — a 5-digit figure with a
+       4-digit goal cut mid-unit ("12,345/4,000 r") is worse than a truncated
+       one, because it still reads as a number. */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+/* The unit and the goal it is measured against — quieter than the figure by
+   four points of size and two of weight rather than by lightness, for the
+   reason on `.k` above. It is real text (the metric's own target), so it does
+   not get to be decoration. */
+.chip .v .u {
+    margin-left: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--ink);
+}
+/* A limit with a real recorded zero reads in words, not as a measurement. */
+.chip .v .none {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink3);
+}
+
+.chip > .ktop,
+.chip > .v {
+    grid-column: 1;
+}
+.chip > .chev {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
+    margin-left: 0;
+}
+
+/* The chevron rotates on every disclosure, whichever primitive carries it.
+   --ink and a heavier stroke than the icon set's default: at 8px in --ink3 it
+   was the affordance nobody could see, on a card whose whole interaction model
+   is "tap a metric". It is small enough that full-strength ink does not
+   compete with the figures — the dot beside it is a third of its area and
+   carries a saturated series colour. */
+.chev {
+    flex: none;
+    display: flex;
+    margin-left: auto;
+    color: var(--ink);
+    transition: transform 0.2s var(--ease-out);
+}
+.chev svg {
+    stroke-width: 2.25;
+}
+[aria-expanded="true"] > .chev {
+    transform: rotate(180deg);
+}
+
+/* The tile's goal caption has NO visible slot — the figure carries the goal now
+   and the drawer carries the distance to it. It stays in the DOM because a
+   static tile is a <span>, not a button, so its children are not
+   presentational: a screen reader still hears "Protein 148 g, of 160 g · 12 g
+   left". Inside an interactive tile (a real <button>) it is inert, and the
+   tile's own aria-label carries the same words. */
+.chip .dcap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.chip:hover {
+    color: var(--ink);
+    border-color: var(--line2);
+}
+.chip:active {
+    transform: translateY(1px);
+}
+.chip:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+}
+
+/* SELECTED — a tint in the chip's OWN colour. The chip that is open is the same
+   series the chart has just re-stroked, and the two now look like one object.
+   It used to invert to a solid --ink fill, which in dark mode made the open
+   chip a bright white pill: the loudest thing on the card, out-shouting the
+   24px calorie hero, and saying nothing about WHICH nutrient it was.
+
+   The ring is the 1px border plus a 1px inset shadow sitting on it. The shadow
+   is what lets the ring read at full strength without a border-width change,
+   which would move every chip on the rail by a pixel and re-flow the wrap.
+
+   18% is the mix, and it is a CEILING, not a taste: at 19% the alcohol tint in
+   light mode drops --ink2 to 4.46:1 and the label fails AA. At 18% every one of
+   the nine series tints clears it in BOTH themes — --ink ≥ 10.20:1, --ink2 ≥
+   4.54:1 (worst cases: sugar in dark, alcohol in light). Making selection
+   louder therefore means darkening the label rather than deepening the tint;
+   going back to the inversion is not the answer either way. */
+/* SELECTED keeps the wash and deepens the GROUND under it, rather than
+   replacing the background outright — a flat tint would erase the tile's own
+   gauge, which is the one thing on it that is not repeated in words. The
+   ground goes to an 18% mix and the ring does the rest of the talking. */
+.chip[aria-expanded="true"],
+.chip[aria-pressed="true"] {
+    background: var(--wash), color-mix(in srgb, var(--c) 18%, var(--panel));
+    border-color: var(--c);
+    box-shadow: inset 0 0 0 1px var(--c);
+}
+/* The selected tile needs no ink overrides at all any more: every run on a tile
+   is already --ink, which is the only ink with headroom over the wash, and the
+   18% ground under it only deepens what --ink was measured against. An override
+   to --ink2 here would LOWER the contrast it used to raise. The one exception
+   is the value on a breach — see .chip.over below. */
+/* OVER A CEILING. A rail of metrics reports; it does not warn — so an over
+   chip keeps the same dot and the same shape as every other chip, and the
+   state is carried by hue — `--c` itself is reassigned, so the dot, the
+   background wash and the hairline all turn --over from one line — plus the
+   figure's own colour and the drawer caption's wording.
+
+   Hue is not the whole cue any more, though, and that is the point: the figure
+   prints against its limit ("58.2/45 g"), so a greyscale or colour-blind
+   reader sees the breach in the numbers. That is what replaced the warning
+   triangle this used to carry — information rather than an alarm. */
+/* `--wash-mix` MOVES WITH `--c`. The per-hue block above tunes each series
+   token toward a common ΔL*, and it is keyed on the ROLE class — which this
+   rule does not touch. So a breach was painted in --over at whatever strength
+   the metric's ORIGINAL hue had been tuned for: sugar 44%, fat 28%, caffeine
+   27%, alcohol 21%. Three tiles at the same fraction over the same limit, in
+   the same red, at a 2.1x alpha spread — the exact defect the tuning exists to
+   remove, reintroduced for the one state where uniformity matters most.
+   Measured against --panel: --over at 27% is ΔL* 16.0 light / 15.2 dark, which
+   sits at the top of the tuned family's band (light 8.7–14.8, dark 13.4–22) —
+   a breach reads a step stronger than an unbreached neighbour without becoming
+   the loudest thing on the card, and reads the SAME on every metric. Well
+   inside the --ink headroom the contrast pass measured (73% light / 47% dark).
+   It belongs on this rule so the pair can never drift apart again. */
+.chip.over {
+    --c: var(--over);
+    --wash-mix: 27%;
+    border-color: color-mix(in srgb, var(--over) 45%, var(--line));
+}
+/* HOVER MUST NOT CANCEL A STATE. `.chip:hover` and `.chip.over` are both
+   (0,2,0) and `.chip.over` is written later, so an over tile was the one tile
+   on the rail with no pointer feedback at all (the only other thing hover
+   changes is `color`, and every run on a tile sets its own). Hover deepens the
+   breach's own hairline instead of trying to replace it with a neutral. Placed
+   BEFORE the selected-and-over rule below, so an open tile still keeps its
+   full-strength --over ring under the pointer. */
+.chip.over:hover {
+    border-color: color-mix(in srgb, var(--over) 70%, var(--line));
+}
+/* The figure hands its --over back. `--c` is reassigned above, so the wash under
+   it is the SAME red: measured 3.67:1 on sugar's own over-tint, red on red. The
+   breach is already carried by the wash, the dot, the hairline and — the part
+   that survives greyscale — the figure printed against its limit ("58.2/45 g").
+   Colouring the digits too bought nothing and cost the reading. */
+.chip.over .v {
+    color: var(--ink);
+}
+/* A breach must not lose its colour by being selected, so the open ground and
+   ring are --over rather than the nutrient's --c. The extra class is needed to
+   outrank `.chip.over`'s own border-color, written later in the file. The wash
+   rides on top, as it does on every other selected tile. */
+.chip[aria-expanded="true"].over,
+.chip[aria-pressed="true"].over {
+    background: var(--wash), color-mix(in srgb, var(--over) 18%, var(--panel));
+    border-color: var(--over);
+    box-shadow: inset 0 0 0 1px var(--over);
+}
+
+/* NON-INTERACTIVE — a different species, not a disabled button. Borderless,
+   recessed, no chevron: it reads as data where the bordered pill reads as a
+   control, and that contrast is what makes tappability obvious without having
+   to read either one. */
+/* NON-INTERACTIVE — a different species, not a disabled control: no border, a
+   recessed ground. It still carries its wash, because the gauge is data and
+   this tile is the data species; what it loses is the affordance, not the
+   reading. */
+.chip.static {
+    background: var(--wash), var(--bg2);
+    border-color: transparent;
+    color: var(--ink3);
+    cursor: default;
+}
+/* --ink, like every other run on a tinted tile. This said --ink2, which is the
+   one rule that contradicted the note on `.chip .k` directly above: over a 30%
+   wash it measured 3.31:1 light / 4.07:1 dark, an AA failure on the BIGGEST
+   number on the tile — and static tiles are the whole rail on the ordinary
+   single-day summary. The species difference is the missing border and the
+   recessed ground, not a paler figure. */
+.chip.static .v {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+/* THE HINT, as the rail's last chip: it sits inside the row it describes and
+   costs no extra line. Alone among chips it may wrap — the sentence is long,
+   it is translated into nine languages, and a nowrap pill would be this card's
+   only way to overflow 320px. */
+/* Spans the whole rail rather than taking a column: its sentence is three to
+   five times the width of a nutrient's name, so in one column it would either
+   ellipsise the instruction or set the column width for all eight chips. Full
+   width and centred, it reads as a caption under the grid instead of a pill
+   competing with it. */
+
+/* ---- the focus panel ----------------------------------------------------- */
+
+/* The card's headline. ONE ROW: ring, figure, meta, sparkline, chevron — see
+   focusInner() in shared/macros.js for why each is there and nothing else is.
+
+   It compacts by WRAPPING, not by a breakpoint. `.fspark` is the only flexible
+   item, so on a wide card it takes whatever is left over and on a narrow one it
+   drops to its own full-width line under the figure. Same markup at every
+   width, and the thing that gives way is the thing that degrades best. */
+.focus {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 11px;
+    width: 100%;
+    /* 9px on the left so the ring starts on the same x as the tiles' dots
+       below — the panel and the grid share one content rail, and a 3px stagger
+       between them is the kind of thing the eye tracks without naming. 26px on
+       the right clears the pinned chevron. */
+    padding: 10px 26px 10px 9px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-in);
+    /* A GROUND OF ITS OWN. On `var(--panel)` the headline was the only element
+       on the card with no colour excursion from the surface it sits on, while
+       the eight secondary tiles were each a filled block — so the eye went
+       figure, rail, panel, and the panel never read as a level. 6% is a step
+       below the tiles' own hover (8%) and well under the 18% AA ceiling
+       measured for --ink2 on a series tint. */
+    background: color-mix(in srgb, var(--c) 6%, var(--panel));
+    color: var(--ink2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    text-align: left;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Same list and same curve as `.chip` — see the note there. The panel and
+       the tile are one language, so a state change must not read as two. */
+    transition:
+        background-color 0.18s var(--ease-out),
+        border-color 0.18s var(--ease-out),
+        box-shadow 0.18s var(--ease-out);
+}
+span.focus {
+    cursor: default;
+}
+/* HOVER IS SCOPED OFF THE STATES, and that is the whole reason for the
+   `:not()` pair. `button.focus:hover` is (0,2,1) — the type selector makes it
+   one step stronger than `.focus[aria-expanded="true"]` and `.focus.over`,
+   both (0,2,0) — so pointing at an OPEN panel took its accent border back to
+   grey and its ground from 14% down to 11% while the inset ring stayed `--c`
+   (a grey hairline with a coloured ring a pixel inside it), and pointing at a
+   BREACHED one erased the red hairline outright. A tile has never had this
+   problem: `.chip:hover` and `.chip[aria-expanded="true"]` are equal and the
+   state is written later. Two primitives, one language — so hover here now
+   decorates only the RESTING panel. `button` stays on the selector so a
+   non-interactive `span.focus` gets no pointer response at all. */
+button.focus:not([aria-expanded="true"]):not([aria-pressed="true"]):hover {
+    border-color: var(--line2);
+    background: color-mix(in srgb, var(--c) 11%, var(--panel));
+}
+/* A breach deepens its own hairline under the pointer instead of losing it. */
+button.focus.over:not([aria-expanded="true"]):not([aria-pressed="true"]):hover {
+    border-color: color-mix(in srgb, var(--over) 70%, var(--line));
+}
+button.focus:active {
+    transform: translateY(1px);
+}
+.focus:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+}
+/* Open: the same tint-and-ring language a tile uses for the same state — and
+   `aria-pressed` beside `aria-expanded`, because the panel has both species
+   too. It mirrors whichever metric is selected, and nutrition-summary's Water
+   is a chart toggle: the tile went pressed and the panel showing the same
+   metric stayed styled for rest. (Neither of these rules could match at all
+   until focusApply stopped writing "false" over its own state — see there.) */
+.focus[aria-expanded="true"],
+.focus[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--c) 14%, var(--panel));
+    border-color: var(--c);
+    box-shadow: inset 0 0 0 1px var(--c);
+}
+
+/* HOW FAR ALONG. The one part of the panel whose whole job is the fraction, so
+   nothing else has to encode it — which is what let the wash and the second
+   copy of the goal go. */
+.fring {
+    flex: none;
+    display: block;
+    width: 34px;
+    height: 34px;
+}
+.fring svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.frt {
+    fill: none;
+    stroke: var(--track);
+    stroke-width: 4.5;
+}
+/* The DARKENED variant in light mode, exactly as chart.css does for the data
+   line and for the same reason: the raw series token measured 1.70:1 against
+   its own --track, so the arc — the one part of the panel whose whole job is
+   the fraction — was under SC 1.4.11's 3:1 for an informational graphic. Dark
+   is untouched, where the tokens already clear it. */
+.fra {
+    fill: none;
+    stroke: color-mix(in srgb, var(--c, var(--acc)) 70%, #000);
+    stroke-width: 4.5;
+    stroke-linecap: round;
+    /* An ANIMATION, not a transition. focusApply replaces the panel's children
+       wholesale, so the arc is always a fresh node — a transition would have
+       nothing to transition FROM and could never fire. A keyframe from a full
+       offset to the one already on the element sweeps the ring in, and re-runs
+       every time the panel is handed a new metric, which is exactly when it
+       should. The markup still carries the final value, so reduced motion
+       lands on it. */
+    animation: ringIn 0.9s var(--ease-out) both;
+}
+/* A breach recolours the ring and the hairline — the two parts of the panel
+   whose job is "how it is going". The figure stays --ink: it is the reading,
+   and the reading is not the verdict. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .fra {
+        stroke: var(--c, var(--acc));
+    }
+}
+:root[data-theme="dark"] .fra {
+    stroke: var(--c, var(--acc));
+}
+/* NO `.focus.over .fra` OVERRIDE. It used to hardcode `stroke: var(--over)`
+   here, which was a leftover from before `.focus.over` reassigned `--c` — and
+   its only remaining effect was to opt the ring OUT of the 70%-toward-black
+   light-mode darkening that `.fra` above and chart.css's `.cline` both apply.
+   So inside one panel, at one moment, for one metric, the ring and the
+   sparkline were two different reds (measured rgb(187,58,34) against
+   rgb(131,41,24)); dark mode already agreed, so it was the classic "a state
+   wins in one theme and loses in the other". The reassignment below reaches the
+   arc on its own, and the mixed value CLEARS the contrast bar this rule was
+   protecting — measured 7.57:1 against --track, up from the raw token's 4.63:1
+   and far over SC 1.4.11's 3:1. */
+/* Reassigns --c, exactly as `.chip.over` does, so EVERYTHING keyed on it
+   follows in one line: the ground, the ring, and the sparkline the template
+   drops inside — which inherits --c from this element. Before, only the ring
+   and the hairline turned, leaving a breached metric drawn as a red ring and a
+   red border around a green chart on a green ground. */
+.focus.over {
+    --c: var(--over);
+    border-color: color-mix(in srgb, var(--over) 45%, var(--line));
+}
+/* The sparkline needs telling separately: chartMarkup emits `.cwrap` WITH the
+   metric's own role class, because trends and weight-trends draw the same
+   wrapper outside any panel and depend on it. That class sets --c on the
+   wrapper itself, so it outranks the reassignment above and the chart stayed
+   in the series colour inside an otherwise red panel. Two classes deep beats
+   the one-class role. */
+.focus.over .cwrap {
+    --c: var(--over);
+}
+.focus.over[aria-expanded="true"],
+.focus.over[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--over) 14%, var(--panel));
+    border-color: var(--over);
+    box-shadow: inset 0 0 0 1px var(--over);
+}
+
+/* THE VALUE, and under it the period and the distance left. `flex: none` with
+   `min-width: 0`: this block sizes to its content and never shrinks the figure
+   to make room for the sparkline — the sparkline wraps instead. */
+.fmain {
+    /* SHRINKABLE, FLOORED ON THE FIGURE. It used to be `flex: none`, which
+       sized the block to max-content — and max-content here is the META line,
+       not the figure, because the meta is always the longer of the two rows.
+       Two things followed: `.fmeta`'s ellipsis could never fire, so at narrow
+       widths the distance-left figure was hard-clipped by `.card`'s
+       overflow:hidden or printed straight through the chevron (measured: 27px
+       of German cut off at 300px, Ukrainian running through the chevron at
+       360px); and the block was wide enough to push the RING onto a line of
+       its own in 5 of 9 locales at 390px.
+
+       `min-width: min-content` floors it on `.v`, which is `nowrap`, so the
+       figure is never the thing that gives — the meta ellipsises instead,
+       which is what it was always styled to do. */
+    /* `flex-basis: 0`, not `auto`. Flex collects items onto lines by their
+       HYPOTHETICAL main size and only shrinks within a line afterwards — so
+       with `basis: auto` (= max-content = the meta line, ~299px) the block was
+       still too big for the space beside the ring and got wrapped whole,
+       orphaning the ring on a line of its own, before shrink ever ran. A basis
+       of 0 can never force that wrap; `min-width: min-content` then floors the
+       block on `.v`, which is nowrap, so the figure stays intact and the meta
+       ellipsises. */
+    flex: 1 1 0;
+    display: grid;
+    gap: 4px;
+    min-width: min-content;
+    /* Re-runs on every series switch, because focusApply rebuilds this node —
+       so handing the panel a new metric reads as a change rather than a jump
+       cut. */
+    animation: fadeIn 0.3s var(--ease-out) both;
+}
+.fmain .v {
+    color: var(--ink);
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.fmain .v .u {
+    margin-left: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--ink2);
+}
+/* A limit with a recorded zero reads in WORDS here too — the panel mirrors
+   whatever tile is selected, and it used to print "0/400 mg" under a tile
+   reading "none logged" (chipValue owns that decision now). At the figure's own
+   24px/800 the phrase shouted over the card and set the panel's min-content
+   floor: it is a word, not a reading, so it takes the tile's treatment one step
+   up rather than the figure's. */
+.fmain .v .none {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink3);
+}
+/* THE LABEL IS THE ONLY PART THAT MAY GIVE. This was one nowrap run with
+   `text-overflow: ellipsis` on the whole line — and an ellipsis eats what comes
+   LAST, which is the distance left. Measured at 320px, same card, same data,
+   switching only the locale: the delta was 100% visible in en and ja (whose
+   calorie label happens to be short) and 0–20% visible in de/es/fr/it/uk, i.e.
+   the figure was simply absent in seven of the nine languages. Floored the way
+   `.fmain` is floored on its figure — the part that must survive is
+   `flex: none`, the prose shrinks. */
+.fmeta {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink2);
+}
+.flabel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* The separator is its own item so it survives the label's ellipsis: without
+   it a truncated label ran straight into the figure. */
+.fsep {
+    flex: none;
+}
+/* The distance left is the one part of that line worth reading twice — and the
+   only reason it needed a pill of its own before. */
+.fdelta {
+    flex: none;
+    color: var(--ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.fdelta.over {
+    color: var(--over);
+}
+.fdelta.mute {
+    color: var(--ink3);
+    font-weight: 600;
+}
+
+/* THE SHAPE OF THE PERIOD — the only part that says whether today is typical,
+   and the only flexible item, so it is what gives way when the card narrows.
+   150px is the floor at which a 7-to-30-point line still reads as a shape
+   rather than as noise; under that it takes its own row at full width. */
+/* ALWAYS ITS OWN ROW. It was `flex: 1 1 150px`, so whether it sat beside the
+   figure or wrapped under it depended on how long the SELECTED metric's meta
+   line was — which meant tapping a tile silently relaid the panel out: the
+   card jumped 38px (measured live in the strict host, 435 -> 397 on a tile that
+   changes no data), and the identical series was redrawn at half the width.
+   With `preserveAspectRatio="none"` that halves the horizontal scale, so the
+   same week looked twice as steep — which defeats the sparkline's one job.
+   And the flip point was copy-dependent, so it landed at a different width in
+   each of the 9 locales.
+
+   One row means one height per width, one horizontal scale for every metric,
+   and no `size-changed` on a selection. */
+.fspark {
+    flex: 1 0 100%;
+    min-width: 0;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+}
+.fspark:empty {
+    display: none;
+}
+.fspark .cwrap {
+    width: 100%;
+}
+/* THE LINE DRAWS ITSELF. `pathLength="1"` (set in the template) renormalises
+   the path to a length of 1 whatever its real geometry, so one dash covers it
+   exactly and the offset sweeps 1 -> 0 — no measuring, no JS, and it works for
+   7 points or 30. Scoped to `.fspark` because `stroke-dasharray: 1` on a path
+   WITHOUT that attribute would render as a dotted line, and trends and
+   weight-trends draw the same `.cline` without it. */
+.fspark .cline {
+    stroke-dasharray: 1;
+    animation: drawIn 0.9s var(--ease-out) both;
+}
+.fspark .carea,
+.fspark .cgoal,
+.fspark .chalo,
+.fspark .cdot {
+    animation: fadeIn 0.5s var(--ease-out) 0.35s both;
+}
+/* 48px, not the 34 it started at. At 34 the chart grammar's zero-based domain
+   plus 1.15 headroom left a 30-day calorie series with SIX pixels of total
+   vertical travel — under two and a half stroke widths across 437px, which is
+   a flat rule pretending to be a trend. The grammar's own numbers were derived
+   for chart.css's 52px box; 48 gets nearly all of that back and still fits the
+   panel, since the sparkline has its own row now. */
+.fspark .cwrap svg {
+    height: 48px;
+}
+/* The goal line has to survive COINCIDING with the data. On a series that sits
+   near its goal the dashes landed inside the 2.5px data stroke and the two read
+   as one dashed orange rule — measured 2.2px apart on a 30-day calorie series,
+   i.e. within one stroke width. Darker and half a pixel heavier than the shared
+   `.cgoal`, so it stays legible as the reference where it crosses. */
+.fspark .cgoal {
+    stroke: var(--ink2);
+    stroke-width: 1.5;
+}
+/* Pinned to the corner, not carried in the flex row. As a flex item it rode
+   with whatever wrapped last — on a narrow card that is the sparkline, so the
+   affordance ended up beside a chart on line two. In the corner it is where
+   every tile's chevron is, at every width. */
+/* Centred on the panel, at a tile's own 9px inset. The rotate below has to
+   carry the centring translate with it, or opening the panel drops the chevron
+   half its height. */
+.focus > .chev {
+    position: absolute;
+    top: 50%;
+    right: 9px;
+    transform: translateY(-50%);
+}
+.focus[aria-expanded="true"] > .chev {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* Screen-reader text for a NON-button panel; inside a button the aria-label
+   carries the same words. Hidden either way — the figure prints its own goal
+   and the meta line the distance. */
+.focus .dcap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---- the card foot ------------------------------------------------------- */
+
+/* The bottom of the card: the tap hint, and the settings note bridge.js appends
+   into `[data-widget-foot]`. Both are small print ABOUT the widget rather than
+   anything it measured, so they share one hairline and one block instead of the
+   dashed full-width pill plus separate banded note they used to be — two boxes,
+   two hairlines and ~64px to carry two short lines.
+
+   Stacked, not a `space-between` row like `.cfoot`: the note is ~85 characters,
+   so it never shares a line with the hint at any width a chat card gets, and a
+   flex row would only have produced the same two lines with a ragged gap in the
+   middle of the first one.
+
+   Left-aligned, because they are read as prose. Centring small print makes it
+   look like a caption for the card above it, which is what the old banded note
+   read as. */
+/* 12px of margin, not 10: `.strip` is a plain block, so nothing but this rule
+   spaces the foot, and the rail's -2px focus-ring margin pulls whatever follows
+   it up by 2. Without the margin the hairline landed exactly on the bottom edge
+   of the last row of tiles. 12 - 2 leaves the 10px every other block in the
+   card is separated by, and the line then sits with 10px of air on both sides
+   of it. */
+.foot {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 3px;
+    justify-items: start;
+}
+/* An empty foot is no foot: a strip with nothing to disclose, on a page where
+   the bridge put its note somewhere else, would otherwise draw a hairline under
+   the rail with 8px of nothing beneath it. */
+.foot:empty {
+    display: none;
+}
+/* The instruction: a step louder than the note, because it is the only line
+   here anyone is meant to act on. */
+.fhint {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink2);
+}
+/* `display: inline-flex` above outranks the UA sheet's `[hidden]`, so without
+   this macroToggle cannot hide the hint when a drawer opens. */
+.fhint[hidden] {
+    display: none;
+}
+.fhint > svg {
+    color: var(--ink3);
+}
+
+/* The settings note. Quietest thing on the card by design — it is a standing
+   disclaimer, not an instruction, and it is on every widget. */
+.wnote {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--ink3);
+}
+/* Standing alone, under a widget that emitted no foot to put it in
+   (weight-trends, import-meals): it has to draw its own hairline and its own
+   room, and it centres, because there it IS a caption for the card above. */
+.wrap > .wnote {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+}
+
+/* ---- the .more row ------------------------------------------------------- */
+
+/* A full-width bar for a section-sized disclosure — goal-progress's weight
+   block, the drawer's own overflow line. */
+.more {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 32px;
+    padding: 0 10px 0 11px;
+    border: 0;
+    border-radius: var(--r-in);
+    background: var(--bg2);
+    color: var(--ink2);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background-color 0.18s var(--ease-out),
+        color 0.18s var(--ease-out);
+}
+/* One line, ellipsised, for a .more row whose label is a fixed short word
+   (goal-progress's "Weight", the drawer's overflow line): the VALUE beside it
+   is the row's payload and must keep its space. The limits row overrides this
+   — see below, and note the reason before shortening that override. */
+.more .mlab {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.more .mv {
+    margin-left: auto;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.more .chev {
+    margin-left: auto;
+}
+/* …unless a value already took the free space, in which case the chevron sits
+   one gap away from it rather than splitting the row a second time. */
+.more .mv ~ .chev {
+    margin-left: 0;
+}
+.more:hover {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--ink) 6%, var(--bg2));
+}
+.more:active {
+    transform: translateY(1px);
+}
+.more:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+}
+
+/* ---- the drawer ---------------------------------------------------------- */
+
+/* One per card, one open at a time, always directly under the rails.
+   ANIMATE NOTHING THAT CHANGES LAYOUT HERE — not height, max-height, margin or
+   padding. bridge.js measures documentElement at `max-content` on a
+   ResizeObserver tick, so an animated size turns that into a 60Hz
+   `size-changed` storm and a lurching iframe. `rise` is opacity and transform
+   only: the RO fires once on the `hidden` toggle, reads the settled height, and
+   the animation plays inside an already correctly sized frame. The drawer is
+   made visible by the `hidden` attribute, never by the animation, so a
+   cancelled one can never hide content. */
+.drawer {
+    margin-top: 8px;
+    padding: 9px 10px 8px;
+    background: var(--bg2);
+    border-radius: var(--r-in);
+    animation: rise 0.22s var(--ease-out) both;
+}
+.drawer[hidden] {
+    display: none;
+}
+/* macroToggle moves focus in here on open (the drawer carries no aria-live —
+   see macroPanel — so focus is what reports it). A pointer-driven open must not
+   paint a ring, a keyboard-driven one must. */
+.drawer:focus {
+    outline: none;
+}
+.drawer:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+}
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.dhead {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+}
+/* Over a ceiling, the head takes the same --c reassignment `.chip.over` makes,
+   so the drawer's dot is the same colour as the dot on the tile that opened it.
+   Without it a breached metric showed a red dot on the tile and its normal
+   series colour in the drawer, for the same metric at the same moment.
+
+   `.dlist` is named alongside it because the role class sits on the LIST now
+   rather than on each `<li>` (macros.js) — head and rows are two containers
+   describing one metric, so a breach has to reach both or the list resolves
+   `--c` to the raw series token three pixels under a red head. Nothing inside a
+   row paints from `--c` today; this is what stops the next thing that does from
+   being wrong on arrival. */
+.dhead.over,
+.dlist.over {
+    --c: var(--over);
+}
+.dhead .dot,
+.more .dot {
+    align-self: center;
+    width: 7px;
+    height: 7px;
+}
+.dname {
+    flex: none;
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+}
+/* The caption is the whole reason the old per-nutrient bars could go away: the
+   goal, and the distance to it, in the words macroBits already produced. */
+.dcap {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11.5px;
+    color: var(--ink3);
+    font-variant-numeric: tabular-nums;
+}
+/* The one string in the drawer that states a breach IN WORDS — and the one
+   that most needs reading. In --over it measured 3.98:1 on the drawer's --bg2
+   in light mode (a11y audit); --over is AA-corrected against --panel, not
+   against this surface. So the words take --ink2 and 700 weight, and the
+   breach is carried by the wording itself ("13.2 g over", already in the
+   string) plus the warning marker on the chip that opened this drawer. */
+.dcap.over {
+    color: var(--ink2);
+    font-weight: 700;
+}
+/* 24x24 is the floor, not a preference: WCAG 2.2 SC 2.5.8. At 22px this was
+   the only sub-minimum target in the whole system (a11y audit). */
+.dx {
+    margin-left: auto;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink3);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    /* Every other interactive primitive here suppresses the platform tap flash
+       and presses down on activation; this one did neither, on the smallest
+       target in the system and on the phone this widget mostly lives on. The
+       press is a GROUND step rather than `translateY(1px)`: `.dhead` is
+       `align-items: baseline` and a 24px circle nudged down a pixel visibly
+       breaks that line. */
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background 0.18s var(--ease-out),
+        color 0.18s var(--ease-out);
+}
+.dx:hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+    color: var(--ink);
+}
+/* After :hover, not before — equal specificity, so source order is the whole
+   difference between a press that shows and one the pointer swallows. */
+.dx:active {
+    background: color-mix(in srgb, var(--ink) 16%, transparent);
+    color: var(--ink);
+}
+.dx:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+}
+
+.dlist {
+    margin: 7px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 1px;
+}
+/* The breakdown deals its rows in, largest first — the order they are already
+   sorted in, so the sequence reads as the ranking it is. */
+.dlist li {
+    animation: rowIn 0.3s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 28ms);
+    display: grid;
+    /* minmax, not a hard 54px: a 5-digit calorie figure overflowed its cell
+       leftwards, out of the drawer's padding and clear of its background. */
+    grid-template-columns: minmax(54px, auto) minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 12.5px;
+}
+/* NOT the series token. Painted in var(--c) on the drawer's --bg2 these failed
+   AA on 7 of the 9 nutrients in light mode, worst 1.47:1 for sugar's unit — and
+   this is the drawer's entire payload, the data the chip-and-drawer design
+   exists to reveal (a11y audit). The tint carries no information here anyway:
+   every row in the list is already grouped under one coloured dot in `.dhead`,
+   so the colour lives there and the numbers are plain ink.
+
+   The unit takes --ink3 rather than an opacity: it is real text, and a 0.7
+   alpha scaled every ratio down another ~35% on top of the token failure. */
+.dv {
+    text-align: right;
+    color: var(--ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.dv .u {
+    /* The same 2px `.chip .v .u` and `.fmain .v .u` put between a figure and
+       its unit. Without it one card printed "100/160 g" on a tile and "100g" in
+       the drawer that tile opened — one convention, two renderings, on screen
+       together. */
+    margin-left: 2px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--ink3);
+}
+.dn {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink);
+    font-weight: 600;
+}
+.ds {
+    font-size: 10.5px;
+    color: var(--ink3);
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+/* The capped list's tail count, and the empty state. Both are the drawer
+   talking about itself rather than a row of data, so neither takes the grid. */
+.dlist .dmore {
+    display: block;
+    margin-top: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ink3);
+}
+.dempty {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--ink3);
+}
+.drawer .more {
+    margin-top: 6px;
+    height: 28px;
+    background: transparent;
+    color: var(--ink3);
+    font-size: 11.5px;
+}
+
+/* ---- segmented control --------------------------------------------------- */
+
+/* Dawn's universal thumb formula — --bg2 track, --panel thumb, --seg-shadow —
+   verbatim. It replaces the accent-filled active pill the widgets used to have,
+   which was the one place they contradicted the site's own control. */
+.seg {
+    display: flex;
+    flex: none;
+    gap: 2px;
+    margin-left: auto;
+    padding: 2px;
+    background: var(--bg2);
+    border-radius: var(--r-pill);
+}
+.seg button {
+    height: 26px;
+    min-width: 34px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--ink2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background-color 0.2s var(--ease-out),
+        box-shadow 0.2s var(--ease-out),
+        color 0.2s var(--ease-out);
+}
+.seg button:hover {
+    color: var(--ink);
+}
+.seg button[aria-pressed="true"] {
+    background: var(--panel);
+    color: var(--ink);
+    box-shadow: var(--seg-shadow);
+}
+.seg button:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+}
+
+/* base.css kills every animation under reduced motion; these three are named
+   again because each one's job is decoration over a value that is already
+   painted, and a widget must never depend on that blanket rule to un-hide
+   anything. */
+@media (prefers-reduced-motion: reduce) {
+    .drawer {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+}

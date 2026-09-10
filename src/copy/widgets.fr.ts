@@ -13,6 +13,12 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             fiber_g: "Fibres",
             water_ml: "Eau",
         },
+        mealTypes: {
+            breakfast: "petit-déjeuner",
+            lunch: "déjeuner",
+            dinner: "dîner",
+            snack: "collation",
+        },
         noGoalSet: "aucun objectif défini",
         atLimit: "à la limite",
         floorUnder: "restant",
@@ -26,6 +32,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         caloriesOn: "Calories · {date}",
         tapHint: "Touchez une valeur pour voir les repas correspondants",
         showMealsContributed: "Afficher les repas qui y ont contribué.",
+        alsoChart: "Affiche aussi ce nutriment sur le graphique.",
         byMealTitle: "{label} par repas",
         closeBreakdown: "Fermer le détail",
         noMealsContributed: "Aucun repas enregistré n'a contribué à {label}.",
@@ -96,6 +103,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         avgUnder: "en dessous",
         loggedOfTotal: "{logged}/{total} jours enregistrés",
         caloriesOverRange: "Calories par jour sur les {range} derniers jours",
+        metricOverRange: "{metric} par jour sur les {range} derniers jours",
         windowAriaLabel: "Fenêtre de tendance",
         rangeDaysAriaLabel: "{n} jours",
         avgAllDays: "Moy. {range} jours · tous les jours",
@@ -123,6 +131,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         stepMap: "Associer les colonnes",
         stepPreview: "Aperçu",
         stepImport: "Importer",
+        stepOf: "Étape {n} sur {total} · {label}",
         fieldLabels: {
             logged_at: "Date / heure",
             description: "Nom de l'aliment",
@@ -240,5 +249,10 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         noDataRows: "Aucune ligne de données trouvée dans ce fichier.",
         emailNotice:
             "Ça ne fonctionne pas comme prévu ? Écris à {email} et inclus les lignes ci-dessous — c'est tout ce qu'il faut pour diagnostiquer le problème.",
+    },
+    chrome: {
+        widgetsNote:
+            "Tu peux activer ou désactiver ces widgets à tout moment — demande simplement à modifier tes réglages.",
+        noHost: "Cette vue n'a pas pu se connecter à son hôte.",
     },
 };

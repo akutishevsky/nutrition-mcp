@@ -13,6 +13,12 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             fiber_g: "食物繊維",
             water_ml: "水分",
         },
+        mealTypes: {
+            breakfast: "朝食",
+            lunch: "昼食",
+            dinner: "夕食",
+            snack: "間食",
+        },
         noGoalSet: "目標未設定",
         atLimit: "上限に到達",
         floorUnder: "残り",
@@ -26,6 +32,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         caloriesOn: "{date}のカロリー",
         tapHint: "数値をタップすると内訳の食事が表示されます",
         showMealsContributed: "内訳となった食事を表示します。",
+        alsoChart: "この栄養素をグラフにも表示します。",
         byMealTitle: "{label}の内訳",
         closeBreakdown: "内訳を閉じる",
         noMealsContributed: "{label}に該当する食事の記録がありません。",
@@ -96,6 +103,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         avgUnder: "不足",
         loggedOfTotal: "{logged}/{total} 日を記録",
         caloriesOverRange: "過去{range}日間の1日あたりカロリー",
+        metricOverRange: "過去{range}日間の1日あたり{metric}",
         windowAriaLabel: "期間の切り替え",
         rangeDaysAriaLabel: "{n}日間",
         avgAllDays: "{range}日平均・全日",
@@ -123,6 +131,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         stepMap: "列の対応付け",
         stepPreview: "プレビュー",
         stepImport: "インポート",
+        stepOf: "ステップ {n}/{total}・{label}",
         fieldLabels: {
             logged_at: "日付・時刻",
             description: "食品名",
@@ -240,5 +249,10 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         noDataRows: "そのファイルにデータ行が見つかりませんでした。",
         emailNotice:
             "うまく動作しませんか？{email}までメールでご連絡いただき、以下の内容を含めてください — 問題の診断に必要な情報がすべて含まれています。",
+    },
+    chrome: {
+        widgetsNote:
+            "これらのウィジェットはいつでもオン・オフできます。設定を変更するよう伝えるだけです。",
+        noHost: "このビューはホストに接続できませんでした。",
     },
 };

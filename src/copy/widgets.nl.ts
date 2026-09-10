@@ -13,6 +13,12 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             fiber_g: "Vezels",
             water_ml: "Water",
         },
+        mealTypes: {
+            breakfast: "ontbijt",
+            lunch: "lunch",
+            dinner: "diner",
+            snack: "snack",
+        },
         noGoalSet: "geen doel ingesteld",
         atLimit: "op de limiet",
         floorUnder: "te gaan",
@@ -26,6 +32,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         caloriesOn: "Calorieën · {date}",
         tapHint: "Tik op een waarde voor de bijbehorende maaltijden",
         showMealsContributed: "Toon de maaltijden die hieraan bijdroegen.",
+        alsoChart: "Toont deze voedingsstof ook in de grafiek.",
         byMealTitle: "{label} per maaltijd",
         closeBreakdown: "Overzicht sluiten",
         noMealsContributed: "Geen gelogde maaltijden droegen bij aan {label}.",
@@ -96,6 +103,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         avgUnder: "onder",
         loggedOfTotal: "{logged}/{total} dagen gelogd",
         caloriesOverRange: "Calorieën per dag over de afgelopen {range} dagen",
+        metricOverRange: "{metric} per dag over de afgelopen {range} dagen",
         windowAriaLabel: "Trendperiode",
         rangeDaysAriaLabel: "{n} dagen",
         avgAllDays: "{range}-daags gem. · alle dagen",
@@ -123,6 +131,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         stepMap: "Kolommen koppelen",
         stepPreview: "Voorbeeld",
         stepImport: "Importeren",
+        stepOf: "Stap {n} van {total} · {label}",
         fieldLabels: {
             logged_at: "Datum / tijd",
             description: "Naam voedingsmiddel",
@@ -240,5 +249,10 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         noDataRows: "Geen datarijen gevonden in dat bestand.",
         emailNotice:
             "Werkt het niet zoals verwacht? Mail naar {email} en voeg de onderstaande regels toe — dat is alles wat nodig is om het te diagnosticeren.",
+    },
+    chrome: {
+        widgetsNote:
+            "Je kunt deze widgets altijd aan- of uitzetten — vraag gewoon om je instellingen aan te passen.",
+        noHost: "Deze weergave kon geen verbinding maken met de host.",
     },
 };

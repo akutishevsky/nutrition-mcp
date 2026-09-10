@@ -13,6 +13,12 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
             fiber_g: "Błonnik",
             water_ml: "Woda",
         },
+        mealTypes: {
+            breakfast: "śniadanie",
+            lunch: "obiad",
+            dinner: "kolacja",
+            snack: "przekąska",
+        },
         noGoalSet: "brak celu",
         atLimit: "na limicie",
         floorUnder: "zostało",
@@ -26,6 +32,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         caloriesOn: "Kalorie · {date}",
         tapHint: "Dotknij wskaźnik, aby zobaczyć posiłki",
         showMealsContributed: "Pokaż posiłki, które się na to złożyły.",
+        alsoChart: "Pokazuje też ten składnik na wykresie.",
         byMealTitle: "{label} według posiłków",
         closeBreakdown: "Zamknij szczegóły",
         noMealsContributed:
@@ -97,6 +104,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         avgUnder: "poniżej",
         loggedOfTotal: "{logged}/{total} dni z wpisami",
         caloriesOverRange: "Kalorie dziennie w ciągu ostatnich {range} dni",
+        metricOverRange: "{metric} dziennie w ciągu ostatnich {range} dni",
         windowAriaLabel: "Zakres trendu",
         rangeDaysAriaLabel: "{n} dni",
         avgAllDays: "Śr. z {range} dni · wszystkie dni",
@@ -124,6 +132,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         stepMap: "Mapuj kolumny",
         stepPreview: "Podgląd",
         stepImport: "Import",
+        stepOf: "Krok {n} z {total} · {label}",
         fieldLabels: {
             logged_at: "Data / godzina",
             description: "Nazwa posiłku",
@@ -241,5 +250,10 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         noDataRows: "Nie znaleziono żadnych wierszy z danymi w tym pliku.",
         emailNotice:
             "Coś nie działa jak powinno? Napisz na {email} i dołącz poniższe linie — to wszystko, czego potrzeba do zdiagnozowania problemu.",
+    },
+    chrome: {
+        widgetsNote:
+            "Te widżety możesz włączyć lub wyłączyć w każdej chwili — wystarczy poprosić o zmianę ustawień.",
+        noHost: "Ten widok nie mógł połączyć się ze swoim hostem.",
     },
 };

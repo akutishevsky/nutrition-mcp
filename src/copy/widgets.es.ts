@@ -13,6 +13,12 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
             fiber_g: "Fibra",
             water_ml: "Agua",
         },
+        mealTypes: {
+            breakfast: "desayuno",
+            lunch: "almuerzo",
+            dinner: "cena",
+            snack: "tentempié",
+        },
         noGoalSet: "sin meta establecida",
         atLimit: "en el límite",
         floorUnder: "restante",
@@ -26,6 +32,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         caloriesOn: "Calorías · {date}",
         tapHint: "Toca una métrica para ver las comidas detrás de ella",
         showMealsContributed: "Mostrar las comidas que contribuyeron.",
+        alsoChart: "También muestra este nutriente en el gráfico.",
         byMealTitle: "{label} por comida",
         closeBreakdown: "Cerrar desglose",
         noMealsContributed: "Ninguna comida registrada contribuyó a {label}.",
@@ -96,6 +103,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         avgUnder: "por debajo",
         loggedOfTotal: "{logged}/{total} días registrados",
         caloriesOverRange: "Calorías por día en los últimos {range} días",
+        metricOverRange: "{metric} por día en los últimos {range} días",
         windowAriaLabel: "Ventana de tendencia",
         rangeDaysAriaLabel: "{n} días",
         avgAllDays: "prom. de {range} días · todos los días",
@@ -123,6 +131,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         stepMap: "Asignar columnas",
         stepPreview: "Vista previa",
         stepImport: "Importar",
+        stepOf: "Paso {n} de {total} · {label}",
         fieldLabels: {
             logged_at: "Fecha / hora",
             description: "Nombre del alimento",
@@ -239,5 +248,10 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         noDataRows: "No se encontraron filas de datos en ese archivo.",
         emailNotice:
             "¿No funciona como se esperaba? Escribe a {email} e incluye las líneas de abajo — eso es todo lo necesario para diagnosticarlo.",
+    },
+    chrome: {
+        widgetsNote:
+            "Puedes activar o desactivar estos widgets cuando quieras — solo pide cambiar tus ajustes.",
+        noHost: "Esta vista no pudo conectarse con su host.",
     },
 };

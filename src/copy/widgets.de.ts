@@ -16,6 +16,12 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             fiber_g: "Ballaststoffe",
             water_ml: "Wasser",
         },
+        mealTypes: {
+            breakfast: "Frühstück",
+            lunch: "Mittagessen",
+            dinner: "Abendessen",
+            snack: "Snack",
+        },
         noGoalSet: "kein Ziel festgelegt",
         atLimit: "am Limit",
         floorUnder: "übrig",
@@ -30,6 +36,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         tapHint: "Für die zugehörigen Mahlzeiten auf einen Wert tippen",
         showMealsContributed:
             "Zeigt die Mahlzeiten, die dazu beigetragen haben.",
+        alsoChart: "Zeigt diesen Nährstoff außerdem im Diagramm an.",
         byMealTitle: "{label} nach Mahlzeit",
         closeBreakdown: "Aufschlüsselung schließen",
         noMealsContributed:
@@ -101,6 +108,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         avgUnder: "unter",
         loggedOfTotal: "{logged}/{total} Tage protokolliert",
         caloriesOverRange: "Kalorien pro Tag in den letzten {range} Tagen",
+        metricOverRange: "{metric} pro Tag in den letzten {range} Tagen",
         windowAriaLabel: "Trendzeitraum",
         rangeDaysAriaLabel: "{n} Tage",
         avgAllDays: "{range}-Tage-Ø · alle Tage",
@@ -128,6 +136,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         stepMap: "Spalten zuordnen",
         stepPreview: "Vorschau",
         stepImport: "Import",
+        stepOf: "Schritt {n} von {total} · {label}",
         fieldLabels: {
             logged_at: "Datum / Uhrzeit",
             description: "Name des Lebensmittels",
@@ -245,5 +254,10 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         noDataRows: "Keine Datenzeilen in dieser Datei gefunden.",
         emailNotice:
             "Funktioniert es nicht wie erwartet? Schreib an {email} und füg die untenstehenden Zeilen bei — damit lässt sich alles Nötige diagnostizieren.",
+    },
+    chrome: {
+        widgetsNote:
+            "Du kannst diese Widgets jederzeit ein- oder ausschalten — bitte einfach darum, deine Einstellungen zu ändern.",
+        noHost: "Diese Ansicht konnte keine Verbindung zu ihrem Host herstellen.",
     },
 };

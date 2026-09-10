@@ -13,6 +13,12 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
             fiber_g: "Клітковина",
             water_ml: "Вода",
         },
+        mealTypes: {
+            breakfast: "сніданок",
+            lunch: "обід",
+            dinner: "вечеря",
+            snack: "перекус",
+        },
         noGoalSet: "ціль не задана",
         atLimit: "на межі",
         floorUnder: "залишилось",
@@ -26,6 +32,7 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         caloriesOn: "Калорії · {date}",
         tapHint: "Торкніться показника, щоб побачити страви",
         showMealsContributed: "Показати страви, що це склали.",
+        alsoChart: "Також показує цей нутрієнт на графіку.",
         byMealTitle: "{label} за стравами",
         closeBreakdown: "Закрити деталізацію",
         noMealsContributed: "Жодна із зареєстрованих страв не містить {label}.",
@@ -96,6 +103,7 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         avgUnder: "нижче",
         loggedOfTotal: "{logged}/{total} днів з записами",
         caloriesOverRange: "Калорії за день за останні {range} днів",
+        metricOverRange: "{metric} за день за останні {range} днів",
         windowAriaLabel: "Період тренду",
         rangeDaysAriaLabel: "{n} днів",
         avgAllDays: "Сер. за {range} дн. · всі дні",
@@ -123,6 +131,7 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         stepMap: "Зіставлення колонок",
         stepPreview: "Перегляд",
         stepImport: "Імпорт",
+        stepOf: "Крок {n} з {total} · {label}",
         fieldLabels: {
             logged_at: "Дата / час",
             description: "Назва страви",
@@ -240,5 +249,10 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         noDataRows: "У файлі не знайдено рядків з даними.",
         emailNotice:
             "Щось працює не так? Напиши на {email} і додай рядки нижче — цього достатньо, щоб усе діагностувати.",
+    },
+    chrome: {
+        widgetsNote:
+            "Ці віджети можна будь-коли увімкнути або вимкнути — просто попроси змінити налаштування.",
+        noHost: "Цей віджет не зміг підключитися до свого хоста.",
     },
 };

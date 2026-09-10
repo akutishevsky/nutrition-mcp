@@ -13,6 +13,12 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             fiber_g: "Fibre",
             water_ml: "Acqua",
         },
+        mealTypes: {
+            breakfast: "colazione",
+            lunch: "pranzo",
+            dinner: "cena",
+            snack: "spuntino",
+        },
         noGoalSet: "nessun obiettivo impostato",
         atLimit: "al limite",
         floorUnder: "rimanenti",
@@ -26,6 +32,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         caloriesOn: "Calorie · {date}",
         tapHint: "Tocca un valore per vedere i pasti che lo compongono",
         showMealsContributed: "Mostra i pasti che hanno contribuito.",
+        alsoChart: "Mostra anche questo nutriente nel grafico.",
         byMealTitle: "{label} per pasto",
         closeBreakdown: "Chiudi il dettaglio",
         noMealsContributed: "Nessun pasto registrato ha contribuito a {label}.",
@@ -96,6 +103,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         avgUnder: "sotto",
         loggedOfTotal: "{logged}/{total} giorni registrati",
         caloriesOverRange: "Calorie al giorno negli ultimi {range} giorni",
+        metricOverRange: "{metric} al giorno negli ultimi {range} giorni",
         windowAriaLabel: "Intervallo di tempo",
         rangeDaysAriaLabel: "{n} giorni",
         avgAllDays: "media {range} giorni · tutti i giorni",
@@ -123,6 +131,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         stepMap: "Mappa colonne",
         stepPreview: "Anteprima",
         stepImport: "Importa",
+        stepOf: "Passaggio {n} di {total} · {label}",
         fieldLabels: {
             logged_at: "Data / ora",
             description: "Nome alimento",
@@ -240,5 +249,10 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         noDataRows: "Nessuna riga di dati trovata in quel file.",
         emailNotice:
             "Non funziona come previsto? Scrivi a {email} includendo le righe qui sotto — è tutto ciò che serve per diagnosticare il problema.",
+    },
+    chrome: {
+        widgetsNote:
+            "Puoi attivare o disattivare questi widget quando vuoi — chiedi semplicemente di aggiornare le tue impostazioni.",
+        noHost: "Questa vista non è riuscita a connettersi al suo host.",
     },
 };
