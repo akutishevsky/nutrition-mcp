@@ -8,9 +8,12 @@
   requests — because the MCP Apps sandbox blocks external hosts. Styling follows
   public/widgets/STYLE_GUIDE.md so it matches the other widgets.
 
-  One card (`.panel`): a header line naming the range and how much of it was
-  logged, the compact calories-per-day chart, then the shared macro strip
-  averaged over the logged days.
+  One Dawn card: a header naming the range and how much of it was logged, the
+  calorie hero, the trend chart, then the rails of nutrient chips. Tapping a chip
+  does two things at once — it opens the meals behind that nutrient, and it
+  re-strokes the chart in that nutrient's colour against that nutrient's goal
+  line. The payload already carries every macro for every day, so switching
+  series costs no second round trip.
 
   Data arrives as the `structuredContent` of the get_nutrition_summary tool
   result; the shared bridge (shared/bridge.js) reads it across host conventions
@@ -26,21 +29,38 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/ring.css@*/
+            /*@include shared/chip.css@*/
 
-            /*@include shared/macros.css@*/
+            /*@include shared/chart.css@*/
 
-            /*@include shared/trend.css@*/
+            /* NOTHING PAGE-SCOPED. Every part of this card is a shared
+               primitive, and the two rules that used to live here targeted a
+               `.chartbox` no emitter has produced since the chart moved INSIDE
+               the focus panel (`.fspark`, see chip.css) — a dead selector, plus
+               two comments reasoning about a `.hero + .rail` adjacency and a
+               `.chip .k` hero label that no longer exist either. Layout only
+               this widget needs belongs here; layout every widget shares
+               belongs in the partials, and right now that is all of it. */
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap" id="root"></div>
 
         <script>
             "use strict";
 
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+
+            /* shortDate(), used by shared/macros.js for a drawer row's day.
+               Every other widget that names a calendar date already includes
+               this; this one hand-rolled dayLabel() below (shortDate plus an
+               optional year) and left the drawer printing a raw ISO slice. */
+            /*@include shared/date.js@*/
+
+            /*@include shared/icon.js@*/
+
+            /*@include shared/svg.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -73,11 +93,11 @@
                     fiber_g: 26.4,
                     sugar_g: 58.2,
                     // Alcohol tracking ON in this sample. null here (the
-                    // opt-in's "off") drops the limit cell entirely.
+                    // opt-in's "off") drops the alcohol chip entirely.
                     alcohol_g: 12.5,
                     // Averaged over the days that recorded caffeine, never over
                     // all of them. null here (nothing ever recorded) drops the
-                    // cell rather than claiming a 0 mg day.
+                    // chip rather than claiming a 0 mg day.
                     caffeine_mg: 187,
                     water_ml: 2100,
                 },
@@ -107,7 +127,8 @@
                         alcohol_g: 0,
                         // Nothing caffeinated logged this day — null, not 0,
                         // so it drops out of the average instead of dragging
-                        // it down.
+                        // it down, and the chart breaks its line here rather
+                        // than drawing a 0 mg day nobody recorded.
                         caffeine_mg: null,
                         water_ml: 1800,
                     },
@@ -234,7 +255,7 @@
                         // The two rows the caffeine total comes from. Every
                         // other row above carries null — a meal logged before
                         // caffeine existed, or one nobody bothered to fill in —
-                        // which is exactly the partial-nutrient case the panel
+                        // which is exactly the partial-nutrient case the strip
                         // must not average as zero.
                         description: "Flat white",
                         meal_type: "snack",
@@ -264,10 +285,21 @@
                 ],
             };
 
+            // WIDGET_LOCALE, not the host browser's. `toLocaleString()` with no
+            // argument keys off navigator.language, so a German user whose
+            // browser is English read "58.2" and "2,035" inside German copy —
+            // and beside macroNum's own figures, which now group and separate
+            // through the same locale (macroDecimal, shared/macros.js). The
+            // locale is only known after setLocale() runs inside render(), so
+            // it is read per call rather than captured.
             function fmt(n, decimals) {
                 if (n == null || isNaN(n)) return "0";
                 const r = decimals ? n.toFixed(decimals) : Math.round(n);
-                return Number(r).toLocaleString();
+                try {
+                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
+                } catch (_) {
+                    return Number(r).toLocaleString();
+                }
             }
             function esc(s) {
                 return String(s).replace(
@@ -281,8 +313,6 @@
                         })[c],
                 );
             }
-
-            /*@include shared/macros.js@*/
 
             // ---- Header dates -------------------------------------------------
             // The header line is one nowrap run, so the range is written the way
@@ -345,74 +375,150 @@
                 return `${dayLabel(start, false)} – ${dayLabel(end, false)}${yr}`;
             }
 
-            // Calories-per-day trend: SVG area + line that scales to any range
-            // (3 days to a year), drawn at the compact 480×54 scale that sits
-            // inside the panel rather than on a card of its own. Uniform scaling
-            // — no preserveAspectRatio distortion — so it keeps its aspect ratio
-            // at any container width. No <text>: every label is HTML above it.
-            function trendChart(days, goal) {
-                const W = 480,
-                    H = 54,
-                    padL = 5,
-                    padR = 5,
-                    padT = 5,
-                    padB = 4;
-                const n = days.length;
-                const vals = days.map((d) => d.calories || 0);
-                const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
-                const plotW = W - padL - padR;
-                const plotH = H - padT - padB;
-                const base = padT + plotH;
-                const x = (i) =>
-                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
-                const y = (v) => padT + plotH - (v / maxV) * plotH;
-                const pts = vals.map((v, i) => [x(i), y(v)]);
+            // ---- The trend chart ----------------------------------------------
+            // One series at a time, drawn from the days the payload already
+            // carries. Calories by default; a chip takes it over while it is
+            // open and hands it back when it closes (see onSeries in render()).
+            const CHART = { days: [], goals: null, key: "calories" };
 
-                const line = pts
-                    .map(
-                        (p, i) =>
-                            `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                    )
-                    .join(" ");
-                const area =
-                    `M${pts[0][0].toFixed(1)} ${base} ` +
-                    pts
-                        .map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
-                        .join(" ") +
-                    ` L${pts[n - 1][0].toFixed(1)} ${base} Z`;
+            // The chart draws whatever it has a reading for. A metric with no
+            // reading on any day in the range would be a flat line at zero
+            // pretending to be data, so it is not offered as a series at all —
+            // and offering none of them (a single-day range, where there is no
+            // chart) leaves every chip a pure disclosure control.
+            function chartableKeys(days) {
+                return MACROS.filter((m) => m.role !== "cal")
+                    .map((m) => m.key)
+                    .filter((k) => days.some((d) => d[k] != null));
+            }
+
+            function chartMarkup() {
+                const key = CHART.key;
+                const m = MACROS.find((mm) => mm.key === key);
+                const days = CHART.days;
+                // null is "nobody recorded this that day" and must not become a
+                // zero: it drops out of the average and breaks the line, exactly
+                // as it drops out of the server's own average (#78).
+                const raw = days.map((d) =>
+                    d[key] == null ? null : Number(d[key]) || 0,
+                );
+                const seen = raw.filter((v) => v !== null);
+                const goal = CHART.goals ? (CHART.goals[key] ?? null) : null;
+                // Zero-based, with headroom over the taller of the data and the
+                // goal: a nutrient total's distance from zero is meaningful, so
+                // the axis is never floated to the data's own floor.
+                const top = Math.max(...seen, goal || 0, 1) * 1.15;
+                const pts = chPoints(
+                    raw.map((v) => (v === null ? 0 : v)),
+                    0,
+                    top,
+                );
+
+                // Built here rather than with chPath(), which has no way to
+                // express a gap: a run of readings is one subpath, and a
+                // reading alone between two gaps gets a zero-length segment so
+                // the round line cap paints it as a dot instead of nothing.
+                let d = "";
+                let last = -1;
+                for (let i = 0; i < raw.length; i++) {
+                    if (raw[i] === null) continue;
+                    const xy = `${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}`;
+                    const joined = i > 0 && raw[i - 1] !== null;
+                    d += (joined ? "L" : "M") + xy;
+                    if (
+                        !joined &&
+                        (i + 1 >= raw.length || raw[i + 1] === null)
+                    ) {
+                        d += "L" + xy;
+                    }
+                    last = i;
+                }
+
+                // The wash under the line, gapped exactly as `d` is: a day with
+                // no reading gets no fill rather than the area bridging it.
+                // Zero-based domain, so the box's floor really is 0 — see
+                // .carea in chart.css.
+                const area = chAreaMarkup(
+                    chArea(raw.map((v, i) => (v === null ? null : pts[i]))),
+                );
 
                 const goalLine =
                     goal && goal > 0
-                        ? `<line class="goalline" x1="${padL}" y1="${y(goal).toFixed(1)}" x2="${W - padR}" y2="${y(goal).toFixed(1)}"/>`
+                        ? `<line class="cgoal" x1="${CH_PL}" y1="${chY(goal, 0, top).toFixed(1)}" x2="${CH_W - CH_PR}" y2="${chY(goal, 0, top).toFixed(1)}"/>`
                         : "";
-                // Dots only while they still read as individual days: at 10
-                // points they are ~52 units apart, at a fortnight they crowd the
-                // line into a beaded string and at a month they are noise.
-                const dots =
-                    n <= 10
-                        ? pts
-                              .map(
-                                  (p) =>
-                                      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--calories)"/>`,
-                              )
-                              .join("")
+                // One dot, on the last reading: it is the only thing that says
+                // which end of the line is now.
+                const dot =
+                    last >= 0
+                        ? `<circle class="chalo" cx="${pts[last][0].toFixed(1)}" cy="${pts[last][1].toFixed(1)}" r="5"/><circle class="cdot" cx="${pts[last][0].toFixed(1)}" cy="${pts[last][1].toFixed(1)}" r="3"/>`
                         : "";
-                const avg = Math.round(vals.reduce((a, b) => a + b, 0) / n);
 
+                // NO CHART FOOT, so no average and no goal figure are computed
+                // here any more — the two locals that held them survived the
+                // foot's removal by a whole release and were read by nothing.
+                // The rule they enforced still stands wherever a figure IS
+                // printed: every one goes through macroNum()/macroUnit()
+                // (macros.js), never fmt() + m.unit, because that is the single
+                // place a metric's DISPLAY unit is decided and water is the one
+                // metric whose display unit is not its stored one. Bypassing it
+                // is what made the old foot read "Water avg 2,100 ml · goal
+                // 2,500" two lines under a chip saying "2.1 L".
+                //
+                // NO aria-label ON THE CHART, and none needed. It lives inside
+                // the focus panel's button, which makes its children
+                // presentational — so a label here would be announced to
+                // nobody. The button's own name (tileLabel, shared/macros.js)
+                // already carries the value, the goal and the distance left,
+                // which is every figure this line draws; the SHAPE is the part
+                // that does not survive, and there is no honest short sentence
+                // for it. Marked aria-hidden rather than left to be ignored,
+                // so that is a decision on the record.
+                //
+                // NO DATE FOOT either: the card header prints the range
+                // ("5-7 Jul · 3 days logged") three lines above, and this was
+                // the third place on one card saying the same thing.
                 return `
-          <div class="chart">
-            <div class="chead">
-              <span class="ctitle">${esc(T.nutritionSummary.caloriesPerDay)}</span>
-              <span class="cmeta">${esc(T.nutritionSummary.avg)} ${fmt(avg, 0)}${goal && goal > 0 ? ` · ${esc(T.nutritionSummary.goal)} ${fmt(goal, 0)}` : ""}</span>
-            </div>
-            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.nutritionSummary.chartAriaLabel)}">
-              <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
-              ${goalLine}
-              <path d="${area}" fill="var(--calories)" opacity="0.16"/>
-              <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-              ${dots}
+          <div class="cwrap ${m.color}">
+            <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" aria-hidden="true">
+              ${goalLine}${area}
+              <path class="cline" pathLength="1" d="${d}"/>
+              ${dot}
             </svg>
           </div>`;
+            }
+
+            // Hand the whole focus panel a metric: its figure, goal, delta,
+            // colour, ring and sparkline all switch together. This is the fix
+            // for the oldest fault in this layout — the chart restroking to
+            // protein while the figure above it went on saying calories.
+            //
+            // render() owns the whole card, so rebuilding it from here would
+            // throw away the tile that was just tapped and the drawer it
+            // opened; only the panel's own children are replaced. The
+            // sparkline has its own full-width row at every width (`.fspark`,
+            // chip.css), so a series switch changes no height and cannot start
+            // a size-changed storm.
+            //
+            // `selected` is whether the metric arrives SELECTED — this widget is
+            // the one that mirrors a tile's metric on the panel, so the panel's
+            // own aria state has to be told what the tile's is, or it announces
+            // "collapsed" over the drawer it just opened and can never be
+            // toggled shut (see focusApply).
+            function paintSeries(key, selected) {
+                const fx = document.querySelector(".focus");
+                if (!fx) return;
+                const m =
+                    MACROS.find((x) => x.key === key) ||
+                    MACROS.find((x) => x.role === "cal");
+                CHART.key = m.key;
+                // One call moves the button, the colour role class the chart
+                // inherits --c from, the over state and the wash's `--p`
+                // together — see focusApply in shared/macros.js.
+                focusApply(fx, m, macroCtx(), !!selected);
+                // focusApply rebuilt the panel's children, so the sparkline
+                // slot is a fresh empty node every time.
+                const box = fx.querySelector(".fspark");
+                if (box && CHART.days.length) box.innerHTML = chartMarkup();
             }
 
             // "3 days logged", or "15 of 30 days logged" when the payload also
@@ -462,7 +568,7 @@
                     .sort((a, b) => (a.date < b.date ? -1 : 1));
                 const multi = days.length > 1;
                 // Name the denominator: this average divides by the days that
-                // actually have a log, while the trends widget's rings divide
+                // actually have a log, while the trends widget's figures divide
                 // by every calendar day in the window. Same macros, different
                 // number — labelling both is the fix for issue #70.
                 const calLabel = multi
@@ -472,15 +578,17 @@
                     ? `${rangeLabel(data.start_date, data.end_date)} · ${loggedDaysCaption(data)}`
                     : dayLabel(days[0].date, false);
 
-                const trend =
-                    multi && days.length >= 2
-                        ? trendChart(days, data.goals?.calories ?? null)
-                        : "";
+                // Two points is the least that draws a line; one day is a card
+                // with no chart at all rather than a chart with nothing in it.
+                const charted = days.length >= 2;
+                CHART.days = charted ? days : [];
+                CHART.goals = data.goals || null;
+                CHART.key = "calories";
 
-                // Calorie ring + figure, the three macro bars, the limits row
-                // (sugar / alcohol / caffeine / fiber, whichever have data) and
-                // the water line. Tapping a tile reveals the meals behind it.
-                const panel = macroPanel(
+                // Calorie hero, the macro rail, the limits rail and the drawer.
+                // Tapping a chip opens the meals behind it and hands the chart
+                // that nutrient; closing it gives the chart back to calories.
+                const strip = macroPanel(
                     data.averages,
                     data.goals,
                     undefined,
@@ -491,22 +599,36 @@
                         // no alcohol figure reaches the strip at all.
                         drinkUnit: data.drink_unit,
                         calLabel,
-                        // Only the chart sits between the header line and the
-                        // strip; a single-day summary has nothing there and
-                        // needs no hairline above it.
-                        divided: !!trend,
+                        chartKeys: charted ? chartableKeys(days) : [],
+                        onSeries: (key, opened) =>
+                            paintSeries(opened ? key : "calories", opened),
                     },
                 );
 
                 root.innerHTML = `
-          <div class="panel">
-            <div class="phead">
-              <div class="ptitle">${esc(T.nutritionSummary.title)}</div>
-              <div class="pmeta">${esc(meta)}</div>
-            </div>
-            ${trend}
-            ${panel}
+          <div class="card c-cal">
+            <div class="glow"></div>
+            <header class="chead">
+              <h1 class="ctitle">${esc(T.nutritionSummary.title)}</h1>
+              <span class="cmeta">${esc(meta)}</span>
+            </header>
+            ${strip}
           </div>`;
+
+                if (!charted) return;
+                // The chart reads as the hero's own evidence, so it belongs
+                // between the hero and the rails — and macroPanel emits that
+                // whole strip as one block. Moving the node into place is the
+                // honest way to do that; splicing a string into another
+                // module's markup would break the moment its shape changed.
+                // The chart goes INSIDE the focus panel, under the figure
+                // row: the panel is the figure and its own chart as one object,
+                // so the number and the series it came from can never disagree
+                // (see focusInner in shared/macros.js). macroPanel emits the
+                // panel as part of one strip, so the node is MOVED into place
+                // rather than spliced into another module's markup as a string.
+                if (!root.querySelector(".focus")) return;
+                paintSeries("calories");
             }
 
             // Pull the summary out of whatever wrapper the host used.
@@ -528,6 +650,12 @@
             // locale-resolution order.
             let __widgetApi = null;
 
+            /*@include shared/macros.js@*/
+
+            // Last, after every partial above has finished evaluating: with no
+            // host, initWidget paints config.sample synchronously, and render()
+            // reaches straight into macros.js's MACROS — a const, so calling it
+            // any earlier is a TDZ ReferenceError rather than a hoisted call.
             initWidget({
                 name: "nutrition-summary-widget",
                 loading:
