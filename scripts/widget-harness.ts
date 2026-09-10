@@ -17,6 +17,9 @@
 //   ?maxHeight=600      impose hostContext.containerDimensions.maxHeight
 //   ?fail=1             answer tools/call with a JSON-RPC error
 //   ?drinkUnit=us       alcohol tracking ON for import-meals (default: off/null)
+//   ?alcohol=off        tracking OFF for the MACRO widgets too — every
+//                       alcohol_g and drink_unit nulled, so you can see the
+//                       row disappear instead of taking the test's word
 //
 // The canned tool result each widget is handed is checked against that tool's
 // REAL outputSchema before the server starts (assertFixturesMatchSchemas): a
@@ -445,45 +448,72 @@ function droppedKeys(
     return out;
 }
 
+// Everything the server nulls for a user who never opted in, applied to a built
+// fixture: `alcohol_g` wherever it appears (totals, per-day rows, goals, meal
+// breakdowns) and `drink_unit` alongside it. Written as a deep walk rather than
+// a per-widget edit precisely because the point is to prove NOTHING carries an
+// alcohol figure — a hand-listed version would null the fields someone
+// remembered and leave the one that leaks.
+function stripAlcohol<T>(value: T): T {
+    if (Array.isArray(value)) return value.map(stripAlcohol) as unknown as T;
+    if (value && typeof value === "object") {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(value)) {
+            out[k] =
+                k === "alcohol_g" || k === "drink_unit"
+                    ? null
+                    : stripAlcohol(v);
+        }
+        return out as T;
+    }
+    return value;
+}
+
 // Fail loudly at startup rather than serving a fixture that exercises fallback
 // paths. Every drink_unit branch is checked, because the fixtures differ by it.
 function assertFixturesMatchSchemas(): void {
     const schemas = collectOutputSchemas();
     const problems: string[] = [];
-    for (const drinkUnit of [null, "us", "uk"] as const) {
-        const results = buildResults(drinkUnit, drinkUnit ?? "us");
-        for (const [widget, toolName] of Object.entries(FIXTURE_TOOL)) {
-            const schema = schemas.get(toolName);
-            if (!schema) {
-                problems.push(
-                    `${widget}: ${toolName} declares no outputSchema (renamed tool?)`,
-                );
-                continue;
-            }
-            const fixture = results[widget];
-            try {
-                const parsed = schema.parse(fixture);
-                // parse() succeeding is not enough: z.object() STRIPS unknown
-                // keys rather than rejecting them, so a stale field survives
-                // the parse and is simply gone by the time the widget renders.
-                // droppedKeys() walks the whole tree for them.
-                const extra = [...droppedKeys(fixture, parsed)];
-                if (extra.length) {
+    for (const drinkUnit of [null, "us", "uk"] as const)
+        for (const stripped of [false, true]) {
+            // `?alcohol=off` serves the stripped variant, so it is a fixture like
+            // any other and gets the same check — otherwise the one payload whose
+            // whole job is to prove a field is absent could go schema-invalid
+            // without anything saying so.
+            const built = buildResults(drinkUnit, drinkUnit ?? "us");
+            const results = stripped ? stripAlcohol(built) : built;
+            for (const [widget, toolName] of Object.entries(FIXTURE_TOOL)) {
+                const schema = schemas.get(toolName);
+                if (!schema) {
                     problems.push(
-                        `${widget}: field(s) not in ${toolName}'s outputSchema: ${extra.join(", ")}`,
+                        `${widget}: ${toolName} declares no outputSchema (renamed tool?)`,
+                    );
+                    continue;
+                }
+                const fixture = results[widget];
+                try {
+                    const parsed = schema.parse(fixture);
+                    // parse() succeeding is not enough: z.object() STRIPS unknown
+                    // keys rather than rejecting them, so a stale field survives
+                    // the parse and is simply gone by the time the widget renders.
+                    // droppedKeys() walks the whole tree for them.
+                    const extra = [...droppedKeys(fixture, parsed)];
+                    if (extra.length) {
+                        problems.push(
+                            `${widget}: field(s) not in ${toolName}'s outputSchema: ${extra.join(", ")}`,
+                        );
+                    }
+                } catch (err) {
+                    problems.push(
+                        `${widget} (drink_unit=${drinkUnit}${stripped ? ", alcohol=off" : ""}) fails ${toolName}'s outputSchema:\n    ${String(
+                            err instanceof Error ? err.message : err,
+                        )
+                            .split("\n")
+                            .join("\n    ")}`,
                     );
                 }
-            } catch (err) {
-                problems.push(
-                    `${widget} (drink_unit=${drinkUnit}) fails ${toolName}'s outputSchema:\n    ${String(
-                        err instanceof Error ? err.message : err,
-                    )
-                        .split("\n")
-                        .join("\n    ")}`,
-                );
             }
         }
-    }
     if (problems.length) {
         console.error(
             `\nharness fixtures are not schema-valid:\n\n${problems.join("\n\n")}\n`,
@@ -516,10 +546,21 @@ function hostPage(widget: string, params: URLSearchParams): string {
             ? drinkUnitParam
             : null;
     const macroDrinkUnit = drinkUnit ?? "us";
+    // ...except when you want to LOOK at the off state. `?alcohol=off` sends
+    // the macro widgets exactly what the server sends a user who has not opted
+    // in — drink_unit null and alcohol_g null on every total, day, goal and
+    // meal row — so "the row is gone" is reviewable rather than only asserted.
+    // Without it this state was unreachable here for every widget but
+    // meal-logged, whose fixture hardcodes it: the strip's alcohol gate is the
+    // one display rule that is a privacy promise, and it was the one you could
+    // not see working.
+    const alcoholOff = params.get("alcohol") === "off";
 
     // Per-widget canned tool results, built and schema-checked at startup.
     // See buildResults() / assertFixturesMatchSchemas() at module level.
-    const RESULTS = buildResults(drinkUnit, macroDrinkUnit);
+    const RESULTS = alcoholOff
+        ? stripAlcohol(buildResults(drinkUnit, macroDrinkUnit))
+        : buildResults(drinkUnit, macroDrinkUnit);
     // Probe and gallery paint their own UI; anything non-null will do.
     const toolResult = RESULTS[widget] ?? { probe: true };
 

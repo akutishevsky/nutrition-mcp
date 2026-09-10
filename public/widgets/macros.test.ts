@@ -659,6 +659,25 @@ test("a breach is on the same rail as everything else, never hoisted or hidden",
 test("alcohol tracking off drops its cell; every other limit still gets one", () => {
     const html = macrosApi.macroPanel({ ...VALS, alcohol_g: null }, GOALS);
     expect(limitKeys(html)).toEqual(["Sugar", "Caffeine", "Fiber"]);
+    // The TIERED strip too, which is what nutrition-summary actually renders.
+    // Same `metricShown` filter builds both, but the tiered path deals the
+    // limits into a rail of their own, and "the gate still runs when the
+    // layout changed" is exactly the kind of thing that quietly stops being
+    // true. A leaked alcohol row is a privacy-shaped bug, not a cosmetic one:
+    // the opt-in is the user saying they do not want it on screen.
+    const tiered = macrosApi.macroPanel(
+        { ...VALS, alcohol_g: null },
+        GOALS,
+        undefined,
+        MEALS,
+        { tiers: true },
+    );
+    expect(tiered).not.toContain("c-alc");
+    expect(tiered).not.toContain("Alcohol");
+    expect(tiered).toContain("c-caf"); // caffeine has no opt-in, so it stays
+    expect(
+        macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, { tiers: true }),
+    ).toContain("c-alc");
     // The rail wraps, so there is no column count to travel with the markup
     // any more — but the fact the old --lc/--lcw pair encoded still holds:
     // every limit that earns a cell renders as a chip of its own, all four of
