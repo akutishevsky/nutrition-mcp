@@ -498,12 +498,19 @@
    common ΔL*; the rest sit near it already at 30%. Every value is still far
    inside the --ink headroom the contrast pass measured (73% light / 47% dark),
    so the "all text on a tinted tile is --ink" rule is untouched. */
+/* 25%, down from 44%. The 44 was propping up the old lime's 1.98:1 in light
+   and it overshot in both directions: dL* 21.8 light and 35.7 dark against
+   family means of 12.8 and 20.9, which made sugar the loudest wash on a card
+   where it is the quietest tier. With the olive light value 25% puts BOTH
+   themes back inside the band (12.3 / 21.0). */
 .c-sug {
-    --wash-mix: 44%;
+    --wash-mix: 25%;
 }
 .c-alc {
     --wash-mix: 21%;
 }
+/* 27% still holds against the corrected dark brown — re-measured, not assumed:
+   dL* 14.1 light / 14.4 dark, both in band. */
 .c-caf {
     --wash-mix: 27%;
 }

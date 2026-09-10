@@ -59,7 +59,43 @@
     --acc-ink: #ffffff;
     --acc-soft: #dcf5e4;
 
-    /* Series palette */
+    /* Series palette.
+
+       TWO OF THESE ARE ASSOCIATIONS AND THE REST ARE JUST SEPARATION, which is
+       worth knowing before moving one. Water reads as water and caffeine as
+       coffee; calories-as-flame and fiber-as-plant are defensible. Protein's
+       violet, carbs' emerald, fat's rose and alcohol's plum are arbitrary —
+       they are the hues that were LEFT, not the hues those things are.
+
+       That is not a defect waiting to be fixed. Measured, every realistic food
+       colour lands on something already here: wheat gold for carbs is dE 7.1
+       from --cal, butter for fat 5.7, and meat-rust for protein is dE 2.8 from
+       --over, which would render a protein tile permanently breached. Food is
+       overwhelmingly warm, and calories plus the two signal colours already own
+       warm. The palette is spread around the wheel because it had to be.
+
+       What carries association instead is the GLYPH (shared/icon.js): a wine
+       glass says alcohol in a way no hue can, and it survives greyscale and
+       every colour-vision deficiency — --pro and --alc collapse to dE 0.9 under
+       protanopia while the drumstick and the glass do not. Hue's remaining job
+       is separating neighbouring tiles, and nothing here ever draws two
+       nutrient series at once (the chart re-strokes to the one selected).
+
+       Two were genuinely wrong and are fixed:
+
+         --sug  light was #84cc16, a lime that measured 1.98:1 on --panel — the
+                weakest in the palette, and the only hue in the set that says
+                the OPPOSITE of its metric: fresh-and-healthy green on the one
+                number that is a ceiling most people breach. Now a deep olive at
+                4.56:1. DARK KEEPS THE LIME: there #a3e635 is 11.56:1 and the
+                best-separated option available, and darkening it toward olive
+                moves it TOWARD dark carbs and fiber (dE 14.1 -> 10.8). The
+                right value differs per theme, which is what per-theme blocks
+                are for.
+         --caf  dark was #d4a56a, which had drifted amber and measured dE 8.5
+                from --cal in NORMAL vision — confusable, and a breach of the
+                rule written under --alc below. Now a true coffee brown at
+                dE 17.1, contrast 5.22 on --panel. Light was already correct. */
     --track: #e8e9ee;
     --cal: #ff9f0a;
     --pro: #8b5cf6;
@@ -67,7 +103,7 @@
     --fat: #f43f7e;
     --wat: #0ea5e9;
     --fib: #0d9488;
-    --sug: #84cc16;
+    --sug: #657f18;
     --caf: #a16207;
     --alc: #a21caf; /* extends Dawn */
 
@@ -145,7 +181,7 @@
         --wat: #38bdf8;
         --fib: #14b8a6;
         --sug: #a3e635;
-        --caf: #d4a56a;
+        --caf: #b8814e;
         --alc: #e879f9;
         --over: #ff6b52;
         --warn: #e0a030;
@@ -181,7 +217,7 @@
     --fat: #f43f7e;
     --wat: #0ea5e9;
     --fib: #0d9488;
-    --sug: #84cc16;
+    --sug: #657f18;
     --caf: #a16207;
     --alc: #a21caf;
     --over: #bb3a22;
@@ -215,7 +251,7 @@
     --wat: #38bdf8;
     --fib: #14b8a6;
     --sug: #a3e635;
-    --caf: #d4a56a;
+    --caf: #b8814e;
     --alc: #e879f9;
     --over: #ff6b52;
     --warn: #e0a030;

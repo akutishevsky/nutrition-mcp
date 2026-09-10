@@ -224,19 +224,54 @@ contrast on near-black).
 | `--fat`  | `#f43f7e` | `#fb7199` |
 | `--wat`  | `#0ea5e9` | `#38bdf8` |
 | `--fib`  | `#0d9488` | `#14b8a6` |
-| `--sug`  | `#84cc16` | `#a3e635` |
-| `--caf`  | `#a16207` | `#d4a56a` |
+| `--sug`  | `#657f18` | `#a3e635` |
+| `--caf`  | `#a16207` | `#b8814e` |
 | `--alc`  | `#a21caf` | `#e879f9` |
 | `--over` | `#bb3a22` | `#ff6b52` |
 | `--warn` | `#8a5a00` | `#e0a030` |
 
-`--fib` and `--sug` sit inside the carbs green family (a deeper teal and a lime)
-because fiber and sugar are _parts of_ carbs — that kinship is what tells you at a
-glance which chips in the limits rail come out of the carb figure above them.
-`--alc` is the one series with no neighbour, so it takes the otherwise-unused
-plum/fuchsia slot, well clear of `--pro` (violet) and `--fat` (rose). `--caf` is
+`--fib` and `--sug` sit inside the carbs green family because fiber and sugar are
+_parts of_ carbs — that kinship is what tells you at a glance which tiles in the
+limits row come out of the carb figure above them. `--alc` is the one series with
+no neighbour, so it takes the otherwise-unused plum/fuchsia slot. `--caf` is
 coffee brown, the last unused hue: it must not drift amber, because `--cal` and
 `--warn` already own that end of the wheel.
+
+**Two of these are associations and the rest are just separation**, and it is
+worth knowing which before moving one. Water reads as water and caffeine as
+coffee; calories-as-flame and fiber-as-plant are defensible. Protein's violet,
+carbs' emerald, fat's rose and alcohol's plum are **arbitrary** — the hues that
+were left, not the hues those things are.
+
+That is not a defect waiting to be fixed, and it was measured rather than
+assumed. Every realistic food colour lands on something already here: wheat gold
+for carbs is ΔE **7.1** from `--cal`, butter for fat **5.7**, and meat-rust for
+protein is ΔE **2.8** from `--over` — a protein tile that looks permanently
+breached. Food is overwhelmingly warm and calories plus the two signals already
+own warm; the palette is spread around the wheel because it had to be. What
+carries association now is the **glyph** (§9), which also survives greyscale and
+every colour-vision deficiency: `--pro` and `--alc` collapse to ΔE **0.9** under
+protanopia while the drumstick and the wine glass do not. Hue's remaining job is
+separating neighbouring tiles, and nothing here draws two nutrient series at once
+— the chart re-strokes to the one selected.
+
+Two **were** wrong, and both are fixed:
+
+- **`--sug` light** was `#84cc16`, a lime measuring **1.98:1** on `--panel` — the
+  weakest in the palette, and the only hue in the set that says the _opposite_ of
+  its metric: fresh-and-healthy green on the one number that is a ceiling most
+  people breach. Now a deep olive at **4.56:1**. **Dark keeps the lime**:
+  `#a3e635` is 11.56:1 there and the best-separated option available, and
+  darkening it toward olive moves it _toward_ dark carbs and fiber (ΔE 14.1 →
+  10.8). The right value genuinely differs per theme.
+- **`--caf` dark** was `#d4a56a`, which had drifted amber and measured ΔE **8.5**
+  from `--cal` in _normal_ vision — confusable, and a breach of the rule written
+  two paragraphs up. Now a true coffee brown at ΔE **17.1**, 5.22:1 on `--panel`.
+  Light was already correct.
+
+A caramel `--sug` was tried first and rejected on measurement: it works in light
+but every candidate sits ΔE 7–9 from `--cal` and 5–9 from `--warn` in **dark**,
+which is the same collision being fixed on caffeine. The amber band is full.
 
 ## 2. Base: the shell (`shared/base.css`)
 
@@ -1022,7 +1057,7 @@ knowing anything about width.
 | `leaf`      | fiber    | a stem past the blade                |
 
 **Filled, not stroked, and that is measured.** A series token is weak as ink in
-light mode — `--cal` is 2.06:1 against the tile, `--sug` 1.98, `--car` 2.54 — so
+light mode — `--cal` is 2.06:1 against the tile, `--car` 2.54 — so
 a 1.75px stroke in one of them at 13px is barely there. A filled silhouette
 carries the ink density of the 6px dot it replaces. It also keeps the two
 registers apart: `ICONS` is UI affordance drawn in line, `GLYPHS` is content
