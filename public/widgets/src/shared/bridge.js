@@ -60,24 +60,86 @@ function initWidget(config) {
             null
         );
     }
-    // Render, then append a small persistent note at the bottom explaining that
-    // widget display is a user setting. render() replaces #root wholesale, so
-    // the footer is re-appended after every paint. Skipped when a widget
-    // deliberately renders nothing (e.g. meal-logged with no goals) so an empty
-    // widget stays empty and the host collapses it.
+    // ---- the persistent footer note -----------------------------------
+    // A small line under every painted widget saying that widget display is a
+    // user setting — the only place that is said. ONE element for the life of
+    // the document, re-attached rather than rebuilt.
+    let footEl = null;
+    let footObserver = null;
+
+    function footNote() {
+        if (!footEl) {
+            footEl = document.createElement("div");
+            // Styled by base.css, not inline: it has two homes and they look
+            // different. Inside a widget's own `.foot` it is the second line of
+            // that foot; standing alone under a widget with no strip
+            // (weight-trends, import-meals) it has to draw its own hairline.
+            footEl.className = "wnote";
+        }
+        // Re-read every time: T is only resolved once a template's render()
+        // has called setLocale(), which is after the element is first built.
+        footEl.textContent = T.chrome.widgetsNote;
+        return footEl;
+    }
+    // Where the note goes: a widget's own foot if it declared one, otherwise
+    // the root. The LAST slot, not the first — the dev gallery renders several
+    // strips on one page and the note belongs at the end of it, not buried in
+    // the first specimen.
+    function footSlot() {
+        const el = root();
+        if (!el) return null;
+        const slots = el.querySelectorAll("[data-widget-foot]");
+        return slots.length ? slots[slots.length - 1] : el;
+    }
+
+    // Keep the note as #root's last child for as long as the root has content.
+    // paint() is NOT the only thing that writes to the root: trends and
+    // weight-trends repaint themselves from their own range toggles, replacing
+    // #root.innerHTML wholesale and taking the note with it. Re-appending after
+    // config.render() alone therefore loses the note on the first interaction,
+    // which is exactly the bug this exists to prevent — so the rule is enforced
+    // on the root itself and needs no cooperation from any template.
+    function syncFooter() {
+        const el = root();
+        if (!el) return;
+        // Genuinely empty must stay genuinely empty: meal-logged writes "" when
+        // there are no goals, and `.wrap:empty { padding: 0 }` (base.css) is
+        // what lets the host collapse the iframe to nothing. A note here would
+        // stop `:empty` matching and leave a stripe of chrome behind.
+        if (el.childNodes.length === 0) {
+            if (footEl) footEl.remove();
+            return;
+        }
+        const slot = footSlot();
+        const foot = footNote();
+        if (slot && slot.lastChild !== foot) slot.appendChild(foot);
+    }
+
+    // Render, then make sure the note is (still) there.
     function paint(data) {
         config.render(data);
         painted = true;
-        const el = root();
-        if (!el || el.innerHTML.trim() === "") return;
-        const foot = document.createElement("div");
-        foot.textContent =
-            "You can enable or disable these widgets anytime — just ask to update your settings.";
-        foot.style.cssText =
-            "margin-top:14px;padding-top:10px;" +
-            "border-top:1px solid var(--panel-border);" +
-            "font-size:11px;line-height:1.4;color:var(--text-dim);text-align:center;";
-        el.appendChild(foot);
+        // Watch from the FIRST real paint only, so the note never decorates the
+        // loading state or the no-host card — both of which write to the root
+        // directly and neither of which is a widget.
+        if (!footObserver && typeof MutationObserver !== "undefined") {
+            const el = root();
+            if (el) {
+                footObserver = new MutationObserver(syncFooter);
+                // childList on the root alone — no `subtree`. Two reasons: a
+                // widget's own DOM churn (a drawer opening, a chart restroking)
+                // is none of this function's business, and footNote() writes
+                // the note's own text, which under `subtree` would be a
+                // mutation this observer reports to itself.
+                footObserver.observe(el, { childList: true });
+            }
+        }
+        // Self-limiting, deliberately. When the note lands in a `.foot` the
+        // append is a mutation of that slot, which this observer does not watch
+        // (no `subtree`), so it does not fire at all; when it falls back to the
+        // root the observer runs once more and on that pass the note IS the
+        // last child, so nothing happens and the loop ends there.
+        syncFooter();
     }
     function show(payload) {
         const data = config.coerce(payload);
@@ -379,9 +441,13 @@ function initWidget(config) {
                 } catch (_) {}
                 const el = root();
                 if (el && !painted) {
+                    // T is whatever shared/i18n.js resolved — which on this
+                    // path is still its WIDGET_STRINGS.en default, since a
+                    // handshake that never completed means no template ever
+                    // reached setLocale().
                     el.innerHTML =
                         '<div class="empty"><div class="big">⚠</div><div>' +
-                        "This view could not connect to its host." +
+                        T.chrome.noHost +
                         "</div></div>";
                 }
             });
