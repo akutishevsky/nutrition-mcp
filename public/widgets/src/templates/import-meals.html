@@ -43,73 +43,310 @@
 
             /*@include shared/table.css@*/
 
+            /* Page-scoped: only this widget's own layout. Everything with a
+               visual opinion above the fold of this block is a shared
+               primitive (form.css controls, table.css preview, base.css card),
+               never a fork of one. */
             .imp {
-                padding: 14px;
                 display: grid;
                 /* minmax(0,1fr): an auto column would be sized by the nowrap
                    preview table and drag every sibling card wide. */
                 grid-template-columns: minmax(0, 1fr);
-                gap: 14px;
+                gap: 12px;
             }
-            .imp section {
+            /* The shared .card is a flex column with a gap of its own, which
+               suits a readout of sibling blocks. This is a form: its children
+               already carry their own margins, so it takes the card's surface
+               and drops the card's layout. */
+            .imp > .card {
+                display: block;
                 padding: 14px;
             }
             .imp h3 {
-                margin: 0 0 10px;
-                font-size: 11.5px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.06em;
-                color: var(--accent);
+                margin: 0 0 12px;
+                font-size: 15px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+                color: var(--ink);
             }
+            /* One row per mappable field: the field's name and the first real
+               value from the user's own file share a line, the column picker
+               sits beside them. What that buys is the long labels — "Time
+               (separate column)", "Timezone (from our export)" — which used to
+               wrap to a second line above their sample and cost a row each. */
             .map-grid {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-                gap: 8px 12px;
+                gap: 6px 12px;
                 align-items: center;
             }
+            /* One wrapping behaviour at EVERY width, not two.
+               Layout recheck, MINOR: the previous fix for the 320px mapping
+               step put `flex-wrap` + a wrapping `.map-src` inside
+               `@media (max-width: 419.98px)`, so from 420px up the two-column
+               grid came back and each field was handed ~175px for a label
+               needing 235–270px translated — ja `.map-src` lost 101px at 420,
+               71 at 480, 31 at 560; pl/it/es/fr/uk/de all lost between 92 and
+               8. The field's NAME is the row's identity: it is what the user
+               matches against the picker beside it, so it is the one string
+               here that must never be cut. It wraps now wherever it has to,
+               which is the same rule in one place instead of a breakpoint that
+               happened to be measured only from below. */
+            .map-field {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                gap: 6px;
+                min-width: 0;
+            }
             .map-src {
+                flex: 0 1 auto;
+                min-width: 0;
+                /* `anywhere` rather than `break-word`: it also drops the
+                   element's min-content width to one character, which is what
+                   stops a long unbroken compound (de/uk build several) from
+                   setting the grid column's floor and pushing the card wide. */
+                overflow-wrap: anywhere;
                 font-size: 12.5px;
-                font-weight: 600;
+                font-weight: 700;
+                letter-spacing: -0.01em;
+            }
+            .map-sample {
+                /* A basis of auto plus a floor, so an ellipsis that would leave
+                   "例：" and nothing else drops the sample to its own line
+                   instead of pretending to show a value. The field's name is
+                   the identity of the row; the sample is reassurance, and it is
+                   the one that yields. */
+                flex: 1 1 auto;
+                min-width: 14ch;
+                /* Load-bearing: once the sample is alone on a wrapped line its
+                   auto basis is its full content width — measured at 363px
+                   inside a 262px row — and `.card`'s overflow:hidden then
+                   destroys the tail silently instead of ellipsising it. Capping
+                   at the row restores the ellipsis. */
+                max-width: 100%;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                font-family: var(--mono);
+                font-size: 10.5px;
+                color: var(--ink3);
             }
-            .map-sample {
-                font-size: 11px;
-                color: var(--text-dim);
-                font-family: ui-monospace, Menlo, monospace;
+            /* ---- horizontal-scroll affordance for the preview table -------
+               Audit finding: at 320px the 10-column preview showed three
+               columns behind an unmarked scroll (260px visible of 1085px),
+               with `mask-image: none`, `box-shadow: none` and a scrollbar that
+               stays invisible on touch until it is dragged. Every nutrient
+               figure the preview exists to let the user check was off-screen
+               with nothing on screen saying so — the same failure the shelf
+               spec rejected for the chip rails.
+
+               The cue cannot live on `.tscroll` itself: a pseudo-element
+               inside a scroll container scrolls away with the content it is
+               meant to mark. So the scroller sits inside a `.tedge` wrapper
+               whose ::before/::after are painted over the scroller's own
+               edges, and wireScrollEdges() toggles them from scrollLeft.
+               `.tscroll` keeps its name and every rule table.css gives it.
+
+               Only `opacity` transitions here. Never height/margin/padding:
+               bridge.js re-measures documentElement at max-content on a
+               ResizeObserver tick, so an animated layout property becomes a
+               60Hz size-changed storm and a lurching iframe. */
+            .tedge {
+                position: relative;
+                /* Same reason .tscroll needs it: a grid item's min-width:auto
+                   would let the nowrap table set the column's width. */
+                min-width: 0;
             }
+            .tedge::before,
+            .tedge::after {
+                position: absolute;
+                /* Inset by the scroller's own 1px border so the fade covers
+                   the rows, never the frame around them. */
+                top: 1px;
+                bottom: 1px;
+                width: 34px;
+                display: flex;
+                align-items: center;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.15s ease;
+                /* Above .tbl thead th, which table.css sticks at z-index 1. */
+                z-index: 2;
+                font-family: var(--mono);
+                font-size: 18px;
+                font-weight: 700;
+                /* --ink2, not --ink3: on a light table the gradient itself is
+                   white-on-white and barely reads, so the glyph is carrying
+                   the affordance and needs the contrast of real text. */
+                color: var(--ink2);
+            }
+            /* The gradient alone reads as a rendering artefact to some people,
+               so each edge also carries a chevron: direction stated in a glyph,
+               not in a soft colour ramp. */
+            .tedge::before {
+                content: "‹";
+                /* see the @supports block below */
+                left: 1px;
+                justify-content: flex-start;
+                padding-left: 5px;
+                border-radius: var(--r-in) 0 0 var(--r-in);
+                background: linear-gradient(
+                    to right,
+                    var(--panel) 30%,
+                    color-mix(in srgb, var(--panel) 55%, transparent) 65%,
+                    transparent
+                );
+            }
+            .tedge::after {
+                content: "›";
+                right: 1px;
+                justify-content: flex-end;
+                padding-right: 5px;
+                border-radius: 0 var(--r-in) var(--r-in) 0;
+                background: linear-gradient(
+                    to left,
+                    var(--panel) 30%,
+                    color-mix(in srgb, var(--panel) 55%, transparent) 65%,
+                    transparent
+                );
+            }
+            .tedge.more-left::before,
+            .tedge.more-right::after {
+                opacity: 1;
+            }
+            /* Measured on the preview step's a11y tree: both chevrons were
+               exposed as StaticText "‹" / "›" sitting either side of the table's
+               region, so a screen reader read two stray glyphs mid-table. They
+               are a visual duplicate of an affordance the region already
+               announces (a named, focusable scroller), so their alternative
+               text is empty.
+
+               Behind @supports on purpose: `content: "x" / "alt"` is the newer
+               two-value syntax, and an engine that cannot parse it drops the
+               WHOLE declaration — which would delete the chevron rather than
+               just its alt text, taking the scroll cue with it. The plain
+               single-value `content` above stays as the floor. */
+            @supports (content: "x" / "y") {
+                .tedge::before {
+                    content: "‹" / "";
+                }
+                .tedge::after {
+                    content: "›" / "";
+                }
+            }
+            /* A permanently drawn thin scrollbar, so the third cue (the bar
+               itself) is there before anything is dragged — overlay scrollbars
+               on touch and on macOS are hidden until then. */
+            .tedge > .tscroll {
+                scrollbar-width: thin;
+                scrollbar-color: var(--line2) transparent;
+            }
+
+            @media (max-width: 419.98px) {
+                /* Buy columns back before asking anyone to scroll at all: at
+                   320px the preview measured 1085px wide. Tighter cells, a
+                   smaller type size and a lower floor under the one wrapping
+                   column cut that materially — see the measured numbers in the
+                   handover notes. */
+                .tbl {
+                    font-size: 11.5px;
+                }
+                .tbl th,
+                .tbl td {
+                    padding: 6px 6px;
+                }
+                .tbl .wide {
+                    min-width: 104px;
+                }
+
+                /* Audit finding: the mapping step was unreadable here. Two
+                   equal grid columns left each `<select>` 125px — narrow enough
+                   that every unmapped one rendered its "(not in this file)"
+                   option as "（このファイ" — while `.map-src` was ellipsised by
+                   up to 158px and `.map-sample` by 527px. One column instead:
+                   the field name and its sample take the full width, the
+                   picker sits under them. */
+                .map-grid {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    /* Overrides the two-column rule's `align-items: center`,
+                       which in a column flex container is a CROSS-axis rule:
+                       it shrink-wraps each row to its content, so a long
+                       sample made `.map-field` 363px inside a 262px card and
+                       `.card`'s overflow:hidden ate the tail. Stretch puts
+                       every row at the card's width, which is what makes the
+                       ellipsis below possible at all. */
+                    align-items: stretch;
+                }
+                /* 4px binds a label to its own select; the extra 8px separates
+                   one field from the next, so the rows still read as pairs
+                   without a second grid track to align.
+                   `.map-src` / `.map-sample` need nothing here any more — they
+                   wrap the same way at every width (see their base rules), and
+                   they stay adjacent siblings with these exact class names,
+                   because macros.test.ts pins the pair as one literal string. */
+                .map-field:not(:first-child) {
+                    margin-top: 8px;
+                }
+            }
+
             .stat-row {
                 display: flex;
-                gap: 16px;
+                gap: 4px 14px;
                 flex-wrap: wrap;
-                font-size: 12.5px;
-                margin-bottom: 10px;
+                margin-bottom: 12px;
+                font-size: 12px;
+                color: var(--ink2);
             }
             .stat-row b {
+                color: var(--ink);
+                font-weight: 700;
                 font-variant-numeric: tabular-nums;
             }
+            /* The copy-paste support dump. user-select: all makes one click
+               select the whole block, which is the entire point of it.
+
+               a11y recheck, MINOR: this failed AA at 4.19:1 light. It only
+               renders after a CSV with unreadable rows is parsed, which is why
+               three audits swept the widget and none of them reached it — the
+               state where a user is being asked to read 10.5px mono and retype
+               it into an email is exactly the state that must not be faint.
+
+               The fix is the surface, not the ink. The old
+               `color-mix(--ink 5%, transparent)` tint was TRANSLUCENT, so the
+               block inherited whatever `.notice` variant wrapped it — here
+               --bg2, giving rgb(227,227,232) under --ink3 = 4.19:1. An opaque
+               --panel means the ratio quoted here is the ratio that ships no
+               matter which notice ever hosts it (the same argument table.css
+               makes for the status pills), and it lifts --ink3 to 5.36:1 light
+               / 5.58:1 dark with the recess now drawn by the --line border
+               instead of by a wash. --ink3 stays: a diagnostics dump is the
+               quietest thing on the card, and it can be quiet and legible. */
             .diag {
                 display: block;
                 margin-top: 8px;
-                padding: 7px 9px;
-                border-radius: 8px;
-                background: var(--track);
-                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                padding: 8px 10px;
+                border-radius: 10px;
+                background: var(--panel);
+                border: 1px solid var(--line);
+                font-family: var(--mono);
                 font-size: 10.5px;
                 line-height: 1.5;
                 white-space: pre-wrap;
                 user-select: all;
-                color: var(--text-dim);
+                color: var(--ink3);
             }
         </style>
     </head>
     <body>
-        <div id="root"></div>
+        <div class="wrap page" id="root"></div>
         <script>
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+
+            /*@include shared/icon.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -225,14 +462,15 @@
                                 : ""),
                     );
                 }
-                return (
-                    '<div class="notice"><span>✉</span><span>' +
+                return notice(
+                    "",
                     tpl(T.importMeals.emailNotice, {
                         email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
                     }) +
-                    '<span class="diag">' +
-                    esc(lines.join("\n")) +
-                    "</span></span></div>"
+                        '<span class="diag">' +
+                        esc(lines.join("\n")) +
+                        "</span>",
+                    "✉",
                 );
             }
 
@@ -500,6 +738,31 @@
                 return esc(text).replace(
                     /\d[\d,.\s ]*\d|\d/,
                     (m) => "<b>" + m + "</b>",
+                );
+            }
+
+            // Every notice is the same object: a leading mark naming the
+            // severity by SHAPE, then the message. The shape is what carries
+            // it — the tint alone would leave "warning" and "error" identical
+            // to anyone who cannot separate the two hues. `glyph` overrides the
+            // drawn icon with a character, used only for the envelope, which
+            // the shared nine-icon set has no path for.
+            function notice(kind, bodyHtml, glyph) {
+                const mark = glyph
+                    ? '<span class="nico">' + glyph + "</span>"
+                    : icon(
+                          { warn: "warn", error: "x", ok: "check" }[kind] ||
+                              "info",
+                          15,
+                      );
+                return (
+                    '<div class="notice' +
+                    (kind ? " notice-" + kind : "") +
+                    '">' +
+                    mark +
+                    "<span>" +
+                    bodyHtml +
+                    "</span></div>"
                 );
             }
 
@@ -935,6 +1198,21 @@
                 }
             }
 
+            // Every failing row is reported TWICE — once by the dry run and
+            // again by the real pass, which return identical per-row errors for
+            // the same lines — into one array that is built once in runImport()
+            // and never reset between the passes. The summary counter took only
+            // the real pass's `failed`, so the card read "2 failed" above four
+            // entries. A source_line is unique within an import (chunks do not
+            // overlap lines), so keying on it is exact rather than approximate.
+            function pushRowError(r, row) {
+                if (r.rowErrors.some((e) => e.line === row.source_line)) return;
+                r.rowErrors.push({
+                    line: row.source_line,
+                    message: row.error.message,
+                });
+            }
+
             function collect(sc) {
                 const r = S.result;
                 r.chunks++;
@@ -943,12 +1221,7 @@
                         if (r.warnings.indexOf(w) === -1) r.warnings.push(w);
                     }
                     for (const row of sc.results || []) {
-                        if (row.error) {
-                            r.rowErrors.push({
-                                line: row.source_line,
-                                message: row.error.message,
-                            });
-                        }
+                        if (row.error) pushRowError(r, row);
                     }
                     return;
                 }
@@ -959,16 +1232,20 @@
                     if (r.warnings.indexOf(w) === -1) r.warnings.push(w);
                 }
                 for (const row of sc.results || []) {
-                    if (row.error) {
-                        r.rowErrors.push({
-                            line: row.source_line,
-                            message: row.error.message,
-                        });
-                    }
+                    if (row.error) pushRowError(r, row);
                 }
             }
 
             // ---- rendering ---------------------------------------------------
+            // A 3px progress rail and one mono line, in place of the four
+            // numbered pills that used to sit here. Two reasons: the pills cost
+            // ~26px of a card that has a form under it, and they were the one
+            // element in this widget that could not fit 320px — four labels,
+            // three arrows and four counters on one nowrap row overflowed in
+            // every locale with a word longer than "Preview".
+            // The two nodes share an unstyled wrapper so .imp's grid gap falls
+            // between the rail and the card, not between the rail and its own
+            // caption.
             function steps() {
                 const order = ["file", "map", "preview", "done"];
                 const names = [
@@ -977,46 +1254,41 @@
                     T.importMeals.stepPreview,
                     T.importMeals.stepImport,
                 ];
-                const at = order.indexOf(S.step);
+                // Guard the -1: render() only ever passes one of the four, but
+                // a width of -0% and "step 0 of 4" is a nasty way to find out.
+                const at = Math.max(0, order.indexOf(S.step));
                 return (
-                    '<div class="steps">' +
-                    order
-                        .map(
-                            (k, i) =>
-                                '<span class="step ' +
-                                (i === at ? "active" : i < at ? "done" : "") +
-                                '"><span class="dot">' +
-                                (i + 1) +
-                                "</span>" +
-                                names[i] +
-                                "</span>" +
-                                (i < 3
-                                    ? '<span class="step-sep">→</span>'
-                                    : ""),
-                        )
-                        .join("") +
-                    "</div>"
+                    '<div><div class="steps"><span style="width:' +
+                    Math.round(((at + 1) / order.length) * 100) +
+                    '%"></span></div><div class="slab">' +
+                    esc(
+                        tpl(T.importMeals.stepOf, {
+                            n: at + 1,
+                            total: order.length,
+                            label: names[at],
+                        }),
+                    ) +
+                    "</div></div>"
                 );
             }
 
             function fileStep() {
                 const noTools =
                     API && !API.canCallTools
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(T.importMeals.noToolsWarning) +
-                          "</span></div>" +
+                        ? notice("warn", esc(T.importMeals.noToolsWarning)) +
                           (SUPPORT_EMAIL
-                              ? '<div class="notice"><span>✉</span><span>' +
-                                tpl(T.importMeals.emailFallback, {
-                                    email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
-                                }) +
-                                "</span></div>"
+                              ? notice(
+                                    "",
+                                    tpl(T.importMeals.emailFallback, {
+                                        email:
+                                            "<b>" + esc(SUPPORT_EMAIL) + "</b>",
+                                    }),
+                                    "✉",
+                                )
                               : "")
                         : "";
                 const tzWarn = !CFG.tz_configured
-                    ? '<div class="notice notice-warn"><span>!</span><span>' +
-                      esc(T.importMeals.tzWarning) +
-                      "</span></div>"
+                    ? notice("warn", esc(T.importMeals.tzWarning))
                     : "";
                 return (
                     '<section class="card"><h3>' +
@@ -1024,16 +1296,14 @@
                     "</h3>" +
                     noTools +
                     tzWarn +
-                    (S.errors.length
-                        ? '<div class="notice notice-error"><span>✕</span><span>' +
-                          esc(S.errors[0]) +
-                          "</span></div>"
-                        : "") +
+                    (S.errors.length ? notice("error", esc(S.errors[0])) : "") +
                     '<label class="drop" id="drop">' +
-                    '<span class="big">📄</span><strong>' +
+                    icon("file", 22) +
+                    "<strong>" +
                     esc(T.importMeals.dropChoose) +
-                    "</strong><br />" +
+                    "</strong><span>" +
                     esc(T.importMeals.dropOr) +
+                    "</span>" +
                     '<input type="file" class="drop-input" id="file" accept=".csv,text/csv,text/plain" />' +
                     "</label>" +
                     '<div class="hint" style="margin-top:8px">' +
@@ -1103,9 +1373,10 @@
                     '<div style="margin-top:12px">' +
                     // Undecidable, so it must not be dressed up as auto-detected.
                     (S.dateAmbiguous
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(T.importMeals.dateAmbiguousWarning) +
-                          "</span></div>"
+                        ? notice(
+                              "warn",
+                              esc(T.importMeals.dateAmbiguousWarning),
+                          )
                         : "") +
                     '<div class="field"><label class="label" for="dateFormat">' +
                     esc(T.importMeals.dateFormatLabel) +
@@ -1171,43 +1442,37 @@
                             : t.delimiter,
                     ) +
                     "</b></span></div>" +
-                    (t.warnings.length
-                        ? t.warnings
-                              .map(
-                                  (w) =>
-                                      '<div class="notice notice-warn"><span>!</span><span>' +
-                                      esc(w) +
-                                      "</span></div>",
-                              )
-                              .join("")
-                        : "") +
+                    t.warnings.map((w) => notice("warn", esc(w))).join("") +
                     (S.mapping.sugar_g === -1 && addedSugarColumns().length
-                        ? '<div class="notice"><span>i</span><span>' +
-                          esc(
-                              tpl(T.importMeals.addedSugarNotice, {
-                                  column: addedSugarColumns()[0],
-                              }),
-                          ) +
-                          "</span></div>"
+                        ? notice(
+                              "",
+                              esc(
+                                  tpl(T.importMeals.addedSugarNotice, {
+                                      column: addedSugarColumns()[0],
+                                  }),
+                              ),
+                          )
                         : "") +
                     (S.mapping.caffeine_mg === -1 &&
                     caffeineGramsColumns().length
-                        ? '<div class="notice"><span>i</span><span>' +
-                          esc(
-                              tpl(T.importMeals.caffeineGramsNotice, {
-                                  column: caffeineGramsColumns()[0],
-                              }),
-                          ) +
-                          "</span></div>"
+                        ? notice(
+                              "",
+                              esc(
+                                  tpl(T.importMeals.caffeineGramsNotice, {
+                                      column: caffeineGramsColumns()[0],
+                                  }),
+                              ),
+                          )
                         : "") +
                     (!alcoholTracked() && alcoholColumn()
-                        ? '<div class="notice"><span>i</span><span>' +
-                          esc(
-                              tpl(T.importMeals.alcoholNotice, {
-                                  column: alcoholColumn(),
-                              }),
-                          ) +
-                          "</span></div>"
+                        ? notice(
+                              "",
+                              esc(
+                                  tpl(T.importMeals.alcoholNotice, {
+                                      column: alcoholColumn(),
+                                  }),
+                              ),
+                          )
                         : "") +
                     '<div class="map-grid">' +
                     mappableFields()
@@ -1216,7 +1481,7 @@
                             const sample =
                                 sel >= 0 && t.rows[0] ? t.rows[0][sel] : "";
                             return (
-                                '<div><div class="map-src">' +
+                                '<div class="map-field"><div class="map-src">' +
                                 esc(T.importMeals.fieldLabels[f.key]) +
                                 (f.required
                                     ? ' <span style="color:var(--over)">*</span>'
@@ -1332,25 +1597,31 @@
                     // Importing fewer rows than the file holds is the exact failure
                     // this flow exists to prevent, so never let it pass silently.
                     (S.badDates
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(
-                              tpl(T.importMeals.badDatesWarning, {
-                                  n: S.badDates,
-                                  format: dateFormatLabel(S.dateFormat),
-                                  sample: S.badDateSample
-                                      ? tpl(T.importMeals.badDateSample, {
-                                            line: S.badDateSample.line,
-                                            value: S.badDateSample.value,
-                                        })
-                                      : "",
-                              }),
-                          ) +
-                          "</span></div>"
+                        ? notice(
+                              "warn",
+                              esc(
+                                  tpl(T.importMeals.badDatesWarning, {
+                                      n: S.badDates,
+                                      format: dateFormatLabel(S.dateFormat),
+                                      sample: S.badDateSample
+                                          ? tpl(T.importMeals.badDateSample, {
+                                                line: S.badDateSample.line,
+                                                value: S.badDateSample.value,
+                                            })
+                                          : "",
+                                  }),
+                              ),
+                          )
                         : "") +
                     (noTime
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(tpl(T.importMeals.noTimeWarning, { n: noTime })) +
-                          "</span></div>"
+                        ? notice(
+                              "warn",
+                              esc(
+                                  tpl(T.importMeals.noTimeWarning, {
+                                      n: noTime,
+                                  }),
+                              ),
+                          )
                         : "") +
                     // A calendar date with more than max_rows_per_call rows on
                     // its own has to be split across more than one import
@@ -1360,20 +1631,36 @@
                     // different calls can dedupe against each other instead of
                     // both being written (see chunkRows in src/chunk.ts).
                     (splitDates.length
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(
-                              plural(
-                                  T.importMeals.splitDatesCount,
-                                  splitDates.length,
-                              ) +
-                                  tpl(T.importMeals.splitDatesWarning, {
-                                      max: CFG.max_rows_per_call,
-                                      date: splitDates[0],
-                                  }),
-                          ) +
-                          "</span></div>"
+                        ? notice(
+                              "warn",
+                              esc(
+                                  plural(
+                                      T.importMeals.splitDatesCount,
+                                      splitDates.length,
+                                  ) +
+                                      tpl(T.importMeals.splitDatesWarning, {
+                                          max: CFG.max_rows_per_call,
+                                          date: splitDates[0],
+                                      }),
+                              ),
+                          )
                         : "") +
-                    '<div class="tscroll"><table class="tbl"><thead><tr>' +
+                    // .tedge wraps the scroller so its edge fades stay put
+                    // while the rows move under them; wireScrollEdges() turns
+                    // them on from scrollLeft.
+                    //
+                    // role/tabindex/aria-label, not decoration: the scroller is
+                    // a real tab stop (browsers focus a keyboard-scrollable box
+                    // whether or not we ask them to), and it was announcing as
+                    // an unnamed group ahead of every button on this step. The
+                    // name is the step's own heading — the widest column of the
+                    // table is off-screen at 320px, so "Preview" is what the
+                    // thing being scrolled is called on screen. tabindex="0" is
+                    // explicit because focusable-scroller is Chrome behaviour,
+                    // not a guarantee; table.css draws the ring.
+                    '<div class="tedge"><div class="tscroll" role="region" tabindex="0" aria-label="' +
+                    esc(T.importMeals.previewHeading) +
+                    '"><table class="tbl"><thead><tr>' +
                     "<th>" +
                     esc(T.importMeals.tableLine) +
                     "</th><th>" +
@@ -1433,7 +1720,7 @@
                           ) +
                           "</div>"
                         : "") +
-                    "</div>" +
+                    "</div></div>" +
                     (S.progress
                         ? '<div style="margin-top:12px"><div class="bar"><span style="width:' +
                           Math.round(
@@ -1451,24 +1738,20 @@
                         : "") +
                     (S.result && S.result.chunkErrors.length
                         ? S.result.chunkErrors
-                              .map(
-                                  (e) =>
-                                      '<div class="notice notice-error"><span>✕</span><span>' +
-                                      esc(e) +
-                                      "</span></div>",
-                              )
+                              .map((e) => notice("error", esc(e)))
                               .join("")
                         : "") +
                     (S.result && S.result.rowErrors.length && !S.busy
-                        ? '<div class="notice notice-error"><span>✕</span><span>' +
-                          esc(
-                              tpl(T.importMeals.rowsWouldFail, {
-                                  n: S.result.rowErrors.length,
-                                  line: S.result.rowErrors[0].line,
-                                  message: S.result.rowErrors[0].message,
-                              }),
-                          ) +
-                          "</span></div>"
+                        ? notice(
+                              "error",
+                              esc(
+                                  tpl(T.importMeals.rowsWouldFail, {
+                                      n: S.result.rowErrors.length,
+                                      line: S.result.rowErrors[0].line,
+                                      message: S.result.rowErrors[0].message,
+                                  }),
+                              ),
+                          )
                         : "") +
                     (S.badDates > 0 ? diagnosticsBlock() : "") +
                     '<div class="actions"><button class="btn btn-primary" id="doImport"' +
@@ -1514,28 +1797,28 @@
                     '<section class="card"><h3>' +
                     esc(T.importMeals.importCompleteHeading) +
                     "</h3>" +
-                    '<div class="notice ' +
-                    (ok ? "notice-ok" : "notice-warn") +
-                    '"><span>' +
-                    (ok ? "✓" : "!") +
-                    "</span><span>" +
-                    boldCount(
-                        tpl(T.importMeals.resultMealsImported, {
-                            n: r.created,
-                        }),
+                    notice(
+                        ok ? "ok" : "warn",
+                        boldCount(
+                            tpl(T.importMeals.resultMealsImported, {
+                                n: r.created,
+                            }),
+                        ) +
+                            esc(tail) +
+                            ".",
                     ) +
-                    esc(tail) +
-                    ".</span></div>" +
-                    (r.warnings || [])
-                        .map(
-                            (w) =>
-                                '<div class="notice"><span>i</span><span>' +
-                                esc(w) +
-                                "</span></div>",
-                        )
-                        .join("") +
+                    (r.warnings || []).map((w) => notice("", esc(w))).join("") +
                     (r.rowErrors && r.rowErrors.length
-                        ? '<div class="tscroll" style="max-height:160px"><table class="tbl"><thead><tr><th>' +
+                        ? // Same contract as the preview scroller above: a
+                          // named, ringed tab stop rather than an anonymous one.
+                          // Named with the table's own "Problem" column header —
+                          // the one translated leaf that says what these rows
+                          // are. A dedicated leaf would read better; adding one
+                          // touches all 9 copy files, which are another agent's
+                          // this round (noted in the handover).
+                          '<div class="tedge"><div class="tscroll" role="region" tabindex="0" aria-label="' +
+                          esc(T.importMeals.tableProblem) +
+                          '" style="max-height:160px"><table class="tbl"><thead><tr><th>' +
                           esc(T.importMeals.tableLine) +
                           '</th><th class="wide">' +
                           esc(T.importMeals.tableProblem) +
@@ -1551,7 +1834,7 @@
                                       "</td></tr>",
                               )
                               .join("") +
-                          "</tbody></table></div>"
+                          "</tbody></table></div></div>"
                         : "") +
                     (ok ? "" : diagnosticsBlock()) +
                     '<div class="actions"><button class="btn" id="restart">' +
@@ -1573,7 +1856,57 @@
                 wire();
             }
 
+            // Turn each .tedge's edge fades on and off from its scroller's
+            // position. Called from wire() after every render(), because
+            // render() replaces the whole subtree and the listeners with it.
+            //
+            // Toggling a class that only changes `opacity` is deliberate: this
+            // runs on scroll and on resize, and anything that moved a box here
+            // would feed straight back into bridge.js's ResizeObserver.
+            function wireScrollEdges() {
+                for (const edge of document.querySelectorAll(".tedge")) {
+                    const sc = edge.querySelector(".tscroll");
+                    if (!sc) continue;
+                    const paint = () => {
+                        // 1px of slack: a fractional scrollWidth on a
+                        // fully-scrolled container otherwise leaves the right
+                        // fade on forever.
+                        const max = sc.scrollWidth - sc.clientWidth - 1;
+                        edge.classList.toggle("more-left", sc.scrollLeft > 1);
+                        edge.classList.toggle(
+                            "more-right",
+                            max > 0 && sc.scrollLeft < max,
+                        );
+                        // The scroller is a named, focusable region (see the
+                        // markup) so a keyboard user can scroll it at all. It
+                        // earns that tab stop only while there is something to
+                        // scroll: at 560px the done step's two-column error
+                        // table fits, and a stop that does nothing is noise
+                        // ahead of the only button on the step. Re-asked on
+                        // every resize, because whether it overflows is the
+                        // host's decision, not ours. Writes one property that
+                        // changes no box, so it cannot feed bridge.js's
+                        // ResizeObserver.
+                        sc.tabIndex =
+                            sc.scrollWidth > sc.clientWidth ||
+                            sc.scrollHeight > sc.clientHeight
+                                ? 0
+                                : -1;
+                    };
+                    sc.addEventListener("scroll", paint, { passive: true });
+                    // The widget is resized by the host, not by the user, so
+                    // "does this still overflow?" has to be re-asked whenever
+                    // the container changes width. Safe against a feedback
+                    // loop: paint() writes only class names.
+                    if (typeof ResizeObserver === "function") {
+                        new ResizeObserver(paint).observe(sc);
+                    }
+                    paint();
+                }
+            }
+
             function wire() {
+                wireScrollEdges();
                 const file = document.getElementById("file");
                 if (file)
                     file.onchange = (e) => {

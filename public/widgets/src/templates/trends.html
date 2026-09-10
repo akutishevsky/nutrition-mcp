@@ -3,18 +3,26 @@
   Trends widget (MCP Apps).
 
   Assembled from shared partials at server startup (see src/widgets.ts); the
-  @include markers below inline the shared design tokens, components, and host
-  bridge. The result is fully self-contained — inline CSS + JS, zero network
-  requests — because the MCP Apps sandbox blocks external hosts.
+  @include markers below inline the shared design tokens, components, chart
+  grammar and host bridge. The result is fully self-contained — inline CSS + JS,
+  zero network requests — because the MCP Apps sandbox blocks external hosts.
 
-  Shown after get_trends. The whole widget is ONE panel: a header line carrying
-  the title and the 7 / 14 / 30-day toggle, the calories-per-day chart, then the
-  shared macro strip. The tool sends up to 30 days of daily series and the
-  toggle slices it CLIENT-SIDE and re-renders — no host round-trip, so switching
-  ranges is instant. The strip shows the trailing average vs goal (calories,
-  protein, carbs, fat and water count empty days as 0, while fiber, sugar,
-  alcohol and caffeine average only over the days that recorded them — see avgOf
-  below — matching the tool's text output).
+  Shown after get_trends. ONE Dawn card: a header line carrying the title and
+  the 7 / 14 / 30-day toggle, a flat calorie hero (no gauge — a range average
+  against a daily goal is not a "how full is today" question), the chart, then
+  the shared rails of nutrient chips.
+
+  The tool sends up to 30 days of daily series and the toggle slices it
+  CLIENT-SIDE and re-renders — no host round-trip, so switching ranges is
+  instant.
+
+  The chips here have no meals behind them (a trends payload carries none), so
+  every one of them would be a static tile — except that this widget passes
+  opts.chartKeys / opts.onSeries, which makes each chip the chart's series
+  selector instead. Tapping Protein re-strokes the line in protein's colour and
+  moves the goal line to protein's goal; tapping it again returns the chart to
+  calories. That is the same rail doing a different job in a widget with a chart
+  and no breakdown, with no branch in macros.js.
 
   The denominator is EVERY CALENDAR DAY in the window, not just the logged ones:
   these averages answer "how am I doing across this stretch of time?", so a
@@ -22,8 +30,11 @@
   get_nutrition_summary dashboard, whose figures divide by logged days only and
   answer "how does a day I actually log look?" (issue #70). Both are correct for
   their question and both name their denominator on screen — here that is the
-  strip's calorie label ("14-day avg · all days"), which is the only place it is
-  said, so keep it explicit if you touch it.
+  hero's calorie label ("14-day avg · all days"), which is the only place it is
+  said, so keep it explicit if you touch it. Note the two averaging rules that
+  coexist under it: calories, protein, carbs, fat and water count an empty day
+  as 0, while fiber, sugar, alcohol and caffeine average only over the days that
+  recorded them — see avgOf below, which matches the tool's text output.
 
   Data arrives as the `structuredContent` of the get_trends tool result; the
   shared bridge (shared/bridge.js) reads it across host conventions and calls
@@ -39,30 +50,34 @@
 
             /*@include shared/base.css@*/
 
-            /* Segmented control (7 / 14 / 30-day toggle), riding at the right
-               end of the panel header at its .seg-sm pill scale. The active
-               label uses var(--bg) on the accent fill so it stays
-               high-contrast in both themes. */
-            /*@include shared/seg.css@*/
+            /* Rails, chips, the hero and the segmented control. */
+            /*@include shared/chip.css@*/
 
-            /* Calories trend chart (hand-built SVG area + line) */
-            /*@include shared/trend.css@*/
+            /* The line, the dashed goal, the single last-point dot, the foot. */
+            /*@include shared/chart.css@*/
 
-            /* Ring gauge + macro strip (calorie gauge, protein/carbs/fat bars,
-               limits row, water line) — shared across widgets. */
-            /*@include shared/ring.css@*/
-
-            /*@include shared/macros.css@*/
+            /* The line and its labels are ONE block: dropped straight into the
+               card, the 10px column gap would push .cfoot's own 5px offset away
+               from the chart it labels. */
+            .cblock {
+                min-width: 0;
+            }
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap" id="root"></div>
 
         <script>
             "use strict";
 
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+
+            /*@include shared/date.js@*/
+
+            /*@include shared/icon.js@*/
+
+            /*@include shared/svg.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -97,12 +112,12 @@
                         // Alcohol tracking ON in this sample: null on an
                         // unlogged day (no data), 0 on a real alcohol-free
                         // day (still shows), a value on the rest. null on
-                        // every day (tracking off) hides the alcohol cell.
+                        // every day (tracking off) hides the alcohol chip.
                         alcohol_g: skip ? null : i % 7 ? 0 : r(13.9 + w * 4),
                         // Caffeine on most days but not all, and never a 0 on
                         // a day that simply has none: avgOf must divide by the
                         // days that recorded it, not by the window. null on
-                        // every day (nobody ever logged any) hides the cell —
+                        // every day (nobody ever logged any) hides the chip —
                         // there is no opt-in flag to hide it any other way.
                         caffeine_mg:
                             skip || i % 5 === 0
@@ -175,86 +190,164 @@
                 return sum / seen;
             }
 
-            // MACROS + the macro strip builder (calorie gauge, protein/carbs/fat
-            // bars, limits row, water line). Defines the shared MACROS array the
-            // averaging loop reads. Requires fmt + esc above.
-            /*@include shared/macros.js@*/
+            // ---- The chart -----------------------------------------------------
 
-            // Calories-per-day trend: SVG area + line that scales to any range
-            // (7 to 30 days). Compact — a 54-unit-tall viewBox sitting inside
-            // the widget's panel, not a card of its own. Uniform scaling — no
-            // preserveAspectRatio distortion — so it keeps its aspect ratio at
-            // any container width.
-            function trendChart(days, goal, range, logged) {
-                const W = 480,
-                    H = 54,
-                    padL = 8,
-                    padR = 8,
-                    padT = 6,
-                    padB = 4;
-                const n = days.length;
-                const vals = days.map((d) => d.calories || 0);
-                const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
-                const plotW = W - padL - padR;
-                const plotH = H - padT - padB;
-                const base = padT + plotH;
-                const x = (i) =>
-                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
-                const y = (v) => padT + plotH - (v / maxV) * plotH;
-                const pts = vals.map((v, i) => [x(i), y(v)]);
+            // Everything the chart draws for ONE metric.
+            //
+            // A day that never recorded the metric is dropped rather than drawn
+            // as a zero: a line dipping to the axis would claim a measured zero
+            // where the payload said "nobody measured this". That is also why
+            // the foot's end dates come from the days actually drawn and not
+            // from the window — the labels always describe the line above them.
+            //
+            // Safe to call for any key in chartKeys (see paint) plus calories:
+            // both are guaranteed at least one non-null day, so `days` is never
+            // empty here.
+            function seriesOf(key) {
+                const m = MACROS.find((x) => x.key === key);
+                const days = STATE.slice.filter((d) => d[key] != null);
+                const vals = days.map((d) => d[key] || 0);
+                const goal = (STATE.data.goals && STATE.data.goals[key]) || 0;
+                // Zero-based, unlike weight-trends: a nutrient total's distance
+                // from zero is the thing being read. The 1.15 keeps the peak
+                // clear of the top edge.
+                const yMax = Math.max(...vals, goal, 1) * 1.15;
+                const pts = chPoints(vals, 0, yMax);
+                const dot = pts[pts.length - 1];
+                const isCal = key === "calories";
+                // The same average the chip above shows — avgOf over the days
+                // that recorded the metric, which is exactly `vals` here.
+                const avg = vals.length
+                    ? vals.reduce((a, b) => a + b, 0) / vals.length
+                    : 0;
+                // macroNum()/macroUnit() (macros.js), never fmt() + m.unit:
+                // that pair is the ONE place a metric's display unit is
+                // decided, and water is the one metric stored in a different
+                // unit from the one it reads in. Bypassing it here printed
+                // "Water avg 1,957 ml · goal 2,500" directly above a chip
+                // reading "2.0 L / 2.5 L" — the same metric in two units on the
+                // same card (all three recheck agents measured it). The goal is
+                // the same measurement as the average, so it converts too.
+                const goalPart = goal > 0 ? macroNum(m, goal) : null;
+                return {
+                    color: m.color,
+                    // role="img" makes this string the chart's ENTIRE
+                    // description, so a switched series gets the same sentence
+                    // as the default one with its own metric in it. It used to
+                    // fall back to a bare macroLabel(m) — a screen reader heard
+                    // the single word "Protein" for a 30-day chart (a11y audit
+                    // + regression audit, both minor). T.trends.metricOverRange
+                    // is the one leaf added for it, in all 9 copy files, and it
+                    // deliberately carries no count: Intl.PluralRules falls
+                    // back to "other" for Polish/Ukrainian few/many, so a
+                    // PluralForms key would read wrong at n = 2–4.
+                    label: isCal
+                        ? tpl(T.trends.caloriesOverRange, {
+                              range: STATE.range,
+                          })
+                        : tpl(T.trends.metricOverRange, {
+                              metric: macroLabel(m),
+                              range: STATE.range,
+                          }),
+                    d: chPath(pts),
+                    // Zero-based, so the box's floor is the value 0 and the
+                    // wash measures the real thing — see .carea in chart.css.
+                    area: chArea(pts),
+                    goalY: goal > 0 ? chY(goal, 0, yMax).toFixed(1) : null,
+                    x: dot[0].toFixed(1),
+                    y: dot[1].toFixed(1),
+                    from: shortDate(days[0].date),
+                    to: shortDate(days[days.length - 1].date),
+                    // The foot's middle label. On the default series it is the
+                    // window's own coverage, which is where this widget names
+                    // it. On a SWITCHED series it names the metric, its average
+                    // and its goal instead — without this the foot was
+                    // byte-identical across a series change, so a purple
+                    // protein line sat above a calorie hero with an unlabelled
+                    // dashed reference and nothing on the card said which
+                    // series was drawn (layout audit, minor). Same shape
+                    // nutrition-summary's foot already uses, and it reads the
+                    // same two shared caption words.
+                    mid: isCal
+                        ? esc(STATE.loggedLabel)
+                        : `<b>${esc(macroLabel(m))}</b> ${esc(T.nutritionSummary.avg)} ${esc(macroAmount(m, avg))}` +
+                          (goalPart
+                              ? ` · ${esc(T.nutritionSummary.goal)} ${goalPart}`
+                              : ""),
+                };
+            }
 
-                const line = pts
-                    .map(
-                        (p, i) =>
-                            `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                    )
-                    .join(" ");
-                const area =
-                    `M${pts[0][0].toFixed(1)} ${base} ` +
-                    pts
-                        .map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
-                        .join(" ") +
-                    ` L${pts[n - 1][0].toFixed(1)} ${base} Z`;
+            // The foot's three labels: the first day drawn, what the line is,
+            // the last day drawn. See `mid` in seriesOf for what the middle one
+            // says in each state.
+            function footHtml(s) {
+                return `<span>${esc(s.from)}</span><span>${s.mid}</span><span>${esc(s.to)}</span>`;
+            }
 
-                const goalLine =
-                    goal && goal > 0
-                        ? `<line class="goalline" x1="${padL}" y1="${y(goal).toFixed(1)}" x2="${W - padR}" y2="${y(goal).toFixed(1)}"/>`
-                        : "";
-                // Point markers only on the shortest range: at 14 and 30 days
-                // they crowd the line at this height and read as noise.
-                const dots =
-                    n <= 7
-                        ? pts
-                              .map(
-                                  (p) =>
-                                      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.2" fill="var(--calories)"/>`,
-                              )
-                              .join("")
-                        : "";
-                const md = (d) => esc(d.date.slice(5)); // MM-DD
-
+            function chartMarkup(s) {
+                // The goal line is always in the DOM and merely hidden when the
+                // metric has no goal, so switching series only ever writes
+                // attributes — never adds or removes a node, which is what lets
+                // .cline's stroke transition run across the switch.
+                const hidden = s.goalY ? "" : ' style="display:none"';
+                const gy = s.goalY || 0;
                 return `
-          <div class="chart">
-            <div class="chead">
-              <span class="ctitle">${esc(T.nutritionSummary.caloriesPerDay)}</span>
-              <span class="cmeta">${tpl(T.trends.loggedOfTotal, { logged, total: n })}</span>
-            </div>
-            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tpl(T.trends.caloriesOverRange, { range }))}">
-              <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
-              ${goalLine}
-              <path d="${area}" fill="var(--calories)" opacity="0.16"/>
-              <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-              ${dots}
+          <div class="cwrap ${s.color}">
+            <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(s.label)}">
+              <line class="cgoal" x1="${CH_PL}" y1="${gy}" x2="${CH_W - CH_PR}" y2="${gy}"${hidden}/>
+              ${chAreaMarkup(s.area)}
+              <path class="cline" d="${s.d}"/>
+              <circle class="chalo" cx="${s.x}" cy="${s.y}" r="5"/>
+              <circle class="cdot" cx="${s.x}" cy="${s.y}" r="3"/>
             </svg>
-            <div class="tdates">
-              <span>${md(days[0])}</span>
-              <span>${md(days[n - 1])}</span>
-            </div>
-          </div>`;
+          </div>
+          <div class="cfoot">${footHtml(s)}</div>`;
+            }
+
+            // Re-point the chart at another metric IN PLACE. Rebuilding the
+            // block would work but would throw away .cline's stroke transition,
+            // and that colour cross-fade is what reads as "same chart, other
+            // series". The shape snaps rather than morphing, deliberately: a
+            // path tweening between two nutrients would imply a relationship
+            // between them that isn't there.
+            function applySeries(key) {
+                const block = document.getElementById("chart");
+                if (!block) return;
+                const s = seriesOf(key);
+                block.querySelector(".cwrap").className = `cwrap ${s.color}`;
+                block.querySelector("svg").setAttribute("aria-label", s.label);
+                block.querySelector(".cline").setAttribute("d", s.d);
+                // Re-pointed like the line, never rebuilt: the gradient the
+                // fill references was minted with this node and a fresh <defs>
+                // would orphan the id.
+                block.querySelector(".carea").setAttribute("d", s.area);
+                const goal = block.querySelector(".cgoal");
+                goal.style.display = s.goalY ? "" : "none";
+                if (s.goalY) {
+                    goal.setAttribute("y1", s.goalY);
+                    goal.setAttribute("y2", s.goalY);
+                }
+                block.querySelectorAll(".chalo, .cdot").forEach((c) => {
+                    c.setAttribute("cx", s.x);
+                    c.setAttribute("cy", s.y);
+                });
+                block.querySelector(".cfoot").innerHTML = footHtml(s);
+                // The card's glow reads --c, so the whole surface takes the
+                // selected metric's colour — the confirmation you get without
+                // having to look at the line.
+                const card = block.closest(".card");
+                if (card) card.className = `card ${s.color}`;
+            }
+
+            // What macroPanel calls when a chip is tapped. Deselecting returns
+            // the chart to calories: the metric the hero is about, and the one
+            // every other state of this widget shows.
+            function onSeries(key, opened) {
+                applySeries(opened ? key : "calories");
             }
 
             // ---- State + rendering ---------------------------------------------
-            const STATE = { data: null, range: 30 };
+            const STATE = { data: null, range: 30, slice: [], loggedLabel: "" };
             let __widgetApi = null;
 
             function render(data) {
@@ -281,40 +374,56 @@
             </div>`;
                     return;
                 }
+                // Only here, never in paint(): the range is the user's choice
+                // once they have made one, and re-reading default_range on
+                // every repaint would undo every tap of the toggle.
                 STATE.range = RANGES.includes(data.default_range)
                     ? data.default_range
                     : 30;
                 paint();
             }
 
-            function paint() {
-                const root = document.getElementById("root");
+            // Everything BELOW the header — the chart block and the strip —
+            // derived from STATE.range. Split out of paint() so a range change
+            // can rewrite this alone and leave the header, and the seg button
+            // the user is standing on, in place.
+            function bodyHtml() {
                 const data = STATE.data;
                 const all = data.days
                     .slice()
                     .sort((a, b) => (a.date < b.date ? -1 : 1));
                 const range = STATE.range;
                 const slice = all.slice(-range);
+                STATE.slice = slice;
 
                 const avg = {};
                 for (const m of MACROS) avg[m.key] = avgOf(slice, m.key);
 
                 const logged = slice.filter(dayHasData).length;
+                STATE.loggedLabel = tpl(T.trends.loggedOfTotal, {
+                    logged,
+                    total: slice.length,
+                });
 
-                const seg = RANGES.map(
-                    (r) =>
-                        `<button class="seg-btn${r === range ? " active" : ""}" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: r }))}">${r}</button>`,
-                ).join("");
+                // The metrics the chart can draw, i.e. every one with at least
+                // one day that recorded it (a null average means nothing did).
+                // Calories is deliberately absent: it is the hero and the
+                // default series, and deselecting any chip returns to it, so
+                // giving it a control of its own would be two switches for one
+                // job — and would turn the hero into a button.
+                const chartKeys = MACROS.filter(
+                    (m) => m.role !== "cal" && avg[m.key] != null,
+                ).map((m) => m.key);
 
-                // No per-meal rows in a trends payload, so the strip is static
-                // — macroPanel only makes tiles tappable when meals are passed.
-                // `divided` gives it the leading hairline that separates it from
-                // the chart above. The floor-metric averaged wording uses its
-                // own dedicated string (T.trends.avgUnder) — distinct from
-                // macros.floorUnder's live "still left today" framing and
+                // No per-meal rows in a trends payload, so nothing here
+                // discloses meals — chartKeys/onSeries are what keep the chips
+                // interactive, as the chart's series selector. `divided` gives
+                // the strip the hairline that separates it from the chart above;
+                // `flatHero` drops the gauge. The floor-metric averaged wording
+                // uses its own dedicated string (T.trends.avgUnder) — distinct
+                // from macros.floorUnder's live "still left today" framing and
                 // macros.ceilingUnder's safety-margin framing, neither of which
-                // fits a historical average's shortfall. See macroBits'
-                // wording.under in shared/macros.js.
+                // fits a historical average's shortfall. See macroBits' wording.
                 const panel = macroPanel(
                     avg,
                     data.goals,
@@ -323,40 +432,84 @@
                     {
                         drinkUnit: data.drink_unit,
                         divided: true,
+                        flatHero: true,
                         // The one place the denominator is named: these are
-                        // averages over every calendar day in the window, skipped
-                        // days included.
+                        // averages over every calendar day in the window,
+                        // skipped days included.
                         calLabel: tpl(T.trends.avgAllDays, { range }),
+                        chartKeys,
+                        onSeries,
                     },
                 );
-                const chart = trendChart(
-                    slice,
-                    data.goals?.calories ?? null,
-                    range,
-                    logged,
-                );
+
+                // seriesOf() reads STATE.slice and STATE.loggedLabel, both set
+                // above — so the chart is built last, after the range's own
+                // numbers exist.
+                return `
+            <div class="cblock" id="chart">${chartMarkup(seriesOf("calories"))}</div>
+            ${panel}`;
+            }
+
+            function paint() {
+                const root = document.getElementById("root");
+                const range = STATE.range;
+
+                const seg = RANGES.map(
+                    (r) =>
+                        `<button type="button" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: r }))}">${r}</button>`,
+                ).join("");
 
                 root.innerHTML = `
-          <div class="panel">
-            <div class="phead mid">
-              <div class="ptitle">${esc(T.trends.title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>
-            </div>
-            ${chart}
-            ${panel}
+          <div class="card c-cal">
+            <div class="glow"></div>
+            <header class="chead">
+              <h1 class="ctitle">${esc(T.trends.title)}</h1>
+              <div class="seg" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>
+            </header>
+            <div id="tr-body">${bodyHtml()}</div>
           </div>`;
+            }
+
+            // A range change is an attribute flip plus a body repaint — NEVER a
+            // full paint(). Rewriting root.innerHTML from the toggle's own click
+            // handler destroyed the seg button that was being operated, so
+            // document.activeElement fell to <body> and a keyboard user was
+            // dumped to the top of the document on every range change (a11y
+            // audit, major). The seg buttons are toggle buttons: their pressed
+            // state is the only header state a range owns, and setAttribute
+            // moves it without touching the node the user is standing on.
+            function setRange(n) {
+                STATE.range = n;
+                const root = document.getElementById("root");
+                root.querySelectorAll("[data-range]").forEach((b) => {
+                    b.setAttribute(
+                        "aria-pressed",
+                        String(Number(b.dataset.range) === n),
+                    );
+                });
+                const body = document.getElementById("tr-body");
+                // No body element means the card was never painted by paint()
+                // (an empty-state render); fall back rather than silently
+                // dropping the range change.
+                if (!body) {
+                    paint();
+                    return;
+                }
+                body.innerHTML = bodyHtml();
+                // The new body draws calories again, so the card's tint has to
+                // come back with it — applySeries may have left it on the
+                // previously selected metric's role class.
+                const card = body.closest(".card");
+                if (card) card.className = "card c-cal";
             }
 
             // Delegated on #root, which persists across paint()'s innerHTML
             // rewrites, so it's attached once.
             document.getElementById("root").addEventListener("click", (e) => {
-                const btn = e.target.closest(".seg-btn");
+                const btn = e.target.closest("[data-range]");
                 if (!btn) return;
                 const n = Number(btn.dataset.range);
-                if (n && n !== STATE.range && STATE.data) {
-                    STATE.range = n;
-                    paint();
-                }
+                if (n && n !== STATE.range && STATE.data) setRange(n);
             });
 
             // ---- Rendering intake ----------------------------------------------
@@ -366,6 +519,11 @@
                 if (payload.structuredContent) return payload.structuredContent;
                 return null;
             }
+
+            // MACROS, the chip rails and the hero. Requires fmt + esc + icon
+            // above; supplies dayHasData/macroLabel/macroPanel to the code that
+            // runs after the host delivers a payload.
+            /*@include shared/macros.js@*/
 
             initWidget({
                 name: "trends-widget",

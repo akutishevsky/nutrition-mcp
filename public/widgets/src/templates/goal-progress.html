@@ -7,11 +7,11 @@
   bridge. The result is fully self-contained — inline CSS + JS, zero network
   requests — because the MCP Apps sandbox blocks external hosts.
 
-  One card (`.panel`): a header line naming the day and what was logged, the
-  shared macro strip (calories, the three macro bars, the limits row and the
-  water line), and one compact weight row under a hairline. The weight row is
-  the only markup this widget owns — everything above it comes from
-  shared/macros.js.
+  One Dawn card: a header naming the day and what was logged on it, the shared
+  strip (calorie hero, then rails of nutrient chips that open the meals behind
+  them), and one weight row under a hairline. The weight row is the only markup
+  this widget owns — it is a `.more` disclosure whose drawer holds the track
+  between the latest reading and the target.
 
   Data arrives as the `structuredContent` of the get_goal_progress tool result;
   the shared bridge (shared/bridge.js) reads it across host conventions and
@@ -27,33 +27,31 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/ring.css@*/
-
-            /*@include shared/macros.css@*/
+            /*@include shared/chip.css@*/
 
             /* Weight — a standing metric (latest overall vs target), not a
                per-day total, so it sits below the strip rather than in it. The
-               row reuses the strip's own idiom (.wrow / .wlab / .dot / .wnum /
-               .wsub from macros.css); only the number line itself is local: a
-               track with the span between the two readings highlighted, a
-               hollow target marker and a filled current one. Marker positions
-               (left %) are set inline from the data. */
+               row itself is the shared `.more` disclosure and the drawer is the
+               shared `.drawer`; only the track inside it is local: the span
+               between the two readings highlighted, a hollow target marker and
+               a filled current one. Marker positions (left %) are set inline
+               from the data. */
             .wtrack {
                 position: relative;
-                flex: 1;
+                margin: 10px 2px 3px;
                 height: 5px;
-                border-radius: 999px;
+                border-radius: var(--r-pill);
                 background: var(--track);
             }
             .wseg {
                 position: absolute;
                 top: 0;
                 height: 100%;
-                border-radius: 999px;
-                background: var(--accent);
+                border-radius: var(--r-pill);
+                background: var(--acc);
                 opacity: 0.4;
             }
-            .wmark {
+            .wpin {
                 position: absolute;
                 top: 50%;
                 width: 11px;
@@ -61,28 +59,28 @@
                 border-radius: 50%;
                 transform: translate(-50%, -50%);
             }
-            .wmark.tgt {
+            .wpin.tgt {
                 background: var(--panel);
-                border: 2px solid var(--text-dim);
+                border: 2px solid var(--ink3);
                 z-index: 1;
             }
-            .wmark.cur {
-                background: var(--accent);
+            .wpin.cur {
+                background: var(--acc);
                 box-shadow: 0 0 0 3px
-                    color-mix(in srgb, var(--accent) 22%, transparent);
+                    color-mix(in srgb, var(--acc) 22%, transparent);
                 z-index: 2;
             }
-            /* The states with nothing to plot — no reading yet, or a reading
-               with no target — are one line of text in the same section, never
-               a card of their own. */
+            /* The states with nothing to plot — no reading yet — are one line
+               of text in the same section, never a card of their own and never
+               a button that would open an empty drawer. */
             .wnote {
                 font-size: 11.5px;
-                color: var(--text-dim);
+                color: var(--ink3);
             }
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap" id="root"></div>
 
         <script>
             "use strict";
@@ -91,6 +89,8 @@
             /*@include shared/i18n.js@*/
 
             /*@include shared/date.js@*/
+
+            /*@include shared/icon.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -122,13 +122,13 @@
                     carbs_g: 231,
                     fat_g: 74,
                     fiber_g: 24.6,
-                    // Over its ceiling, so the limits row flags it with --over.
+                    // Over its ceiling, so its chip flags it with --over.
                     sugar_g: 61.3,
                     // Alcohol tracking ON in this sample; null would mean the
-                    // user has it off and the limit cell disappears.
+                    // user has it off and the alcohol chip disappears.
                     alcohol_g: 27.7,
-                    // Over its ceiling too, so its cell flags it. null here
-                    // (nothing recorded today) would drop the cell rather than
+                    // Over its ceiling too, so its chip flags it. null here
+                    // (nothing recorded today) would drop the chip rather than
                     // claim a 0 mg day against the 400 mg limit.
                     caffeine_mg: 470,
                     water_ml: 2100,
@@ -229,104 +229,203 @@
                 );
             }
 
-            /*@include shared/macros.js@*/
+            const WEIGHT_DRAWER_ID = "weight-drawer";
 
-            // The weight section: one compact row on the strip's own idiom
-            // (label · track · figure), or one line of text when there is
-            // nothing to plot. Never a card — it is the last section of the
-            // widget's single panel.
-            function weightRow(w) {
+            // The weight section: the card's one non-nutrient disclosure. Four
+            // states, all of which must survive — dropping the section when
+            // there is no reading was explicitly rejected, because "no weight
+            // logged yet" is the state that says which tool to reach for.
+            //
+            //   no reading (with or without a target) — one line of text: there
+            //     is nothing to plot and nothing to disclose, so a button would
+            //     promise a drawer with nothing in it
+            //   a reading with no target — the reading in the row, the prompt to
+            //     set a goal in the drawer
+            //   a reading and a target — the reading and the target in the row,
+            //     the track between them in the drawer
+            function weightBlock(w) {
                 const cur = w?.current;
                 const tgt = w?.target;
                 const unit = esc(w?.unit || "kg");
                 const hasCur = cur != null;
                 const hasTgt = tgt != null;
 
-                // Nothing to plot without a current weight — say which piece is
-                // missing and which tool supplies it, rather than dropping the
-                // section silently.
+                // Say which piece is missing and which tool supplies it.
                 if (!hasCur) {
                     const msg = hasTgt
                         ? tpl(T.goalProgress.weightNoneWithTarget, {
                               target: `${fmt(tgt, 1)} ${unit}`,
                           })
                         : T.goalProgress.weightNoneNoTarget;
-                    return `<div class="wnote psec">${msg}</div>`;
+                    return `<div class="sec wnote">${esc(msg)}</div>`;
                 }
 
-                // Have a reading but no target: there is no line to plot it on,
-                // so show the reading and prompt for the goal.
-                if (!hasTgt) {
-                    // The reading is the LATEST one overall, not necessarily
-                    // this day's — with no track to hang a tooltip on, the
-                    // date has to be in the sentence or it is lost.
-                    const when = w.logged_on
-                        ? ` (${esc(shortDate(w.logged_on))})`
-                        : "";
-                    const reading = `${fmt(cur, 1)} ${unit}${when}`;
-                    return `<div class="wnote psec">${tpl(T.goalProgress.weightNoGoal, { reading })}</div>`;
-                }
-
-                const atTarget = Math.abs(cur - tgt) < 0.05;
-                const delta = Math.round((cur - tgt) * 10) / 10;
-                const state = atTarget
-                    ? T.goalProgress.atTarget
-                    : tpl(
-                          delta > 0
-                              ? T.goalProgress.toLose
-                              : T.goalProgress.toGain,
-                          { amount: `${fmt(Math.abs(delta), 1)} ${unit}` },
-                      );
-                // The row shows the two readings; the distance between them and
-                // the date behind the current one ride along as the graphic's
-                // accessible name and the row's tooltip. "·" separates them
-                // visually, but a screen reader either skips it or announces
-                // "middle dot", so the spoken name uses commas.
-                const metaTxt = w.logged_on
-                    ? tpl(T.goalProgress.lastLogged, {
-                          date: esc(w.logged_on),
-                      })
+                // The reading is the LATEST one overall, not necessarily this
+                // day's, so the date it was taken on rides with it.
+                const when = w.logged_on
+                    ? esc(
+                          tpl(T.goalProgress.lastLogged, {
+                              date: shortDate(w.logged_on),
+                          }),
+                      )
                     : "";
-                const title = metaTxt ? `${state} · ${metaTxt}` : state;
-                const aria = tpl(T.goalProgress.weightAria, {
-                    current: `${fmt(cur, 1)} ${unit}`,
-                    target: `${fmt(tgt, 1)} ${unit}`,
-                    state,
-                    metaSuffix: metaTxt ? `, ${metaTxt}` : "",
-                });
 
-                let pc = 50;
-                let pt = 50;
-                if (!atTarget) {
-                    // Pad the scale beyond the two points so the markers land
-                    // inboard (~22% / 78%): an 11px marker centred on 0% or
-                    // 100% would hang off the end of its own track.
-                    const lo = Math.min(cur, tgt);
-                    const hi = Math.max(cur, tgt);
-                    const pad = (hi - lo) * 0.4;
-                    const smin = lo - pad;
-                    const span = hi - lo + pad * 2;
-                    const pos = (v) => ((v - smin) / span) * 100;
-                    pc = pos(cur);
-                    pt = pos(tgt);
-                }
-                const segL = Math.min(pc, pt);
-                const segW = Math.abs(pc - pt);
-                const num = atTarget
-                    ? `${fmt(cur, 1)}<span class="wsub"> ${unit} · at target</span>`
-                    : `${fmt(cur, 1)}<span class="wsub"> → ${fmt(tgt, 1)} ${unit}</span>`;
+                let value, cap, body;
+                if (!hasTgt) {
+                    // A reading with no target has no line to plot it on, so
+                    // the drawer carries the prompt instead of a track.
+                    value = `${fmt(cur, 1)} ${unit}`;
+                    cap = when;
+                    body = `<div class="dempty">${esc(tpl(T.goalProgress.weightNoGoal, { reading: `${fmt(cur, 1)} ${unit}` }))}</div>`;
+                } else {
+                    const atTarget = Math.abs(cur - tgt) < 0.05;
+                    const delta = Math.round((cur - tgt) * 10) / 10;
+                    const state = atTarget
+                        ? T.goalProgress.atTarget
+                        : tpl(
+                              delta > 0
+                                  ? T.goalProgress.toLose
+                                  : T.goalProgress.toGain,
+                              { amount: `${fmt(Math.abs(delta), 1)} ${unit}` },
+                          );
+                    // The row shows the two readings; the distance between them
+                    // is the drawer's caption and the graphic's accessible
+                    // name. "·" separates them visually, but a screen reader
+                    // either skips it or announces "middle dot", so the spoken
+                    // name uses commas.
+                    value = atTarget
+                        ? `${fmt(cur, 1)} ${unit} · ${esc(T.goalProgress.atTarget)}`
+                        : `${fmt(cur, 1)} → ${fmt(tgt, 1)} ${unit}`;
+                    cap = when ? `${esc(state)} · ${when}` : esc(state);
+                    const aria = esc(
+                        tpl(T.goalProgress.weightAria, {
+                            current: `${fmt(cur, 1)} ${unit}`,
+                            target: `${fmt(tgt, 1)} ${unit}`,
+                            state,
+                            metaSuffix: w.logged_on
+                                ? `, ${tpl(T.goalProgress.lastLogged, { date: shortDate(w.logged_on) })}`
+                                : "",
+                        }),
+                    );
 
-                return `
-          <div class="wrow psec" title="${title}">
-            <span class="wlab"><span class="dot" style="background:var(--accent)"></span>${esc(T.goalProgress.weightLabel)}</span>
+                    let pc = 50;
+                    let pt = 50;
+                    if (!atTarget) {
+                        // Pad the scale beyond the two points so the markers
+                        // land inboard (~22% / 78%): an 11px marker centred on
+                        // 0% or 100% would hang off the end of its own track.
+                        const lo = Math.min(cur, tgt);
+                        const hi = Math.max(cur, tgt);
+                        const pad = (hi - lo) * 0.4;
+                        const smin = lo - pad;
+                        const span = hi - lo + pad * 2;
+                        const pos = (v) => ((v - smin) / span) * 100;
+                        pc = pos(cur);
+                        pt = pos(tgt);
+                    }
+                    body = `
             <div class="wtrack" role="img" aria-label="${aria}">
-              <div class="wseg" style="left:${segL.toFixed(1)}%;width:${segW.toFixed(1)}%"></div>
-              <div class="wmark tgt" style="left:${pt.toFixed(1)}%"></div>
-              <div class="wmark cur" style="left:${pc.toFixed(1)}%"></div>
+              <div class="wseg" style="left:${Math.min(pc, pt).toFixed(1)}%;width:${Math.abs(pc - pt).toFixed(1)}%"></div>
+              <div class="wpin tgt" style="left:${pt.toFixed(1)}%"></div>
+              <div class="wpin cur" style="left:${pc.toFixed(1)}%"></div>
+            </div>`;
+                }
+
+                // The drawer's contents are painted up front and revealed by the
+                // `hidden` attribute alone — nothing here is made visible by an
+                // animation, and nothing that changes layout is animated, so the
+                // bridge's ResizeObserver reports one settled height per toggle.
+                //
+                // That "painted up front" is also why this region carries NO
+                // aria-live. It held `aria-live="polite"` and could never once
+                // fire: a live region announces MUTATIONS, and this one is
+                // fully written before it is ever shown and then only has
+                // `hidden` removed. Both the a11y and the regression recheck
+                // measured the promise and the silence. It carries `tabindex`
+                // instead, and weightToggle() moves focus here on open — the
+                // same trade macros.js made for the macro drawer.
+                return `
+          <div class="sec">
+            <button class="more" type="button" data-weight aria-expanded="false" aria-controls="${WEIGHT_DRAWER_ID}">
+              <span class="dot c-acc"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${value}</span><span class="chev">${icon("chev", 10)}</span>
+            </button>
+            <div class="drawer" id="${WEIGHT_DRAWER_ID}" tabindex="-1" hidden>
+              <div class="dhead">
+                <span class="dot c-acc"></span>
+                <b class="dname">${esc(T.goalProgress.weightLabel)}</b>
+                <span class="dcap">${cap}</span>
+                <button class="dx" type="button" data-weight-close aria-label="${esc(T.macros.closeBreakdown)}">${icon("x", 12)}</button>
+              </div>${body}
             </div>
-            <span class="wnum">${num}</span>
           </div>`;
             }
+
+            // One drawer open at a time across the whole card. macros.js owns
+            // the chips' half of that; this owns the weight's, and the two close
+            // each other rather than sharing a region — macroPanel only emits
+            // its drawer when some meal has a breakdown to show, so a day with a
+            // weight reading and no meals would otherwise have nowhere to open.
+            function weightToggle(force) {
+                const btn = document.querySelector("[data-weight]");
+                const drawer = document.getElementById(WEIGHT_DRAWER_ID);
+                if (!btn || !drawer) return;
+                const open =
+                    force != null
+                        ? force
+                        : btn.getAttribute("aria-expanded") !== "true";
+                btn.setAttribute("aria-expanded", open ? "true" : "false");
+                if (!open) {
+                    // FOCUS GOES HOME BEFORE THE REGION IS HIDDEN. `hidden` on
+                    // an ancestor of the focused element makes the browser drop
+                    // focus on <body>, which returns a keyboard user to the top
+                    // of the tab ring — and the ✕ that closes this drawer LIVES
+                    // in it, so closing from the ✕ always hit that. Both the
+                    // a11y and the regression recheck measured
+                    // `document.activeElement === document.body` here after a
+                    // real click and after a real Enter. Same contract
+                    // macros.js documents for the macro drawer's ✕; this drawer
+                    // is new in the redesign and never got it.
+                    //
+                    // Guarded on containment rather than done unconditionally:
+                    // weightToggle(false) is ALSO the cross-close a chip fires,
+                    // and focusing the weight row there would yank focus off
+                    // the chip the user just activated.
+                    if (drawer.contains(document.activeElement)) {
+                        btn.focus({ preventScroll: true });
+                    }
+                    drawer.hidden = true;
+                    return;
+                }
+                drawer.hidden = false;
+                // Close whatever chip was open, through macros.js's own toggle
+                // so its hint line and chart coupling stay in step.
+                const chip = document.querySelector(
+                    '[data-macro][aria-expanded="true"]',
+                );
+                if (chip) macroToggle(chip);
+                // AFTER that close, never before: macroToggle empties the macro
+                // drawer, and if focus was sitting inside it the browser would
+                // otherwise land on <body> a moment after we placed it here.
+                // The drawer carries tabindex="-1" for this — it is not
+                // adjacent to the row that opened it, and it has no aria-live
+                // to announce itself (see the markup above for why), so moving
+                // focus is the whole disclosure announcement.
+                drawer.focus({ preventScroll: true });
+            }
+
+            document.addEventListener("click", (e) => {
+                if (e.target.closest("[data-weight-close]")) {
+                    weightToggle(false);
+                    return;
+                }
+                if (e.target.closest("[data-weight]")) {
+                    weightToggle();
+                    return;
+                }
+                // The other direction: a chip taking the floor closes the
+                // weight track.
+                if (e.target.closest("[data-macro]")) weightToggle(false);
+            });
 
             let __widgetApi = null;
 
@@ -371,13 +470,14 @@
                     ? T.macros.caloriesToday
                     : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
 
-                const panel = macroPanel(
+                const strip = macroPanel(
                     totals,
                     data.goals,
                     undefined,
                     data.meals,
                     // Nothing sits between the header line and the strip, so no
-                    // leading hairline.
+                    // leading hairline; and there is no chart here, so a chip
+                    // opens meals and nothing else.
                     { drinkUnit: data.drink_unit, calLabel },
                 );
 
@@ -388,18 +488,19 @@
                 // the strip (all zeros against the goals), so say why.
                 const sub =
                     meals === 0 && water === 0
-                        ? `<div class="psub">${tpl(T.goalProgress.nothingLoggedFor, { date: dateOrThisDay })}</div>`
+                        ? `<span class="csub">${tpl(T.goalProgress.nothingLoggedFor, { date: dateOrThisDay })}</span>`
                         : "";
 
                 root.innerHTML = `
-          <div class="panel">
-            <div class="phead">
-              <div class="ptitle">${esc(T.goalProgress.title)}</div>
+          <div class="card c-cal">
+            <div class="glow"></div>
+            <header class="chead">
+              <h1 class="ctitle">${esc(T.goalProgress.title)}</h1>
+              <span class="cmeta">${meta}</span>
               ${sub}
-              <div class="pmeta">${meta}</div>
-            </div>
-            ${panel}
-            ${weightRow(w)}
+            </header>
+            ${strip}
+            ${weightBlock(w)}
           </div>`;
             }
 
@@ -412,6 +513,12 @@
                 return null;
             }
 
+            /*@include shared/macros.js@*/
+
+            // Last, after every partial above has finished evaluating: with no
+            // host, initWidget paints config.sample synchronously, and render()
+            // reaches straight into macros.js's MACROS — a const, so calling it
+            // any earlier is a TDZ ReferenceError rather than a hoisted call.
             initWidget({
                 name: "goal-progress-widget",
                 loading:

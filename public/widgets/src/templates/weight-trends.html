@@ -3,21 +3,25 @@
   Weight-trends widget (MCP Apps).
 
   Assembled from shared partials at server startup (see src/widgets.ts); the
-  @include markers below inline the shared design tokens, compact widget shell,
-  segmented control, chart rules, and host bridge. The result is fully
-  self-contained — inline CSS + JS, zero network requests — because the MCP Apps
-  sandbox blocks external hosts.
+  @include markers below inline the shared design tokens, the card shell, the
+  hero and segmented control, the chart grammar and the host bridge. The result
+  is fully self-contained — inline CSS + JS, zero network requests — because the
+  MCP Apps sandbox blocks external hosts.
 
-  Shown after get_weight_trends. The whole widget is ONE panel: a header line
-  carrying the 7 / 14 / 30-day toggle, then the latest reading beside the
-  weight chart, then a hairline footer with the weigh-in count, the date span
-  and the target. There is NO macro strip here — this widget is about a single
-  series, so it includes neither macros.css nor macros.js.
+  Shown after get_weight_trends. ONE Dawn card: a header line carrying the title
+  and the 7 / 14 / 30-day toggle, the latest reading as the hero with a delta
+  pill beside it, the weight chart with its dashed target line, and two foot
+  labels — how much data this is, and what it is aimed at.
+
+  There is NO chip rail and NO drawer here, and that is the point: this widget
+  has a single series, and a rail of one chip would be ceremony. It therefore
+  includes neither macros.js nor chip.css's rail half — only the hero, the seg
+  and the chart. Interaction-led does not mean interaction-everywhere.
 
   The tool sends up to 30 days of per-day weight (same-day weigh-ins averaged),
   and the toggle filters it CLIENT-SIDE and re-renders — no host round-trip.
-  Unlike the calorie chart, the weight axis is scaled to the data range (NOT
-  zero-based) so small changes stay visible, with a dashed target line.
+  Unlike the calorie chart, the weight axis is scaled to the DATA range (not
+  zero-based) so a 1 kg move over a month is still visible.
 
   Data arrives as the `structuredContent` of the get_weight_trends tool result;
   the shared bridge (shared/bridge.js) reads it across host conventions and calls
@@ -33,94 +37,74 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/seg.css@*/
+            /* The hero, the delta pill and the segmented control. */
+            /*@include shared/chip.css@*/
 
-            /*@include shared/trend.css@*/
+            /* The line, the dashed target, the last-point dot, the foot. */
+            /*@include shared/chart.css@*/
 
-            /* Weight-only layout. The chart does not sit in a `.chart` block:
-               it shares one row with the latest reading, which is the figure
-               the chart is context for. */
-            .wmain {
-                display: flex;
-                align-items: flex-end;
-                gap: 12px;
-            }
-            .wnow {
-                flex: none;
-            }
-            .wlabel {
-                font-size: 9.5px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                color: var(--text-dim);
-            }
-            .wval {
-                font-size: 20px;
-                font-weight: 800;
-                letter-spacing: -0.03em;
-                line-height: 1.2;
-                font-variant-numeric: tabular-nums;
-            }
-            .wval .wunit {
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 0;
-                color: var(--text-dim);
-                margin-left: 2px;
-            }
-            .wdelta {
-                font-size: 10.5px;
-                font-weight: 700;
-                font-variant-numeric: tabular-nums;
-            }
-            .wchart {
-                flex: 1;
+            /* The line and its labels are ONE block: dropped straight into the
+               card, the 10px column gap would push .cfoot's own 5px offset away
+               from the chart it labels. */
+            .cblock {
                 min-width: 0;
-                height: auto;
-                display: block;
             }
 
-            /* Footer: how much data this is, and what it is aimed at. */
-            /* Wraps as two whole phrases, never mid-value: without the wrap
-               and the nowrap on each half, a 360px phone breaks "13 Jun → 11
-               Jul" after the arrow and "2.0 kg to lose" after "to". */
-            .wfoot {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: space-between;
-                gap: 2px 10px;
-                font-size: 11px;
-                color: var(--text-dim);
-                font-variant-numeric: tabular-nums;
+            /* The delta pill leads with the direction the weight moved, so the
+               accent/--over colouring is never the only thing carrying it. The
+               icon is a block element (.ic), so the pill has to be a flex row. */
+            .hsub {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
             }
-            .wfoot > span {
+
+            /* Two whole phrases, each free to drop to its own row when the
+               pair will not share one. */
+            .cfoot {
+                flex-wrap: wrap;
+                row-gap: 2px;
+            }
+            /* The FIGURES are atomic, the sentences around them are not.
+               `.cfoot > span { white-space: nowrap }` used to be the rule here,
+               which meant a phrase could move to its own row but could never be
+               narrower than itself: at 320px the German target phrase
+               "Ziel 75.0 kg · 2.0 kg bis zum Ziel (abnehmen)" measured 293px in
+               a 274px content box and ran 18px past the card, where
+               `.card { overflow: hidden }` destroyed the tail outright (layout
+               audit, major — text lost, not ellipsised). Nowrapping only the
+               atoms keeps "13 Jun → 11 Jul" and "75.0 kg" whole while letting
+               the sentence wrap between them. */
+            .nb {
                 white-space: nowrap;
             }
-            .wfoot b {
-                font-weight: 700;
-                color: var(--text);
-            }
 
-            /* A range the user selected that happens to hold no weigh-ins —
-               distinct from the widget-wide empty state, since the toggle is
-               still there to widen. */
+            /* chart.css pins .cempty to the chart's own 52px so a range switch
+               never makes the card jump. That is a floor here, not a ceiling:
+               this message is a translated sentence that wraps to two or three
+               lines on a phone, and .card clips its overflow. */
             .cempty {
-                padding: 18px 0 14px;
+                height: auto;
+                min-height: 52px;
+                padding: 10px 4px;
                 text-align: center;
-                color: var(--text-dim);
-                font-size: 12.5px;
             }
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap" id="root"></div>
 
         <script>
             "use strict";
 
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+
+            /*@include shared/date.js@*/
+
+            /*@include shared/icon.js@*/
+
+            /*@include shared/svg.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -130,18 +114,6 @@
                 const d = new Date(date + "T00:00:00Z");
                 d.setUTCDate(d.getUTCDate() + delta);
                 return d.toISOString().slice(0, 10);
-            }
-
-            // "2026-07-11" → "11 Jul". Parsed by parts, not by Date: the string
-            // is already a local calendar day and re-reading it through a
-            // timezone is how it slips by one. Reuses
-            // T.nutritionSummary.months (identical Jan..Dec shape) rather than
-            // its own MONTHS array.
-            function shortDay(iso) {
-                const p = String(iso).split("-");
-                const m = Number(p[1]);
-                if (!m || m < 1 || m > 12) return String(iso);
-                return `${Number(p[2])} ${T.nutritionSummary.months[m - 1]}`;
             }
 
             // ---- Sample data so the file renders on its own (browser preview) ----
@@ -191,28 +163,79 @@
                     maximumFractionDigits: 1,
                 });
             }
+            // A real minus sign (U+2212), not a hyphen: at 24px beside a
+            // tabular figure a hyphen sits too high and too short to read as
+            // "minus".
             function signed(n) {
                 const s = n > 0 ? "+" : n < 0 ? "−" : "";
                 return `${s}${w1(Math.abs(n))}`;
             }
 
-            // Weight-over-time line chart. Y is scaled to the data range (plus
-            // the target) — NOT zero-based — so small changes stay visible.
-            function weightChart(days, target, unit) {
-                const W = 300,
-                    H = 62,
-                    padL = 5,
-                    padR = 5,
-                    padT = 7,
-                    padB = 5;
-                const n = days.length;
-                const weights = days.map((d) => d.weight);
+            // ---- The card's three blocks ---------------------------------------
+
+            // The number the whole widget is about, and how far it has moved
+            // across the selected window.
+            function heroHtml(slice, target, unit) {
+                const n = slice.length;
+                const first = slice[0].weight;
+                const last = slice[n - 1].weight;
+
+                let pill;
+                if (n >= 2) {
+                    const change = Math.round((last - first) * 10) / 10;
+                    // A change is "good" (accent) when it shrinks the gap to
+                    // the target; with no target there is no direction to judge
+                    // it against, so the pill stays neutral.
+                    let tone = " mute";
+                    if (target != null) {
+                        tone =
+                            Math.abs(last - target) < Math.abs(first - target)
+                                ? ""
+                                : " over";
+                    }
+                    const arrow =
+                        change === 0
+                            ? ""
+                            : icon(change < 0 ? "down" : "up", 11);
+                    // Dated from the first weigh-in IN the window, not from the
+                    // window's own length: two readings a day apart inside a
+                    // 30-day range are a one-day change, and "−1.0 kg in 30 d"
+                    // claims a month-long trend that was never measured.
+                    const text = tpl(T.weightTrends.sinceDate, {
+                        change: `${signed(change)} ${unit}`,
+                        date: shortDate(slice[0].date),
+                    });
+                    pill = `<span class="hsub${tone}">${arrow}${esc(text)}</span>`;
+                } else {
+                    pill = `<span class="hsub mute">${esc(T.weightTrends.needTwo)}</span>`;
+                }
+
+                return `
+          <div class="hero c-acc flat">
+            <span class="hmain">
+              <span class="hval">${w1(last)}<span class="u">${esc(unit)}</span></span>
+              <span class="hlab">${esc(T.weightTrends.latest)}</span>
+            </span>
+            ${pill}
+          </div>`;
+            }
+
+            // Weight over time. Y is scaled to the DATA range (widened to
+            // include the target) rather than to zero, because the question is
+            // "which way is this going", not "how far from nothing is it" — on
+            // a zero-based axis a 3 kg move across a month is a flat line.
+            function chartHtml(slice, target, unit) {
+                const n = slice.length;
+                const weights = slice.map((d) => d.weight);
                 let lo = Math.min(...weights);
                 let hi = Math.max(...weights);
                 if (target != null) {
                     lo = Math.min(lo, target);
                     hi = Math.max(hi, target);
                 }
+                // One weigh-in, or a run of identical ones, has no range at
+                // all: give it a ±1 unit window so the point lands mid-box
+                // instead of dividing by zero.
                 if (hi === lo) {
                     hi = lo + 1;
                     lo = lo - 1;
@@ -220,105 +243,68 @@
                 const pad = (hi - lo) * 0.18;
                 const yMin = lo - pad;
                 const yMax = hi + pad;
-                const plotW = W - padL - padR;
-                const plotH = H - padT - padB;
-                const base = padT + plotH;
-                const x = (i) =>
-                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
-                const y = (v) =>
-                    padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
-                const pts = weights.map((v, i) => [x(i), y(v)]);
+                const pts = chPoints(weights, yMin, yMax);
+                const dot = pts[n - 1];
 
+                // A line and a dot, and deliberately NO chArea() fill: yMin
+                // above is a padded minimum, not zero, so the space under the
+                // line is not a quantity anyone weighs. The zero-based charts
+                // (calories, the nutrient series) do fill — see .carea in
+                // chart.css for the whole argument.
+                //
+                // Drawn only from two readings up — a line needs somewhere to
+                // go — but the dot is drawn always, so a single weigh-in
+                // renders as a point rather than as an empty box.
                 const line =
-                    n >= 2
-                        ? pts
-                              .map(
-                                  (p, i) =>
-                                      `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                              )
-                              .join(" ")
+                    n >= 2 ? `<path class="cline" d="${chPath(pts)}"/>` : "";
+                const ty =
+                    target != null ? chY(target, yMin, yMax).toFixed(1) : null;
+                const goal =
+                    ty != null
+                        ? `<line class="cgoal" x1="${CH_PL}" y1="${ty}" x2="${CH_W - CH_PR}" y2="${ty}"/>`
                         : "";
-                const area =
-                    n >= 2
-                        ? `M${pts[0][0].toFixed(1)} ${base} ` +
-                          pts
-                              .map(
-                                  (p) =>
-                                      `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                              )
-                              .join(" ") +
-                          ` L${pts[n - 1][0].toFixed(1)} ${base} Z`
-                        : "";
-                const targetLine =
-                    target != null
-                        ? `<line class="goalline" x1="${padL}" y1="${y(target).toFixed(1)}" x2="${W - padR}" y2="${y(target).toFixed(1)}"/>`
-                        : "";
-                const dots = pts
-                    .map(
-                        (p) =>
-                            `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--accent)"/>`,
-                    )
-                    .join("");
-
                 const label = tpl(T.weightTrends.chartAriaLabel, {
-                    from: shortDay(days[0].date),
-                    to: shortDay(days[n - 1].date),
+                    from: shortDate(slice[0].date),
+                    to: shortDate(slice[n - 1].date),
                     latest: `${w1(weights[n - 1])} ${unit}`,
                 });
 
                 return `
-          <svg class="wchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
-            ${targetLine}
-            ${area ? `<path d="${area}" fill="var(--accent)" opacity="0.16"/>` : ""}
-            ${line ? `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
-            ${dots}
-          </svg>`;
-            }
-
-            // The left-hand block of the chart row: the number the whole widget
-            // is about, and how far it has moved over the selected window.
-            function latestBlock(slice, target, unit) {
-                const n = slice.length;
-                const first = slice[0].weight;
-                const last = slice[n - 1].weight;
-
-                let delta = "";
-                if (n >= 2) {
-                    const change = Math.round((last - first) * 10) / 10;
-                    // A change is "good" (accent) when it shrinks the gap to
-                    // the target; with no target there is no direction to
-                    // judge it against, so it stays neutral.
-                    let color = "var(--text-dim)";
-                    if (target != null) {
-                        const closer =
-                            Math.abs(last - target) < Math.abs(first - target);
-                        color = closer ? "var(--accent)" : "var(--over)";
-                    }
-                    // Dated from the first weigh-in IN the window, not from
-                    // the window's own length: two readings a day apart
-                    // inside a 30-day range are a one-day change, and
-                    // "−1.0 kg in 30 d" claims a month-long trend that was
-                    // never measured.
-                    delta = `<div class="wdelta" style="color:${color}">${tpl(T.weightTrends.sinceDate, { change: `${signed(change)} ${esc(unit)}`, date: shortDay(slice[0].date) })}</div>`;
-                } else {
-                    delta = `<div class="wdelta" style="color:var(--text-dim)">${esc(T.weightTrends.needTwo)}</div>`;
-                }
-
-                return `
-          <div class="wnow">
-            <div class="wlabel">${esc(T.weightTrends.latest)}</div>
-            <div class="wval">${w1(last)}<span class="wunit">${esc(unit)}</span></div>
-            ${delta}
+          <div class="cwrap c-acc">
+            <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">
+              ${goal}${line}
+              <circle class="chalo" cx="${dot[0].toFixed(1)}" cy="${dot[1].toFixed(1)}" r="5"/>
+              <circle class="cdot" cx="${dot[0].toFixed(1)}" cy="${dot[1].toFixed(1)}" r="3"/>
+            </svg>
           </div>`;
             }
 
-            function footer(slice, target, unit) {
+            // An unbreakable figure: escaped text in a .nb span. Everything a
+            // reader would misread if it broke mid-way — "75.0 kg",
+            // "13 Jun → 11 Jul", "15 Wiegungen" — goes through here, and
+            // nothing else does, so the translated sentence around it is still
+            // free to wrap. See the .nb comment in the style block.
+            function nb(text) {
+                return `<span class="nb">${esc(text)}</span>`;
+            }
+            // Fill a TRANSLATED template whose values are already HTML. The
+            // template is escaped first and the values are not — safe because a
+            // {placeholder} contains nothing escaping touches, and it is what
+            // lets an atom keep its .nb wrapper inside a sentence.
+            function tplHtml(template, values) {
+                return tpl(esc(template), values);
+            }
+
+            // How much data this is, and what it is aimed at.
+            function footHtml(slice, target, unit) {
                 const n = slice.length;
+                const from = shortDate(slice[0].date);
+                const to = shortDate(slice[n - 1].date);
                 // A single day is its own span — "11 Jul → 11 Jul" reads like
                 // a bug.
-                const from = shortDay(slice[0].date);
-                const to = shortDay(slice[n - 1].date);
-                const span = `${plural(T.weightTrends.weighIns, n)} · ${from === to ? from : `${from} → ${to}`}`;
+                const span = `${nb(plural(T.weightTrends.weighIns, n))} · ${nb(
+                    from === to ? from : `${from} → ${to}`,
+                )}`;
 
                 let right;
                 if (target != null) {
@@ -326,25 +312,27 @@
                         Math.round((slice[n - 1].weight - target) * 10) / 10;
                     const gap =
                         Math.abs(delta) < 0.05
-                            ? T.weightTrends.atTarget
-                            : tpl(
+                            ? esc(T.weightTrends.atTarget)
+                            : tplHtml(
                                   delta > 0
                                       ? T.weightTrends.toLose
                                       : T.weightTrends.toGain,
                                   {
-                                      amount: `${w1(Math.abs(delta))} ${esc(unit)}`,
+                                      amount: nb(
+                                          `${w1(Math.abs(delta))} ${unit}`,
+                                      ),
                                   },
                               );
-                    const targetVal = tpl(T.weightTrends.target, {
-                        value: `${w1(target)} ${unit}`,
+                    const targetVal = tplHtml(T.weightTrends.target, {
+                        value: nb(`${w1(target)} ${unit}`),
                     });
-                    right = `<b>${esc(targetVal)}</b> · ${gap}`;
+                    right = `<b>${targetVal}</b> · ${gap}`;
                 } else {
                     right = esc(T.weightTrends.noTarget);
                 }
 
                 return `
-          <div class="psec wfoot">
+          <div class="cfoot">
             <span>${span}</span>
             <span>${right}</span>
           </div>`;
@@ -370,14 +358,19 @@
             </div>`;
                     return;
                 }
+                // Only here, never in paint(): the range is the user's choice
+                // once they have made one, and re-reading default_range on
+                // every repaint would undo every tap of the toggle.
                 STATE.range = RANGES.includes(data.default_range)
                     ? data.default_range
                     : 30;
                 paint();
             }
 
-            function paint() {
-                const root = document.getElementById("root");
+            // Everything BELOW the header, derived from STATE.range. Split out
+            // of paint() so a range change can rewrite this alone and leave the
+            // header — and the seg button the user is standing on — in place.
+            function bodyHtml() {
                 const data = STATE.data;
                 const unit = data.unit || "kg";
                 const target = data.target ?? null;
@@ -385,47 +378,80 @@
                     .slice()
                     .sort((a, b) => (a.date < b.date ? -1 : 1));
                 const range = STATE.range;
+                // A DATE cutoff, not slice(-range): weigh-ins are sparse, so
+                // the last 7 entries can span a season. "Last 7 days" has to
+                // mean days.
                 const cutoff = shiftDate(
                     data.end_date || all[all.length - 1].date,
                     -(range - 1),
                 );
                 const slice = all.filter((d) => d.date >= cutoff);
-                const n = slice.length;
+
+                // A range the user selected that happens to hold no weigh-ins.
+                // Distinct from the widget-wide empty state, and the toggle
+                // stays on screen — widening it is the whole fix.
+                if (slice.length === 0) {
+                    return `<div class="cempty">${esc(tpl(T.weightTrends.rangeEmpty, { range }))}</div>`;
+                }
+                return `
+          ${heroHtml(slice, target, unit)}
+          <div class="cblock">
+            ${chartHtml(slice, target, unit)}
+            ${footHtml(slice, target, unit)}
+          </div>`;
+            }
+
+            function paint() {
+                const root = document.getElementById("root");
+                const range = STATE.range;
 
                 const seg = RANGES.map(
                     (r) =>
-                        `<button class="seg-btn${r === range ? " active" : ""}" data-n="${r}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}" aria-pressed="${r === range}">${r}</button>`,
+                        `<button type="button" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}">${r}</button>`,
                 ).join("");
 
-                const body =
-                    n === 0
-                        ? `<div class="cempty">${esc(tpl(T.weightTrends.rangeEmpty, { range }))}</div>`
-                        : `
-          <div class="wmain">
-            ${latestBlock(slice, target, unit)}
-            ${weightChart(slice, target, unit)}
-          </div>
-          ${footer(slice, target, unit)}`;
-
                 root.innerHTML = `
-          <div class="panel">
-            <div class="phead mid">
-              <div class="ptitle">${esc(T.weightTrends.title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${seg}</div>
-            </div>
-            ${body}
+          <div class="card c-acc">
+            <div class="glow"></div>
+            <header class="chead">
+              <h1 class="ctitle">${esc(T.weightTrends.title)}</h1>
+              <div class="seg" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${seg}</div>
+            </header>
+            <div id="wt-body">${bodyHtml()}</div>
           </div>`;
+            }
+
+            // A range change is an attribute flip plus a body repaint — NEVER a
+            // full paint(). Rewriting root.innerHTML from the toggle's own click
+            // handler destroyed the seg button that was being operated, so
+            // document.activeElement fell to <body> and a keyboard user was
+            // dumped to the top of the document on every range change (a11y
+            // audit, major). The seg buttons are toggle buttons: their pressed
+            // state is the only header state a range owns, and setAttribute
+            // moves it without touching the node the user is standing on.
+            function setRange(n) {
+                STATE.range = n;
+                const root = document.getElementById("root");
+                root.querySelectorAll("[data-range]").forEach((b) => {
+                    b.setAttribute(
+                        "aria-pressed",
+                        String(Number(b.dataset.range) === n),
+                    );
+                });
+                const body = document.getElementById("wt-body");
+                // No body element means the card was never painted by paint()
+                // (an empty-state render); fall back rather than silently
+                // dropping the range change.
+                if (body) body.innerHTML = bodyHtml();
+                else paint();
             }
 
             // Delegated on #root, which survives paint()'s innerHTML rewrites.
             document.getElementById("root").addEventListener("click", (e) => {
-                const btn = e.target.closest(".seg-btn");
+                const btn = e.target.closest("[data-range]");
                 if (!btn) return;
-                const n = Number(btn.dataset.n);
-                if (n && n !== STATE.range && STATE.data) {
-                    STATE.range = n;
-                    paint();
-                }
+                const n = Number(btn.dataset.range);
+                if (n && n !== STATE.range && STATE.data) setRange(n);
             });
 
             // ---- Rendering intake ----------------------------------------------

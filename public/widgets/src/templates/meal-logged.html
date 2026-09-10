@@ -9,12 +9,13 @@
   public/widgets/STYLE_GUIDE.md so it matches the other widgets.
 
   Shown after log_meal AND update_meal (both tools link this same widget and emit
-  the same structuredContent shape via buildMealProgress in src/mcp.ts): the day's
-  running totals vs the user's goals in one compact strip, with the meal just
-  logged naming itself on the header line. The `action` field ("logged"
-  or "updated") only changes the header wording. Per product decision, it renders
+  the same structuredContent shape via buildMealProgress in src/mcp.ts): one card
+  whose header names the meal just logged and the calories it added, and whose
+  body is the shared strip — the day's calorie hero, then the rails of nutrient
+  chips, each opening the meals behind it. The `action` field ("logged" or
+  "updated") only changes the header wording. Per product decision, it renders
   NOTHING when no nutrition goals are set (there is no target to show progress
-  against).
+  against); base.css's `.wrap:empty` is the other half of that contract.
 
   Data arrives as the `structuredContent` of the log_meal / update_meal tool
   result; the shared bridge (shared/bridge.js) reads it across host conventions
@@ -30,19 +31,19 @@
 
             /*@include shared/base.css@*/
 
-            /* No goals → nothing to show. Collapse the gutter so an empty
-               widget takes up as little of the host frame as possible. */
-            .wrap.tight:empty {
-                padding: 0;
-            }
+            /*@include shared/chip.css@*/
 
-            /*@include shared/ring.css@*/
-
-            /*@include shared/macros.css@*/
+            /* No local `.csub` rule. This card's subtitle is not context, it IS
+               the confirmation — the only place the widget says what was just
+               logged — and it needs two lines rather than one ellipsised one.
+               That clamp now lives in base.css's own `.csub`, because keeping
+               it here made the component-gallery specimen stop matching the
+               card it is the reference for (recheck, minor). Nothing to
+               override: edit base.css if the subtitle's shape has to change. */
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap" id="root"></div>
 
         <script>
             "use strict";
@@ -52,10 +53,13 @@
 
             /*@include shared/date.js@*/
 
+            /*@include shared/icon.js@*/
+
             /*@include shared/bridge.js@*/
 
             // ---- Sample data so the file renders on its own (browser preview) ----
             const SAMPLE = {
+                action: "logged",
                 date: "2026-07-11",
                 locale: "en",
                 logged_meal: {
@@ -68,10 +72,10 @@
                     fiber_g: 7.4,
                     sugar_g: 6.1,
                     // null = this user has alcohol tracking off, which is also
-                    // why the panel below shows no alcohol stat line.
+                    // why the strip below shows no alcohol chip.
                     alcohol_g: null,
                     // Caffeine is NOT gated on that opt-in — there is no
-                    // caffeine flag at all — so it shows in the same panel that
+                    // caffeine flag at all — so it shows in the same strip that
                     // hides alcohol. Its own suppression is the data: null on
                     // this salad, a figure on the coffee below.
                     caffeine_mg: null,
@@ -102,7 +106,7 @@
                     // Alcohol tracking OFF in this sample (the other widgets'
                     // samples have it on): null is the opt-in's "hide this
                     // entirely", distinct from a 0 that means an alcohol-free
-                    // day. No stat line renders.
+                    // day. No chip renders.
                     alcohol_g: null,
                     caffeine_mg: 165,
                     water_ml: 1600,
@@ -194,7 +198,11 @@
                 );
             }
 
-            /*@include shared/macros.js@*/
+            // `mealTypeLabel()` — the stored meal_type in the viewer's
+            // language — lives in shared/macros.js, because this card prints
+            // the same value twice: here on the header line and again on every
+            // drawer row. It was the ONE string left in English inside an
+            // otherwise fully translated card ("7月15日 · lunch · …").
 
             let __widgetApi = null;
 
@@ -202,7 +210,9 @@
                 const root = document.getElementById("root");
 
                 // Per product decision: with no goals there is no target to show
-                // progress against, so the widget shows nothing at all.
+                // progress against, so the widget shows nothing at all. Ahead of
+                // setLocale on purpose — there is no string to translate on this
+                // path, and the host collapses the frame to nothing.
                 if (!data || !data.has_goals || !data.goals) {
                     root.innerHTML = "";
                     return;
@@ -211,14 +221,14 @@
 
                 const totals = data.totals || {};
                 // update_meal (and log_meal, via a backdated logged_at) can
-                // show a day that is not the viewer's today, so the ring only
+                // show a day that is not the viewer's today, so the hero only
                 // claims "today" when data.date actually is that day (#114);
                 // otherwise it names the day, which is also why that day is
-                // now on the header line below.
+                // on the header line below.
                 const calLabel = isToday(data.date)
                     ? T.macros.caloriesToday
                     : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
-                const panel = macroPanel(
+                const strip = macroPanel(
                     totals,
                     data.goals,
                     undefined,
@@ -226,7 +236,8 @@
                     // `drink_unit` is null for a user who does not track
                     // alcohol, which is also the case in which no alcohol
                     // figure reaches the strip; macroCtxOf falls back to the
-                    // server's own default of "us".
+                    // server's own default of "us". No chart here, so no
+                    // chartKeys: a chip opens meals and nothing else.
                     { drinkUnit: data.drink_unit, calLabel },
                 );
 
@@ -236,11 +247,22 @@
                 const meal = data.logged_meal;
                 const bits = [];
                 if (data.date) bits.push(esc(shortDate(data.date)));
+                // Meal type BEFORE the description, not after it. The
+                // description is the only unbounded string on this line, so
+                // anything behind it is what a clamp eats first — a 150-char
+                // meal name used to take the trailing "· lunch" with it and
+                // the card lost the one word that classified the entry
+                // (layout audit, minor). Both are still shown in full
+                // whenever they fit; only the ordering changed.
                 if (meal && meal.description) {
+                    if (meal.meal_type)
+                        bits.push(esc(mealTypeLabel(meal.meal_type)));
                     bits.push(esc(meal.description));
-                    if (meal.meal_type) bits.push(esc(meal.meal_type));
                 }
                 const sub = bits.join(" · ");
+                // The one header meta that is a value rather than context, so
+                // it takes .kcal — the calories this meal added, in the calorie
+                // colour, beside the day total the hero shows.
                 const added =
                     meal && meal.calories != null
                         ? tpl(T.mealLogged.addedKcal, {
@@ -256,13 +278,14 @@
                         : T.mealLogged.titleLogged;
 
                 root.innerHTML = `
-          <div class="panel">
-            <div class="phead">
-              <div class="ptitle">${title}</div>
-              ${sub ? `<div class="psub">${sub}</div>` : ""}
-              ${added ? `<div class="pmeta kcal">${added}</div>` : ""}
-            </div>
-            ${panel}
+          <div class="card c-cal">
+            <div class="glow"></div>
+            <header class="chead">
+              <h1 class="ctitle">${esc(title)}</h1>
+              ${added ? `<span class="cmeta kcal">${esc(added)}</span>` : ""}
+              ${sub ? `<span class="csub">${sub}</span>` : ""}
+            </header>
+            ${strip}
           </div>`;
             }
 
@@ -270,6 +293,9 @@
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
                 // The structuredContent object itself, or a wrapper around it.
+                // "has_goals" is sniffed as well as the totals: a payload that
+                // says has_goals:false carries no totals at all and still has
+                // to be recognised, or the widget sits on its loading state.
                 if (
                     payload.totals ||
                     payload.logged_meal ||
@@ -280,6 +306,12 @@
                 return null;
             }
 
+            /*@include shared/macros.js@*/
+
+            // Last, after every partial above has finished evaluating: with no
+            // host, initWidget paints config.sample synchronously, and render()
+            // reaches straight into macros.js's MACROS — a const, so calling it
+            // any earlier is a TDZ ReferenceError rather than a hoisted call.
             initWidget({
                 name: "meal-logged-widget",
                 // No loading state: the widget may legitimately end up empty
