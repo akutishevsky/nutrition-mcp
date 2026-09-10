@@ -424,6 +424,95 @@ the widget put something of its own above.
 `labelsShort` translation matrix; height is bought back by shrinking the chip
 (30px tall, 12px type), never by hiding data.
 
+### Tiers — the strip in three levels (`opts.tiers`)
+
+One rail of identical tiles gives every metric after the hero the same weight, so
+the card reads as one big number and then a flat plain of eight equal ones: sugar
+shouts as loudly as protein, and water — not food, logged through a different
+tool, with no meal behind it — sits between fat and sugar as though it were a
+third macro. `macroPanel(…, { tiers: true })` deals the **same tiles** into the
+groups `role` has always named, and `chip.css` gives each group its own scale and
+shape:
+
+| rail       | role    | form                                                                      |
+| ---------- | ------- | ------------------------------------------------------------------------- |
+| `.r-macro` | `macro` | protein / carbs / fat — **three columns at every width**, 16px figures    |
+| `.r-limit` | `limit` | the four ceilings, **behind a hairline**, two up / four up ≥460px, 12.5px |
+| `.r-water` | `bar`   | water alone, **last**, as a full-width bar, one line, ~30px               |
+
+The levels are made of **size, proximity and shape**, and the ladder that does the
+work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
+
+- **Size is chosen by the narrowest column, not the widest.** Three columns inside
+  a 320px card are 95px; take out the border, the insets, the centred chevron and
+  its gap and the figure gets ~61, while `"148/160 g"` needs 65. Three macros, a
+  figure printed against its goal, and a chevron centred on the tile do not all
+  fit at that width. `@media (max-width: 379px)` gives a little of all three —
+  6px insets, a 3px gap to the chevron, a 4px gutter between tiles, a 15px figure
+  — rather than all of one, which is what keeps any single one of them from
+  breaking. **A tile may never ellipsise a figure**: a truncated number still
+  reads as a number.
+- **Fit to a margin, not to the pixel.** The tail is ~55% of that 65px and is
+  already at the type scale's 10px floor, so shrinking the figure alone barely
+  moves it — which is why the insets shrink too. What matters is the slack:
+  `tabular-nums` and a macro unit that is `"g"` in every locale make the worst
+  case deterministic _within one font_, but `--font` is a **system stack**, and
+  Segoe UI Variable and Roboto carry wider tabular advances than the SF Pro these
+  numbers were measured on. A layout that fits to the pixel on a Mac clips
+  silently on Windows, in the one run that may never be cut. Measured slack at
+  320px is **9.5%**.
+- **Proximity does what a heading would**, and costs no line of copy and no
+  translation. Macros sit 10px under the hero, so the hero and the split it is
+  made of read as one block; the limits are pushed off with 12px and a rule. That rule is a `::before` inset by 2px, **not** a `border-top`: `.rail`'s
+  `margin: -2px` has pushed the border box past the card's content on each side,
+  so a border would draw a hairline wider than everything it separates.
+- **Water is not on the ladder, so it goes under it.** It is not food, no meal
+  carries it, it is logged through a different tool, and it is the only metric on
+  the strip that never opens the drawer — ranking it among the nutrients puts it
+  on a scale it is not standing on. Last, then, and shaped differently: nothing
+  else on the strip is a bar, so it is legible as a different _kind_ of thing
+  before a word of it is read, and its wash — the same left-to-right ramp every
+  tile carries — becomes a glass filling across the whole card instead of a
+  swatch. 8px above it rather than the levels' 4-6px: it opens a block rather
+  than closing one.
+- **A second register: the fill.** `.r-limit` sets `--wash-scale: 0.62`, so the
+  whole group paints at 62% of its tuned strength. Size alone left level 3 close
+  to level 2 on a narrow card, where its columns are also _wider_ (two up against
+  three) — the tier that should recede was holding the most area. **Scaled, never
+  redeclared**: a plain `--wash-mix` on the group would throw away the per-hue
+  tuning (§3) and put the nine series back at a 2.4× ΔL\* spread inside the one
+  place they sit side by side. Quieting a wash only adds contrast headroom, so
+  every measured ink floor still holds.
+- **A breach is never quiet.** `.r-limit .chip.over` takes `--wash-scale` back to
+  1, so anything past its ceiling promotes itself straight out of the level it is
+  sitting in. That is the whole point of ranking these last: a metric that is fine
+  may be read last; one that is not, may not. The old layout kept the same rule by
+  physically hoisting a breached limit onto the visible rail — here the tile stays
+  where its role puts it and gains the weight instead.
+- **What the levels are NOT made of: the border.** Borderless-and-recessed is
+  already this system's mark for `.chip.static` — "data, not a control" — so
+  quieting level 3 by taking its pill away would tell a user that four tappable
+  metrics cannot be tapped. Every level keeps the species language it had; only
+  its scale changes.
+- **The chevron stays vertically centred**, on every tile at every level — §3's
+  base rule (`grid-column: 2; grid-row: 1 / -1; align-self: center`), untouched.
+  It was briefly pinned to the label's row here to hand the figure the chevron's
+  column back, and that was the wrong side of the trade: it is one affordance,
+  and a control sitting top-right on three tiles and mid-right on the four under
+  them reads as two kinds of tile for a reason that is really just column
+  arithmetic. The width it costs is bought out of the insets instead (above).
+  **Both tiers take symmetric vertical padding** for the same reason: the chevron
+  centres in a grid area spanning both rows, so the flat rail's extra bottom
+  pixel — an optical correction under a figure with no descenders — puts it half
+  a pixel high, which is a whole device pixel at 2x on the one element whose job
+  is to look aligned.
+
+**It is a flag, and it is temporary.** Four widgets share this strip and they are
+being moved one at a time — `nutrition-summary` is the pilot; the others still
+render the flat rail, byte-for-byte as before, because `railOf("")` emits
+`<div class="rail">` with no modifier at all. Delete `opts.tiers` (and the `if` in
+`macroPanel`) once every caller passes it.
+
 ### `.chip` — six species
 
 A pill with a 1px border on a `--panel` fill — the site's universal "control" shape

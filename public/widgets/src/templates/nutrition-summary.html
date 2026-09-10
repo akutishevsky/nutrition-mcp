@@ -594,6 +594,16 @@
                     undefined,
                     data.meals,
                     {
+                        // THREE VISUAL LEVELS instead of one flat rail of
+                        // eight identical tiles: the energy split (protein /
+                        // carbs / fat) three-up under the hero, water as a
+                        // full-width bar of its own because it is not food and
+                        // no meal carries it, and the four ceilings last,
+                        // behind a hairline and a size down. See "the tiers"
+                        // in shared/chip.css for what each level is made of.
+                        // Opt-in while the other widgets are still on the flat
+                        // rail — this one is the pilot.
+                        tiers: true,
                         // "us" | "uk" for a user who tracks alcohol, null for
                         // one who does not — and null is also the case in which
                         // no alcohol figure reaches the strip at all.

@@ -877,6 +877,19 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // and `onSeries(key, opened)` is what re-strokes it. A template that
         // forgets to pass them gets a strip that discloses meals and nothing
         // else, instead of a silent no-op — and a test can hand in a spy.
+        // VISUAL LEVELS, opt-in. The strip's default is one flat rail of
+        // identical tiles: every metric after the hero carries the same weight,
+        // so sugar reads as loudly as protein and water — which is not food and
+        // has no meal behind it — sits between fat and sugar as if it were one.
+        // With `tiers` the same tiles are dealt into the three groups the
+        // `role` field has always described, and chip.css gives each group its
+        // own size and shape (see "the tiers" there).
+        //
+        // A FLAG AND NOT THE DEFAULT, for now: four widgets share this strip
+        // and they are being moved one at a time, so the untiered path below is
+        // still the one the other three render. Delete the flag — and the
+        // `if` in macroPanel — once every caller passes it.
+        tiers: !!(opts && opts.tiers),
         chartKeys:
             opts && Array.isArray(opts.chartKeys) ? opts.chartKeys.slice() : [],
         onSeries:
@@ -895,7 +908,7 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
 // the limits included, not just calories and the three macros.
 //
 // `opts` is optional: { drinkUnit: "us" | "uk", calLabel: string,
-// divided: boolean, chartKeys: string[],
+// divided: boolean, tiers: boolean, chartKeys: string[],
 // onSeries: (key, opened) => void }.
 function macroPanel(vals, goal, wording, meals, opts) {
     const ctx = macroCtxOf(vals, goal, wording, meals, opts);
@@ -961,7 +974,45 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // a nutrient they want to see, and "Alcohol · Caffeine · Fiber" behind a
     // chevron reads as the card hiding its own data. The tile grid pays the
     // height back instead — 8 tiles is a whole rectangle at 2 or 4 columns.
-    const rail = macros.concat(waters, limits).map(chipFor).join("");
+    //
+    // ...but every one of those tiles is the same tile, so the card is a hero
+    // and then a flat plain. `ctx.tiers` deals the SAME tiles into the groups
+    // `role` already names, and chip.css sizes and shapes each group:
+    //
+    //   r-macro  protein / carbs / fat — the energy split, three up, directly
+    //            under the hero and the biggest figures after it
+    //   r-limit  the four judged against a ceiling, under a hairline, denser
+    //            and a size down — read after the macros because they are the
+    //            level below them
+    //   r-water  water alone, LAST, and as a full-width bar rather than a
+    //            tile. It is not on the levels at all: it is not food, no meal
+    //            carries it, it is logged through a different tool and it is
+    //            the only metric that never opens the drawer. Ranking it
+    //            anywhere among the nutrients puts it on a ladder it is not
+    //            standing on — so it goes under all of them, where the bar
+    //            shape reads as the card's own closing line rather than as a
+    //            fourth macro or a fifth limit.
+    //
+    // `--i` keeps counting ACROSS the groups rather than restarting in each,
+    // so the entrance still deals left-to-right down the whole strip instead
+    // of three rows starting at once.
+    let i0 = 0;
+    const railOf = (cls, items) => {
+        if (!items.length) return "";
+        const html = items.map((m, j) => chipFor(m, i0 + j)).join("");
+        i0 += items.length;
+        return `<div class="rail${cls ? ` ${cls}` : ""}">${html}</div>`;
+    };
+    // The untiered strip emits `<div class="rail">` with no modifier at all —
+    // exactly the markup it always did, so a widget that has not been moved
+    // over renders byte-for-byte what it rendered before.
+    const tieredRails = ctx.tiers
+        ? [railOf("r-macro", macros), railOf("r-limit", limits)]
+        : null;
+    // Built here rather than inside the array above so the stagger index it
+    // takes is the LAST one — `--i` counts in reading order, and water reads
+    // last (see the drawer note below for why it is not emitted last).
+    const water = ctx.tiers ? railOf("r-water", waters) : "";
 
     // The breakdown renders in here on tap; hidden until then.
     //
@@ -978,11 +1029,22 @@ function macroPanel(vals, goal, wording, meals, opts) {
     const drawer = discloses
         ? `<div class="drawer" id="${MACRO_DRAWER_ID}" tabindex="-1" hidden></div>`
         : "";
+    // THE DRAWER GOES ABOVE THE WATER ROW, not after every rail. Water is the
+    // one metric that can never open it — no meal carries water_ml — so every
+    // tile the drawer can belong to is above it, and putting the breakdown last
+    // detached it from its own trigger by the width of a bar. It also cost
+    // water the position that is now its whole identity: tapping Sugar pushed
+    // the card's closing line into the middle of the card.
+    //
+    // The untiered strip is unchanged: there, water is a tile on the one rail
+    // and the drawer really is under everything.
+    const body = tieredRails
+        ? tieredRails.join("") + drawer + water
+        : railOf("", macros.concat(waters, limits)) + drawer;
     return `
       <div class="strip${ctx.divided ? " sec" : ""}"${interactive ? " data-macro-panel" : ""}>
         ${focusPanel(cal, ctx)}
-        ${rail ? `<div class="rail">${rail}</div>` : ""}
-        ${drawer}
+        ${body}
         ${foot}
       </div>`;
 }
