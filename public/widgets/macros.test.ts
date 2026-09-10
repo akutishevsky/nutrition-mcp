@@ -19,7 +19,13 @@ function fmt(n: number, decimals?: number) {
 const esc = (s: unknown) => String(s);
 
 type Bits = { goalLine: string; over: boolean; pct: number | null };
-type Macro = { key: string; direction?: string; role?: string; color?: string };
+type Macro = {
+    key: string;
+    direction?: string;
+    role?: string;
+    color?: string;
+    glyph?: string;
+};
 type Vals = Record<string, number | null>;
 const macrosApi = await (async () => {
     // shared/i18n.js, then shared/icon.js, then shared/macros.js — exactly the
@@ -45,7 +51,7 @@ const macrosApi = await (async () => {
         "fmt",
         "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${iconSrc}\n${dateSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, macroDetailBody, focusInner, focusOver, macroDecimal, setLocale };`,
+        `${i18nSrc}\n${iconSrc}\n${dateSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, GLYPHS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, macroDetailBody, focusInner, focusOver, macroDecimal, setLocale };`,
     );
     // "de" is wired to the English dictionary deliberately: the locale test
     // below pins that FIGURES follow the widget's locale, not that any
@@ -61,12 +67,17 @@ const macrosApi = await (async () => {
             wording?: { under?: string; over?: string },
         ) => Bits;
         MACROS: Macro[];
+        GLYPHS: Record<string, { d: string; evenodd?: boolean }>;
         macroPanel: (
             vals: Vals,
             goal?: Vals | null,
             wording?: { under?: string; over?: string },
             meals?: unknown[],
-            opts?: { drinkUnit?: string; chartKeys?: string[] },
+            opts?: {
+                drinkUnit?: string;
+                chartKeys?: string[];
+                tiers?: boolean;
+            },
         ) => string;
         macroLimit: (m: Macro, ctx: unknown, interactive?: boolean) => string;
         macroCtxOf: (
@@ -717,6 +728,36 @@ test("fiber and sugar earn a cell with data or a goal; alcohol's 0 always shows"
 // The payload is millilitres because that is what a glass is logged in; a
 // day's intake is read in litres — in the figure, and (this is the part that
 // regressed) in every other rendering of the same number.
+// A GLYPH IS THE TILE'S MARK, and the dot is what a widget gets until it is
+// moved over. Both branches are pinned because the fallback is the half that
+// nothing else would catch: every tiered render would look right while the
+// three widgets still on the flat rail quietly lost their dots.
+//
+// The drawing is named by the MACROS entry ("drumstick"), never by the
+// emitter — the same indirection as `color: "c-pro"` — so this asserts the
+// wiring, not the shape.
+test("a tiered tile wears its glyph; an untiered one keeps the dot", () => {
+    const tiered = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+        tiers: true,
+    });
+    expect(tiered).toContain('class="gi"');
+    expect(tiered).not.toContain('<span class="dot"></span>');
+
+    const flat = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS);
+    expect(flat).toContain('<span class="dot"></span>');
+    expect(flat).not.toContain('class="gi"');
+});
+
+// Every metric the strip can render has a drawing, so no tile falls back to a
+// dot on a card where its neighbours are glyphs — the one case that would look
+// like a bug rather than like a widget that has not been migrated.
+test("every MACROS entry names a glyph, and every glyph exists", () => {
+    for (const m of macrosApi.MACROS) {
+        expect(m.glyph).toBeTruthy();
+        expect(macrosApi.GLYPHS[m.glyph!]).toBeTruthy();
+    }
+});
+
 test("water reads in litres, and an untracked day has no line at all", () => {
     const html = macrosApi.macroPanel(VALS, GOALS);
     // Static chip, so the goal rides the figure — and it is in litres too.

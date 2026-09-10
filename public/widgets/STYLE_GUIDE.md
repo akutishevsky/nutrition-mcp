@@ -998,6 +998,53 @@ warning triangle are one drawing at two sizes.
 | `file`  | the drop zone                                                |
 | `point` | the pointing hand on the `.chip.ghost` hint                  |
 
+### `GLYPHS` — the nutrient set, and it is **filled**
+
+`glyph(name, size)` is the second table in the same file, drawn on the same
+16-unit box but with `fill: currentColor` and no stroke (`.gi`, base.css). It
+replaces the colour dot on every tile of a tiered strip, and the `.c-*` role
+class on an ancestor colours it exactly as it coloured the dot.
+
+| glyph       | metric   | what makes it legible at 13px        |
+| ----------- | -------- | ------------------------------------ |
+| `flame`     | calories | a side tongue, so it is not a drop   |
+| `drumstick` | protein  | a thin diagonal shaft                |
+| `bowl`      | carbs    | wide, flat-bottomed                  |
+| `avocado`   | fat      | a hole (`evenodd`) — reads as a ring |
+| `droplet`   | water    | owns the teardrop                    |
+| `cube`      | sugar    | the only square                      |
+| `glass`     | alcohol  | stem and foot                        |
+| `cup`       | caffeine | a handle (`evenodd`)                 |
+| `leaf`      | fiber    | a stem past the blade                |
+
+**Filled, not stroked, and that is measured.** A series token is weak as ink in
+light mode — `--cal` is 2.06:1 against the tile, `--sug` 1.98, `--car` 2.54 — so
+a 1.75px stroke in one of them at 13px is barely there. A filled silhouette
+carries the ink density of the 6px dot it replaces. It also keeps the two
+registers apart: `ICONS` is UI affordance drawn in line, `GLYPHS` is content
+drawn as a shape.
+
+**Draw for 13px, not for 48.** The first pass gave calories a flame, water a
+droplet and fiber a leaf, and at 13px all three collapsed into the same
+teardrop; protein-as-drumstick read as a lollipop and carbs-as-bread-slice as a
+rounded blob. Only a silhouette with a **hole, a notch or a protrusion** stays
+legible that small — hence the table's third column, which is the actual design
+constraint. Preview a candidate at 13px beside its label before believing it.
+
+**The metric names a drawing, never the reverse.** `MACROS[].glyph` is
+`"drumstick"`, not `"protein"` — the same indirection as `color: "c-pro"` — so
+the shape table and the metric table stay independent and no emitter learns
+which shape belongs to which nutrient. `macroMark()` is the one decision point,
+called by both the tile and the drawer head: they are on screen together
+whenever a breakdown is open, so a card that drew one as a shape and the other
+as a dot would show one metric two ways at once. A metric with no glyph, or a
+widget not yet tiered, falls back to `.dot` unchanged.
+
+**They are decorative.** Every tile names its metric in words beside the glyph,
+so this adds a **shape channel** to a card that otherwise separates its metrics
+by hue alone — the accessibility win — without becoming information that has to
+carry 3:1 on its own.
+
 **Not a sprite, and not emoji for everything.** A `<symbol>` block would have to
 live outside `#root` (every `render()` replaces `#root.innerHTML` wholesale), so
 templates would own DOM in two places instead of one, and `<use href="#x">`

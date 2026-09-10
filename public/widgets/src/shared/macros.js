@@ -61,9 +61,17 @@
 //          reading and prints as one.
 //
 // `color` is a ROLE CLASS, not a colour: it sets --c (see base.css), which the
-// dot, the underbar, the gauge arc and the drawer head all read. No emitter
+// glyph, the wash, the gauge arc and the drawer head all read. No emitter
 // here ever writes a colour, so adding a nutrient is one MACROS entry, one
 // token and one role class.
+//
+// `glyph` names a DRAWING in shared/icon.js, not a metric — "drumstick", not
+// "protein" — for the same reason `color` names a class and not a hex: the
+// table of shapes and the table of metrics stay independent, and no emitter
+// here ever learns which shape belongs to which nutrient. It replaces the
+// colour dot on every tile, which gave the card a second identity channel
+// besides hue; a metric with no glyph falls back to the dot, so an entry added
+// without a drawing degrades rather than breaks.
 //
 // `direction` marks a target you stay UNDER rather than reach (mirrors
 // GoalDirection in src/mcp.ts): exceeding a ceiling is flagged with --over,
@@ -83,6 +91,7 @@ const MACROS = [
         label: "Calories",
         unit: "kcal",
         color: "c-cal",
+        glyph: "flame",
         decimals: 0,
         role: "cal",
     },
@@ -91,6 +100,7 @@ const MACROS = [
         label: "Protein",
         unit: "g",
         color: "c-pro",
+        glyph: "drumstick",
         decimals: 0,
         role: "macro",
     },
@@ -99,6 +109,7 @@ const MACROS = [
         label: "Carbs",
         unit: "g",
         color: "c-car",
+        glyph: "bowl",
         decimals: 0,
         role: "macro",
     },
@@ -107,6 +118,7 @@ const MACROS = [
         label: "Fat",
         unit: "g",
         color: "c-fat",
+        glyph: "avocado",
         decimals: 0,
         role: "macro",
     },
@@ -117,6 +129,7 @@ const MACROS = [
         label: "Sugar",
         unit: "g",
         color: "c-sug",
+        glyph: "cube",
         decimals: 1,
         role: "limit",
         direction: "ceiling",
@@ -127,6 +140,7 @@ const MACROS = [
         label: "Alcohol",
         unit: "g",
         color: "c-alc",
+        glyph: "glass",
         decimals: 1,
         role: "limit",
         direction: "ceiling",
@@ -141,6 +155,7 @@ const MACROS = [
         label: "Caffeine",
         unit: "mg",
         color: "c-caf",
+        glyph: "cup",
         // Whole milligrams. Every label and guideline is quoted that way (EFSA:
         // 400 mg/day), a tenth of a milligram is below anything anyone can act
         // on, and matching the model-facing text keeps "95 mg" one number in
@@ -156,6 +171,7 @@ const MACROS = [
         label: "Fiber",
         unit: "g",
         color: "c-fib",
+        glyph: "leaf",
         decimals: 1,
         role: "limit",
         signal: "data",
@@ -185,6 +201,7 @@ const MACROS = [
         color: "c-wat",
         decimals: 0,
         role: "bar",
+        glyph: "droplet",
         // Same signal as fiber and sugar, and for the same reason: water_ml is
         // a plain number in the payload, so a 0 is indistinguishable from a day
         // nobody logged any. The gate is therefore the same one — a value, OR a
@@ -748,7 +765,20 @@ function chipValue(m, b) {
     return `${val}<span class="u">/${macroNum(m, b.target)} ${unit}</span>`;
 }
 
-// One chip: the colour dot, the metric's name, its figure, and the progress
+// The metric's mark: its glyph where the strip has one and the entry names a
+// drawing, the plain colour dot otherwise. ONE decision point, called by both
+// the tile and the drawer head — they sit on screen together whenever a
+// breakdown is open, so a card that drew one as a shape and the other as a dot
+// would be showing the same metric two ways at once. The `.dot` class is kept
+// on the fallback exactly as it was, so an untiered widget's markup is
+// unchanged.
+function macroMark(m, ctx, size) {
+    return ctx && ctx.tiers && m.glyph
+        ? glyph(m.glyph, size || 13)
+        : '<span class="dot"></span>';
+}
+
+// One chip: the metric's mark, its name, its figure, and the progress
 // underbar.
 //
 // A real <button> when it is a control and a <span> when it is not, rather than
@@ -785,7 +815,7 @@ function chipMarkup(m, b, opts) {
     // size worth reading. `--p` is the progress the tile's own background
     // fills to — see chip.css. It is a percentage string so CSS can feather
     // the leading edge against it without any further arithmetic.
-    return `<${tag} class="chip${on ? "" : " static"}${over ? " over" : ""} ${m.color}"${type}${on ? tapAttrs(m, b, ctx) : ""} style="--p:${(b.frac * 100).toFixed(1)}%;--i:${opts.i || 0}"><span class="ktop"><span class="dot"></span><span class="k">${esc(macroLabel(m))}</span></span><span class="v">${chipValue(m, b)}</span>${chev}<span class="dcap">${esc(macroCaption(m, b, ctx))}</span></${tag}>`;
+    return `<${tag} class="chip${on ? "" : " static"}${over ? " over" : ""} ${m.color}"${type}${on ? tapAttrs(m, b, ctx) : ""} style="--p:${(b.frac * 100).toFixed(1)}%;--i:${opts.i || 0}"><span class="ktop">${macroMark(m, ctx)}<span class="k">${esc(macroLabel(m))}</span></span><span class="v">${chipValue(m, b)}</span>${chev}<span class="dcap">${esc(macroCaption(m, b, ctx))}</span></${tag}>`;
 }
 
 // Protein / carbs / fat — and water, which used to need an emitter of its own
@@ -1170,7 +1200,7 @@ function macroDetailBody(m, ctx) {
     // metric kept its series colour here however the head was flagged.
     return `
       <div class="dhead ${m.color}${flag}">
-        <span class="dot"></span>
+        ${macroMark(m, ctx, 14)}
         <b class="dname">${esc(macroLabel(m))}</b>
         <span class="dcap${flag}">${esc(macroCaption(m, b, ctx))}</span>
         <button class="dx" type="button" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">${icon("x", 12)}</button>

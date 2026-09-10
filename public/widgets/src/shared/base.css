@@ -325,6 +325,20 @@ body {
     stroke-width: 1.75; /* optical correction below 13px */
 }
 
+/* The nutrient glyph — the second icon primitive, and the FILLED one. `.ic` is
+   UI affordance drawn in line; `.gi` is content drawn as a silhouette, because
+   at 13px a 1.75px stroke in a series token is barely ink (--sug measured
+   1.98:1 against the tile in light mode). It reads `currentColor` exactly as
+   `.ic` does, so the `.c-*` role class on an ancestor colours it with no rule
+   of its own — the same indirection that coloured the dot it replaces. */
+.gi {
+    display: block;
+    flex: none;
+    fill: currentColor;
+    stroke: none;
+    color: var(--c, var(--acc));
+}
+
 /* Nothing in this design is made visible BY an animation — the drawer's
    visibility is its `hidden` attribute and `rise` only decorates it — so a
    cancelled animation can never leave content invisible. The un-hide clause is

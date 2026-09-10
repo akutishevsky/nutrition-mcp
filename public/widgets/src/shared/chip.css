@@ -120,6 +120,28 @@
    tappable metrics cannot be tapped. Every level keeps the species language it
    had; only its scale changes. */
 
+/* THE GLYPH SITS IN THE DOT'S SLOT, and costs the label row ~7px. Measured at
+   320px before committing to it: the label column is 69px and "Protein" needs
+   43, so 13 + 5 + 43 = 61 still leaves 8px — and a label was already allowed to
+   ellipsise at the extreme, which is the one run on a tile that may. The figure
+   row is untouched, since the glyph is not on it. */
+.r-macro .chip .ktop,
+.r-limit .chip .ktop,
+.r-water .chip .ktop {
+    gap: 5px;
+}
+/* A shade smaller on the denser tier, in step with its 11px label — the whole
+   tile steps down together or it stops looking like one thing. */
+.r-limit .gi {
+    width: 12px;
+    height: 12px;
+}
+/* The drawer head sets its own 14px through macroMark(); it only needs the
+   baseline correction the dot had. */
+.dhead .gi {
+    align-self: center;
+}
+
 /* Level 2. Three metrics, three columns, at every width: they are one object —
    the split the calorie figure above is made of — and a 2+1 wrap would break
    that object across two rows and leave a hole beside fat. At 320px each
