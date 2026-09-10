@@ -317,11 +317,19 @@
     letter-spacing: 0;
     color: var(--ink);
 }
-/* A limit with a real recorded zero reads in words, not as a measurement. */
+/* A limit with a real recorded zero reads in words, not as a measurement.
+   --ink2, NOT --ink3: a limit recorded as a real 0 on every day still qualifies
+   as a chart series, so its tile is a pressable toggle whose SELECTED ground is
+   an 18% mix of the metric's colour — and --ink3 there measured 3.62-4.74:1
+   across the eight series, failing AA in seven of eight. That is the rule
+   `.chip .k` states twenty lines up ("--ink3 clears 4.5:1 only up to a 2%
+   wash"), and this was the one run that broke it. --ink2 clears on the tinted
+   ground while still reading a step quieter than a figure, which is the point:
+   it is a word, not a measurement. */
 .chip .v .none {
     font-size: 12px;
     font-weight: 600;
-    color: var(--ink3);
+    color: var(--ink2);
 }
 
 .chip > .ktop,
@@ -450,8 +458,12 @@
    changes is `color`, and every run on a tile sets its own). Hover deepens the
    breach's own hairline instead of trying to replace it with a neutral. Placed
    BEFORE the selected-and-over rule below, so an open tile still keeps its
-   full-strength --over ring under the pointer. */
-.chip.over:hover {
+   full-strength --over ring under the pointer.
+
+   `:not(.static)` because the non-interactive species must gain no pointer
+   response at all — this rule is a class stronger than the `.chip.static`
+   border reset that normally holds `.chip:hover` off. */
+.chip.over:not(.static):hover {
     border-color: color-mix(in srgb, var(--over) 70%, var(--line));
 }
 /* The figure hands its --over back. `--c` is reassigned above, so the wash under
@@ -497,16 +509,16 @@
     color: var(--ink);
     font-weight: 600;
 }
-
-/* THE HINT, as the rail's last chip: it sits inside the row it describes and
-   costs no extra line. Alone among chips it may wrap — the sentence is long,
-   it is translated into nine languages, and a nowrap pill would be this card's
-   only way to overflow 320px. */
-/* Spans the whole rail rather than taking a column: its sentence is three to
-   five times the width of a nutrient's name, so in one column it would either
-   ellipsise the instruction or set the column width for all eight chips. Full
-   width and centred, it reads as a caption under the grid instead of a pill
-   competing with it. */
+/* A BREACH IS STILL A BREACH WITHOUT THE PILL. `.chip.static`'s transparent
+   border is the species marker, and at equal specificity written later it also
+   erased `.chip.over`'s hairline — so a static over tile carried one cue fewer
+   than an interactive one for the identical state, which the species rule
+   ("borderless = data, not a control") never meant to say. Mixed toward
+   TRANSPARENT rather than `--line`, so it reads as a tinted edge on the
+   recessed ground instead of reintroducing the control pill. */
+.chip.static.over {
+    border-color: color-mix(in srgb, var(--over) 45%, transparent);
+}
 
 /* ---- the focus panel ----------------------------------------------------- */
 
@@ -742,7 +754,9 @@ button.focus:active {
     font-size: 14px;
     font-weight: 700;
     letter-spacing: -0.01em;
-    color: var(--ink3);
+    /* Same AA reasoning as `.chip .v .none` above — the panel mirrors a
+       selected tile, so its ground is tinted too (14% here). */
+    color: var(--ink2);
 }
 /* THE LABEL IS THE ONLY PART THAT MAY GIVE. This was one nowrap run with
    `text-overflow: ellipsis` on the whole line — and an ellipsis eats what comes
@@ -981,17 +995,6 @@ button.focus:active {
     transition:
         background-color 0.18s var(--ease-out),
         color 0.18s var(--ease-out);
-}
-/* One line, ellipsised, for a .more row whose label is a fixed short word
-   (goal-progress's "Weight", the drawer's overflow line): the VALUE beside it
-   is the row's payload and must keep its space. The limits row overrides this
-   — see below, and note the reason before shortening that override. */
-.more .mlab {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .more .mv {
@@ -1232,13 +1235,6 @@ button.focus:active {
     font-size: 11.5px;
     color: var(--ink3);
 }
-.drawer .more {
-    margin-top: 6px;
-    height: 28px;
-    background: transparent;
-    color: var(--ink3);
-    font-size: 11.5px;
-}
 
 /* ---- segmented control --------------------------------------------------- */
 
@@ -1288,10 +1284,13 @@ button.focus:active {
     outline-offset: 2px;
 }
 
-/* base.css kills every animation under reduced motion; these three are named
-   again because each one's job is decoration over a value that is already
-   painted, and a widget must never depend on that blanket rule to un-hide
-   anything. */
+/* base.css kills every animation under reduced motion; the drawer is named
+   again because its `rise` keyframe starts at `opacity: 0`, and a widget must
+   never depend on a blanket rule to un-hide anything. base.css carries an
+   `!important` copy of exactly these three declarations, so this one currently
+   never wins — it is kept as the local statement of the rule, next to the
+   animation it guards, for whoever changes `rise`. ("These three" used to mean
+   three rules; two of them went with the primitives they belonged to.) */
 @media (prefers-reduced-motion: reduce) {
     .drawer {
         animation: none;
