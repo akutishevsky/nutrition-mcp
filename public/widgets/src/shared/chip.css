@@ -120,26 +120,89 @@
    tappable metrics cannot be tapped. Every level keeps the species language it
    had; only its scale changes. */
 
-/* THE GLYPH SITS IN THE DOT'S SLOT, and costs the label row ~7px. Measured at
-   320px before committing to it: the label column is 69px and "Protein" needs
-   43, so 13 + 5 + 43 = 61 still leaves 8px — and a label was already allowed to
-   ellipsise at the extreme, which is the one run on a tile that may. The figure
-   row is untouched, since the glyph is not on it. */
-.r-macro .chip .ktop,
-.r-limit .chip .ktop,
-.r-water .chip .ktop {
-    gap: 5px;
+/* THE GLYPH IS A COLUMN OF THE TILE, so it can centre across both rows exactly
+   as the chevron does — a mark at the top-left and a control centred at the
+   right read as two different systems on one tile. Three columns: the glyph,
+   the label-and-figure stack, the chevron.
+
+   IT ONLY GETS THAT COLUMN WHERE EVERY TILE CAN PAY FOR IT, and that is the
+   whole reason for the breakpoint below. Sitting in the label's row the glyph
+   costs that row alone and the figure still spans beneath it; spanning both
+   rows it costs the FIGURE its width too, and the figure is the run that may
+   never be cut.
+
+   ONE breakpoint for the whole strip, set by the tier that can afford it LAST.
+   The macro tier is three up and clears its 65px figure from ~440. The limits
+   are two up below 460 and clear it at any width — but they fold to FOUR up at
+   460, and a 92px tile minus a centred glyph left "187/400 mg" 20px short. Two
+   breakpoints would have fixed that arithmetically and produced the thing this
+   change is meant to remove: macros centred beside limits still sitting high,
+   on one card, at the widths in between. So the strip switches together, at the
+   560px the four-up limits need.
+
+   Same markup at every width; only the placement moves. */
+.strip.tiered .chip {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.strip.tiered .chip > .gi {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+}
+.strip.tiered .chip > .ktop {
+    grid-column: 2;
+}
+/* Under the glyph as well as the label — the glyph is only in row 1 here, so
+   row 2 is the tile's to use. */
+.strip.tiered .chip > .v {
+    grid-column: 1 / 3;
+}
+.strip.tiered .chip > .chev {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    align-self: center;
+}
+@media (min-width: 560px) {
+    .strip.tiered .chip > .gi {
+        grid-row: 1 / -1;
+    }
+    .strip.tiered .chip > .v {
+        grid-column: 2;
+    }
+}
+
+/* SIZE. 17px against the 13 it started at, and 6px before that as a dot: at 13
+   the drawings were legible in isolation and barely present on the card, which
+   is the difference between reading a glyph and noticing one. It steps up again
+   where the tile is wide enough to have given it a column of its own. */
+.r-macro .gi,
+.r-water .gi {
+    width: 17px;
+    height: 17px;
 }
 /* A shade smaller on the denser tier, in step with its 11px label — the whole
    tile steps down together or it stops looking like one thing. */
 .r-limit .gi {
-    width: 12px;
-    height: 12px;
+    width: 15px;
+    height: 15px;
 }
-/* The drawer head sets its own 14px through macroMark(); it only needs the
-   baseline correction the dot had. */
+@media (min-width: 560px) {
+    .r-macro .gi,
+    .r-water .gi {
+        width: 20px;
+        height: 20px;
+    }
+    .r-limit .gi {
+        width: 17px;
+        height: 17px;
+    }
+}
+/* The drawer head is a flex row, not the tile grid: it only needs the baseline
+   correction the dot had. */
 .dhead .gi {
     align-self: center;
+    width: 18px;
+    height: 18px;
 }
 
 /* Level 2. Three metrics, three columns, at every width: they are one object —

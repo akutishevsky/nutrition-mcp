@@ -774,8 +774,23 @@ function chipValue(m, b) {
 // unchanged.
 function macroMark(m, ctx, size) {
     return ctx && ctx.tiers && m.glyph
-        ? glyph(m.glyph, size || 13)
+        ? glyph(m.glyph, size || 17)
         : '<span class="dot"></span>';
+}
+
+// Where the mark SITS, which differs by species and is why this is not one
+// string. A glyph is a grid item of the tile itself, so it can take a column of
+// its own and centre across both rows the way the chevron does (chip.css). The
+// dot cannot move: it lives inside `.ktop` beside the label, and hoisting it
+// out would re-lay-out every widget still on the flat rail — which is the one
+// thing the tiered flag exists to avoid. So the tiered tile emits the mark
+// before `.ktop` and an untiered one emits it inside, and `.ktop` is left
+// holding only the label in the first case.
+function macroMarkOutside(m, ctx) {
+    return ctx && ctx.tiers && m.glyph ? macroMark(m, ctx) : "";
+}
+function macroMarkInside(m, ctx) {
+    return ctx && ctx.tiers && m.glyph ? "" : '<span class="dot"></span>';
 }
 
 // One chip: the metric's mark, its name, its figure, and the progress
@@ -815,7 +830,7 @@ function chipMarkup(m, b, opts) {
     // size worth reading. `--p` is the progress the tile's own background
     // fills to — see chip.css. It is a percentage string so CSS can feather
     // the leading edge against it without any further arithmetic.
-    return `<${tag} class="chip${on ? "" : " static"}${over ? " over" : ""} ${m.color}"${type}${on ? tapAttrs(m, b, ctx) : ""} style="--p:${(b.frac * 100).toFixed(1)}%;--i:${opts.i || 0}"><span class="ktop">${macroMark(m, ctx)}<span class="k">${esc(macroLabel(m))}</span></span><span class="v">${chipValue(m, b)}</span>${chev}<span class="dcap">${esc(macroCaption(m, b, ctx))}</span></${tag}>`;
+    return `<${tag} class="chip${on ? "" : " static"}${over ? " over" : ""} ${m.color}"${type}${on ? tapAttrs(m, b, ctx) : ""} style="--p:${(b.frac * 100).toFixed(1)}%;--i:${opts.i || 0}">${macroMarkOutside(m, ctx)}<span class="ktop">${macroMarkInside(m, ctx)}<span class="k">${esc(macroLabel(m))}</span></span><span class="v">${chipValue(m, b)}</span>${chev}<span class="dcap">${esc(macroCaption(m, b, ctx))}</span></${tag}>`;
 }
 
 // Protein / carbs / fat — and water, which used to need an emitter of its own

@@ -1005,6 +1005,10 @@ warning triangle are one drawing at two sizes.
 replaces the colour dot on every tile of a tiered strip, and the `.c-*` role
 class on an ancestor colours it exactly as it coloured the dot.
 
+Note the emitted `width`/`height` are a **fallback**: `.gi`'s CSS overrides
+them, which is what lets the size step at a breakpoint without the emitter
+knowing anything about width.
+
 | glyph       | metric   | what makes it legible at 13px        |
 | ----------- | -------- | ------------------------------------ |
 | `flame`     | calories | a side tongue, so it is not a drop   |
@@ -1030,6 +1034,28 @@ teardrop; protein-as-drumstick read as a lollipop and carbs-as-bread-slice as a
 rounded blob. Only a silhouette with a **hole, a notch or a protrusion** stays
 legible that small — hence the table's third column, which is the actual design
 constraint. Preview a candidate at 13px beside its label before believing it.
+
+**It takes a column, and centres across both rows like the chevron** — a mark
+sitting at the top-left beside a control centred at the right reads as two
+systems on one tile. So the tiered tile is three columns: glyph,
+label-and-figure, chevron.
+
+**But only where every tile can pay for it.** On the label's row a glyph costs
+that row alone and the figure still spans beneath it; spanning both rows it
+costs the **figure** its width too, and the figure may never be cut. One
+breakpoint for the whole strip, set by the tier that can afford it last: macros
+are three up and clear their 65px figure from ~440, while the limits clear it at
+any width two up — but fold to **four** up at 460, where a 92px tile minus a
+centred glyph left `"187/400 mg"` 20px short. Two breakpoints would have fixed
+that arithmetically and produced exactly what this change removes: macros
+centred beside limits still sitting high, on one card. The strip switches
+together at **560px**; below it the glyph stays on the label's row, bigger but
+not centred. Same markup at every width — only the placement moves.
+
+**Sizes**: 17px (macro/water) and 15px (limits) inline, stepping to 20/17 once
+centred, and 18px in the drawer head. The 13px it shipped at was legible in
+isolation and barely present on the card, which is the difference between
+reading a glyph and noticing one.
 
 **The metric names a drawing, never the reverse.** `MACROS[].glyph` is
 `"drumstick"`, not `"protein"` — the same indirection as `color: "c-pro"` — so
