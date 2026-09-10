@@ -32,8 +32,10 @@ test.each(KEYS)("%s assembles into a self-contained widget", async (key) => {
     expect(html).toContain("function initWidget(config)");
     expect((html.match(/initWidget\(\{/g) ?? []).length).toBe(1);
 
-    // Shared design tokens got inlined.
-    expect(html).toContain("--accent: #4a7c59");
+    // Shared design tokens got inlined. `--acc` is Dawn's brand green and the
+    // first declaration in tokens.css's `:root` block, so its presence is the
+    // cheapest proof the whole partial made it in.
+    expect(html).toContain("--acc: #15803d");
 
     // The inlined <script> is syntactically valid JS.
     const script = html.slice(
