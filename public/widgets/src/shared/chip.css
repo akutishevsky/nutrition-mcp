@@ -125,50 +125,36 @@
    right read as two different systems on one tile. Three columns: the glyph,
    the label-and-figure stack, the chevron.
 
-   IT ONLY GETS THAT COLUMN WHERE EVERY TILE CAN PAY FOR IT, and that is the
-   whole reason for the breakpoint below. Sitting in the label's row the glyph
-   costs that row alone and the figure still spans beneath it; spanning both
-   rows it costs the FIGURE its width too, and the figure is the run that may
-   never be cut.
+   IT IS CENTRED AT EVERY WIDTH, and the COLUMN COUNT pays for it rather than
+   the alignment. An earlier cut kept the glyph on the label's row below 560px,
+   where a centred one would have squeezed the figure — but that put the mark
+   high on exactly the cards most people read this on, which is the whole defect
+   it was meant to fix. A rule that only applies on a wide desktop is not a
+   design decision, it is a bug with a media query around it.
 
-   ONE breakpoint for the whole strip, set by the tier that can afford it LAST.
-   The macro tier is three up and clears its 65px figure from ~440. The limits
-   are two up below 460 and clear it at any width — but they fold to FOUR up at
-   460, and a 92px tile minus a centred glyph left "187/400 mg" 20px short. Two
-   breakpoints would have fixed that arithmetically and produced the thing this
-   change is meant to remove: macros centred beside limits still sitting high,
-   on one card, at the widths in between. So the strip switches together, at the
-   560px the four-up limits need.
-
-   Same markup at every width; only the placement moves. */
+   So the tiers fold a column earlier instead (see the rails above): the macro
+   tier is two up below 480 and the limits two up below 560, which buys ~50px of
+   tile — far more than the glyph's column costs — and the figure keeps its 16px
+   at every width. The narrow-width tightening this used to need (6px insets, a
+   15px figure, a 3px gap) is gone with it: a 145px tile has room to spare. */
 .strip.tiered .chip {
     grid-template-columns: auto minmax(0, 1fr) auto;
 }
 .strip.tiered .chip > .gi {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 1 / -1;
     align-self: center;
 }
 .strip.tiered .chip > .ktop {
     grid-column: 2;
 }
-/* Under the glyph as well as the label — the glyph is only in row 1 here, so
-   row 2 is the tile's to use. */
 .strip.tiered .chip > .v {
-    grid-column: 1 / 3;
+    grid-column: 2;
 }
 .strip.tiered .chip > .chev {
     grid-column: 3;
     grid-row: 1 / -1;
     align-self: center;
-}
-@media (min-width: 560px) {
-    .strip.tiered .chip > .gi {
-        grid-row: 1 / -1;
-    }
-    .strip.tiered .chip > .v {
-        grid-column: 2;
-    }
 }
 
 /* SIZE. 17px against the 13 it started at, and 6px before that as a dot: at 13
@@ -177,25 +163,14 @@
    where the tile is wide enough to have given it a column of its own. */
 .r-macro .gi,
 .r-water .gi {
-    width: 17px;
-    height: 17px;
+    width: 20px;
+    height: 20px;
 }
 /* A shade smaller on the denser tier, in step with its 11px label — the whole
    tile steps down together or it stops looking like one thing. */
 .r-limit .gi {
-    width: 15px;
-    height: 15px;
-}
-@media (min-width: 560px) {
-    .r-macro .gi,
-    .r-water .gi {
-        width: 20px;
-        height: 20px;
-    }
-    .r-limit .gi {
-        width: 17px;
-        height: 17px;
-    }
+    width: 17px;
+    height: 17px;
 }
 /* The drawer head is a flex row, not the tile grid: it only needs the baseline
    correction the dot had. */
@@ -211,7 +186,22 @@
    column is ~88px, which the 11px label and the 18px figure both clear because
    the chevron moved off the figure's row (below). */
 .rail.r-macro {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* Three metrics in two columns leave one alone on the second row, and an empty
+   cell beside it reads as something failing to load. The odd one out takes the
+   whole row instead. `:nth-child(odd):last-child` rather than `:last-child`, so
+   a fourth macro ever added fills the grid and nothing spans. */
+.rail.r-macro > .chip:nth-child(odd):last-child {
+    grid-column: 1 / -1;
+}
+@media (min-width: 480px) {
+    .rail.r-macro {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .rail.r-macro > .chip:nth-child(odd):last-child {
+        grid-column: auto;
+    }
 }
 /* Water: one column, so the tile becomes a bar. */
 .rail.r-water {
@@ -226,7 +216,13 @@
 .rail.r-limit {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-@media (min-width: 460px) {
+/* 620, not the 460 this folded at. Four up on a 460px card is a 92px tile, and
+   once the glyph takes a column that left "187/400 mg" 20px short. 560 was the
+   next guess and measured 0.7% slack — a fit that holds on the SF Pro these
+   numbers were taken on and clips on Segoe UI Variable or Roboto, which is not
+   a fit at all. At 620 the same figure clears by 10%. The extra row below that
+   costs ~46px; a figure cut mid-unit costs the reading. */
+@media (min-width: 620px) {
     .rail.r-limit {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
@@ -294,9 +290,13 @@
    under a figure with no descenders — puts the chevron half a pixel above the
    tile's own centre. Half a pixel is a whole device pixel at 2x, on the one
    element whose job is to look aligned. */
+/* 7px between columns, not 4: the glyph is 20px of solid colour and the label
+   sat right up against it. That gap is the whole distance between a mark and
+   the reading it belongs to, and it reads as crowding well before it reads as
+   tight. */
 .r-macro .chip {
     padding: 8px;
-    gap: 2px 4px;
+    gap: 2px 7px;
 }
 /* The chevron at 11px rather than the flat rail's 12: the same affordance at
    the same optical weight on a smaller tile, and on the macro tier it is also
@@ -325,46 +325,6 @@
 }
 .r-macro .chip .v .u {
     font-size: 10px;
-}
-
-/* THE ONE BREAKPOINT ON THIS TIER. Three columns on a 320px card are 95px, and
-   once the border, the insets, the centred chevron and its gap are taken out
-   the figure has ~61 — while "148/160 g" needs 65. Three macros, a figure
-   printed against its goal, and a chevron centred on the tile do not all fit at
-   that width, so something gives; this gives a little of all three rather than
-   all of one, which is what keeps any single one of them from breaking.
-
-   HEADROOM IS THE POINT, not a snug fit. The tail is ~55% of that 65px and is
-   already at the type scale's 10px floor, so shrinking the figure alone barely
-   moves it — hence the insets and the rail's own gutter shrinking too. What
-   matters is the MARGIN: the figures are `tabular-nums` and the macro unit is
-   "g" in every locale, so the worst case is deterministic within one font — but
-   not across the three this widget actually renders in. `--font` is a system
-   stack, and Segoe UI Variable and Roboto carry wider tabular advances than the
-   SF Pro these numbers were measured on. A layout that fits to the pixel on a
-   Mac clips on Windows, silently, in the one run that may never be cut. ~8%
-   is the slack that survives the stack. */
-@media (max-width: 379px) {
-    .rail.r-macro {
-        gap: 4px;
-    }
-    .r-macro .chip {
-        padding: 8px 6px;
-        gap: 2px 3px;
-    }
-    .r-macro .chip .v {
-        font-size: 15px;
-    }
-    /* The last two pixels, and the cheapest two on the tile: a 10px chevron
-       reads identically at this size, and the tail's own left margin is
-       whitespace between a figure and its goal that the "/" already separates. */
-    .r-macro .chip .v .u {
-        margin-left: 1px;
-    }
-    .r-macro .chev svg {
-        width: 10px;
-        height: 10px;
-    }
 }
 
 /* --- water: a bar, not a tile --- */
@@ -396,10 +356,12 @@
    numbers in it. */
 .r-limit .chip {
     padding: 6px 8px;
-    /* 3px, not the flat rail's 2px: both runs are a size down and set
-       `line-height: 1`, so at 2px an 11px label and a 13px figure close to
-       within a hair of touching and the tile reads as one smudged block. */
-    gap: 3px 5px;
+    /* 3px between rows, not the flat rail's 2px: both runs are a size down and
+       set `line-height: 1`, so at 2px an 11px label and a 13px figure close to
+       within a hair of touching and the tile reads as one smudged block. 7px
+       between columns, matching the macro tier — the distance from a mark to
+       its reading should not change between levels. */
+    gap: 3px 7px;
 }
 /* QUIETER IN TWO REGISTERS, not just smaller. Size alone left level 3 only a
    few points under level 2 on a narrow card, where the columns are also WIDER

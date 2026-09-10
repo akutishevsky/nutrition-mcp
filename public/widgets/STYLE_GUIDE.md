@@ -1035,27 +1035,41 @@ rounded blob. Only a silhouette with a **hole, a notch or a protrusion** stays
 legible that small — hence the table's third column, which is the actual design
 constraint. Preview a candidate at 13px beside its label before believing it.
 
-**It takes a column, and centres across both rows like the chevron** — a mark
-sitting at the top-left beside a control centred at the right reads as two
+**It takes a column and centres across both rows, exactly as the chevron does**
+— a mark at the top-left beside a control centred at the right reads as two
 systems on one tile. So the tiered tile is three columns: glyph,
-label-and-figure, chevron.
+label-and-figure, chevron, with **7px** between the glyph and the text (4px left
+the label against 20px of solid colour).
 
-**But only where every tile can pay for it.** On the label's row a glyph costs
-that row alone and the figure still spans beneath it; spanning both rows it
-costs the **figure** its width too, and the figure may never be cut. One
-breakpoint for the whole strip, set by the tier that can afford it last: macros
-are three up and clear their 65px figure from ~440, while the limits clear it at
-any width two up — but fold to **four** up at 460, where a 92px tile minus a
-centred glyph left `"187/400 mg"` 20px short. Two breakpoints would have fixed
-that arithmetically and produced exactly what this change removes: macros
-centred beside limits still sitting high, on one card. The strip switches
-together at **560px**; below it the glyph stays on the label's row, bigger but
-not centred. Same markup at every width — only the placement moves.
+**The column count pays for it, not the alignment.** A centred glyph costs the
+**figure** its width, where one on the label's row costs only that row. An
+earlier cut kept it inline below 560px for that reason and shipped the mark
+sitting high on exactly the cards most people read this on — which is the defect
+it was meant to fix. **A rule that only applies on a wide desktop is not a
+design decision, it is a bug with a media query around it.** So the tiers fold a
+column earlier instead:
 
-**Sizes**: 17px (macro/water) and 15px (limits) inline, stepping to 20/17 once
-centred, and 18px in the drawer head. The 13px it shipped at was legible in
-isolation and barely present on the card, which is the difference between
-reading a glyph and noticing one.
+| tier       | columns                | why there                                           |
+| ---------- | ---------------------- | --------------------------------------------------- |
+| `.r-macro` | 2 below 480px, 3 above | a 145px tile has room to spare; a 95px one has none |
+| `.r-limit` | 2 below 620px, 4 above | four up at 560 measured **0.7%** slack — see below  |
+
+Three macros in two columns leave one alone on the second row, so the odd one
+out takes the whole row (`:nth-child(odd):last-child`, not `:last-child`, so a
+fourth macro ever added fills the grid and nothing spans). It costs ~50px of
+card height at phone width, and buys the figure its 16px at every width — the
+narrow-width tightening this used to need (6px insets, a 15px figure) is gone.
+
+**620 for the limits, and 560 is the instructive wrong answer.** Four up at
+460px is a 92px tile that left `"187/400 mg"` 20px short. 560 was the next
+guess and measured 0.7% slack — a fit that holds on the SF Pro it was taken on
+and clips on Segoe UI Variable or Roboto, which is not a fit at all. At 620 the
+same figure clears by 10%. The extra row below that costs ~46px.
+
+**Sizes**: 20px (macro/water), 17px (limits), 18px in the drawer head — one size
+per tier at every width. The 13px it shipped at was legible in isolation and
+barely present on the card, which is the difference between reading a glyph and
+noticing one.
 
 **The metric names a drawing, never the reverse.** `MACROS[].glyph` is
 `"drumstick"`, not `"protein"` — the same indirection as `color: "c-pro"` — so
