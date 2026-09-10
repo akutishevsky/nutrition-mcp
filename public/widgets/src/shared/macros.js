@@ -1046,7 +1046,15 @@ function macroPanel(vals, goal, wording, meals, opts) {
         if (!items.length) return "";
         const html = items.map((m, j) => chipFor(m, i0 + j)).join("");
         i0 += items.length;
-        return `<div class="rail${cls ? ` ${cls}` : ""}">${html}</div>`;
+        // HOW MANY TILES THIS RAIL ACTUALLY HAS, which is what the tiered grid
+        // lays itself out to. The column count used to be a constant per tier —
+        // four for the limits — so a user who does not track alcohol got three
+        // tiles and a dead fourth cell. A rail is not "four wide", it is "as
+        // wide as it has things to show", and only the rail knows that number.
+        // Emitted only when tiered: the flat rail wraps and needs no count, and
+        // its markup stays byte-identical.
+        const n = ctx.tiers ? ` data-n="${items.length}"` : "";
+        return `<div class="rail${cls ? ` ${cls}` : ""}"${n}>${html}</div>`;
     };
     // The untiered strip emits `<div class="rail">` with no modifier at all —
     // exactly the markup it always did, so a widget that has not been moved

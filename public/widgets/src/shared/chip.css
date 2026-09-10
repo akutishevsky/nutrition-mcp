@@ -185,49 +185,61 @@
    that object across two rows and leave a hole beside fat. At 320px each
    column is ~88px, which the 11px label and the 18px figure both clear because
    the chevron moved off the figure's row (below). */
-.rail.r-macro {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-/* Three metrics in two columns leave one alone on the second row, and an empty
-   cell beside it reads as something failing to load. The odd one out takes the
-   whole row instead. `:nth-child(odd):last-child` rather than `:last-child`, so
-   a fourth macro ever added fills the grid and nothing spans. */
-.rail.r-macro > .chip:nth-child(odd):last-child {
-    grid-column: 1 / -1;
-}
-@media (min-width: 480px) {
-    .rail.r-macro {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .rail.r-macro > .chip:nth-child(odd):last-child {
-        grid-column: auto;
-    }
-}
-/* Water: one column, so the tile becomes a bar. */
-.rail.r-water {
+/* A RAIL IS AS WIDE AS IT HAS THINGS TO SHOW. The column count is the rail's
+   own tile count (`data-n`, emitted by railOf), not a constant per tier — so a
+   limits row for someone who does not track alcohol is three columns that fill
+   the card, rather than four columns with the last one empty. That empty cell
+   was not a rounding error: alcohol is an opt-in, so the people who see it are
+   exactly the people who asked not to be shown alcohol, and the hole is where
+   it used to be.
+
+   The counts are capped below, because "one row" stops being right once the
+   tile is too narrow to hold its figure. Written as a small explicit matrix
+   rather than `repeat(auto-fit, minmax(…))`: auto-fit sizes tracks from the
+   CONTAINER, so four limits in a three-track row would put one tile alone on a
+   row with two dead cells — the same hole, moved. */
+.strip.tiered .rail[data-n="1"] {
     grid-template-columns: minmax(0, 1fr);
 }
-/* Level 3. Two up, and four up earlier than the flat rail's 580px: these tiles
-   carry an 11px label and a 13px figure, so a 105px column at 460 clears the
-   longest translated limit label ("Ballaststoffe") where the flat rail's 12/15
-   needed 130px to clear the same word. Four up is also what folds this level
-   into ONE row on anything wider than a phone, which is the whole point of
-   ranking it last. */
-.rail.r-limit {
+.strip.tiered .rail[data-n="2"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-/* 620, not the 460 this folded at. Four up on a 460px card is a 92px tile, and
-   once the glyph takes a column that left "187/400 mg" 20px short. 560 was the
-   next guess and measured 0.7% slack — a fit that holds on the SF Pro these
-   numbers were taken on and clips on Segoe UI Variable or Roboto, which is not
-   a fit at all. At 620 the same figure clears by 10%. The extra row below that
-   costs ~46px; a figure cut mid-unit costs the reading. */
-@media (min-width: 620px) {
-    .rail.r-limit {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
+.strip.tiered .rail[data-n="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.strip.tiered .rail[data-n="4"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* Below 480 nothing goes wider than two: three columns is a 95px tile, and the
+   figure needs 65 of it once the glyph and chevron have taken theirs. Four
+   items fold to 2x2 with no hole; THREE leave one alone on the second row, and
+   an empty cell beside it reads as something failing to load — so the odd one
+   out takes the whole row. */
+@media (max-width: 479px) {
+    .strip.tiered .rail[data-n="3"],
+    .strip.tiered .rail[data-n="4"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .strip.tiered .rail[data-n="3"] > .chip:last-child {
+        grid-column: 1 / -1;
+    }
+}
+/* Four across needs 620, so between 480 and there a four-tile rail is 2x2 —
+   even, and no narrower than the figure can take. That 620 was arrived at the
+   hard way: four up on a 460px card is a 92px tile, and once the glyph takes a
+   column it left "187/400 mg" 20px short. 560 was the next guess and measured
+   0.7% slack — a fit that holds on the SF Pro it was measured on and clips on
+   Segoe UI Variable or Roboto, which is not a fit at all. At 620 the same
+   figure clears by 10%. The extra row below that costs ~46px; a figure cut
+   mid-unit costs the reading. */
+@media (min-width: 480px) and (max-width: 619px) {
+    .strip.tiered .rail[data-n="4"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+/* Water is always a single tile, so `data-n="1"` already gives it one column;
+   what it needs from here is only its bar shape (below). */
 /* SPACING IS THE SECOND HALF OF THE HIERARCHY. Level 2 sits as close to the
    hero as the strip's own rhythm allows (the 10px above) and water sits close
    under it, so hero + macros + water read as one block; level 3 is pushed off

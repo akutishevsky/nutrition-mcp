@@ -755,6 +755,50 @@ test("fiber and sugar earn a cell with data or a goal; alcohol's 0 always shows"
 // The drawing is named by the MACROS entry ("drumstick"), never by the
 // emitter — the same indirection as `color: "c-pro"` — so this asserts the
 // wiring, not the shape.
+// A RAIL IS AS WIDE AS IT HAS THINGS TO SHOW. The column count used to be a
+// constant per tier — four for the limits — so a user who does not track
+// alcohol got three tiles and a dead fourth cell, and the hole sat exactly
+// where the metric they opted out of used to be. `data-n` is the count the
+// grid lays itself out to; chip.css caps it by width, but the number itself can
+// only come from the rail.
+test("each tiered rail reports how many tiles it has", () => {
+    const n = (html: string, cls: string) =>
+        new RegExp(`<div class="rail ${cls}" data-n="(\\d+)"`).exec(html)?.[1];
+
+    const full = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+        tiers: true,
+    });
+    expect(n(full, "r-macro")).toBe("3");
+    expect(n(full, "r-limit")).toBe("4");
+    expect(n(full, "r-water")).toBe("1");
+
+    // Drop alcohol and the limits rail is a three-column rail, not a
+    // four-column rail with a gap.
+    const noAlc = macrosApi.macroPanel(
+        { ...VALS, alcohol_g: null },
+        GOALS,
+        undefined,
+        MEALS,
+        { tiers: true },
+    );
+    expect(n(noAlc, "r-limit")).toBe("3");
+    // ...and with caffeine never recorded either, two.
+    const neither = macrosApi.macroPanel(
+        { ...VALS, alcohol_g: null, caffeine_mg: null },
+        GOALS,
+        undefined,
+        MEALS,
+        { tiers: true },
+    );
+    expect(n(neither, "r-limit")).toBe("2");
+
+    // The untiered rail carries no count: it wraps, and its markup is
+    // byte-identical to what every widget still on it has always rendered.
+    expect(macrosApi.macroPanel(VALS, GOALS, undefined, MEALS)).toContain(
+        '<div class="rail">',
+    );
+});
+
 test("a tiered tile wears its glyph; an untiered one keeps the dot", () => {
     const tiered = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
         tiers: true,

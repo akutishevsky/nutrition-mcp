@@ -1084,14 +1084,28 @@ it was meant to fix. **A rule that only applies on a wide desktop is not a
 design decision, it is a bug with a media query around it.** So the tiers fold a
 column earlier instead:
 
-| tier       | columns                | why there                                           |
-| ---------- | ---------------------- | --------------------------------------------------- |
-| `.r-macro` | 2 below 480px, 3 above | a 145px tile has room to spare; a 95px one has none |
-| `.r-limit` | 2 below 620px, 4 above | four up at 560 measured **0.7%** slack — see below  |
+**A rail is as wide as it has things to show.** The column count is the rail's
+own tile count — `data-n`, emitted by `railOf` — not a constant per tier. It
+_was_ a constant (four for the limits), so a user who does not track alcohol got
+three tiles and a dead fourth cell, and that hole sat exactly where the metric
+they opted out of used to be. Width then only **caps** the count:
 
-Three macros in two columns leave one alone on the second row, so the odd one
-out takes the whole row (`:nth-child(odd):last-child`, not `:last-child`, so a
-fourth macro ever added fills the grid and nothing spans). It costs ~50px of
+| tiles | columns                                      |
+| ----- | -------------------------------------------- |
+| 1     | 1 — full width                               |
+| 2     | 2 at every width                             |
+| 3     | 2 below 480px (**last tile spans**), 3 above |
+| 4     | 2 below 620px (2×2, no hole), 4 above        |
+
+An explicit matrix rather than `repeat(auto-fit, minmax(…))`: auto-fit sizes
+tracks from the **container**, so four limits in a three-track row would leave
+one tile alone with two dead cells — the same hole, moved. The caps are where the
+figure stops fitting: three columns at 320px is a 95px tile and the figure needs
+65 of it once the glyph and chevron have taken theirs.
+
+Three tiles in two columns leave one alone on the second row, and an empty cell
+beside it reads as something failing to load, so the odd one out takes the whole
+row. It costs ~50px of
 card height at phone width, and buys the figure its 16px at every width — the
 narrow-width tightening this used to need (6px insets, a 15px figure) is gone.
 
