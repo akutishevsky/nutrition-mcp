@@ -18,10 +18,29 @@
        horizontally instead of the table scrolling inside itself. */
     min-width: 0;
     max-height: 320px;
-    border: 1px solid var(--panel-border);
-    border-radius: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-in);
     background: var(--panel);
     -webkit-overflow-scrolling: touch;
+}
+
+/* a11y recheck, MINOR: a scrollable box IS a tab stop — Chrome focuses a
+   keyboard-scrollable container even with no tabindex, and it landed here
+   ahead of every button on the step wearing the UA's `outline: auto 1px`
+   (rgb(0,95,204) light) instead of the system's ring. Every other focusable
+   surface in the design draws SPEC §7's `2px solid var(--acc)` at 2px offset;
+   this one now does too, so the first thing a keyboard user hits on the
+   preview step looks focused rather than looking like a rendering artefact.
+
+   The offset ring is drawn OUTSIDE the scroller, where nothing clips it —
+   inside, it would scroll away with the rows the moment they moved. Its two
+   call sites additionally carry `role="region"` + `aria-label` + an explicit
+   `tabindex="0"`, so the stop is named when it is announced and exists on
+   engines that do not focus scrollers on their own. Markup, not CSS: a name
+   has to come from the template that knows WHAT is scrolling. */
+.tscroll:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
 }
 
 .tbl {
@@ -37,37 +56,40 @@
     text-align: left;
     padding: 7px 10px;
     white-space: nowrap;
-    border-bottom: 1px solid var(--panel-border);
+    border-bottom: 1px solid var(--line);
 }
 .tbl tbody tr:last-child td {
     border-bottom: none;
 }
 
 /* Sticky header so column identity survives scrolling — important when the user
-   is being asked to confirm a mapping before committing an import. */
+   is being asked to confirm a mapping before committing an import. Recessed
+   onto --bg2 rather than --panel so the header stays legible as rows slide
+   under it. */
 .tbl thead th {
     position: sticky;
     top: 0;
     z-index: 1;
-    background: var(--panel);
-    color: var(--text-dim);
-    font-size: 11px;
-    font-weight: 700;
+    background: var(--bg2);
+    color: var(--ink3);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     /* Sticky elements ignore the collapsed border, so draw it as a shadow. */
-    box-shadow: inset 0 -1px 0 var(--panel-border);
+    box-shadow: inset 0 -1px 0 var(--line);
     border-bottom: none;
 }
 
 .tbl tbody tr:nth-child(even) td {
-    background: color-mix(in srgb, var(--text) 3%, transparent);
+    background: color-mix(in srgb, var(--ink) 3%, transparent);
 }
 .tbl tbody tr.bad td {
     background: color-mix(in srgb, var(--over) 9%, transparent);
 }
 .tbl tbody tr.muted td {
-    color: var(--text-dim);
+    color: var(--ink3);
 }
 
 /* Numeric columns read far better right-aligned in a preview. */
@@ -80,15 +102,25 @@
     min-width: 160px;
 }
 .tbl .dim {
-    color: var(--text-dim);
+    color: var(--ink3);
 }
 
 /* ---- status pills ---- */
 
+/* Every fill below is mixed with --panel, i.e. OPAQUE, not with `transparent`.
+   A translucent badge inherits whatever the row underneath happens to be — the
+   even-row `--ink 3%` stripe, the `tr.bad` `--over 9%` wash, or both. Measured
+   light, same badge, three rows: .pill-ok 4.92 / 4.65 / 4.11 and .pill-bad
+   4.69 / 4.43 / 3.92 as the row underneath darkens — i.e. translucency alone
+   loses ~0.8 and takes both under AA on an error row. Opaque means the ratio
+   quoted next to each rule is the ratio that actually ships. (The
+   a11y audit's per-pill numbers were taken against a bare white ground without
+   compositing the pill's own fill, which is why .pill-bad read as passing at
+   4.60 when it was really 3.90.) */
 .pill {
     display: inline-block;
     padding: 1px 7px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     font-size: 10.5px;
     font-weight: 700;
     text-transform: uppercase;
@@ -96,32 +128,45 @@
     white-space: nowrap;
     border: 1px solid transparent;
 }
+/* 4.92:1 light / 7.84:1 dark on its own fill. */
 .pill-ok {
-    color: var(--accent);
-    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--acc-text);
+    border-color: color-mix(in srgb, var(--acc) 40%, var(--panel));
+    background: color-mix(in srgb, var(--acc) 12%, var(--panel));
 }
+/* a11y audit, MINOR: 4.24:1 as measured, 3.66:1 once its own fill was
+   composited. --warn's light value moved to #8a5a00 in tokens.css (it is a
+   widget-only token, and its other consumer is the .notice-warn icon, a
+   graphic needing 3:1) -> 5.00:1 light. Dark is untouched at 6.27:1. */
 .pill-warn {
     color: var(--warn);
-    border-color: color-mix(in srgb, var(--warn) 40%, transparent);
-    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border-color: color-mix(in srgb, var(--warn) 40%, var(--panel));
+    background: color-mix(in srgb, var(--warn) 12%, var(--panel));
 }
+/* Same story: reported 4.60, really 3.90 on its own fill; --over's light value
+   moved to #bb3a22 -> 4.69:1 light. Dark is untouched at 5.29:1. */
 .pill-bad {
     color: var(--over);
-    border-color: color-mix(in srgb, var(--over) 40%, transparent);
-    background: color-mix(in srgb, var(--over) 12%, transparent);
+    border-color: color-mix(in srgb, var(--over) 40%, var(--panel));
+    background: color-mix(in srgb, var(--over) 12%, var(--panel));
 }
+/* a11y audit, MINOR: --ink3 on --track was 4.42:1 light and 4.65:1 dark — both
+   under or barely over AA at 10.5px/700. --ink2 is the same recessed grey one
+   step in, and the pill still reads as the quietest of the four because it is
+   the only one with no hue at all: 5.06:1 light / 6.17:1 dark. */
 .pill-dim {
-    color: var(--text-dim);
-    border-color: var(--panel-border);
+    color: var(--ink2);
+    border-color: var(--line);
     background: var(--track);
 }
 
-/* Row count / truncation footer under a capped preview. */
+/* Row count / truncation footer under a capped preview. Sticks to nothing —
+   it sits inside .tscroll, below the table, so it scrolls away with the rows
+   it is counting. */
 .tmore {
     padding: 7px 10px;
     font-size: 11.5px;
-    color: var(--text-dim);
-    border-top: 1px solid var(--panel-border);
-    background: var(--panel);
+    color: var(--ink3);
+    border-top: 1px solid var(--line);
+    background: var(--bg2);
 }

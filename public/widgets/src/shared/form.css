@@ -1,20 +1,21 @@
-/* Form controls for interactive widgets.
+/* Form controls, notices and progress rails.
  *
- * Until the import widget, the only interactive control in the whole design
- * language was `.seg-btn` — no inputs, selects, buttons, focus rings or field
- * errors existed. Everything here is token-only so it themes with the rest.
+ * Only import-meals and the dev gallery pull this in: it is the one widget
+ * surface that is a form rather than a readout. Everything is Dawn's pill
+ * language at a denser scale — controls are 38px, not the site's 48px, because
+ * the map step stacks sixteen of them inside a chat card.
  *
  * Native controls need `color-scheme` (declared in tokens.css) or the browser
  * paints OS chrome that ignores every token: a <select> in a dark widget comes
  * out light, and its dropdown list stays light regardless of what we set here.
  */
 
-/* ---- layout ---- */
+/* ---- layout -------------------------------------------------------------- */
 
 .field {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
     margin-bottom: 12px;
 }
 .field-row {
@@ -25,13 +26,14 @@
 }
 .label {
     font-size: 12px;
-    font-weight: 600;
-    color: var(--text-dim);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink2);
 }
 .hint {
     font-size: 11.5px;
     line-height: 1.4;
-    color: var(--text-dim);
+    color: var(--ink3);
 }
 .actions {
     display: flex;
@@ -40,30 +42,35 @@
     margin-top: 14px;
 }
 
-/* ---- shared control surface ---- */
+/* ---- shared control surface ---------------------------------------------- */
 
+/* A 999px pill, like every control on the site. `height` plus zero vertical
+   padding rather than symmetric padding, so an <input> and a <select> — which
+   size their text box differently — land on the same 38px line. */
 .input,
 .select {
     appearance: none;
     -webkit-appearance: none;
     width: 100%;
+    height: 38px;
+    padding: 0 14px;
     font: inherit;
     font-size: 13px;
-    color: var(--text);
+    font-weight: 500;
+    color: var(--ink);
     background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    padding: 8px 10px;
-    transition:
-        border-color 0.12s ease,
-        box-shadow 0.12s ease;
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    /* border-color only: the focus ring is an outline now (see below), and an
+       outline is not a transitionable box-shadow. */
+    transition: border-color 0.15s ease;
 }
 .input::placeholder {
-    color: var(--text-dim);
+    color: var(--ink3);
 }
 .input:hover:not(:disabled),
 .select:hover:not(:disabled) {
-    border-color: var(--text-dim);
+    border-color: var(--line2);
 }
 .input:disabled,
 .select:disabled {
@@ -75,109 +82,164 @@
    sandbox CSP allows data: images only). currentColor is not available inside
    url(), so the stroke is a literal that reads acceptably on both themes. */
 .select {
-    padding-right: 30px;
+    padding-right: 34px;
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%238e8e93' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 10px center;
+    background-position: right 13px center;
     background-size: 12px 8px;
 }
 
-/* One visible focus treatment for every control, keyboard-only. */
+/* One visible focus treatment for every control, keyboard-only, and it is the
+   SAME one chip.css draws on .chip / .hero / .more / .dx / .seg button —
+   SPEC §7: `outline: 2px solid var(--acc); outline-offset: 2px`.
+
+   a11y audit, MAJOR: this rule used to say `outline: none` plus a 3px
+   35%-alpha accent shadow, on the theory that only a box-shadow follows a
+   999px radius. Composited, that ring measured ~1.6:1 against the ground it
+   sits on — an indicator you cannot see, and far under the 3:1 SC 2.4.11 asks
+   of one — which made import-meals the one widget in the system without a
+   usable focus ring. Every current engine draws `outline` along the border
+   radius, so the pill shape survives without faking the ring in a shadow.
+   The accent border stays as a secondary cue; it is only ~3.4:1 and 1px, so it
+   is not load-bearing on its own. */
 .input:focus-visible,
 .select:focus-visible,
 .btn:focus-visible,
-.drop:focus-visible,
-.seg-btn:focus-visible {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+.drop:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+    border-color: var(--acc);
 }
 
-/* ---- buttons ---- */
+/* ---- buttons ------------------------------------------------------------- */
 
 .btn {
     appearance: none;
     -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding: 0 16px;
     font: inherit;
     font-size: 13px;
-    font-weight: 600;
-    padding: 8px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--panel-border);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--line);
     background: var(--panel);
-    color: var(--text);
+    color: var(--ink);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition:
-        background 0.12s ease,
-        border-color 0.12s ease,
-        opacity 0.12s ease;
+        background 0.15s ease,
+        border-color 0.15s ease,
+        opacity 0.15s ease;
 }
 .btn:hover:not(:disabled) {
-    border-color: var(--text-dim);
+    border-color: var(--line2);
+    background: color-mix(in srgb, var(--ink) 4%, var(--panel));
+}
+.btn:active:not(:disabled) {
+    transform: translateY(1px);
 }
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
-/* Primary: accent fill. --bg rather than white, matching .seg-btn.active, so the
-   label stays legible when the accent lightens in dark mode. */
+/* Primary: accent fill on --acc-ink, which is near-white in light mode and a
+   deep green in dark — the accent lightens there, so white would fail.
+   Deliberately WITHOUT the site's `0 0 44px -6px` accent glow: inside a chat
+   card, a glow with nothing behind it to fall on reads as a rendering
+   artefact rather than as elevation. */
 .btn-primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--bg);
+    background: var(--acc);
+    border-color: var(--acc);
+    color: var(--acc-ink);
 }
 .btn-primary:hover:not(:disabled) {
+    background: var(--acc);
+    border-color: var(--acc);
     opacity: 0.88;
-    border-color: var(--accent);
 }
 .btn-danger {
     background: transparent;
-    border-color: var(--over);
+    border-color: color-mix(in srgb, var(--over) 45%, var(--line));
     color: var(--over);
 }
 .btn-danger:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--over) 12%, transparent);
+    background: color-mix(in srgb, var(--over) 10%, transparent);
+    border-color: var(--over);
 }
 .btn-sm {
+    height: 30px;
+    padding: 0 12px;
     font-size: 12px;
-    padding: 5px 9px;
-    border-radius: 8px;
 }
 
-/* ---- file drop zone ---- */
+/* ---- file drop zone ------------------------------------------------------ */
 
 .drop {
-    display: block;
+    /* Positioned so the visually hidden <input> below stays inside the zone:
+       absolutely placed against the initial containing block instead, focusing
+       it by keyboard scrolls the page to its top-left corner. */
+    position: relative;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 4px;
     width: 100%;
+    min-height: 92px;
+    padding: 14px 18px;
     text-align: center;
-    padding: 26px 18px;
-    border: 1.5px dashed var(--panel-border);
-    border-radius: var(--radius);
-    background: var(--panel);
-    color: var(--text-dim);
-    font-size: 13px;
+    border: 2px dashed var(--line2);
+    border-radius: 18px;
+    background: transparent;
+    color: var(--ink3);
+    font-size: 12.5px;
+    line-height: 1.45;
     cursor: pointer;
     transition:
-        border-color 0.12s ease,
-        background 0.12s ease;
+        border-color 0.15s ease,
+        background 0.15s ease,
+        color 0.15s ease;
 }
 .drop:hover,
 .drop.over {
-    border-color: var(--accent);
-    color: var(--text);
+    border-color: var(--acc);
+    color: var(--ink2);
 }
+/* Recessed while a file is over it — the one moment the zone is a target and
+   not a button. */
 .drop.over {
-    background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+    background: var(--bg2);
 }
+.drop .ic {
+    color: var(--ink3);
+}
+.drop:hover .ic,
+.drop.over .ic {
+    color: var(--acc);
+}
+/* The emoji variant of the same slot; the icon is preferred, but an empty
+   state may still want a glyph's warmth. */
 .drop .big {
-    display: block;
-    font-size: 24px;
-    margin-bottom: 6px;
+    font-size: 22px;
+    line-height: 1;
 }
 .drop strong {
-    color: var(--text);
-    font-weight: 600;
+    color: var(--ink);
+    font-weight: 700;
+}
+/* A <label> is not focusable — the hidden <input> inside it is — so the ring
+   has to be drawn on the label's behalf or the only control on this step has no
+   keyboard focus indication at all. Its own rule, not folded into the shared
+   focus list above: an engine without :has() drops an entire selector list it
+   cannot parse, which would take the inputs and buttons down with it. */
+.drop:has(.drop-input:focus-visible) {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+    border-color: var(--acc);
 }
 /* The real input stays in the DOM for keyboard and assistive access, so it is
    hidden without display:none. */
@@ -188,12 +250,12 @@
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
 }
 
-/* ---- inline validation ---- */
+/* ---- inline validation --------------------------------------------------- */
 
 .field-error {
     font-size: 11.5px;
@@ -205,82 +267,98 @@
     border-color: var(--over);
 }
 
+/* ---- notices ------------------------------------------------------------- */
+
+/* Dawn's notice recipe: a tinted panel with a leading icon. Severity is never
+   carried by the tint alone — the icon is a different drawing in each variant
+   (info / warn / x / check), which is what makes them distinguishable in
+   monochrome and to anyone who cannot separate the hues. */
 .notice {
     display: flex;
-    gap: 8px;
+    gap: 9px;
     align-items: flex-start;
-    padding: 9px 11px;
-    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 11px 13px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-in);
+    background: var(--bg2);
     font-size: 12.5px;
     line-height: 1.45;
-    border: 1px solid var(--panel-border);
-    background: var(--panel);
-    margin-bottom: 10px;
+    color: var(--ink2);
+}
+/* Both the SVG icon and the emoji glyph slot sit on the first text line. */
+.notice > .ic,
+.notice > .nico {
+    flex: none;
+    margin-top: 1px;
+    color: var(--ink3);
+}
+.notice > .nico {
+    font-size: 13px;
+    line-height: 1.25;
+}
+.notice b {
+    color: var(--ink);
+    font-weight: 700;
 }
 .notice-warn {
-    border-color: color-mix(in srgb, var(--warn) 45%, var(--panel-border));
-    background: color-mix(in srgb, var(--warn) 9%, var(--panel));
+    border-color: color-mix(in srgb, var(--warn) 40%, var(--line));
+    background: color-mix(in srgb, var(--warn) 12%, var(--panel));
+}
+.notice-warn > .ic {
+    color: var(--warn);
 }
 .notice-error {
-    border-color: color-mix(in srgb, var(--over) 45%, var(--panel-border));
-    background: color-mix(in srgb, var(--over) 9%, var(--panel));
+    border-color: color-mix(in srgb, var(--over) 35%, var(--line));
+    background: color-mix(in srgb, var(--over) 10%, var(--panel));
+}
+.notice-error > .ic {
+    color: var(--over);
 }
 .notice-ok {
-    border-color: color-mix(in srgb, var(--accent) 45%, var(--panel-border));
-    background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+    border-color: color-mix(in srgb, var(--acc) 35%, var(--line));
+    background: color-mix(in srgb, var(--acc) 10%, var(--panel));
+}
+.notice-ok > .ic {
+    color: var(--acc-text);
 }
 
-/* ---- progress ---- */
+/* ---- progress ------------------------------------------------------------ */
 
+/* Two tracks, same fill. `.steps` is where the user is in the four-step flow
+   (3px — it is orientation, not the subject of the screen); `.bar` is a batch
+   import actually running (5px — it is the thing being watched). Both replace
+   what used to be a row of numbered pills, which cost ~26px and was the one
+   element in this widget that could overflow 320px. */
+.steps,
 .bar {
-    height: 6px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: var(--track);
     overflow: hidden;
 }
+.steps {
+    height: 3px;
+}
+.bar {
+    height: 5px;
+}
+.steps > span,
 .bar > span {
     display: block;
     height: 100%;
-    border-radius: 999px;
-    background: var(--accent);
-    transition: width 0.2s ease;
+    border-radius: var(--r-pill);
+    background: var(--acc);
+    transition: width 0.35s var(--ease-out);
 }
-.steps {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-dim);
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-}
-.step {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.step .dot {
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    display: inline-grid;
-    place-items: center;
-    background: var(--track);
-    color: var(--text-dim);
+/* The step rail's caption: "Step 2 of 4 · Map columns". Mono, because it is an
+   eyebrow, and it is the only place the step's name is written now. */
+.slab {
+    margin-top: 6px;
+    font-family: var(--mono);
     font-size: 10.5px;
-}
-.step.active .dot {
-    background: var(--accent);
-    color: var(--bg);
-}
-.step.active {
-    color: var(--text);
-}
-.step.done .dot {
-    background: color-mix(in srgb, var(--accent) 30%, var(--track));
-    color: var(--text);
-}
-.step-sep {
-    color: var(--panel-border);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    font-variant-numeric: tabular-nums;
 }
