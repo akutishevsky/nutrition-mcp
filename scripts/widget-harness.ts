@@ -20,6 +20,9 @@
 //   ?alcohol=off        tracking OFF for the MACRO widgets too — every
 //                       alcohol_g and drink_unit nulled, so you can see the
 //                       row disappear instead of taking the test's word
+//   ?caffeine=none      nobody ever logged caffeine (a DATA state, not an
+//                       opt-in: there is no caffeine_tracking_enabled) — the
+//                       default for most accounts, and previously unseeable
 //
 // The canned tool result each widget is handed is checked against that tool's
 // REAL outputSchema before the server starts (assertFixturesMatchSchemas): a
@@ -448,26 +451,52 @@ function droppedKeys(
     return out;
 }
 
-// Everything the server nulls for a user who never opted in, applied to a built
-// fixture: `alcohol_g` wherever it appears (totals, per-day rows, goals, meal
-// breakdowns) and `drink_unit` alongside it. Written as a deep walk rather than
-// a per-widget edit precisely because the point is to prove NOTHING carries an
-// alcohol figure — a hand-listed version would null the fields someone
-// remembered and leave the one that leaks.
-function stripAlcohol<T>(value: T): T {
-    if (Array.isArray(value)) return value.map(stripAlcohol) as unknown as T;
+// Blank a metric out of a built fixture, exactly as the server would: the named
+// fields wherever they appear — totals, per-day rows, goals, meal breakdowns —
+// as a deep WALK rather than a per-widget edit, because the point is to prove
+// NOTHING carries a figure and a hand-listed version nulls the fields someone
+// remembered.
+//
+// `recordedDays` is the one place a null is wrong. `recorded_days` counts DAYS,
+// not milligrams, and the two metrics differ there: the server nulls
+// recorded_days.alcohol_g for a user who opted out (there is nothing to count),
+// but caffeine's is a plain count that reads 0 when nobody logged any. Passing
+// it in keeps that difference where it belongs — in the caller that knows which
+// metric it is blanking — instead of hardcoding one metric's rule in the walk.
+function blankMetric<T>(
+    value: T,
+    keys: readonly string[],
+    recordedDays: number | null,
+    parent = "",
+): T {
+    if (Array.isArray(value))
+        return value.map((v) =>
+            blankMetric(v, keys, recordedDays, parent),
+        ) as unknown as T;
     if (value && typeof value === "object") {
         const out: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(value)) {
-            out[k] =
-                k === "alcohol_g" || k === "drink_unit"
-                    ? null
-                    : stripAlcohol(v);
+            out[k] = keys.includes(k)
+                ? parent === "recorded_days"
+                    ? recordedDays
+                    : null
+                : blankMetric(v, keys, recordedDays, k);
         }
         return out as T;
     }
     return value;
 }
+
+// The two states worth being able to LOOK at, and they are not the same kind of
+// state. Alcohol's is a PREFERENCE — the user opted out, and the server nulls
+// every alcohol field including the drink unit. Caffeine's is DATA — there is
+// deliberately no caffeine_tracking_enabled anywhere on the tool surface (see
+// the contract test in src/mcp.test.ts), so a null means nobody ever logged
+// any, which is the ordinary state for most accounts rather than an opt-out.
+const BLANKED = {
+    alcohol: { keys: ["alcohol_g", "drink_unit"], recordedDays: null },
+    caffeine: { keys: ["caffeine_mg"], recordedDays: 0 },
+} as const;
 
 // Fail loudly at startup rather than serving a fixture that exercises fallback
 // paths. Every drink_unit branch is checked, because the fixtures differ by it.
@@ -475,13 +504,21 @@ function assertFixturesMatchSchemas(): void {
     const schemas = collectOutputSchemas();
     const problems: string[] = [];
     for (const drinkUnit of [null, "us", "uk"] as const)
-        for (const stripped of [false, true]) {
-            // `?alcohol=off` serves the stripped variant, so it is a fixture like
-            // any other and gets the same check — otherwise the one payload whose
-            // whole job is to prove a field is absent could go schema-invalid
-            // without anything saying so.
+        for (const [blankLabel, blank] of [
+            ["", null],
+            ["alcohol=off", BLANKED.alcohol],
+            ["caffeine=none", BLANKED.caffeine],
+        ] as const) {
+            // The `?alcohol=off` / `?caffeine=none` payloads are fixtures like
+            // any other and get the same check — otherwise the two whose whole
+            // job is to prove a field is ABSENT could go schema-invalid without
+            // anything saying so. `recorded_days` is why that matters
+            // concretely: it counts days, so caffeine blanks to 0 there and a
+            // null would not parse.
             const built = buildResults(drinkUnit, drinkUnit ?? "us");
-            const results = stripped ? stripAlcohol(built) : built;
+            const results = blank
+                ? blankMetric(built, blank.keys, blank.recordedDays)
+                : built;
             for (const [widget, toolName] of Object.entries(FIXTURE_TOOL)) {
                 const schema = schemas.get(toolName);
                 if (!schema) {
@@ -505,7 +542,7 @@ function assertFixturesMatchSchemas(): void {
                     }
                 } catch (err) {
                     problems.push(
-                        `${widget} (drink_unit=${drinkUnit}${stripped ? ", alcohol=off" : ""}) fails ${toolName}'s outputSchema:\n    ${String(
+                        `${widget} (drink_unit=${drinkUnit}${blankLabel ? ", " + blankLabel : ""}) fails ${toolName}'s outputSchema:\n    ${String(
                             err instanceof Error ? err.message : err,
                         )
                             .split("\n")
@@ -555,12 +592,26 @@ function hostPage(widget: string, params: URLSearchParams): string {
     // one display rule that is a privacy promise, and it was the one you could
     // not see working.
     const alcoholOff = params.get("alcohol") === "off";
+    // Caffeine's equivalent, and the DEFAULT state for anyone who has never
+    // logged a coffee — which made it the more common of the two to be unable
+    // to see.
+    const caffeineNone = params.get("caffeine") === "none";
 
     // Per-widget canned tool results, built and schema-checked at startup.
     // See buildResults() / assertFixturesMatchSchemas() at module level.
-    const RESULTS = alcoholOff
-        ? stripAlcohol(buildResults(drinkUnit, macroDrinkUnit))
-        : buildResults(drinkUnit, macroDrinkUnit);
+    let RESULTS = buildResults(drinkUnit, macroDrinkUnit);
+    if (alcoholOff)
+        RESULTS = blankMetric(
+            RESULTS,
+            BLANKED.alcohol.keys,
+            BLANKED.alcohol.recordedDays,
+        );
+    if (caffeineNone)
+        RESULTS = blankMetric(
+            RESULTS,
+            BLANKED.caffeine.keys,
+            BLANKED.caffeine.recordedDays,
+        );
     // Probe and gallery paint their own UI; anything non-null will do.
     const toolResult = RESULTS[widget] ?? { probe: true };
 

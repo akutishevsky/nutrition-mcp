@@ -878,6 +878,28 @@ test("caffeine never recorded renders nothing; a recorded 0 stays", () => {
         macrosApi.macroPanel({ ...VALS, caffeine_mg: null }, GOALS),
     ).not.toContain("Caffeine");
     expect(macrosApi.macroPanel(VALS, GOALS)).toContain("Caffeine");
+    // The TIERED strip too — same reason as alcohol's: one `metricShown`
+    // decides both, but the tiered path deals the limits into a rail of their
+    // own, and this gate is the whole of issue #78. Unlike alcohol's, this one
+    // guards a DATA state rather than a preference: there is deliberately no
+    // caffeine_tracking_enabled anywhere on the tool surface (pinned in
+    // src/mcp.test.ts), so a null means nobody ever logged any — the ordinary
+    // state for most accounts, not an opt-out.
+    const tiered = macrosApi.macroPanel(
+        { ...VALS, caffeine_mg: null },
+        GOALS,
+        undefined,
+        MEALS,
+        { tiers: true },
+    );
+    expect(tiered).not.toContain("c-caf");
+    expect(tiered).not.toContain("Caffeine");
+    // ...while the metrics either side of it on that rail are untouched.
+    expect(tiered).toContain("c-sug");
+    expect(tiered).toContain("c-fib");
+    expect(
+        macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, { tiers: true }),
+    ).toContain("c-caf");
 });
 
 test("caffeine is milligrams alone — the drink gloss is alcohol's only", () => {
