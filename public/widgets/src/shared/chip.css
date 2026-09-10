@@ -64,6 +64,38 @@
 
 /* ---- the tiers ----------------------------------------------------------- */
 
+/* THE CONTROL BOUNDARY, at the 3:1 SC 1.4.11 asks of one. `--line` measured
+   1.27:1 in light and 1.18:1 in dark against the card a tile sits on — and the
+   card is `--panel` and so is the tile, so past the wash's mark they are the
+   same colour and that hairline is the ONLY thing separating them. A quarter of
+   the bar, on the element the whole card asks you to tap.
+
+   REDECLARED AS A TOKEN, not overridden as a property, and that is the whole
+   trick. Eight rules draw a border here — resting, hover, breached, breached +
+   hover, and the same four again on the focus panel — and three of them build
+   it through `color-mix(… var(--line))`. Overriding `border-color` under a
+   descendant selector would need a higher-specificity twin of every one of
+   them, would silently outrank `.chip[aria-expanded]`'s selected `--c` border
+   (which is (0,2,0) and would lose to a (0,3,0) scope), and would leave the
+   next border rule someone adds quietly on the old value. Handing the two
+   elements a different `--line` instead fixes all eight at once, keeps every
+   existing state rule exactly as written, and the breach mix lands on 4.25:1
+   light / 4.02:1 dark for free.
+
+   Declared on `.chip`/`.focus` themselves rather than on `.strip.tiered`, so it
+   reaches control borders ONLY: the tier divider (`.r-limit::before`), the
+   card foot's rule and the `.sec` hairline all read `--line` from an ancestor
+   and stay soft, which is the point of having two tokens (see tokens.css).
+
+   `.tiered` because this is the pilot's scope — it comes off with `opts.tiers`
+   when every widget is moved over, at which point these belong on `.chip` and
+   `.focus` outright. */
+.strip.tiered .chip,
+.strip.tiered .focus {
+    --line: var(--edge);
+    --line2: var(--edge2);
+}
+
 /* THREE LEVELS, NOT ONE PLAIN. The flat rail above gives every metric after the
    hero the same tile at the same weight, so a card reads as one big number and
    then eight equal ones: sugar shouts as loudly as protein, and water — which

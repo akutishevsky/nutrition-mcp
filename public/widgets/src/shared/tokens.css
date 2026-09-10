@@ -29,6 +29,26 @@
     --ink2: #5b6270;
     --ink3: #646b78; /* AA-corrected; NOT the design file's #9399a5 */
 
+    /* CONTROL BOUNDARIES vs structural hairlines — two jobs, two tokens.
+
+       WCAG 2.2 SC 1.4.11 asks 3:1 of "visual information required to identify
+       user interface components", and a tile's border is exactly that: the card
+       is --panel and the tile is ALSO --panel, so past the wash's mark they are
+       the same colour and a hairline is the only thing separating them. At
+       --line that hairline measured 1.27:1 in light and 1.18:1 in dark — a
+       quarter of the bar, and the reason a rail of tiles read as floating text.
+
+       --line stays soft, because a divider, a table rule and the card's own
+       edge identify no component and the SC does not reach them; making those
+       3:1 turns Dawn into a wireframe. --edge is only for something you can
+       press. --edge2 is its hover step, at ~4:1.
+
+       Measured against --panel: --edge 2.99 light / 2.99 dark; --edge2 4.05 /
+       4.05. Both keep --line's slight blue cast rather than going neutral grey,
+       so the card does not warm up as it gains definition. */
+    --edge: #949599;
+    --edge2: #7e7e81;
+
     /* Hairlines */
     --line: #e3e4ea;
     --line2: #d2d4dd;
@@ -109,6 +129,8 @@
         --ink: #f2f3f6;
         --ink2: #a3a9b6;
         --ink3: #8b92a0;
+        --edge: #62656d;
+        --edge2: #777a81;
         --line: #232833;
         --line2: #2f3542;
         --acc: #4ade80;
@@ -144,6 +166,8 @@
     --ink: #101318;
     --ink2: #5b6270;
     --ink3: #646b78;
+    --edge: #949599;
+    --edge2: #7e7e81;
     --line: #e3e4ea;
     --line2: #d2d4dd;
     --acc: #15803d;
@@ -175,6 +199,8 @@
     --ink: #f2f3f6;
     --ink2: #a3a9b6;
     --ink3: #8b92a0;
+    --edge: #62656d;
+    --edge2: #777a81;
     --line: #232833;
     --line2: #2f3542;
     --acc: #4ade80;

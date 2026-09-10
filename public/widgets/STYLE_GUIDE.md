@@ -148,23 +148,58 @@ consumers are notice icons, which are graphics needing 3:1, so nothing lost by i
 
 ### Where each token is used
 
-| token                                                   | role                                                                                                                                         |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--bg`                                                  | the page ground behind the card                                                                                                              |
-| `--bg2`                                                 | every **recessed** surface: `.more`, `.drawer`, `.seg` track, `.chip.static`, `.tbl thead`, `.tmore`, `.hsub.mute`                           |
-| `--panel`                                               | every **raised** surface: `.card`, `.chip`, `.input`/`.select`/`.btn`, the `.seg` thumb, the `.chalo` chart halo                             |
-| `--ink` / `--ink2` / `--ink3`                           | primary text / secondary (`.csub`, `.chip .k`, `.more`) / captions and eyebrows (`.cmeta`, `.hlab`, `.dcap`, `.cfoot`, `.hint`)              |
-| `--line` / `--line2`                                    | hairlines (card border, `.sec`, chip border, table rules) / the one step darker, for hover borders and dashed edges (`.drop`, `.chip.ghost`) |
-| `--acc`                                                 | the brand green: every `:focus-visible` outline, `.btn-primary`'s fill, the `.steps`/`.bar` fill                                             |
-| `--acc-text` / `--acc-ink` / `--acc-soft`               | accent **text on a tint** (`.hsub`, `.pill-ok`) / text **on** the accent fill / the tint itself                                              |
-| `--track`                                               | the unfilled part of anything that fills: the gauge's `.gt`, `.steps`/`.bar`, `.pill-dim`                                                    |
-| `--cal --pro --car --fat --wat --fib --sug --caf --alc` | the data series, reached only through a `.c-*` role class (§2)                                                                               |
-| `--over` / `--warn`                                     | **signals, never series** — past a ceiling, and "worth a look". Neither gets a `.c-*` class                                                  |
-| `--shadow` / `--seg-shadow`                             | the card's elevation / the segmented-control thumb's                                                                                         |
-| `--ease-out`                                            | one easing curve for every transition and keyframe in the system                                                                             |
-| `--r-card` / `--r-in` / `--r-pill`                      | 20px card, 14px inner block, 999px pill                                                                                                      |
-| `--font` / `--mono`                                     | the two system stacks                                                                                                                        |
-| `color-scheme`                                          | not a custom property, but it belongs with the theme: without it native controls and scrollbars paint light OS chrome inside a dark widget   |
+| token                                                   | role                                                                                                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--bg`                                                  | the page ground behind the card                                                                                                            |
+| `--bg2`                                                 | every **recessed** surface: `.more`, `.drawer`, `.seg` track, `.chip.static`, `.tbl thead`, `.tmore`, `.hsub.mute`                         |
+| `--panel`                                               | every **raised** surface: `.card`, `.chip`, `.input`/`.select`/`.btn`, the `.seg` thumb, the `.chalo` chart halo                           |
+| `--ink` / `--ink2` / `--ink3`                           | primary text / secondary (`.csub`, `.chip .k`, `.more`) / captions and eyebrows (`.cmeta`, `.hlab`, `.dcap`, `.cfoot`, `.hint`)            |
+| `--line` / `--line2`                                    | **structural** hairlines (card border, `.sec`, dividers, table rules) / one step darker, for dashed edges (`.drop`, `.chip.ghost`)         |
+| `--edge` / `--edge2`                                    | **control** boundaries — anything you can press — at 3:1 and its ~4:1 hover step. See below: `--line` is not strong enough to be one       |
+| `--acc`                                                 | the brand green: every `:focus-visible` outline, `.btn-primary`'s fill, the `.steps`/`.bar` fill                                           |
+| `--acc-text` / `--acc-ink` / `--acc-soft`               | accent **text on a tint** (`.hsub`, `.pill-ok`) / text **on** the accent fill / the tint itself                                            |
+| `--track`                                               | the unfilled part of anything that fills: the gauge's `.gt`, `.steps`/`.bar`, `.pill-dim`                                                  |
+| `--cal --pro --car --fat --wat --fib --sug --caf --alc` | the data series, reached only through a `.c-*` role class (§2)                                                                             |
+| `--over` / `--warn`                                     | **signals, never series** — past a ceiling, and "worth a look". Neither gets a `.c-*` class                                                |
+| `--shadow` / `--seg-shadow`                             | the card's elevation / the segmented-control thumb's                                                                                       |
+| `--ease-out`                                            | one easing curve for every transition and keyframe in the system                                                                           |
+| `--r-card` / `--r-in` / `--r-pill`                      | 20px card, 14px inner block, 999px pill                                                                                                    |
+| `--font` / `--mono`                                     | the two system stacks                                                                                                                      |
+| `color-scheme`                                          | not a custom property, but it belongs with the theme: without it native controls and scrollbars paint light OS chrome inside a dark widget |
+
+**`--line` is a divider; `--edge` is a boundary — and conflating them was a real
+contrast failure.** SC 1.4.11 asks 3:1 of "visual information required to identify
+user interface components", and a tile's border is exactly that: the card is
+`--panel` and the tile is _also_ `--panel`, so past the wash's mark they are the
+same colour and the hairline is the only thing separating them. On `--line` that
+measured **1.27:1 light / 1.18:1 dark** — a quarter of the bar, on the element the
+whole card asks you to tap, and it read as a rail of floating text rather than of
+tiles.
+
+`--edge` (2.99:1 both themes) carries anything pressable; `--edge2` (4.05:1) is its
+hover step. `--line` deliberately stays soft, because a divider, a table rule and
+the card's own edge identify no component and the SC does not reach them — taking
+_those_ to 3:1 turns Dawn into a wireframe. Both keep `--line`'s slight blue cast
+rather than going neutral grey, so the card gains definition without warming up.
+
+**It is applied by redeclaring the token, not by overriding `border-color`.** Eight
+rules draw a control border (resting, hover, breached, breached + hover — each on
+both `.chip` and `.focus`), three of them through `color-mix(… var(--line))`.
+`chip.css` hands `.chip` and `.focus` a different `--line`/`--line2`, so all eight
+move at once, every existing state rule stays exactly as written, and the breach
+mix lands on 4.25:1 / 4.02:1 for free. Overriding the property under a descendant
+selector would instead need a higher-specificity twin of each rule, and would
+silently outrank `.chip[aria-expanded]`'s selected `--c` border at (0,2,0).
+
+**Still open, and a palette question rather than a widget one:** `--bg2` on
+`--panel` — the recessed ground under `.chip.static` and the drawer — measures
+**1.16:1 light and 1.05:1 dark**. In dark that is no visible difference at all, so
+"bordered pill = control, recessed = data" is currently carried by nothing there.
+It cannot be fixed by darkening `--bg2`: `--panel` (`#161a22`) is close enough to
+black that _any_ darker surface tops out at 1.21:1 against it. The options are to
+lighten `--panel`, to let a recessed surface read lighter than the panel in dark
+(the usual dark-UI elevation convention, inverted from Dawn's), or to give
+recessed surfaces their own hairline.
 
 Two values worth knowing the reason for:
 

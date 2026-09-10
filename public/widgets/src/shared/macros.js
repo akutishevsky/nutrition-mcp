@@ -1042,7 +1042,7 @@ function macroPanel(vals, goal, wording, meals, opts) {
         ? tieredRails.join("") + drawer + water
         : railOf("", macros.concat(waters, limits)) + drawer;
     return `
-      <div class="strip${ctx.divided ? " sec" : ""}"${interactive ? " data-macro-panel" : ""}>
+      <div class="strip${ctx.tiers ? " tiered" : ""}${ctx.divided ? " sec" : ""}"${interactive ? " data-macro-panel" : ""}>
         ${focusPanel(cal, ctx)}
         ${body}
         ${foot}
