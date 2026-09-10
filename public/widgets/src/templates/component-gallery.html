@@ -2,10 +2,21 @@
 <!--
   Component gallery — DEV ONLY.
 
-  Every shared component on one page so the light/dark and narrow-width passes
-  that STYLE_GUIDE.md requires can actually be done. Deliberately registered as
-  a WIDGET_TEMPLATES entry but with NO ui:// resource and NO tool, so it is
-  assembled and covered by src/widgets.test.ts yet unreachable by any client.
+  Every shared primitive on one page, in every state, so the light/dark and
+  320px passes STYLE_GUIDE.md requires can actually be done. Registered in
+  WIDGET_TEMPLATES so it is assembled and covered by src/widgets.test.ts, but
+  with NO ui:// resource and NO tool, so no client can reach it.
+
+  A primitive that is not on this page cannot be reviewed in dark mode or at a
+  phone width, so ADDING A PRIMITIVE INCLUDES ADDING IT HERE.
+
+  Every specimen that has an emitter is emitted by the real shared code —
+  macroPanel / macroChip / macroLimit / waterChip / focusPanel /
+  macroDetailBody from shared/macros.js, chPoints / chPath / chY from
+  shared/svg.js, icon() from shared/icon.js. Hand-written specimens stop
+  tracking the code they are supposed to be reviewing the moment it changes;
+  only the primitives with no emitter at all (.more, .seg, the form controls,
+  the table) are written out here.
 
   View it with:  bun run harness   ->  http://localhost:8787/host?widget=component-gallery
 -->
@@ -19,45 +30,102 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/seg.css@*/
+            /*@include shared/chip.css@*/
+
+            /*@include shared/chart.css@*/
 
             /*@include shared/form.css@*/
 
             /*@include shared/table.css@*/
 
-            /*@include shared/trend.css@*/
-
-            /*@include shared/ring.css@*/
-
-            /*@include shared/macros.css@*/
-
+            /* Gallery scaffolding — dev-only page chrome, deliberately unlike
+               any widget surface so a shared rule can never be reviewed
+               against gallery styling by mistake. Nothing below is a
+               primitive; every primitive on this page comes from the partials
+               above. */
             .gal {
-                padding: 16px;
                 display: grid;
-                /* minmax(0, 1fr), not the implicit auto column: an auto column is
-                   sized by its widest content, so the nowrap preview table would
-                   stretch every sibling card and scroll the page sideways. */
+                /* minmax(0, 1fr), not the implicit auto column: an auto column
+                   is sized by its widest content, so the nowrap preview table
+                   would stretch every sibling and scroll the page sideways. */
                 grid-template-columns: minmax(0, 1fr);
-                gap: 18px;
+                gap: 22px;
             }
-            .gal section {
-                padding: 14px;
+            .gsec {
+                min-width: 0;
             }
-            .gal h3 {
+            .gh {
+                margin: 0 0 4px;
+                font-family: var(--mono);
+                font-size: 10.5px;
+                font-weight: 500;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--acc-text);
+            }
+            .gcap {
                 margin: 0 0 10px;
                 font-size: 11.5px;
-                font-weight: 700;
+                line-height: 1.45;
+                color: var(--ink3);
+            }
+            .glab {
+                font-family: var(--mono);
+                font-size: 9.5px;
+                letter-spacing: 0.04em;
                 text-transform: uppercase;
-                letter-spacing: 0.06em;
-                color: var(--accent);
+                color: var(--ink3);
+            }
+            .grow {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .gitem {
+                display: grid;
+                justify-items: start;
+                gap: 5px;
+                min-width: 0;
+            }
+            .ggrid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 12px;
+            }
+            /* 232px is roughly a chat card's inner width on a phone: it forces
+               the rail onto three rows and stretches a 480-unit chart hardest,
+               which is exactly what needs eyeballing. */
+            .gnarrow {
+                width: 232px;
+                max-width: 100%;
+            }
+            .gicons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 14px;
+            }
+            .gicon {
+                display: grid;
+                justify-items: center;
+                align-content: start;
+                gap: 5px;
+                width: 62px;
+            }
+            .gicon .ic {
+                color: var(--ink);
             }
         </style>
     </head>
     <body>
-        <div id="root"></div>
+        <div class="wrap page" id="root"></div>
         <script>
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+
+            /*@include shared/icon.js@*/
+
+            /*@include shared/svg.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -80,9 +148,10 @@
                 );
             }
 
-            /*@include shared/macros.js@*/
-
-            // One day's worth of fixture data for the macro components below.
+            // ---- fixtures --------------------------------------------------
+            // Deliberately mixed: protein under its floor, carbs past one (a
+            // floor passed is not a breach, so no --over), sugar / alcohol /
+            // caffeine past their ceilings (which is), fiber short of its own.
             const GOALS = {
                 calories: 2200,
                 protein_g: 160,
@@ -136,7 +205,7 @@
                     description: "Salmon with quinoa & veg",
                     meal_type: "dinner",
                     date: null,
-                    calories: 650,
+                    calories: 900,
                     protein_g: 56,
                     carbs_g: 77,
                     fat_g: 32,
@@ -159,227 +228,607 @@
                     caffeine_mg: 470,
                 },
             ];
-            const CARBS = MACROS.find((m) => m.key === "carbs_g");
-            const ALCOHOL = MACROS.find((m) => m.key === "alcohol_g");
-            const CAFFEINE = MACROS.find((m) => m.key === "caffeine_mg");
-            // The alcohol line in each of its states, including the two that
-            // are easy to conflate: null (tracking off → nothing renders) and
-            // 0 (a tracked, alcohol-free day → the line stays).
-            const alcoholStates = [
-                ["over the limit", { alcohol_g: 27.7 }, GOALS],
-                ["under the limit", { alcohol_g: 9.9 }, GOALS],
-                ["no limit set", { alcohol_g: 13.9 }, null],
-                ["tracked, zero", { alcohol_g: 0 }, GOALS],
-                [
-                    "tracking off (null → renders nothing)",
-                    { alcohol_g: null },
-                    GOALS,
-                ],
-            ];
-            // The same line without the drink gloss, in milligrams. Caffeine
-            // has no opt-in flag, so the null row is the ONLY thing standing
-            // between a user who has never logged caffeine and a fabricated
-            // "0 mg of 400 mg" — worth being able to look at.
-            const caffeineStates = [
-                ["over the limit", { caffeine_mg: 470 }, GOALS],
-                ["under the limit", { caffeine_mg: 185 }, GOALS],
-                ["no limit set", { caffeine_mg: 95 }, null],
-                ["recorded, zero", { caffeine_mg: 0 }, GOALS],
-                [
-                    "a limit of 0 mg — a real limit, and any dose is over it",
-                    { caffeine_mg: 95 },
-                    { ...GOALS, caffeine_mg: 0 },
-                ],
-                [
-                    "never recorded (null → renders nothing)",
-                    { caffeine_mg: null },
-                    GOALS,
-                ],
-            ];
+            // Eleven contributing rows, so the drawer's 8-row cap AND its
+            // "+3 more" tail are both visible. Only the four fields a drawer
+            // row reads are filled in; mealList ignores everything else.
+            const MEALS_MANY = [
+                ["Overnight oats with berries", "breakfast", 62],
+                ["Grilled chicken & rice bowl", "lunch", 78],
+                ["Salmon with quinoa & veg", "dinner", 77],
+                ["Banana", "snack", 27],
+                ["Sourdough toast & jam", "breakfast", 44],
+                ["Lentil soup", "lunch", 31],
+                ["Greek yoghurt with honey", "snack", 19],
+                ["Handful of almonds", "snack", 6],
+                ["Orange juice", "snack", 26],
+                ["Dark chocolate, two squares", "snack", 11],
+                ["Double espresso", "snack", 1],
+            ].map(([description, meal_type, carbs_g]) => ({
+                description,
+                meal_type,
+                date: null,
+                carbs_g,
+            }));
 
-            // A limit cell is a grid item; on its own it needs a one-column
-            // grid to sit in. An empty string is the gate having suppressed
-            // the cell, which is itself a state worth seeing.
-            function limitRow(cell) {
-                return cell
-                    ? `<div class="mgrid lim" style="--lc:1;--lcw:1;margin-bottom:12px">${cell}</div>`
-                    : '<div class="hint" style="opacity:.6;margin-bottom:20px">(nothing)</div>';
+            // A week of every series the strip can select, so the live card's
+            // chart really re-strokes when a chip is tapped.
+            const SERIES = {
+                calories: [2180, 1890, 2320, 1760, 2050, 2440, 1980],
+                protein_g: [152, 131, 168, 118, 145, 173, 148],
+                carbs_g: [244, 198, 265, 186, 221, 279, 231],
+                fat_g: [71, 62, 84, 55, 68, 91, 74],
+                sugar_g: [58.4, 44.1, 71.2, 39.6, 52.8, 79.3, 61.3],
+                alcohol_g: [0, 14, 0, 0, 28, 42, 27.7],
+                caffeine_mg: [320, 180, 410, 95, 265, 520, 470],
+                fiber_g: [26.1, 21.4, 29.8, 18.9, 24.2, 31.5, 24.6],
+                water_ml: [2400, 1900, 2600, 1500, 2200, 2800, 2100],
+            };
+            const CHART_KEYS = Object.keys(SERIES);
+            const FIRST_DAY = "9 Jul";
+            const LAST_DAY = "15 Jul";
+            const WEIGHTS = [82.4, 82.1, 81.9, 82.0, 81.6, 81.4, 81.2];
+            const WEIGHT_TARGET = 78;
+
+            // The size each icon actually ships at, so a path that only breaks
+            // when it is scaled down shows up here. Keyed by name and iterated
+            // from ICONS itself below, so an icon added to the table appears
+            // (at 16px) without anyone remembering to add it here.
+            const ICON_SIZES = {
+                chev: [8, 10],
+                x: [12],
+                check: [16],
+                warn: [16],
+                info: [16],
+                up: [14],
+                down: [14],
+                file: [24],
+                point: [12],
+            };
+
+            // ---- chart specimens -------------------------------------------
+            // Built from shared/svg.js rather than from copied coordinates, so
+            // a change to the geometry shows up on this page.
+            // `filled` is the zero-based/data-scaled distinction the two live
+            // charts make, carried as a parameter rather than inferred from
+            // lo === 0 — weight-trends' floor is a padded minimum that could
+            // in principle be 0 too, and the area is only ever legitimate when
+            // the caller knows the axis starts at zero (see .carea, chart.css).
+            function chartSvg(vals, lo, hi, goal, label, filled) {
+                const pts = chPoints(vals, lo, hi);
+                const last = pts[pts.length - 1];
+                const gy = goal == null ? null : chY(goal, lo, hi).toFixed(1);
+                const goalLine =
+                    gy == null
+                        ? ""
+                        : `<line class="cgoal" x1="${CH_PL}" y1="${gy}" x2="${CH_W - CH_PR}" y2="${gy}"></line>`;
+                const area = filled ? chAreaMarkup(chArea(pts)) : "";
+                return `<svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">${goalLine}${area}<path class="cline" d="${chPath(pts)}"></path><circle class="chalo" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5"></circle><circle class="cdot" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3"></circle></svg>`;
+            }
+            function macroOf(key) {
+                return MACROS.find((m) => m.key === key);
+            }
+            // A nutrient total is zero-based: its distance from zero is the
+            // thing being read.
+            function seriesChart(key) {
+                const m = macroOf(key);
+                const vals = SERIES[key];
+                const hi =
+                    Math.max.apply(null, vals.concat([GOALS[key] || 0, 1])) *
+                    1.15;
+                return chartSvg(
+                    vals,
+                    0,
+                    hi,
+                    GOALS[key],
+                    `${macroLabel(m)} per day`,
+                    true,
+                );
+            }
+            function seriesFoot(key) {
+                const m = macroOf(key);
+                const vals = SERIES[key];
+                const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+                // Same shape the shipping feet use, and for the same reason:
+                // macroAmount()/macroNum() are the ONE place a metric's display
+                // unit is decided, so selecting the water chip here shows
+                // "Water avg 2.1 L · goal 2.5" rather than the millilitres the
+                // payload carries. The gallery is the reference surface — if it
+                // formatted figures its own way it would stop being one, and
+                // this exact divergence is what shipped "2.1 L" on a chip above
+                // "2,100 ml" in the foot.
+                const goal =
+                    GOALS[key] == null
+                        ? ""
+                        : ` · <b>goal</b> ${macroNum(m, GOALS[key])}`;
+                return `<span>${FIRST_DAY}</span><span><b>${esc(macroLabel(m))} avg</b> ${esc(macroAmount(m, avg))}${goal}</span><span>${LAST_DAY}</span>`;
+            }
+            // The case the area fill exists for, and the one that has to be
+            // reviewed whenever the chart changes: a week that barely moves,
+            // sitting just under its goal. Before the fill this drew a nearly
+            // straight line at 80% height with an empty 60% of the box under it
+            // and a dashed goal line ~3 viewBox units above it — two hairlines
+            // the eye could not separate.
+            function flatChart() {
+                const vals = [2030, 2048, 2022, 2041, 2035, 2029, 2045];
+                return chartSvg(
+                    vals,
+                    0,
+                    2200 * 1.15,
+                    2200,
+                    "Calories, near-flat week",
+                    true,
+                );
+            }
+            // Weight is data-scaled instead: a 1 kg move over an 80 kg baseline
+            // is the whole story, and zero-basing it would draw a flat line.
+            function weightChart() {
+                let lo = Math.min.apply(null, WEIGHTS.concat([WEIGHT_TARGET]));
+                let hi = Math.max.apply(null, WEIGHTS.concat([WEIGHT_TARGET]));
+                // A week at one weight would otherwise collapse onto a single
+                // row of pixels.
+                if (hi - lo < 0.2) {
+                    lo -= 1;
+                    hi += 1;
+                }
+                const pad = (hi - lo) * 0.18;
+                return chartSvg(
+                    WEIGHTS,
+                    lo - pad,
+                    hi + pad,
+                    WEIGHT_TARGET,
+                    "Weight over 7 days",
+                    // No area: the floor of this box is a padded minimum, not
+                    // zero, so a fill would draw a quantity nobody has.
+                    false,
+                );
+            }
+            // What the live card hands macroPanel as opts.onSeries: selecting a
+            // chip re-strokes the chart in that metric's colour, closing it
+            // falls back to calories. The wrapper's role class IS the colour
+            // change — nothing here re-parses one — so .cline's stroke
+            // transition cross-fades it.
+            function paintSeries(key, isOpen) {
+                const k = isOpen && SERIES[key] ? key : "calories";
+                const wrap = document.getElementById("g-chart");
+                const foot = document.getElementById("g-foot");
+                if (!wrap || !foot) return;
+                wrap.className = "cwrap " + macroOf(k).color;
+                wrap.innerHTML = seriesChart(k);
+                foot.innerHTML = seriesFoot(k);
             }
 
-            function render() {
+            // ---- page helpers ----------------------------------------------
+            function sect(title, note, body) {
+                return `<section class="gsec"><h2 class="gh">${title}</h2>${note ? `<p class="gcap">${note}</p>` : ""}${body}</section>`;
+            }
+            function spec(label, body) {
+                return `<div class="gitem"><span class="glab">${label}</span>${body}</div>`;
+            }
+            // The open chip is the real emitter's markup with the one attribute
+            // a tap would have flipped. A hand-written open chip would stop
+            // tracking chipMarkup the moment it changed.
+            function opened(html) {
+                return html.replace(
+                    'aria-expanded="false"',
+                    'aria-expanded="true"',
+                );
+            }
+            function moreRow(open, label, value) {
+                return `<button class="more" type="button" aria-expanded="${open}"><span class="dot c-acc"></span>${label}<span class="mv">${value}</span><span class="chev">${icon("chev", 12)}</span></button>`;
+            }
+            // A macroPanel() specimen that is NOT the live strip.
+            //
+            // macroToggle() reads the single __macroCtx and resolves the drawer
+            // by id, so two panels on one page carrying the same ids make one
+            // section's chip open ANOTHER section's drawer — a review surface
+            // that lies about the primitive it exists to review. Every panel
+            // except the live one in "The whole card" therefore gets its ids
+            // suffixed (aria-controls follows, so nothing dangles), which
+            // leaves it a faithful VISUAL specimen and an inert one.
+            function inertPanel(html, suffix) {
+                const box = document.createElement("div");
+                box.innerHTML = html;
+                box.querySelectorAll("[id]").forEach((el) => {
+                    const next = `${el.id}-${suffix}`;
+                    box.querySelectorAll(`[aria-controls="${el.id}"]`).forEach(
+                        (c) => c.setAttribute("aria-controls", next),
+                    );
+                    el.id = next;
+                });
+                return box.innerHTML;
+            }
+
+            function segControl(active) {
+                return `<div class="seg">${[7, 14, 30]
+                    .map(
+                        (d) =>
+                            `<button type="button" aria-pressed="${d === active}">${d}d</button>`,
+                    )
+                    .join("")}</div>`;
+            }
+            function notice(variant, iconName, text) {
+                return `<div class="notice${variant ? " notice-" + variant : ""}">${icon(iconName, 16)}<span>${text}</span></div>`;
+            }
+
+            let __widgetApi = null;
+
+            function render(data) {
+                // Every specimen with an emitter carries translated strings, so
+                // the locale has to be resolved before anything is painted.
+                setLocaleFrom(data, __widgetApi);
+
+                const CAL = macroOf("calories");
+                const PRO = macroOf("protein_g");
+                const SUG = macroOf("sugar_g");
+                const ALC = macroOf("alcohol_g");
+                const WAT = macroOf("water_ml");
+                const CARBS = macroOf("carbs_g");
+
+                // Three contexts, covering the three species of strip: meals +
+                // a chart behind it, nothing behind it, and a day where alcohol
+                // was tracked but none was drunk.
+                const live = macroCtxOf(TOTALS, GOALS, undefined, MEALS, {
+                    drinkUnit: "us",
+                    chartKeys: CHART_KEYS,
+                });
+                const flat = macroCtxOf(TOTALS, GOALS, undefined, null, {
+                    drinkUnit: "us",
+                });
+                const dry = macroCtxOf(
+                    { ...TOTALS, alcohol_g: 0 },
+                    GOALS,
+                    undefined,
+                    null,
+                    { drinkUnit: "us" },
+                );
+                // The fourth species, and the one with no widget of its own on
+                // this page: chartKeys but NO meals, which is trends' whole
+                // rail. macroTappable is true (it drives the chart) while
+                // macroHasDetail is false, so tapAttrs emits aria-pressed
+                // instead of aria-expanded and chipMarkup drops the chevron.
+                const toggles = macroCtxOf(TOTALS, GOALS, undefined, null, {
+                    drinkUnit: "us",
+                    chartKeys: CHART_KEYS,
+                });
+                // macroPanel stashes ONE ctx globally for the delegated toggle
+                // handler, and its drawer and panel have fixed ids — so every
+                // specimen except the live one is built FIRST and made inert,
+                // or a tap on the live strip would read this one's ctx (no
+                // meals) and open an empty drawer.
+                const staticStrip = inertPanel(
+                    macroPanel(TOTALS, GOALS, undefined, null, {
+                        drinkUnit: "us",
+                    }),
+                    "static",
+                );
+                const liveStrip = macroPanel(TOTALS, GOALS, undefined, MEALS, {
+                    drinkUnit: "us",
+                    divided: true,
+                    chartKeys: CHART_KEYS,
+                    onSeries: paintSeries,
+                });
+
+                // The hero is always reviewed on the surface it ships on: its
+                // pill reads --acc-soft and its over state color-mixes against
+                // --panel, neither of which is honest on the page ground.
+                const heroIn = (vals, goal, opts) =>
+                    `<div class="card">${focusPanel(CAL, macroCtxOf(vals, goal, undefined, opts && opts.meals, opts))}</div>`;
+
+                const drawer = (body) =>
+                    `<div class="card"><div class="drawer">${body}</div></div>`;
+
                 document.getElementById("root").innerHTML = `
           <div class="gal">
-            <section class="card">
-              <h3>Buttons</h3>
-              <div class="actions" style="margin-top:0">
-                <button class="btn btn-primary">Import 42 meals</button>
-                <button class="btn">Back</button>
-                <button class="btn btn-danger">Discard</button>
-                <button class="btn btn-sm">Small</button>
-                <button class="btn" disabled>Disabled</button>
-              </div>
-            </section>
 
-            <section class="card">
-              <h3>Fields</h3>
-              <div class="field">
-                <label class="label" for="g-sel">Map column: Calories</label>
-                <select class="select" id="g-sel">
-                  <option>calories</option>
-                  <option>protein_g</option>
-                  <option>(ignore this column)</option>
-                </select>
-              </div>
-              <div class="field">
-                <label class="label" for="g-in">Source app</label>
-                <input class="input" id="g-in" placeholder="myfitnesspal" />
-                <span class="hint">Used to label rows that have no food name.</span>
-              </div>
-              <div class="field">
-                <label class="label" for="g-bad">Expected row count</label>
-                <input class="input invalid" id="g-bad" value="-3" />
-                <span class="field-error">Must be a positive whole number.</span>
-              </div>
-            </section>
+            ${sect(
+                "The whole card",
+                "Header, chart, hairline, hero, ONE rail, the limits' .more row, drawer — the shape every readout widget takes. (This caption claimed a second rail long after macroPanel stopped emitting one and put the limits behind a disclosure instead — the gallery is the review surface, so its own prose has to track the emitter.) This is the page's only LIVE strip: tap a chip to open the drawer and re-stroke the chart, tap it again to close, and use the .more row to reveal the limits. Every other panel below is deliberately inert — see inertPanel.",
+                `<div class="card c-cal">
+                   <span class="glow"></span>
+                   <header class="chead">
+                     <h1 class="ctitle">Nutrition</h1>
+                     <span class="cmeta">${FIRST_DAY}–${LAST_DAY} · 7 days</span>
+                   </header>
+                   <div>
+                     <div class="cwrap c-cal" id="g-chart">${seriesChart("calories")}</div>
+                     <div class="cfoot" id="g-foot">${seriesFoot("calories")}</div>
+                   </div>
+                   ${liveStrip}
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>File drop</h3>
-              <label class="drop">
-                <span class="big">📄</span>
-                <strong>Choose your export file</strong><br />or drag it here
-                <input type="file" class="drop-input" accept=".csv" />
-              </label>
-            </section>
+            ${sect(
+                "Card · header · section",
+                "The header's three slots and the one hairline block. .glow is tinted by the card's own role class; .csub is the only thing allowed to drop to a second row.",
+                `<div class="ggrid">
+                   <div class="card">
+                     <header class="chead"><h1 class="ctitle">Nutrition</h1><span class="cmeta">${FIRST_DAY}–${LAST_DAY} · 7 days</span></header>
+                     <div class="sec"><span class="gcap">A .sec block: one hairline, never a second surface.</span></div>
+                   </div>
+                   <div class="card c-cal">
+                     <span class="glow"></span>
+                     <header class="chead">
+                       <h1 class="ctitle">Meal logged</h1>
+                       <span class="cmeta kcal">+540 kcal</span>
+                       <span class="csub">15 Jul · Сир кисломолочний «Сирна Традиція» (President), 300 г · lunch</span>
+                     </header>
+                   </div>
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Notices</h3>
-              <div class="notice notice-ok"><span>✓</span><span>All 42 rows mapped cleanly.</span></div>
-              <div class="notice notice-warn"><span>!</span><span>12 rows had a date but no time; they will be logged at local noon.</span></div>
-              <div class="notice notice-error"><span>✕</span><span>expected_row_count is 40 but 42 rows were parsed.</span></div>
-              <div class="notice" style="margin-bottom:0"><span>i</span><span>Neutral note on the same surface.</span></div>
-            </section>
+            ${sect(
+                "Empty states",
+                "Bare .empty is its own surface — bridge.js paints its connect-failure card with exactly these two class names. Nested inside a card it drops the surface, because there are never two.",
+                `<div class="ggrid">
+                   <div class="empty"><div class="big">⚠</div><div>${esc(T.chrome.noHost)}</div></div>
+                   <div class="card">
+                     <header class="chead"><h1 class="ctitle">Trends</h1></header>
+                     <div class="empty"><div class="big">📈</div><div>Nothing logged in this range yet.</div></div>
+                   </div>
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Progress &amp; steps</h3>
-              <div class="steps">
-                <span class="step done"><span class="dot">1</span>File</span><span class="step-sep">→</span>
-                <span class="step active"><span class="dot">2</span>Map columns</span><span class="step-sep">→</span>
-                <span class="step"><span class="dot">3</span>Preview</span><span class="step-sep">→</span>
-                <span class="step"><span class="dot">4</span>Import</span>
-              </div>
-              <div class="bar"><span style="width:62%"></span></div>
-              <div class="hint" style="margin-top:6px">Chunk 5 of 8 — 250 of 400 rows</div>
-            </section>
+            ${sect(
+                "Chip — every state",
+                "Emitted by macroChip / macroLimit / waterChip. Hover and :focus-visible are live: point at one, or Tab through them. The bordered pill is a control, the recessed one is data — that contrast is the whole affordance. Two CONTROL species share that pill and must stay tellable apart: a disclosure carries the chevron, aria-expanded and aria-controls; a chart toggle carries neither chevron nor aria-expanded, only aria-pressed, because it opens nothing. Over a ceiling keeps the same dot and the same shape — a rail of metrics reports, it does not warn — so the state is hue alone on a closed chip (value, underbar, hairline), with the wording in the visually-hidden .dcap and in the drawer.",
+                `<div class="grow">
+                   ${spec("interactive · disclosure", macroChip(PRO, live, true))}
+                   ${spec("open", opened(macroChip(PRO, live, true)))}
+                   ${spec("toggle · chart series only (aria-pressed, no chevron)", macroChip(PRO, toggles, true))}
+                   ${spec("toggle · pressed", macroChip(PRO, toggles, true).replace('aria-pressed="false"', 'aria-pressed="true"'))}
+                   ${spec("over a ceiling · hue only, same dot", macroLimit(SUG, live, true))}
+                   ${spec("over + open", opened(macroLimit(SUG, live, true)))}
+                   ${spec("over · static (the same cue with no control)", macroLimit(SUG, flat, false))}
+                   ${spec("static", macroChip(PRO, flat, false))}
+                   ${spec("static · none logged", macroLimit(ALC, dry, false))}
+                   ${spec("water (never a control)", waterChip(WAT, live, false))}
+                   ${spec("tap hint (card foot)", '<span id="g-ghost"></span>')}
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Segmented control — full and pill scale</h3>
-              <div class="seg" style="margin-bottom:12px">
-                <button class="seg-btn active">7d</button>
-                <button class="seg-btn">14d</button>
-                <button class="seg-btn">30d</button>
-              </div>
-              <div class="seg seg-sm">
-                <button class="seg-btn active">7</button>
-                <button class="seg-btn">14</button>
-                <button class="seg-btn">30</button>
-              </div>
-            </section>
+            ${sect(
+                "Rail — the metric grid",
+                "macroPanel puts EVERY metric on one rail — the limits are not tucked behind anything any more. Equal columns, two of them below 480px and four above, so eight metrics are always a whole rectangle rather than a half-empty last row. Each tile is its own gauge: the background fills from the left to the metric's share of its goal, the way the site header's reading-progress wash does. Stressed here in a 232px column, where two columns get 106px each.",
+                `<div class="card gnarrow">${inertPanel(
+                    macroPanel(TOTALS, GOALS, undefined, null, {
+                        drinkUnit: "us",
+                    }),
+                    "narrow",
+                )}</div>`,
+            )}
 
-            <section class="card">
-              <h3>Panel shell — the header line every widget opens with</h3>
-              <div class="panel">
-                <div class="phead">
-                  <div class="ptitle">Meal logged</div>
-                  <div class="psub">Сир кисломолочний "Сирна Традиція" (President), 300 г · lunch</div>
-                  <div class="pmeta kcal">+195 kcal</div>
-                </div>
-                <div class="chart psec">
-                  <div class="chead"><span class="ctitle">Calories / day</span><span class="cmeta">avg 2,035 · goal 2,200</span></div>
-                  <svg viewBox="0 0 480 54" role="img" aria-label="Calories per day">
-                    <line class="axis" x1="8" y1="48" x2="472" y2="48"></line>
-                    <line class="goalline" x1="8" y1="14" x2="472" y2="14"></line>
-                    <path d="M8 48 L8 16 L240 30 L472 22 L472 48 Z" fill="var(--calories)" opacity="0.16"></path>
-                    <path d="M8 16 L240 30 L472 22" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
-                  </svg>
-                </div>
-              </div>
-            </section>
+            ${sect(
+                "Hero — the calorie tile",
+                "The same component as a metric tile, one size up: it carries `chip` in its class list, so wash, border, radius, chevron slot and every state rule arrive already correct. Row two adds the delta pill, which is what closes the empty middle the old donut-plus-pill row had.",
+                `<div class="ggrid">
+                   ${spec("0% of goal", heroIn({ ...TOTALS, calories: 0 }, GOALS))}
+                   ${spec("62% of goal", heroIn({ ...TOTALS, calories: 1364 }, GOALS))}
+                   ${spec("over goal", heroIn({ ...TOTALS, calories: 2480 }, GOALS))}
+                   ${spec("no goal set", heroIn(TOTALS, null))}
+                                      ${spec("interactive (a button)", heroIn(TOTALS, GOALS, { meals: MEALS }))}
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Macro strip — calorie ring, macro bars, limits row, water line</h3>
-              <div class="panel">${macroPanel(TOTALS, GOALS, undefined, MEALS)}</div>
-            </section>
+            ${sect(
+                ".more row",
+                "The section-sized disclosure: goal-progress's weight block, and the drawer's own overflow line. The chevron rotates off aria-expanded, nothing else moves.",
+                `<div class="card">
+                   ${moreRow(false, "Weight", "78.4 → 75.0 kg")}
+                   <div style="height:8px"></div>
+                   ${moreRow(true, "Weight", "78.4 → 75.0 kg")}
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Carbs breakdown (shown open — tap carbs above for the real thing)</h3>
-              <div class="panel"><div class="macro-detail">${macroDetailBody(
-                  CARBS,
-                  macroCtxOf(TOTALS, GOALS, undefined, MEALS),
-              )}</div></div>
-            </section>
+            ${sect(
+                "Drawer",
+                "One per card, one open at a time, built by macroDetailBody. The caption is the exact goal line the old always-visible bars used to carry.",
+                `<div class="ggrid">
+                   ${spec("a list", drawer(macroDetailBody(CARBS, live)))}
+                   ${spec("over a ceiling", drawer(macroDetailBody(SUG, live)))}
+                   ${spec(
+                       "capped, with a tail",
+                       drawer(
+                           macroDetailBody(
+                               CARBS,
+                               macroCtxOf(
+                                   TOTALS,
+                                   GOALS,
+                                   undefined,
+                                   MEALS_MANY,
+                                   { drinkUnit: "us" },
+                               ),
+                           ),
+                       ),
+                   )}
+                   ${spec("nothing behind it", drawer(macroDetailBody(WAT, live)))}
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Alcohol limit cell — every state</h3>
-              ${alcoholStates
-                  .map(
-                      ([caption, vals, goal]) =>
-                          `<div class="hint" style="margin-bottom:6px">${caption}</div>${limitRow(
-                              macroLimit(ALCOHOL, macroCtxOf(vals, goal)),
-                          )}`,
-                  )
-                  .join("")}
-            </section>
+            ${sect(
+                "Charts",
+                'All three instances, each in a 232px column — the width where preserveAspectRatio="none" stretches hardest, so a missing vector-effect shows as a thin vertical segment. The last-point dot is the only marker. A zero-based chart carries the area fill and a data-scaled one must not: compare the first two.',
+                `<div class="grow">
+                   ${spec(
+                       "zero-based · goal line · area",
+                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${seriesChart("calories")}</div><div class="cfoot">${seriesFoot("calories")}</div></div>`,
+                   )}
+                   ${spec(
+                       "data-scaled · dashed target · NO area",
+                       `<div class="card gnarrow c-acc"><div class="cwrap c-acc">${weightChart()}</div><div class="cfoot"><span>7 weigh-ins</span><span><b>target</b> 78.0 kg</span></div></div>`,
+                   )}
+                   ${spec(
+                       "empty range",
+                       `<div class="card gnarrow"><div class="cempty">No weigh-ins in this range.</div><div class="cfoot"><span>—</span><span><b>target</b> 78.0 kg</span></div></div>`,
+                   )}
+                   ${spec(
+                       "near-flat · goal just above",
+                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${flatChart()}</div><div class="cfoot"><span>${FIRST_DAY}</span><span><b>avg</b> 2,035 · <b>goal</b> 2,200</span><span>${LAST_DAY}</span></div></div>`,
+                   )}
+                   ${spec(
+                       "one reading · nothing to fill",
+                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${chartSvg([2035], 0, 2530, 2200, "Calories, one day", true)}</div><div class="cfoot"><span>${LAST_DAY}</span><span><b>avg</b> 2,035</span><span>${LAST_DAY}</span></div></div>`,
+                   )}
+                   ${spec(
+                       "same chart, full width",
+                       `<div class="card" style="width:100%"><div class="cwrap c-pro">${seriesChart("protein_g")}</div><div class="cfoot">${seriesFoot("protein_g")}</div></div>`,
+                   )}
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Caffeine limit cell — every state</h3>
-              ${caffeineStates
-                  .map(
-                      ([caption, vals, goal]) =>
-                          `<div class="hint" style="margin-bottom:6px">${caption}</div>${limitRow(
-                              macroLimit(CAFFEINE, macroCtxOf(vals, goal)),
-                          )}`,
-                  )
-                  .join("")}
-            </section>
+            ${sect(
+                "Segmented control",
+                "Dawn's thumb formula: --bg2 track, --panel thumb, --seg-shadow. It takes the header's meta slot, which grows that row from 26px to 30px.",
+                `<div class="card">
+                   <header class="chead"><h1 class="ctitle">Trends</h1>${segControl(14)}</header>
+                 </div>`,
+            )}
 
-            <section class="card">
-              <h3>Preview table</h3>
-              <div class="tscroll">
-                <table class="tbl">
-                  <thead><tr>
-                    <th>Line</th><th class="wide">Description</th><th>When</th>
-                    <th>Meal</th><th class="num">kcal</th><th>Status</th>
-                  </tr></thead>
-                  <tbody>
-                    <tr><td class="dim">2</td><td class="wide">Oatmeal (1 cup dry) with banana</td>
-                        <td>2026-01-15 08:30</td><td>breakfast</td><td class="num">300</td>
-                        <td><span class="pill pill-ok">create</span></td></tr>
-                    <tr><td class="dim">3</td><td class="wide">Rice, cooked</td>
-                        <td>2026-01-15 13:00</td><td>lunch</td><td class="num">400</td>
-                        <td><span class="pill pill-dim">duplicate</span></td></tr>
-                    <tr class="muted"><td class="dim">4</td><td class="wide">Breakfast (imported from MyFitnessPal)</td>
-                        <td>2026-01-16 12:00</td><td>breakfast</td><td class="num">250</td>
-                        <td><span class="pill pill-warn">noon</span></td></tr>
-                    <tr class="bad"><td class="dim">5</td><td class="wide">Soup</td>
-                        <td class="dim">2026-13-01</td><td class="dim">—</td><td class="num dim">—</td>
-                        <td><span class="pill pill-bad">error</span></td></tr>
-                  </tbody>
-                </table>
-                <div class="tmore">Showing 4 of 412 rows</div>
-              </div>
-            </section>
+            ${sect(
+                "Macro strip — static",
+                "The same macroPanel with no meals and no chartKeys behind it: every chip is a span, there is no chevron, no tap hint and no drawer. One code path, two species.",
+                `<div class="card">${staticStrip}</div>`,
+            )}
+
+            ${sect(
+                "Import progress",
+                "Two tracks, one fill: .steps is where you are in the flow (3px), .bar is a batch actually running (5px).",
+                `<div class="card">
+                   <div class="steps"><span style="width:50%"></span></div>
+                   <div class="slab">${esc(tpl(T.importMeals.stepOf, { n: 2, total: 4, label: T.importMeals.stepMap }))}</div>
+                   <div class="sec">
+                     <div class="bar"><span style="width:62%"></span></div>
+                     <div class="hint" style="margin-top:6px">Chunk 5 of 8 — 250 of 400 rows</div>
+                   </div>
+                 </div>`,
+            )}
+
+            ${sect(
+                "Fields & buttons",
+                "38px pills, not the site's 48px: the map step stacks sixteen of them inside a chat card. Focus is a border plus a 3px ring, because an outline cannot follow a 999px radius.",
+                `<div class="card">
+                   <div class="field">
+                     <label class="label" for="g-sel">Map column: Calories</label>
+                     <select class="select" id="g-sel">
+                       <option>calories</option>
+                       <option>protein_g</option>
+                       <option>(ignore this column)</option>
+                     </select>
+                   </div>
+                   <div class="field">
+                     <label class="label" for="g-in">Source app</label>
+                     <input class="input" id="g-in" placeholder="myfitnesspal" />
+                     <span class="hint">Used to label rows that have no food name.</span>
+                   </div>
+                   <div class="field">
+                     <label class="label" for="g-bad">Expected row count</label>
+                     <input class="input invalid" id="g-bad" value="-3" />
+                     <span class="field-error">Must be a positive whole number.</span>
+                   </div>
+                   <div class="actions">
+                     <button class="btn btn-primary" type="button">Import 42 meals</button>
+                     <button class="btn" type="button">Back</button>
+                     <button class="btn btn-danger" type="button">Discard</button>
+                     <button class="btn btn-sm" type="button">Small</button>
+                     <button class="btn" type="button" disabled>Disabled</button>
+                   </div>
+                 </div>`,
+            )}
+
+            ${sect(
+                "Drop zone",
+                "The .over state is what a file being dragged across it looks like; it cannot be produced by hovering, so it is shown beside the resting one.",
+                `<div class="ggrid">
+                   ${spec(
+                       "resting",
+                       `<label class="drop">${icon("file", 24)}<strong>Choose your export file</strong>or drag it here<input type="file" class="drop-input" accept=".csv" /></label>`,
+                   )}
+                   ${spec(
+                       "file over it",
+                       `<label class="drop over">${icon("file", 24)}<strong>Choose your export file</strong>or drag it here<input type="file" class="drop-input" accept=".csv" /></label>`,
+                   )}
+                 </div>`,
+            )}
+
+            ${sect(
+                "Notices — every severity",
+                "The icon is a different drawing in each, so severity survives monochrome and anyone who cannot separate the hues.",
+                `<div class="card">
+                   ${notice("ok", "check", "All 42 rows mapped cleanly.")}
+                   ${notice("warn", "warn", "12 rows had a date but no time; they will be logged at local noon.")}
+                   ${notice("error", "x", "expected_row_count is 40 but 42 rows were parsed.")}
+                   ${notice("", "info", "Neutral note on the same surface.")}
+                 </div>`,
+            )}
+
+            ${sect(
+                "Preview table",
+                "Scrolls inside .tscroll — both axes — so a 400-row preview never pushes the card wider or taller than the host allows. The scroller is a tab stop, so it carries role=region, a name, and the shared focus ring: copy the markup contract, not just the class.",
+                `<div class="tscroll" role="region" tabindex="0" aria-label="Preview">
+                   <table class="tbl">
+                     <thead><tr>
+                       <th>Line</th><th class="wide">Description</th><th>When</th>
+                       <th>Meal</th><th class="num">kcal</th><th>Status</th>
+                     </tr></thead>
+                     <tbody>
+                       <tr><td class="dim">2</td><td class="wide">Oatmeal (1 cup dry) with banana</td>
+                           <td>2026-01-15 08:30</td><td>breakfast</td><td class="num">300</td>
+                           <td><span class="pill pill-ok">create</span></td></tr>
+                       <tr><td class="dim">3</td><td class="wide">Rice, cooked</td>
+                           <td>2026-01-15 13:00</td><td>lunch</td><td class="num">400</td>
+                           <td><span class="pill pill-dim">duplicate</span></td></tr>
+                       <tr class="muted"><td class="dim">4</td><td class="wide">Breakfast (imported from MyFitnessPal)</td>
+                           <td>2026-01-16 12:00</td><td>breakfast</td><td class="num">250</td>
+                           <td><span class="pill pill-warn">noon</span></td></tr>
+                       <tr class="bad"><td class="dim">5</td><td class="wide">Soup</td>
+                           <td class="dim">2026-13-01</td><td class="dim">—</td><td class="num dim">—</td>
+                           <td><span class="pill pill-bad">error</span></td></tr>
+                     </tbody>
+                   </table>
+                   <div class="tmore">Showing 4 of 412 rows</div>
+                 </div>`,
+            )}
+
+            ${sect(
+                "Icons",
+                "Every path in shared/icon.js at the size it ships at — a path that only breaks when it is scaled down breaks here. Listed from ICONS itself, so a new icon appears without anyone updating this section.",
+                `<div class="card"><div class="gicons">${Object.keys(ICONS)
+                    .map((name) =>
+                        (ICON_SIZES[name] || [16])
+                            .map(
+                                (size) =>
+                                    `<span class="gicon">${icon(name, size)}<span class="glab">${name} ${size}</span></span>`,
+                            )
+                            .join(""),
+                    )
+                    .join("")}</div></div>`,
+            )}
+
           </div>`;
+
+                // The tap hint is the one thing macroPanel builds inline, with
+                // no emitter to call — so the specimen is the live strip's own
+                // node rather than a copy that would stop tracking it. Cloning
+                // it is safe: macroToggle only ever hides the hint INSIDE the
+                // panel it scoped its query to.
+                const ghost = document.querySelector(".card [data-macro-hint]");
+                const slot = document.getElementById("g-ghost");
+                if (ghost && slot) slot.outerHTML = ghost.outerHTML;
             }
+
+            /*@include shared/macros.js@*/
 
             initWidget({
                 name: "component-gallery",
                 loading: '<div class="empty">Loading gallery…</div>',
+                // The harness has no fixture for this key and sends
+                // { probe: true }; anything truthy paints the page.
                 coerce: () => ({ gallery: true }),
                 render,
                 sample: { gallery: true },
+                onReady(api) {
+                    __widgetApi = api;
+                },
             });
-
-            render();
         </script>
     </body>
 </html>
