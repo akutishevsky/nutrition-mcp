@@ -125,7 +125,7 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // Fiber and sugar are unconditional; caffeine deliberately is NOT. That
 // asymmetry is the whole point of this block, and it is a read-side constraint
 // rather than a stylistic one: caffeine's display gate is `!= null` everywhere
-// (limitShown in shared/macros.js, recordedGoalLine and totalsPayloadOf here),
+// (metricShown in shared/macros.js, recordedGoalLine and totalsPayloadOf here),
 // so an explicit 0 on a sandwich is not a harmless extra data point — it puts a
 // "0 mg / 400 mg limit" row on the dashboard of someone who has never had a
 // coffee, and drags every caffeine average toward zero by joining the covered
@@ -1281,7 +1281,7 @@ export function alcoholHiddenNote(
 //
 // Caffeine is NOT checked here, and adding it would undo the suppression the
 // rest of this file is built around: most meals genuinely carry none, its
-// display gate is `!= null` rather than `> 0` (limitShown, recordedGoalLine,
+// display gate is `!= null` rather than `> 0` (metricShown, recordedGoalLine,
 // totalsPayloadOf), so nagging until every sandwich carries a figure produces
 // precisely the fabricated "0 mg / 400 mg limit" that null exists to prevent.
 export function missingNutrientNote(meal: Meal): string {

@@ -1989,7 +1989,7 @@ describe("missingNutrientNote", () => {
     });
 
     // If this ever starts asking for caffeine, the read side has to change
-    // first — see limitShown in shared/macros.js and recordedGoalLine.
+    // first — see metricShown in shared/macros.js and recordedGoalLine.
     test("never asks for caffeine, however complete the rest is", () => {
         const note = missingNutrientNote({
             ...base,

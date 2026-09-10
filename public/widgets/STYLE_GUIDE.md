@@ -963,9 +963,16 @@ who never went near the limit — the same suppression the model-facing text app
 so in words (`.chip .v .none` → "none logged"), because a `0` in the figure slot
 looks like a measurement.
 
-Water is the contrast: it has no opt-in, so a `0` cannot mean anything but
-"untracked" and the chip is dropped entirely (`role: "bar"` renders only above
-zero).
+Water carries the same `signal: "data"`, and for the same reason — `water_ml` is a
+plain number, so a `0` is indistinguishable from a day nobody logged any. It was
+gated on `> 0` alone, with the test inlined in `macroPanel` rather than asked of
+`metricShown`, and the two drifted exactly as duplicated gates do: someone with a
+2.5 L target who had not yet drunk anything saw no water on the card at all —
+the one reading where the goal is the whole point was the one reading dropped —
+while the same person's untouched fiber goal still earned a tile. **A goal is the
+user saying they track this**, so a 0 against one is a real reading and prints as
+one ("0 / 2.5 L"). One gate, `metricShown`, asked of every metric whose reading
+might be absent rather than zero.
 
 ### Wording rules (pinned by `macros.test.ts`)
 

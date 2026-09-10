@@ -721,11 +721,42 @@ test("water reads in litres, and an untracked day has no line at all", () => {
     const html = macrosApi.macroPanel(VALS, GOALS);
     // Static chip, so the goal rides the figure — and it is in litres too.
     expect(html).toContain('2.1<span class="u">/2.5 L</span>');
-    // No chip at all on a day with no water — c-wat is the role class only the
-    // water chip carries, so its absence is the absence of the chip.
-    expect(macrosApi.macroPanel({ ...VALS, water_ml: 0 }, GOALS)).not.toContain(
+    // No chip at all for someone who neither logged water nor set a target —
+    // c-wat is the role class only the water chip carries, so its absence is
+    // the absence of the chip.
+    const { water_ml: _drop, ...noWaterGoal } = GOALS;
+    expect(
+        macrosApi.macroPanel({ ...VALS, water_ml: 0 }, noWaterGoal),
+    ).not.toContain("c-wat");
+    expect(macrosApi.macroPanel({ ...VALS, water_ml: 0 }, null)).not.toContain(
         "c-wat",
     );
+});
+
+// A GOAL IS THE USER SAYING THEY TRACK IT, so a 0 against one is a reading and
+// not an absence — the same rule fiber and sugar have always had (signal:
+// "data"). Water was gated on `> 0` alone, in a test inlined in macroPanel
+// rather than asked of metricShown, so the one person whose water goal was the
+// whole point of the card — set a 2.5 L target, has not drunk anything yet —
+// was the one person shown no water at all, while their equally untouched fiber
+// goal still earned a tile.
+test("water with a goal and nothing drunk yet still shows, against its goal", () => {
+    // chartKeys only so chipHtml can find the tile by data-macro — a static
+    // water tile prints the identical figure, as the litres test above pins.
+    const html = macrosApi.macroPanel(
+        { ...VALS, water_ml: 0 },
+        GOALS,
+        undefined,
+        undefined,
+        { chartKeys: ["water_ml"] },
+    );
+    expect(html).toContain("c-wat");
+    // The figure, not the words: "none logged" is the LIMIT idiom for a
+    // recorded zero, and it would hide the goal that earned the row.
+    expect(chipHtml(html, "water_ml")).toContain(
+        '0.0<span class="u">/2.5 L</span>',
+    );
+    expect(chipHtml(html, "water_ml")).not.toContain("none logged");
 });
 
 // ONE metric, ONE unit. The chip said "2.1 L" while its caption said "of

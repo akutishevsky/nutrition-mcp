@@ -52,9 +52,13 @@
 //          anyone ever having tracked the metric, and a "0 mg of 400 mg" line
 //          invented for someone who has never recorded caffeine is exactly what
 //          issue #78 was about. Words cannot be misread as a measurement.
-//   bar    no chip at all. Water is logged separately from meals, so a day with
-//          no water logged has no water reading — as opposed to a reading of
-//          zero — and an empty bar for an untouched metric is noise.
+//   bar    "0 L", but only once the metric is on screen at all — and whether
+//          it is on screen is the same question a limit asks (metricShown):
+//          water is logged separately from meals, so a day with no water
+//          logged has no water reading as opposed to a reading of zero, and an
+//          empty bar for a metric nobody tracks is noise. A GOAL changes that:
+//          it is the user saying they track this, so 0 against it is a real
+//          reading and prints as one.
 //
 // `color` is a ROLE CLASS, not a colour: it sets --c (see base.css), which the
 // dot, the underbar, the gauge arc and the drawer head all read. No emitter
@@ -181,6 +185,15 @@ const MACROS = [
         color: "c-wat",
         decimals: 0,
         role: "bar",
+        // Same signal as fiber and sugar, and for the same reason: water_ml is
+        // a plain number in the payload, so a 0 is indistinguishable from a day
+        // nobody logged any. The gate is therefore the same one — a value, OR a
+        // goal of the user's own (metricShown). Water used to be gated on
+        // `> 0` alone, which meant someone who had set a 2.5 L target and not
+        // yet drunk anything saw no water on the card at all: the one reading
+        // where the goal is the whole point was the one reading that was
+        // dropped. A goal is the user saying they are tracking it.
+        signal: "data",
     },
 ];
 
@@ -792,15 +805,23 @@ function waterChip(m, ctx, interactive, i) {
     return macroChip(m, ctx, interactive, i);
 }
 
-// Does this limit earn a chip? See `signal` on the MACROS entries: for alcohol
-// and caffeine the payload's null is the whole gate and a recorded 0 is a real
-// reading that stays on screen; for fiber and sugar a 0 could equally mean the
-// day predates the column, so the chip is earned by a value or by a goal.
+// Does this metric earn a tile? Asked of every metric whose reading might be
+// absent rather than zero — the four limits and water — and answered from
+// `signal` on the MACROS entries: for alcohol and caffeine the payload's null
+// is the whole gate and a recorded 0 is a real reading that stays on screen;
+// for fiber, sugar and water a 0 could equally mean nobody logged any, so the
+// tile is earned by a value or by a goal of the user's own.
 //
 // What the gate prevents is a "0 mg of 400 mg" line invented for someone who
 // has never recorded any — the same suppression the model-facing text applies
 // (recordedGoalLine in src/mcp.ts).
-function limitShown(m, ctx) {
+//
+// It was called limitShown and water had a `> 0` test of its own inlined in
+// macroPanel. Two gates for one question is how they drift: the inline one had
+// no goal clause, so a user with a 2.5 L target and nothing drunk yet got no
+// water row, while a user with a 30 g fiber target and nothing eaten yet got a
+// fiber tile reading "none logged".
+function metricShown(m, ctx) {
     const v = ctx.vals?.[m.key];
     if (v == null) return false;
     if (m.signal === "null") return true;
@@ -816,7 +837,7 @@ function limitShown(m, ctx) {
 function macroLimit(m, ctx, interactive, i) {
     // The gate again, so the chip builder is safe to call on its own and can
     // never invent a reading the strip would have suppressed.
-    if (!limitShown(m, ctx)) return "";
+    if (!metricShown(m, ctx)) return "";
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
     return chipMarkup(m, b, { ctx, interactive, i });
 }
@@ -884,13 +905,13 @@ function macroPanel(vals, goal, wording, meals, opts) {
 
     const cal = MACROS.find((m) => m.role === "cal");
     const macros = MACROS.filter((m) => m.role === "macro");
+    // Both roles ask metricShown the same question — "was this tracked at
+    // all?" — so neither can quietly grow a rule the other one lacks.
     const waters = MACROS.filter(
-        // Only show a chip for a metric that was actually tracked — an empty
-        // bar for an untouched metric is noise.
-        (m) => m.role === "bar" && (ctx.vals[m.key] ?? 0) > 0,
+        (m) => m.role === "bar" && metricShown(m, ctx),
     );
     const limits = MACROS.filter(
-        (m) => m.role === "limit" && limitShown(m, ctx),
+        (m) => m.role === "limit" && metricShown(m, ctx),
     );
     const all = [cal].concat(macros, waters, limits);
 
