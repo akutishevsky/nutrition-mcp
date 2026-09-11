@@ -201,7 +201,7 @@ const MACROS = [
         // Litres is the DEFAULT, not the only reading: setWaterUnit (below)
         // re-points this at WATER_DISPLAYS' US or UK fluid ounce when the
         // payload's `water_unit` says the profile weighs in pounds.
-        display: { unit: "L", per: 1000, decimals: 1 },
+        display: { unit: "l", per: 1000, decimals: 1 },
         color: "c-wat",
         decimals: 0,
         role: "bar",
@@ -276,11 +276,14 @@ const DRINK_GRAMS = { us: 14, uk: 7.893 };
 // The three ways water can read, keyed by the payload's `water_unit` (resolved
 // server-side by waterUnitFor in src/units.ts from the profile's weight and
 // drink-unit preferences). Litres print a decimal; fluid ounces are already a
-// glass-sized step, so they print whole — "71/85 fl oz", not "71.0".
+// glass-sized step, so they print whole — "71/85 fl oz", not "71.0". `unit` is
+// a CODE, like every MACROS entry's; macroUnit prints it through unitLabel.
+// Both ounces share the "fl_oz" code: the US/UK difference is in `per`, and
+// neither locale's reader writes them differently.
 const WATER_DISPLAYS = {
-    l: { unit: "L", per: 1000, decimals: 1 },
-    us_fl_oz: { unit: "fl oz", per: 29.5735295625, decimals: 0 },
-    uk_fl_oz: { unit: "fl oz", per: 28.4130625, decimals: 0 },
+    l: { unit: "l", per: 1000, decimals: 1 },
+    us_fl_oz: { unit: "fl_oz", per: 29.5735295625, decimals: 0 },
+    uk_fl_oz: { unit: "fl_oz", per: 28.4130625, decimals: 0 },
 };
 
 // Point water's `display` at the payload's unit. AMBIENT, like the locale
@@ -310,8 +313,10 @@ function macroNum(m, v) {
         ? macroDecimal(Number(v || 0) / d.per, d.decimals)
         : fmt(v, m.decimals);
 }
+// Returns the PRINTED label (unitLabel, shared/i18n.js) of the display code —
+// never compare its result against a code; compare m.unit / m.display.unit.
 function macroUnit(m) {
-    return (m.display && m.display.unit) || m.unit;
+    return unitLabel((m.display && m.display.unit) || m.unit);
 }
 // The two together, for prose: "2.1 L", "148 g", "185 mg".
 function macroAmount(m, v) {
@@ -650,7 +655,9 @@ function macroCaption(m, b, ctx) {
     let cap = b.targetStr;
     if (b.val > 0 && m.gloss === "drinks") {
         const drinks = macroDecimal(b.val / DRINK_GRAMS[ctx.drinkUnit], 1);
-        cap = `${drinks} ${T.macros.drinkLabels[ctx.drinkUnit]} · ${cap}`;
+        // A template, not a suffix: Japanese needs the counter ON the number
+        // ("2.0杯（US基準）") where "2.0 US基準の杯数" read as "2.0 drink-count".
+        cap = `${tpl(T.macros.drinkLabels[ctx.drinkUnit], { n: drinks })} · ${cap}`;
     }
     if (b.deltaStr && (b.over || b.atLimit)) {
         cap = `${cap} · ${b.deltaStr}`;
@@ -1353,7 +1360,7 @@ function mealList(m, meals, flag) {
             // never start.
             return `
         <li style="--i:${i}">
-          <span class="dv">${fmt(v, decimals)}<span class="u">${esc(m.unit)}</span></span>
+          <span class="dv">${fmt(v, decimals)}<span class="u">${esc(unitLabel(m.unit))}</span></span>
           <span class="dn">${esc(meal.description || T.macros.untitledMeal)}</span>
           ${sub ? `<span class="ds">${sub}</span>` : ""}
         </li>`;

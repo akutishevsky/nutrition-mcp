@@ -734,6 +734,29 @@
             // Escapes a translated "{n} rows"-style string, then bolds the
             // digit run wherever it landed — robust to word order, unlike
             // hardcoding "<b>N</b> rows" around a fixed English shape.
+            // A number in the WIDGET's locale. A bare toLocaleString() keys
+            // off the host browser's language, so a French card on an English
+            // browser read "12,345 kcal au total" (twelve point three…), and a
+            // raw JS number always prints a dot ("2092.5 kJ", "12.5" in a
+            // Polish table). Every digit kept (maximumFractionDigits: 20 is
+            // the shortest round-trip, same as String(n)) — this re-punctuates
+            // what the file said, it does not round it. Grouping only where
+            // asked: a table cell stays compact.
+            function numLocale(n, grouping) {
+                const x = Number(n);
+                if (!Number.isFinite(x)) return String(n);
+                try {
+                    return new Intl.NumberFormat(WIDGET_LOCALE || "en", {
+                        maximumFractionDigits: 20,
+                        useGrouping: !!grouping,
+                    }).format(x);
+                } catch (_) {
+                    return String(x);
+                }
+            }
+            function cellNum(v) {
+                return v == null ? "—" : esc(numLocale(v, false));
+            }
             function boldCount(text) {
                 return esc(text).replace(
                     /\d[\d,.\s ]*\d|\d/,
@@ -853,8 +876,14 @@
             }
             function energyUnitOptions() {
                 return [
-                    ["kcal", `${T.importMeals.energyUnitKcal} (kcal)`],
-                    ["kj", `${T.importMeals.energyUnitKj} (kJ)`],
+                    [
+                        "kcal",
+                        `${T.importMeals.energyUnitKcal} (${unitLabel("kcal")})`,
+                    ],
+                    [
+                        "kj",
+                        `${T.importMeals.energyUnitKj} (${unitLabel("kj")})`,
+                    ],
                 ];
             }
 
@@ -1344,11 +1373,15 @@
                 if (S.energyUnit === "kj")
                     return esc(
                         tpl(T.importMeals.energyConverted, {
-                            v,
-                            kcal: toKcal(v, "kj"),
+                            v: numLocale(v, true),
+                            kcal: numLocale(toKcal(v, "kj"), true),
                         }),
                     );
-                return esc(tpl(T.importMeals.energyNoConversion, { v }));
+                return esc(
+                    tpl(T.importMeals.energyNoConversion, {
+                        v: numLocale(v, true),
+                    }),
+                );
             }
 
             function formatFieldsHtml() {
@@ -1544,11 +1577,19 @@
                 // opt-in as well as by the data, so a stray value could not
                 // put ethanol on screen. Caffeine has no such gate; it is
                 // filtered by the data alone.
+                //
+                // Column labels come from T.importMeals.col* (they were English
+                // literals — "C" and "Sug" mean nothing in Polish or French),
+                // escaped here, so c[1] is HTML: the unit sits in a .u span
+                // that the uppercase header leaves alone (table.css).
                 const extra = [
-                    ["fiber_g", "Fib"],
-                    ["sugar_g", "Sug"],
-                    ["alcohol_g", "Alc", true],
-                    ["caffeine_mg", "Caf mg"],
+                    ["fiber_g", esc(T.importMeals.colFiber)],
+                    ["sugar_g", esc(T.importMeals.colSugar)],
+                    ["alcohol_g", esc(T.importMeals.colAlcohol), true],
+                    [
+                        "caffeine_mg",
+                        `${esc(T.importMeals.colCaffeine)} <span class="u">${esc(unitLabel("mg"))}</span>`,
+                    ],
                 ].filter(
                     (c) =>
                         (!c[2] || alcoholTracked()) &&
@@ -1565,7 +1606,7 @@
                     "</span><span>" +
                     boldCount(
                         tpl(T.importMeals.kcalTotal, {
-                            kcal: kcal.toLocaleString(),
+                            kcal: numLocale(kcal, true),
                         }),
                     ) +
                     "</span>" +
@@ -1670,7 +1711,15 @@
                     "</th><th class='wide'>" +
                     esc(T.importMeals.tableFood) +
                     "</th>" +
-                    '<th class="num">kcal</th><th class="num">P</th><th class="num">C</th><th class="num">F</th>' +
+                    '<th class="num"><span class="u">' +
+                    esc(unitLabel("kcal")) +
+                    '</span></th><th class="num">' +
+                    esc(T.importMeals.colProtein) +
+                    '</th><th class="num">' +
+                    esc(T.importMeals.colCarbs) +
+                    '</th><th class="num">' +
+                    esc(T.importMeals.colFat) +
+                    "</th>" +
                     extra
                         .map((c) => '<th class="num">' + c[1] + "</th>")
                         .join("") +
@@ -1690,19 +1739,19 @@
                                         T.importMeals.noNameFallback,
                                 ) +
                                 '</td><td class="num">' +
-                                (r.calories ?? "—") +
+                                cellNum(r.calories) +
                                 '</td><td class="num">' +
-                                (r.protein_g ?? "—") +
+                                cellNum(r.protein_g) +
                                 '</td><td class="num">' +
-                                (r.carbs_g ?? "—") +
+                                cellNum(r.carbs_g) +
                                 '</td><td class="num">' +
-                                (r.fat_g ?? "—") +
+                                cellNum(r.fat_g) +
                                 "</td>" +
                                 extra
                                     .map(
                                         (c) =>
                                             '<td class="num">' +
-                                            (r[c[0]] ?? "—") +
+                                            cellNum(r[c[0]]) +
                                             "</td>",
                                     )
                                     .join("") +

@@ -1750,8 +1750,15 @@ button.focus:active {
 .ds {
     font-size: 10.5px;
     color: var(--ink3);
-    text-transform: capitalize;
     white-space: nowrap;
+}
+/* First letter only, not `text-transform: capitalize`: capitalize upper-cased
+   every word, so French read "Petit-Déjeuner" and "9 Juil." (French months are
+   lowercase). A date starts with its digit, so this only ever lifts a meal
+   type's opening letter ("breakfast" → "Breakfast"). .ds is a grid item of
+   .dlist li, i.e. blockified, which ::first-letter requires. */
+.ds::first-letter {
+    text-transform: uppercase;
 }
 /* The capped list's tail count, and the empty state. Both are the drawer
    talking about itself rather than a row of data, so neither takes the grid. */

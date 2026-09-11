@@ -211,10 +211,21 @@
                 ],
             };
 
+            // WIDGET_LOCALE, not the host browser's: a bare toLocaleString()
+            // keys off navigator.language, so a German profile on an English
+            // browser printed "1,850/2,200 kcal" (read as 1.85) beside
+            // macroDecimal's "1,5/2,5 l" on the same rail. Same helper as
+            // nutrition-summary.html; the locale is read per call because
+            // setLocale() only runs inside render().
             function fmt(n, decimals) {
-                if (n == null || isNaN(n)) return "0";
-                const r = decimals ? n.toFixed(decimals) : Math.round(n);
-                return Number(r).toLocaleString();
+                const x = Number(n);
+                if (n == null || !Number.isFinite(x)) return "0";
+                const r = decimals ? x.toFixed(decimals) : Math.round(x);
+                try {
+                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
+                } catch (_) {
+                    return Number(r).toLocaleString();
+                }
             }
             function esc(s) {
                 return String(s).replace(
@@ -246,7 +257,8 @@
             function weightBlock(w) {
                 const cur = w?.current;
                 const tgt = w?.target;
-                const unit = esc(w?.unit || "kg");
+                // The payload's unit is a CODE ("kg" / "lb"); print its label.
+                const unit = esc(unitLabel(w?.unit || "kg"));
                 const hasCur = cur != null;
                 const hasTgt = tgt != null;
 

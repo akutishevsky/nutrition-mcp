@@ -58,6 +58,13 @@
                 align-items: center;
                 gap: 4px;
             }
+            /* The headline's unit is its own span with no space before it, and
+               nothing else styles it — it read "78.2kg" beside the pill's
+               "−0.3 kg". The same 2px every other figure/unit pair gets
+               (.chip .v .u, .fmain .v .u, .dv .u in chip.css). */
+            .hval .u {
+                margin-left: 2px;
+            }
 
             /* Two whole phrases, each free to drop to its own row when the
                pair will not share one. */
@@ -158,10 +165,20 @@
             // −2.9 beneath it.
             function w1(n) {
                 if (n == null || isNaN(n)) return "0.0";
-                return Number(n).toLocaleString(undefined, {
+                // WIDGET_LOCALE, not `undefined` (the host browser's locale):
+                // a French profile on an English browser read "78.2 kg".
+                const opts = {
                     minimumFractionDigits: 1,
                     maximumFractionDigits: 1,
-                });
+                };
+                try {
+                    return Number(n).toLocaleString(
+                        WIDGET_LOCALE || "en",
+                        opts,
+                    );
+                } catch (_) {
+                    return Number(n).toLocaleString(undefined, opts);
+                }
             }
             // A real minus sign (U+2212), not a hyphen: at 24px beside a
             // tabular figure a hyphen sits too high and too short to read as
@@ -286,6 +303,12 @@
             function nb(text) {
                 return `<span class="nb">${esc(text)}</span>`;
             }
+            // A weight as a .nb atom, its unit in a .u span so the uppercase
+            // .cfoot leaves the symbol's case alone ("75.0 kg", never
+            // "75.0 KG" — see .cfoot .u in chart.css).
+            function nbWeight(n, unit) {
+                return `<span class="nb">${esc(w1(n))} <span class="u">${esc(unit)}</span></span>`;
+            }
             // Fill a TRANSLATED template whose values are already HTML. The
             // template is escaped first and the values are not — safe because a
             // {placeholder} contains nothing escaping touches, and it is what
@@ -317,13 +340,11 @@
                                       ? T.weightTrends.toLose
                                       : T.weightTrends.toGain,
                                   {
-                                      amount: nb(
-                                          `${w1(Math.abs(delta))} ${unit}`,
-                                      ),
+                                      amount: nbWeight(Math.abs(delta), unit),
                                   },
                               );
                     const targetVal = tplHtml(T.weightTrends.target, {
-                        value: nb(`${w1(target)} ${unit}`),
+                        value: nbWeight(target, unit),
                     });
                     right = `<b>${targetVal}</b> · ${gap}`;
                 } else {
@@ -371,7 +392,9 @@
             // header — and the seg button the user is standing on — in place.
             function bodyHtml() {
                 const data = STATE.data;
-                const unit = data.unit || "kg";
+                // A CODE in the payload ("kg" / "lb"), the printed label from
+                // here down — every block below only ever prints it.
+                const unit = unitLabel(data.unit || "kg");
                 const target = data.target ?? null;
                 const all = data.days
                     .slice()

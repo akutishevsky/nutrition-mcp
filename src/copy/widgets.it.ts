@@ -1,6 +1,17 @@
 import type { WidgetStrings } from "./widgets.js";
 
 export const WIDGET_STRINGS_IT: WidgetStrings = {
+    units: {
+        kcal: "kcal",
+        kj: "kJ",
+        g: "g",
+        mg: "mg",
+        ml: "ml",
+        l: "L",
+        fl_oz: "fl oz",
+        kg: "kg",
+        lb: "lb",
+    },
     macros: {
         labels: {
             calories: "Calorie",
@@ -27,7 +38,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         over: "oltre",
         limitPrefix: "limite",
         ofPrefix: "di",
-        drinkLabels: { us: "drink USA", uk: "unità UK" },
+        drinkLabels: { us: "{n} drink USA", uk: "{n} unità UK" },
         noneLogged: "nessuno registrato",
         caloriesToday: "Calorie di oggi",
         caloriesOn: "Calorie · {date}",
@@ -230,6 +241,13 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         tableMeal: "Pasto",
         tableFood: "Alimento",
         tableProblem: "Problema",
+        colProtein: "P",
+        colCarbs: "C",
+        colFat: "G",
+        colFiber: "Fib.",
+        colSugar: "Zucch.",
+        colAlcohol: "Alc.",
+        colCaffeine: "Caff.",
         noNameFallback: "(nessun nome — verrà etichettato in base al pasto)",
         showingRows: "Visualizzazione di {shown} righe su {total}",
         checkingRows: "Controllo di {n} righe…",

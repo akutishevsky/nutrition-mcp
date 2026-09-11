@@ -114,6 +114,9 @@ export interface WidgetStrings {
         limitPrefix: string;
         /** Prefix before a floor's figure, e.g. "of 160 g". */
         ofPrefix: string;
+        /** The standard-drink count in a limit caption. Templates with {n}
+         * (the one-decimal count, already locale-formatted), not suffixes:
+         * Japanese puts the counter on the number ("{n}杯（US基準）"). */
         drinkLabels: { us: string; uk: string };
         /** A limit metric with nothing recorded at all. */
         noneLogged: string;
@@ -429,6 +432,16 @@ export interface WidgetStrings {
         tableMeal: string;
         tableFood: string;
         tableProblem: string;
+        /** Short numeric-column headers in the import preview table (the
+         * header row is an uppercase eyebrow). Plain text, no unit — the
+         * caffeine column appends unitLabel("mg") itself. */
+        colProtein: string;
+        colCarbs: string;
+        colFat: string;
+        colFiber: string;
+        colSugar: string;
+        colAlcohol: string;
+        colCaffeine: string;
         noNameFallback: string;
         /** Template. Placeholders: {shown}, {total}. */
         showingRows: string;
@@ -462,6 +475,29 @@ export interface WidgetStrings {
         noDataRows: string;
         /** Template. Placeholder: {email}. */
         emailNotice: string;
+    };
+
+    /** How each unit of measure is PRINTED, keyed by the plain code the data
+     * and logic carry ("kcal", "g", "ml", "l", "fl_oz", "kg", …). Only the
+     * label is translated: MACROS[].unit, WATER_DISPLAYS, a weight payload's
+     * `unit` and import-meals' energy-unit choice all stay codes, compared
+     * as codes, and every place a widget prints one goes through
+     * shared/i18n.js's unitLabel(code), which falls back to the code itself.
+     *
+     * A locale's OTHER strings that embed a unit literal — addedKcal,
+     * kcalTotal, energyConverted, the "(g)"/"(mg)" field labels and the like —
+     * must spell it exactly as this block does, or one card prints the same
+     * unit two ways ("148 г" on the chip, "+540 kcal" in the header). */
+    units: {
+        kcal: string;
+        kj: string;
+        g: string;
+        mg: string;
+        ml: string;
+        l: string;
+        fl_oz: string;
+        kg: string;
+        lb: string;
     };
 
     /** The chrome shared/bridge.js paints around whatever a template renders,
@@ -507,7 +543,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         over: "over",
         limitPrefix: "limit",
         ofPrefix: "of",
-        drinkLabels: { us: "US drinks", uk: "UK units" },
+        drinkLabels: { us: "{n} US drinks", uk: "{n} UK units" },
         noneLogged: "none logged",
         caloriesToday: "Calories today",
         caloriesOn: "Calories · {date}",
@@ -708,6 +744,13 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         tableMeal: "Meal",
         tableFood: "Food",
         tableProblem: "Problem",
+        colProtein: "P",
+        colCarbs: "C",
+        colFat: "F",
+        colFiber: "Fib",
+        colSugar: "Sug",
+        colAlcohol: "Alc",
+        colCaffeine: "Caf",
         noNameFallback: "(no name — will be labelled by meal)",
         showingRows: "Showing {shown} of {total} rows",
         checkingRows: "Checking {n} rows…",
@@ -729,6 +772,17 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         noDataRows: "No data rows found in that file.",
         emailNotice:
             "Not working as expected? Email {email} and include the lines below — that is everything needed to diagnose it.",
+    },
+    units: {
+        kcal: "kcal",
+        kj: "kJ",
+        g: "g",
+        mg: "mg",
+        ml: "ml",
+        l: "L",
+        fl_oz: "fl oz",
+        kg: "kg",
+        lb: "lb",
     },
     chrome: {
         widgetsNote:

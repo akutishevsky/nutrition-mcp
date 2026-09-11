@@ -77,6 +77,16 @@ function tpl(s, vars) {
     );
 }
 
+// How a unit CODE prints in the current locale: unitLabel("l") -> "L" in
+// English, "л" in Ukrainian. Data and logic keep the codes ("kcal", "g", "mg",
+// "ml", "l", "fl_oz", "kg", "lb", "kj"); every place a widget prints a unit
+// goes through here, so a translated card never says "148 г" on one line and
+// "148 g" on the next. Falls back to the code itself for anything the
+// dictionary lacks. Safe before setLocale(): T starts out as English.
+function unitLabel(code) {
+    return (T.units && T.units[code]) || code;
+}
+
 // Pick the right grammatical form of a PluralForms value ({ one, few?, many?,
 // other }) for count `n` in the current WIDGET_LOCALE, then fill {n} (and any
 // other placeholder in `vars`) into it. The lookup is by Intl.PluralRules

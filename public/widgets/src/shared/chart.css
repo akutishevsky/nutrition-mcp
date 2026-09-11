@@ -215,6 +215,14 @@
 .cfoot > :last-child {
     text-align: right;
 }
+/* A unit symbol keeps its case inside the uppercase eyebrow: SI symbols are
+   case-sensitive (G is giga, K is kelvin), so "75.0 KG" and "151 G" are wrong
+   symbols, and a de/uk card's lowercase "l"/"кг" came out "L"/"КГ" here while
+   the chip above printed it lowercase. Every unit a template writes into a
+   .cfoot is wrapped in a .u span for this — same reasoning as .cmeta.kcal. */
+.cfoot .u {
+    text-transform: none;
+}
 .cfoot b {
     color: var(--ink2);
     font-weight: 500;

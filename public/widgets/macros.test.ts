@@ -56,9 +56,23 @@ const macrosApi = await (async () => {
     // "de" is wired to the English dictionary deliberately: the locale test
     // below pins that FIGURES follow the widget's locale, not that any
     // particular German wording is present.
+    // "uk" is English wording with a Cyrillic UNITS block, so the unit-label
+    // test below can tell a translated symbol from the English one without
+    // depending on any locale file's actual prose.
     return factory(fmt, esc, {
         en: WIDGET_STRINGS_EN,
         de: WIDGET_STRINGS_EN,
+        uk: {
+            ...WIDGET_STRINGS_EN,
+            units: {
+                ...WIDGET_STRINGS_EN.units,
+                kcal: "ккал",
+                g: "г",
+                mg: "мг",
+                ml: "мл",
+                l: "л",
+            },
+        },
     }) as {
         macroBits: (
             m: Macro,
@@ -1278,7 +1292,9 @@ test("caffeine reaches the row only when a column is mapped to it", () => {
     // And the user sees it before confirming, in milligrams. The preview
     // column is data-driven like fiber and sugar — not gated on an opt-in.
     const preview = importWidget.previewStep();
-    expect(preview).toContain("Caf mg");
+    // The unit sits in its own .u span so the uppercase header leaves the
+    // symbol's case alone ("mg", never "MG" — table.css).
+    expect(preview).toContain('Caf <span class="u">mg</span>');
     expect(preview).toContain("185");
 
     // No caffeine column at all: the key is absent rather than a fabricated 0,
@@ -1820,6 +1836,55 @@ test("figures are formatted in the widget's locale, not the host's", () => {
         macrosApi.setLocale("en");
     }
     expect(macrosApi.macroDecimal(2.1, 1)).toBe("2.1");
+});
+
+// ONE SPELLING PER UNIT. MACROS and WATER_DISPLAYS carry unit CODES; every
+// printed unit — the chip's figure, the caption, the accessible name and the
+// drawer's per-meal rows — goes through unitLabel(). A path that printed the
+// code directly would leave a Ukrainian card reading "148 г" in the name and
+// "/160 g" on the tile it names, a WCAG 2.5.3 label-in-name failure.
+test("unit symbols follow the widget's locale everywhere they are printed", () => {
+    // Water is a button (and so carries data-macro and a name) only as a chart
+    // key — no meal contributes water — hence chartKeys, as in the litres test.
+    const panel = () =>
+        macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+            chartKeys: ["water_ml"],
+        });
+    try {
+        macrosApi.setLocale("uk");
+        const html = panel();
+        expect(chipHtml(html, "protein_g")).toContain(
+            '148<span class="u">/160 г</span>',
+        );
+        // Water's DISPLAY code ("l"), not its stored one ("ml"), is what gets
+        // the label. The decimal separator is the locale's, pinned elsewhere.
+        expect(chipHtml(html, "water_ml")).toMatch(
+            /2[.,]1<span class="u">\/2[.,]5 л<\/span>/,
+        );
+        expect(chipHtml(html, "water_ml")).not.toContain(" L<");
+        const labels = tileLabels(html);
+        expect(labels.protein_g).toStartWith("Protein 148/160 г, 12 г left.");
+        expect(labels.water_ml).toMatch(
+            /^Water 2[.,]1\/2[.,]5 л, 0[.,]4 л left\./,
+        );
+        expect(labels.calories).toContain("2,035/2,200 ккал");
+        expect(labels.calories).not.toContain("kcal");
+        expect(html).toContain("400 мг");
+        // The drawer's per-meal list prints the STORED unit's label.
+        expect(macrosApi.mealList(macroOf("protein_g"), MEALS)).toContain(
+            '<span class="u">г</span>',
+        );
+    } finally {
+        macrosApi.setLocale("en");
+    }
+    // …and English is untouched once the locale is back.
+    const en = panel();
+    expect(chipHtml(en, "protein_g")).toContain(
+        '148<span class="u">/160 g</span>',
+    );
+    expect(chipHtml(en, "water_ml")).toContain(
+        '2.1<span class="u">/2.5 L</span>',
+    );
 });
 
 // The meta line is one ellipsised row and an ellipsis eats what comes LAST —

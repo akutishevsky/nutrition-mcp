@@ -147,10 +147,21 @@
             }
             const SAMPLE = buildSample();
 
+            // WIDGET_LOCALE, not the host browser's: a bare toLocaleString()
+            // keys off navigator.language, so a German profile on an English
+            // browser printed "1,850/2,200 kcal" (read as 1.85) beside
+            // macroDecimal's "1,5/2,5 l" on the same rail. Same helper as
+            // nutrition-summary.html; the locale is read per call because
+            // setLocale() only runs inside render().
             function fmt(n, decimals) {
-                if (n == null || isNaN(n)) return "0";
-                const r = decimals ? n.toFixed(decimals) : Math.round(n);
-                return Number(r).toLocaleString();
+                const x = Number(n);
+                if (n == null || !Number.isFinite(x)) return "0";
+                const r = decimals ? x.toFixed(decimals) : Math.round(x);
+                try {
+                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
+                } catch (_) {
+                    return Number(r).toLocaleString();
+                }
             }
             function esc(s) {
                 return String(s).replace(
@@ -228,7 +239,13 @@
                 // reading "2.0 L / 2.5 L" — the same metric in two units on the
                 // same card (all three recheck agents measured it). The goal is
                 // the same measurement as the average, so it converts too.
-                const goalPart = goal > 0 ? macroNum(m, goal) : null;
+                // Printed WITH its unit, like the average before it: "avg 151 g
+                // · goal 160" left the goal a bare number beside a unit-bearing
+                // one. The unit sits in a .u span so the uppercase .cfoot does
+                // not turn "g" into "G" (chart.css).
+                const footAmount = (v) =>
+                    `${esc(macroNum(m, v))} <span class="u">${esc(macroUnit(m))}</span>`;
+                const goalPart = goal > 0 ? footAmount(goal) : null;
                 return {
                     color: m.color,
                     // role="img" makes this string the chart's ENTIRE
@@ -271,7 +288,7 @@
                     // same two shared caption words.
                     mid: isCal
                         ? esc(STATE.loggedLabel)
-                        : `<b>${esc(macroLabel(m))}</b> ${esc(T.nutritionSummary.avg)} ${esc(macroAmount(m, avg))}` +
+                        : `<b>${esc(macroLabel(m))}</b> ${esc(T.nutritionSummary.avg)} ${footAmount(avg)}` +
                           (goalPart
                               ? ` · ${esc(T.nutritionSummary.goal)} ${goalPart}`
                               : ""),

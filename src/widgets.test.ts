@@ -69,6 +69,35 @@ test("unknown widget key throws", async () => {
     expect(getWidgetHtml("nope")).rejects.toThrow(/unknown widget/);
 });
 
+// Every unit code a widget prints goes through unitLabel(code), which falls
+// back to the bare CODE when a locale lacks it — so a missing key does not
+// fail, it silently prints "fl_oz" on a card. TypeScript catches a missing key
+// in a typed locale file; this also catches an empty string, which it does not.
+test.each(Object.keys(WIDGET_STRINGS))(
+    "%s labels every unit code",
+    (locale) => {
+        const units = WIDGET_STRINGS[locale as keyof typeof WIDGET_STRINGS]!
+            .units as Record<string, unknown> | undefined;
+        for (const code of [
+            "kcal",
+            "kj",
+            "g",
+            "mg",
+            "ml",
+            "l",
+            "fl_oz",
+            "kg",
+            "lb",
+        ]) {
+            const label = units?.[code];
+            expect({
+                code,
+                ok: typeof label === "string" && !!label.trim(),
+            }).toEqual({ code, ok: true });
+        }
+    },
+);
+
 // Every PluralForms value in a dictionary, by dotted path — anything shaped
 // { one: string, other: string }.
 function pluralForms(

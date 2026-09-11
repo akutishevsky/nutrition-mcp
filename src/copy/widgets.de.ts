@@ -30,7 +30,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         over: "über",
         limitPrefix: "Limit",
         ofPrefix: "von",
-        drinkLabels: { us: "US-Drinks", uk: "UK-Einheiten" },
+        drinkLabels: { us: "{n} US-Drinks", uk: "{n} UK-Einheiten" },
         noneLogged: "nichts protokolliert",
         caloriesToday: "Kalorien heute",
         caloriesOn: "Kalorien · {date}",
@@ -235,6 +235,13 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         tableMeal: "Mahlzeit",
         tableFood: "Lebensmittel",
         tableProblem: "Problem",
+        colProtein: "Eiw.",
+        colCarbs: "KH",
+        colFat: "Fett",
+        colFiber: "Ballastst.",
+        colSugar: "Zucker",
+        colAlcohol: "Alk.",
+        colCaffeine: "Koff.",
         noNameFallback: "(kein Name — wird nach Mahlzeit benannt)",
         showingRows: "Zeigt {shown} von {total} Zeilen",
         checkingRows: "{n} Zeilen werden geprüft…",
@@ -257,6 +264,20 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         noDataRows: "Keine Datenzeilen in dieser Datei gefunden.",
         emailNotice:
             "Funktioniert es nicht wie erwartet? Schreib an {email} und füg die untenstehenden Zeilen bei — damit lässt sich alles Nötige diagnostizieren.",
+    },
+    // German labels (LMIV / DIN 1301) write the litre lowercase — "2,5 l",
+    // "250 ml". A pound stays "lb": the German "Pfund" is a colloquial
+    // 500 g, so a translated "Pfd." would read as the wrong mass.
+    units: {
+        kcal: "kcal",
+        kj: "kJ",
+        g: "g",
+        mg: "mg",
+        ml: "ml",
+        l: "l",
+        fl_oz: "fl oz",
+        kg: "kg",
+        lb: "lb",
     },
     chrome: {
         widgetsNote:

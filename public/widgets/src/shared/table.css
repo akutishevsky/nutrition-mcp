@@ -81,6 +81,12 @@
     box-shadow: inset 0 -1px 0 var(--line);
     border-bottom: none;
 }
+/* The unit in a header ("kcal", "Caf mg") keeps its case: SI symbols are
+   case-sensitive, and "KCAL"/"MG" (Cyrillic "МГ" reads as mega-) are not the
+   symbols. The column label around it stays an uppercase eyebrow. */
+.tbl thead th .u {
+    text-transform: none;
+}
 
 .tbl tbody tr:nth-child(even) td {
     background: color-mix(in srgb, var(--ink) 3%, transparent);
