@@ -23,6 +23,10 @@
 //   ?caffeine=none      nobody ever logged caffeine (a DATA state, not an
 //                       opt-in: there is no caffeine_tracking_enabled) — the
 //                       default for most accounts, and previously unseeable
+//   ?locale=de          render in that language: overrides the fixture's
+//                       `locale` (what every widget reads first) and sets
+//                       hostContext.locale to match. Any WIDGET_STRINGS code;
+//                       the host page also links to each of them
 //
 // The canned tool result each widget is handed is checked against that tool's
 // REAL outputSchema before the server starts (assertFixturesMatchSchemas): a
@@ -35,6 +39,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { getWidgetHtml, WIDGET_TEMPLATES } from "../src/widgets.js";
 import { registerTools } from "../src/mcp.js";
 import { runImport } from "../src/import.js";
+import { WIDGET_STRINGS } from "../src/copy/widgets.js";
 import type { MealInput, MealInsertResult } from "../src/supabase.js";
 
 // In-memory stand-in for insertMeal, mirroring its dedup contract, so the harness
@@ -61,6 +66,10 @@ async function fakeInsert(input: MealInput): Promise<MealInsertResult> {
 
 const PORT = Number(process.env.HARNESS_PORT ?? 8787);
 const KEYS = Object.keys(WIDGET_TEMPLATES);
+// The languages the widgets can actually render — the dictionary's own keys,
+// not SITE_LOCALES, so a `?locale=` the widgets have no strings for is refused
+// here rather than silently falling back to English inside the iframe.
+const LOCALES = Object.keys(WIDGET_STRINGS);
 
 function indexPage(): string {
     const links = KEYS.map(
@@ -78,7 +87,8 @@ function indexPage(): string {
   <h1>MCP Apps widget harness</h1>
   <p>Pick a widget. Append query flags to simulate host behaviour:
      <code>?serverTools=0</code>, <code>?tools=0</code>, <code>?delay=3000</code>,
-     <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>.</p>
+     <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
+     <code>?locale=de</code> (${LOCALES.join(", ")}).</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -612,8 +622,36 @@ function hostPage(widget: string, params: URLSearchParams): string {
             BLANKED.caffeine.keys,
             BLANKED.caffeine.recordedDays,
         );
+    // `?locale=`. Every widget reads structuredContent.locale before anything
+    // else (pickLocale, shared/i18n.js), so overriding the fixture's own field
+    // is what actually switches the language; hostContext.locale is set to
+    // match in the handshake below, for any widget that falls back to it. An
+    // unknown code is refused and said so in the config line — never echoed
+    // back raw, and never quietly rendered in English.
+    const localeParam = params.get("locale");
+    const locale =
+        localeParam && LOCALES.includes(localeParam) ? localeParam : null;
     // Probe and gallery paint their own UI; anything non-null will do.
-    const toolResult = RESULTS[widget] ?? { probe: true };
+    const baseResult = RESULTS[widget] ?? { probe: true };
+    const toolResult =
+        locale &&
+        baseResult &&
+        typeof baseResult === "object" &&
+        "locale" in baseResult
+            ? { ...(baseResult as Record<string, unknown>), locale }
+            : baseResult;
+    // One link per language, keeping every other flag already on the URL.
+    const localeLinks = LOCALES.map((code) => {
+        if (code === (locale ?? "en")) return `<b>${code}</b>`;
+        const q = new URLSearchParams(params);
+        q.set("locale", code);
+        return `<a href="/host?${q}">${code}</a>`;
+    }).join(" ");
+    const localeCfg = locale
+        ? `locale=${locale}`
+        : localeParam
+          ? "locale=unknown (using en)"
+          : "locale=en";
 
     return `<!doctype html>
 <html><head><meta charset="utf-8"><title>host: ${widget}</title>
@@ -626,7 +664,8 @@ function hostPage(widget: string, params: URLSearchParams): string {
 </style></head>
 <body>
   <strong>${widget}</strong>
-  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
+  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"} ${localeCfg}</span>
+  <div class="cfg" style="margin-top:4px">language: ${localeLinks}</div>
   <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}"></iframe></div>
   <div style="margin-top:8px">
     <button onclick="hostRequest(1)">host req id=1</button>
@@ -641,6 +680,7 @@ const CFG = {
   delay: ${delay},
   maxHeight: ${maxHeight ? Number(maxHeight) : "null"},
   fail: ${failCalls},
+  locale: ${JSON.stringify(locale)},
 };
 const TOOL_RESULT = ${JSON.stringify(toolResult)};
 const frame = document.getElementById("frame");
@@ -679,6 +719,7 @@ window.addEventListener("message", (e) => {
       return;
     }
     const hostContext = { theme: "light" };
+    if (CFG.locale) hostContext.locale = CFG.locale;
     if (CFG.maxHeight) hostContext.containerDimensions = { maxHeight: CFG.maxHeight };
     const hostCapabilities = {};
     if (CFG.serverTools) hostCapabilities.serverTools = {};
