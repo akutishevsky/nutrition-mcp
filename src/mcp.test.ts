@@ -2945,7 +2945,13 @@ describe("get_nutrition_summary reports caffeine over its covered days only", ()
     interface SummaryPayload {
         averages: Record<string, number | null>;
         recorded_days: Record<string, number | null>;
-        days: { date: string; caffeine_mg: number | null }[];
+        days: {
+            date: string;
+            caffeine_mg: number | null;
+            fiber_g?: number | null;
+            sugar_g?: number | null;
+            alcohol_g?: number | null;
+        }[];
     }
 
     /** One meal a day for five days; `caffeine` gives each day's figure, with
@@ -3017,6 +3023,44 @@ describe("get_nutrition_summary reports caffeine over its covered days only", ()
             expect(sc.recorded_days.caffeine_mg).toBe(0);
             expect(sc.averages.caffeine_mg).toBeNull();
             expect(Object.keys(sc.averages)).toContain("caffeine_mg");
+        });
+    });
+
+    // Fiber, sugar and alcohol follow the same per-day rule. They used to be a
+    // summed 0 on a day that never recorded them, which the widget charted as
+    // a real zero beside a tile average that (correctly) left the day out.
+    test("fiber, sugar and alcohol are null on a day that never recorded them", async () => {
+        db.meals = [
+            meal({
+                id: "d-0",
+                logged_at: "2026-07-20T12:00:00.000Z",
+                fiber_g: 12,
+                sugar_g: 20,
+                alcohol_g: 14,
+                caffeine_mg: null,
+            }),
+            meal({
+                id: "d-1",
+                logged_at: "2026-07-21T12:00:00.000Z",
+                fiber_g: null,
+                sugar_g: null,
+                alcohol_g: null,
+                caffeine_mg: null,
+            }),
+        ];
+        await withTools("us", async (call) => {
+            const sc = (await summarize(call))
+                .structuredContent as unknown as SummaryPayload;
+            expect(sc.days.map((d) => d.fiber_g)).toEqual([12, null]);
+            expect(sc.days.map((d) => d.sugar_g)).toEqual([20, null]);
+            expect(sc.days.map((d) => d.alcohol_g)).toEqual([14, null]);
+            expect(sc.averages.fiber_g).toBe(12);
+        });
+        // Tracking off still wins over coverage: null on every day.
+        await withTools(null, async (call) => {
+            const sc = (await summarize(call))
+                .structuredContent as unknown as SummaryPayload;
+            expect(sc.days.every((d) => d.alcohol_g === null)).toBe(true);
         });
     });
 

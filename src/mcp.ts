@@ -2285,9 +2285,12 @@ export function registerTools(
                     alcohol_g: z.number().nullable(),
                     caffeine_mg: z.number(),
                 }),
+                // TRENDS_DAY_ITEM, not TOTALS_ITEM: the widget charts this
+                // series, and a summed 0 on a day that never recorded fiber,
+                // sugar or alcohol drew as a real zero beside a tile whose
+                // average (coveredDailyAverage) leaves that day out.
                 days: z.array(
-                    TOTALS_ITEM.extend({
-                        date: z.string(),
+                    TRENDS_DAY_ITEM.extend({
                         meal_count: z.number(),
                     }),
                 ),
@@ -2374,8 +2377,7 @@ export function registerTools(
 
                     const sections: string[] = [];
                     const days: Array<
-                        ReturnType<typeof totalsPayloadOf> & {
-                            date: string;
+                        ReturnType<typeof trendsDayPayloadOf> & {
                             meal_count: number;
                         }
                     > = [];
@@ -2396,14 +2398,24 @@ export function registerTools(
                         sections.push(
                             `${header}\n${formatProgress(totals, goals, alcohol, present)}`,
                         );
+                        const dayTotals = totalsPayloadOf(
+                            totals,
+                            alcohol,
+                            present.caffeine_mg,
+                        );
+                        // Null, not a summed 0, on a day that never recorded
+                        // the nutrient — the same rule trendsDayPayloadOf
+                        // applies, and the one `averages` already follows.
                         days.push({
                             date,
                             meal_count: dateMeals.length,
-                            ...totalsPayloadOf(
-                                totals,
-                                alcohol,
-                                present.caffeine_mg,
-                            ),
+                            ...dayTotals,
+                            fiber_g: present.fiber_g ? dayTotals.fiber_g : null,
+                            sugar_g: present.sugar_g ? dayTotals.sugar_g : null,
+                            alcohol_g:
+                                dayTotals.alcohol_g != null && present.alcohol_g
+                                    ? dayTotals.alcohol_g
+                                    : null,
                         });
                         perDay.push({ meals: dateMeals, totals });
                     }
