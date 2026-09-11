@@ -31,20 +31,20 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/` and one
   template per widget in `templates/`.
 
-    | partial      | contents                                                                                                                             |
-    | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-    | `tokens.css` | the four theme blocks — every colour, radius, font stack and easing (§1)                                                             |
-    | `base.css`   | reset, type scale, `.wrap`, `.card`, `.glow`, the header line, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2) |
-    | `chip.css`   | every interaction primitive: `.rail`, `.chip`, `.hero`/`.gauge`, `.more`, `.drawer`, `.seg` (§3–§7)                                  |
-    | `chart.css`  | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.chalo`, `.cdot`, `.cfoot`, `.cempty` (§8)     |
-    | `form.css`   | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                    |
-    | `table.css`  | the preview table and its status pills (§12)                                                                                         |
-    | `icon.js`    | the `ICONS` path table + `icon(name, size)` (§9)                                                                                     |
-    | `svg.js`     | chart geometry — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chY`, pure string math (§8)                                    |
-    | `macros.js`  | the macro strip: `MACROS`, `macroBits`, `macroPanel`, `macroToggle` (§10)                                                            |
-    | `date.js`    | `shortDate(iso)` / `isToday(iso)` for widgets that name a calendar day                                                               |
-    | `i18n.js`    | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                 |
-    | `bridge.js`  | the whole iframe↔host handshake — `initWidget(config)`                                                                               |
+    | partial      | contents                                                                                                                                   |
+    | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+    | `tokens.css` | the four theme blocks — every colour, radius, font stack and easing (§1)                                                                   |
+    | `base.css`   | reset, type scale, `.wrap`, `.card`, `.glow`, the header line, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2)       |
+    | `chip.css`   | every interaction primitive: `.rail`, `.chip`, `.hero`/`.gauge`, `.more`, `.drawer`, `.seg` (§3–§7)                                        |
+    | `chart.css`  | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.cday`, `.chalo`, `.cdot`, `.cfoot`, `.cempty` (§8)  |
+    | `form.css`   | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                          |
+    | `table.css`  | the preview table and its status pills (§12)                                                                                               |
+    | `icon.js`    | the `ICONS` path table + `icon(name, size)` (§9)                                                                                           |
+    | `svg.js`     | chart geometry — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chDayLines` / `chDot` / `chDotMarkup` / `chY`, pure string math (§8) |
+    | `macros.js`  | the macro strip: `MACROS`, `macroBits`, `macroPanel`, `macroToggle` (§10)                                                                  |
+    | `date.js`    | `shortDate(iso)` / `isToday(iso)` for widgets that name a calendar day                                                                     |
+    | `i18n.js`    | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                       |
+    | `bridge.js`  | the whole iframe↔host handshake — `initWidget(config)`                                                                                     |
 
 - **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
@@ -504,11 +504,19 @@ third macro. `macroPanel(…, { tiers: true })` deals the **same tiles** into th
 groups `role` has always named, and `chip.css` gives each group its own scale and
 shape:
 
-| rail       | role    | form                                                                      |
-| ---------- | ------- | ------------------------------------------------------------------------- |
-| `.r-macro` | `macro` | protein / carbs / fat — **three columns at every width**, 16px figures    |
-| `.r-limit` | `limit` | the four ceilings, **behind a hairline**, two up / four up ≥460px, 12.5px |
-| `.r-water` | `bar`   | water alone, **last**, as a full-width bar, one line, ~30px               |
+| rail       | role    | form                                                                                                         |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------ |
+| `.r-macro` | `macro` | protein / carbs / fat — **three columns at every width** (no glyph <380px; goal stacks <480px), 16px figures |
+| `.r-limit` | `limit` | the four ceilings, **behind a hairline**, two up / four up ≥620px, 12.5px                                    |
+| `.r-water` | `bar`   | water alone, **last**, as a full-width bar, one line, ~30px                                                  |
+
+**The focus panel's meta is two fixed lines on the tiered strip** — the label
+("Daily avg · logged days", the #70 denominator statement) on one, the delta on
+the next, each 13px. As one nowrap row the label was the only shrinkable item
+and was cut to nothing at phone widths in seven locales. Fixed lines rather than
+a wrap: a tile tap repaints the panel with another metric's label and delta,
+and a wrap that came and went with the metric would change the card's height on
+a tap. The flat rail keeps the one-row `.fmeta`.
 
 The levels are made of **size, proximity and shape**, and the ladder that does the
 work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
@@ -596,7 +604,7 @@ A pill with a 1px border on a `--panel` fill — the site's universal "control" 
     data-macro="protein_g"
     aria-expanded="false"
     aria-controls="macro-drawer"
-    aria-label="Protein 148 g, of 160 g, 12 g left. Show the meals that contributed."
+    aria-label="Protein 148/160 g, 12 g left. Show the meals that contributed."
     style="--w:92.5%"
 >
     <span class="dot"></span><span class="k">Protein</span
@@ -674,8 +682,8 @@ cancelled animation can therefore never leave a bar sitting at zero.
 
 The chip's goal caption has no visible slot — the drawer is where it is read. It
 stays in the DOM because a **static** chip is a `<span>`, so its children are not
-presentational and a screen reader still hears "Protein 148 g, of 160 g · 12 g
-left", exactly what the old always-visible caption gave it. Inside an interactive
+presentational and a screen reader still hears "Protein 148/160 g · 12 g left",
+exactly what the old always-visible caption gave it. Inside an interactive
 chip it is inert, and the chip's own `aria-label` carries the same words.
 
 ## 4. The hero and the gauge
@@ -819,10 +827,17 @@ calorie panel at the top opens it. It is detail for the whole strip, so it goes
 under the whole strip, and the metric rows stay contiguous open or closed.
 
 ```html
-<div class="drawer" id="macro-drawer" tabindex="-1" hidden>
+<div
+    class="drawer"
+    id="macro-drawer"
+    role="region"
+    aria-labelledby="macro-drawer-name"
+    tabindex="-1"
+    hidden
+>
     <div class="dhead">
         <span class="dot c-pro"></span>
-        <b class="dname">Protein</b>
+        <b class="dname" id="macro-drawer-name">Protein</b>
         <span class="dcap">of 160 g · 12 g left</span>
         <button
             class="dx"
@@ -972,9 +987,32 @@ card height stays independent of card width. Everything else follows from that:
   pins the two ends to the card's edges.
 - **`.chalo` is a `--panel` halo under the last point**, so the marker stays legible
   where the line doubles back under it. It is the only marker: it says which end is
-  now.
+  now. **Draw it with `chDotMarkup(x, y)`, never a `<circle>`.** A circle's `r` is
+  in viewBox units, so `preserveAspectRatio="none"` stretches it into an oval (~1.6×
+  wide on a 700px card, tall on a narrow one). The helper emits halo and dot as
+  zero-length paths (`d="M x yL x y"`, from `chDot`) with round caps under
+  `non-scaling-stroke`, so each is a disc whose diameter is its stroke width in CSS
+  px: 10 for `.chalo` (`--panel`), 6 for `.cdot` (the line's `--cstroke`), which
+  are the old `r=5`/`r=3` at the box's 1:1 vertical scale. A chart that re-points
+  in place (trends) writes `chDot(x, y)` into both paths' `d`.
 - **`.cempty` is the same 52px box** when there is nothing to draw, so a range
   toggle never makes the card jump.
+- **`.cday` is an optional hairline per day** (`chDayLines(pts)` in
+  `shared/svg.js`), painted first — **day → goal → area → line**. Its stroke is
+  a quarter of `--ink3`, deliberately quieter than the goal: scaffolding, not
+  information. Not `--line2`, because the tiered strip redeclares that on
+  `.focus` as the strong `--edge2` control border, and this chart sits inside
+  `.focus`. `shape-rendering: crispEdges` keeps each rule one device pixel
+  wide instead of a two-pixel smear at a fractional x. Only
+  `nutrition-summary`'s focus-panel chart draws it so far, and there the rules are
+  **placed per calendar day and thinned on long ranges**: one per day up to 31
+  slots, weekly up to ~120, none beyond — past that a rule per day is a grey haze
+  rather than a grid.
+- **The focus-panel instance paints the goal over the line**, not under it: its
+  order is day → area → line → goal. Its 2.5px data stroke hid the dashes
+  entirely whenever the series sat on its goal, which is the state the goal line
+  exists to show. The trends and weight-trends charts keep goal → area → line
+  (below).
 
 `.cline` reads `var(--c, var(--cal))` and has a `stroke` transition, so re-strokes
 cross-fade: selecting a chip changes the wrapper's role class and nothing re-parses
@@ -1085,13 +1123,22 @@ systems on one tile. So the tiered tile is three columns: glyph,
 label-and-figure, chevron, with **7px** between the glyph and the text (4px left
 the label against 20px of solid colour).
 
-**The column count pays for it, not the alignment.** A centred glyph costs the
-**figure** its width, where one on the label's row costs only that row. An
-earlier cut kept it inline below 560px for that reason and shipped the mark
-sitting high on exactly the cards most people read this on — which is the defect
-it was meant to fix. **A rule that only applies on a wide desktop is not a
-design decision, it is a bug with a media query around it.** So the tiers fold a
-column earlier instead:
+**The limits pay for it in columns; the macros pay in the mark.** A centred
+glyph costs the **figure** its width, where one on the label's row costs only
+that row. An earlier cut kept it inline below 560px for that reason and shipped
+the mark sitting high on exactly the cards most people read this on — which is
+the defect it was meant to fix. **A rule that only applies on a wide desktop is
+not a design decision, it is a bug with a media query around it.** So the limit
+rail folds a column earlier instead (below). The macro rail never folds: its
+three tiles are one object, and a 2+1 wrap left fat alone on a full-width row
+whose wash read as the dominant macro. Below **380px** it drops the glyph column
+instead — the only width at which it does — and the drawer header still carries
+the glyph. **A figure is never cut:** its `/goal unit` wraps to a second line
+when the pair does not fit (below 480px a macro's always does, so the three
+tiles keep one shape), only that goal line may ellipsise as a last resort, and
+a tier row top-aligns its text while the glyph and chevron stay centred.
+
+The rest of this section is the limit rail's column matrix:
 
 **A rail is as wide as it has things to show.** The column count is the rail's
 own tile count — `data-n`, emitted by `railOf` — not a constant per tier. It
@@ -1112,11 +1159,12 @@ one tile alone with two dead cells — the same hole, moved. The caps are where 
 figure stops fitting: three columns at 320px is a 95px tile and the figure needs
 65 of it once the glyph and chevron have taken theirs.
 
-Three tiles in two columns leave one alone on the second row, and an empty cell
-beside it reads as something failing to load, so the odd one out takes the whole
-row. It costs ~50px of
-card height at phone width, and buys the figure its 16px at every width — the
-narrow-width tightening this used to need (6px insets, a 15px figure) is gone.
+Three limit tiles in two columns leave one alone on the second row, and an empty
+cell beside it reads as something failing to load, so the odd one out takes the
+whole row. It costs ~50px of card height at phone width, and buys the figure its
+16px at every width. (The macro rail is exempt — `.rail:not(.r-macro)` — and
+below 380px pays with its glyph column, 6px side insets and a 4px chevron gap
+instead, keeping its 16px figure.)
 
 **620 for the limits, and 560 is the instructive wrong answer.** Four up at
 460px is a 92px tile that left `"187/400 mg"` 20px short. 560 was the next
@@ -1618,4 +1666,7 @@ height and only expands it when the widget reports its own (see CLAUDE.md →
 handshake). A fixed-tall test iframe hides clipping entirely — that is exactly how a
 clipped widget shipped once. Every widget must send `size-changed` and re-send it
 via a `ResizeObserver`, which is also what makes an opened drawer grow the frame
-instead of being cut off.
+instead of being cut off. `shared/bridge.js` sends one report per actual change:
+it dedupes on the last width and height it sent, and holds everything until the
+handshake has settled. So a harness log that repeats the same `height=N` for one
+interaction is a regression, not observer noise.
