@@ -117,7 +117,23 @@ function initWidget(config) {
 
     // Render, then make sure the note is (still) there.
     function paint(data) {
-        config.render(data);
+        // A template that throws would otherwise leave whatever it last wrote —
+        // on the first paint, the loading line — standing for good, with the
+        // error swallowed by the postMessage handler that called us. Empty the
+        // root instead: `.wrap:empty` collapses the iframe to nothing (the
+        // state meal-logged uses on purpose), and the tool's text content still
+        // reaches the reader. No message of our own, because a half-rendered or
+        // "something went wrong" card is not better than no card.
+        try {
+            config.render(data);
+        } catch (e) {
+            try {
+                console.error("[widget] render failed:", e);
+            } catch (_) {}
+            const el = root();
+            if (el) el.innerHTML = "";
+            return;
+        }
         painted = true;
         // Watch from the FIRST real paint only, so the note never decorates the
         // loading state or the no-host card — both of which write to the root
@@ -211,17 +227,38 @@ function initWidget(config) {
     // (MCP Apps ui/notifications/size-changed). Without this the host
     // uses a default height and clips the widget. Measure the
     // document's natural (max-content) height, then restore.
+    //
+    // Deduped on the last size SENT, as the reference SDK does
+    // (ext-apps App.setupSizeChangedNotifications): the observer below watches
+    // both <html> and <body>, and one repaint resizes both, so without this a
+    // single change went out two or three times at the same value. Keyed on
+    // what was sent rather than on observer ticks, so a real change — width or
+    // height, however small — is never suppressed.
+    //
+    // Nothing is sent until the handshake has settled (sizeLive), which is also
+    // when the reference SDK starts reporting: a strict host may drop a
+    // notification that arrives before ui/notifications/initialized, and a
+    // report that was dropped but remembered as sent would dedupe the real one
+    // away. The handshake then reports once explicitly (see ui/initialize).
+    let sizeLive = false;
+    let lastW = -1;
+    let lastH = -1;
     function sendSize() {
-        if (!host) return;
+        if (!host || !sizeLive) return;
         const el = document.documentElement;
         const prev = el.style.height;
         el.style.height = "max-content";
         const height = Math.ceil(el.getBoundingClientRect().height);
         el.style.height = prev;
-        notify("ui/notifications/size-changed", {
-            width: Math.ceil(window.innerWidth),
-            height,
-        });
+        const width = Math.ceil(window.innerWidth);
+        if (width === lastW && height === lastH) return;
+        lastW = width;
+        lastH = height;
+        notify("ui/notifications/size-changed", { width, height });
+    }
+    function startSizing() {
+        sizeLive = true;
+        sendSize();
     }
     if (host && typeof ResizeObserver !== "undefined") {
         let scheduled = false;
@@ -411,6 +448,9 @@ function initWidget(config) {
                 // FIRST: strict hosts withhold the tool result until they get
                 // this, so it must not sit behind any code that could throw.
                 notify("ui/notifications/initialized");
+                // Then the first size report, explicitly: the observer's own
+                // first tick fired at boot, while reporting was still held.
+                startSizing();
 
                 const r = result || {};
                 hostContext = r.hostContext || {};
@@ -450,6 +490,8 @@ function initWidget(config) {
                         T.chrome.noHost +
                         "</div></div>";
                 }
+                // Report the size anyway, so that card is not clipped too.
+                startSizing();
             });
 
         // ChatGPT Apps SDK compatibility: data/theme may be exposed on a
