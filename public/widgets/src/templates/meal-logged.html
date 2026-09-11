@@ -218,6 +218,8 @@
                     return;
                 }
                 setLocaleFrom(data, __widgetApi);
+                // Litres or fluid ounces, from the profile (macros.js).
+                setWaterUnit(data.water_unit);
 
                 const totals = data.totals || {};
                 // update_meal (and log_meal, via a backdated logged_at) can

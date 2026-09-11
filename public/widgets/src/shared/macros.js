@@ -197,6 +197,10 @@ const MACROS = [
         //
         // Fixed decimals rather than fmt()'s: fmt round-trips through
         // Number(), so a round 2 L would print "2" beside a "2.5 L" goal.
+        //
+        // Litres is the DEFAULT, not the only reading: setWaterUnit (below)
+        // re-points this at WATER_DISPLAYS' US or UK fluid ounce when the
+        // payload's `water_unit` says the profile weighs in pounds.
         display: { unit: "L", per: 1000, decimals: 1 },
         color: "c-wat",
         decimals: 0,
@@ -268,6 +272,28 @@ function mealTypeLabel(v) {
 // a sibling constant here, since — unlike the gram figures — they are
 // user-visible text.
 const DRINK_GRAMS = { us: 14, uk: 7.893 };
+
+// The three ways water can read, keyed by the payload's `water_unit` (resolved
+// server-side by waterUnitFor in src/units.ts from the profile's weight and
+// drink-unit preferences). Litres print a decimal; fluid ounces are already a
+// glass-sized step, so they print whole — "71/85 fl oz", not "71.0".
+const WATER_DISPLAYS = {
+    l: { unit: "L", per: 1000, decimals: 1 },
+    us_fl_oz: { unit: "fl oz", per: 29.5735295625, decimals: 0 },
+    uk_fl_oz: { unit: "fl oz", per: 28.4130625, decimals: 0 },
+};
+
+// Point water's `display` at the payload's unit. AMBIENT, like the locale
+// (setLocale): every renderer below reads `m.display` through macroNum /
+// macroUnit / macroSteps, so swapping the one entry is what keeps the chip,
+// its caption, its accessible name, the rounding the states are decided on
+// and any chart foot in the same unit. A template calls it from render(),
+// beside setLocale, before painting anything. Anything unknown — including a
+// payload from before the field existed — reads in litres, as it always did.
+function setWaterUnit(code) {
+    const water = MACROS.find((m) => m.key === "water_ml");
+    if (water) water.display = WATER_DISPLAYS[code] || WATER_DISPLAYS.l;
+}
 
 // How a metric's figure READS — the single place the stored unit becomes the
 // displayed one. An entry with no `display` reads in the unit it is stored in;

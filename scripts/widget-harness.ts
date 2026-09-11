@@ -27,6 +27,8 @@
 //                       `locale` (what every widget reads first) and sets
 //                       hostContext.locale to match. Any WIDGET_STRINGS code;
 //                       the host page also links to each of them
+//   ?waterUnit=us_fl_oz water in fluid ounces (or uk_fl_oz, or l), as the
+//                       server sends it to a profile that weighs in pounds
 //
 // The canned tool result each widget is handed is checked against that tool's
 // REAL outputSchema before the server starts (assertFixturesMatchSchemas): a
@@ -40,6 +42,7 @@ import { getWidgetHtml, WIDGET_TEMPLATES } from "../src/widgets.js";
 import { registerTools } from "../src/mcp.js";
 import { runImport } from "../src/import.js";
 import { WIDGET_STRINGS } from "../src/copy/widgets.js";
+import { WATER_UNITS } from "../src/units.js";
 import type { MealInput, MealInsertResult } from "../src/supabase.js";
 
 // In-memory stand-in for insertMeal, mirroring its dedup contract, so the harness
@@ -245,6 +248,7 @@ function buildResults(
             // raise days_in_range here if you want to eyeball it.
             days_in_range: days.length,
             drink_unit: macroDrinkUnit,
+            water_unit: "l",
             locale: "en",
             goals,
             averages: {
@@ -279,6 +283,7 @@ function buildResults(
             meal_count: 4,
             water_entries: 6,
             drink_unit: macroDrinkUnit,
+            water_unit: "l",
             locale: "en",
             goals,
             totals,
@@ -308,6 +313,7 @@ function buildResults(
             // stays, which is the point: caffeine has no opt-in flag, only the
             // data-driven null.
             drink_unit: null,
+            water_unit: "l",
             locale: "en",
             logged_meal: {
                 description: "Grilled chicken salad",
@@ -334,6 +340,7 @@ function buildResults(
             // its own fallback rather than on what the tool chose.
             default_range: 7,
             drink_unit: macroDrinkUnit,
+            water_unit: "l",
             locale: "en",
             goals,
             days: seriesDays,
@@ -631,8 +638,25 @@ function hostPage(widget: string, params: URLSearchParams): string {
     const localeParam = params.get("locale");
     const locale =
         localeParam && LOCALES.includes(localeParam) ? localeParam : null;
+    // `?waterUnit=` (l | us_fl_oz | uk_fl_oz): what the server resolves from a
+    // pounds-weighing profile (waterUnitFor, src/units.ts), so the fluid-ounce
+    // reading is reviewable without an account set to lb. Applied to any
+    // fixture that carries the field; an unknown value leaves the fixture's.
+    const waterParam = params.get("waterUnit");
+    const waterUnit = (WATER_UNITS as readonly string[]).includes(
+        waterParam ?? "",
+    )
+        ? waterParam
+        : null;
     // Probe and gallery paint their own UI; anything non-null will do.
-    const baseResult = RESULTS[widget] ?? { probe: true };
+    const fixture = RESULTS[widget] ?? { probe: true };
+    const baseResult =
+        waterUnit &&
+        fixture &&
+        typeof fixture === "object" &&
+        "water_unit" in fixture
+            ? { ...(fixture as Record<string, unknown>), water_unit: waterUnit }
+            : fixture;
     const toolResult =
         locale &&
         baseResult &&
@@ -664,7 +688,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
 </style></head>
 <body>
   <strong>${widget}</strong>
-  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"} ${localeCfg}</span>
+  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"} ${localeCfg}${waterUnit ? " waterUnit=" + waterUnit : ""}</span>
   <div class="cfg" style="margin-top:4px">language: ${localeLinks}</div>
   <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}"></iframe></div>
   <div style="margin-top:8px">

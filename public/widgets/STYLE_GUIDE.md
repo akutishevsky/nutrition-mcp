@@ -1319,11 +1319,16 @@ might be absent rather than zero.
   ethanol, `uk` = 7.893 g, mirroring `src/alcohol.ts`). No other metric has a
   second unit — caffeine is milligrams alone, because there is no second unit
   anyone thinks in.
-- **Water renders in litres from the millilitre payload, and the conversion is ONE
-  decision point.** `water_ml` is millilitres because that is what a glass is
-  logged in, but a day's intake is spoken in litres and "2,100 ml" is three more
-  glyphs for no more meaning. The decision lives on the `MACROS` entry as
-  `display: { unit: "L", per: 1000, decimals: 1 }`, and **everything that renders a
+- **Water renders in litres or fluid ounces from the millilitre payload, and the
+  conversion is ONE decision point.** `water_ml` is millilitres because that is
+  what a glass is logged in, but a day's intake is spoken in litres ("2,100 ml" is
+  three more glyphs for no more meaning) — or, for someone who weighs themselves in
+  pounds, in whole US or UK fluid ounces. The server says which as `water_unit`
+  (`waterUnitFor` in `src/units.ts`; there is no volume preference, so it follows
+  the weight unit and takes the ounce's size from the drink unit), and the
+  template's `render()` calls `setWaterUnit(data.water_unit)`, which points the
+  `MACROS` entry's `display` at `{ unit: "L", per: 1000, decimals: 1 }` or an
+  ounce equivalent with no decimals. Nutrients stay in grams for everyone. **Everything that renders a
   value goes through `macroNum(m, v)` / `macroUnit(m)`** (or `macroAmount(m, v)` for
   the two together) — the chip figure, every caption `macroBits` builds, the
   accessible name, the gauge label, **and any chart foot a template draws**. A

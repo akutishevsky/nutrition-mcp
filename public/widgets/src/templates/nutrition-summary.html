@@ -710,6 +710,8 @@
                             : null,
                     ),
                 );
+                // Litres or fluid ounces, from the profile (macros.js).
+                setWaterUnit(data && data.water_unit);
                 // WHAT WAS OPEN, read before the card is thrown away. A host
                 // may re-deliver the tool result (or the model re-call the
                 // tool) while a drawer is open; rebuilding innerHTML destroyed

@@ -51,7 +51,7 @@ const macrosApi = await (async () => {
         "fmt",
         "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${iconSrc}\n${dateSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, GLYPHS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, macroDetailBody, focusInner, focusOver, macroDecimal, setLocale };`,
+        `${i18nSrc}\n${iconSrc}\n${dateSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, GLYPHS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, macroDetailBody, focusInner, focusOver, macroDecimal, setLocale, setWaterUnit };`,
     );
     // "de" is wired to the English dictionary deliberately: the locale test
     // below pins that FIGURES follow the widget's locale, not that any
@@ -94,6 +94,7 @@ const macrosApi = await (async () => {
         focusOver: (m: Macro, b: Bits & { val: number }) => boolean;
         macroDecimal: (v: number, decimals: number) => string;
         setLocale: (locale: string) => unknown;
+        setWaterUnit: (code?: string | null) => void;
     };
 })();
 
@@ -891,6 +892,33 @@ test("water reads in litres, and an untracked day has no line at all", () => {
     expect(macrosApi.macroPanel({ ...VALS, water_ml: 0 }, null)).not.toContain(
         "c-wat",
     );
+});
+
+// A profile that weighs in pounds reads water in fluid ounces (water_unit,
+// resolved server-side by waterUnitFor). One setWaterUnit call has to move the
+// figure, the goal AND the state together — the verdict is decided on whole
+// display steps, so an ounce reading must be judged in ounces too.
+test("water reads in fluid ounces when the payload says so, sized US or UK", () => {
+    try {
+        macrosApi.setWaterUnit("us_fl_oz");
+        // 2,100 ml = 71.0 US fl oz, 2,500 ml = 84.5 → 85: whole ounces.
+        expect(macrosApi.macroPanel(VALS, GOALS)).toContain(
+            '71<span class="u">/85 fl oz</span>',
+        );
+        macrosApi.setWaterUnit("uk_fl_oz");
+        // The UK ounce is 4% smaller: 2,100 ml = 73.9 → 74, 2,500 ml = 88.
+        expect(macrosApi.macroPanel(VALS, GOALS)).toContain(
+            '74<span class="u">/88 fl oz</span>',
+        );
+        // Anything unrecognised — a payload from before the field — is litres.
+        macrosApi.setWaterUnit("gallons");
+        expect(macrosApi.macroPanel(VALS, GOALS)).toContain(
+            '2.1<span class="u">/2.5 L</span>',
+        );
+    } finally {
+        // Ambient state: leave the module the way every other test expects it.
+        macrosApi.setWaterUnit("l");
+    }
 });
 
 // A GOAL IS THE USER SAYING THEY TRACK IT, so a 0 against one is a reading and

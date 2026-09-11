@@ -366,6 +366,8 @@
                     Array.isArray(data.days) &&
                     data.days.some(dayHasData);
                 setLocaleFrom(data, __widgetApi);
+                // Litres or fluid ounces, from the profile (macros.js).
+                setWaterUnit(data && data.water_unit);
                 if (!anyLogged) {
                     root.innerHTML = `
             <div class="empty">

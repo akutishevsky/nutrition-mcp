@@ -4,6 +4,8 @@
 // rather than being delegated to the model. Energy is stored as whole kcal —
 // see toStoredCalories at the bottom.
 
+import type { DrinkUnit } from "./alcohol.js";
+
 export type WeightUnit = "kg" | "lb";
 
 export const WEIGHT_UNITS: readonly WeightUnit[] = ["kg", "lb"];
@@ -92,4 +94,32 @@ export function pickWriteUnit(
  */
 export function toStoredInteger(value: number): number {
     return Math.round(value);
+}
+
+/**
+ * The unit the widgets read water in. Storage is millilitres either way; this
+ * is display only.
+ *
+ * There is no volume preference on the profile, so it follows the body-weight
+ * one: someone who weighs themselves in pounds reads a day's water in fluid
+ * ounces, everyone else in litres. The US and UK fluid ounce differ by 4%
+ * (29.57 vs 28.41 ml), so the size comes from the drink-unit preference — the
+ * one setting that already says which of the two measuring systems the user
+ * lives in — and defaults to US, as that preference does. Read the RAW
+ * preference, not the alcohol-display gate: the size of an ounce has nothing
+ * to do with whether alcohol is shown.
+ *
+ * Nutrients stay in grams for everyone: nutrition labels print grams in the US
+ * as well.
+ */
+export type WaterUnit = "l" | "us_fl_oz" | "uk_fl_oz";
+
+export const WATER_UNITS = ["l", "us_fl_oz", "uk_fl_oz"] as const;
+
+export function waterUnitFor(
+    weightUnit: WeightUnit | null,
+    drinkUnit: DrinkUnit | null,
+): WaterUnit {
+    if (weightUnit !== "lb") return "l";
+    return drinkUnit === "uk" ? "uk_fl_oz" : "us_fl_oz";
 }

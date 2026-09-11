@@ -432,6 +432,8 @@
             function render(data) {
                 const root = document.getElementById("root");
                 setLocaleFrom(data, __widgetApi);
+                // Litres or fluid ounces, from the profile (macros.js).
+                setWaterUnit(data && data.water_unit);
                 if (!data || typeof data !== "object") {
                     root.innerHTML = `
             <div class="empty">

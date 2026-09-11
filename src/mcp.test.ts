@@ -3064,6 +3064,33 @@ describe("get_nutrition_summary reports caffeine over its covered days only", ()
         });
     });
 
+    // The widget reads water in the unit this names. A profile weighing in
+    // pounds gets fluid ounces, sized by the drink-unit preference — read raw,
+    // so it applies with alcohol tracking OFF too; everyone else, litres.
+    test("water_unit follows the profile's weight and drink units", async () => {
+        stage([null, null, null, null, null]);
+        const waterUnit = async () => {
+            let unit: unknown;
+            await withTools(null, async (call) => {
+                unit = (
+                    (await summarize(call)).structuredContent as {
+                        water_unit: unknown;
+                    }
+                ).water_unit;
+            });
+            return unit;
+        };
+        expect(await waterUnit()).toBe("l");
+        db.profile = {
+            ...PROFILE_BASE,
+            preferred_weight_unit: "lb",
+            preferred_drink_unit: "uk",
+        };
+        expect(await waterUnit()).toBe("uk_fl_oz");
+        db.profile = { ...PROFILE_BASE, preferred_weight_unit: "lb" };
+        expect(await waterUnit()).toBe("us_fl_oz");
+    });
+
     // Every day covered: the coverage note is for PARTIAL coverage only, so
     // naming caffeine here would be noise on the case of a daily coffee
     // drinker, which is the most common caffeine user there is.

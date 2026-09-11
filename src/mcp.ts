@@ -31,7 +31,6 @@ import {
     deleteWeight,
     getUserTimezone,
     getPreferredWeightUnit,
-    getUserLocale,
     widgetsEnabledFromProfile,
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
@@ -82,6 +81,8 @@ import {
     isWeightUnit,
     pickWriteUnit,
     isPlausibleWeightGrams,
+    waterUnitFor,
+    WATER_UNITS,
     type WeightUnit,
 } from "./units.js";
 import { formatAlcohol, isDrinkUnit, type DrinkUnit } from "./alcohol.js";
@@ -505,6 +506,11 @@ export const TRENDS_DAY_ITEM = TOTALS_ITEM.extend({
 // the "user has alcohol tracking off" signal, matching AlcoholDisplay — the
 // widget hides the stat line entirely rather than picking a default.
 const DRINK_UNIT_FIELD = z.enum(["us", "uk"]).nullable();
+// Which unit the widgets read water in — "l", "us_fl_oz" or "uk_fl_oz",
+// resolved by waterUnitFor (src/units.ts) from the profile's weight and
+// drink-unit preferences. Display only: every water figure in the payload stays
+// millilitres, and a widget that meets an unknown value reads litres.
+const WATER_UNIT_FIELD = z.enum(WATER_UNITS);
 
 // log_meal and update_meal share the same MCP Apps widget
 // (public/widgets/meal-logged.html). Both declare this identical output shape
@@ -514,6 +520,7 @@ const MEAL_PROGRESS_OUTPUT_SCHEMA = z.object({
     action: z.enum(["logged", "updated"]),
     date: z.string(),
     drink_unit: DRINK_UNIT_FIELD,
+    water_unit: WATER_UNIT_FIELD,
     // The widget's UI language — see the identical field on
     // get_nutrition_summary's outputSchema for why this is z.string() and
     // resolved server-side via getUserLocale.
@@ -828,6 +835,10 @@ async function buildMealProgress(
         action,
         date: mealDate,
         drink_unit: alcohol,
+        water_unit: waterUnitFor(
+            preferredWeightUnitFromProfile(profile),
+            preferredDrinkUnitFromProfile(profile),
+        ),
         locale,
         logged_meal: {
             description: meal.description,
@@ -2260,6 +2271,7 @@ export function registerTools(
                 // client cannot tell a full month from a fortnight of gaps.
                 days_in_range: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
+                water_unit: WATER_UNIT_FIELD,
                 // The widget's UI language (get_language / set_language),
                 // resolved server-side so the dashboard renders its own
                 // labels in it without a second round trip. Not the language
@@ -2312,8 +2324,12 @@ export function registerTools(
                         1,
                         dateDiffDays(start_date, end_date) + 1,
                     );
-                    const tz = await getUserTimezone(userId);
-                    const locale = await getUserLocale(userId);
+                    // One profile read for every preference the payload
+                    // needs — getUserTimezone and getUserLocale were each
+                    // their own `select * from profiles`.
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
+                    const locale = localeFromProfile(profile) ?? "en";
                     const [meals, water, goals] = await Promise.all([
                         getMealsInRange(userId, start_date, end_date, tz),
                         getWaterInRange(userId, start_date, end_date, tz),
@@ -2336,6 +2352,10 @@ export function registerTools(
                                 logged_days: 0,
                                 days_in_range: daysInRange,
                                 drink_unit: alcohol,
+                                water_unit: waterUnitFor(
+                                    preferredWeightUnitFromProfile(profile),
+                                    preferredDrinkUnitFromProfile(profile),
+                                ),
                                 locale,
                                 goals: goalsPayload,
                                 averages: totalsPayloadOf(
@@ -2482,6 +2502,10 @@ export function registerTools(
                             logged_days: days.length,
                             days_in_range: daysInRange,
                             drink_unit: alcohol,
+                            water_unit: waterUnitFor(
+                                preferredWeightUnitFromProfile(profile),
+                                preferredDrinkUnitFromProfile(profile),
+                            ),
                             locale,
                             goals: goalsPayload,
                             averages,
@@ -2754,6 +2778,7 @@ export function registerTools(
                 meal_count: z.number(),
                 water_entries: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
+                water_unit: WATER_UNIT_FIELD,
                 // The widget's UI language — see the identical field on
                 // get_nutrition_summary's outputSchema for why this is
                 // z.string() and resolved server-side via getUserLocale.
@@ -2864,6 +2889,10 @@ export function registerTools(
                         structuredContent: {
                             date: targetDate,
                             drink_unit: alcohol,
+                            water_unit: waterUnitFor(
+                                preferredWeightUnitFromProfile(profile),
+                                preferredDrinkUnitFromProfile(profile),
+                            ),
                             locale,
                             meal_count: meals.length,
                             water_entries: water.length,
@@ -3956,6 +3985,7 @@ export function registerTools(
                 // Which toggle the widget opens on (nearest of 7/14/30).
                 default_range: z.number(),
                 drink_unit: DRINK_UNIT_FIELD,
+                water_unit: WATER_UNIT_FIELD,
                 // The widget's UI language — see the identical field on
                 // get_nutrition_summary's outputSchema for why this is
                 // z.string() and resolved server-side via getUserLocale.
@@ -4018,6 +4048,10 @@ export function registerTools(
                                 ? windowDays
                                 : 30,
                             drink_unit: alcohol,
+                            water_unit: waterUnitFor(
+                                preferredWeightUnitFromProfile(profile),
+                                preferredDrinkUnitFromProfile(profile),
+                            ),
                             locale,
                             goals: goalsPayload,
                             // Rounded through trendsDayPayloadOf, which nulls

@@ -8,7 +8,23 @@ import {
     isPlausibleWeightGrams,
     toStoredInteger,
     WEIGHT_UNITS,
+    waterUnitFor,
 } from "./units.js";
+
+test("waterUnitFor reads water in litres unless weight is in pounds", () => {
+    expect(waterUnitFor("kg", null)).toBe("l");
+    expect(waterUnitFor("kg", "us")).toBe("l");
+    expect(waterUnitFor("kg", "uk")).toBe("l");
+    // No weight preference is the default account: litres, as before.
+    expect(waterUnitFor(null, "uk")).toBe("l");
+});
+
+test("waterUnitFor sizes the fluid ounce by the drink-unit preference", () => {
+    expect(waterUnitFor("lb", "uk")).toBe("uk_fl_oz");
+    expect(waterUnitFor("lb", "us")).toBe("us_fl_oz");
+    // US is the drink unit's own default, so it is the ounce's too.
+    expect(waterUnitFor("lb", null)).toBe("us_fl_oz");
+});
 
 test("toGrams converts kg to integer grams", () => {
     expect(toGrams(75, "kg")).toBe(75000);
