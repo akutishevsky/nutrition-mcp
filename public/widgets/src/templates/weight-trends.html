@@ -273,8 +273,7 @@
           <div class="cwrap c-acc">
             <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">
               ${goal}${line}
-              <circle class="chalo" cx="${dot[0].toFixed(1)}" cy="${dot[1].toFixed(1)}" r="5"/>
-              <circle class="cdot" cx="${dot[0].toFixed(1)}" cy="${dot[1].toFixed(1)}" r="3"/>
+              ${chDotMarkup(dot[0], dot[1])}
             </svg>
           </div>`;
             }

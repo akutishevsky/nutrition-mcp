@@ -138,18 +138,51 @@
     stroke-dasharray: 3 5;
     vector-effect: non-scaling-stroke;
 }
+/* One vertical hairline per day (chDayLines in shared/svg.js), painted first so
+   everything else sits over it: order is day → goal → area → line. Without
+   them a 7-day series near its goal is a flat stroke across an empty wash, and
+   nothing says where one day ends and the next begins.
+
+   A quarter of --ink3, which lands about where tokens.css's --line2 does in
+   both themes, and deliberately NOT --line2 itself: the tiered strip redeclares
+   --line/--line2 on `.focus` as the strong control-border --edge tokens (see
+   chip.css), and this chart lives inside `.focus`, so --line2 painted every
+   rule tile-border grey — louder than the dashed goal, which is information
+   while these are scaffolding. crispEdges keeps each one a single device
+   pixel; antialiased, a 1px rule at a fractional x smears into two faint ones,
+   and at 30 days that reads as a grey haze rather than a grid. */
+.cday {
+    stroke: color-mix(in srgb, var(--ink3) 25%, transparent);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    shape-rendering: crispEdges;
+}
 /* The last point sits on a --panel halo so it stays legible where the line
-   doubles back under it. It is the only marker: it says which end is now. */
+   doubles back under it. It is the only marker: it says which end is now.
+
+   Both are STROKES on a zero-length path (chDotMarkup in shared/svg.js), not
+   filled circles: a circle's r is in viewBox units and so stretched with the
+   x axis into an oval, while a round cap under non-scaling-stroke is a disc
+   whose diameter is the stroke width in CSS px — round at every card width.
+   10 and 6 are the old r=5/r=3 at the box's 1:1 vertical scale, so the
+   marker is the size it always was, only no longer squashed. */
+.chalo,
+.cdot {
+    fill: none;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
 .chalo {
-    fill: var(--panel);
+    stroke: var(--panel);
+    stroke-width: 10;
 }
 /* Same variant as the line it terminates: it is the same mark, and a bright
    dot on a darkened line reads as a second object. It also inherits the line's
    ratios above rather than the raw token's, on a --panel halo. */
 .cdot {
-    fill: var(--cstroke, var(--c, var(--cal)));
+    stroke: var(--cstroke, var(--c, var(--cal)));
+    stroke-width: 6;
 }
-
 /* Every label is HTML here rather than <text> inside the svg, for three
    reasons that all follow from preserveAspectRatio="none": svg text would be
    stretched horizontally with the viewBox, it cannot ellipsise, and it ignores

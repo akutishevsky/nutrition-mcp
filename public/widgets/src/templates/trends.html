@@ -254,8 +254,9 @@
                     // wash measures the real thing — see .carea in chart.css.
                     area: chArea(pts),
                     goalY: goal > 0 ? chY(goal, 0, yMax).toFixed(1) : null,
-                    x: dot[0].toFixed(1),
-                    y: dot[1].toFixed(1),
+                    // The marker's `d` (chDot, shared/svg.js), so applySeries
+                    // re-points halo and dot with one attribute each.
+                    dot: chDot(dot[0], dot[1]),
                     from: shortDate(days[0].date),
                     to: shortDate(days[days.length - 1].date),
                     // The foot's middle label. On the default series it is the
@@ -297,8 +298,8 @@
               <line class="cgoal" x1="${CH_PL}" y1="${gy}" x2="${CH_W - CH_PR}" y2="${gy}"${hidden}/>
               ${chAreaMarkup(s.area)}
               <path class="cline" d="${s.d}"/>
-              <circle class="chalo" cx="${s.x}" cy="${s.y}" r="5"/>
-              <circle class="cdot" cx="${s.x}" cy="${s.y}" r="3"/>
+              <path class="chalo" d="${s.dot}"/>
+              <path class="cdot" d="${s.dot}"/>
             </svg>
           </div>
           <div class="cfoot">${footHtml(s)}</div>`;
@@ -327,10 +328,9 @@
                     goal.setAttribute("y1", s.goalY);
                     goal.setAttribute("y2", s.goalY);
                 }
-                block.querySelectorAll(".chalo, .cdot").forEach((c) => {
-                    c.setAttribute("cx", s.x);
-                    c.setAttribute("cy", s.y);
-                });
+                block
+                    .querySelectorAll(".chalo, .cdot")
+                    .forEach((c) => c.setAttribute("d", s.dot));
                 block.querySelector(".cfoot").innerHTML = footHtml(s);
                 // The card's glow reads --c, so the whole surface takes the
                 // selected metric's colour — the confirmation you get without

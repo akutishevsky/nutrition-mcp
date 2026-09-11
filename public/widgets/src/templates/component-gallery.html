@@ -302,7 +302,7 @@
                         ? ""
                         : `<line class="cgoal" x1="${CH_PL}" y1="${gy}" x2="${CH_W - CH_PR}" y2="${gy}"></line>`;
                 const area = filled ? chAreaMarkup(chArea(pts)) : "";
-                return `<svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">${goalLine}${area}<path class="cline" d="${chPath(pts)}"></path><circle class="chalo" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5"></circle><circle class="cdot" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3"></circle></svg>`;
+                return `<svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">${goalLine}${area}<path class="cline" d="${chPath(pts)}"></path>${chDotMarkup(last[0], last[1])}</svg>`;
             }
             function macroOf(key) {
                 return MACROS.find((m) => m.key === key);

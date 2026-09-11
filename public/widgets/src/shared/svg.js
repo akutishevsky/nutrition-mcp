@@ -118,6 +118,52 @@ function chAreaMarkup(d) {
     );
 }
 
+/* One vertical hairline per point, spanning the plot box from CH_PT down to
+   CH_BASE — the .cday grid. Takes the same `pts` as the line, so a rule always
+   lands exactly on its day's x; pass every day, gaps included, since a day with
+   no reading is still a day. */
+function chDayLines(pts) {
+    var s = "",
+        i,
+        x;
+    for (i = 0; i < pts.length; i++) {
+        x = pts[i][0].toFixed(1);
+        s +=
+            '<line class="cday" x1="' +
+            x +
+            '" y1="' +
+            CH_PT +
+            '" x2="' +
+            x +
+            '" y2="' +
+            CH_BASE +
+            '"/>';
+    }
+    return s;
+}
+
+/* The last-point marker's geometry: a ZERO-LENGTH subpath at (x, y). A <circle>
+   cannot be the marker here — its r is in viewBox units, and
+   preserveAspectRatio="none" scales x by width/480 but y by 1, so r=5 drew a
+   ~1.6x-wide oval on a 700px card and a tall one on a narrow card. A
+   zero-length path with a round cap paints a disc whose diameter is the
+   stroke width, and under vector-effect: non-scaling-stroke that width is in
+   CSS px, so the disc is round at every card width (.chalo/.cdot in
+   chart.css carry the widths). Returned as the bare `d` so a chart that
+   re-points in place (trends) can write it as an attribute. */
+function chDot(x, y) {
+    var p = (+x).toFixed(1) + " " + (+y).toFixed(1);
+    return "M" + p + "L" + p;
+}
+
+/* Halo + dot for the last point, halo first so the dot sits on it. */
+function chDotMarkup(x, y) {
+    var d = chDot(x, y);
+    return (
+        '<path class="chalo" d="' + d + '"/><path class="cdot" d="' + d + '"/>'
+    );
+}
+
 /* The y for one value on the same scale — the goal/target line's y1 and y2. */
 function chY(v, yMin, yMax) {
     var h = CH_H - CH_PT - CH_PB;
