@@ -132,11 +132,23 @@
    it was meant to fix. A rule that only applies on a wide desktop is not a
    design decision, it is a bug with a media query around it.
 
-   So the tiers fold a column earlier instead (see the rails above): the macro
-   tier is two up below 480 and the limits two up below 560, which buys ~50px of
-   tile — far more than the glyph's column costs — and the figure keeps its 16px
-   at every width. The narrow-width tightening this used to need (6px insets, a
-   15px figure, a 3px gap) is gone with it: a 145px tile has room to spare. */
+   So the LIMITS fold a column earlier instead (see the rails below): two up
+   below 620 (four tiles) or 480 (three), which buys ~50px of tile — far more
+   than the glyph's column costs.
+
+   THE MACRO TIER IS THE ONE EXCEPTION, and it is an exception in the other
+   direction: it keeps its three columns and gives up the glyph's column below
+   380px instead (see "the narrow macro tile" further down). It used to fold 2+1
+   like the limits, which broke the one object those three tiles are — the split
+   the calorie figure is made of — and left fat alone on a full-width row, where
+   its wash ran twice as long as protein's for a SMALLER fraction and read as
+   the dominant macro. And the fold did not even buy what it was for: three
+   columns at 280px are an 81px tile, and glyph + gap + figure + gap + chevron
+   left the figure 18px there, while the 2-up fallback still cut "2,205/2,200 g"
+   by 29px. Neither width can hold a figure, its goal, a centred mark and a
+   centred chevron on one row — so at phone widths the macro tile drops the
+   mark, which the label beside it already states in words, and never the
+   figure. */
 .strip.tiered .chip {
     grid-template-columns: auto minmax(0, 1fr) auto;
 }
@@ -182,9 +194,10 @@
 
 /* Level 2. Three metrics, three columns, at every width: they are one object —
    the split the calorie figure above is made of — and a 2+1 wrap would break
-   that object across two rows and leave a hole beside fat. At 320px each
-   column is ~88px, which the 11px label and the 18px figure both clear because
-   the chevron moved off the figure's row (below). */
+   that object across two rows and hand the lone tile a full-width wash. That
+   is why `.r-macro` is excluded from the narrow fold below, and what the narrow
+   macro tile further down pays for: at 280px each column is ~81px, which holds
+   the figure only once the glyph's column is gone. */
 /* A RAIL IS AS WIDE AS IT HAS THINGS TO SHOW. The column count is the rail's
    own tile count (`data-n`, emitted by railOf), not a constant per tier — so a
    limits row for someone who does not track alcohol is three columns that fill
@@ -211,17 +224,18 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-/* Below 480 nothing goes wider than two: three columns is a 95px tile, and the
-   figure needs 65 of it once the glyph and chevron have taken theirs. Four
-   items fold to 2x2 with no hole; THREE leave one alone on the second row, and
-   an empty cell beside it reads as something failing to load — so the odd one
-   out takes the whole row. */
+/* Below 480 no LIMITS rail goes wider than two: three columns is a 95px tile,
+   and a 12.5px figure needs 65 of it once the glyph and chevron have taken
+   theirs. Four items fold to 2x2 with no hole; THREE leave one alone on the
+   second row, and an empty cell beside it reads as something failing to load —
+   so the odd one out takes the whole row. The macro rail is not folded (see
+   level 2 above); it narrows its tile instead. */
 @media (max-width: 479px) {
-    .strip.tiered .rail[data-n="3"],
-    .strip.tiered .rail[data-n="4"] {
+    .strip.tiered .rail:not(.r-macro)[data-n="3"],
+    .strip.tiered .rail:not(.r-macro)[data-n="4"] {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .strip.tiered .rail[data-n="3"] > .chip:last-child {
+    .strip.tiered .rail:not(.r-macro)[data-n="3"] > .chip:last-child {
         grid-column: 1 / -1;
     }
 }
@@ -291,11 +305,9 @@
    the four under them reads as two different kinds of tile for a reason that is
    really just column arithmetic. The width it costs is bought below instead —
    out of the inset, the column gap and one point of the figure. */
-/* 8px of side padding and a 4px column gap, against the tile's usual 9-10 and
-   6: at three columns on a 320px card the tile is 95px, and every pixel of the
-   inset and of the gap to the chevron comes straight off the figure's box.
-   The figure is the one run here that may not be cut — a truncated number still
-   reads as a number. */
+/* 8px of side padding, against the tile's usual 9-10: at three columns every
+   pixel of the inset comes straight off the figure's box. (Below 380 the
+   narrow macro tile takes it to 6px — see there.) */
 /* SYMMETRIC VERTICAL PADDING on both tiers, and that is the chevron's doing.
    It spans both grid rows and centres in that area, so an extra pixel at the
    bottom of the tile — which the flat rail carries as an optical correction
@@ -318,12 +330,12 @@
     width: 11px;
     height: 11px;
 }
-/* 16px, AND THE SAME 16px AT EVERY WIDTH. The size is chosen by the narrowest
-   column it has to survive, not by the widest: three columns inside a 320px
-   card are 95px, and once the border, the 8px insets, the centred chevron and
-   its gap are taken out, ~62 of them are the figure's. "228/220 g" measures ~54
-   at 16/10, so it fits with room to spare in the locales that group digits with
-   a wider separator.
+/* 16px, AND THE SAME 16px AT EVERY WIDTH. The width it needs is found by
+   WRAPPING, not by shrinking: the figure's own digits are the part that may
+   never be cut, and the "/goal unit" after them goes onto a line of its own
+   when the pair does not fit (see the figure's wrap, below). So the column only
+   has to hold the wider of the two runs — "2,205" is 46px at 16px and
+   "/2,200 g" 42px at 10px — rather than the ~90px of both on one line.
 
    The alternative was a breakpoint stepping 18px down to 15.5px on narrow
    cards. It bought two points of size on wide ones and cost the level its
@@ -337,6 +349,95 @@
 }
 .r-macro .chip .v .u {
     font-size: 10px;
+}
+
+/* --- the figure wraps its goal, it is never cut --- */
+
+/* THE FIGURE IS THE ONE RUN ON A TILE THAT MAY NOT BE CUT, and this is what
+   makes that true. `.chip .v` ellipsises the figure-and-goal as one nowrap
+   run, and an ellipsis eats what comes last — so at 280px "148/160 g" printed
+   as "148/1…" and "2,205/2,200 g" as "2,2…". A cut figure also loses its goal,
+   and the goal is how a breach survives greyscale ("58.2/45 g"), so the tile
+   went quiet about the one thing it must not.
+
+   A flex row that WRAPS instead: the digits are an anonymous item that cannot
+   shrink, and the `.u` span after them drops to a line of its own when the pair
+   does not fit, where it may ellipsise as a last resort. The gap does the
+   separator's work, because a margin on `.u` would indent the wrapped line.
+
+   Tiers only, and not water, whose one-line bar has the whole card width and
+   centres its figure on a flex row of its own. */
+.strip.tiered .r-macro .chip > .v,
+.strip.tiered .r-limit .chip > .v {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px;
+    align-self: start;
+}
+.strip.tiered .r-macro .chip > .v .u,
+.strip.tiered .r-limit .chip > .v .u {
+    margin-left: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* TOP-ALIGNED READINGS, CENTRED MARKS. A grid row is as tall as its tallest
+   tile, so once one tile wraps its goal, its neighbours stretch to match — and
+   with the content centred their labels sat lower than the wrapped tile's, a
+   stagger across one row of identical things. The second track takes the slack
+   instead, so every label in a row sits on one line and every figure starts on
+   the next; the glyph and chevron span both tracks and stay centred on the
+   tile, which is where the rest of this file wants them. A tile that is not
+   stretched lays out exactly as it did. */
+.strip.tiered .r-macro .chip,
+.strip.tiered .r-limit .chip {
+    grid-template-rows: auto 1fr;
+    align-content: stretch;
+}
+
+/* --- the narrow macro tile --- */
+
+/* Below 380 the macro tile gives up the glyph's column, and nothing else. At
+   280 the tile is 81px: glyph (20) + two 7px gaps + chevron (11) + 18px of
+   border and inset left the figure 18px, and even with the goal wrapped under
+   it "2,205" needs 46. Without the glyph the text column is ~52px at 280 and
+   ~86 at 379; with it, the long figure only clears by 10% from 380 up (tile
+   ~115px), which is where the column comes back.
+
+   The mark goes, not the chevron and not the figure: the chevron is the tile's
+   one affordance, the figure is its reading, and the glyph restates a label
+   that sits beside it in words. The series colour still reaches the tile
+   through its wash and its selected ring, and the drawer head the tile opens
+   keeps its glyph. */
+@media (max-width: 379px) {
+    .strip.tiered .r-macro .chip {
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 8px 6px;
+        gap: 2px 4px;
+    }
+    .strip.tiered .r-macro .chip > .gi {
+        display: none;
+    }
+    .strip.tiered .r-macro .chip > .ktop,
+    .strip.tiered .r-macro .chip > .v {
+        grid-column: 1;
+    }
+    .strip.tiered .r-macro .chip > .chev {
+        grid-column: 2;
+    }
+}
+/* AND BELOW 480 THE GOAL ALWAYS STACKS, rather than only when it must. Across
+   that whole range the text column is 52-86px, where "62/70 g" fits on a line
+   and "145/160 g" does not — so leaving it to the wrap printed the three tiles
+   of one object in two different shapes (measured at 420: protein and carbs
+   stacked, fat on one line). From 480 the column is ~85px with the glyph back,
+   which holds any three-digit figure and its goal on one line, and the wrap
+   above is only the fallback for a figure nobody should be eating. */
+@media (max-width: 479px) {
+    .strip.tiered .r-macro .chip > .v .u {
+        flex-basis: 100%;
+    }
 }
 
 /* --- water: a bar, not a tile --- */
@@ -442,9 +543,16 @@
         stroke-dashoffset: 106.81;
     }
 }
+/* The dash pattern lives IN the keyframes, not on the rule — see
+   `.fspark .cline` for why it must be gone once the line has drawn. */
 @keyframes drawIn {
     from {
+        stroke-dasharray: 1;
         stroke-dashoffset: 1;
+    }
+    to {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 0;
     }
 }
 @keyframes fadeIn {
@@ -1077,16 +1185,15 @@ button.focus:active {
        its own in 5 of 9 locales at 390px.
 
        `min-width: min-content` floors it on `.v`, which is `nowrap`, so the
-       figure is never the thing that gives — the meta ellipsises instead,
-       which is what it was always styled to do. */
+       figure is never the thing that gives — the label ellipsises instead
+       (see `.fmeta`). */
     /* `flex-basis: 0`, not `auto`. Flex collects items onto lines by their
        HYPOTHETICAL main size and only shrinks within a line afterwards — so
        with `basis: auto` (= max-content = the meta line, ~299px) the block was
        still too big for the space beside the ring and got wrapped whole,
        orphaning the ring on a line of its own, before shrink ever ran. A basis
        of 0 can never force that wrap; `min-width: min-content` then floors the
-       block on `.v`, which is nowrap, so the figure stays intact and the meta
-       ellipsises. */
+       block on `.v`, which is nowrap, so the figure stays intact. */
     flex: 1 1 0;
     display: grid;
     gap: 4px;
@@ -1133,7 +1240,8 @@ button.focus:active {
    calorie label happens to be short) and 0–20% visible in de/es/fr/it/uk, i.e.
    the figure was simply absent in seven of the nine languages. Floored the way
    `.fmain` is floored on its figure — the part that must survive is
-   `flex: none`, the prose shrinks. */
+   `flex: none`, the prose shrinks. (The tiered strip goes further and gives
+   the label a line of its own — see below.) */
 .fmeta {
     display: flex;
     align-items: baseline;
@@ -1161,6 +1269,50 @@ button.focus:active {
     color: var(--ink);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+}
+
+/* ON THE TIERED STRIP, TWO LINES, EACH ITS OWN: the label, then the distance
+   left. The one-row layout above keeps the delta and moves the loss onto the
+   label — and on nutrition-summary's calorie panel the label is the one that
+   states the DENOMINATOR ("Daily avg · logged days", #70): measured at 40 of
+   190px in uk at 280, 102 of 215 in de at 300, cut in fr/nl/pl/it/es at 320. A
+   label sharing its line with a figure only ever gets what the figure leaves;
+   on its own line it gets the whole block, and the delta keeps its own.
+   (`.tiered` because that is the pilot's scope, and the flat-rail widgets'
+   panels — whose calorie label is a single word — are left exactly as they
+   were.)
+
+   FIXED LINES, so the panel never changes height on a series switch. A chip tap
+   re-renders this block with another metric's label and delta, and a layout
+   that let either wrap on some metrics and not others would make the card jump
+   on a tap that changes no data — the defect `.fspark` below already had to be
+   fixed for. So neither line wraps, each is one 13px line box whether its text
+   is long, short or empty, and the label is the one that ellipsises if it
+   must. 13px rather than the inherited 1: `overflow: hidden` clips to the line
+   box, and at `line-height: 1` that took the descenders off "logged days".
+
+   A grid on `minmax(0, 1fr)`, not a flex row: its min-content is zero, so the
+   label's length can never raise `.fmain`'s floor — which stays on the figure,
+   the one run here that is `nowrap` for real. */
+.strip.tiered .fmeta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2px;
+    line-height: 13px;
+}
+/* The separator joined two runs on one line; on two lines it would be a stray
+   dot at the end of the label. Hidden rather than dropped from the markup,
+   because the line break is this file's decision and the flat path still
+   needs it. Presentational either way — the panel's accessible name carries
+   its own wording. */
+.strip.tiered .fsep {
+    display: none;
+}
+/* `min-height` holds the delta's line when a metric has neither a delta nor a
+   target to print, so that metric is not a line shorter than its neighbours. */
+.strip.tiered .fdelta {
+    min-height: 13px;
+    white-space: nowrap;
 }
 .fdelta.over {
     color: var(--over);
@@ -1204,11 +1356,20 @@ button.focus:active {
    exactly and the offset sweeps 1 -> 0 — no measuring, no JS, and it works for
    7 points or 30. Scoped to `.fspark` because `stroke-dasharray: 1` on a path
    WITHOUT that attribute would render as a dotted line, and trends and
-   weight-trends draw the same `.cline` without it. */
+   weight-trends draw the same `.cline` without it.
+
+   THE DASH IS ONLY THERE WHILE IT DRAWS. The pattern sits in the keyframes and
+   the fill is `backwards`, so it applies through the delay and the sweep and
+   is gone once the line is whole. As a standing rule it hid every LONE
+   reading: a day with a value between two unlogged ones is a zero-length
+   subpath the round cap paints as a dot, and Chrome paints no cap on a
+   zero-length piece of a dashed path — so on a gappy month those days simply
+   were not drawn. `.cwrap.still` (the template) sets `animation: none`, which
+   now also means no dash at all. */
 .fspark .cline {
-    stroke-dasharray: 1;
-    animation: drawIn 0.9s var(--ease-out) both;
+    animation: drawIn 0.9s var(--ease-out) backwards;
 }
+.fspark .cday,
 .fspark .carea,
 .fspark .cgoal,
 .fspark .chalo,
@@ -1227,8 +1388,11 @@ button.focus:active {
 /* The goal line has to survive COINCIDING with the data. On a series that sits
    near its goal the dashes landed inside the 2.5px data stroke and the two read
    as one dashed orange rule — measured 2.2px apart on a 30-day calorie series,
-   i.e. within one stroke width. Darker and half a pixel heavier than the shared
-   `.cgoal`, so it stays legible as the reference where it crosses. */
+   i.e. within one stroke width. In this chart the goal is painted OVER the
+   line (the template emits it after `.cline`), so where they meet it is the
+   dashes that show; darker and half a pixel heavier than the shared `.cgoal`,
+   so a dashed --ink2 rule reads as the reference crossing the series rather
+   than as a gap in it. */
 .fspark .cgoal {
     stroke: var(--ink2);
     stroke-width: 1.5;
