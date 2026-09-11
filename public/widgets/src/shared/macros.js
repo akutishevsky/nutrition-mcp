@@ -231,6 +231,9 @@ function dayHasData(day) {
 // One strip per widget, so one drawer per document — the same assumption
 // __macroCtx below already makes.
 const MACRO_DRAWER_ID = "macro-drawer";
+// The drawer head's metric name, which is what the drawer region is labelled
+// by (aria-labelledby) — see the drawer in macroPanel.
+const MACRO_DRAWER_NAME_ID = "macro-drawer-name";
 
 // The translated label for a metric, falling back to the English literal
 // above if the current locale's dictionary (T, from shared/i18n.js) is
@@ -289,6 +292,31 @@ function macroAmount(m, v) {
     return `${macroNum(m, v)} ${macroUnit(m)}`;
 }
 
+// THE GRID A FIGURE IS PRINTED ON, as a whole number of display steps: whole
+// grams / kcal / mg, sugar's tenths of a gram, water's tenths of a LITRE (100 ml
+// — `display` again, so the step is the one the chip prints, not the one the
+// payload stores). macroBits compares these integers rather than raw floats,
+// because every state it names is read off the printed figures: protein at
+// 159.6 of 160 printed "160/160 g · 0 g left", water at 2,480 of 2,500 ml
+// "2.5/2.5 L · 0.0 L left", and sugar at 45.04 of 45 turned red and said
+// "45/45 g · 0 g over" — a verdict the reader cannot see in the numbers beside
+// it. Integers also make "equal" an exact test instead of a float `=== 0`.
+//
+// Math.round, and the figure is then PRINTED from the snapped value
+// (macroFromSteps) rather than from the raw one, so the comparison and the
+// digits can never disagree on a half-way case (45.05 is 45.0499… in binary,
+// which toFixed and Math.round(x * 10) round in opposite directions).
+function macroSteps(m, v) {
+    const d = m.display;
+    const scale = Math.pow(10, d ? d.decimals : m.decimals);
+    return Math.round(((Number(v) || 0) / (d ? d.per : 1)) * scale);
+}
+function macroFromSteps(m, steps) {
+    const d = m.display;
+    const scale = Math.pow(10, d ? d.decimals : m.decimals);
+    return (steps / scale) * (d ? d.per : 1);
+}
+
 // A fixed-decimal figure in the WIDGET's locale. toFixed always emits a dot
 // and Number#toLocaleString with no locale argument keys off
 // navigator.language — the HOST BROWSER's language, not the user's saved
@@ -331,8 +359,15 @@ function macroDecimal(v, decimals) {
 // one card at one moment. The decision belongs with the thing that RENDERS the
 // value (chipValue), not with each caller — the same shape as the role-class
 // rule: state on the container, never on the element that consumes it.
+//
+// A MISSING reading reads that way too, for every role. `vals` is a range's
+// averages or a day's totals, and a key that is simply absent is not a
+// measurement of zero — it used to be read as `?? 0`, so an averages object
+// without protein printed "0/160 g · 160 g left" for a metric nobody had
+// measured. macroBits flags it (`missing`) and it takes the "none logged"
+// treatment with no distance to the goal.
 function macroReadsAsNone(m, b) {
-    return m.role === "limit" && !(b.val > 0);
+    return b.missing || (m.role === "limit" && !(b.val > 0));
 }
 
 // value vs goal → filled fraction, the target caption, the remaining-amount
@@ -351,58 +386,96 @@ function macroBits(m, vals, goal, wording) {
         ? T.macros.ceilingUnder
         : (wording && wording.under) || T.macros.floorUnder;
     const overWord = (wording && wording.over) || T.macros.over;
-    const val = vals?.[m.key] ?? 0;
+    // null/undefined is MISSING, not zero — see macroReadsAsNone.
+    const raw = vals?.[m.key];
+    const missing = raw == null;
+    const val = missing ? 0 : Number(raw) || 0;
     const target = goal?.[m.key] ?? null;
+    // The value as PRINTED (see macroSteps). Every state below is decided on
+    // these steps; only the fill fraction stays raw, since a sliver of fill
+    // is not a verdict anyone reads a number off.
+    const sv = macroSteps(m, val);
+
+    // A ceiling of 0 is a real limit — "none today" is the most likely
+    // alcohol limit there is — so it is honoured, while a floor of 0 stays
+    // "no goal set" (a 0 g protein target is meaningless).
+    const zeroCeiling = ceiling && target === 0;
+    const goalSet = (target != null && target > 0) || zeroCeiling;
 
     let pct = null;
     let over = false;
-    if (target != null && target > 0) {
-        pct = (val / target) * 100;
-        over = pct > 100;
-    } else if (ceiling && target === 0) {
-        // A ceiling of 0 is a real limit — "none today" is the most likely
-        // alcohol limit there is — so it is honoured, while a floor of 0 stays
-        // "no goal set" (a 0 g protein target is meaningless). Percent of zero
-        // has no value to report, so it is pinned rather than left to divide
-        // into Infinity/NaN.
-        over = val > 0;
-        pct = over ? 100 : 0;
+    // Tracked separately from the (translated) deltaStr text so callers can
+    // detect the "equal on screen" states without string-matching a localized
+    // value — see atLimit's use in macroCaption.
+    let atLimit = false;
+    let atGoal = false;
+    let targetStr;
+    let deltaStr = "";
+    let goalShown = null;
+    if (!goalSet) {
+        targetStr = T.macros.noGoalSet;
+    } else {
+        const st = macroSteps(m, target);
+        goalShown = macroFromSteps(m, st);
+        // Every figure in these strings goes through macroAmount, so a metric
+        // with a `display` (water) states its goal and its distance in the
+        // same unit its chip prints — see the water MACROS entry.
+        targetStr = `${ceiling ? T.macros.limitPrefix : T.macros.ofPrefix} ${macroAmount(m, goalShown)}`;
+        if (zeroCeiling) {
+            // Percent of zero has no value to report, so it is pinned rather
+            // than left to divide into Infinity/NaN.
+            over = sv > 0;
+            pct = over ? 100 : 0;
+        } else {
+            pct = (val / target) * 100;
+            over = sv > st;
+        }
+        if (missing) {
+            // Nothing measured, so there is no distance to state — only the
+            // goal it would be measured against.
+        } else if (zeroCeiling && !over) {
+            // A SOBER DAY IS NOT "AT LIMIT". With a limit of 0 and nothing
+            // consumed, the steps are equal and the branch below would call it
+            // "limit 0 g · at limit" — the phrasing of someone who has used up
+            // their allowance, for the day they kept the limit perfectly. It
+            // reads as the limit alone, with no distance at all.
+        } else {
+            const d = st - sv;
+            if (d < 0) {
+                deltaStr = `${macroAmount(m, macroFromSteps(m, -d))} ${overWord}`;
+            } else if (d === 0) {
+                // EQUAL ON SCREEN IS ITS OWN STATE, on either side of a
+                // target. "0 g under" would be read as room left and "0 g
+                // left" as a leftover of nothing; a ceiling reached is "at
+                // limit" (never red — `over` is strictly past it) and a floor
+                // reached is "at goal".
+                if (ceiling) {
+                    deltaStr = T.macros.atLimit;
+                    atLimit = true;
+                } else {
+                    deltaStr = T.macros.atGoal;
+                    atGoal = true;
+                }
+            } else {
+                deltaStr = `${macroAmount(m, macroFromSteps(m, d))} ${underWord}`;
+            }
+        }
     }
     const frac = pct == null ? 0 : Math.max(0, Math.min(pct, 100)) / 100;
-
-    let goalLine, targetStr, deltaStr;
-    // Tracked separately from the (translated) deltaStr text so callers can
-    // detect the "exactly at a ceiling" state without string-matching a
-    // localized value — see its use in macroCaption.
-    let atLimit = false;
-    if (pct == null) {
-        targetStr = T.macros.noGoalSet;
-        deltaStr = "";
-        goalLine = targetStr;
-    } else {
-        const delta = target - val;
-        // Every figure in these three strings goes through macroAmount, so a
-        // metric with a `display` (water) states its goal and its distance in
-        // the same unit its chip prints — see the water MACROS entry.
-        if (delta < 0) {
-            deltaStr = `${macroAmount(m, -delta)} ${overWord}`;
-        } else if (delta === 0 && ceiling) {
-            // "0 g under" would be read as room left; exactly at a limit is
-            // its own state.
-            deltaStr = T.macros.atLimit;
-            atLimit = true;
-        } else {
-            deltaStr = `${macroAmount(m, delta)} ${underWord}`;
-        }
-        targetStr = `${ceiling ? T.macros.limitPrefix : T.macros.ofPrefix} ${macroAmount(m, target)}`;
-        goalLine = `${targetStr} · ${deltaStr}`;
-    }
+    const goalLine = deltaStr ? `${targetStr} · ${deltaStr}` : targetStr;
     return {
         val,
+        // The value and goal AS PRINTED, in stored units — what chipValue
+        // renders, so the digits are the ones the states were decided on.
+        shown: macroFromSteps(m, sv),
+        goalShown,
+        missing,
         target,
+        goalSet,
         pct,
         over,
         atLimit,
+        atGoal,
         frac,
         goalLine,
         targetStr,
@@ -456,48 +529,56 @@ function macroTappable(m, ctx) {
 // stay exposed — was rejected: the whole pill is the tap target, so the button
 // would either be smaller than what responds to a tap or would nest a second
 // target inside the first.
+//
+// THE VISIBLE FIGURE, VERBATIM (WCAG 2.5.3 label-in-name). The tile prints
+// "148/160 g" and the name used to say "148 g, of 160 g" — the visible string
+// was not in the name, so a voice user saying what they see hit nothing. The
+// name now carries chipValueText, which is built from the same pieces as the
+// figure chipValue prints, and then only what the figure does NOT already say:
+//
+//   the distance      "12 g left" / "at goal" / "13.2 g over"
+//   the limit phrase  "limit 45 g", on a CEILING only — "58.2/45 g" says there
+//                     is a 45 but not that it is a limit, and "under" alone
+//                     is ambiguous in several locales (pl "poniżej")
+//   the goal phrase   when the figure carries no goal: "no goal set", or
+//                     "of 160 g" beside a missing reading
+//
+// "·" separates value from goal visually; screen readers either skip it or
+// announce "middle dot", so the spoken name uses commas. Returned WITHOUT a
+// closing full stop: chipLabel and focusApply each finish the sentence with
+// the action they promise.
 function tileLabel(m, b) {
-    // "·" separates value from goal visually; screen readers either skip it or
-    // announce "middle dot", so the spoken name uses a comma.
-    const state = b.goalLine.replace(" · ", ", ");
-    // macroAmount, not fmt + m.unit: the spoken value has to be the one on
-    // screen. Water printed "2.1 L" and announced "2,100 ml" — a WCAG 2.5.3
-    // label-in-name failure the old static water row never had.
-    //
-    // The same rule for a limit nobody has recorded: the tile SHOWS the words
-    // (T.macros.noneLogged) and used to announce "0 mg", so the visible label
-    // was not contained in the accessible name and a voice user asking for
-    // "none logged" hit nothing. This used to re-derive the gate here, on
-    // `signal: "null"` alone — a NARROWER rule than the one chipValue prints
-    // by, so sugar and fiber recorded at zero showed the words and announced
-    // "0 g". macroReadsAsNone is now the single answer for both.
-    const shown = macroReadsAsNone(m, b)
-        ? T.macros.noneLogged
-        : macroAmount(m, b.val);
-    return `${macroLabel(m)} ${shown}, ${state}. ${T.macros.showMealsContributed}`;
+    const parts = [];
+    if (m.direction === "ceiling" || !(b.target > 0) || b.missing) {
+        parts.push(b.targetStr);
+    }
+    if (b.deltaStr) parts.push(b.deltaStr);
+    return `${macroLabel(m)} ${chipValueText(m, b)}, ${parts.join(", ")}`;
 }
 
-// tileLabel's promise ("show the meals that contributed") is only true where
-// meals are behind the chip. A chip that merely re-strokes the chart swaps that
-// closing sentence for the one that describes what it really does; a chip that
-// does both keeps it and adds the second. The suffix is sliced by length rather
-// than matched, because the sentence is translated and tileLabel builds it as a
-// literal tail.
+// What activating THIS chip does, said once and truthfully. Three cases, one
+// sentence each:
+//
+//   meals behind it           "Show the meals that contributed."
+//   meals AND a chart series  that, then "Also shows this nutrient on the
+//                             chart."
+//   a chart series only       "Show this on the chart." (T.macros.showOnChart)
+//
+// The third used to be the second with its first half sliced off by length,
+// which left "Also …" with nothing before it — on nutrition-summary's Water,
+// and on EVERY tile of a range whose payload carries `meals: []`.
 //
 // Gated on macroOnChart — THIS chip being drawable — and not on the widget
 // merely having a chart: nutrition-summary's chartableKeys() deliberately
 // excludes the calorie hero, and gating on `ctx.chartKeys.length` had the hero
 // promising a chart change that tapping it never makes (regression audit).
 function chipLabel(m, b, ctx) {
-    const name = tileLabel(m, b);
-    if (!macroOnChart(m, ctx)) return name;
-    if (!macroHasDetail(m, ctx)) {
-        return (
-            name.slice(0, name.length - T.macros.showMealsContributed.length) +
-            T.macros.alsoChart
-        );
-    }
-    return `${name} ${T.macros.alsoChart}`;
+    const name = `${tileLabel(m, b)}.`;
+    const meals = macroHasDetail(m, ctx);
+    if (!macroOnChart(m, ctx))
+        return `${name} ${T.macros.showMealsContributed}`;
+    if (!meals) return `${name} ${T.macros.showOnChart}`;
+    return `${name} ${T.macros.showMealsContributed} ${T.macros.alsoChart}`;
 }
 
 // The attributes that turn a chip (or the hero) into a control, in the order
@@ -602,6 +683,13 @@ function focusRing(m, b) {
     // 1.1 §11.4), so a day with nothing logged showed a tick at twelve
     // o'clock — a sliver of progress that does not exist. An empty track is
     // the honest picture of nothing.
+    //
+    // …but an empty track is only honest when there IS a goal to be 0% of.
+    // With no goal (or no reading at all — see macroReadsAsNone) the track
+    // alone read as "0% done" beside a figure that is nothing of the kind, the
+    // exact misreading `.fdelta.mute`'s "no goal set" is there to prevent. So
+    // the whole ring goes: the ring is the fraction, and there is none.
+    if (!b.goalSet || b.missing) return "";
     const arc =
         b.frac > 0
             ? `<circle class="fra" cx="20" cy="20" r="17" transform="rotate(-90 20 20)" stroke-dasharray="106.81" stroke-dashoffset="${(106.81 * (1 - Math.min(b.frac, 1))).toFixed(2)}"></circle>`
@@ -612,7 +700,9 @@ function focusRing(m, b) {
 // `control` overrides "is this metric tappable" with "is this PANEL a control",
 // which is not always the same question — see focusApply. Left undefined by
 // focusPanel, which decides the tag from the same metric it is rendering.
-function focusInner(m, ctx, control) {
+// `mirror` is focusApply's return-to-calories mode, which swaps the disclosure
+// chevron for a ✕ — the panel no longer discloses anything, it closes.
+function focusInner(m, ctx, control, mirror) {
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
     const on = control === undefined ? macroTappable(m, ctx) : !!control;
     // Calories names the PERIOD it covers ("Daily avg · logged days" — the one
@@ -625,10 +715,11 @@ function focusInner(m, ctx, control) {
     const delta = b.deltaStr
         ? `<b class="fdelta${focusOver(m, b) ? " over" : ""}">${esc(b.deltaStr)}</b>`
         : `<b class="fdelta mute">${esc(b.targetStr)}</b>`;
-    const chev =
-        on && macroHasDetail(m, ctx)
-            ? `<span class="chev">${icon("chev", 14)}</span>`
-            : "";
+    const chev = mirror
+        ? `<span class="chev">${icon("x", 12)}</span>`
+        : on && macroHasDetail(m, ctx)
+          ? `<span class="chev">${icon("chev", 14)}</span>`
+          : "";
     // THREE PARTS, not one run of text. The meta line is one ellipsised row,
     // and an ellipsis eats what comes LAST — which was the delta, the one part
     // of the line worth reading twice. Measured at 320px: the distance left was
@@ -668,9 +759,24 @@ function focusPanel(m, ctx) {
 // the panel is a mirror: the metric it shows is chosen elsewhere (macroToggle,
 // then the template's onSeries), and only the caller knows whether that metric
 // arrived selected or released.
+//
+// A MIRROR IS NOT A SECOND COPY OF THE TILE. Handing the panel a non-calorie
+// metric used to make it that metric's control in every attribute — same name,
+// same aria-expanded, same aria-controls — so the a11y tree read two
+// consecutive identical "Protein …, expanded" buttons, and the calorie drawer
+// could not be reached at all until the tile was closed, because the only
+// control that opened it was now wearing protein's identity. So while it shows
+// any metric other than calories, the panel is a plain button with ONE job:
+// its name says what it is showing (T.macros.showingMetric) and activating it
+// returns to calories by closing whatever tile is open, through that tile
+// (macroReturn). It carries `data-macro-return` instead of `data-macro`, so
+// macroToggle's state loop, the ✕'s opener lookup and every `[data-macro]`
+// query see exactly one control per metric again.
 function focusApply(fx, m, ctx, selected) {
     if (!fx) return;
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
+    const isButton = fx.tagName === "BUTTON";
+    const mirror = isButton && m.role !== "cal";
     // A CONTROL ONLY IF THE PANEL IS ONE. focusPanel picks <button> vs <span>
     // once, from the CALORIE metric — so a range whose meals are all zero-calorie
     // (coffee, tea) renders a <span class="focus">. Handing that span a tappable
@@ -679,8 +785,8 @@ function focusApply(fx, m, ctx, selected) {
     // mouse users while it had no role, no tabindex and `cursor: default` — an
     // affordance for pointers and not for keyboards, wearing ARIA a generic
     // element may not carry. The tile stays the control in that case.
-    const control = fx.tagName === "BUTTON" && macroTappable(m, ctx);
-    fx.innerHTML = focusInner(m, ctx, control);
+    const control = isButton && !mirror && macroTappable(m, ctx);
+    fx.innerHTML = focusInner(m, ctx, control, mirror);
     fx.className = `focus ${m.color}${focusOver(m, b) ? " over" : ""}`;
     // ITS IDENTITY, NOT JUST ITS APPEARANCE. This used to rewrite the content
     // and stop, leaving data-macro, aria-label and the expanded/pressed state
@@ -711,9 +817,10 @@ function focusApply(fx, m, ctx, selected) {
     fx.removeAttribute("aria-expanded");
     fx.removeAttribute("aria-controls");
     fx.removeAttribute("aria-pressed");
+    fx.removeAttribute("data-macro-return");
     if (control) {
         const state = selected ? "true" : "false";
-        fx.dataset.macro = m.key;
+        fx.setAttribute("data-macro", m.key);
         if (macroHasDetail(m, ctx)) {
             fx.setAttribute("aria-expanded", state);
             fx.setAttribute("aria-controls", MACRO_DRAWER_ID);
@@ -722,8 +829,19 @@ function focusApply(fx, m, ctx, selected) {
         }
         fx.setAttribute("aria-label", chipLabel(m, b, ctx));
     } else {
-        delete fx.dataset.macro;
-        fx.removeAttribute("aria-label");
+        // removeAttribute, not `delete dataset.macro`: the same call works on
+        // the test harness's stand-in element, and it is one idiom for all
+        // four attributes this function takes off.
+        fx.removeAttribute("data-macro");
+        if (mirror) {
+            fx.setAttribute("data-macro-return", "");
+            fx.setAttribute(
+                "aria-label",
+                tpl(T.macros.showingMetric, { metric: tileLabel(m, b) }),
+            );
+        } else {
+            fx.removeAttribute("aria-label");
+        }
     }
 }
 
@@ -749,10 +867,16 @@ function macroCtx() {
 //
 // A target of 0 is deliberately left off: "5.2 /0 g" reads as a typo, and a
 // breached zero ceiling is already carried by the caption.
+//
+// It prints `b.shown` / `b.goalShown` — the figures SNAPPED to their display
+// step (macroSteps) — rather than the raw ones, so the digits are exactly the
+// ones macroBits decided "at goal" / "over" on. chipValueText below is the
+// same figure as plain text, for the accessible name; the two must stay in
+// step, which is why they sit together.
 function chipValue(m, b) {
     if (macroReadsAsNone(m, b))
         return `<span class="none">${esc(T.macros.noneLogged)}</span>`;
-    const val = macroNum(m, b.val);
+    const val = macroNum(m, b.shown);
     const unit = esc(macroUnit(m));
     // EVERY tile prints its figure against its goal, tappable or not. It used
     // to print the bare figure and keep the goal for the drawer, which made a
@@ -762,7 +886,18 @@ function chipValue(m, b) {
     // slot that already exists. A metric with no goal prints the figure alone;
     // there is nothing to print it against.
     if (!(b.target > 0)) return `${val}<span class="u">${unit}</span>`;
-    return `${val}<span class="u">/${macroNum(m, b.target)} ${unit}</span>`;
+    return `${val}<span class="u">/${macroNum(m, b.goalShown)} ${unit}</span>`;
+}
+
+// chipValue's figure as the words a screen reader and a voice user get:
+// "148/160 g", "2.1 L", "none logged". See tileLabel for why it must be the
+// visible string and not a paraphrase of it.
+function chipValueText(m, b) {
+    if (macroReadsAsNone(m, b)) return T.macros.noneLogged;
+    const val = macroNum(m, b.shown);
+    const unit = macroUnit(m);
+    if (!(b.target > 0)) return `${val} ${unit}`;
+    return `${val}/${macroNum(m, b.goalShown)} ${unit}`;
 }
 
 // The metric's mark: its glyph where the strip has one and the entry names a
@@ -1079,8 +1214,16 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // the ✕ hands focus back to the chip that opened it. Both ends of that are
     // observable in document.activeElement rather than hoped for. The chip's
     // aria-expanded + aria-controls is what names the relationship.
+    //
+    // A NAMED REGION, because focus lands on it. As a bare `div` it was a
+    // generic element, so the moment focus arrived a screen reader read the
+    // whole drawer — head, caption, every row — as one unlabelled run.
+    // `role="region"` + `aria-labelledby` on the head's `.dname` makes the
+    // arrival "Protein, region", and the rows are then read as rows. The name
+    // follows the metric for free: macroDetailBody rewrites `.dname` (and its
+    // id) on every open.
     const drawer = discloses
-        ? `<div class="drawer" id="${MACRO_DRAWER_ID}" tabindex="-1" hidden></div>`
+        ? `<div class="drawer" id="${MACRO_DRAWER_ID}" role="region" aria-labelledby="${MACRO_DRAWER_NAME_ID}" tabindex="-1" hidden></div>`
         : "";
     // THE DRAWER IS LAST, under every rail including water. It sat between the
     // limits and the water row for a while, on the reasoning that water can
@@ -1227,7 +1370,7 @@ function macroDetailBody(m, ctx) {
     return `
       <div class="dhead ${m.color}${flag}">
         ${macroMark(m, ctx, 14)}
-        <b class="dname">${esc(macroLabel(m))}</b>
+        <b class="dname" id="${MACRO_DRAWER_NAME_ID}">${esc(macroLabel(m))}</b>
         <span class="dcap${flag}">${esc(macroCaption(m, b, ctx))}</span>
         <button class="dx" type="button" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">${icon("x", 12)}</button>
       </div>${mealList(m, ctx.meals, flag)}`;
@@ -1357,6 +1500,45 @@ function macroCloseDrawer(panel) {
     return true;
 }
 
+// Release a pressed chart toggle — the second half of Escape. A chart-only
+// chip (nutrition-summary's Water, trends' whole rail) opens no drawer, so
+// macroCloseDrawer finds nothing and Escape used to leave it pressed: the one
+// selection on the card with no keyboard exit but a second activation.
+// Routed through macroToggle like every other release, so the chart and the
+// mirrored focus panel unwind by the same path. Focus is not moved — a toggle
+// takes none, so whatever holds it (the chip itself, usually) still exists.
+// Returns whether anything was released.
+function macroReleaseToggle(panel) {
+    const held =
+        panel && panel.querySelector('[data-macro][aria-pressed="true"]');
+    if (!held) return false;
+    macroToggle(held);
+    return true;
+}
+
+// The focus panel in its mirror mode (see focusApply): return the card to
+// calories by releasing whichever control holds the selection, through that
+// control — the drawer closes, the tile's state resets, the hint returns and
+// onSeries repaints the panel as the calorie control, all by the path a
+// second tap on the tile takes. Focus stays on the panel: it is the same
+// element before and after, only its content and name change.
+function macroReturn(fx) {
+    const panel = fx && fx.closest("[data-macro-panel]");
+    const ctx = __macroCtx;
+    if (!panel || !ctx) return;
+    const held = Array.from(panel.querySelectorAll("[data-macro]")).find(
+        (c) => c.getAttribute(tapStateAttr(c)) === "true",
+    );
+    if (held) {
+        macroToggle(held);
+        return;
+    }
+    // Nothing is selected (a strip rebuilt under the mirror): repaint
+    // calories directly, as the release would have.
+    const cal = MACROS.find((mm) => mm.role === "cal");
+    if (ctx.onSeries) ctx.onSeries(cal.key, false);
+}
+
 // Delegated once per document. No-ops on strips with no [data-macro] chips, so
 // widgets that pass neither meals nor chartKeys are unaffected.
 if (typeof document !== "undefined" && !window.__macroWired) {
@@ -1364,6 +1546,11 @@ if (typeof document !== "undefined" && !window.__macroWired) {
     document.addEventListener("click", (e) => {
         if (e.target.closest("[data-macro-close]")) {
             macroCloseDrawer(e.target.closest("[data-macro-panel]"));
+            return;
+        }
+        const back = e.target.closest("[data-macro-return]");
+        if (back) {
+            macroReturn(back);
             return;
         }
         const cell = e.target.closest("[data-macro]");
@@ -1375,9 +1562,12 @@ if (typeof document !== "undefined" && !window.__macroWired) {
     // exactly one exit. Routed through macroCloseDrawer, so focus returns to
     // the trigger exactly as the ✕ does.
     //
-    // preventDefault ONLY when a drawer really closed: the MCP Apps host owns
-    // the iframe's chrome and may bind Escape itself, so a no-op keypress has
-    // to stay the host's.
+    // A drawer first; only if none was open, a pressed chart toggle
+    // (macroReleaseToggle) — one Escape undoes one thing, the most recent kind.
+    //
+    // preventDefault ONLY when something really closed or released: the MCP
+    // Apps host owns the iframe's chrome and may bind Escape itself, so a
+    // no-op keypress has to stay the host's.
     document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape" && e.key !== "Esc") return;
         const target = e.target && e.target.closest ? e.target : null;
@@ -1386,7 +1576,9 @@ if (typeof document !== "undefined" && !window.__macroWired) {
             // Focus may have drifted off the strip (or onto <body>) while the
             // drawer is still open; one strip per document, so this is the one.
             document.querySelector("[data-macro-panel]");
-        if (macroCloseDrawer(panel)) e.preventDefault();
+        if (macroCloseDrawer(panel) || macroReleaseToggle(panel)) {
+            e.preventDefault();
+        }
     });
     document.addEventListener("keydown", (e) => {
         if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;

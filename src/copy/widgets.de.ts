@@ -13,7 +13,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             sugar_g: "Zucker",
             alcohol_g: "Alkohol",
             caffeine_mg: "Koffein",
-            fiber_g: "Ballaststoffe",
+            fiber_g: "Ballastst.",
             water_ml: "Wasser",
         },
         mealTypes: {
@@ -24,6 +24,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         },
         noGoalSet: "kein Ziel festgelegt",
         atLimit: "am Limit",
+        atGoal: "Ziel erreicht",
         floorUnder: "übrig",
         ceilingUnder: "unter",
         over: "über",
@@ -37,6 +38,8 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         showMealsContributed:
             "Zeigt die Mahlzeiten, die dazu beigetragen haben.",
         alsoChart: "Zeigt diesen Nährstoff außerdem im Diagramm an.",
+        showOnChart: "Im Diagramm anzeigen.",
+        showingMetric: "Zeigt {metric}. Zurück zu den Kalorien.",
         byMealTitle: "{label} nach Mahlzeit",
         closeBreakdown: "Aufschlüsselung schließen",
         noMealsContributed:
@@ -55,7 +58,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         chartAriaLabel: "Kalorien pro Tag im ausgewählten Zeitraum",
         avg: "Ø",
         goal: "Ziel",
-        dailyAvgLoggedDays: "Tagesdurchschnitt · protokollierte Tage",
+        dailyAvgLoggedDays: "Tagesmittel · erfasste Tage",
         total: "Gesamt",
         daysLogged: {
             one: "{n} Tag protokolliert",

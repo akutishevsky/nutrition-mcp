@@ -35,16 +35,24 @@ import { WIDGET_STRINGS_IT } from "./widgets.it.js";
 import { WIDGET_STRINGS_UK } from "./widgets.uk.js";
 import { WIDGET_STRINGS_JA } from "./widgets.ja.js";
 
-/** A count-sensitive string, selected at render time via Intl.PluralRules.
- * Only "one"/"other" are carried (not "few"/"many"/"zero"): the widget's
- * pluralize() helper falls back to "other" for any category this 2-form
- * data doesn't have. A pragmatic simplification, consistent with the rest of
- * this codebase's translations being AI-generated with no human review pass
- * — see the TRANSLATION_NOTICE in src/routes.ts. Every form still receives
- * the actual {n}, so the number itself is always correct even where the
- * grammatical form is approximate. */
+/** A count-sensitive string, selected at render time via Intl.PluralRules
+ * (shared/i18n.js's plural(), which looks the form up by category name and
+ * falls back to "other" for any category a locale's data lacks).
+ *
+ * "one"/"other" are all most locales need. Ukrainian and Polish are not among
+ * them: their integers split three ways, and with only two forms every count
+ * of 2–4 took the genitive plural — "3 днів з записами" for "3 дні з
+ * записами", "+ 3 mniejszych posiłków" for "+ 3 mniejsze posiłki". So those
+ * two locales carry "few" and "many" on EVERY PluralForms value (pinned by
+ * src/widgets.test.ts); "other" is then only reached for a fraction, and holds
+ * the same text as "many". Translation is still AI-generated with no human
+ * review pass — see the TRANSLATION_NOTICE in src/routes.ts. */
 export interface PluralForms {
     one: string;
+    /** Intl.PluralRules "few" — uk/pl 2–4, 22–24, … (not 12–14). */
+    few?: string;
+    /** Intl.PluralRules "many" — uk/pl 0, 5–20, 25–30, …, and 11–14. */
+    many?: string;
     other: string;
 }
 
@@ -88,8 +96,14 @@ export interface WidgetStrings {
         };
         /** A tile/ring with no goal set for that metric. */
         noGoalSet: string;
-        /** Exactly at a ceiling (delta === 0). */
+        /** At a ceiling AS PRINTED: the figure and the limit round to the same
+         * number ("45/45 g"), whatever the raw values. Never red — `over` is
+         * strictly past the printed limit. */
         atLimit: string;
+        /** The floor twin of atLimit: at a floor target as printed
+         * ("160/160 g"). Replaces "0 g left", which read as a leftover of
+         * nothing. Also used for calories and for trends' averages. */
+        atGoal: string;
         /** The word before a remaining amount on a FLOOR target, e.g. "20 g left". */
         floorUnder: string;
         /** The word before a remaining amount on a CEILING target, e.g. "20 g under". */
@@ -128,8 +142,23 @@ export interface WidgetStrings {
          * makes, since the hero is not one of the series a chip can select
          * (regression audit). The exact-equality aria assertions in
          * public/widgets/macros.test.ts still match because they call
-         * macroPanel without chartKeys at all. */
+         * macroPanel without chartKeys at all.
+         *
+         * Only for a chip that ALSO shows meals — it follows
+         * showMealsContributed, which is what "also" refers back to. */
         alsoChart: string;
+        /** The whole action sentence of a chip that ONLY re-targets the chart
+         * (nutrition-summary's Water; every tile when the range has no meal
+         * rows). It used to be alsoChart with the first sentence sliced off,
+         * which left "Also …" with nothing before it. Says "this", not "this
+         * nutrient", because the commonest case is water. */
+        showOnChart: string;
+        /** The focus panel's accessible name while it mirrors a tile's
+         * metric (focusApply's mirror mode): what it is showing, then what
+         * activating it does — return to calories. Placeholder: {metric},
+         * the tile's own name without a closing full stop ("Protein 148/160
+         * g, 12 g left"), so it must stay verbatim for WCAG 2.5.3. */
+        showingMetric: string;
         /** Template for the breakdown panel's title. Placeholder: {label}. */
         byMealTitle: string;
         /** aria-label on the breakdown panel's close button. */
@@ -472,6 +501,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         },
         noGoalSet: "no goal set",
         atLimit: "at limit",
+        atGoal: "at goal",
         floorUnder: "left",
         ceilingUnder: "under",
         over: "over",
@@ -484,6 +514,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         tapHint: "Tap a metric for the meals behind it",
         showMealsContributed: "Show the meals that contributed.",
         alsoChart: "Also shows this nutrient on the chart.",
+        showOnChart: "Show this on the chart.",
+        showingMetric: "Showing {metric}. Back to calories.",
         byMealTitle: "{label} by meal",
         closeBreakdown: "Close breakdown",
         noMealsContributed: "No logged meals contributed {label}.",

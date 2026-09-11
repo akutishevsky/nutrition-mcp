@@ -77,11 +77,13 @@ function tpl(s, vars) {
     );
 }
 
-// Pick the right grammatical form of a PluralForms value ({ one, other) })
-// for count `n` in the current WIDGET_LOCALE, then fill {n} (and any other
-// placeholder in `vars`) into it. Falls back to "other" for any
-// Intl.PluralRules category ("few"/"many"/"zero") this 2-form data doesn't
-// carry — see the WidgetStrings doc comment in src/copy/widgets.ts.
+// Pick the right grammatical form of a PluralForms value ({ one, few?, many?,
+// other }) for count `n` in the current WIDGET_LOCALE, then fill {n} (and any
+// other placeholder in `vars`) into it. The lookup is by Intl.PluralRules
+// category NAME, so a locale whose data carries "few"/"many" (uk, pl: "3 дні",
+// "5 днів") gets them with no code of its own here; any category a locale's
+// data lacks ("zero", or fr/es/it's "many" for a million) falls back to
+// "other". See PluralForms in src/copy/widgets.ts.
 function plural(forms, n, vars) {
     let category = "other";
     try {

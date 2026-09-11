@@ -140,8 +140,21 @@ test("exactly at a ceiling is its own state, not '0 g under'", () => {
 });
 
 // The most likely alcohol limit there is. A floor of 0 stays meaningless.
+//
+// A SOBER DAY IS NOT "AT LIMIT". Nothing consumed against a limit of 0 used to
+// read "limit 0 g · at limit" — the phrasing of someone who has used their
+// allowance up, for the day they kept the limit perfectly. It reads as the
+// limit alone.
 test("a ceiling target of 0 is a real limit", () => {
-    expect(line("alcohol_g", 0, 0)).toBe("limit 0 g · at limit");
+    expect(line("alcohol_g", 0, 0)).toBe("limit 0 g");
+    const sober = macrosApi.macroBits(
+        macroOf("alcohol_g"),
+        { alcohol_g: 0 },
+        { alcohol_g: 0 },
+    ) as Bits & { atLimit: boolean; deltaStr: string };
+    expect(sober.atLimit).toBe(false);
+    expect(sober.over).toBe(false);
+    expect(sober.deltaStr).toBe("");
     expect(line("alcohol_g", 5.2, 0)).toBe("limit 0 g · 5.2 g over");
     const b = macrosApi.macroBits(
         macroOf("alcohol_g"),
@@ -263,20 +276,24 @@ test("an interactive tile names its value and goal state, then the action", () =
     const labels = tileLabels(
         macrosApi.macroPanel(VALS, GOALS, undefined, MEALS),
     );
+    // The VISIBLE figure verbatim ("2,035/2,200 kcal"), then only what the
+    // figure does not already say — WCAG 2.5.3 label-in-name. It used to read
+    // "2,035 kcal, of 2,200 kcal", which does not contain what the tile shows.
     expect(labels.calories).toBe(
-        "Calories 2,035 kcal, of 2,200 kcal, 165 kcal left. Show the meals that contributed.",
+        "Calories 2,035/2,200 kcal, 165 kcal left. Show the meals that contributed.",
     );
     expect(labels.carbs_g).toBe(
-        "Carbs 205 g, of 220 g, 15 g left. Show the meals that contributed.",
+        "Carbs 205/220 g, 15 g left. Show the meals that contributed.",
     );
     // A limit cell is a button on the same terms as a macro bar — every metric
     // on the strip is in MEAL_BREAKDOWN_ITEM, so "tap a metric" means any of
-    // them. Its name carries the ceiling and the distance to it.
+    // them. Its name carries the ceiling — "/45" does not say it is a limit —
+    // and the distance to it.
     expect(labels.sugar_g).toBe(
-        "Sugar 58.2 g, limit 45 g, 13.2 g over. Show the meals that contributed.",
+        "Sugar 58.2/45 g, limit 45 g, 13.2 g over. Show the meals that contributed.",
     );
     expect(labels.caffeine_mg).toBe(
-        "Caffeine 185 mg, limit 400 mg, 215 mg under. Show the meals that contributed.",
+        "Caffeine 185/400 mg, limit 400 mg, 215 mg under. Show the meals that contributed.",
     );
     // Alcohol is the exception, and not by type: both meals recorded a real 0,
     // so there is nothing behind that cell and it stays the static cell it
@@ -302,7 +319,7 @@ test("a limit cell is a button only when meals are behind it", () => {
         tileLabels(macrosApi.macroPanel(VALS, GOALS, undefined, withAlcohol))
             .alcohol_g,
     ).toBe(
-        "Alcohol 12.5 g, limit 20 g, 7.5 g under. Show the meals that contributed.",
+        "Alcohol 12.5/20 g, limit 20 g, 7.5 g under. Show the meals that contributed.",
     );
     // …and a metric no meal touched is not tappable even though its cell is on
     // screen: a recorded 0 earns alcohol and caffeine a cell (that is the whole
@@ -408,7 +425,40 @@ test("only a chip the chart can actually draw claims to re-stroke it", () => {
     expect(labels.protein_g).toContain(WIDGET_STRINGS_EN.macros.alsoChart);
     expect(labels.calories).not.toContain(WIDGET_STRINGS_EN.macros.alsoChart);
     expect(labels.calories).toBe(
-        "Calories 2,035 kcal, of 2,200 kcal, 165 kcal left. Show the meals that contributed.",
+        "Calories 2,035/2,200 kcal, 165 kcal left. Show the meals that contributed.",
+    );
+});
+
+// "Also" refers back to the meals sentence, so it may only follow it. A chip
+// that ONLY re-strokes the chart had the meals sentence sliced off by length and
+// kept the "Also …" — nutrition-summary's Water, and every tile of a range whose
+// payload carries `meals: []`.
+test("a chart-only chip says what it does, with no dangling 'Also'", () => {
+    const { showOnChart, alsoChart, showMealsContributed } =
+        WIDGET_STRINGS_EN.macros;
+    const noMeals = tileLabels(
+        macrosApi.macroPanel(VALS, GOALS, undefined, [], {
+            chartKeys: ["protein_g", "water_ml", "sugar_g"],
+        }),
+    );
+    expect(Object.keys(noMeals).sort()).toEqual([
+        "protein_g",
+        "sugar_g",
+        "water_ml",
+    ]);
+    for (const label of Object.values(noMeals)) {
+        expect(label.endsWith(` ${showOnChart}`)).toBe(true);
+        expect(label).not.toContain(alsoChart);
+        expect(label).not.toContain(showMealsContributed);
+    }
+    // Both effects: the meals sentence, and THEN "also".
+    const both = tileLabels(
+        macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+            chartKeys: ["protein_g"],
+        }),
+    );
+    expect(both.protein_g).toBe(
+        `Protein 148/160 g, 12 g left. ${showMealsContributed} ${alsoChart}`,
     );
 });
 
@@ -422,32 +472,38 @@ test("no goal is still a value, not a bare action", () => {
 });
 
 // A regression net over every shape the panel can take: whatever the wording
-// ends up being, the number must be in the name.
-test("every interactive tile carries its formatted value, and none is spoken as '·'", () => {
+// ends up being, the name must CONTAIN WHAT THE TILE SHOWS (WCAG 2.5.3) — its
+// label followed by its figure, exactly as rendered. Read off the markup rather
+// than rebuilt here, so a figure format change that forgets the name fails.
+// Whitespace is ignored: the unit's gap is a CSS margin on screen and a space
+// in the name, and label-in-name matching is not about spacing.
+test("every interactive tile's name contains its visible label and figure, and none is spoken as '·'", () => {
     const cases: Array<[Vals, Vals | null, { under?: string } | undefined]> = [
         [VALS, GOALS, undefined],
         [VALS, GOALS, { under: "under" }],
         [VALS, null, undefined],
         [{ ...VALS, fat_g: 0, calories: 4120 }, GOALS, undefined],
+        [{ ...VALS, sugar_g: 0, protein_g: 159.6 }, GOALS, undefined],
     ];
+    const squash = (s: string) => s.replace(/\s+/g, "");
     for (const [vals, goal, wording] of cases) {
-        const labels = tileLabels(
-            macrosApi.macroPanel(vals, goal, wording, MEALS),
-        );
+        const html = macrosApi.macroPanel(vals, goal, wording, MEALS);
+        const labels = tileLabels(html);
         expect(Object.keys(labels).length).toBeGreaterThan(0);
         for (const [key, label] of Object.entries(labels)) {
-            const m = macroOf(key) as Macro & {
-                label: string;
-                unit: string;
-                decimals: number;
-            };
-            // At the tile's own precision, so the spoken value reads exactly
-            // as the one on screen — a tenth for the limits row, whole for
-            // calories, the macro bars and caffeine's milligrams.
+            const chip = chipHtml(html, key);
+            // The focus panel carries the calorie control; its figure sits in
+            // `.fmain .v`, ahead of its meta line rather than its caption.
+            const from = chip.indexOf('<span class="v">');
+            const to =
+                key === "calories"
+                    ? chip.indexOf('<span class="fmeta">')
+                    : chip.indexOf('<span class="dcap">');
+            expect(from).toBeGreaterThan(-1);
+            const figure = chip.slice(from, to).replace(/<[^>]*>/g, "");
+            const m = macroOf(key) as Macro & { label: string };
             expect(
-                label.startsWith(
-                    `${m.label} ${fmt(vals[key]!, m.decimals)} ${m.unit},`,
-                ),
+                squash(label).startsWith(squash(`${m.label}${figure}`)),
             ).toBe(true);
             // "·" is decoration a screen reader either skips or calls
             // "middle dot"; the spoken name separates with a comma.
@@ -878,7 +934,7 @@ test("water is litres in the chip, in its caption and in its accessible name", (
     );
     expect(html).toContain('<span class="dcap">of 2.5 L · 0.4 L left</span>');
     expect(tileLabels(html).water_ml).toBe(
-        `Water 2.1 L, of 2.5 L, 0.4 L left. ${WIDGET_STRINGS_EN.macros.alsoChart}`,
+        `Water 2.1/2.5 L, 0.4 L left. ${WIDGET_STRINGS_EN.macros.showOnChart}`,
     );
     // Not one millilitre figure anywhere — not in the chip, not in the caption
     // and not in the name. (Caffeine's own "400 mg" is why this is scoped to
@@ -908,7 +964,7 @@ test("caffeine reads in whole milligrams against a ceiling", () => {
 
 // "None today" is a limit people really set, the same way it is for alcohol.
 test("a caffeine limit of 0 is a real limit", () => {
-    expect(line("caffeine_mg", 0, 0)).toBe("limit 0 mg · at limit");
+    expect(line("caffeine_mg", 0, 0)).toBe("limit 0 mg");
     expect(line("caffeine_mg", 95, 0)).toBe("limit 0 mg · 95 mg over");
 });
 
@@ -1226,9 +1282,13 @@ type FakeDoc = {
     activeElement: FakeEl | null;
     body: FakeEl;
     getElementById(id: string): FakeEl | null;
-    addEventListener(): void;
+    querySelector(sel: string): FakeEl | null;
+    addEventListener(type: string, fn: (e: unknown) => void): void;
 };
 let __doc: FakeDoc;
+// The partial's delegated handlers, captured as it registers them so a test
+// can dispatch a key to the real Escape handler rather than to a copy of it.
+const __listeners: Record<string, Array<(e: unknown) => void>> = {};
 
 class FakeEl {
     attrs: Record<string, string> = {};
@@ -1269,6 +1329,16 @@ class FakeEl {
             const name = k.slice(5).replace(/-(.)/g, (_, c) => c.toUpperCase());
             this.dataset[name] = v;
         }
+    }
+    removeAttribute(k: string) {
+        delete this.attrs[k];
+        if (k.startsWith("data-")) {
+            const name = k.slice(5).replace(/-(.)/g, (_, c) => c.toUpperCase());
+            delete this.dataset[name];
+        }
+    }
+    get tagName() {
+        return this.tag.toUpperCase();
     }
     getAttribute(k: string) {
         return k in this.attrs ? this.attrs[k]! : null;
@@ -1330,7 +1400,10 @@ const domApi = await (async () => {
         body,
         getElementById: (id: string) =>
             body.querySelector(`[id="${id}"]`) as FakeEl | null,
-        addEventListener: () => {},
+        querySelector: (sel: string) => body.querySelector(sel),
+        addEventListener: (type: string, fn: (e: unknown) => void) => {
+            (__listeners[type] ||= []).push(fn);
+        },
     };
     const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
     const iconSrc = await Bun.file(`${SRC}/shared/icon.js`).text();
@@ -1341,7 +1414,7 @@ const domApi = await (async () => {
         "WIDGET_STRINGS",
         "document",
         "window",
-        `${i18nSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroPanel, macroToggle, macroCloseDrawer };`,
+        `${i18nSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroPanel, macroToggle, macroCloseDrawer, focusApply, macroReturn, macroCtx };`,
     );
     return factory(fmt, esc, { en: WIDGET_STRINGS_EN }, __doc, {}) as {
         macroPanel: (
@@ -1349,18 +1422,32 @@ const domApi = await (async () => {
             goal?: Vals | null,
             wording?: unknown,
             meals?: unknown[],
-            opts?: { chartKeys?: string[] },
+            opts?: {
+                chartKeys?: string[];
+                onSeries?: (key: string, opened: boolean) => void;
+            },
         ) => string;
         macroToggle: (cell: FakeEl) => void;
         macroCloseDrawer: (panel: FakeEl | null) => boolean;
+        focusApply: (
+            fx: FakeEl,
+            m: Macro,
+            ctx: unknown,
+            selected?: boolean,
+        ) => void;
+        macroReturn: (fx: FakeEl) => void;
+        macroCtx: () => unknown;
     };
 })();
 
 // The strip macroToggle reads its ctx from, plus a hand-built DOM of the same
 // shape. `id` is set on the elements the partial looks up by id.
-function buildStrip(chartKeys: string[]) {
+function buildStrip(
+    chartKeys: string[],
+    onSeries?: (key: string, opened: boolean) => void,
+) {
     __doc.body.children = [];
-    domApi.macroPanel(VALS, GOALS, undefined, MEALS, { chartKeys });
+    domApi.macroPanel(VALS, GOALS, undefined, MEALS, { chartKeys, onSeries });
     const chip = (key: string, state: "aria-expanded" | "aria-pressed") =>
         new FakeEl("button", { "data-macro": key, [state]: "false" });
     const protein = chip("protein_g", "aria-expanded");
@@ -1486,7 +1573,129 @@ test("a recorded-zero limit reads in words wherever it is rendered", () => {
         MEALS,
     );
     expect(noProtein).toContain('0<span class="u">/160 g</span>');
-    expect(tileLabels(noProtein).protein_g).toContain("Protein 0 g,");
+    expect(tileLabels(noProtein).protein_g).toContain("Protein 0/160 g,");
+});
+
+// ---- the printed figures decide the state ----------------------------------
+//
+// macroBits used to judge on the raw payload and then PRINT rounded, so the
+// verdict and the digits beside it disagreed: protein 159.6 of 160 read
+// "160/160 g · 0 g left", water 2,480 of 2,500 ml "2.5/2.5 L · 0.0 L left",
+// and sugar 45.04 of 45 turned red with "45/45 g · 0 g over".
+test("every state is read off the figures as printed", () => {
+    type B = Bits & { atGoal: boolean; atLimit: boolean; frac: number };
+    const bits = (key: string, v: number, t: number) =>
+        macrosApi.macroBits(macroOf(key), { [key]: v }, { [key]: t }) as B;
+
+    // Equal on screen, on a floor: at goal — never "0 g left".
+    expect(line("protein_g", 159.6, 160)).toBe("of 160 g · at goal");
+    expect(bits("protein_g", 159.6, 160).atGoal).toBe(true);
+    expect(line("protein_g", 160.4, 160)).toBe("of 160 g · at goal");
+    // Water on its DISPLAY step — tenths of a litre, not millilitres.
+    expect(line("water_ml", 2480, 2500)).toBe("of 2.5 L · at goal");
+    expect(line("calories", 2199.6, 2200)).toBe("of 2,200 kcal · at goal");
+
+    // Equal on screen, on a ceiling: at limit, and never red.
+    const sugar = bits("sugar_g", 45.04, 45);
+    expect(sugar.goalLine).toBe("limit 45 g · at limit");
+    expect(sugar.over).toBe(false);
+    expect(sugar.atLimit).toBe(true);
+    const html = macrosApi.macroPanel({ ...VALS, sugar_g: 45.04 }, GOALS);
+    expect(html).not.toContain("over c-sug");
+    expect(html).toContain('45<span class="u">/45 g</span>');
+    // One printed step past is over, and says by how much.
+    expect(line("sugar_g", 45.06, 45)).toBe("limit 45 g · 0.1 g over");
+    expect(bits("sugar_g", 45.06, 45).over).toBe(true);
+
+    // The figure is printed from the same snapped value the state used…
+    expect(
+        macrosApi.macroPanel({ ...VALS, protein_g: 159.6 }, GOALS),
+    ).toContain('160<span class="u">/160 g</span>');
+    // …while the fill stays raw: a sliver of fill is not a verdict.
+    expect(bits("protein_g", 159.6, 160).frac).toBeCloseTo(0.9975, 4);
+
+    // Nowhere does a zero distance survive.
+    const cases: Array<[string, number, number]> = [
+        ["protein_g", 159.6, 160],
+        ["water_ml", 2480, 2500],
+        ["water_ml", 2520, 2500],
+        ["sugar_g", 45.04, 45],
+        ["caffeine_mg", 400.3, 400],
+        ["calories", 2200.4, 2200],
+    ];
+    for (const [k, v, t] of cases) {
+        expect(line(k, v, t)).not.toMatch(
+            /(^|\s)0([.,]0)? \S+ (left|over|under)/,
+        );
+    }
+});
+
+// A key simply absent from `vals` is not a measured zero. `?? 0` printed
+// "0/160 g · 160 g left" for a metric nobody had measured.
+test("a missing reading reads as none logged, with no distance", () => {
+    const { protein_g: _drop, ...noProtein } = VALS;
+    const b = macrosApi.macroBits(
+        macroOf("protein_g"),
+        noProtein,
+        GOALS,
+    ) as Bits & { deltaStr: string };
+    expect(b.goalLine).toBe("of 160 g");
+    expect(b.deltaStr).toBe("");
+    const html = macrosApi.macroPanel(noProtein, GOALS, undefined, MEALS);
+    expect(chipHtml(html, "protein_g")).toContain(
+        '<span class="none">none logged</span>',
+    );
+    expect(chipHtml(html, "protein_g")).not.toContain("left");
+    expect(tileLabels(html).protein_g).toBe(
+        "Protein none logged, of 160 g. Show the meals that contributed.",
+    );
+    // null means the same thing as absent.
+    expect(
+        macrosApi.macroBits(macroOf("fat_g"), { fat_g: null } as never, GOALS)
+            .goalLine,
+    ).toBe("of 70 g");
+    // …and the panel, through its own renderer, agrees — with no ring.
+    const panel = macrosApi.focusInner(
+        macroOf("protein_g"),
+        macrosApi.macroCtxOf(noProtein, GOALS, undefined, MEALS),
+    );
+    expect(panel).toContain('<span class="none">none logged</span>');
+    expect(panel).not.toContain('class="fring"');
+});
+
+// The ring IS the fraction. With no goal there is no fraction, and an empty
+// track read as "0% done" beside a figure that is nothing of the kind.
+test("no goal, no ring", () => {
+    const cal = macroOf("calories");
+    expect(
+        macrosApi.focusInner(cal, macrosApi.macroCtxOf(VALS, GOALS)),
+    ).toContain('class="fring"');
+    const none = macrosApi.focusInner(cal, macrosApi.macroCtxOf(VALS, null));
+    expect(none).not.toContain('class="fring"');
+    expect(none).toContain('<b class="fdelta mute">no goal set</b>');
+    // A ceiling of 0 IS a goal, so it keeps its (empty) ring.
+    expect(
+        macrosApi.focusInner(
+            macroOf("alcohol_g"),
+            macrosApi.macroCtxOf({ alcohol_g: 0 }, { alcohol_g: 0 }),
+        ),
+    ).toContain('class="fring"');
+});
+
+// Focus lands on the drawer, so it has to be something with a name: as a bare
+// div a screen reader read the whole breakdown as one unlabelled run.
+test("the drawer is a region named by its head", () => {
+    const html = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS);
+    expect(html).toContain(
+        '<div class="drawer" id="macro-drawer" role="region" aria-labelledby="macro-drawer-name" tabindex="-1" hidden>',
+    );
+    const body = macrosApi.macroDetailBody(
+        macroOf("protein_g"),
+        macrosApi.macroCtxOf(VALS, GOALS, undefined, MEALS),
+    );
+    expect(body).toContain(
+        '<b class="dname" id="macro-drawer-name">Protein</b>',
+    );
 });
 
 // focusOver counts a breached CALORIE goal (calories declares no `direction`,
@@ -1644,4 +1853,108 @@ test("a mirrored control and its tile share one state, and the ✕ closes throug
     // Nothing open: the close path is a no-op rather than a re-open.
     expect(domApi.macroCloseDrawer(d.panel)).toBe(false);
     expect(d.drawer.hidden).toBe(true);
+});
+
+// The real Escape handler, dispatched through the listener the partial
+// registered. Returns whether it claimed the key (preventDefault).
+function pressEscape(target: FakeEl): boolean {
+    let prevented = false;
+    for (const fn of __listeners.keydown || []) {
+        fn({
+            key: "Escape",
+            target,
+            preventDefault: () => {
+                prevented = true;
+            },
+        });
+    }
+    return prevented;
+}
+
+// A chart-only toggle opens no drawer, so an Escape that only knew how to
+// close drawers left it pressed — the one selection with no keyboard exit
+// but a second activation.
+test("Escape closes a drawer first, then releases a pressed chart toggle, else stays the host's", () => {
+    const d = buildStrip(["water_ml", "protein_g"]);
+
+    domApi.macroToggle(d.water);
+    expect(d.water.getAttribute("aria-pressed")).toBe("true");
+    expect(pressEscape(d.water)).toBe(true);
+    expect(d.water.getAttribute("aria-pressed")).toBe("false");
+    // Nothing selected any more: the key is left to the host.
+    expect(pressEscape(d.water)).toBe(false);
+
+    // A drawer still closes through its opener, focus going back to it.
+    domApi.macroToggle(d.protein);
+    expect(__doc.activeElement).toBe(d.drawer);
+    expect(pressEscape(d.drawer)).toBe(true);
+    expect(d.drawer.hidden).toBe(true);
+    expect(__doc.activeElement).toBe(d.protein);
+    expect(d.protein.getAttribute("aria-expanded")).toBe("false");
+});
+
+// THE MIRROR IS NOT A SECOND COPY OF THE TILE. focusApply used to hand the
+// panel the open tile's whole identity — name, aria-expanded, aria-controls —
+// so the a11y tree read two identical "Protein …, expanded" buttons in a row,
+// and the calorie drawer had no control at all until the tile closed.
+test("a panel mirroring an open tile is a single return-to-calories control", () => {
+    const cal = macroOf("calories");
+    let fx: FakeEl;
+    // What nutrition-summary's onSeries does: mirror the selected metric,
+    // calories when released.
+    const onSeries = (key: string, opened: boolean) =>
+        domApi.focusApply(
+            fx,
+            opened ? macroOf(key) : cal,
+            domApi.macroCtx(),
+            opened,
+        );
+    const d = buildStrip(["protein_g", "water_ml"], onSeries);
+    fx = new FakeEl("button", { class: "focus c-cal" });
+    fx.parent = d.panel;
+    d.panel.children.unshift(fx);
+    domApi.focusApply(fx, cal, domApi.macroCtx(), false);
+    // Resting: the panel is the calorie disclosure.
+    expect(fx.getAttribute("data-macro")).toBe("calories");
+    expect(fx.getAttribute("aria-expanded")).toBe("false");
+
+    domApi.macroToggle(d.protein);
+    // Exactly one control for protein, and it is the tile.
+    expect(d.panel.querySelectorAll('[data-macro="protein_g"]')).toEqual([
+        d.protein,
+    ]);
+    expect(fx.hasAttribute("data-macro")).toBe(false);
+    expect(fx.hasAttribute("aria-expanded")).toBe(false);
+    expect(fx.hasAttribute("aria-controls")).toBe(false);
+    expect(fx.hasAttribute("aria-pressed")).toBe(false);
+    expect(fx.hasAttribute("data-macro-return")).toBe(true);
+    // Says what it shows — the tile's own figure, verbatim — and what it does.
+    expect(fx.getAttribute("aria-label")).toBe(
+        "Showing Protein 148/160 g, 12 g left. Back to calories.",
+    );
+    // A ✕ where the disclosure chevron was: it closes, it does not open.
+    expect(fx.innerHTML).toContain('<span class="chev"><svg');
+    expect(fx.innerHTML).toContain("M4.5 4.5l7 7");
+
+    // Activating it returns the card to calories THROUGH the tile.
+    fx.focus();
+    domApi.macroReturn(fx);
+    expect(d.drawer.hidden).toBe(true);
+    expect(d.protein.getAttribute("aria-expanded")).toBe("false");
+    expect(fx.getAttribute("data-macro")).toBe("calories");
+    expect(fx.getAttribute("aria-expanded")).toBe("false");
+    expect(fx.hasAttribute("data-macro-return")).toBe(false);
+    // Focus stays where the user put it — the same element throughout.
+    expect(__doc.activeElement).toBe(fx);
+    expect(d.hint.hidden).toBe(false);
+
+    // A chart-only toggle mirrors the same way, and releases the same way.
+    domApi.macroToggle(d.water);
+    expect(fx.hasAttribute("data-macro-return")).toBe(true);
+    expect(fx.getAttribute("aria-label")).toBe(
+        "Showing Water 2.1/2.5 L, 0.4 L left. Back to calories.",
+    );
+    domApi.macroReturn(fx);
+    expect(d.water.getAttribute("aria-pressed")).toBe("false");
+    expect(fx.getAttribute("data-macro")).toBe("calories");
 });
