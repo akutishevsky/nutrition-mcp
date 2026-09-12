@@ -18,12 +18,6 @@
     gap: 6px;
     margin-bottom: 12px;
 }
-.field-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
 .label {
     font-size: 12px;
     font-weight: 700;
@@ -44,6 +38,21 @@
 
 /* ---- shared control surface ---------------------------------------------- */
 
+/* A control's edge is the one outline the user has to find to press, so it is
+   held to SC 1.4.11's 3:1 — which the card's own --line hairline (~1.3:1) is
+   nowhere near. Redeclaring the two tokens, rather than writing --edge into
+   each border rule, keeps every existing `var(--line)` / `var(--line2)` below
+   (resting border, hover step, .btn-danger's color-mix) correct unchanged, and
+   leaves --line itself a hairline for the notices and the card around them.
+   tokens.css keeps --edge for "something you can press" only; nothing here
+   that merely frames content borrows it. */
+.input,
+.select,
+.btn {
+    --line: var(--edge);
+    --line2: var(--edge2);
+}
+
 /* A 999px pill, like every control on the site. `height` plus zero vertical
    padding rather than symmetric padding, so an <input> and a <select> — which
    size their text box differently — land on the same 38px line. */
@@ -62,8 +71,9 @@
     border: 1px solid var(--line);
     border-radius: var(--r-pill);
     /* border-color only: the focus ring is an outline now (see below), and an
-       outline is not a transitionable box-shadow. */
-    transition: border-color 0.15s ease;
+       outline is not a transitionable box-shadow. --ease-out, the system's
+       one motion curve (chip.css uses it too), not the UA's `ease`. */
+    transition: border-color 0.15s var(--ease-out);
 }
 .input::placeholder {
     color: var(--ink3);
@@ -90,7 +100,7 @@
 }
 
 /* One visible focus treatment for every control, keyboard-only, and it is the
-   SAME one chip.css draws on .chip / .hero / .more / .dx / .seg button —
+   SAME one chip.css draws on .chip / .focus / .more / .dx / .seg button —
    SPEC §7: `outline: 2px solid var(--acc); outline-offset: 2px`.
 
    a11y audit, MAJOR: this rule used to say `outline: none` plus a 3px
@@ -131,10 +141,13 @@
     color: var(--ink);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    /* background-color, not the `background` shorthand: the shorthand also
+       names background-image and -position, so anything that ever paints an
+       image on a button (as .select does its chevron) would be told to tween. */
     transition:
-        background 0.15s ease,
-        border-color 0.15s ease,
-        opacity 0.15s ease;
+        background-color 0.15s var(--ease-out),
+        border-color 0.15s var(--ease-out),
+        opacity 0.15s var(--ease-out);
 }
 .btn:hover:not(:disabled) {
     border-color: var(--line2);
@@ -192,17 +205,32 @@
     min-height: 92px;
     padding: 14px 18px;
     text-align: center;
+    /* Both tokens on --edge (~3:1), not the controls' --edge2 hover step: at
+       2px and dashed, a --edge2 resting border (~4:1) would be the heaviest
+       edge on the card, heavier than any button. 3:1 is what SC 1.4.11 asks;
+       hover is the accent below, so --line2 has no hover job to do here. */
+    --line: var(--edge);
+    --line2: var(--edge);
     border: 2px dashed var(--line2);
-    border-radius: 18px;
+    /* The card-inner radius every notice and panel inside the card uses — 18px
+       was a one-off that sat between --r-in and the card's own corner. */
+    border-radius: var(--r-in);
     background: transparent;
     color: var(--ink3);
     font-size: 12.5px;
     line-height: 1.45;
     cursor: pointer;
+    /* It is a button in every way but its element, so it presses like .btn:
+       no grey tap flash on touch, a 1px travel on :active. */
+    -webkit-tap-highlight-color: transparent;
     transition:
-        border-color 0.15s ease,
-        background 0.15s ease,
-        color 0.15s ease;
+        border-color 0.15s var(--ease-out),
+        background-color 0.15s var(--ease-out),
+        color 0.15s var(--ease-out),
+        transform 0.15s var(--ease-out);
+}
+.drop:active {
+    transform: translateY(1px);
 }
 .drop:hover,
 .drop.over {
@@ -348,17 +376,13 @@
     height: 100%;
     border-radius: var(--r-pill);
     background: var(--acc);
-    transition: width 0.35s var(--ease-out);
+    /* No transition, deliberately. This used to say `transition: width …`,
+       which never once ran — every render rebuilds the rail's markup, so each
+       fill is a new node born at its final width — and width is a layout
+       property besides, which the bridge's ResizeObserver would re-measure at
+       60Hz if it ever did animate. An animated fill needs a node that persists
+       across renders and a transform (scaleX), not width. */
 }
-/* The step rail's caption: "Step 2 of 4 · Map columns". Mono, because it is an
-   eyebrow, and it is the only place the step's name is written now. */
-.slab {
-    margin-top: 6px;
-    font-family: var(--mono);
-    font-size: 10.5px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ink3);
-    font-variant-numeric: tabular-nums;
-}
+/* The step caption that used to sit under the rail now lives in the card
+   header as its .cmeta ("Step n of 4"), so the rail is the whole of this
+   block. */
