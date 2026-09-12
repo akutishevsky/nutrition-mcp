@@ -2,6 +2,7 @@ import { test, expect } from "bun:test";
 import { HTML_LANG, SITE_LOCALES, type SiteLocale } from "./routes.js";
 import { INDEX } from "./copy/index.js";
 import { LANDING_SCRIPT } from "../scripts/gen-index.js";
+import { collectOutputSchemas, droppedKeys } from "./widget-schemas.js";
 
 // The landing page's inline JS lives as one string constant (LANDING_SCRIPT
 // in scripts/gen-index.ts) that is embedded verbatim into all nine locales'
@@ -93,17 +94,22 @@ test("every landing page stamps its own <html lang>", async () => {
 
 // The hero chat replays the STATIC thread: the script takes the generator's
 // bubbles apart into exchanges (a user or barcode bubble followed by its AI
-// reply), reads each exchange's nutrient deltas and clock off data-add /
-// data-clock, and clones the bubbles back in one at a time. So the static
-// markup is the whole contract — it is also what a no-JS visitor and every
-// crawler read. Pinned per locale against the source data: one user bubble
-// per exchange, in order, each carrying the deltas and clock the copy
-// declares, the widget flag where the copy sets it, and the summary widget
-// rendered once in its final state with the deltas already summed.
+// reply), reads each one's clock off data-clock, and clones the bubbles back
+// in one at a time. So the static markup is the whole contract — it is also
+// what a no-JS visitor and every crawler read. Pinned per locale against the
+// source data: one user bubble per exchange, in order, carrying the clock the
+// copy declares.
+//
+// Two attributes the bubbles used to carry are gone, because nothing reads
+// them any more and an attribute nothing reads is a contract that only looks
+// live. The nutrient deltas are build-time input now — scripts/gen-index.ts
+// sums them per exchange into a real get_nutrition_summary payload — and
+// which exchange the card follows is on the card, as data-hero-card. Both
+// are pinned below against IndexDoc, on the element that carries them.
 const BUBBLE_RE =
-    /<div class="nm-msg (nm-msg-user|nm-msg-barcode)" data-add='([^']*)' data-clock="([^"]*)"( data-widget)?>([\s\S]*?)(?=\n\s*<div class="nm-msg nm-msg-ai">)/g;
+    /<div class="nm-msg (nm-msg-user|nm-msg-barcode)" data-clock="([^"]*)">([\s\S]*?)(?=\n\s*<div class="nm-msg nm-msg-ai">)/g;
 
-test("the hero chat bubbles carry data-add / data-clock for the replay", async () => {
+test("the hero chat bubbles carry data-clock for the replay", async () => {
     for (const { locale, path, html } of await landingPages()) {
         const doc = INDEX[locale];
         expect(`${path}: ${!!doc}`).toBe(`${path}: true`);
@@ -114,17 +120,13 @@ test("the hero chat bubbles carry data-add / data-clock for the replay", async (
         );
         expect(bubbles.length).toBeGreaterThan(0);
         bubbles.forEach((m, i) => {
-            const [, kind, add, clock, widget, body] = m;
+            const [, kind, clock, body] = m;
             const ex = exchanges[i]!;
             expect(`${path} #${i}: ${kind}`).toBe(
                 `${path} #${i}: ${ex.barcode ? "nm-msg-barcode" : "nm-msg-user"}`,
             );
-            expect(JSON.parse(add!), `${path} #${i}: data-add`).toEqual(ex.add);
             expect(`${path} #${i}: ${clock}`).toBe(
                 `${path} #${i}: ${ex.clock}`,
-            );
-            expect(`${path} #${i}: widget=${!!widget}`).toBe(
-                `${path} #${i}: widget=${!!ex.widget}`,
             );
             if (!ex.barcode)
                 expect(`${path} #${i}: ${stripTags(body!)}`).toBe(
@@ -138,35 +140,115 @@ test("the hero chat bubbles carry data-add / data-clock for the replay", async (
             ),
         ].map((m) => text(m[1]!));
         expect(replies).toEqual(exchanges.map((ex) => text(ex.aiText)));
-        // The static widget is the thread's final state: every delta summed.
+    }
+});
+
+// WHICH EXCHANGES THE CARD FOLLOWS. This is what `HeroExchange.widget`
+// declares and what the replay resolves a card by: `data-hero-card` lists the
+// exchange indices one card is brought in after, space-separated, because a
+// widget exchange that logged nothing new shares the card before it rather
+// than emitting a byte-identical second copy. Every flagged exchange must be
+// covered exactly once, or the replay reaches an exchange that says a card is
+// due and has none to show.
+test("every widget exchange has a hero card, and no exchange has two", async () => {
+    for (const { locale, path, html } of await landingPages()) {
+        const exchanges = INDEX[locale]!.hero.chat.exchanges;
+        const flagged = exchanges.flatMap((ex, i) => (ex.widget ? [i] : []));
+        expect(
+            flagged.length,
+            `${locale}: the copy flags a widget`,
+        ).toBeGreaterThan(0);
+        const served = [...html.matchAll(/\sdata-hero-card="([^"]*)"/g)]
+            .flatMap((m) => m[1]!.split(" "))
+            .map(Number)
+            .sort((a, b) => a - b);
+        expect(`${path}: hero cards after ${served.join(",")}`).toBe(
+            `${path}: hero cards after ${flagged.join(",")}`,
+        );
+    }
+});
+
+// WHERE THE THREAD'S NUTRIENTS ACTUALLY LAND.
+//
+// This used to read three painted <span data-w> figures, a data-goal per bar
+// and a `--deg` on the ring out of a hand-built mock, which meant it pinned
+// the mock's arithmetic and nothing else. The mock is gone: the hero card is
+// the real get_nutrition_summary card, rendered by the widget's own emitters
+// from a real payload, so what is worth pinning is that the payload the page
+// ships is (a) a payload the TOOL could have sent, and (b) the thread's own
+// deltas summed. Both are checked against the live outputSchema and against
+// IndexDoc, not against anything this file restates — and the card's own
+// bytes are pinned verbatim in src/widget-card.test.ts.
+const heroPayloadOf = (html: string): unknown =>
+    JSON.parse(
+        html.match(
+            /<script type="application\/json" data-widget-payload="nutrition-summary">([\s\S]*?)<\/script>/,
+        )?.[1] ?? "null",
+    );
+
+test("the hero card ships a payload the tool's own schema accepts", async () => {
+    const schema = collectOutputSchemas().get("get_nutrition_summary");
+    expect(schema, "get_nutrition_summary has an outputSchema").toBeTruthy();
+    for (const { locale, path, html } of await landingPages()) {
+        const payload = heroPayloadOf(html);
+        expect(`${path}: has a payload`).toBe(
+            `${path}: ${payload ? "has a payload" : "no payload"}`,
+        );
+        // parse() throws on a missing or mistyped field; droppedKeys names the
+        // ones z.object() silently STRIPS, which is how a renamed key reaches
+        // the page and never reaches the widget.
+        const parsed = schema!.parse(payload);
+        expect(
+            `${path}: dropped ${[...droppedKeys(payload, parsed)].join(",")}`,
+        ).toBe(`${path}: dropped `);
+        // The runtime resolves which dictionary to repaint in from this field
+        // (boot.js -> setLocaleFrom). "en" on /de leaves a German card correct
+        // until the first tap and English afterwards, with nothing failing.
+        expect(
+            `${path}: payload locale ${(payload as { locale: string }).locale}`,
+        ).toBe(`${path}: payload locale ${locale}`);
+    }
+});
+
+test("the hero card's figures are the thread's deltas summed", async () => {
+    for (const { locale, path, html } of await landingPages()) {
+        const exchanges = INDEX[locale]!.hero.chat.exchanges;
+        const payload = heroPayloadOf(html) as {
+            averages: Record<string, number | null>;
+            meals: { description: string }[];
+        };
         const totals: Record<string, number> = {};
         for (const ex of exchanges)
             for (const [k, v] of Object.entries(ex.add))
                 totals[k] = (totals[k] ?? 0) + (v ?? 0);
-        for (const [k, v] of Object.entries(totals)) {
-            const shown = html.match(
-                new RegExp(`<[a-z]+ [^>]*data-w="${k}"[^>]*>([^<]*)<`),
-            )?.[1];
-            expect(`${path} widget ${k}: ${shown}`).toBe(
-                `${path} widget ${k}: ${Math.round(v).toLocaleString(HTML_LANG[locale])}`,
+        // The hero chat's own short keys, against the tool's.
+        const KEYS: [short: string, tool: string][] = [
+            ["kcal", "calories"],
+            ["pro", "protein_g"],
+            ["car", "carbs_g"],
+            ["fat", "fat_g"],
+            ["sugar", "sugar_g"],
+            ["caf", "caffeine_mg"],
+            ["water", "water_ml"],
+        ];
+        for (const [short, tool] of KEYS) {
+            expect(`${path} ${tool}: ${payload.averages[tool]}`).toBe(
+                `${path} ${tool}: ${totals[short] ?? 0}`,
             );
         }
-    }
-});
-
-// The script clones the static widget and re-derives the ring from
-// kcal / 2,000 and each bar from data-goal; the same numbers the generator
-// used, or the replay's last frame disagrees with the static render.
-test("the hero widget's bars declare the goals the script reads back", async () => {
-    for (const { path, html } of await landingPages()) {
-        const bars = [
-            ...html.matchAll(/data-bar="(\w+)"\s+data-goal="(\d+)"/g),
-        ];
-        expect(`${path}: ${bars.map((m) => m[1]).join(",")}`).toBe(
-            `${path}: pro,car,fat`,
+        // …and every meal the thread logged is behind them, so the drawer
+        // reconciles with the tiles rather than showing a subset of them.
+        expect(payload.meals.map((m) => m.description)).toEqual(
+            exchanges.flatMap((ex) => (ex.meal ? [ex.meal.description] : [])),
         );
-        expect(`${path}: ${html.includes('data-ring style="--deg:')}`).toBe(
-            `${path}: true`,
+        // The card the visitor sees IS one of those figures, printed. Read
+        // back out of the markup so a payload that never reached the emitter
+        // cannot pass this.
+        const printed = html
+            .slice(html.indexOf('data-widget="nutrition-summary"'))
+            .match(/<span class="v">([^<]*)<span class="u">/)?.[1];
+        expect(`${path} ring: ${printed}`).toBe(
+            `${path} ring: ${(totals.kcal ?? 0).toLocaleString(HTML_LANG[locale])}`,
         );
     }
 });
@@ -238,6 +320,10 @@ test("every id / attribute hook the script queries exists on every landing page"
         ],
         ['querySelector("[data-chat-list]")', "data-chat-list>"],
         ['querySelector("[data-chat-clock]")', "data-chat-clock>"],
+        // The hero's summary cards, one per cumulative state of the thread.
+        // Missing, the thread replays without ever showing a card — and it
+        // is the card the whole hero exists to demonstrate.
+        ['querySelectorAll("[data-hero-card]")', "data-hero-card="],
         ['querySelector("[data-countdown]")', "<b data-countdown>"],
         ['querySelector("[data-countdown-ring]")', "data-countdown-ring>"],
         ['querySelector("[data-since-open]")', "<span data-since-open>"],
@@ -362,7 +448,6 @@ test("the landing script holds none of the page's copy", async () => {
         en.live.refreshBefore.trim(),
         en.hero.chat.status,
         en.support.postLinkLabel,
-        en.hero.chat.widget.hint,
     ]) {
         expect(
             `script contains "${literal}": ${script.includes(`"${literal}`)}`,

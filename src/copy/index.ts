@@ -28,9 +28,24 @@
 // else: a plain field containing "<" renders as a literal "<".
 //
 // Numbers that are not copy: the hero chat's per-exchange nutrient deltas
-// (`HeroExchange.add`) and clock strings ride on the static markup as
-// data-add / data-clock attributes and drive the replay script; they are
-// the same in every locale, so a locale file copies them verbatim.
+// (`HeroExchange.add`) and clock strings. The deltas are the same in every
+// locale, so a locale file copies them verbatim; they are read at BUILD
+// time, where scripts/gen-index.ts turns each cumulative state of the
+// thread into a real get_nutrition_summary payload and renders the real
+// card from it. The clock rides on the markup as data-clock and drives the
+// replay script.
+//
+// THE CARDS THEMSELVES CARRY NO COPY FROM THIS FILE. Every word on the
+// hero's summary card and the examples' trends card — the title, the
+// metric names, the units, the averaging label, the date range, the days
+// logged caption, the tap hint, the settings note — comes from
+// WIDGET_STRINGS (src/copy/widgets.ts), the same dictionary the in-chat
+// widgets read, and is translated once there for both. This file used to
+// hand-translate seventeen of those strings per locale and they had
+// already drifted from the widget's own: "Kohlenhydrate" against the
+// widget's deliberately abbreviated "Kohlenh.", 糖類 against 糖質, fr and
+// uk thousands separators typed with the wrong codepoint. Do not
+// reintroduce them.
 //
 // The registered-tool count ("36") is hand-typed in two strings here
 // (support.bullets[0], the "What is an MCP server?" FAQ answer) and in
@@ -90,12 +105,26 @@ export interface HeroExchange {
         water: number;
         sugar: number;
         caf: number;
+        fib: number;
     }>;
     /** Clock shown in the chat header while this exchange plays, e.g.
      * "08:04". */
     clock: string;
     /** Show the summary widget after this exchange's reply. */
     widget?: true;
+    /** The meal this exchange logged, as the card's drawer shows it.
+     *
+     * Set it on an exchange whose `add` is food; leave it off for one that
+     * is not (the water exchange, the closing question), or the drawer
+     * grows a row reading zero under every metric. `description` is the
+     * meal as it would be STORED — not the sentence the user typed, though
+     * they are usually close — and is the only string on either card that
+     * this file supplies; `type` is the server's own enum, not copy, and
+     * is never translated (mealTypeLabel in shared/macros.js does that). */
+    meal?: {
+        description: string;
+        type: "breakfast" | "lunch" | "dinner" | "snack";
+    };
 }
 
 export interface ExampleSlide {
@@ -103,16 +132,12 @@ export interface ExampleSlide {
     sub: string;
     userText: string;
     aiText: string;
-    /** Only the trends example carries the mini widget. */
-    widget?: {
-        title: string;
-        sub: string;
-        big: string;
-        cap: string;
-        from: string;
-        goal: string;
-        today: string;
-    };
+    /** Which real in-chat widget this slide shows under the reply, if any.
+     * A discriminator, not content: the card is the real get_trends card,
+     * rendered from src/copy/widget-demo.ts's series and translated by
+     * WIDGET_STRINGS. It used to be seven hand-written strings per locale
+     * drawing an approximation of one. */
+    widget?: "trends";
 }
 
 /**
@@ -152,21 +177,6 @@ export interface IndexDoc {
             pauseLabel: string;
             /** Exactly 5, in the design's order; the replay loops them. */
             exchanges: HeroExchange[];
-            /** Labels inside the summary widget. The figures (1,059 kcal,
-             * 60/160 g …) are computed from `exchanges[].add`, so the goal
-             * string is the only number here. */
-            widget: {
-                title: string;
-                goal: string;
-                kcalUnit: string;
-                protein: string;
-                carbs: string;
-                fat: string;
-                water: string;
-                sugar: string;
-                caffeine: string;
-                hint: string;
-            };
         };
     };
 
@@ -230,7 +240,7 @@ export interface IndexDoc {
         /** aria-label of the picker's radio group, e.g. "Choose an
          * example". */
         pickerLabel: string;
-        /** 3 slides; the third carries the trends widget. */
+        /** 3 slides; the third carries the real trends card. */
         slides: ExampleSlide[];
     };
 
@@ -387,15 +397,24 @@ export const INDEX_EN: IndexDoc = {
                         car: 56,
                         fat: 11,
                         sugar: 12,
+                        fib: 8,
                         caf: 130,
                     },
                     clock: "08:04",
+                    meal: {
+                        description: "Oatmeal with berries and a flat white",
+                        type: "breakfast",
+                    },
                 },
                 {
                     barcode: true,
                     aiText: "That's a 330 ml Coca-Cola — 139 kcal, 35 g sugar, from Open Food Facts. Logged as a snack.",
-                    add: { kcal: 139, car: 35, sugar: 35 },
+                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
                     clock: "11:30",
+                    meal: {
+                        description: "Coca-Cola, 330 ml",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "Half a litre of water",
@@ -406,8 +425,19 @@ export const INDEX_EN: IndexDoc = {
                 {
                     userText: "Big grilled chicken salad for lunch",
                     aiText: "Logged — about 540 kcal, 46 g protein. You're halfway to today's 2,000.",
-                    add: { kcal: 540, pro: 46, car: 22, fat: 28, sugar: 6 },
+                    add: {
+                        kcal: 540,
+                        pro: 46,
+                        car: 22,
+                        fat: 28,
+                        sugar: 6,
+                        fib: 7,
+                    },
                     clock: "13:22",
+                    meal: {
+                        description: "Grilled chicken salad",
+                        type: "lunch",
+                    },
                     widget: true,
                 },
                 {
@@ -418,18 +448,6 @@ export const INDEX_EN: IndexDoc = {
                     widget: true,
                 },
             ],
-            widget: {
-                title: "Today",
-                goal: "goal 2,000",
-                kcalUnit: "kcal",
-                protein: "Protein",
-                carbs: "Carbs",
-                fat: "Fat",
-                water: "Water",
-                sugar: "Sugar",
-                caffeine: "Caffeine",
-                hint: "👆 Tap a metric for the meals behind it",
-            },
         },
     },
 
@@ -552,16 +570,8 @@ export const INDEX_EN: IndexDoc = {
                 title: "Review the week",
                 sub: "Trends widget, right in the chat",
                 userText: "How did last week look?",
-                aiText: "You averaged 2,035 kcal a day across 6 logged days — 165 under your target. Protein was your steadiest macro.",
-                widget: {
-                    title: "Trends",
-                    sub: "7 days",
-                    big: "2,035",
-                    cap: "daily avg · 6 logged days",
-                    from: "1 Sep",
-                    goal: "goal 2,200",
-                    today: "Today",
-                },
+                aiText: "You averaged 1,830 kcal a day across 13 of the last 14 days — 170 under your target. Protein was your steadiest macro.",
+                widget: "trends",
             },
         ],
     },

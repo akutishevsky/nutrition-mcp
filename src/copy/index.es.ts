@@ -6,12 +6,12 @@
 // `clock` string is identical to the English source.
 //
 // Locale notes: numbers follow Spanish conventions (thousands separator
-// "2.000", not "2,000") so the hero widget's goal string matches the figures
-// the page script formats with toLocaleString("es"). Widget labels
-// (Proteína / Carbos / Grasa / Agua / Azúcar / Cafeína, "meta") mirror
-// src/copy/widgets.es.ts so the landing-page mock reads like the real
-// in-chat widget. The tool count ("36") is hand-typed in three strings
-// here, exactly as in index.ts — see CLAUDE.md's "Registered tool set".
+// "2.000", not "2,000"), the same grouping the page's own figures get from
+// toLocaleString("es"). No widget label lives in this file any more: the
+// two cards on the page are the real in-chat widgets, rendered at build
+// time, and every word on them comes from src/copy/widgets.es.ts. The tool
+// count ("36") is hand-typed in three strings here, exactly as in
+// index.ts — see CLAUDE.md's "Registered tool set".
 
 import type { IndexDoc } from "./index.js";
 
@@ -47,15 +47,24 @@ export const INDEX_ES: IndexDoc = {
                         car: 56,
                         fat: 11,
                         sugar: 12,
+                        fib: 8,
                         caf: 130,
                     },
                     clock: "08:04",
+                    meal: {
+                        description: "Avena con frutos rojos y un flat white",
+                        type: "breakfast",
+                    },
                 },
                 {
                     barcode: true,
                     aiText: "Es una Coca-Cola de 330 ml: 139 kcal y 35 g de azúcar, según Open Food Facts. Registrada como snack.",
-                    add: { kcal: 139, car: 35, sugar: 35 },
+                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
                     clock: "11:30",
+                    meal: {
+                        description: "Coca-Cola, 330 ml",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "Medio litro de agua",
@@ -67,8 +76,19 @@ export const INDEX_ES: IndexDoc = {
                     userText:
                         "Una ensalada grande de pollo a la parrilla para comer",
                     aiText: "Registrado: unas 540 kcal y 46 g de proteína. Vas por la mitad de las 2.000 de hoy.",
-                    add: { kcal: 540, pro: 46, car: 22, fat: 28, sugar: 6 },
+                    add: {
+                        kcal: 540,
+                        pro: 46,
+                        car: 22,
+                        fat: 28,
+                        sugar: 6,
+                        fib: 7,
+                    },
                     clock: "13:22",
+                    meal: {
+                        description: "Ensalada grande de pollo a la parrilla",
+                        type: "lunch",
+                    },
                     widget: true,
                 },
                 {
@@ -79,18 +99,6 @@ export const INDEX_ES: IndexDoc = {
                     widget: true,
                 },
             ],
-            widget: {
-                title: "Hoy",
-                goal: "meta 2.000",
-                kcalUnit: "kcal",
-                protein: "Proteína",
-                carbs: "Carbos",
-                fat: "Grasa",
-                water: "Agua",
-                sugar: "Azúcar",
-                caffeine: "Cafeína",
-                hint: "👆 Toca una métrica para ver las comidas detrás",
-            },
         },
     },
 
@@ -212,16 +220,8 @@ export const INDEX_ES: IndexDoc = {
                 title: "Revisa la semana",
                 sub: "Widget de tendencias, directamente en el chat",
                 userText: "¿Cómo fue la semana pasada?",
-                aiText: "Promediaste 2.035 kcal al día en 6 días registrados: 165 por debajo de tu objetivo. La proteína fue tu macro más estable.",
-                widget: {
-                    title: "Tendencias",
-                    sub: "7 días",
-                    big: "2.035",
-                    cap: "media diaria · 6 días registrados",
-                    from: "1 sep",
-                    goal: "meta 2.200",
-                    today: "Hoy",
-                },
+                aiText: "Promediaste 1830 kcal al día en los últimos 14 días, con 13 registrados: 170 por debajo de tu objetivo. La proteína fue tu macro más estable.",
+                widget: "trends",
             },
         ],
     },

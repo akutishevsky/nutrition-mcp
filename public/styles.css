@@ -339,6 +339,26 @@ body [hidden] {
     position: relative;
     z-index: 1;
 }
+/* …but NOT inside an in-chat widget card. The cards on the landing page are
+   the real widget markup (src/widget-static.ts) under the real widget CSS,
+   mechanically scoped to .nm-widget-card (src/widget-card.css, built by
+   src/widget-css.ts) — a complete stylesheet for everything inside that box,
+   which in chat renders in an iframe this file never reaches. The element
+   defaults above are the one thing that still cascades in, and
+   `svg { max-width: 100% }` was capping every ring, glyph and chart SVG in
+   the card at its container, which chat does not: today each is narrower than
+   its box so nothing moves, and the first one that is not would be clipped
+   here and correct there, with no test able to see it.
+
+   Reverted per element rather than with `all: revert`, which would also undo
+   box-sizing (the widget's own `*` rule is dropped as unscopable precisely
+   BECAUSE this file already ships it) and inheritance the card relies on.
+   A NEW `:where(body) <element>` default above therefore needs a decision
+   here too — src/widget-css.test.ts pins the list so adding one fails a test
+   rather than silently reaching in. */
+.nm-widget-card :where(img, svg) {
+    max-width: none;
+}
 body a:focus-visible,
 body button:focus-visible,
 body summary:focus-visible,
@@ -1650,142 +1670,6 @@ body.menu-open {
     animation-delay: 0.4s;
 }
 
-/* The in-chat summary widget (mirrors the real get_nutrition_summary
-   card). Numbers are painted by the script into [data-w], the ring's
-   sweep through --deg and each bar's fill through --w. */
-.nm-widget {
-    flex: none;
-    align-self: flex-start;
-    width: min(100%, 460px);
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 16px;
-    font-family: system-ui, sans-serif;
-    animation: nm-rise 0.4s both;
-}
-.nm-w-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    color: var(--ink2);
-}
-.nm-w-head b {
-    color: var(--ink);
-    font-size: 13px;
-}
-.nm-w-body {
-    display: grid;
-    grid-template-columns: 104px 1fr;
-    gap: 16px;
-    align-items: center;
-    margin-top: 12px;
-}
-.nm-ring {
-    width: 104px;
-    height: 104px;
-    border-radius: 50%;
-    background: conic-gradient(var(--cal) var(--deg, 0deg), var(--track) 0);
-    display: grid;
-    place-items: center;
-    transition: background 0.7s;
-    box-shadow: 0 0 30px -10px var(--cal);
-}
-.nm-ring-in {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: var(--bg);
-    display: grid;
-    place-items: center;
-    text-align: center;
-    line-height: 1;
-}
-.nm-ring-n {
-    font-weight: 800;
-    font-size: 21px;
-    letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-}
-.nm-ring-u {
-    font-size: 9px;
-    color: var(--ink3);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-top: 4px;
-}
-.nm-bars {
-    display: grid;
-    gap: 9px;
-    font-size: 12px;
-    min-width: 0;
-}
-.nm-bar-l {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    color: var(--ink2);
-}
-.nm-bar-l b {
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-.nm-bar-t {
-    height: 5px;
-    background: var(--track);
-    border-radius: 999px;
-    overflow: hidden;
-    margin-top: 4px;
-}
-.nm-bar-f {
-    height: 100%;
-    width: var(--w, 0%);
-    background: var(--c, var(--acc));
-    transition: width 0.7s;
-}
-.nm-w-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
-    font-size: 11.5px;
-    font-weight: 600;
-}
-.nm-w-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 9px;
-    border-radius: 999px;
-    background: var(--bg2);
-}
-.nm-w-chip-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--c, var(--acc));
-}
-.nm-w-chip-v {
-    color: var(--ink2);
-    font-variant-numeric: tabular-nums;
-}
-.nm-w-hint {
-    margin-top: 10px;
-    font-size: 11px;
-    color: var(--ink3);
-}
-@media (max-width: 380px) {
-    .nm-w-body {
-        grid-template-columns: 1fr;
-        justify-items: center;
-    }
-    .nm-bars {
-        width: 100%;
-    }
-}
-
 /* ---------- translation notice ---------- */
 .nm-notice-band {
     padding-top: 0;
@@ -2292,66 +2176,6 @@ body.menu-open {
     border-radius: 20px 20px 20px 6px;
     font-size: 15px;
     animation: nm-rise 0.35s 0.1s both;
-}
-/* The trends mini-widget on the third example. */
-.nm-trend {
-    align-self: stretch;
-    margin-top: 4px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 16px;
-    font-family: system-ui, sans-serif;
-    animation: nm-rise 0.35s 0.2s both;
-}
-.nm-trend-head {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--ink2);
-}
-.nm-trend-head b {
-    color: var(--ink);
-}
-.nm-trend-big {
-    margin-top: 10px;
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-}
-.nm-trend-n {
-    font-weight: 800;
-    font-size: 24px;
-    letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-}
-.nm-trend-cap {
-    font-size: 11px;
-    color: var(--ink2);
-}
-.nm-trend svg {
-    width: 100%;
-    height: 54px;
-    margin-top: 10px;
-    display: block;
-}
-.nm-trend-line {
-    fill: none;
-    stroke: var(--cal);
-    stroke-width: 2.5;
-    stroke-linejoin: round;
-}
-.nm-trend-goal {
-    stroke: var(--ink3);
-    stroke-dasharray: 3 5;
-    stroke-width: 1;
-}
-.nm-trend-foot {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    color: var(--ink3);
-    margin-top: 6px;
 }
 
 /* ---------- live ---------- */

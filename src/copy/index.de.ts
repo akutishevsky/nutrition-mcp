@@ -11,7 +11,7 @@
 // in English because that is what the Claude and ChatGPT interfaces show a
 // German user; only the instructions around them are translated. Numbers
 // follow German formatting (2.000, 2.035) since they are copy the visitor
-// reads, while the widget's computed figures come from the generator.
+// reads, The two widget CARDS on the page are the real in-chat widgets, rendered at build time; every word on them comes from WIDGET_STRINGS (src/copy/widgets.ts), not from here.
 
 import type { IndexDoc } from "./index.js";
 
@@ -47,15 +47,25 @@ export const INDEX_DE: IndexDoc = {
                         car: 56,
                         fat: 11,
                         sugar: 12,
+                        fib: 8,
                         caf: 130,
                     },
                     clock: "08:04",
+                    meal: {
+                        description:
+                            "Haferflocken mit Beeren und ein Flat White",
+                        type: "breakfast",
+                    },
                 },
                 {
                     barcode: true,
                     aiText: "Das ist eine 330-ml-Coca-Cola — 139 kcal, 35 g Zucker, laut Open Food Facts. Als Snack erfasst.",
-                    add: { kcal: 139, car: 35, sugar: 35 },
+                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
                     clock: "11:30",
+                    meal: {
+                        description: "Coca-Cola, 330 ml",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "Einen halben Liter Wasser",
@@ -67,8 +77,19 @@ export const INDEX_DE: IndexDoc = {
                     userText:
                         "Großer Salat mit gegrilltem Hähnchen zum Mittagessen",
                     aiText: "Erfasst — etwa 540 kcal, 46 g Protein. Du bist bei der Hälfte deiner 2.000 für heute.",
-                    add: { kcal: 540, pro: 46, car: 22, fat: 28, sugar: 6 },
+                    add: {
+                        kcal: 540,
+                        pro: 46,
+                        car: 22,
+                        fat: 28,
+                        sugar: 6,
+                        fib: 7,
+                    },
                     clock: "13:22",
+                    meal: {
+                        description: "Großer Salat mit gegrilltem Hähnchen",
+                        type: "lunch",
+                    },
                     widget: true,
                 },
                 {
@@ -79,18 +100,6 @@ export const INDEX_DE: IndexDoc = {
                     widget: true,
                 },
             ],
-            widget: {
-                title: "Heute",
-                goal: "Ziel 2.000",
-                kcalUnit: "kcal",
-                protein: "Protein",
-                carbs: "Kohlenhydrate",
-                fat: "Fett",
-                water: "Wasser",
-                sugar: "Zucker",
-                caffeine: "Koffein",
-                hint: "👆 Tippe auf einen Wert für die zugehörigen Mahlzeiten",
-            },
         },
     },
 
@@ -213,16 +222,8 @@ export const INDEX_DE: IndexDoc = {
                 title: "Die Woche durchsehen",
                 sub: "Trends-Widget, direkt im Chat",
                 userText: "Wie sah letzte Woche aus?",
-                aiText: "Du lagst an 6 erfassten Tagen im Schnitt bei 2.035 kcal am Tag — 165 unter deinem Ziel. Protein war dein konstantester Makro.",
-                widget: {
-                    title: "Trends",
-                    sub: "7 Tage",
-                    big: "2.035",
-                    cap: "Tagesschnitt · 6 erfasste Tage",
-                    from: "1. Sep.",
-                    goal: "Ziel 2.200",
-                    today: "Heute",
-                },
+                aiText: "Du lagst über die letzten 14 Tage im Schnitt bei 1.830 kcal am Tag, an 13 davon mit Einträgen — 170 unter deinem Ziel. Protein war dein konstantester Makro.",
+                widget: "trends",
             },
         ],
     },

@@ -9,9 +9,11 @@
 // Locale notes:
 //   - The site addresses the reader with the informal "ти", matching
 //     chrome.uk.ts / tools.uk.ts.
-//   - Thousands are grouped with a space ("2 000", "2 035") as Ukrainian
-//     does, not the English comma; the widget figures the replay script
-//     computes are formatted off <html lang>, so the goal string matches.
+//   - Thousands are grouped with a NO-BREAK space ("2 000", "1 830") as
+//     Ukrainian does, not the English comma. The widget cards group their
+//     own figures the same way (Intl, via shared/macros.js), so a number
+//     written here reads like the one printed beside it — src/copy/
+//     widget-card.test.ts pins that for the trends slide's reply.
 //   - `live.refreshAfter` carries a leading space (" с"): "5с" is not how
 //     Ukrainian writes seconds, and the generator emits it right after the
 //     digit.
@@ -55,15 +57,24 @@ export const INDEX_UK: IndexDoc = {
                         car: 56,
                         fat: 11,
                         sugar: 12,
+                        fib: 8,
                         caf: 130,
                     },
                     clock: "08:04",
+                    meal: {
+                        description: "Вівсянка з ягодами та флет-вайт",
+                        type: "breakfast",
+                    },
                 },
                 {
                     barcode: true,
                     aiText: "Це Coca-Cola 330 мл — 139 ккал, 35 г цукру, за даними Open Food Facts. Записано як перекус.",
-                    add: { kcal: 139, car: 35, sugar: 35 },
+                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
                     clock: "11:30",
+                    meal: {
+                        description: "Coca-Cola, 330 мл",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "Пів літра води",
@@ -74,8 +85,19 @@ export const INDEX_UK: IndexDoc = {
                 {
                     userText: "Великий салат із куркою гриль на обід",
                     aiText: "Записано — близько 540 ккал, 46 г білка. Ти на півдорозі до сьогоднішніх 2 000.",
-                    add: { kcal: 540, pro: 46, car: 22, fat: 28, sugar: 6 },
+                    add: {
+                        kcal: 540,
+                        pro: 46,
+                        car: 22,
+                        fat: 28,
+                        sugar: 6,
+                        fib: 7,
+                    },
                     clock: "13:22",
+                    meal: {
+                        description: "Великий салат із куркою гриль",
+                        type: "lunch",
+                    },
                     widget: true,
                 },
                 {
@@ -86,18 +108,6 @@ export const INDEX_UK: IndexDoc = {
                     widget: true,
                 },
             ],
-            widget: {
-                title: "Сьогодні",
-                goal: "ціль 2 000",
-                kcalUnit: "ккал",
-                protein: "Білки",
-                carbs: "Вуглеводи",
-                fat: "Жири",
-                water: "Вода",
-                sugar: "Цукор",
-                caffeine: "Кофеїн",
-                hint: "👆 Торкнись показника, щоб побачити прийоми їжі за ним",
-            },
         },
     },
 
@@ -219,16 +229,8 @@ export const INDEX_UK: IndexDoc = {
                 title: "Переглянь тиждень",
                 sub: "Віджет трендів прямо в чаті",
                 userText: "Яким був минулий тиждень?",
-                aiText: "У середньому 2 035 ккал на день за 6 записаних днів — на 165 менше твоєї цілі. Білок був твоїм найстабільнішим макронутрієнтом.",
-                widget: {
-                    title: "Тренди",
-                    sub: "7 днів",
-                    big: "2 035",
-                    cap: "середнє за день · 6 записаних днів",
-                    from: "1 вер",
-                    goal: "ціль 2 200",
-                    today: "Сьогодні",
-                },
+                aiText: "У середньому 1 830 ккал на день за останні 14 днів, 13 з них із записами — на 170 менше твоєї цілі. Білок був твоїм найстабільнішим макронутрієнтом.",
+                widget: "trends",
             },
         ],
     },

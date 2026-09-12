@@ -10,9 +10,9 @@
 // left in English since they are literal button/menu labels in Claude's
 // and ChatGPT's own interfaces, which this pass could not verify are
 // localized into Italian; translating them risked giving incorrect
-// instructions. Thousands separators follow Italian convention (2.000,
-// 2.035), matching what the page script's toLocaleString("it") renders
-// for the computed widget figures. Terminology kept consistent with
+// instructions. Thousands separators follow Italian convention (2.000),
+// matching what the page's own figures and the widget cards render.
+// Terminology kept consistent with
 // src/copy/chrome.it.ts and src/copy/tools.it.ts: protein → proteine,
 // carbs → carboidrati, fat → grassi, fiber → fibre, sugar → zuccheri,
 // caffeine → caffeina, meal → pasto, goal → obiettivo, trend → andamento,
@@ -53,15 +53,25 @@ export const INDEX_IT: IndexDoc = {
                         car: 56,
                         fat: 11,
                         sugar: 12,
+                        fib: 8,
                         caf: 130,
                     },
                     clock: "08:04",
+                    meal: {
+                        description:
+                            "Porridge con frutti di bosco e un flat white",
+                        type: "breakfast",
+                    },
                 },
                 {
                     barcode: true,
                     aiText: "È una Coca-Cola da 330 ml — 139 kcal, 35 g di zuccheri, da Open Food Facts. Registrata come spuntino.",
-                    add: { kcal: 139, car: 35, sugar: 35 },
+                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
                     clock: "11:30",
+                    meal: {
+                        description: "Coca-Cola, 330 ml",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "Mezzo litro d'acqua",
@@ -73,8 +83,19 @@ export const INDEX_IT: IndexDoc = {
                     userText:
                         "Una grande insalata di pollo alla griglia a pranzo",
                     aiText: "Registrato — circa 540 kcal, 46 g di proteine. Sei a metà delle 2.000 di oggi.",
-                    add: { kcal: 540, pro: 46, car: 22, fat: 28, sugar: 6 },
+                    add: {
+                        kcal: 540,
+                        pro: 46,
+                        car: 22,
+                        fat: 28,
+                        sugar: 6,
+                        fib: 7,
+                    },
                     clock: "13:22",
+                    meal: {
+                        description: "Insalata grande di pollo alla griglia",
+                        type: "lunch",
+                    },
                     widget: true,
                 },
                 {
@@ -85,18 +106,6 @@ export const INDEX_IT: IndexDoc = {
                     widget: true,
                 },
             ],
-            widget: {
-                title: "Oggi",
-                goal: "obiettivo 2.000",
-                kcalUnit: "kcal",
-                protein: "Proteine",
-                carbs: "Carboidrati",
-                fat: "Grassi",
-                water: "Acqua",
-                sugar: "Zuccheri",
-                caffeine: "Caffeina",
-                hint: "👆 Tocca una metrica per vedere i pasti che la riguardano",
-            },
         },
     },
 
@@ -219,16 +228,8 @@ export const INDEX_IT: IndexDoc = {
                 title: "Rivedi la settimana",
                 sub: "Widget degli andamenti, direttamente in chat",
                 userText: "Com'è andata la settimana scorsa?",
-                aiText: "Hai fatto una media di 2.035 kcal al giorno su 6 giorni registrati — 165 sotto il tuo obiettivo. Le proteine sono state il tuo macro più costante.",
-                widget: {
-                    title: "Andamenti",
-                    sub: "7 giorni",
-                    big: "2.035",
-                    cap: "media giornaliera · 6 giorni registrati",
-                    from: "1 set",
-                    goal: "obiettivo 2.200",
-                    today: "Oggi",
-                },
+                aiText: "Hai fatto una media di 1830 kcal al giorno negli ultimi 14 giorni, 13 dei quali registrati — 170 sotto il tuo obiettivo. Le proteine sono state il tuo macro più costante.",
+                widget: "trends",
             },
         ],
     },

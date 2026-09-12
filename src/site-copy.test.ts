@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { INDEX } from "./copy/index.js";
 import type { SiteLocale } from "./routes.js";
+import { WIDGET_STRINGS } from "./copy/widgets.js";
 
 // The public pages are the only place the product describes ITSELF, and they
 // are the surface that goes stale first: a nutrient ships across the server,
@@ -81,9 +82,21 @@ test("the hero lead enumerates the tracked set, caffeine included", () => {
     ]) {
         expect(t, `hero lead omits ${nutrient}`).toContain(nutrient);
     }
-    // The summary widget in the hero chat carries a caffeine chip too — the
-    // static render is what a crawler and a no-JS visitor see.
-    expect(index).toMatch(/<span data-w="caf">\d+<\/span> mg/);
+    // The summary card in the hero chat carries a caffeine tile too — the
+    // static render is what a crawler and a no-JS visitor see, and it is the
+    // real get_nutrition_summary card, so the word on that tile comes from
+    // WIDGET_STRINGS rather than from this file's copy. Pinned against the
+    // dictionary, with its unit, so a locale renaming the metric or the tile
+    // vanishing (a caffeine-free demo payload suppresses it — a limit with
+    // nothing recorded against it is not drawn) both fail here.
+    const caffeine = WIDGET_STRINGS.en!.macros.labels.caffeine_mg;
+    expect(caffeine.length).toBeGreaterThan(0);
+    const tile = index.match(
+        /<button class="chip c-caf"[\s\S]*?<\/button>/,
+    )?.[0];
+    expect(tile, "no caffeine tile on the hero card").toBeTruthy();
+    expect(normalize(tile!)).toContain(`<span class="k">${caffeine}</span>`);
+    expect(normalize(tile!)).toContain('<span class="u">/400 mg</span>');
     const meta = index.match(/<meta name="description" content="([^"]*)"/)?.[1];
     expect(normalize(meta ?? "")).toContain("caffeine");
 });

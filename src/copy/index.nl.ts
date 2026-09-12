@@ -9,9 +9,9 @@
 // because that is what the Claude and ChatGPT interfaces actually show.
 //
 // Numbers follow Dutch formatting (a period as thousands separator: 2.000,
-// 2.035) because the generator renders the computed widget figures with
-// toLocaleString("nl"), so a hand-typed "2,000" next to a computed "1.059"
-// would read as two different conventions on one card.
+// 1.830) because the page's own figures and the widget cards both group
+// that way, so a hand-typed "2,000" next to a rendered "1.059" would read
+// as two different conventions on one screen.
 
 import type { IndexDoc } from "./index.js";
 
@@ -47,15 +47,24 @@ export const INDEX_NL: IndexDoc = {
                         car: 56,
                         fat: 11,
                         sugar: 12,
+                        fib: 8,
                         caf: 130,
                     },
                     clock: "08:04",
+                    meal: {
+                        description: "Havermout met bessen en een flat white",
+                        type: "breakfast",
+                    },
                 },
                 {
                     barcode: true,
                     aiText: "Dat is een Coca-Cola van 330 ml — 139 kcal, 35 g suiker, via Open Food Facts. Gelogd als snack.",
-                    add: { kcal: 139, car: 35, sugar: 35 },
+                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
                     clock: "11:30",
+                    meal: {
+                        description: "Coca-Cola, 330 ml",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "Een halve liter water",
@@ -66,8 +75,19 @@ export const INDEX_NL: IndexDoc = {
                 {
                     userText: "Grote salade met gegrilde kip als lunch",
                     aiText: "Gelogd — ongeveer 540 kcal, 46 g eiwit. Je zit op de helft van je 2.000 voor vandaag.",
-                    add: { kcal: 540, pro: 46, car: 22, fat: 28, sugar: 6 },
+                    add: {
+                        kcal: 540,
+                        pro: 46,
+                        car: 22,
+                        fat: 28,
+                        sugar: 6,
+                        fib: 7,
+                    },
                     clock: "13:22",
+                    meal: {
+                        description: "Grote salade met gegrilde kip",
+                        type: "lunch",
+                    },
                     widget: true,
                 },
                 {
@@ -78,18 +98,6 @@ export const INDEX_NL: IndexDoc = {
                     widget: true,
                 },
             ],
-            widget: {
-                title: "Vandaag",
-                goal: "doel 2.000",
-                kcalUnit: "kcal",
-                protein: "Eiwit",
-                carbs: "Koolhydraten",
-                fat: "Vet",
-                water: "Water",
-                sugar: "Suiker",
-                caffeine: "Cafeïne",
-                hint: "👆 Tik op een waarde voor de maaltijden erachter",
-            },
         },
     },
 
@@ -212,16 +220,8 @@ export const INDEX_NL: IndexDoc = {
                 title: "Bekijk de week",
                 sub: "Trendswidget, gewoon in de chat",
                 userText: "Hoe zag vorige week eruit?",
-                aiText: "Je zat gemiddeld op 2.035 kcal per dag over 6 gelogde dagen — 165 onder je doel. Eiwit was je stabielste macro.",
-                widget: {
-                    title: "Trends",
-                    sub: "7 dagen",
-                    big: "2.035",
-                    cap: "daggemiddelde · 6 gelogde dagen",
-                    from: "1 sep",
-                    goal: "doel 2.200",
-                    today: "Vandaag",
-                },
+                aiText: "Je zat de afgelopen 14 dagen gemiddeld op 1.830 kcal per dag, waarvan 13 gelogd — 170 onder je doel. Eiwit was je stabielste macro.",
+                widget: "trends",
             },
         ],
     },

@@ -50,6 +50,19 @@ import {
     type HeroExchange,
     type IndexDoc,
 } from "../src/copy/index.js";
+import {
+    renderSummaryCard,
+    renderTrendsCard,
+    type SummaryPayload,
+    type TrendsPayload,
+} from "../src/widget-static.js";
+import {
+    DEMO_TRENDS,
+    demoSummaryPayload,
+    validateDemoPayloads,
+    type DemoMealInput,
+} from "../src/copy/widget-demo.js";
+import { WIDGET_STRINGS } from "../src/copy/widgets.js";
 
 // The landing page's own JS: the hero chat replay, the examples picker, the
 // live-stats poller (count-ups, deltas, unit toggle, countdown, world map),
@@ -100,23 +113,48 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         });
                     });
                 }
-                function readJson(el, attr) {
-                    try {
-                        return JSON.parse(el.getAttribute(attr) || "{}");
-                    } catch (e) {
-                        return {};
+                // ---------- widget cards: keep the settings note ----------
+                // The two cards on this page are the real in-chat widgets, and
+                // they carry the real settings note. In chat a MutationObserver
+                // in shared/bridge.js keeps that note as the last child of the
+                // card's last [data-widget-foot], for one reason: widgets
+                // repaint from their own controls and take whatever is in the
+                // old DOM with them. This page runs no bridge - there is no
+                // host to handshake with and no iframe to size - but it does
+                // run the repaints, and the trends card's 7 / 14 / 30 toggle
+                // rewrites its whole body, so the note went with it on the
+                // first tap. Same rule, same reason, six lines. It is the one
+                // piece of bridge.js re-typed here, and it moves when that one
+                // does. No copy of its own: the wording is the element the
+                // generator already wrote, moved rather than rebuilt.
+                document.querySelectorAll(".nm-widget-card").forEach(function (card) {
+                    var note = card.querySelector(".wnote");
+                    if (!note) return;
+                    function place() {
+                        var slots = card.querySelectorAll("[data-widget-foot]");
+                        var slot = slots.length ? slots[slots.length - 1] : card;
+                        // Guarded, not unconditional: an append the observer
+                        // reports back to itself never stops.
+                        if (slot.lastElementChild !== note) slot.appendChild(note);
                     }
-                }
+                    new MutationObserver(place).observe(card, {
+                        childList: true,
+                        subtree: true,
+                    });
+                });
 
                 // ---------- hero chat: replay the static thread ----------
                 // The generator renders the whole conversation in full, so the page
                 // reads without script and for crawlers. Here it is taken apart into
-                // exchanges (a user or barcode bubble carrying data-add / data-clock /
-                // data-widget, followed by its AI reply) and replayed as the design's
-                // loop: type the user line, show the typing dots, reveal the reply, add
-                // that exchange's nutrients to the summary widget. Every bubble on
-                // screen is a clone of one the generator wrote - the script holds no
-                // copy of its own.
+                // exchanges (a user or barcode bubble carrying data-clock, then
+                // its AI reply) and
+                // replayed as the design's loop: type the user line, show the typing
+                // dots, reveal the reply, bring in the card for what has been logged
+                // so far. Every bubble on screen is a clone of one the generator
+                // wrote - the script holds no copy of its own, and it computes no
+                // figure of its own either: the cards are REAL get_nutrition_summary
+                // cards, rendered at build time by the widget's own emitters, one per
+                // cumulative state of the thread.
                 var chatList = document.querySelector("[data-chat-list]");
                 var chatClock = document.querySelector("[data-chat-clock]");
                 var chatPause = document.querySelector("[data-chat-pause]");
@@ -151,59 +189,40 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     });
                 }
                 if (chatList && !reduceMotion) {
-                    var widgetTpl = chatList.querySelector(".nm-widget");
+                    // THE CARDS ARE MOVED, NEVER CLONED. Each is a real widget card
+                    // whose behaviour (the drawer, a tile moving the focus panel,
+                    // Escape) is bound by /widget-card.js to the card ELEMENT — the
+                    // key macroStash keys its ctx on (shared/macros.js). A clone is
+                    // not that element, so its taps would resolve to whichever card
+                    // stashed last, which on this page is the trends card in the
+                    // examples section. Collected once, up front: appendChild moves
+                    // a card into the thread, the loop's own clear takes it back out,
+                    // and a node held here survives being out of the document with
+                    // its binding intact.
+                    var heroCards = {};
+                    document
+                        .querySelectorAll("[data-hero-card]")
+                        .forEach(function (el) {
+                            el.getAttribute("data-hero-card")
+                                .split(" ")
+                                .forEach(function (i) {
+                                    heroCards[i] = el;
+                                });
+                        });
                     var exchanges = [];
                     [].slice.call(chatList.children).forEach(function (node) {
                         if (node.matches(".nm-msg-user, .nm-msg-barcode")) {
                             exchanges.push({
                                 user: node,
                                 ai: null,
-                                add: readJson(node, "data-add"),
                                 clock: node.getAttribute("data-clock") || "",
-                                widget: node.hasAttribute("data-widget"),
                                 barcode: node.classList.contains("nm-msg-barcode"),
                             });
                         } else if (node.matches(".nm-msg-ai") && exchanges.length) {
                             exchanges[exchanges.length - 1].ai = node;
                         }
                     });
-                    // The widget's daily goals; the ring is kcal against 2,000 and each
-                    // bar reads its own goal off data-goal in the markup.
-                    var KCAL_GOAL = 2000;
                     var CHAT_MAX = 12;
-                    var totals = null;
-                    function resetTotals() {
-                        totals = {
-                            kcal: 0,
-                            pro: 0,
-                            car: 0,
-                            fat: 0,
-                            water: 0,
-                            sugar: 0,
-                            caf: 0,
-                        };
-                    }
-                    function paintWidget(w) {
-                        Object.keys(totals).forEach(function (k) {
-                            var el = w.querySelector('[data-w="' + k + '"]');
-                            if (el) el.textContent = fmtInt(totals[k]);
-                        });
-                        var ring = w.querySelector("[data-ring]");
-                        if (ring)
-                            ring.style.setProperty(
-                                "--deg",
-                                Math.min(360, Math.round((totals.kcal / KCAL_GOAL) * 360)) +
-                                    "deg",
-                            );
-                        w.querySelectorAll("[data-bar]").forEach(function (bar) {
-                            var k = bar.getAttribute("data-bar");
-                            var goal = Number(bar.getAttribute("data-goal")) || 1;
-                            bar.style.setProperty(
-                                "--w",
-                                Math.min(100, Math.round((totals[k] / goal) * 100)) + "%",
-                            );
-                        });
-                    }
                     // Keeping the thread pinned to its bottom means reading
                     // scrollHeight, and reading it forces the browser to lay the
                     // thread out then and there. Doing that per typed character —
@@ -260,7 +279,6 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     async function replay() {
                         for (;;) {
                             chatList.textContent = "";
-                            resetTotals();
                             for (var i = 0; i < exchanges.length; i++) {
                                 await whenVisible();
                                 await whenPlaying();
@@ -278,15 +296,10 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                                 push(typingBubble());
                                 await wait(900);
                                 await whenPlaying();
-                                Object.keys(ex.add).forEach(function (k) {
-                                    if (k in totals) totals[k] += Number(ex.add[k]) || 0;
-                                });
                                 if (ex.ai) push(ex.ai.cloneNode(true));
-                                if (ex.widget && widgetTpl) {
+                                if (heroCards[i]) {
                                     await wait(500);
-                                    var w = widgetTpl.cloneNode(true);
-                                    paintWidget(w);
-                                    push(w);
+                                    push(heroCards[i]);
                                     await wait(3600);
                                 } else {
                                     await wait(2600);
@@ -296,7 +309,24 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             await whenPlaying();
                         }
                     }
-                    if (exchanges.length) replay();
+                    // START AFTER THE DEFERRED SCRIPTS HAVE RUN. The first
+                    // thing the loop does is empty the thread, and the hero
+                    // cards live in it — so starting during parsing would
+                    // clear them away before /widget-card.js ever saw them,
+                    // and every tile on the hero card would then resolve to
+                    // the other card's data (macroCtx's last-stash fallback,
+                    // shared/macros.js). Deferred scripts run while
+                    // readyState is already "interactive", so waiting for
+                    // DOMContentLoaded is exactly waiting for them.
+                    if (exchanges.length) {
+                        if (document.readyState === "loading") {
+                            document.addEventListener("DOMContentLoaded", replay, {
+                                once: true,
+                            });
+                        } else {
+                            replay();
+                        }
+                    }
                 }
 
                 // ---------- live GitHub star count ----------
@@ -1124,6 +1154,32 @@ function barcodeSvg(): string {
     return `<svg viewBox="0 0 120 40" aria-hidden="true">${rects.join("")}</svg>`;
 }
 
+// ---------------------------------------------- the real widget cards
+//
+// The two cards on this page — the get_nutrition_summary card in the hero
+// chat and the get_trends card on the third examples slide — are not
+// approximations of the in-chat widgets. They ARE the in-chat widgets,
+// rendered at BUILD TIME: src/widget-static.ts evaluates the very shared
+// partials the iframe runs (shared/macros.js, shared/spark.js,
+// shared/summary-card.js, shared/trends-card.js and everything under them)
+// in a sandbox with no DOM, and hands back the same string chat gets.
+//
+// What used to sit here instead was a second implementation of a card —
+// renderWidget(), a hardcoded TREND_POINTS polyline, a WIDGET_GOALS object,
+// and seventeen hand-translated labels per locale — and it had already
+// drifted from the thing it was drawing: "Kohlenhydrate" where the widget
+// deliberately abbreviates to "Kohlenh." (the long form truncates in that
+// tile), 糖類 where the widget says 糖質, thousands separators typed with
+// the wrong codepoint in fr and uk. Those strings are gone; WIDGET_STRINGS
+// owns them, in one place, for the chat card and the page card alike.
+//
+// src/widget-card.test.ts is the enforcement: it re-renders both cards from
+// these same payloads and requires the result to appear VERBATIM in the
+// generated HTML. So an edit to any public/widgets/src/shared/ partial, to
+// a card partial, or to src/copy/widgets.ts fails that test until this
+// generator has been re-run — the generated-output staleness this repo
+// keeps rediscovering, caught by a test instead of by a reader.
+
 type Totals = {
     kcal: number;
     pro: number;
@@ -1132,10 +1188,17 @@ type Totals = {
     water: number;
     sugar: number;
     caf: number;
+    fib: number;
 };
 
-/** The final state of the widget: every exchange's deltas summed. */
-function sumExchanges(exchanges: HeroExchange[]): Totals {
+/** Every exchange's deltas summed — the whole thread, or the first
+ *  `upto + 1` exchanges of it, which is the state the card is in when the
+ *  thread has played that far. Exported for src/widget-card.test.ts, which
+ *  reconciles each rendered card state against it. */
+export function sumExchanges(
+    exchanges: HeroExchange[],
+    upto: number = exchanges.length - 1,
+): Totals {
     const t: Totals = {
         kcal: 0,
         pro: 0,
@@ -1144,8 +1207,9 @@ function sumExchanges(exchanges: HeroExchange[]): Totals {
         water: 0,
         sugar: 0,
         caf: 0,
+        fib: 0,
     };
-    for (const ex of exchanges) {
+    for (const ex of exchanges.slice(0, upto + 1)) {
         for (const k of Object.keys(t) as (keyof Totals)[]) {
             t[k] += ex.add[k] ?? 0;
         }
@@ -1153,78 +1217,356 @@ function sumExchanges(exchanges: HeroExchange[]): Totals {
     return t;
 }
 
-// The widget's daily goals as drawn in the design. The script reads the bar
-// goals back off data-goal and the ring's 2,000 is its own constant.
-const WIDGET_GOALS = { kcal: 2000, pro: 160, car: 220, fat: 70 };
-
-/** The in-chat summary widget. Rendered once, in its final state, after
- *  the last reply; the script clones it and repaints [data-w] / --deg /
- *  --w as the replay adds each exchange's nutrients. */
-function renderWidget(doc: IndexDoc, totals: Totals, locale: SiteLocale) {
-    const w = doc.hero.chat.widget;
-    const pct = (v: number, goal: number) =>
-        Math.min(100, Math.round((v / goal) * 100));
-    const deg = Math.min(
-        360,
-        Math.round((totals.kcal / WIDGET_GOALS.kcal) * 360),
-    );
-    const bar = (
-        key: "pro" | "car" | "fat",
-        label: string,
-        goal: number,
-    ) => `                                    <div>
-                                        <div class="nm-bar-l">
-                                            <span>${esc(label)}</span>
-                                            <b><span data-w="${key}">${num(totals[key], locale)}</span>/${goal} g</b>
-                                        </div>
-                                        <div class="nm-bar-t">
-                                            <div
-                                                class="nm-bar-f nm-c-${key}"
-                                                data-bar="${key}"
-                                                data-goal="${goal}"
-                                                style="--w: ${pct(totals[key], goal)}%"
-                                            ></div>
-                                        </div>
-                                    </div>`;
-    const chip = (
-        tint: string,
-        label: string,
-        key: "water" | "sugar" | "caf",
-        unit: string,
-    ) =>
-        `                                <span class="nm-w-chip ${tint}"><span class="nm-w-chip-dot" aria-hidden="true"></span>${esc(label)} <span class="nm-w-chip-v"><span data-w="${key}">${num(totals[key], locale)}</span> ${unit}</span></span>`;
-    return `                            <div class="nm-widget">
-                                <div class="nm-w-head">
-                                    <b>${esc(w.title)}</b><span>${esc(w.goal)}</span>
-                                </div>
-                                <div class="nm-w-body">
-                                    <div class="nm-ring" data-ring style="--deg: ${deg}deg">
-                                        <div class="nm-ring-in">
-                                            <div>
-                                                <div class="nm-ring-n" data-w="kcal">${num(totals.kcal, locale)}</div>
-                                                <div class="nm-ring-u">${esc(w.kcalUnit)}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="nm-bars">
-${bar("pro", w.protein, WIDGET_GOALS.pro)}
-${bar("car", w.carbs, WIDGET_GOALS.car)}
-${bar("fat", w.fat, WIDGET_GOALS.fat)}
-                                    </div>
-                                </div>
-                                <div class="nm-w-chips">
-${chip("nm-c-wat", w.water, "water", "ml")}
-${chip("nm-c-sug", w.sugar, "sugar", "g")}
-${chip("nm-c-caf", w.caffeine, "caf", "mg")}
-                                </div>
-                                <div class="nm-w-hint">${esc(w.hint)}</div>
-                            </div>`;
+/** The meals the thread has logged through exchange `upto`, in order —
+ *  what the card's drawer opens onto. An exchange with no `meal` logged no
+ *  food (the water one, the closing question), and a meal row for it would
+ *  sit in every metric's breakdown reading zero. */
+function mealsThrough(
+    exchanges: HeroExchange[],
+    upto: number,
+): DemoMealInput[] {
+    const out: DemoMealInput[] = [];
+    for (const ex of exchanges.slice(0, upto + 1)) {
+        if (!ex.meal) continue;
+        out.push({
+            description: ex.meal.description,
+            meal_type: ex.meal.type,
+            add: ex.add,
+        });
+    }
+    return out;
 }
 
-/** One exchange of the hero thread, statically. The user / barcode bubble
- *  carries the deltas and clock the script replays from. */
+/** One state of the hero's summary card. */
+export interface HeroCardState {
+    /** The exchange indices this one card is brought in after. More than
+     *  one when consecutive widget exchanges log nothing between them —
+     *  the thread's closing "How am I doing today?" adds no food, so it
+     *  shows the card the meal before it produced rather than a second,
+     *  byte-identical copy of it. */
+    indices: number[];
+    payload: SummaryPayload;
+}
+
+/** Every distinct summary card the hero thread passes through, in order.
+ *
+ *  The payload is the real get_nutrition_summary shape (src/copy/widget-demo.ts
+ *  maps the thread's own `add` deltas onto the tool's keys and supplies the
+ *  demo account's goals), so the card computes every figure, every delta
+ *  word, every `.over` state, the ring's offset and each tile's wash the
+ *  same way the tool's does. */
+export function heroCardStates(
+    doc: IndexDoc,
+    locale: SiteLocale,
+): HeroCardState[] {
+    const exchanges = doc.hero.chat.exchanges;
+    const states: HeroCardState[] = [];
+    let lastKey = "";
+    exchanges.forEach((ex, i) => {
+        if (!ex.widget) return;
+        const payload: SummaryPayload = {
+            ...demoSummaryPayload(
+                sumExchanges(exchanges, i),
+                mealsThrough(exchanges, i),
+            ),
+            // THE PAYLOAD'S LOCALE IS THE PAGE'S. The widget runtime resolves
+            // which dictionary to repaint in from this field
+            // (setLocaleFrom in shared/i18n.js, via boot.js's useCard), so a
+            // payload that said "en" on /de would leave the German card
+            // correct until the first tap and English afterwards. In chat the
+            // same field carries the user's own profile locale; here the
+            // page's language IS the user's.
+            locale,
+        };
+        const key = JSON.stringify(payload);
+        const prev = states[states.length - 1];
+        if (prev && key === lastKey) {
+            prev.indices.push(i);
+            return;
+        }
+        lastKey = key;
+        states.push({ indices: [i], payload });
+    });
+    return states;
+}
+
+/** Which window the trends card opens on.
+ *
+ *  The middle one, not the payload's own `default_range`: 7 days of this
+ *  series is a week with nothing missing, and the card's whole point here is
+ *  that it reports what is and is not there — at 14 the header reads "13 of
+ *  14 days logged" and the chart carries the skipped day. It is also the
+ *  honest no-script state, since a visitor without JS never sees the other
+ *  two. The emitted payload says the same number, so the pressed button, the
+ *  JSON and the runtime's own fallback (boot.js prefers the pressed range)
+ *  cannot disagree. */
+export const LANDING_TRENDS_RANGE = 14;
+
+/** The get_trends payload behind the examples card, for `locale`. */
+export function trendsCardPayload(locale: SiteLocale): TrendsPayload {
+    return { ...DEMO_TRENDS, locale, default_range: LANDING_TRENDS_RANGE };
+}
+
+/** The settings note, put where bridge.js would have put it.
+ *
+ *  In chat a MutationObserver in shared/bridge.js keeps one `.wnote` as the
+ *  last child of the card's last `[data-widget-foot]`, whatever a template
+ *  repaints. This page loads no bridge — there is no host to handshake with
+ *  and no iframe to size — so the note is written into the same slot here,
+ *  from the same string (`T.chrome.widgetsNote`). It is kept because it is
+ *  true on this page too: widget display is a setting, and this is the only
+ *  place that says so. */
+function withSettingsNote(card: string, locale: SiteLocale): string {
+    const marker = "data-widget-foot>";
+    const at = card.lastIndexOf(marker);
+    if (at < 0) {
+        throw new Error(
+            "the rendered widget card has no [data-widget-foot] to put the settings note in — " +
+                "macroPanel emits one on every strip, so either the card is an empty state or that changed",
+        );
+    }
+    const open = at + marker.length;
+    const close = card.indexOf("</div>", open);
+    if (close < 0 || card.slice(open, close).includes("<div")) {
+        throw new Error(
+            "the widget card's foot is no longer a flat <div> — find its real end before inserting the settings note",
+        );
+    }
+    const note = WIDGET_STRINGS[locale]?.chrome.widgetsNote;
+    if (!note) {
+        throw new Error(
+            `WIDGET_STRINGS has no "${locale}" entry, so the card's settings note has no wording`,
+        );
+    }
+    return `${card.slice(0, close)}<div class="wnote">${esc(note)}</div>${card.slice(close)}`;
+}
+
+/** JSON for a `<script type="application/json">` body. Only `<` needs
+ *  escaping — the element is raw text, so nothing in it is parsed as an
+ *  entity, but a literal `</script` anywhere inside would end it early. */
+function payloadJson(payload: unknown): string {
+    return JSON.stringify(payload).replace(/</g, "\\u003c");
+}
+
+/** One card, wrapped the way the widget runtime and the scoped stylesheet
+ *  both expect (see the header of public/widgets/src/site/boot.js):
+ *
+ *    `.nm-widget-card` is the scope src/widget-css.ts rewrote every widget
+ *    selector under, and it is also the container the width queries resolve
+ *    against — so the card sizes to the card, not to the viewport.
+ *
+ *    `.wrap` IS the widget's `#root` (shared/base.css). Reproducing that
+ *    nesting is not decoration: `.wrap > .card` is what flattens the
+ *    outermost card — no border, no radius, no shadow — because in chat the
+ *    host has already drawn those. Drop the `.wrap` and the card grows a
+ *    second edge just inside the frame the page draws for it.
+ *
+ *    The payload `<script>` is what makes the card live: /widget-card.js
+ *    re-runs the same emitter on the same payload to rebuild the ctx its
+ *    handlers resolve through. */
+function widgetCardBlock(
+    kind: "nutrition-summary" | "trends",
+    card: string,
+    payload: unknown,
+    locale: SiteLocale,
+    indent: string,
+    attrs = "",
+): string {
+    return `${indent}<div class="nm-widget-card" data-widget="${kind}"${attrs}>
+${indent}    <div class="wrap">${withSettingsNote(card, locale)}
+${indent}    </div>
+${indent}    <script type="application/json" data-widget-payload="${kind}">${payloadJson(payload)}</script>
+${indent}</div>`;
+}
+
+/** The hero states the thread passes through BEFORE the one it ends on,
+ *  parked outside the conversation for the replay to bring in.
+ *
+ *  Real elements in the document from the start, not `<template>` content:
+ *  /widget-card.js binds each card once, on load, to the element its
+ *  handlers resolve their data through (macroStash, shared/macros.js). A
+ *  card cloned into the thread afterwards would be a card whose taps
+ *  resolve to whichever card stashed last, so the replay MOVES these
+ *  instead — see the hero chat block in LANDING_SCRIPT.
+ *
+ *  Empty with the thread as it stands: its two widget exchanges produce one
+ *  state, because the closing "How am I doing today?" logs nothing and the
+ *  card it shows is the one the meal before it produced. */
+function parkedHeroCards(cards: LandingCards): string {
+    const parked = cards.hero.slice(0, -1);
+    if (!parked.length) return "";
+    return `                        <div class="nm-hero-cards" hidden>
+${parked.join("\n")}
+                        </div>
+`;
+}
+
+/** The scoped widget stylesheet, plus the one thing about these cards that
+ *  is the PAGE's business rather than the widget's.
+ *
+ *  This is the landing page only — deliberately not in HEAD_ASSETS. It is
+ *  ~35 KB of CSS (5.7 KB over the wire) for two cards that exist on one
+ *  page, and every other generated page would carry it for nothing.
+ *
+ *  The inline block is the house rule for layout only one page needs
+ *  (CLAUDE.md): scoped under the body class, shared tokens and classes
+ *  only, no colour literal, no fork of a shared block. It reaches the
+ *  scope element and stops there — nothing in it selects inside a card. */
+const WIDGET_CARD_HEAD = `        <link rel="stylesheet" href="/widget-card.css" />
+        <style>
+            /* THIS PAGE IS THE HOST. In chat, Claude and ChatGPT each draw
+               the frame around the widget's iframe, which is exactly why
+               \`.wrap > .card\` (public/widgets/src/shared/base.css) makes the
+               outermost card flat — no border, no radius, no shadow, so the
+               card never doubles an edge the host has already drawn. There
+               is no host out here, so the frame is drawn once, on the scope
+               element, and the card inside it stays byte-for-byte what chat
+               gets. \`--r-card\` and \`--line\` are the widget's own tokens,
+               defined on this very element by /widget-card.css, so the frame
+               and the hairlines inside it can never drift apart. */
+            body.landing .nm-widget-card {
+                flex: none;
+                align-self: stretch;
+                border: 1px solid var(--line);
+                border-radius: var(--r-card);
+                overflow: hidden;
+            }
+        </style>`;
+
+/** The runtime, on the landing page only and after the page's own script.
+ *
+ *  Two files, both deferred, and the ORDER IS LOAD-BEARING: deferred
+ *  scripts run in document order, and /widget-card.js reads the dictionary
+ *  the locale file put on window. Without the first the second warns once
+ *  and leaves the cards exactly as they were rendered — which is a readable,
+ *  correct, static card, so this is progressive enhancement rather than a
+ *  dependency. */
+const WIDGET_CARD_SCRIPTS = (locale: SiteLocale): string =>
+    `        <script src="/widget-card.${locale}.js" defer></script>
+        <script src="/widget-card.js" defer></script>`;
+
+/** NO `.nm-c-*` TINT MAY SIT ABOVE A CARD.
+ *
+ *  The site's colour roles set `--c` (styles.css), and `--c` inherits. The
+ *  widget's focus panel reads a BARE `var(--c)` with no fallback, because
+ *  inside a widget the card itself always sets one (`.card.c-cal`) — so a
+ *  `.nm-c-pro` wrapper anywhere above a card would not tint it, it would
+ *  quietly blank the ring and the panel. The hero sits in an untinted chat
+ *  and the examples panel is untinted too; both are two edits away from not
+ *  being, and neither would fail anything else. */
+async function assertCardsAreUntinted(
+    html: string,
+    file: string,
+): Promise<void> {
+    let tinted = 0;
+    await new HTMLRewriter()
+        .on('[class*="nm-c-"] .nm-widget-card', {
+            element() {
+                tinted++;
+            },
+        })
+        .transform(new Response(html))
+        .text();
+    if (tinted) {
+        throw new Error(
+            `${file}: ${tinted} widget card(s) sit inside an .nm-c-* element. ` +
+                `--c inherits and the focus panel reads a bare var(--c), so the ring and the panel would render uncoloured. ` +
+                `Move the card out of the tinted wrapper.`,
+        );
+    }
+}
+
+/** Two cards mean two of everything the widgets id, and ids are
+ *  document-global. The drawer's id is per-strip and CALLER-supplied
+ *  (macroDrawerId, shared/macros.js), and both card partials now forward
+ *  the `idPrefix` they are handed down to macroPanel, so two strips on one
+ *  page no longer collide there. Everything else a card ids is still
+ *  document-global and NOT prefixed — `#tr-body`, `#tr-meta` and the chart
+ *  gradient ids — so a second trends card, or a card partial that grows a
+ *  new fixed id, still collides. This is what says so out loud. */
+function assertIdsAreUnique(html: string, file: string): void {
+    const seen = new Set<string>();
+    const dupes = new Set<string>();
+    for (const m of html.matchAll(/\sid="([^"]*)"/g)) {
+        const id = m[1]!;
+        if (seen.has(id)) dupes.add(id);
+        seen.add(id);
+    }
+    if (dupes.size) {
+        throw new Error(
+            `${file}: duplicate id(s) ${[...dupes].join(", ")}. ` +
+                `A strip's drawer ids take a distinct idPrefix per card (summaryCard/trendsView forward it to macroPanel); ` +
+                `the card's other ids — #tr-body, #tr-meta, the chart gradients — are fixed, so those need a real fix, not a prefix.`,
+        );
+    }
+}
+
+/** Both cards of one locale's page, rendered and wrapped. */
+export interface LandingCards {
+    /** One block per distinct hero state, in thread order. The last is the
+     *  state the thread ends on and the one rendered into the conversation;
+     *  any earlier ones are parked outside it for the replay to bring in. */
+    hero: string[];
+    trends: string;
+}
+
+async function renderLandingCards(
+    doc: IndexDoc,
+    locale: SiteLocale,
+): Promise<LandingCards> {
+    const states = heroCardStates(doc, locale);
+    if (!states.length) {
+        throw new Error(
+            "no hero exchange is marked `widget: true`, so the landing page would ship a chat with no summary card",
+        );
+    }
+    const trends = trendsCardPayload(locale);
+    // Against the LIVE outputSchemas, before a single card is drawn — the
+    // same guard scripts/widget-harness.ts runs over its fixtures, and for
+    // the same reason: a payload the tool would never send renders a card
+    // that quietly falls back. It also catches the failure Zod does not
+    // raise, a key `z.object()` strips rather than rejects.
+    for (const s of states) await validateDemoPayloads(s.payload, trends);
+    const hero: string[] = [];
+    for (const s of states) {
+        hero.push(
+            widgetCardBlock(
+                "nutrition-summary",
+                await renderSummaryCard(s.payload, locale),
+                s.payload,
+                locale,
+                " ".repeat(28),
+                // Which exchanges this card is brought in after; the replay
+                // reads it to know which state belongs where. Space-separated
+                // because one card can serve two exchanges (HeroCardState).
+                ` data-hero-card="${attr(s.indices.join(" "))}"`,
+            ),
+        );
+    }
+    return {
+        hero,
+        trends: widgetCardBlock(
+            "trends",
+            await renderTrendsCard(trends, locale, LANDING_TRENDS_RANGE),
+            trends,
+            locale,
+            " ".repeat(28),
+        ),
+    };
+}
+
+/** One exchange of the hero thread, statically.
+ *
+ *  The bubble carries ONE attribute, the clock the replay puts in the chat
+ *  header while it plays. It used to carry two more, and both are gone
+ *  because nothing reads them any more: the nutrient deltas are consumed at
+ *  BUILD time (heroCardStates turns them into the card's payload), and which
+ *  exchange the card follows is on the card, as `data-hero-card`. An
+ *  attribute nothing reads is a contract that looks live and is not — and
+ *  both of those facts are now on the page in the one place they can be
+ *  checked against what they claim: the card itself. */
 function renderExchange(doc: IndexDoc, ex: HeroExchange): string {
-    const data = ` data-add='${JSON.stringify(ex.add)}' data-clock="${attr(ex.clock)}"${ex.widget ? " data-widget" : ""}`;
+    const data = ` data-clock="${attr(ex.clock)}"`;
     const user = ex.barcode
         ? `                            <div class="nm-msg nm-msg-barcode"${data}>
                                 <div class="nm-barcode">
@@ -1238,10 +1580,13 @@ function renderExchange(doc: IndexDoc, ex: HeroExchange): string {
                             <div class="nm-msg nm-msg-ai">${esc(ex.aiText)}</div>`;
 }
 
-function renderHero(doc: IndexDoc, locale: SiteLocale): string {
+function renderHero(
+    doc: IndexDoc,
+    locale: SiteLocale,
+    cards: LandingCards,
+): string {
     const hero = doc.hero;
     const exchanges = hero.chat.exchanges;
-    const totals = sumExchanges(exchanges);
     const lastClock = exchanges.length
         ? exchanges[exchanges.length - 1]!.clock
         : "";
@@ -1281,10 +1626,10 @@ function renderHero(doc: IndexDoc, locale: SiteLocale): string {
                             </div>
                             <div class="nm-chat-list" data-chat-list>
 ${exchanges.map((ex) => renderExchange(doc, ex)).join("\n")}
-${renderWidget(doc, totals, locale)}
+${cards.hero[cards.hero.length - 1]}
                             </div>
                         </div>
-                    </div>
+${parkedHeroCards(cards)}                    </div>
                     <a class="nm-more" href="${hashPath(locale, "examples")}"
                         >${esc(hero.moreExamples)}
                         <i class="fa-solid fa-arrow-down" aria-hidden="true"></i
@@ -1450,10 +1795,8 @@ ${cards}
 
 const EX_ICONS = ["fa-utensils", "fa-barcode", "fa-chart-area"];
 const EX_TINTS = ["nm-c-cal", "nm-c-car", "nm-c-pro"];
-// The trends mini-widget's sparkline, as drawn in the design.
-const TREND_POINTS = "0,40 80,28 160,34 240,20 320,30 400,14 480,22";
 
-function renderExamples(doc: IndexDoc): string {
+function renderExamples(doc: IndexDoc, cards: LandingCards): string {
     const e = doc.examples;
     const picks = e.slides
         .map(
@@ -1469,18 +1812,11 @@ function renderExamples(doc: IndexDoc): string {
         .join("\n");
     const panels = e.slides
         .map((s, i) => {
-            const widget = s.widget
-                ? `
-                            <div class="nm-trend">
-                                <div class="nm-trend-head"><b>${esc(s.widget.title)}</b><span>${esc(s.widget.sub)}</span></div>
-                                <div class="nm-trend-big"><span class="nm-trend-n">${esc(s.widget.big)}</span><span class="nm-trend-cap">${esc(s.widget.cap)}</span></div>
-                                <svg viewBox="0 0 480 54" preserveAspectRatio="none" aria-hidden="true">
-                                    <polyline class="nm-trend-line" points="${TREND_POINTS}"></polyline>
-                                    <line class="nm-trend-goal" x1="0" y1="26" x2="480" y2="26"></line>
-                                </svg>
-                                <div class="nm-trend-foot"><span>${esc(s.widget.from)}</span><span>${esc(s.widget.goal)}</span><span>${esc(s.widget.today)}</span></div>
-                            </div>`
-                : "";
+            // The real get_trends card, and it is live: its 7 / 14 / 30
+            // toggle re-slices and re-averages the same 30-day payload in
+            // the browser, exactly as the in-chat one does, and a tile moves
+            // the focus panel and the chart to that metric.
+            const widget = s.widget === "trends" ? `\n${cards.trends}` : "";
             return `                        <div class="nm-ex-panel${i === 0 ? " is-active" : ""}" data-ex="${i}">
                             <div class="nm-ex-q">${esc(s.userText)}</div>
                             <div class="nm-ex-a">${esc(s.aiText)}</div>${widget}
@@ -1808,7 +2144,11 @@ function renderCta(doc: IndexDoc, locale: SiteLocale): string {
 
 // -------------------------------------------------------------------- page
 
-export function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
+export function renderDoc(
+    doc: IndexDoc,
+    locale: SiteLocale,
+    cards: LandingCards,
+): string {
     const suffix = "";
     const url = urlFor(locale, suffix);
     const title = esc(doc.title);
@@ -1871,6 +2211,7 @@ ${localeHead(locale, suffix)}
 ${jsonLd(softwareAppSchema)}
 ${jsonLd(faqSchema)}
 ${HEAD_ASSETS}
+${WIDGET_CARD_HEAD}
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-index.ts")}
@@ -1887,7 +2228,7 @@ ${THEME_PREPAINT}
 ${nav(locale, suffix)}
 
         <main id="main">
-${renderHero(doc, locale)}
+${renderHero(doc, locale, cards)}
 ${
     notice
         ? `
@@ -1903,7 +2244,7 @@ ${renderConnect(doc, locale)}
 
 ${renderOnboarding(doc, locale)}
 
-${renderExamples(doc)}
+${renderExamples(doc, cards)}
 
 ${renderLive(doc)}
 
@@ -1921,6 +2262,7 @@ ${footer(locale)}
         <script>
 ${LANDING_SCRIPT}
         </script>
+${WIDGET_CARD_SCRIPTS(locale)}
 ${SITE_SCRIPT}
     </body>
 </html>
@@ -1940,7 +2282,14 @@ if (import.meta.main) {
             locale === "en"
                 ? "./public/index.html"
                 : `./public/${locale}/index.html`;
-        await Bun.write(file, renderDoc(doc, locale));
+        const html = renderDoc(
+            doc,
+            locale,
+            await renderLandingCards(doc, locale),
+        );
+        await assertCardsAreUntinted(html, file);
+        assertIdsAreUnique(html, file);
+        await Bun.write(file, html);
         console.log(`wrote ${file}`);
     }
 }
