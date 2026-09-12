@@ -33,36 +33,10 @@
 
             /*@include shared/chart.css@*/
 
-            /* ONE PAGE-SCOPED RULE. Everything else on this card is a shared
-               primitive; layout every widget shares belongs in the partials.
-               This one is here because `.fspark` — the chart inside the focus
-               panel — exists only in this widget.
-
-               THE ENTRANCE PLAYS ONCE. chip.css fades the chart's scaffolding
-               in (`.cday`/`.carea`/`.cgoal`, the dot) and draws the line, which
-               is right on the first paint and wrong on every one after it: a
-               series switch goes through focusApply, which rebuilds the panel's
-               children, so each chip tap and each close replayed a ~0.85s blink
-               of grid, goal and wash that had not meaningfully changed.
-               paintSeries marks every paint after the first `.cwrap.still`.
-
-               The line's draw-in stops too, deliberately. The wash, the goal
-               and the last-reading dot all arrive instantly on a switch, so a
-               line sweeping in over them reads as the line lagging its own
-               shadow, with the dot sitting at an end the line has not reached
-               yet — and the chip the user just tapped already confirms the
-               switch. The dash pattern lives only in chip.css's drawIn
-               keyframes, so `animation: none` means no dash at all — the whole
-               line drawn, lone readings included: nothing is ever made visible
-               BY the animation. */
-            .fspark .cwrap.still .cline,
-            .fspark .cwrap.still .cday,
-            .fspark .cwrap.still .carea,
-            .fspark .cwrap.still .cgoal,
-            .fspark .cwrap.still .chalo,
-            .fspark .cwrap.still .cdot {
-                animation: none;
-            }
+            /* No page-scoped rules: everything on this card is a shared
+               primitive. The sparkline's once-only entrance
+               (`.fspark .cwrap.still`) lives in chip.css beside the motion it
+               stops, now that trends paints the same chart. */
         </style>
     </head>
     <body>
@@ -75,9 +49,10 @@
             /*@include shared/i18n.js@*/
 
             /* shortDate(), used by shared/macros.js for a drawer row's day,
-               plus the Intl range formatter (intlDateRange) the header uses and
-               the UTC day arithmetic (utcDay, DAY_MS) the calendar x axis is
-               stepped with. dayLabel() below is only the fallback path now. */
+               plus the header's date helpers (ymd, rangeLabel, and
+               daysLoggedCaption behind loggedDaysCaption below) and the UTC
+               day arithmetic (utcDay, DAY_MS) the calendar x axis is stepped
+               with. */
             /*@include shared/date.js@*/
 
             /*@include shared/icon.js@*/
@@ -341,344 +316,24 @@
                 );
             }
 
-            // ---- Header dates -------------------------------------------------
-            // The header line is one nowrap run, so the range is written the way
-            // a person would say it ("5–7 Jul") rather than as two ISO strings.
-            // Written by Intl (intlDateRange, shared/date.js), which knows each
-            // locale's order, abbreviations and range punctuation; everything
-            // below ymd() is the hand-rolled FALLBACK for a runtime where that
-            // fails, and the only reader of T.nutritionSummary.months left on
-            // this card. Parsed by hand rather than through Date: these are
-            // calendar dates in the USER's timezone, and new Date("2026-07-05")
-            // is UTC midnight, which formats as the 4th for anyone west of
-            // Greenwich.
-            function ymd(s) {
-                const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s ?? ""));
-                if (!m) return null;
-                const mon = Number(m[2]);
-                if (mon < 1 || mon > 12) return null;
-                return { y: Number(m[1]), m: mon, d: Number(m[3]) };
-            }
-            // Every supported locale except Japanese happens to share
-            // English's day-before-month order ("5 Jul"/"5 juillet"/"5
-            // Juli"...), so only `ja` gets a distinct branch here rather
-            // than a per-locale date-order field in WidgetStrings — Y-M-D
-            // with 年/月/日 particles, no separating spaces.
-            function dayLabel(s, withYear) {
-                const p = ymd(s);
-                if (!p) return String(s ?? "");
-                const month = T.nutritionSummary.months[p.m - 1];
-                return WIDGET_LOCALE === "ja"
-                    ? `${withYear ? `${p.y}年` : ""}${month}${p.d}日`
-                    : `${p.d} ${month}${withYear ? ` ${p.y}` : ""}`;
-            }
-            // "5–7 Jul" within a month, "28 Jun – 4 Jul" across two. The year
-            // shows when the range crosses one (where it is the whole point)
-            // and when the range is not in the current year — a summary of last
-            // autumn labelled "28 Jun – 4 Jul" names no year at all, and this
-            // tool is routinely asked for a past window.
-            function rangeLabel(start, end) {
-                const a = ymd(start),
-                    b = ymd(end);
-                if (!a || !b) return `${start} → ${end}`;
-                // The payload dates are already resolved in the user's
-                // timezone, and so is the local year here; a date-line
-                // disagreement at worst prints a year that did not need
-                // printing.
-                const thisYear = new Date().getFullYear();
-                // One day is a range of one (start === end): the same year
-                // rule then applies to it, so a single-day summary from last
-                // July reads "7 Jul 2025" rather than passing for this year's.
-                const intl = intlDateRange(
-                    start,
-                    end,
-                    a.y !== b.y || b.y !== thisYear,
-                );
-                if (intl) return intl;
-                if (a.y !== b.y)
-                    return `${dayLabel(start, true)} – ${dayLabel(end, true)}`;
-                const yr = b.y === thisYear ? "" : ` ${b.y}`;
-                if (a.m === b.m) {
-                    if (a.d === b.d) return `${dayLabel(end, false)}${yr}`;
-                    // "7月5日〜7日": every other branch above and below just
-                    // joins two dayLabel() calls, which is already
-                    // locale-correct — this is the one case where the month
-                    // is factored out once, and English's "day–day month"
-                    // order is backwards for Japanese's "month day〜day".
-                    if (WIDGET_LOCALE === "ja") {
-                        const yearPrefix = b.y === thisYear ? "" : `${b.y}年`;
-                        return `${yearPrefix}${T.nutritionSummary.months[b.m - 1]}${a.d}日〜${b.d}日`;
-                    }
-                    return `${a.d}–${b.d} ${T.nutritionSummary.months[b.m - 1]}${yr}`;
-                }
-                return `${dayLabel(start, false)} – ${dayLabel(end, false)}${yr}`;
-            }
-
             // ---- The trend chart ----------------------------------------------
-            // One series at a time, drawn from the days the payload already
-            // carries. Calories by default; a chip takes it over while it is
-            // open and hands it back when it closes (see onSeries in render()).
-            // `slots` is one entry per CALENDAR day of the range ({ t, day }:
-            // t the day's UTC midnight, day the payload row or null), not one
-            // per logged day — see calendarSlots. `painted` is whether the
-            // chart has been drawn once since the last render(); every paint
-            // after that is `.still` (see the page-scoped style block).
-            const CHART = {
-                slots: [],
-                goals: null,
-                key: "calories",
-                painted: false,
-            };
-
-            // One reading, or null for "no reading". null is "nobody recorded
-            // this that day" and must not become a zero: it drops out of the
-            // average and breaks the line, exactly as it drops out of the
-            // server's own average (#78).
-            //
-            // A day with NO MEALS is a gap on every food series. `days[]` also
-            // carries days that only logged water, and those arrive with
-            // calories and every macro at 0 — charted as read, a day of
-            // drinking water and forgetting to log lunch dipped to 0 kcal and
-            // read as a fast. Water is the one series such a day really has.
-            // Gated on an explicit 0 so a payload without meal_count charts
-            // exactly as before.
-            function seriesValue(day, key) {
-                if (!day) return null;
-                const mealless =
-                    day.meal_count != null &&
-                    day.meal_count !== "" &&
-                    Number(day.meal_count) === 0;
-                if (mealless && key !== "water_ml") return null;
-                if (day[key] == null) return null;
-                const v = Number(day[key]);
-                return Number.isFinite(v) ? v : null;
-            }
-
-            // THE X AXIS IS THE CALENDAR. `days[]` holds only the dates that
-            // logged something, so spacing points by array index made eight
-            // logged days in a 30-day window draw as eight evenly spaced
-            // consecutive ones: the gaps, which are most of what a month
-            // chart has to say, vanished. One slot per day from start_date to
-            // end_date, null where nothing was logged; everything downstream
-            // (the gapped line, the gapped wash, the last-reading dot) already
-            // reads null as a gap.
-            //
-            // Stepped in UTC milliseconds (utcDay, shared/date.js), never with
-            // local setDate(): a local midnight plus 24h lands on 23:00 or
-            // 01:00 across a DST change and the ISO slice then names the wrong
-            // day. Falls back to the plain logged-day array — the old
-            // behaviour, still a correct ORDER — whenever the range cannot be
-            // trusted: a malformed date, start after end, a logged day outside
-            // the range, or a window so wide (over ten years) that it is a
-            // payload fault rather than a chart.
-            function calendarSlots(days, start, end) {
-                const plain = days.map((d) => ({ t: null, day: d }));
-                const t0 = utcDay(start),
-                    t1 = utcDay(end);
-                if (t0 === null || t1 === null || t0 > t1) return plain;
-                const n = Math.round((t1 - t0) / DAY_MS) + 1;
-                if (n > 3660) return plain;
-                const byDate = new Map();
-                for (const d of days) {
-                    const t = utcDay(d && d.date);
-                    if (t === null || t < t0 || t > t1) return plain;
-                    byDate.set(t, d);
-                }
-                const slots = [];
-                for (let i = 0; i < n; i++) {
-                    const t = t0 + i * DAY_MS;
-                    slots.push({ t, day: byDate.get(t) || null });
-                }
-                return slots;
-            }
-
-            // The chart draws whatever it has a reading for. A metric whose
-            // every reading is null OR zero would be a flat line on the floor
-            // pretending to be data, so it is not offered as a series at all —
-            // and a tile that is neither on the chart nor has meals behind it
-            // is rendered static by macroPanel (macroTappable, macros.js).
-            // Offering none (a single-day range, where there is no chart)
-            // leaves every chip a pure disclosure control. Read through
-            // seriesValue, so a water-only day's zeros count for nothing here
-            // either.
-            function chartableKeys(days) {
-                return MACROS.filter((m) => m.role !== "cal")
-                    .map((m) => m.key)
-                    .filter((k) =>
-                        days.some((d) => (seriesValue(d, k) || 0) > 0),
-                    );
-            }
-
-            // Which slots get a day hairline. One per day while there is room
-            // for them to read as days — up to a month. Past that they merge:
-            // 365 one-pixel rules across ~340px is a grey slab, not a grid. Up
-            // to ~four months a rule marks each MONDAY instead (read off the
-            // calendar date, so it is a real week boundary, not every seventh
-            // slot from wherever the range began); wider than that, none — a
-            // weekly rule every 5px is the same slab again. A fallback axis
-            // with no dates marks every seventh slot, the nearest honest thing.
-            function hairlineSlot(slot, i, n) {
-                if (n <= 31) return true;
-                if (n > 120) return false;
-                return slot.t === null
-                    ? i % 7 === 0
-                    : new Date(slot.t).getUTCDay() === 1;
-            }
-
-            function chartMarkup() {
-                const key = CHART.key;
-                const m = MACROS.find((mm) => mm.key === key);
-                const slots = CHART.slots;
-                const raw = slots.map((s) => seriesValue(s.day, key));
-                const seen = raw.filter((v) => v !== null);
-                const goal = CHART.goals ? (CHART.goals[key] ?? null) : null;
-                // Zero-based, with headroom over the taller of the data and the
-                // goal: a nutrient total's distance from zero is meaningful, so
-                // the axis is never floated to the data's own floor.
-                const top = Math.max(...seen, goal || 0, 1) * 1.15;
-                const pts = chPoints(
-                    raw.map((v) => (v === null ? 0 : v)),
-                    0,
-                    top,
-                );
-
-                // Built here rather than with chPath(), which has no way to
-                // express a gap: a run of readings is one subpath, and a
-                // reading alone between two gaps gets a zero-length segment so
-                // the round line cap paints it as a dot instead of nothing.
-                let d = "";
-                let last = -1;
-                for (let i = 0; i < raw.length; i++) {
-                    if (raw[i] === null) continue;
-                    const xy = `${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}`;
-                    const joined = i > 0 && raw[i - 1] !== null;
-                    d += (joined ? "L" : "M") + xy;
-                    if (
-                        !joined &&
-                        (i + 1 >= raw.length || raw[i + 1] === null)
-                    ) {
-                        d += "L" + xy;
-                    }
-                    last = i;
-                }
-
-                // The wash under the line, gapped exactly as `d` is: a day with
-                // no reading gets no fill rather than the area bridging it.
-                // Zero-based domain, so the box's floor really is 0 — see
-                // .carea in chart.css.
-                const area = chAreaMarkup(
-                    chArea(raw.map((v, i) => (v === null ? null : pts[i]))),
-                );
-
-                const goalLine =
-                    goal && goal > 0
-                        ? `<line class="cgoal" x1="${CH_PL}" y1="${chY(goal, 0, top).toFixed(1)}" x2="${CH_W - CH_PR}" y2="${chY(goal, 0, top).toFixed(1)}"/>`
-                        : "";
-                // A hairline per day, a day with no reading included: the
-                // line's gap then sits between two rules instead of floating
-                // in an unmarked stretch of the box. Thinned on a long range
-                // (hairlineSlot) by handing chDayLines a SUBSET of the same
-                // points, so every rule still lands exactly on its day's x.
-                const dayLines = chDayLines(
-                    pts.filter((_, i) =>
-                        hairlineSlot(slots[i], i, slots.length),
-                    ),
-                );
-                // One dot, on the last reading: it is the only thing that says
-                // which end of the line is now.
-                const dot =
-                    last >= 0 ? chDotMarkup(pts[last][0], pts[last][1]) : "";
-
-                // NO CHART FOOT, so no average and no goal figure are computed
-                // here any more — the two locals that held them survived the
-                // foot's removal by a whole release and were read by nothing.
-                // The rule they enforced still stands wherever a figure IS
-                // printed: every one goes through macroNum()/macroUnit()
-                // (macros.js), never fmt() + m.unit, because that is the single
-                // place a metric's DISPLAY unit is decided and water is the one
-                // metric whose display unit is not its stored one. Bypassing it
-                // is what made the old foot read "Water avg 2,100 ml · goal
-                // 2,500" two lines under a chip saying "2.1 L".
-                //
-                // NO aria-label ON THE CHART, and none needed. It lives inside
-                // the focus panel's button, which makes its children
-                // presentational — so a label here would be announced to
-                // nobody. The button's own name (tileLabel, shared/macros.js)
-                // already carries the value, the goal and the distance left,
-                // which is every figure this line draws; the SHAPE is the part
-                // that does not survive, and there is no honest short sentence
-                // for it. Marked aria-hidden rather than left to be ignored,
-                // so that is a decision on the record.
-                //
-                // NO DATE FOOT either: the card header prints the range
-                // ("5-7 Jul · 3 days logged") three lines above, and this was
-                // the third place on one card saying the same thing.
-                //
-                // PAINT ORDER: day → area → line → GOAL → dot. The goal used
-                // to go under the wash and the line (day → goal → area →
-                // line, the shared grammar's order), which hid it completely
-                // whenever the series sat ON it: 2,200 kcal every day against
-                // a 2,200 goal drew the 2.5px data stroke straight over the
-                // dashes and the card showed no goal at all. Over the line,
-                // the dashes read as the reference crossing the data; the dot
-                // stays last so the "now" marker is never struck through.
-                return `
-          <div class="cwrap ${m.color}${CHART.painted ? " still" : ""}">
-            <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" aria-hidden="true">
-              ${dayLines}${area}
-              <path class="cline" pathLength="1" d="${d}"/>
-              ${goalLine}${dot}
-            </svg>
-          </div>`;
-            }
-
-            // Hand the whole focus panel a metric: its figure, goal, delta,
-            // colour, ring and sparkline all switch together. This is the fix
-            // for the oldest fault in this layout — the chart restroking to
-            // protein while the figure above it went on saying calories.
-            //
-            // render() owns the whole card, so rebuilding it from here would
-            // throw away the tile that was just tapped and the drawer it
-            // opened; only the panel's own children are replaced. The
-            // sparkline has its own full-width row at every width (`.fspark`,
-            // chip.css), so a series switch changes no height and cannot start
-            // a size-changed storm.
-            //
-            // `selected` is whether the metric arrives SELECTED — this widget is
-            // the one that mirrors a tile's metric on the panel, so the panel's
-            // own aria state has to be told what the tile's is, or it announces
-            // "collapsed" over the drawer it just opened and can never be
-            // toggled shut (see focusApply).
-            function paintSeries(key, selected) {
-                const fx = document.querySelector(".focus");
-                if (!fx) return;
-                const m =
-                    MACROS.find((x) => x.key === key) ||
-                    MACROS.find((x) => x.role === "cal");
-                CHART.key = m.key;
-                // One call moves the button, the colour role class the chart
-                // inherits --c from, the over state and the wash's `--p`
-                // together — see focusApply in shared/macros.js.
-                focusApply(fx, m, macroCtx(), !!selected);
-                // focusApply rebuilt the panel's children, so the sparkline
-                // slot is a fresh empty node every time.
-                const box = fx.querySelector(".fspark");
-                if (box && CHART.slots.length) {
-                    box.innerHTML = chartMarkup();
-                    // Every paint after this one is a switch, and emits
-                    // `.still` — see the page-scoped style block.
-                    CHART.painted = true;
-                }
-            }
+            // Lives in shared/spark.js (included after macros.js, below):
+            // seriesValue, chartableKeys, the chart markup and the paint state.
+            // render() resets it per card (sparkReset) and paints it into the
+            // focus panel (sparkPaint); a tile's onSeries repaints it.
 
             // "3 days logged", or "15 of 30 days logged" when the payload also
-            // says how wide the window was. `days_in_range` is OPTIONAL — a host
-            // replaying a tool result from before it existed has no such field,
-            // and older payloads must render exactly as they always did, so it
-            // is only used when it is a real number larger than logged_days.
+            // says how wide the window was. The wording and the span rules
+            // live in daysLoggedCaption (shared/date.js); this card only reads
+            // its payload. `days_in_range` is OPTIONAL — a host replaying a
+            // tool result from before it existed has no such field, and older
+            // payloads must render exactly as they always did, which is why
+            // it is handed over raw for daysLoggedCaption to vet.
             //
             // `logged_days` falls back to the rows actually held: without it
             // the caption printed "DAYS LOGGED" with no number in front.
+            // Kept here, same name and signature, because
+            // public/widgets/summary-caption.test.ts extracts it by name.
             function loggedDaysCaption(data) {
                 const raw = data.logged_days;
                 const logged =
@@ -687,66 +342,25 @@
                         : Array.isArray(data.days)
                           ? data.days.length
                           : 0;
-                const span = Number(data.days_in_range);
-                return Number.isFinite(span) && span > logged
-                    ? tpl(T.nutritionSummary.daysOfLogged, {
-                          logged,
-                          span,
-                      })
-                    : plural(T.nutritionSummary.daysLogged, logged);
+                return daysLoggedCaption(logged, data.days_in_range);
             }
 
             function render(data) {
                 const root = document.getElementById("root");
-                // structuredContent.locale (the user's saved get_language /
-                // set_language preference, resolved server-side) wins over
-                // the host's ambient hostContext.locale — see pickLocale in
-                // shared/i18n.js.
-                setLocale(
-                    pickLocale(
-                        data && data.locale,
-                        __widgetApi && __widgetApi.hostContext
-                            ? __widgetApi.hostContext.locale
-                            : null,
-                    ),
-                );
+                // structuredContent.locale wins over the host's ambient
+                // hostContext.locale — see pickLocale in shared/i18n.js, which
+                // setLocaleFrom is the wrapper for. The four templates ported
+                // out of this one all call the helper; this one inlined the
+                // same expression and was the copy a change to the resolution
+                // order would have missed.
+                setLocaleFrom(data, __widgetApi);
                 // Litres or fluid ounces, from the profile (macros.js).
                 setWaterUnit(data && data.water_unit);
-                // WHAT WAS OPEN, read before the card is thrown away. A host
-                // may re-deliver the tool result (or the model re-call the
-                // tool) while a drawer is open; rebuilding innerHTML destroyed
-                // the focused control and the browser dropped focus on <body>,
-                // returning a keyboard user to the top of the tab ring with the
-                // metric they were reading gone. The open metric is the
-                // drawer's `data-open`, or — for a chart-only toggle, which
-                // opens no drawer — whichever control is pressed.
-                const prevDrawer = root.querySelector(".drawer");
-                const pressed = root.querySelector(
-                    '[data-macro][aria-pressed="true"]',
-                );
-                const openKey =
-                    (prevDrawer && prevDrawer.dataset.open) ||
-                    (pressed && pressed.dataset.macro) ||
-                    "";
-                const active = document.activeElement;
-                const focusInside = !!(
-                    active &&
-                    active !== root &&
-                    root.contains(active)
-                );
-                const focusCtl =
-                    focusInside && active.closest
-                        ? active.closest("[data-macro]")
-                        : null;
-                const focusKey = focusCtl ? focusCtl.dataset.macro : "";
-                const focusOnPanel = !!(
-                    focusCtl && focusCtl.classList.contains("focus")
-                );
-                const focusInDrawer = !!(
-                    focusInside &&
-                    prevDrawer &&
-                    prevDrawer.contains(active)
-                );
+                // WHAT WAS OPEN, and where focus was, read before the card is
+                // thrown away — a host may re-deliver the tool result while a
+                // drawer is open. Put back by macroRestore at the end of
+                // render(); both live in shared/macros.js.
+                const was = macroSnapshot(root);
 
                 const hasRange = !!(
                     ymd(data && data.start_date) && ymd(data && data.end_date)
@@ -774,6 +388,7 @@
               <span class="cmeta">${esc(rangeLabel(data.start_date, data.end_date))}</span>
             </header>
             ${empty}
+            <div class="foot" data-widget-foot></div>
           </div>`
                         : empty;
                     return;
@@ -811,13 +426,14 @@
                 // card with no chart at all rather than a chart with nothing
                 // in it — however wide the range around it.
                 const charted = days.length >= 2;
-                CHART.slots = charted
-                    ? calendarSlots(days, data.start_date, data.end_date)
-                    : [];
-                CHART.goals = data.goals || null;
-                CHART.key = "calories";
-                // A new card gets its entrance; see the style block.
-                CHART.painted = false;
+                // A new card: a new axis, calories, and the chart's entrance
+                // owed again (see `.fspark .cwrap.still` in chip.css).
+                sparkReset(
+                    charted
+                        ? calendarSlots(days, data.start_date, data.end_date)
+                        : [],
+                    data.goals,
+                );
 
                 // Calorie hero, the macro rail, the limits rail and the drawer.
                 // Tapping a chip opens the meals behind it and hands the chart
@@ -844,8 +460,16 @@
                         drinkUnit: data.drink_unit,
                         calLabel,
                         chartKeys: charted ? chartableKeys(days) : [],
+                        // The panel is found inside THIS card's root, never
+                        // document-wide — see sparkPaint in shared/spark.js.
+                        // No label: the panel is a button, whose own name
+                        // already carries every figure the line draws.
                         onSeries: (key, opened) =>
-                            paintSeries(opened ? key : "calories", opened),
+                            sparkPaint(
+                                root.querySelector(".focus"),
+                                opened ? key : "calories",
+                                opened,
+                            ),
                     },
                 );
 
@@ -867,75 +491,14 @@
                 // `.fspark` slot afterwards rather than spliced into another
                 // module's markup as a string.
                 if (charted && root.querySelector(".focus")) {
-                    paintSeries("calories");
+                    sparkPaint(root.querySelector(".focus"), "calories", false);
                 }
-                restoreOpen(root, {
-                    openKey,
-                    focusInside,
-                    focusKey,
-                    focusOnPanel,
-                    focusInDrawer,
-                });
-            }
-
-            // Put back what render() found open (see the top of render()).
-            //
-            // THROUGH macroToggle, not by re-creating its effects: the drawer's
-            // contents, every control's state attribute, the hint, the chart
-            // series and __macroOpener all move together there, and a second
-            // copy of that list here is exactly what drifts. Only a control
-            // that still exists and is still a control is re-opened — the new
-            // data may have left that metric with no meals and off the chart,
-            // and then the card simply comes back closed. The TILE is preferred
-            // over the focus panel as the opener (the panel mirrors whatever a
-            // tile selected, and the ✕ hands focus back to the opener);
-            // calories has only the panel.
-            //
-            // FOCUS IS ONLY EVER RESTORED, NEVER TAKEN. macroToggle focuses the
-            // drawer it opens, which is right for a tap and wrong here if focus
-            // was not inside the widget: a re-render the user did not ask for
-            // must not pull focus into the iframe from the host's composer.
-            // That one call is silenced on the new drawer node by an own
-            // `focus` property shadowing the prototype's, removed straight
-            // after. Where focus WAS inside, it lands where it was: in the
-            // drawer (macroToggle already put it there), on the same metric's
-            // control, or failing both on the focus panel.
-            function restoreOpen(root, was) {
-                const ctlFor = (key, panelFirst) => {
-                    if (!key) return null;
-                    const all = Array.from(
-                        root.querySelectorAll(`[data-macro="${key}"]`),
-                    );
-                    const panel = all.find((c) =>
-                        c.classList.contains("focus"),
-                    );
-                    const tile = all.find(
-                        (c) => !c.classList.contains("focus"),
-                    );
-                    return panelFirst ? panel || tile : tile || panel;
-                };
-                const opener = ctlFor(was.openKey, false);
-                if (opener) {
-                    const drawer = root.querySelector(".drawer");
-                    if (drawer && !was.focusInside) drawer.focus = () => {};
-                    macroToggle(opener);
-                    if (drawer) delete drawer.focus;
-                }
-                if (!was.focusInside) return;
-                if (
-                    was.focusInDrawer &&
-                    opener &&
-                    root.contains(document.activeElement) &&
-                    document.activeElement !== root
-                ) {
-                    return;
-                }
-                const target =
-                    ctlFor(was.focusKey, was.focusOnPanel) ||
-                    root.querySelector(".focus");
-                if (target && typeof target.focus === "function") {
-                    target.focus({ preventScroll: true });
-                }
+                // AFTER the first paint, not before it: re-opening a tile goes
+                // through macroToggle, whose onSeries repaints the panel for
+                // that metric — restored first, the calorie paint above would
+                // then overwrite it. Focus is only ever restored, never taken
+                // (see macroRestore in shared/macros.js).
+                macroRestore(root, was);
             }
 
             // Pull the summary out of whatever wrapper the host used.
@@ -958,6 +521,12 @@
             let __widgetApi = null;
 
             /*@include shared/macros.js@*/
+
+            /* The sparkline in the focus panel: seriesValue, chartableKeys,
+               sparkReset and sparkPaint. After macros.js, whose MACROS,
+               focusApply and macroCtx it calls — and included from here, never
+               from inside another partial. */
+            /*@include shared/spark.js@*/
 
             // Last, after every partial above has finished evaluating: with no
             // host, initWidget paints config.sample synchronously, and render()

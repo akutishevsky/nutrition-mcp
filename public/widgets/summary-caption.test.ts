@@ -24,14 +24,26 @@ async function freshSummaryWidget() {
     if (boot === -1) throw new Error("nutrition-summary bootstrap not found");
     const factory = new Function(
         `${script.slice(0, boot)}
-         return { loggedDaysCaption };`,
+         return { loggedDaysCaption, rangeLabel };`,
     );
     return factory() as {
         loggedDaysCaption: (data: Record<string, unknown>) => string;
+        rangeLabel: (start: string, end: string) => string;
     };
 }
 
-const { loggedDaysCaption } = await freshSummaryWidget();
+const { loggedDaysCaption, rangeLabel } = await freshSummaryWidget();
+
+// The header's date guard, as the card actually ships it (rangeLabel now comes
+// from shared/date.js). ymd() used to accept any day in months 1..12, so a
+// payload ending "2026-02-31" read "1–31 Feb" in the header — a date nobody
+// sent. It must now take the raw passthrough. The wider matrix lives in
+// date.test.ts; this pins that the assembled widget is wired to the fixed one.
+test("an impossible end date is passed through, not invented", () => {
+    expect(rangeLabel("2026-02-01", "2026-02-31")).toBe(
+        "2026-02-01 → 2026-02-31",
+    );
+});
 
 test("a window with gaps names both denominators", () => {
     expect(loggedDaysCaption({ logged_days: 15, days_in_range: 30 })).toBe(
