@@ -11,11 +11,14 @@
   Shown after log_meal AND update_meal (both tools link this same widget and emit
   the same structuredContent shape via buildMealProgress in src/mcp.ts): one card
   whose header names the meal just logged and the calories it added, and whose
-  body is the shared strip — the day's calorie hero, then the rails of nutrient
-  chips, each opening the meals behind it. The `action` field ("logged" or
-  "updated") only changes the header wording. Per product decision, it renders
-  NOTHING when no nutrition goals are set (there is no target to show progress
-  against); base.css's `.wrap:empty` is the other half of that contract.
+  body is the shared strip on its TIERED layout — the day's calorie panel, then
+  the macro, limit and water rails, each tile opening the meals behind it. The
+  `action` field ("logged" or "updated") only changes the header wording. Per
+  product decision, it renders NOTHING when no nutrition goals are set (there
+  is no target to show progress against); base.css's paddingless `.wrap` is
+  the other half of that contract — an empty #root has no height of its own to
+  hold the host's frame open, and bridge.js drops its settings note from an
+  empty root.
 
   Data arrives as the `structuredContent` of the log_meal / update_meal tool
   result; the shared bridge (shared/bridge.js) reads it across host conventions
@@ -228,6 +231,14 @@
                     root.innerHTML = "";
                     return;
                 }
+                // WHAT WAS OPEN, and where focus was, read before the card is
+                // thrown away — a host may re-deliver the tool result while a
+                // drawer is open (rare here: every log_meal is a new call and
+                // usually a new iframe, but nothing stops a host replaying
+                // one). Below the early return on purpose: the no-goals card
+                // has no strip to restore into. Put back by macroRestore at
+                // the end of render(); both live in shared/macros.js.
+                const was = macroSnapshot(root);
                 setLocaleFrom(data, __widgetApi);
                 // Litres or fluid ounces, from the profile (macros.js).
                 setWaterUnit(data.water_unit);
@@ -237,7 +248,12 @@
                 // show a day that is not the viewer's today, so the hero only
                 // claims "today" when data.date actually is that day (#114);
                 // otherwise it names the day, which is also why that day is
-                // on the header line below.
+                // on the header line below. shortDate, never the year: this
+                // label is the panel's first meta line, which ellipsises from
+                // the END, and ja's caloriesOn puts the metric word last
+                // ("{date}のカロリー") — a year in front of it is what the
+                // ellipsis would eat first. Saying "not today" is the whole
+                // job (#114); the year, when there is one, is on .csub.
                 const calLabel = isToday(data.date)
                     ? T.macros.caloriesToday
                     : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
@@ -249,17 +265,26 @@
                     // `drink_unit` is null for a user who does not track
                     // alcohol, which is also the case in which no alcohol
                     // figure reaches the strip; macroCtxOf falls back to the
-                    // server's own default of "us". No chart here, so no
-                    // chartKeys: a chip opens meals and nothing else.
-                    { drinkUnit: data.drink_unit, calLabel },
+                    // server's own default of "us". TIERED, like
+                    // nutrition-summary: the calorie panel, then macros /
+                    // limits / water each on a rail laid out to its own tile
+                    // count. Disclosure-only — no chart on a single-day card,
+                    // so no chartKeys/onSeries: a tile opens its meals and
+                    // nothing else. meal-logged.test.ts pins the flag, since
+                    // dropping it would quietly bring back the flat rail.
+                    { drinkUnit: data.drink_unit, calLabel, tiers: true },
                 );
 
                 // The meal that was just logged names itself on the header
                 // line, alongside the day it landed on (#114) — the strip
                 // below is that whole day's totals, not necessarily today's.
+                // dayHeader, not shortDate: a backdated update_meal can land
+                // in an earlier year, and "20 Nov" alone would then read as
+                // this November. dayHeader prints the year only when it is
+                // not this one, and passes a malformed date through as-is.
                 const meal = data.logged_meal;
                 const bits = [];
-                if (data.date) bits.push(esc(shortDate(data.date)));
+                if (data.date) bits.push(esc(dayHeader(data.date)));
                 // Meal type BEFORE the description, not after it. The
                 // description is the only unbounded string on this line, so
                 // anything behind it is what a clamp eats first — a 150-char
@@ -300,6 +325,10 @@
             </header>
             ${strip}
           </div>`;
+                // After the card exists: macroRestore re-opens through
+                // macroToggle on the NEW strip, and only ever restores focus,
+                // never takes it from the host (see shared/macros.js).
+                macroRestore(root, was);
             }
 
             // Pull the meal progress out of whatever wrapper the host used.
