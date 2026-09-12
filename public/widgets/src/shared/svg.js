@@ -94,8 +94,8 @@ function chArea(pts) {
 /* Every chart needs its OWN gradient: the stops read var(--c), which resolves
    against the element the gradient sits in, so one shared <linearGradient>
    would paint every series in whichever colour its own ancestor happened to
-   carry. Ids are document-global in HTML and component-gallery draws four
-   charts on one page, so they are counted rather than named. */
+   carry. Ids are document-global in HTML and component-gallery draws dozens
+   of charts on one page, so they are counted rather than named. */
 var CH_GRAD_N = 0;
 
 /* defs + the filled path, given a `d` from chArea. The node is emitted even for
@@ -168,4 +168,86 @@ function chDotMarkup(x, y) {
 function chY(v, yMin, yMax) {
     var h = CH_H - CH_PT - CH_PB;
     return CH_PT + h - ((v - yMin) / (yMax - yMin || 1)) * h;
+}
+
+/* One small mark per READING, for a chart whose line bridges the days between
+   readings. weight-trends draws that way on purpose: a weight is a sampled
+   quantity, so a day nobody stepped on the scale is a gap in the sampling, not
+   in the weight. But a bridged line alone hides which of its vertices were
+   measured — a week of daily weigh-ins and two readings six days apart draw
+   the same stroke — so each reading gets its own disc.
+
+   Same zero-length, round-capped geometry as chDot and for the same reason (a
+   <circle> would stretch into an oval; see chDot), one path per reading. `pts`
+   may carry nulls, which draw nothing, so a caller can hand over the same
+   calendar-slotted array its hairlines are built from. Emit these BEFORE
+   chDotMarkup, so the last reading's halo and larger dot sit over its mark. */
+function chMarksMarkup(pts) {
+    var s = "",
+        i;
+    for (i = 0; i < pts.length; i++) {
+        if (pts[i]) {
+            s += '<path class="cpt" d="' + chDot(pts[i][0], pts[i][1]) + '"/>';
+        }
+    }
+    return s;
+}
+
+/* ---- The calendar x axis ------------------------------------------------
+   The two helpers below read utcDay() and DAY_MS from shared/date.js. They are
+   looked up when called, not when this file is evaluated, so the only
+   requirement is that date.js is in the page before a chart is DRAWN. Every
+   template that includes svg.js (nutrition-summary, trends, weight-trends, the
+   component gallery) includes date.js ahead of it; keep it that way. */
+
+// THE X AXIS IS THE CALENDAR. `days[]` holds only the dates that
+// logged something, so spacing points by array index made eight
+// logged days in a 30-day window draw as eight evenly spaced
+// consecutive ones: the gaps, which are most of what a month
+// chart has to say, vanished. One slot per day from start_date to
+// end_date, null where nothing was logged; everything downstream
+// (the gapped line, the gapped wash, the last-reading dot) already
+// reads null as a gap.
+//
+// Stepped in UTC milliseconds (utcDay, shared/date.js), never with
+// local setDate(): a local midnight plus 24h lands on 23:00 or
+// 01:00 across a DST change and the ISO slice then names the wrong
+// day. Falls back to the plain logged-day array — the old
+// behaviour, still a correct ORDER — whenever the range cannot be
+// trusted: a malformed date, start after end, a logged day outside
+// the range, or a window so wide (over ten years) that it is a
+// payload fault rather than a chart.
+function calendarSlots(days, start, end) {
+    const plain = days.map((d) => ({ t: null, day: d }));
+    const t0 = utcDay(start),
+        t1 = utcDay(end);
+    if (t0 === null || t1 === null || t0 > t1) return plain;
+    const n = Math.round((t1 - t0) / DAY_MS) + 1;
+    if (n > 3660) return plain;
+    const byDate = new Map();
+    for (const d of days) {
+        const t = utcDay(d && d.date);
+        if (t === null || t < t0 || t > t1) return plain;
+        byDate.set(t, d);
+    }
+    const slots = [];
+    for (let i = 0; i < n; i++) {
+        const t = t0 + i * DAY_MS;
+        slots.push({ t, day: byDate.get(t) || null });
+    }
+    return slots;
+}
+
+// Which slots get a day hairline. One per day while there is room
+// for them to read as days — up to a month. Past that they merge:
+// 365 one-pixel rules across ~340px is a grey slab, not a grid. Up
+// to ~four months a rule marks each MONDAY instead (read off the
+// calendar date, so it is a real week boundary, not every seventh
+// slot from wherever the range began); wider than that, none — a
+// weekly rule every 5px is the same slab again. A fallback axis
+// with no dates marks every seventh slot, the nearest honest thing.
+function hairlineSlot(slot, i, n) {
+    if (n <= 31) return true;
+    if (n > 120) return false;
+    return slot.t === null ? i % 7 === 0 : new Date(slot.t).getUTCDay() === 1;
 }
