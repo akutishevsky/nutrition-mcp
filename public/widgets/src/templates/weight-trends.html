@@ -4,19 +4,22 @@
 
   Assembled from shared partials at server startup (see src/widgets.ts); the
   @include markers below inline the shared design tokens, the card shell, the
-  hero and segmented control, the chart grammar and the host bridge. The result
-  is fully self-contained — inline CSS + JS, zero network requests — because the
-  MCP Apps sandbox blocks external hosts.
+  focus panel and segmented control, the chart grammar and the host bridge. The
+  result is fully self-contained — inline CSS + JS, zero network requests —
+  because the MCP Apps sandbox blocks external hosts.
 
-  Shown after get_weight_trends. ONE Dawn card: a header line carrying the title
-  and the 7 / 14 / 30-day toggle, the latest reading as the hero with a delta
-  pill beside it, the weight chart with its dashed target line, and two foot
-  labels — how much data this is, and what it is aimed at.
+  Shown after get_weight_trends. ONE Dawn card, in nutrition-summary's anatomy:
+  a header carrying the title, the 7 / 14 / 30-day toggle and — on a row of its
+  own — which window the figures cover and how many readings are in it; then
+  the latest reading as a focus panel with its own chart inside it; then the
+  card foot the bridge's settings note lands in.
 
-  There is NO chip rail and NO drawer here, and that is the point: this widget
-  has a single series, and a rail of one chip would be ceremony. It therefore
-  includes neither macros.js nor chip.css's rail half — only the hero, the seg
-  and the chart. Interaction-led does not mean interaction-everywhere.
+  There is NO chip rail, NO drawer and NO ring, and that is the point: this
+  widget has a single series, a rail of one chip would be ceremony, and a
+  weight is not a fraction of its target. So it includes neither macros.js nor
+  spark.js — the panel is written right here out of chip.css's class names
+  (`span.focus.solo`), which are the shared contract. Interaction-led does not
+  mean interaction-everywhere.
 
   The tool sends up to 30 days of per-day weight (same-day weigh-ins averaged),
   and the toggle filters it CLIENT-SIDE and re-renders — no host round-trip.
@@ -37,65 +40,13 @@
 
             /*@include shared/base.css@*/
 
-            /* The hero, the delta pill and the segmented control. */
+            /* The focus panel (`.focus.solo`), its meta lines and the
+               segmented control. */
             /*@include shared/chip.css@*/
 
-            /* The line, the dashed target, the last-point dot, the foot. */
+            /* The line, the dashed target, the per-reading marks, the
+               last-reading dot. */
             /*@include shared/chart.css@*/
-
-            /* The line and its labels are ONE block: dropped straight into the
-               card, the 10px column gap would push .cfoot's own 5px offset away
-               from the chart it labels. */
-            .cblock {
-                min-width: 0;
-            }
-
-            /* The delta pill leads with the direction the weight moved, so the
-               accent/--over colouring is never the only thing carrying it. The
-               icon is a block element (.ic), so the pill has to be a flex row. */
-            .hsub {
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-            }
-            /* The headline's unit is its own span with no space before it, and
-               nothing else styles it — it read "78.2kg" beside the pill's
-               "−0.3 kg". The same 2px every other figure/unit pair gets
-               (.chip .v .u, .fmain .v .u, .dv .u in chip.css). */
-            .hval .u {
-                margin-left: 2px;
-            }
-
-            /* Two whole phrases, each free to drop to its own row when the
-               pair will not share one. */
-            .cfoot {
-                flex-wrap: wrap;
-                row-gap: 2px;
-            }
-            /* The FIGURES are atomic, the sentences around them are not.
-               `.cfoot > span { white-space: nowrap }` used to be the rule here,
-               which meant a phrase could move to its own row but could never be
-               narrower than itself: at 320px the German target phrase
-               "Ziel 75.0 kg · 2.0 kg bis zum Ziel (abnehmen)" measured 293px in
-               a 274px content box and ran 18px past the card, where
-               `.card { overflow: hidden }` destroyed the tail outright (layout
-               audit, major — text lost, not ellipsised). Nowrapping only the
-               atoms keeps "13 Jun → 11 Jul" and "75.0 kg" whole while letting
-               the sentence wrap between them. */
-            .nb {
-                white-space: nowrap;
-            }
-
-            /* chart.css pins .cempty to the chart's own 52px so a range switch
-               never makes the card jump. That is a floor here, not a ceiling:
-               this message is a translated sentence that wraps to two or three
-               lines on a phone, and .card clips its overflow. */
-            .cempty {
-                height: auto;
-                min-height: 52px;
-                padding: 10px 4px;
-                text-align: center;
-            }
         </style>
     </head>
     <body>
@@ -116,12 +67,6 @@
             /*@include shared/bridge.js@*/
 
             const RANGES = [7, 14, 30];
-
-            function shiftDate(date, delta) {
-                const d = new Date(date + "T00:00:00Z");
-                d.setUTCDate(d.getUTCDate() + delta);
-                return d.toISOString().slice(0, 10);
-            }
 
             // ---- Sample data so the file renders on its own (browser preview) ----
             function buildSample() {
@@ -180,6 +125,14 @@
                     return Number(n).toLocaleString(undefined, opts);
                 }
             }
+            // A value at the precision it is PRINTED at. Every verdict on the
+            // card — the change, the gap, "at target" — is worked out from
+            // these rather than from the raw floats, so it can never disagree
+            // with the figures beside it: 75.04 against a 74.96 target prints
+            // "75.0" twice, and must read "at target", not "0.1 kg to lose".
+            function r1(n) {
+                return Math.round(Number(n) * 10) / 10;
+            }
             // A real minus sign (U+2212), not a hyphen: at 24px beside a
             // tabular figure a hyphen sits too high and too short to read as
             // "minus".
@@ -188,71 +141,226 @@
                 return `${s}${w1(Math.abs(n))}`;
             }
 
-            // ---- The card's three blocks ---------------------------------------
+            // ---- The window ----------------------------------------------------
 
-            // The number the whole widget is about, and how far it has moved
-            // across the selected window.
-            function heroHtml(slice, target, unit) {
-                const n = slice.length;
-                const first = slice[0].weight;
-                const last = slice[n - 1].weight;
-
-                let pill;
-                if (n >= 2) {
-                    const change = Math.round((last - first) * 10) / 10;
-                    // A change is "good" (accent) when it shrinks the gap to
-                    // the target; with no target there is no direction to judge
-                    // it against, so the pill stays neutral.
-                    let tone = " mute";
-                    if (target != null) {
-                        tone =
-                            Math.abs(last - target) < Math.abs(first - target)
-                                ? ""
-                                : " over";
-                    }
-                    const arrow =
-                        change === 0
-                            ? ""
-                            : icon(change < 0 ? "down" : "up", 11);
-                    // Dated from the first weigh-in IN the window, not from the
-                    // window's own length: two readings a day apart inside a
-                    // 30-day range are a one-day change, and "−1.0 kg in 30 d"
-                    // claims a month-long trend that was never measured.
-                    const text = tpl(T.weightTrends.sinceDate, {
-                        change: `${signed(change)} ${unit}`,
-                        date: shortDate(slice[0].date),
-                    });
-                    pill = `<span class="hsub${tone}">${arrow}${esc(text)}</span>`;
-                } else {
-                    pill = `<span class="hsub mute">${esc(T.weightTrends.needTwo)}</span>`;
-                }
-
-                return `
-          <div class="hero c-acc flat">
-            <span class="hmain">
-              <span class="hval">${w1(last)}<span class="u">${esc(unit)}</span></span>
-              <span class="hlab">${esc(T.weightTrends.latest)}</span>
-            </span>
-            ${pill}
-          </div>`;
+            // The readings the card can trust, oldest first: a real day and a
+            // finite weight. Anything else is a payload fault, and one bad row
+            // must not take the chart's y domain (NaN) down with it.
+            function readingsOf(data) {
+                return (Array.isArray(data && data.days) ? data.days : [])
+                    .filter(
+                        (d) =>
+                            d &&
+                            utcDay(d.date) !== null &&
+                            Number.isFinite(Number(d.weight)),
+                    )
+                    .map((d) => ({ date: d.date, weight: Number(d.weight) }))
+                    .sort((a, b) => (a.date < b.date ? -1 : 1));
             }
 
-            // Weight over time. Y is scaled to the DATA range (widened to
-            // include the target) rather than to zero, because the question is
-            // "which way is this going", not "how far from nothing is it" — on
-            // a zero-based axis a 3 kg move across a month is a flat line.
-            function chartHtml(slice, target, unit) {
-                const n = slice.length;
-                const weights = slice.map((d) => d.weight);
-                let lo = Math.min(...weights);
-                let hi = Math.max(...weights);
-                if (target != null) {
-                    lo = Math.min(lo, target);
-                    hi = Math.max(hi, target);
+            // Which calendar days the selected range covers. `end` is the
+            // payload's end_date when it is a real day, else the newest
+            // reading's; `start` is range-1 days before it. A DATE window, not
+            // slice(-range): weigh-ins are sparse, so the last 7 entries can
+            // span a season, and "last 7 days" has to mean days. With neither
+            // end usable there is no window to name, and start/end are null —
+            // the card then shows every reading, on the plain fallback axis.
+            function windowOf(data, all, range) {
+                const end =
+                    utcDay(data.end_date) !== null
+                        ? data.end_date
+                        : all.length
+                          ? all[all.length - 1].date
+                          : null;
+                const start = end ? shiftDay(end, -(range - 1)) : null;
+                const slice = start
+                    ? all.filter((d) => d.date >= start && d.date <= end)
+                    : all;
+                return { start, end: start ? end : null, slice };
+            }
+
+            // ---- The panel -----------------------------------------------------
+
+            // One meta line built around a FIGURE, out of a translated template
+            // that holds it as {key}. chip.css's `.fdelta.fline` keeps the
+            // figure whole (`flex: none`) and lets only the prose around it
+            // ellipsise, so the template is split at the placeholder rather
+            // than filled in one piece — and split, not assumed to START with
+            // it: Japanese writes "{date}から{change}" and Ukrainian
+            // "лишилось скинути {amount}", so the prose can sit on either side.
+            // The prose spans keep their own spaces (the flex row has no gap —
+            // see `.fdelta .fsince`), and the markup is one line with no
+            // whitespace between spans because `white-space: pre` would print
+            // it. A template without exactly one placeholder is filled whole
+            // and treated as prose, which can only ever ellipsise.
+            function figureLine(template, key, figure, vars) {
+                const parts = String(template).split(`{${key}}`);
+                if (parts.length !== 2) {
+                    const all = tpl(template, { ...vars, [key]: figure });
+                    return `<b class="fdelta fline"><span class="fsince">${esc(all)}</span></b>`;
                 }
-                // One weigh-in, or a run of identical ones, has no range at
-                // all: give it a ±1 unit window so the point lands mid-box
-                // instead of dividing by zero.
+                const prose = (s) =>
+                    s ? `<span class="fsince">${esc(tpl(s, vars))}</span>` : "";
+                return `<b class="fdelta fline">${prose(parts[0])}<span>${esc(figure)}</span>${prose(parts[1])}</b>`;
+            }
+            // A meta line with no figure in it (needTwo, rangeEmpty, noTarget):
+            // muted, and still guarded. Inside `.fline` the text is one
+            // `.fsince` run, the shared "prose that may give" class, so a long
+            // translation ellipsises inside the panel instead of printing
+            // across its border — a span panel keeps only a 9px inset to lose
+            // it in. The full sentence stays in the DOM, so a screen reader
+            // (the panel is a plain <span>, not a button) still hears all of it.
+            function quietLine(text) {
+                return `<b class="fdelta fline mute"><span class="fsince">${esc(text)}</span></b>`;
+            }
+
+            // Line 3: how far the latest reading is from the target, then the
+            // target itself. The gap is the reading and stays whole; the
+            // target is the reference, a step quieter (`.fgive`) and the part
+            // that ellipsises first. `latest` is null on a range with no
+            // readings, which names the target alone.
+            function targetLine(latest, target, unit) {
+                if (!(target > 0)) return quietLine(T.weightTrends.noTarget);
+                const give = `<span class="fgive"> · ${esc(
+                    tpl(T.weightTrends.target, {
+                        value: `${w1(target)} ${unit}`,
+                    }),
+                )}</span>`;
+                if (latest == null) {
+                    // No gap to lead with, so no separator either.
+                    return `<b class="fdelta fline"><span class="fgive">${esc(
+                        tpl(T.weightTrends.target, {
+                            value: `${w1(target)} ${unit}`,
+                        }),
+                    )}</span></b>`;
+                }
+                const gap = r1(r1(latest) - r1(target));
+                const gapText =
+                    gap === 0
+                        ? T.weightTrends.atTarget
+                        : tpl(
+                              gap > 0
+                                  ? T.weightTrends.toLose
+                                  : T.weightTrends.toGain,
+                              { amount: `${w1(Math.abs(gap))} ${unit}` },
+                          );
+                return `<b class="fdelta fline"><span>${esc(gapText)}</span>${give}</b>`;
+            }
+
+            // The panel: the figure, three fixed meta lines, and the chart in
+            // the `.fspark` row under them — nutrition-summary's panel, as a
+            // plain <span> because nothing on it discloses anything.
+            //
+            // THREE LINES, EVERY STATE. `.focus.solo .fmeta` gives each line a
+            // 13px box whether it holds text or not, and `.fspark` keeps its
+            // 48px row, so a range toggle never changes the card's height — a
+            // range with one reading still draws its chart box, and a range
+            // with none keeps the whole shell (figure "—", the reason on line
+            // 2, the target on line 3, a chart of rules and the target line).
+            // The old range-empty state swapped a ~145px panel for a 52px
+            // message, and the card jumped on a tap that changed no data.
+            //
+            // Nothing here carries a direction colour. The old delta pill went
+            // accent or --over by whether the weight had moved toward the
+            // target; weight has no breach state, the sign already says which
+            // way it went, and the gap on line 3 says how far is left.
+            function panelHtml(win, target, unit, range, still) {
+                const slice = win.slice;
+                const n = slice.length;
+                const last = n ? slice[n - 1] : null;
+                // The whole span per branch, because the two are not the same
+                // kind of thing. The placeholder exists only to hold the
+                // figure's box open (see "THREE LINES, EVERY STATE" above), so
+                // it is decorative and marked as such — the panel is a plain
+                // <span>, so its children stay in the accessibility tree and an
+                // em dash was being announced ahead of "Latest", a punctuation
+                // mark before the two lines that actually say there is no
+                // reading. Decorative marks are aria-hidden everywhere here
+                // (icon.js, the glyph silhouettes); it must stay VISIBLE.
+                // A BARE UNIT IS NOT A GOAL — chipValue (shared/macros.js) made
+                // this call for every other card's headline and says why there:
+                // the goal branch begins its span with "/" and carries its own
+                // space, so the 2px `.fmain .v .u` puts in reads as a separator;
+                // with nothing but the unit in the span the same 2px printed
+                // "78.2kg". The space is what makes the figure and its unit read
+                // as one quantity, and `bare` is what keeps this `.u` out of the
+                // <480px stacking rule should the markup ever sit under a chip.
+                // The card's other three kg figures already print a real space.
+                const figure = last
+                    ? `<span class="v">${w1(last.weight)}<span class="u bare"> ${esc(unit)}</span></span>`
+                    : `<span class="v" aria-hidden="true">—</span>`;
+                const label = last
+                    ? `${T.weightTrends.latest} · ${dayHeader(last.date)}`
+                    : T.weightTrends.latest;
+
+                let line2;
+                if (!n) {
+                    line2 = quietLine(
+                        tpl(T.weightTrends.rangeEmpty, { range }),
+                    );
+                } else if (n < 2) {
+                    line2 = quietLine(T.weightTrends.needTwo);
+                } else {
+                    // Dated from the first weigh-in IN the window, not from
+                    // the window's own length: two readings a day apart inside
+                    // a 30-day range are a one-day change, and "−1.0 kg in
+                    // 30 d" claims a month-long trend that was never measured.
+                    const change = r1(r1(last.weight) - r1(slice[0].weight));
+                    line2 = figureLine(
+                        T.weightTrends.sinceDate,
+                        "change",
+                        `${signed(change)} ${unit}`,
+                        { date: shortDate(slice[0].date) },
+                    );
+                }
+
+                return `<span class="focus c-acc solo"><span class="fmain">${figure}<span class="fmeta"><span class="flabel">${esc(label)}</span>${line2}${targetLine(last ? last.weight : null, target, unit)}</span></span><span class="fspark">${chartHtml(win, target, unit, still)}</span></span>`;
+            }
+
+            // ---- The chart -----------------------------------------------------
+
+            // Weight over time, one slot per CALENDAR day of the window
+            // (calendarSlots, shared/svg.js), so a weekly weigher's four
+            // readings sit a week apart instead of four evenly spaced
+            // consecutive-looking points.
+            //
+            // THE LINE BRIDGES THE DAYS BETWEEN READINGS — unlike
+            // nutrition-summary's, which breaks at a day with no log. A
+            // calorie total is a count of what was eaten that day, so a day
+            // with no log is missing data and a line across it would invent
+            // meals. A weight is a SAMPLED quantity: it existed on the days
+            // nobody stepped on the scale, and the straight segment between two
+            // readings is the honest guess at it — where a gap would reduce a
+            // weekly weigher's month to four isolated dots. What a bridge must
+            // not do is pass for daily data: with a hairline on every day the
+            // stroke across twenty unweighed days looks exactly like twenty
+            // readings. So every READING gets its own mark (chMarksMarkup), and
+            // only the marks are measurements.
+            //
+            // Y is scaled to the DATA range (widened to include the target)
+            // rather than to zero, because the question is "which way is this
+            // going", not "how far from nothing is it" — on a zero-based axis
+            // a 3 kg move across a month is a flat line. For the same reason
+            // there is NO area wash: the floor of the box is an arbitrary
+            // weight, not a quantity (see .carea in chart.css).
+            //
+            // PAINT ORDER: day rules → line → target → marks → last-reading
+            // dot. The target sits OVER the line (a bare 2.5px stroke would
+            // swallow the dashes where they meet — see `.fspark .cgoal`), and
+            // the marks over both, since they are the data; the last dot goes
+            // last and covers its own reading's mark.
+            function chartHtml(win, target, unit, still) {
+                const slice = win.slice;
+                const n = slice.length;
+                const slots = calendarSlots(slice, win.start, win.end);
+                const hasTarget = target > 0;
+                const weights = slice.map((d) => d.weight);
+                const ref = hasTarget ? weights.concat([target]) : weights;
+                let lo = ref.length ? Math.min(...ref) : 0;
+                let hi = ref.length ? Math.max(...ref) : 1;
+                // One weigh-in, a run of identical ones, or a target alone has
+                // no range at all: give it a ±1 unit window so the point lands
+                // mid-box instead of dividing by zero.
                 if (hi === lo) {
                     hi = lo + 1;
                     lo = lo - 1;
@@ -260,215 +368,267 @@
                 const pad = (hi - lo) * 0.18;
                 const yMin = lo - pad;
                 const yMax = hi + pad;
-                const pts = chPoints(weights, yMin, yMax);
-                const dot = pts[n - 1];
+                // Every slot gets an x; only a slot with a reading gets a y
+                // that means anything, and only those points are drawn.
+                const xy = chPoints(
+                    slots.map((s) => (s.day ? s.day.weight : yMin)),
+                    yMin,
+                    yMax,
+                );
+                const pts = slots.map((s, i) => (s.day ? xy[i] : null));
+                const read = pts.filter(Boolean);
 
-                // A line and a dot, and deliberately NO chArea() fill: yMin
-                // above is a padded minimum, not zero, so the space under the
-                // line is not a quantity anyone weighs. The zero-based charts
-                // (calories, the nutrient series) do fill — see .carea in
-                // chart.css for the whole argument.
-                //
-                // Drawn only from two readings up — a line needs somewhere to
-                // go — but the dot is drawn always, so a single weigh-in
-                // renders as a point rather than as an empty box.
+                const dayLines = chDayLines(
+                    xy.filter((_, i) =>
+                        hairlineSlot(slots[i], i, slots.length),
+                    ),
+                );
+                // pathLength="1" is what lets `.fspark .cline` draw the line in
+                // with one dash (chip.css) — and a lone reading has no line to
+                // draw, only its dot.
                 const line =
-                    n >= 2 ? `<path class="cline" d="${chPath(pts)}"/>` : "";
-                const ty =
-                    target != null ? chY(target, yMin, yMax).toFixed(1) : null;
+                    read.length >= 2
+                        ? `<path class="cline" pathLength="1" d="${chPath(read)}"/>`
+                        : "";
+                const ty = hasTarget
+                    ? chY(target, yMin, yMax).toFixed(1)
+                    : null;
                 const goal =
                     ty != null
                         ? `<line class="cgoal" x1="${CH_PL}" y1="${ty}" x2="${CH_W - CH_PR}" y2="${ty}"/>`
                         : "";
-                const label = tpl(T.weightTrends.chartAriaLabel, {
-                    from: shortDate(slice[0].date),
-                    to: shortDate(slice[n - 1].date),
-                    latest: `${w1(weights[n - 1])} ${unit}`,
-                });
+                const lastPt = read.length ? read[read.length - 1] : null;
+                const dot = lastPt ? chDotMarkup(lastPt[0], lastPt[1]) : "";
 
-                return `
-          <div class="cwrap c-acc">
-            <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">
-              ${goal}${line}
-              ${chDotMarkup(dot[0], dot[1])}
-            </svg>
-          </div>`;
-            }
+                // The label names the WINDOW's two ends and the latest value —
+                // the existing string, whose word order each locale fixes, fed
+                // what the axis now spans. With no window (no usable end date)
+                // it falls back to the readings' own ends. A range with no
+                // readings has nothing to describe beyond the panel's own lines,
+                // which already say so, and is hidden instead.
+                const a11y = n
+                    ? `role="img" aria-label="${esc(
+                          tpl(T.weightTrends.chartAriaLabel, {
+                              from: shortDate(win.start || slice[0].date),
+                              to: shortDate(win.end || slice[n - 1].date),
+                              latest: `${w1(slice[n - 1].weight)} ${unit}`,
+                          }),
+                      )}"`
+                    : 'aria-hidden="true"';
 
-            // An unbreakable figure: escaped text in a .nb span. Everything a
-            // reader would misread if it broke mid-way — "75.0 kg",
-            // "13 Jun → 11 Jul", "15 Wiegungen" — goes through here, and
-            // nothing else does, so the translated sentence around it is still
-            // free to wrap. See the .nb comment in the style block.
-            function nb(text) {
-                return `<span class="nb">${esc(text)}</span>`;
-            }
-            // A weight as a .nb atom, its unit in a .u span so the uppercase
-            // .cfoot leaves the symbol's case alone ("75.0 kg", never
-            // "75.0 KG" — see .cfoot .u in chart.css).
-            function nbWeight(n, unit) {
-                return `<span class="nb">${esc(w1(n))} <span class="u">${esc(unit)}</span></span>`;
-            }
-            // Fill a TRANSLATED template whose values are already HTML. The
-            // template is escaped first and the values are not — safe because a
-            // {placeholder} contains nothing escaping touches, and it is what
-            // lets an atom keep its .nb wrapper inside a sentence.
-            function tplHtml(template, values) {
-                return tpl(esc(template), values);
-            }
-
-            // How much data this is, and what it is aimed at.
-            function footHtml(slice, target, unit) {
-                const n = slice.length;
-                const from = shortDate(slice[0].date);
-                const to = shortDate(slice[n - 1].date);
-                // A single day is its own span — "11 Jul → 11 Jul" reads like
-                // a bug.
-                const span = `${nb(plural(T.weightTrends.weighIns, n))} · ${nb(
-                    from === to ? from : `${from} → ${to}`,
-                )}`;
-
-                let right;
-                if (target != null) {
-                    const delta =
-                        Math.round((slice[n - 1].weight - target) * 10) / 10;
-                    const gap =
-                        Math.abs(delta) < 0.05
-                            ? esc(T.weightTrends.atTarget)
-                            : tplHtml(
-                                  delta > 0
-                                      ? T.weightTrends.toLose
-                                      : T.weightTrends.toGain,
-                                  {
-                                      amount: nbWeight(Math.abs(delta), unit),
-                                  },
-                              );
-                    const targetVal = tplHtml(T.weightTrends.target, {
-                        value: nbWeight(target, unit),
-                    });
-                    right = `<b>${targetVal}</b> · ${gap}`;
-                } else {
-                    right = esc(T.weightTrends.noTarget);
-                }
-
-                return `
-          <div class="cfoot">
-            <span>${span}</span>
-            <span>${right}</span>
-          </div>`;
+                // `c-acc` on the .cwrap itself, not only on the panel: chart.css
+                // keeps the brand stroke un-darkened only for `.cwrap.c-acc`
+                // (--acc is already AA-corrected), and without it the line,
+                // marks and dot would be drawn in the darkened variant.
+                return `<span class="cwrap c-acc${still ? " still" : ""}"><svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" ${a11y}>${dayLines}${line}${goal}${chMarksMarkup(pts)}${dot}</svg></span>`;
             }
 
             // ---- State + rendering ---------------------------------------------
-            const STATE = { data: null, range: 30 };
+
+            // `picked` is the range the user chose with the toggle (null until
+            // they do); `defaultRange` the payload's default_range it was chosen
+            // against. `painted` is whether the chart has drawn once since the
+            // last render(): every paint after that is `.still`, so a range
+            // switch is instant and only a new tool result replays the draw-in.
+            const STATE = {
+                data: null,
+                range: 30,
+                picked: null,
+                defaultRange: null,
+                painted: false,
+            };
             let __widgetApi = null;
 
-            function render(data) {
-                STATE.data = data;
-                const root = document.getElementById("root");
-                setLocaleFrom(data, __widgetApi);
-                if (
-                    !data ||
-                    !Array.isArray(data.days) ||
-                    data.days.length === 0
-                ) {
-                    root.innerHTML = `
-            <div class="empty">
-              <div class="big">⚖️</div>
-              <div>${esc(T.weightTrends.empty)}</div>
-            </div>`;
-                    return;
-                }
-                // Only here, never in paint(): the range is the user's choice
-                // once they have made one, and re-reading default_range on
-                // every repaint would undo every tap of the toggle.
-                STATE.range = RANGES.includes(data.default_range)
-                    ? data.default_range
-                    : 30;
-                paint();
+            // The header's window line: "5–11 Jul · 4 weigh-ins".
+            //
+            // "weigh-ins" counts DAYS, knowingly: the tool averages same-day
+            // readings into one row, so someone who weighs twice a day sees
+            // half their weigh-ins here. Almost nobody does, and a days-weighed
+            // plural would be a new string in nine locales — kept this round
+            // and recorded as an open question in the port plan.
+            function metaText(win) {
+                const count = plural(T.weightTrends.weighIns, win.slice.length);
+                return win.start
+                    ? `${rangeLabel(win.start, win.end)} · ${count}`
+                    : count;
+            }
+
+            function currentWindow() {
+                const all = readingsOf(STATE.data);
+                return windowOf(STATE.data, all, STATE.range);
             }
 
             // Everything BELOW the header, derived from STATE.range. Split out
             // of paint() so a range change can rewrite this alone and leave the
             // header — and the seg button the user is standing on — in place.
-            function bodyHtml() {
+            function bodyHtml(win) {
                 const data = STATE.data;
                 // A CODE in the payload ("kg" / "lb"), the printed label from
                 // here down — every block below only ever prints it.
                 const unit = unitLabel(data.unit || "kg");
-                const target = data.target ?? null;
-                const all = data.days
-                    .slice()
-                    .sort((a, b) => (a.date < b.date ? -1 : 1));
-                const range = STATE.range;
-                // A DATE cutoff, not slice(-range): weigh-ins are sparse, so
-                // the last 7 entries can span a season. "Last 7 days" has to
-                // mean days.
-                const cutoff = shiftDate(
-                    data.end_date || all[all.length - 1].date,
-                    -(range - 1),
+                const target = Number(data.target);
+                return panelHtml(
+                    win,
+                    Number.isFinite(target) ? target : null,
+                    unit,
+                    STATE.range,
+                    STATE.painted,
                 );
-                const slice = all.filter((d) => d.date >= cutoff);
-
-                // A range the user selected that happens to hold no weigh-ins.
-                // Distinct from the widget-wide empty state, and the toggle
-                // stays on screen — widening it is the whole fix.
-                if (slice.length === 0) {
-                    return `<div class="cempty">${esc(tpl(T.weightTrends.rangeEmpty, { range }))}</div>`;
-                }
-                return `
-          ${heroHtml(slice, target, unit)}
-          <div class="cblock">
-            ${chartHtml(slice, target, unit)}
-            ${footHtml(slice, target, unit)}
-          </div>`;
             }
 
-            function paint() {
-                const root = document.getElementById("root");
-                const range = STATE.range;
-
-                const seg = RANGES.map(
+            function segHtml() {
+                return RANGES.map(
                     (r) =>
-                        `<button type="button" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}">${r}</button>`,
+                        `<button type="button" data-range="${r}" aria-pressed="${r === STATE.range}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}">${r}</button>`,
                 ).join("");
+            }
 
-                root.innerHTML = `
+            // The whole card. Built as ONE string before anything is written,
+            // so a throw anywhere in it leaves the previous card standing (the
+            // bridge's tryRender then decides what a first paint shows).
+            function cardHtml() {
+                const data = STATE.data;
+                const all = readingsOf(data);
+                const empty = `
+            <div class="empty">
+              <div class="big">⚖️</div>
+              <div>${esc(T.weightTrends.empty)}</div>
+            </div>`;
+                if (all.length === 0) {
+                    // Nothing in the whole 30-day series. With a real end date
+                    // the card still names the window it looked at — the empty
+                    // message alone cannot say WHICH stretch was empty — as
+                    // nutrition-summary's empty card does. The window named is
+                    // the one this card would otherwise be SHOWING (STATE.range,
+                    // already resolved from default_range by render()), not the
+                    // 30 days the payload happens to span: a 7-day question
+                    // answered with a month-long heading, and no toggle on the
+                    // card to explain the wider window, is the card answering a
+                    // question nobody asked. trends' empty branch reads the same
+                    // way. No toggle: every range of an empty series is equally
+                    // empty. Without a date there is nothing to head a card
+                    // with, so the bare state stands.
+                    if (utcDay(data.end_date) === null) return empty;
+                    return `
           <div class="card c-acc">
             <div class="glow"></div>
             <header class="chead">
               <h1 class="ctitle">${esc(T.weightTrends.title)}</h1>
-              <div class="seg" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${seg}</div>
+              <span class="cmeta">${esc(rangeLabel(shiftDay(data.end_date, -(STATE.range - 1)), data.end_date))}</span>
             </header>
-            <div id="wt-body">${bodyHtml()}</div>
+            ${empty}
+            <div class="foot" data-widget-foot></div>
+          </div>`;
+                }
+                const win = currentWindow();
+                const body = bodyHtml(win);
+                // The window line comes BEFORE the seg in the DOM, so a screen
+                // reader hears which days the figures cover before the control
+                // that changes them; `.chead > .cmeta.crow` (base.css) puts it
+                // back on a row of its own under the title.
+                return `
+          <div class="card c-acc">
+            <div class="glow"></div>
+            <header class="chead">
+              <h1 class="ctitle">${esc(T.weightTrends.title)}</h1>
+              <span class="cmeta crow" id="wt-meta">${esc(metaText(win))}</span>
+              <div class="seg" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${segHtml()}</div>
+            </header>
+            <div id="wt-body">${body}</div>
+            <div class="foot" data-widget-foot></div>
           </div>`;
             }
 
-            // A range change is an attribute flip plus a body repaint — NEVER a
-            // full paint(). Rewriting root.innerHTML from the toggle's own click
+            function render(data) {
+                // An object always, so every reader below can ask it for a field
+                // — a missing payload is just the empty state.
+                STATE.data = data && typeof data === "object" ? data : {};
+                data = STATE.data;
+                const root = document.getElementById("root");
+                setLocaleFrom(data, __widgetApi);
+                // Keep the range the user picked across a re-delivered result
+                // with the same default_range — the tool re-running while the
+                // card is on screen must not undo their tap. A DIFFERENT
+                // default_range is the tool answering a different question, and
+                // is adopted.
+                const def = RANGES.includes(data && data.default_range)
+                    ? data.default_range
+                    : 30;
+                if (STATE.picked == null || def !== STATE.defaultRange) {
+                    STATE.picked = null;
+                    STATE.range = def;
+                } else {
+                    STATE.range = STATE.picked;
+                }
+                STATE.defaultRange = def;
+                // A new tool result is a new card, and owes the chart its
+                // entrance again.
+                STATE.painted = false;
+                const html = cardHtml();
+                // keepFocus (bridge.js): a seg button that held focus before the
+                // rewrite gets it back afterwards (keyed on data-range), and a
+                // re-delivery never takes focus from the host.
+                keepFocus(root, () => {
+                    root.innerHTML = html;
+                });
+                if (root.querySelector("#wt-body .cwrap")) STATE.painted = true;
+                // A range toggle may not change the card's height (the panel's
+                // three fixed lines are the other half of that rule), and the
+                // window line is the one part of the header a range rewrites:
+                // "22 Okt. – 20. Nov. 2025 · 30 Wiegungen" takes a second row
+                // where the 7-day label takes one. reserveLine (shared/bridge.js)
+                // floors the box at the tallest candidate once per payload.
+                const all = readingsOf(data);
+                reserveLine(
+                    root.querySelector("#wt-meta"),
+                    RANGES.map((r) => metaText(windowOf(data, all, r))),
+                );
+            }
+
+            // A range change is an attribute flip, a body repaint and a
+            // textContent update on the header's window line — NEVER a full
+            // paint. Rewriting root.innerHTML from the toggle's own click
             // handler destroyed the seg button that was being operated, so
             // document.activeElement fell to <body> and a keyboard user was
             // dumped to the top of the document on every range change (a11y
-            // audit, major). The seg buttons are toggle buttons: their pressed
-            // state is the only header state a range owns, and setAttribute
-            // moves it without touching the node the user is standing on.
+            // audit, major).
+            //
+            // A THROW LEAVES THE CARD AS IT WAS. The body is built as a string
+            // before anything is written, inside tryRender (bridge.js); on
+            // failure the range and the pressed button go back to what they
+            // were and the body the user was already reading stays. Blanking the
+            // card — the bridge's rule for a FIRST paint, which has nothing to
+            // keep — would delete the widget, and the button under the user's
+            // finger with it, because they tapped "7".
             function setRange(n) {
-                STATE.range = n;
                 const root = document.getElementById("root");
+                const body = document.getElementById("wt-body");
+                const meta = document.getElementById("wt-meta");
+                if (!root || !body || !meta) return;
+                const prev = STATE.range;
+                STATE.range = n;
+                const ok = tryRender(() => {
+                    const win = currentWindow();
+                    const html = bodyHtml(win);
+                    const text = metaText(win);
+                    body.innerHTML = html;
+                    meta.textContent = text;
+                });
+                if (ok) {
+                    STATE.picked = n;
+                    STATE.painted = true;
+                } else {
+                    STATE.range = prev;
+                }
                 root.querySelectorAll("[data-range]").forEach((b) => {
                     b.setAttribute(
                         "aria-pressed",
-                        String(Number(b.dataset.range) === n),
+                        String(Number(b.dataset.range) === STATE.range),
                     );
                 });
-                const body = document.getElementById("wt-body");
-                // No body element means the card was never painted by paint()
-                // (an empty-state render); fall back rather than silently
-                // dropping the range change.
-                if (body) body.innerHTML = bodyHtml();
-                else paint();
             }
 
-            // Delegated on #root, which survives paint()'s innerHTML rewrites.
+            // Delegated on #root, which survives render()'s innerHTML rewrites.
             document.getElementById("root").addEventListener("click", (e) => {
                 const btn = e.target.closest("[data-range]");
                 if (!btn) return;
@@ -486,8 +646,10 @@
 
             initWidget({
                 name: "weight-trends-widget",
-                loading:
-                    '<div class="empty"><div class="big">⚖️</div><div>Loading your weight trends…</div></div>',
+                // T is English until a payload names a locale (shared/i18n.js
+                // initialises it to WIDGET_STRINGS.en), which is all a loading
+                // line can know.
+                loading: `<div class="empty"><div class="big">⚖️</div><div>${esc(T.weightTrends.loading)}</div></div>`,
                 coerce,
                 render,
                 sample: SAMPLE,
