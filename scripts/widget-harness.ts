@@ -71,9 +71,8 @@
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
-import { McpServer } from "@modelcontextprotocol/server";
 import { getWidgetHtml, WIDGET_TEMPLATES } from "../src/widgets.js";
-import { registerTools } from "../src/mcp.js";
+import { collectOutputSchemas, droppedKeys } from "../src/widget-schemas.js";
 import { runImport } from "../src/import.js";
 import { WIDGET_STRINGS } from "../src/copy/widgets.js";
 import { WATER_UNITS } from "../src/units.js";
@@ -951,80 +950,6 @@ const FIXTURE_TOOL: Record<string, string> = {
     "weight-trends": "get_weight_trends",
     "import-meals": "start_meal_import",
 };
-
-// Pull the tools' REAL outputSchemas by registering them against a throwaway
-// McpServer and intercepting registerTool. Nothing is restated here — no copy
-// of a field list to fall out of date, which is the failure this whole check
-// exists to make impossible.
-function collectOutputSchemas(): Map<string, { parse(v: unknown): unknown }> {
-    const server = new McpServer(
-        { name: "widget-harness", version: "0.0.0" },
-        { capabilities: { tools: {}, resources: {} } },
-    );
-    const schemas = new Map<string, { parse(v: unknown): unknown }>();
-    const original = server.registerTool.bind(server);
-    (server as unknown as { registerTool: unknown }).registerTool = (
-        name: string,
-        config: { outputSchema?: { parse(v: unknown): unknown } },
-        handler: unknown,
-    ) => {
-        if (config?.outputSchema) schemas.set(name, config.outputSchema);
-        return (original as unknown as (...a: unknown[]) => unknown)(
-            name,
-            config,
-            handler,
-        );
-    };
-    // widgetsEnabled true, alcohol null: neither affects an outputSchema, which
-    // is static per tool.
-    registerTools(server, "harness-user", true, null);
-    return schemas;
-}
-
-const isPlainObject = (v: unknown): v is Record<string, unknown> =>
-    typeof v === "object" && v !== null && !Array.isArray(v);
-
-// Every key `parse()` DROPPED, at any depth, as a dotted path.
-//
-// This is the whole point of the guard and it used to stop at depth 1. Zod's
-// z.object() strips unknown keys rather than rejecting them at EVERY level, so
-// a top-level-only diff sees `range_days` (the original drift) but not a stale
-// field inside `days[]`, `series[]`, `weight` or `summary` — the fixture would
-// still parse, still look meaningful in the served HTML, and the widget would
-// still never receive it. That is the same class of drift the guard exists to
-// make impossible, so it has to walk.
-//
-// Array indices collapse to `[]` and paths are de-duplicated: a stale field on
-// all 30 days of a series is one problem to fix, not thirty lines of output.
-//
-// What it deliberately does NOT catch, so nobody reads more into a green boot
-// than is there: a key whose VALUE the schema rewrote rather than dropped (a
-// z.coerce, a .default(), a .transform()) survives this check, because the key
-// is still present after parse(). Only presence is compared.
-function droppedKeys(
-    fixture: unknown,
-    parsed: unknown,
-    path = "",
-    out = new Set<string>(),
-): Set<string> {
-    if (Array.isArray(fixture)) {
-        if (!Array.isArray(parsed)) return out;
-        const n = Math.min(fixture.length, parsed.length);
-        for (let i = 0; i < n; i++)
-            droppedKeys(fixture[i], parsed[i], `${path}[]`, out);
-        return out;
-    }
-    if (isPlainObject(fixture)) {
-        if (!isPlainObject(parsed)) return out;
-        for (const [key, value] of Object.entries(fixture)) {
-            const where = path ? `${path}.${key}` : key;
-            if (!(key in parsed)) out.add(where);
-            else droppedKeys(value, parsed[key], where, out);
-        }
-        return out;
-    }
-    return out;
-}
 
 // Blank a metric out of a built fixture, exactly as the server would: the named
 // fields wherever they appear — totals, per-day rows, goals, meal breakdowns —
