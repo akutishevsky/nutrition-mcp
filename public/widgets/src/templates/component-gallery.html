@@ -11,12 +11,33 @@
   phone width, so ADDING A PRIMITIVE INCLUDES ADDING IT HERE.
 
   Every specimen that has an emitter is emitted by the real shared code —
-  macroPanel / macroChip / macroLimit / waterChip / focusPanel /
-  macroDetailBody from shared/macros.js, chPoints / chPath / chY from
-  shared/svg.js, icon() from shared/icon.js. Hand-written specimens stop
-  tracking the code they are supposed to be reviewing the moment it changes;
-  only the primitives with no emitter at all (.more, .seg, the form controls,
-  the table) are written out here.
+  macroPanel / macroChip / macroLimit / waterChip / focusPanel / focusApply /
+  macroDetailBody from shared/macros.js, sparkMarkup / chartableKeys from
+  shared/spark.js, calendarSlots / hairlineSlot / chPoints / chPath /
+  chMarksMarkup from shared/svg.js, rangeLabel / dayHeader / daysLoggedCaption
+  from shared/date.js, icon() / glyph() from shared/icon.js. Hand-written
+  specimens stop tracking the code they are supposed to be reviewing the moment
+  it changes; only the primitives with no emitter at all (.more, .seg, the
+  form controls, the table, goal-progress' weight row) are written out here.
+
+  ONE LIVE STRIP. "The whole card" at the top is nutrition-summary's card,
+  built exactly the way that template builds it, and it is the only thing on
+  the page that responds to a tap. Every other strip is built with
+  `stash: false` (so it cannot overwrite the live card's ctx) and passed
+  through inertPanel (so it cannot be operated, announce a state it cannot
+  change, or collide with the live card's ids).
+
+  The payload carries `locale` and `water_unit` like any widget's, so
+  `?locale=uk` and `?waterUnit=us_fl_oz` in the harness re-render every
+  specimen in that language and unit.
+
+  ONE THING IS DEMOTED FROM THE PRODUCTION MARKUP, on purpose: a specimen card's
+  `.ctitle` is an <h3>, not the <h1> a shipping widget's card carries. Each
+  widget is its own iframe document with exactly one h1; nine of them stacked
+  into this one document were nine competing level-1 headings, each nested
+  inside the level-2 section holding it, on the page a screen reader browses by
+  heading. `.ctitle` is styled by class alone, so the level costs nothing
+  visually. The page's own <h1> is the `.gtitle` at the top of `.gal`.
 
   View it with:  bun run harness   ->  http://localhost:8787/host?widget=component-gallery
 -->
@@ -54,6 +75,20 @@
             .gsec {
                 min-width: 0;
             }
+            /* The page's own name, and the document's only <h1>. Specimen cards
+               keep production markup verbatim except for their heading LEVEL:
+               nine widget headers stacked into one document would be nine
+               competing level-1s, each nested inside the level-2 section that
+               contains it, so the page a screen reader browses by heading had no
+               outline at all. `.ctitle` is styled by class alone (base.css), so
+               the demotion to <h3> costs nothing visually — do not "restore" it. */
+            .gtitle {
+                margin: 0;
+                font-size: 15px;
+                font-weight: 800;
+                letter-spacing: -0.02em;
+                color: var(--ink);
+            }
             .gh {
                 margin: 0 0 4px;
                 font-family: var(--mono);
@@ -88,14 +123,33 @@
                 gap: 5px;
                 min-width: 0;
             }
+            /* A FULL-WIDTH specimen. `.gitem` shrinks its content to fit
+               (justify-items: start), which is right for a chip and wrong for
+               a strip: the tiered rails lay themselves out by VIEWPORT media
+               queries, so a strip narrower than the viewport would take the
+               four-across rule into a box that cannot hold "187/400 mg" and
+               clip it here while production never does. */
+            .gstack {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
+            }
+            .gwide {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 5px;
+                min-width: 0;
+            }
             .ggrid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
                 gap: 12px;
             }
-            /* 232px is roughly a chat card's inner width on a phone: it forces
-               the rail onto three rows and stretches a 480-unit chart hardest,
-               which is exactly what needs eyeballing. */
+            /* 232px is roughly a chat card's inner width on a phone: it makes
+               a 480-unit chart stretch hardest and a header's meta take its
+               second row — which is exactly what needs eyeballing. Never a
+               strip in here, flat or tiered: both lay their rails out by
+               viewport media queries (see .gstack). */
             .gnarrow {
                 width: 232px;
                 max-width: 100%;
@@ -112,6 +166,11 @@
                 gap: 5px;
                 width: 62px;
             }
+            /* The stroked UI set is drawn in ink. The filled nutrient glyphs
+               need no rule: `.gi` (base.css) reads --c, and each `.gicon` in
+               the glyph grid carries its metric's role class — the same
+               indirection every tile uses, so a glyph shown here is coloured
+               exactly as it is on the card. */
             .gicon .ic {
                 color: var(--ink);
             }
@@ -123,17 +182,35 @@
             /*@i18n@*/
             /*@include shared/i18n.js@*/
 
+            /* shortDate (drawer rows), the header's rangeLabel / dayHeader /
+               daysLoggedCaption, and the UTC day arithmetic the calendar x
+               axis (calendarSlots, shared/svg.js) steps with. After i18n.js,
+               whose T / tpl / plural it reads; before svg.js, whose calendar
+               helpers read it when they run. */
+            /*@include shared/date.js@*/
+
             /*@include shared/icon.js@*/
 
             /*@include shared/svg.js@*/
 
             /*@include shared/bridge.js@*/
 
-            // macros.js needs these two in scope (same contract as every widget).
+            // macros.js needs these two in scope (same contract as every
+            // widget), and this is nutrition-summary's fmt, not a gallery
+            // variant: the page is the reference surface, so a figure it
+            // prints must be grouped in WIDGET_LOCALE exactly as the shipping
+            // card groups it — `toLocaleString()` with no argument reads the
+            // host browser's language instead, which is how a German card once
+            // printed "2,035" beside "58,2".
             function fmt(n, decimals) {
-                if (n == null || isNaN(n)) return "0";
-                const r = decimals ? n.toFixed(decimals) : Math.round(n);
-                return Number(r).toLocaleString();
+                const x = Number(n);
+                if (n == null || !Number.isFinite(x)) return "0";
+                const r = decimals ? x.toFixed(decimals) : Math.round(x);
+                try {
+                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
+                } catch (_) {
+                    return Number(r).toLocaleString();
+                }
             }
             function esc(s) {
                 return String(s).replace(
@@ -250,8 +327,271 @@
                 carbs_g,
             }));
 
-            // A week of every series the strip can select, so the live card's
-            // chart really re-strokes when a chip is tapped.
+            // THE CURRENT YEAR COMES FROM THE CLOCK. rangeLabel prints a year
+            // whenever a range does not end in the current one, so a fixture
+            // hard-coded to one year shows the no-year case only during that
+            // year — from the next January every "this year" specimen would
+            // quietly grow a year and the case the Dates table exists to show
+            // would vanish without anyone noticing. Only the deliberately
+            // past-year and year-crossing cases are literals: those stay past
+            // and crossing forever.
+            const YEAR = new Date().getFullYear();
+            function thisYear(md) {
+                return `${YEAR}-${md}`;
+            }
+
+            // ---- the live card's payload -----------------------------------
+            // A get_nutrition_summary structuredContent, built so every figure
+            // on the card can be DERIVED from what sits under it: each day's
+            // totals are summed from that day's meals, and the averages from
+            // the days, by the server's own rules (rangeAverages and
+            // totalsPayloadOf in src/mcp.ts). A reference card whose tile
+            // average cannot be reproduced from its own sparkline would read
+            // as an averaging bug.
+            //
+            // [description, meal_type, kcal, protein, carbs, fat, fiber, sugar,
+            //  alcohol, caffeine]. Alcohol is ONE coherent case: tracking is on
+            // (drink_unit "us"), every meal records its alcohol, most as 0, so
+            // a dry day is a recorded 0 and the wine days carry it. Caffeine is
+            // null on every meal that is not a coffee — the partial-nutrient
+            // case the strip must not average as zero.
+            const MEAL_POOL = {
+                oats: [
+                    "Overnight oats with berries",
+                    "breakfast",
+                    420,
+                    18,
+                    62,
+                    12,
+                    9.4,
+                    24.6,
+                    0,
+                    null,
+                ],
+                toast: [
+                    "Egg & avocado toast",
+                    "breakfast",
+                    480,
+                    24,
+                    42,
+                    26,
+                    5.4,
+                    3.1,
+                    0,
+                    null,
+                ],
+                bowl: [
+                    "Grilled chicken & rice bowl",
+                    "lunch",
+                    650,
+                    52,
+                    78,
+                    16,
+                    6.2,
+                    9.4,
+                    0,
+                    null,
+                ],
+                wrap: [
+                    "Turkey & hummus wrap",
+                    "lunch",
+                    560,
+                    44,
+                    58,
+                    18,
+                    6.9,
+                    11.2,
+                    0,
+                    null,
+                ],
+                salmon: [
+                    "Salmon with quinoa & veg",
+                    "dinner",
+                    640,
+                    55,
+                    74,
+                    30,
+                    7.1,
+                    6.8,
+                    0,
+                    null,
+                ],
+                burrito: [
+                    "Steak burrito",
+                    "dinner",
+                    720,
+                    48,
+                    66,
+                    30,
+                    8.2,
+                    7.9,
+                    0,
+                    null,
+                ],
+                yogurt: [
+                    "Greek yogurt & almonds",
+                    "snack",
+                    260,
+                    22,
+                    14,
+                    14,
+                    1.1,
+                    12.6,
+                    0,
+                    null,
+                ],
+                shake: [
+                    "Protein shake",
+                    "snack",
+                    210,
+                    40,
+                    8,
+                    3,
+                    0.8,
+                    4.2,
+                    0,
+                    null,
+                ],
+                wine: [
+                    "Glass of red wine",
+                    "dinner",
+                    125,
+                    0,
+                    4,
+                    0,
+                    0,
+                    0.9,
+                    13.9,
+                    null,
+                ],
+                flat: ["Flat white", "snack", 120, 7, 10, 6, 0, 9.8, 0, 130],
+                espresso: [
+                    "Double espresso",
+                    "snack",
+                    10,
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    125,
+                ],
+            };
+            const MEAL_FIELDS = [
+                "calories",
+                "protein_g",
+                "carbs_g",
+                "fat_g",
+                "fiber_g",
+                "sugar_g",
+                "alcohol_g",
+                "caffeine_mg",
+            ];
+            // Nine logged days in a fourteen-day window: "9 of 14 days
+            // logged", five calendar gaps for the sparkline to break across,
+            // one day that logged only water (meal_count 0 — a gap on every
+            // food series, a reading on water), and caffeine null on three
+            // days (the 3rd and 13th had no coffee; the 8th had no meals).
+            const SUMMARY_LOG = [
+                ["07-02", 2400, ["oats", "bowl", "salmon", "flat"]],
+                ["07-03", 1800, ["toast", "wrap", "burrito", "wine"]],
+                ["07-05", 2100, ["oats", "bowl", "yogurt", "espresso"]],
+                ["07-06", 2600, ["toast", "salmon", "wine", "flat"]],
+                ["07-08", 1500, []],
+                ["07-09", 2200, ["oats", "wrap", "burrito", "espresso"]],
+                ["07-11", 2800, ["shake", "bowl", "salmon", "espresso"]],
+                ["07-13", 1900, ["toast", "wrap", "yogurt"]],
+                ["07-15", 2300, ["oats", "burrito", "wine", "flat"]],
+            ];
+            const tenth = (x) => Math.round(x * 10) / 10;
+            function mealOf(key, date) {
+                const r = MEAL_POOL[key];
+                const meal = { description: r[0], meal_type: r[1], date };
+                MEAL_FIELDS.forEach((k, i) => (meal[k] = r[2 + i]));
+                return meal;
+            }
+            // One day as the server ships it: the four energy fields are sums
+            // (a meal-less day is 0 kcal, and seriesValue is what turns that
+            // into a gap), the four limits are null on a day no meal recorded
+            // them — the null-not-a-summed-0 rule of get_nutrition_summary's
+            // days[].
+            function dayOf(date, water_ml, meals) {
+                const day = { date, meal_count: meals.length, water_ml };
+                MEAL_FIELDS.forEach((k, i) => {
+                    const got = meals.filter((m) => m[k] != null);
+                    const sum = got.reduce((a, m) => a + m[k], 0);
+                    day[k] =
+                        i < 4
+                            ? k === "calories"
+                                ? Math.round(sum)
+                                : tenth(sum)
+                            : got.length
+                              ? tenth(sum)
+                              : null;
+                });
+                return day;
+            }
+            // rangeAverages (src/mcp.ts): the energy fields and water over
+            // EVERY logged day, water-only days included; the four limits
+            // over the days that recorded them. Rounded as totalsPayloadOf
+            // rounds (whole kcal and ml, tenths otherwise).
+            function averagesOf(days) {
+                const n = days.length || 1;
+                const out = {};
+                [
+                    "calories",
+                    "protein_g",
+                    "carbs_g",
+                    "fat_g",
+                    "water_ml",
+                ].forEach((k) => {
+                    const s =
+                        days.reduce((a, d) => a + (Number(d[k]) || 0), 0) / n;
+                    out[k] =
+                        k === "calories" || k === "water_ml"
+                            ? Math.round(s)
+                            : tenth(s);
+                });
+                ["fiber_g", "sugar_g", "alcohol_g", "caffeine_mg"].forEach(
+                    (k) => {
+                        const got = days.filter((d) => d[k] != null);
+                        out[k] = got.length
+                            ? tenth(
+                                  got.reduce((a, d) => a + d[k], 0) /
+                                      got.length,
+                              )
+                            : null;
+                    },
+                );
+                return out;
+            }
+            const SUMMARY = (() => {
+                const meals = [];
+                const days = SUMMARY_LOG.map(([md, water, keys]) => {
+                    const date = thisYear(md);
+                    const dm = keys.map((k) => mealOf(k, date));
+                    meals.push(...dm);
+                    return dayOf(date, water, dm);
+                });
+                return {
+                    start_date: thisYear("07-02"),
+                    end_date: thisYear("07-15"),
+                    logged_days: days.length,
+                    days_in_range: 14,
+                    drink_unit: "us",
+                    goals: GOALS,
+                    averages: averagesOf(days),
+                    days,
+                    meals,
+                };
+            })();
+
+            // ---- the trends · weight-trends chart grammar ------------------
+            // A week of every series, for the standalone .cwrap + .cfoot
+            // charts further down — the grammar weight-trends and the older
+            // trends card draw, kept under review beside the focus panel's
+            // sparkline that replaces it on nutrition-summary.
             const SERIES = {
                 calories: [2180, 1890, 2320, 1760, 2050, 2440, 1980],
                 protein_g: [152, 131, 168, 118, 145, 173, 148],
@@ -264,10 +604,22 @@
                 water_ml: [2400, 1900, 2600, 1500, 2200, 2800, 2100],
             };
             const CHART_KEYS = Object.keys(SERIES);
-            const FIRST_DAY = "9 Jul";
-            const LAST_DAY = "15 Jul";
+            const SERIES_START = thisYear("07-09");
+            const SERIES_END = thisYear("07-15");
             const WEIGHTS = [82.4, 82.1, 81.9, 82.0, 81.6, 81.4, 81.2];
             const WEIGHT_TARGET = 78;
+            // Weigh-ins on six of fourteen days: the calendar axis spaces
+            // them by date, the line bridges the days in between, and each
+            // reading gets its own mark so the bridge cannot pass for daily
+            // data (weight-trends' grammar).
+            const WEIGH_INS = [
+                ["07-02", 82.4],
+                ["07-05", 82.0],
+                ["07-06", 81.9],
+                ["07-09", 81.6],
+                ["07-13", 81.3],
+                ["07-15", 81.2],
+            ];
 
             // The size each icon actually ships at, so a path that only breaks
             // when it is scaled down shows up here. Keyed by name and iterated
@@ -284,6 +636,10 @@
                 file: [24],
                 point: [12],
             };
+            // Every size a nutrient glyph ships at: 13 (the old tile size, and
+            // glyph()'s default), 17 (a limit tile), 18 (the drawer head), 20
+            // (a macro tile and the water bar) — see `.gi` in chip.css.
+            const GLYPH_SIZES = [13, 17, 18, 20];
 
             // ---- chart specimens -------------------------------------------
             // Built from shared/svg.js rather than from copied coordinates, so
@@ -307,6 +663,18 @@
             function macroOf(key) {
                 return MACROS.find((m) => m.key === key);
             }
+            // The svg's name, as trends names it: the calorie chart has a key
+            // of its own and every other metric fills {metric}. {range} is a
+            // DAY COUNT (7/14/30) in both — a date label there read "…over the
+            // last 9–15 Jul days".
+            function overRangeLabel(m, days) {
+                return m.role === "cal"
+                    ? tpl(T.trends.caloriesOverRange, { range: days })
+                    : tpl(T.trends.metricOverRange, {
+                          metric: macroLabel(m),
+                          range: days,
+                      });
+            }
             // A nutrient total is zero-based: its distance from zero is the
             // thing being read.
             function seriesChart(key) {
@@ -320,27 +688,62 @@
                     0,
                     hi,
                     GOALS[key],
-                    `${macroLabel(m)} per day`,
+                    overRangeLabel(m, vals.length),
                     true,
                 );
             }
-            function seriesFoot(key) {
-                const m = macroOf(key);
+            // A figure and its unit for a .cfoot, the unit in its own `.u`:
+            // the foot is an uppercase eyebrow and SI symbols are
+            // case-sensitive (see `.cfoot .u` in chart.css).
+            function footAmount(m, v) {
+                return `${esc(macroNum(m, v))} <span class="u">${esc(macroUnit(m))}</span>`;
+            }
+            // The grammar's three-span foot: first day, the series' average
+            // (and goal), last day. Every figure through macroNum/macroUnit,
+            // the ONE place a metric's display unit is decided — selecting
+            // water here once printed "avg 2,100 ml" under a chip saying
+            // "2.1 L". The words are the dictionary's, so ?locale=uk leaves no
+            // English inside the card.
+            function grammarFoot(key, first, last) {
                 const vals = SERIES[key];
-                const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-                // Same shape the shipping feet use, and for the same reason:
-                // macroAmount()/macroNum() are the ONE place a metric's display
-                // unit is decided, so selecting the water chip here shows
-                // "Water avg 2.1 L · goal 2.5" rather than the millilitres the
-                // payload carries. The gallery is the reference surface — if it
-                // formatted figures its own way it would stop being one, and
-                // this exact divergence is what shipped "2.1 L" on a chip above
-                // "2,100 ml" in the foot.
-                const goal =
-                    GOALS[key] == null
+                return valuesFoot(
+                    key,
+                    vals.reduce((a, b) => a + b, 0) / vals.length,
+                    GOALS[key],
+                    first,
+                    last,
+                );
+            }
+            // The same foot for a specimen whose values are not in SERIES. It
+            // exists so there is no second foot-builder to drift: two of the
+            // charts below printed their average through raw fmt() — no unit
+            // span and no metric name — two cells from a foot reading "Calories
+            // avg 2,089 kcal", on the section that is supposed to BE the
+            // reference for "every figure goes through macroNum / macroUnit".
+            // The goal keeps grammarFoot's bare `macroNum` (no unit span): one
+            // unit per foot, on the figure that carries it.
+            function valuesFoot(key, avg, goal, first, last) {
+                const m = macroOf(key);
+                const g =
+                    goal == null
                         ? ""
-                        : ` · <b>goal</b> ${macroNum(m, GOALS[key])}`;
-                return `<span>${FIRST_DAY}</span><span><b>${esc(macroLabel(m))} avg</b> ${esc(macroAmount(m, avg))}${goal}</span><span>${LAST_DAY}</span>`;
+                        : ` · <b>${esc(T.nutritionSummary.goal)}</b> ${esc(macroNum(m, goal))}`;
+                return `<span>${esc(first)}</span><span><b>${esc(macroLabel(m))} ${esc(T.nutritionSummary.avg)}</b> ${footAmount(m, avg)}${g}</span><span>${esc(last)}</span>`;
+            }
+            // "Target 78.0 kg" with the unit in its `.u` (see footAmount).
+            // The template is filled with a marker and the marker swapped for
+            // markup AFTER escaping, so the dictionary string is escaped and
+            // the span is not.
+            // A visible marker, not a control character: an invisible one in
+            // source is one careless edit from silently matching nothing.
+            const TARGET_SLOT = "@@value@@";
+            function targetFoot(v) {
+                return esc(
+                    tpl(T.weightTrends.target, { value: TARGET_SLOT }),
+                ).replace(
+                    TARGET_SLOT,
+                    `${esc(macroDecimal(v, 1))} <span class="u">${esc(unitLabel("kg"))}</span>`,
+                );
             }
             // The case the area fill exists for, and the one that has to be
             // reviewed whenever the chart changes: a week that barely moves,
@@ -355,15 +758,15 @@
                     0,
                     2200 * 1.15,
                     2200,
-                    "Calories, near-flat week",
+                    overRangeLabel(macroOf("calories"), vals.length),
                     true,
                 );
             }
             // Weight is data-scaled instead: a 1 kg move over an 80 kg baseline
             // is the whole story, and zero-basing it would draw a flat line.
-            function weightChart() {
-                let lo = Math.min.apply(null, WEIGHTS.concat([WEIGHT_TARGET]));
-                let hi = Math.max.apply(null, WEIGHTS.concat([WEIGHT_TARGET]));
+            function weightDomain(vals) {
+                let lo = Math.min.apply(null, vals.concat([WEIGHT_TARGET]));
+                let hi = Math.max.apply(null, vals.concat([WEIGHT_TARGET]));
                 // A week at one weight would otherwise collapse onto a single
                 // row of pixels.
                 if (hi - lo < 0.2) {
@@ -371,30 +774,138 @@
                     hi += 1;
                 }
                 const pad = (hi - lo) * 0.18;
+                return [lo - pad, hi + pad];
+            }
+            function weightLabel(from, to, latest) {
+                return tpl(T.weightTrends.chartAriaLabel, {
+                    from: shortDate(from),
+                    to: shortDate(to),
+                    latest: `${macroDecimal(latest, 1)} ${unitLabel("kg")}`,
+                });
+            }
+            function weightChart() {
+                const [lo, hi] = weightDomain(WEIGHTS);
                 return chartSvg(
                     WEIGHTS,
-                    lo - pad,
-                    hi + pad,
+                    lo,
+                    hi,
                     WEIGHT_TARGET,
-                    "Weight over 7 days",
+                    weightLabel(
+                        SERIES_START,
+                        SERIES_END,
+                        WEIGHTS[WEIGHTS.length - 1],
+                    ),
                     // No area: the floor of this box is a padded minimum, not
                     // zero, so a fill would draw a quantity nobody has.
                     false,
                 );
             }
-            // What the live card hands macroPanel as opts.onSeries: selecting a
-            // chip re-strokes the chart in that metric's colour, closing it
-            // falls back to calories. The wrapper's role class IS the colour
-            // change — nothing here re-parses one — so .cline's stroke
-            // transition cross-fades it.
-            function paintSeries(key, isOpen) {
-                const k = isOpen && SERIES[key] ? key : "calories";
-                const wrap = document.getElementById("g-chart");
-                const foot = document.getElementById("g-foot");
-                if (!wrap || !foot) return;
-                wrap.className = "cwrap " + macroOf(k).color;
-                wrap.innerHTML = seriesChart(k);
-                foot.innerHTML = seriesFoot(k);
+            // weight-trends' calendar grammar: one slot per DAY of the window
+            // (calendarSlots), the line BRIDGING the days nobody stepped on
+            // the scale — a weight is a sampled quantity, so an unweighed day
+            // is a gap in the sampling, not in the weight — and a mark on
+            // every reading (chMarksMarkup), so six readings in a fortnight
+            // can never pass for fourteen. Paint order as weight-trends
+            // paints it: day rules → line → target → marks → last-reading dot.
+            //
+            // `readings` defaults to WEIGH_INS; pass [] for the range-empty
+            // state, which keeps the chart BOX — the day rules and the target —
+            // so a range toggle never changes the card's height.
+            function bridgedWeightChart(start, end, readings) {
+                const days = (readings || WEIGH_INS).map(([md, w]) => ({
+                    date: thisYear(md),
+                    weight: w,
+                }));
+                const slots = calendarSlots(days, start, end);
+                const [lo, hi] = weightDomain(
+                    days.length
+                        ? days.map((d) => d.weight)
+                        : [WEIGHT_TARGET - 1, WEIGHT_TARGET + 1],
+                );
+                const all = chPoints(
+                    slots.map((s) => (s.day ? s.day.weight : lo)),
+                    lo,
+                    hi,
+                );
+                const pts = all.map((p, i) => (slots[i].day ? p : null));
+                const read = pts.filter(Boolean);
+                const last = read[read.length - 1] || null;
+                const gy = chY(WEIGHT_TARGET, lo, hi).toFixed(1);
+                const rules = chDayLines(
+                    all.filter((_, i) =>
+                        hairlineSlot(slots[i], i, slots.length),
+                    ),
+                );
+                const label = days.length
+                    ? weightLabel(start, end, days[days.length - 1].weight)
+                    : tpl(T.weightTrends.rangeEmpty, { range: slots.length });
+                return `<svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">${rules}<path class="cline" d="${chPath(read)}"></path><line class="cgoal" x1="${CH_PL}" y1="${gy}" x2="${CH_W - CH_PR}" y2="${gy}"></line>${chMarksMarkup(pts)}${last ? chDotMarkup(last[0], last[1]) : ""}</svg>`;
+            }
+
+            // ---- sparkline specimens ---------------------------------------
+            // A deterministic wobble, not Math.random: two loads of the page
+            // must draw the same line, or a before/after comparison is noise.
+            function wobble(i) {
+                return Math.round(
+                    2050 +
+                        260 * Math.sin(i * 1.3) +
+                        140 * Math.sin(i * 0.37 + 1),
+                );
+            }
+            // Calorie-only days over a window from `start` (or dateless, for
+            // the fallback axis), logged where `logged(i)` says so. `kcal(i)`
+            // overrides the wobble for the on-goal / over-goal weeks.
+            function calDays(start, n, logged, kcal) {
+                const out = [];
+                for (let i = 0; i < n; i++) {
+                    if (!logged(i)) continue;
+                    out.push({
+                        date: start ? shiftDay(start, i) : null,
+                        meal_count: 1,
+                        calories: kcal ? kcal(i) : wobble(i),
+                    });
+                }
+                return out;
+            }
+            // One focus panel with its sparkline, built exactly as
+            // nutrition-summary builds its own — focusPanel, then focusApply
+            // for a non-calorie metric, then sparkMarkup into `.fspark` — but
+            // with sparkMarkup called PURELY rather than through sparkPaint.
+            // sparkPaint owns the page's one SPARK state and reads the stashed
+            // ctx, both of which belong to the live card. `still`: a specimen
+            // is looked at, not entered; the live card is where the draw-in
+            // is reviewed.
+            //
+            // MEALS, not null: nutrition-summary's calorie panel has meals
+            // behind it, so it is a <button> — the 26px chevron gutter and the
+            // 3:1 --edge border. Built meal-less these specimens were spans at
+            // a 9px gutter and the soft --line, which drew the line 17px WIDER
+            // than the card they claim to reproduce, on the one section whose
+            // whole subject is that line's shape. inertPanel then takes the
+            // hooks and the tab stop back off, as every other specimen does.
+            function sparkSpecimen(days, start, end, key, goals, vals) {
+                const ctx = macroCtxOf(
+                    vals || averagesOf(days),
+                    goals,
+                    undefined,
+                    MEALS,
+                    {
+                        drinkUnit: "us",
+                        calLabel: T.nutritionSummary.dailyAvgLoggedDays,
+                    },
+                );
+                const m = macroOf(key);
+                const box = document.createElement("div");
+                box.innerHTML = focusPanel(macroOf("calories"), ctx);
+                const fx = box.firstElementChild;
+                if (m.role !== "cal") focusApply(fx, m, ctx, false);
+                fx.querySelector(".fspark").innerHTML = sparkMarkup({
+                    slots: calendarSlots(days, start, end),
+                    key,
+                    goals,
+                    still: true,
+                });
+                return `<div class="card c-cal"><div class="strip tiered">${inertPanel(box.innerHTML)}</div></div>`;
             }
 
             // ---- page helpers ----------------------------------------------
@@ -403,6 +914,9 @@
             }
             function spec(label, body) {
                 return `<div class="gitem"><span class="glab">${label}</span>${body}</div>`;
+            }
+            function wide(label, body) {
+                return `<div class="gwide"><span class="glab">${label}</span>${body}</div>`;
             }
             // The open chip is the real emitter's markup with the one attribute
             // a tap would have flipped. A hand-written open chip would stop
@@ -413,49 +927,218 @@
                     'aria-expanded="true"',
                 );
             }
-            function moreRow(open, label, value) {
-                return `<button class="more" type="button" aria-expanded="${open}"><span class="dot c-acc"></span>${label}<span class="mv">${value}</span><span class="chev">${icon("chev", 12)}</span></button>`;
+            function pressed(html) {
+                return html.replace(
+                    'aria-pressed="false"',
+                    'aria-pressed="true"',
+                );
             }
-            // A macroPanel() specimen that is NOT the live strip.
+
+            // MAKE A SPECIMEN INERT. Everything on this page except the live
+            // card passes through here.
             //
-            // macroToggle() reads the single __macroCtx and resolves the drawer
-            // by id, so two panels on one page carrying the same ids make one
-            // section's chip open ANOTHER section's drawer — a review surface
-            // that lies about the primitive it exists to review. Every panel
-            // except the live one in "The whole card" therefore gets its ids
-            // suffixed (aria-controls follows, so nothing dangles), which
-            // leaves it a faithful VISUAL specimen and an inert one.
-            function inertPanel(html, suffix) {
+            // macroToggle() reads the ONE stashed ctx and resolves its drawer
+            // inside the nearest [data-macro-panel]; the delegated handlers
+            // match [data-macro], [data-macro-extra], [data-macro-return] and
+            // [data-macro-close] document-wide. A specimen carrying any of
+            // them is a second strip wired to the first strip's data — the
+            // review surface lying about the primitive it exists to review.
+            // So every hook the handlers key on is removed, and so is
+            // data-widget-foot (see the live card for where the bridge's note
+            // goes instead).
+            //
+            // A SPECIMEN IS LOOKED AT, NOT OPERATED, so nothing in it is a
+            // tab stop: every button gets tabindex="-1". A disclosure that can
+            // never open, announcing "collapsed" with aria-controls naming a
+            // region it will never show, is exactly what "aria-expanded means
+            // something expands" forbids, so aria-controls always goes and
+            // the state attributes go too — unless `keepState`, for a specimen
+            // whose whole point IS the state (an open chip, a pressed toggle),
+            // where CSS keys the look on aria-expanded / aria-pressed and the
+            // tabindex keeps it out of the keyboard's path. Hover still
+            // responds; keyboard focus is reviewed on the live card.
+            //
+            // Ids get a per-call suffix (and aria-labelledby follows), because
+            // an inert drawer's head still carries macro-drawer-name and two
+            // regions must never share a name source.
+            const INERT_ATTRS = [
+                "data-macro",
+                "data-macro-panel",
+                "data-macro-return",
+                "data-macro-hint",
+                "data-macro-extra",
+                "data-macro-close",
+                "data-widget-foot",
+                "aria-controls",
+            ];
+            let INERT_N = 0;
+            function inertPanel(html, keepState) {
+                const suffix = `g${++INERT_N}`;
                 const box = document.createElement("div");
                 box.innerHTML = html;
                 box.querySelectorAll("[id]").forEach((el) => {
                     const next = `${el.id}-${suffix}`;
-                    box.querySelectorAll(`[aria-controls="${el.id}"]`).forEach(
-                        (c) => c.setAttribute("aria-controls", next),
-                    );
+                    box.querySelectorAll(
+                        `[aria-labelledby="${el.id}"]`,
+                    ).forEach((c) => c.setAttribute("aria-labelledby", next));
                     el.id = next;
+                });
+                const attrs = keepState
+                    ? INERT_ATTRS
+                    : INERT_ATTRS.concat(["aria-expanded", "aria-pressed"]);
+                box.querySelectorAll("*").forEach((el) => {
+                    attrs.forEach((a) => el.removeAttribute(a));
+                    if (el.tagName === "BUTTON")
+                        el.setAttribute("tabindex", "-1");
                 });
                 return box.innerHTML;
             }
 
+            // Run `fn` with another locale in effect, and ALWAYS put the page's
+            // back — the Dates table and the long-locale header visit every
+            // locale, and a throw halfway through must not leave the rest of
+            // the page (and the live card's later repaints) in Japanese.
+            function inLocale(code, fn) {
+                const was = WIDGET_LOCALE;
+                try {
+                    setLocale(code);
+                    return fn();
+                } finally {
+                    setLocale(was);
+                }
+            }
+
+            // The segmented control has no emitter (trends and weight-trends
+            // each write their own), so this copies their markup contract:
+            // a named group, a day count per button, aria-pressed. Out of the
+            // tab order like every specimen control (see inertPanel).
             function segControl(active) {
-                return `<div class="seg">${[7, 14, 30]
+                const seg = [7, 14, 30]
                     .map(
                         (d) =>
-                            `<button type="button" aria-pressed="${d === active}">${d}d</button>`,
+                            `<button type="button" tabindex="-1" aria-pressed="${d === active}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: d }))}">${d}</button>`,
                     )
-                    .join("")}</div>`;
+                    .join("");
+                return `<div class="seg" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>`;
+            }
+            // The section-sized disclosure bar, off the strip.
+            function moreRow(open, label, value) {
+                return `<button class="more" type="button" tabindex="-1" aria-expanded="${open}"><span class="dot c-acc"></span>${esc(label)}<span class="mv">${value}</span><span class="chev">${icon("chev", 12)}</span></button>`;
+            }
+            // goal-progress' weight row as that template hands it to
+            // macroPanel through opts.extra: the role class on the BUTTON, so
+            // --c (and the dot, and the open ring) resolve from it; the arrow
+            // kept visible ("78.4 → 75.0 kg"), every figure through
+            // macroDecimal so a trailing zero survives; the name from the
+            // dictionary's weightAria with its own separator in
+            // lastLoggedSuffix. inertPanel strips the hooks afterwards.
+            function weightRow(i, open) {
+                const u = unitLabel("kg");
+                const cur = macroDecimal(78.4, 1);
+                const tgt = macroDecimal(75, 1);
+                const aria = tpl(T.goalProgress.weightAria, {
+                    current: `${cur} ${u}`,
+                    target: `${tgt} ${u}`,
+                    state: tpl(T.goalProgress.toLose, {
+                        amount: `${macroDecimal(3.4, 1)} ${u}`,
+                    }),
+                    metaSuffix: tpl(T.goalProgress.lastLoggedSuffix, {
+                        date: dayHeader(thisYear("07-14")),
+                    }),
+                });
+                return `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="${open}" aria-controls="${MACRO_DRAWER_ID}" aria-label="${esc(aria)}" style="--i:${i}"><span class="dot"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(cur)} → ${esc(tgt)} ${esc(u)}</span><span class="chev">${icon("chev", 10)}</span></button>`;
             }
             function notice(variant, iconName, text) {
-                return `<div class="notice${variant ? " notice-" + variant : ""}">${icon(iconName, 16)}<span>${text}</span></div>`;
+                return `<div class="notice${variant ? " notice-" + variant : ""}">${icon(iconName, 16)}<span>${esc(text)}</span></div>`;
+            }
+
+            // ---- weight-trends' stand-alone panel ---------------------------
+            // Hand-written, like `.more` and `.seg` above: `.focus.solo` has no
+            // emitter — weight-trends writes this markup itself — so without a
+            // specimen the whole three-line grammar it ships (`.fdelta.fline`,
+            // `.fsince`, `.fgive`) could not be reviewed in dark mode, at a
+            // phone width or in a long locale. Which is exactly what those
+            // classes are for: a translated tail once printed across the
+            // panel's border, and the ellipsis that fixed it only fires on a
+            // narrow card in de/uk/ja.
+            //
+            // The two-part line is split AT THE PLACEHOLDER, as weight-trends
+            // splits it (figureLine): the figure is its own element and stays
+            // whole, the prose either side goes in the class that may give.
+            // Split, not assumed to start with the figure — ja writes
+            // "{date}から{change}".
+            function soloLine(template, key, figure, vars, give) {
+                const cls = give ? "fgive" : "fsince";
+                const parts = String(template).split(`{${key}}`);
+                if (parts.length !== 2) {
+                    return `<b class="fdelta fline"><span class="${cls}">${esc(tpl(template, Object.assign({}, vars, { [key]: figure })))}</span></b>`;
+                }
+                const prose = (s) =>
+                    s ? `<span class="${cls}">${esc(tpl(s, vars))}</span>` : "";
+                return `<b class="fdelta fline">${prose(parts[0])}<span>${esc(figure)}</span>${prose(parts[1])}</b>`;
+            }
+            // A line with no figure in it (needTwo, rangeEmpty, noTarget):
+            // muted, and still guarded, since a long translation is what has to
+            // give here.
+            function soloQuiet(text) {
+                return `<b class="fdelta fline mute"><span class="fsince">${esc(text)}</span></b>`;
+            }
+            // The figure slot. The em dash is a placeholder holding the box
+            // open in the state with no reading, so it is decorative and marked
+            // as such — the panel is a <span>, so its children are announced.
+            function soloFigure(v) {
+                return v == null
+                    ? '<span class="v" aria-hidden="true">—</span>'
+                    : `<span class="v">${esc(macroDecimal(v, 1))}<span class="u bare"> ${esc(unitLabel("kg"))}</span></span>`;
+            }
+            // Line 3: the gap to target, then the target itself in `.fgive` —
+            // the reference, and the part that ellipsises first. With no
+            // reading the target stands alone, so there is no separator either.
+            function soloTargetLine(latest) {
+                const kg = unitLabel("kg");
+                const target = esc(
+                    tpl(T.weightTrends.target, {
+                        value: `${macroDecimal(WEIGHT_TARGET, 1)} ${kg}`,
+                    }),
+                );
+                if (latest == null) {
+                    return `<b class="fdelta fline"><span class="fgive">${target}</span></b>`;
+                }
+                const gap = Math.round((latest - WEIGHT_TARGET) * 10) / 10;
+                const gapText =
+                    gap === 0
+                        ? T.weightTrends.atTarget
+                        : tpl(
+                              gap > 0
+                                  ? T.weightTrends.toLose
+                                  : T.weightTrends.toGain,
+                              {
+                                  amount: `${macroDecimal(Math.abs(gap), 1)} ${kg}`,
+                              },
+                          );
+                return `<b class="fdelta fline"><span>${esc(gapText)}</span><span class="fgive"> · ${target}</span></b>`;
+            }
+            function soloPanel(figure, label, line2, line3, chart) {
+                return `<span class="focus c-acc solo"><span class="fmain">${figure}<span class="fmeta"><span class="flabel">${esc(label)}</span>${line2}${line3}</span></span><span class="fspark">${chart}</span></span>`;
             }
 
             let __widgetApi = null;
 
             function render(data) {
-                // Every specimen with an emitter carries translated strings, so
-                // the locale has to be resolved before anything is painted.
+                // Every specimen with an emitter carries translated strings
+                // and water figures, so the locale and the water unit are
+                // resolved before anything is built — the same two calls, in
+                // the same order, every shipping template makes.
                 setLocaleFrom(data, __widgetApi);
+                const waterUnit = data && data.water_unit;
+                setWaterUnit(waterUnit);
+                const pageLocale = WIDGET_LOCALE;
+
+                // WHAT WAS OPEN on the live card, and where focus was, read
+                // before the page is thrown away — a host may re-deliver the
+                // tool result while a drawer is open. Scoped to the live card,
+                // not the page: it is the only strip macroRestore could reopen.
+                const was = macroSnapshot(document.getElementById("g-live"));
 
                 const CAL = macroOf("calories");
                 const PRO = macroOf("protein_g");
@@ -463,10 +1146,58 @@
                 const ALC = macroOf("alcohol_g");
                 const WAT = macroOf("water_ml");
                 const CARBS = macroOf("carbs_g");
+                const firstDay = shortDate(SERIES_START);
+                const lastDay = shortDate(SERIES_END);
 
-                // Three contexts, covering the three species of strip: meals +
-                // a chart behind it, nothing behind it, and a day where alcohol
-                // was tracked but none was drunk.
+                // ---- the live card -------------------------------------------
+                // nutrition-summary's card, built the way its render() builds
+                // it: the tiered strip, the calorie label naming its
+                // denominator, chartKeys from the days, and an onSeries that
+                // hands the whole focus panel — figure, ring, colour, line — to
+                // the tapped metric. The panel is found inside #g-live, never
+                // document-wide: the page holds dozens of `.focus` panels.
+                //
+                // THE ONLY STASHED STRIP. Every other macroPanel call on this
+                // page passes `stash: false`, so the delegated handlers always
+                // read this card's ctx — before that flag, the Rail specimen
+                // built after this one took the slot and a tap here opened a
+                // drawer from a meal-less specimen's data.
+                //
+                // data-widget-foot is stripped from this strip too, so the
+                // bridge's settings note falls back to #root and sits at the
+                // very END of the page, under the last specimen — see footSlot
+                // in shared/bridge.js. The foot keeps only the tap hint.
+                // "2–15 Jul · 9 of 14 days logged", in whatever locale is in
+                // effect when it is called (the long-locale header calls it
+                // inside inLocale).
+                const metaOf = () =>
+                    `${rangeLabel(SUMMARY.start_date, SUMMARY.end_date)} · ${daysLoggedCaption(SUMMARY.logged_days, SUMMARY.days_in_range)}`;
+                const liveMeta = metaOf();
+                const liveStrip = macroPanel(
+                    SUMMARY.averages,
+                    SUMMARY.goals,
+                    undefined,
+                    SUMMARY.meals,
+                    {
+                        tiers: true,
+                        drinkUnit: SUMMARY.drink_unit,
+                        calLabel: T.nutritionSummary.dailyAvgLoggedDays,
+                        chartKeys: chartableKeys(SUMMARY.days),
+                        onSeries: (key, isOpen) =>
+                            sparkPaint(
+                                document.querySelector("#g-live .focus"),
+                                isOpen ? key : "calories",
+                                isOpen,
+                            ),
+                    },
+                ).replace(" data-widget-foot", "");
+                const summaryHead = (meta) =>
+                    `<header class="chead"><h3 class="ctitle">${esc(T.nutritionSummary.title)}</h3><span class="cmeta">${esc(meta)}</span></header>`;
+
+                // ---- contexts for the loose chip / drawer specimens ----------
+                // Three species of chip: meals + a chart behind it, nothing
+                // behind it, and a day where alcohol was tracked but none was
+                // drunk.
                 const live = macroCtxOf(TOTALS, GOALS, undefined, MEALS, {
                     drinkUnit: "us",
                     chartKeys: CHART_KEYS,
@@ -481,151 +1212,658 @@
                     null,
                     { drinkUnit: "us" },
                 );
-                // The fourth species, and the one with no widget of its own on
-                // this page: chartKeys but NO meals, which is trends' whole
-                // rail. macroTappable is true (it drives the chart) while
-                // macroHasDetail is false, so tapAttrs emits aria-pressed
-                // instead of aria-expanded and chipMarkup drops the chevron.
+                // The fourth species: chartKeys but NO meals, which is trends'
+                // whole rail. macroTappable is true (it drives the chart)
+                // while macroHasDetail is false, so tapAttrs emits
+                // aria-pressed instead of aria-expanded and chipMarkup drops
+                // the chevron.
                 const toggles = macroCtxOf(TOTALS, GOALS, undefined, null, {
                     drinkUnit: "us",
                     chartKeys: CHART_KEYS,
                 });
-                // macroPanel stashes ONE ctx globally for the delegated toggle
-                // handler, and its drawer and panel have fixed ids — so every
-                // specimen except the live one is built FIRST and made inert,
-                // or a tap on the live strip would read this one's ctx (no
-                // meals) and open an empty drawer.
-                const staticStrip = inertPanel(
-                    macroPanel(TOTALS, GOALS, undefined, null, {
+                const chipSpec = (html) => inertPanel(html, true);
+
+                // ---- focus panel specimens -----------------------------------
+                // Reviewed on the surface it ships on, inside a strip (flat or
+                // tiered, since `.strip.tiered` is what splits the meta line
+                // into label · delta), inside a card: its selected tint and
+                // over state color-mix against --panel, which is not honest on
+                // the page ground.
+                const heroIn = (vals, goal, o) => {
+                    o = o || {};
+                    const ctx = macroCtxOf(vals, goal, undefined, o.meals, {
                         drinkUnit: "us",
-                    }),
-                    "static",
+                        calLabel:
+                            o.calLabel || T.nutritionSummary.dailyAvgLoggedDays,
+                    });
+                    return `<div class="card"><div class="strip${o.tiered ? " tiered" : ""}">${inertPanel(focusPanel(CAL, ctx))}</div></div>`;
+                };
+                const heroStates = (tiered) =>
+                    [
+                        [
+                            "0% of goal",
+                            heroIn({ ...TOTALS, calories: 0 }, GOALS, {
+                                tiered,
+                            }),
+                        ],
+                        [
+                            "62% of goal",
+                            heroIn({ ...TOTALS, calories: 1364 }, GOALS, {
+                                tiered,
+                            }),
+                        ],
+                        [
+                            "over goal",
+                            heroIn({ ...TOTALS, calories: 2480 }, GOALS, {
+                                tiered,
+                            }),
+                        ],
+                        ["no goal set", heroIn(TOTALS, null, { tiered })],
+                        [
+                            "a button (meals behind it)",
+                            heroIn(TOTALS, GOALS, { tiered, meals: MEALS }),
+                        ],
+                    ]
+                        .map(([l, b]) =>
+                            spec(`${tiered ? "tiered" : "flat"} · ${l}`, b),
+                        )
+                        .join("");
+                // The panel handed another metric, as a tap on the live card
+                // hands it one: focusApply in mirror mode — the protein
+                // figure, colour, ring and sparkline, the ✕ in the chevron's
+                // slot, and a name that says what it is showing.
+                // data-macro-return goes with the rest of the hooks.
+                const mirrorSpec = (() => {
+                    const ctx = macroCtxOf(
+                        SUMMARY.averages,
+                        GOALS,
+                        undefined,
+                        SUMMARY.meals,
+                        {
+                            drinkUnit: "us",
+                            calLabel: T.nutritionSummary.dailyAvgLoggedDays,
+                            chartKeys: chartableKeys(SUMMARY.days),
+                        },
+                    );
+                    const box = document.createElement("div");
+                    box.innerHTML = focusPanel(CAL, ctx);
+                    const fx = box.firstElementChild;
+                    focusApply(fx, PRO, ctx, true);
+                    fx.querySelector(".fspark").innerHTML = sparkMarkup({
+                        slots: calendarSlots(
+                            SUMMARY.days,
+                            SUMMARY.start_date,
+                            SUMMARY.end_date,
+                        ),
+                        key: "protein_g",
+                        goals: GOALS,
+                        still: true,
+                    });
+                    return `<div class="card"><div class="strip tiered">${inertPanel(box.innerHTML)}</div></div>`;
+                })();
+
+                // ---- sparkline specimens -------------------------------------
+                const W7 = thisYear("07-09");
+                const onGoal = calDays(
+                    W7,
+                    7,
+                    () => true,
+                    () => 2200,
                 );
-                const liveStrip = macroPanel(TOTALS, GOALS, undefined, MEALS, {
-                    drinkUnit: "us",
-                    divided: true,
-                    chartKeys: CHART_KEYS,
-                    onSeries: paintSeries,
-                });
+                const overGoal = calDays(
+                    W7,
+                    7,
+                    () => true,
+                    (i) => 2450 + ((i * 137) % 380),
+                );
+                const W30 = thisYear("06-16");
+                const W90 = thisYear("04-17");
+                const W365 = shiftDay(thisYear("07-15"), -364);
+                const sparks = [
+                    [
+                        "7 days · every day logged",
+                        sparkSpecimen(
+                            calDays(W7, 7, () => true),
+                            W7,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "14 days · 9 logged, gaps break the line",
+                        sparkSpecimen(
+                            SUMMARY.days,
+                            SUMMARY.start_date,
+                            SUMMARY.end_date,
+                            "calories",
+                            GOALS,
+                            SUMMARY.averages,
+                        ),
+                    ],
+                    [
+                        "water · the water-only day is a reading",
+                        sparkSpecimen(
+                            SUMMARY.days,
+                            SUMMARY.start_date,
+                            SUMMARY.end_date,
+                            "water_ml",
+                            GOALS,
+                            SUMMARY.averages,
+                        ),
+                    ],
+                    [
+                        "on goal · dashes cross the line",
+                        sparkSpecimen(
+                            onGoal,
+                            W7,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "over goal · red line",
+                        sparkSpecimen(
+                            overGoal,
+                            W7,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "a lone reading between gaps · a dot",
+                        sparkSpecimen(
+                            calDays(W7, 7, (i) => i !== 2 && i !== 4),
+                            W7,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "30 days · a rule per day",
+                        sparkSpecimen(
+                            calDays(W30, 30, (i) => i % 4 !== 3),
+                            W30,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "90 days · a rule per Monday",
+                        sparkSpecimen(
+                            calDays(W90, 90, (i) => i % 3 !== 2),
+                            W90,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "365 days · no rules",
+                        sparkSpecimen(
+                            calDays(W365, 365, (i) => i % 5 !== 4),
+                            W365,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "fallback axis · 48 dateless days, a rule every 7th",
+                        sparkSpecimen(
+                            calDays(null, 48, () => true),
+                            null,
+                            null,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                ]
+                    .map(([l, b]) => spec(l, b))
+                    .join("");
 
-                // The hero is always reviewed on the surface it ships on: its
-                // pill reads --acc-soft and its over state color-mixes against
-                // --panel, neither of which is honest on the page ground.
-                const heroIn = (vals, goal, opts) =>
-                    `<div class="card">${focusPanel(CAL, macroCtxOf(vals, goal, undefined, opts && opts.meals, opts))}</div>`;
+                // ---- tiered strip specimens ----------------------------------
+                // MEAL-LESS on purpose: with no meals and no chartKeys every
+                // tile is a static span and the strip carries no
+                // data-macro-panel at all, so these are layout specimens with
+                // nothing to operate. `keepState` only for the weight row's
+                // open specimen.
+                const tieredCard = (vals, goal, opts, keepState) =>
+                    `<div class="card">${inertPanel(
+                        macroPanel(
+                            vals,
+                            goal,
+                            undefined,
+                            null,
+                            Object.assign(
+                                {
+                                    tiers: true,
+                                    stash: false,
+                                    drinkUnit: "us",
+                                    calLabel:
+                                        T.nutritionSummary.dailyAvgLoggedDays,
+                                },
+                                opts,
+                            ),
+                        ),
+                        keepState,
+                    )}</div>`;
+                const noAlc = { ...TOTALS, alcohol_g: null };
+                const noAlcCaf = { ...noAlc, caffeine_mg: null };
+                const tieredSpecs = [
+                    [
+                        "limits rail · 4 tiles (sugar, alcohol, caffeine, fiber)",
+                        tieredCard(TOTALS, GOALS),
+                    ],
+                    [
+                        "limits rail · 3 tiles (alcohol tracking off)",
+                        tieredCard(noAlc, GOALS),
+                    ],
+                    [
+                        "limits rail · 2 tiles (and no caffeine ever recorded)",
+                        tieredCard(noAlcCaf, GOALS),
+                    ],
+                    [
+                        "limits rail · 1 tile (and no sugar, no sugar goal)",
+                        tieredCard(
+                            { ...noAlcCaf, sugar_g: 0 },
+                            { ...GOALS, sugar_g: null },
+                        ),
+                    ],
+                    [
+                        "no water row (none logged, no goal)",
+                        tieredCard(
+                            { ...TOTALS, water_ml: null },
+                            { ...GOALS, water_ml: null },
+                        ),
+                    ],
+                    [
+                        "water 0 against a goal · a real reading",
+                        tieredCard({ ...TOTALS, water_ml: 0 }, GOALS),
+                    ],
+                    [
+                        "worst case · carbs 2310/2200 g, caffeine 187/400 mg",
+                        tieredCard(
+                            { ...TOTALS, carbs_g: 2310, caffeine_mg: 187 },
+                            { ...GOALS, carbs_g: 2200 },
+                        ),
+                    ],
+                ];
+                // The water bar in each display unit. setWaterUnit is
+                // AMBIENT (like the locale), so it is put back to the page's
+                // unit even on a throw — the live card repaints its panel and
+                // drawer long after this, and would otherwise read in the last
+                // specimen's ounces.
+                try {
+                    [
+                        ["l", "litres"],
+                        ["us_fl_oz", "US fl oz"],
+                        ["uk_fl_oz", "UK fl oz"],
+                    ].forEach(([code, name]) => {
+                        setWaterUnit(code);
+                        tieredSpecs.push([
+                            `water bar · ${name}`,
+                            tieredCard(TOTALS, GOALS),
+                        ]);
+                    });
+                } finally {
+                    setWaterUnit(waterUnit);
+                }
+                const weightStrip = (open) =>
+                    tieredCard(
+                        TOTALS,
+                        GOALS,
+                        {
+                            extra: {
+                                key: "weight",
+                                row: (i) => weightRow(i, open),
+                                detail: null,
+                            },
+                        },
+                        true,
+                    );
 
+                // ---- drawer specimens ----------------------------------------
+                // A drawer ships at the CARD's width, and its head's caption
+                // is one nowrap line that ellipsises inside it. Laid out as a
+                // `.gitem` (fit-content) the caption's min-content would size
+                // the card instead — "2.0 US drinks · limit 20 g · 7.7 g over"
+                // pushed one to 368px on a 320px page — so every drawer
+                // specimen is a full-width `wide()` cell rather than a `spec()`.
                 const drawer = (body) =>
-                    `<div class="card"><div class="drawer">${body}</div></div>`;
+                    `<div class="card"><div class="drawer">${inertPanel(body)}</div></div>`;
+                const drinkCtx = (unit) =>
+                    macroCtxOf(TOTALS, GOALS, undefined, MEALS, {
+                        drinkUnit: unit,
+                    });
+                // "brunch" is not in the server's enum, so mealTypeLabel has
+                // no translation for it and must print the stored word; "Lunch"
+                // is, case-insensitively.
+                const oddTypes = [
+                    {
+                        description: "Shakshuka & sourdough",
+                        meal_type: "brunch",
+                        date: null,
+                        protein_g: 28,
+                    },
+                    {
+                        description: "Chicken Caesar salad",
+                        meal_type: "Lunch",
+                        date: null,
+                        protein_g: 41,
+                    },
+                ];
+
+                // ---- dates -----------------------------------------------------
+                const DATE_CASES = [
+                    [
+                        "same month",
+                        () => rangeLabel(thisYear("07-05"), thisYear("07-07")),
+                    ],
+                    [
+                        "cross month",
+                        () => rangeLabel(thisYear("06-28"), thisYear("07-04")),
+                    ],
+                    [
+                        "cross year",
+                        () => rangeLabel("2025-12-28", "2026-01-03"),
+                    ],
+                    ["past-year day", () => dayHeader("2025-03-02")],
+                    ["shortDate", () => shortDate(thisYear("07-11"))],
+                    [
+                        "plain · same month",
+                        () =>
+                            rangeLabelPlain(
+                                thisYear("07-05"),
+                                thisYear("07-07"),
+                            ),
+                    ],
+                    [
+                        "plain · past year",
+                        () => rangeLabelPlain("2025-06-28", "2025-07-04"),
+                    ],
+                    [
+                        "2026-02-31",
+                        () => rangeLabel("2026-02-27", "2026-02-31"),
+                    ],
+                    ["2026-13-01", () => dayHeader("2026-13-01")],
+                ];
+                const CAPTION_CASES = [
+                    ["1", () => daysLoggedCaption(1, 1)],
+                    ["2", () => daysLoggedCaption(2, 2)],
+                    ["3", () => daysLoggedCaption(3, 3)],
+                    ["5", () => daysLoggedCaption(5, 5)],
+                    ["21", () => daysLoggedCaption(21, 21)],
+                    ["9 of 14", () => daysLoggedCaption(9, 14)],
+                ];
+                const LOCALES = Object.keys(WIDGET_STRINGS);
+                // One row per locale, each cell computed WITH that locale in
+                // effect; `lang` on the row so a screen reader switches voice.
+                const localeTable = (name, cases) => {
+                    const head = cases
+                        .map(([h]) => `<th>${esc(h)}</th>`)
+                        .join("");
+                    const rows = LOCALES.map((code) => {
+                        const cells = inLocale(code, () =>
+                            cases.map(([, f]) => f()),
+                        );
+                        return `<tr lang="${code}"><td class="dim">${code}</td>${cells.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`;
+                    }).join("");
+                    return `<div class="tscroll" role="region" tabindex="0" aria-label="${esc(name)}"><table class="tbl"><thead><tr><th>locale</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+                };
+                // The header meta that stresses `.chead` hardest: the longest
+                // "range · days logged" line any locale writes, rendered in
+                // that locale in a 232px box — the width where the meta first
+                // takes its own row and then has to wrap inside it rather
+                // than clip. `.chead` wraps by plain flex, with no media query,
+                // so a fixed-width specimen is honest here.
+                const longest = LOCALES.map((code) => ({
+                    code,
+                    meta: inLocale(code, metaOf),
+                })).sort((a, b) => b.meta.length - a.meta.length)[0];
+                const longHead = inLocale(
+                    longest.code,
+                    () =>
+                        `<div class="card c-cal gnarrow" lang="${longest.code}"><span class="glow"></span>${summaryHead(longest.meta)}</div>`,
+                );
+
+                // ---- import progress ----------------------------------------
+                const stepHead = `<header class="chead"><h3 class="ctitle">${esc(T.importMeals.stepMap)}</h3><span class="cmeta">${esc(tpl(T.importMeals.stepCount, { n: 2, total: 4 }))}</span></header>`;
+                const batchLine = tpl(T.importMeals.batchProgress, {
+                    label: plural(T.importMeals.importingRows, 400),
+                    done: 5,
+                    total: 8,
+                });
 
                 document.getElementById("root").innerHTML = `
           <div class="gal">
+            <h1 class="gtitle">Component gallery</h1>
 
             ${sect(
-                "The whole card",
-                "Header, chart, hairline, hero, ONE rail, the limits' .more row, drawer — the shape every readout widget takes. (This caption claimed a second rail long after macroPanel stopped emitting one and put the limits behind a disclosure instead — the gallery is the review surface, so its own prose has to track the emitter.) This is the page's only LIVE strip: tap a chip to open the drawer and re-stroke the chart, tap it again to close, and use the .more row to reveal the limits. Every other panel below is deliberately inert — see inertPanel.",
-                `<div class="card c-cal">
-                   <span class="glow"></span>
-                   <header class="chead">
-                     <h1 class="ctitle">Nutrition</h1>
-                     <span class="cmeta">${FIRST_DAY}–${LAST_DAY} · 7 days</span>
-                   </header>
-                   <div>
-                     <div class="cwrap c-cal" id="g-chart">${seriesChart("calories")}</div>
-                     <div class="cfoot" id="g-foot">${seriesFoot("calories")}</div>
-                   </div>
+                "The whole card · nutrition-summary",
+                "The page's only LIVE strip, built exactly as nutrition-summary builds its card: header (range · days logged), the focus panel with its sparkline, the energy split three-up, the limits, the water bar, the drawer, the foot. Tap a tile: its meals open in the drawer AND the whole panel moves to that metric — figure, ring, colour, line. Tap the panel to go back to calories; Escape closes whatever is open and hands focus back to what opened it. Every other strip below is deliberately inert — see inertPanel.",
+                `<div id="g-live"><div class="card c-cal">
+                   <div class="glow"></div>
+                   ${summaryHead(liveMeta)}
                    ${liveStrip}
-                 </div>`,
+                 </div></div>`,
             )}
 
             ${sect(
                 "Card · header · section",
-                "The header's three slots and the one hairline block. .glow is tinted by the card's own role class; .csub is the only thing allowed to drop to a second row.",
+                "The header's three slots and the one hairline block. .glow is tinted by the card's own role class; .csub is the only thing allowed to drop to a second row. The narrow specimen is the longest range · days-logged meta any locale writes, in that locale: it must take its own row and then wrap, never clip.",
                 `<div class="ggrid">
-                   <div class="card">
-                     <header class="chead"><h1 class="ctitle">Nutrition</h1><span class="cmeta">${FIRST_DAY}–${LAST_DAY} · 7 days</span></header>
+                   <div class="card c-cal">
+                     <span class="glow"></span>
+                     ${summaryHead(liveMeta)}
                      <div class="sec"><span class="gcap">A .sec block: one hairline, never a second surface.</span></div>
                    </div>
                    <div class="card c-cal">
                      <span class="glow"></span>
                      <header class="chead">
-                       <h1 class="ctitle">Meal logged</h1>
-                       <span class="cmeta kcal">+540 kcal</span>
-                       <span class="csub">15 Jul · Сир кисломолочний «Сирна Традиція» (President), 300 г · lunch</span>
+                       <h3 class="ctitle">${esc(T.mealLogged.titleLogged)}</h3>
+                       <span class="cmeta kcal">${esc(tpl(T.mealLogged.addedKcal, { kcal: fmt(540) }))}</span>
+                       <span class="csub">${esc(dayHeader(thisYear("07-15")))} · ${esc(mealTypeLabel("lunch"))} · Сир кисломолочний «Сирна Традиція» (President), 300 г</span>
                      </header>
                    </div>
+                 </div>
+                 <div class="grow" style="margin-top:12px">
+                   ${spec(`232px · longest meta (${longest.code})`, longHead)}
                  </div>`,
             )}
 
             ${sect(
                 "Empty states",
-                "Bare .empty is its own surface — bridge.js paints its connect-failure card with exactly these two class names. Nested inside a card it drops the surface, because there are never two.",
+                "A bare .empty stands on the page here, because the gallery's root is .page — in a shipping widget the same bare block (loading, no-host, no range to name) goes flush with the host's frame (.wrap:not(.page) > .empty) and cannot be shown on this page. Inside a card it drops the surface, because there are never two.",
                 `<div class="ggrid">
                    <div class="empty"><div class="big">⚠</div><div>${esc(T.chrome.noHost)}</div></div>
-                   <div class="card">
-                     <header class="chead"><h1 class="ctitle">Trends</h1></header>
-                     <div class="empty"><div class="big">📈</div><div>Nothing logged in this range yet.</div></div>
+                   <div class="empty"><div class="big">🍽️</div><div>${esc(T.nutritionSummary.loading)}</div></div>
+                   <div class="card c-cal">
+                     <span class="glow"></span>
+                     <header class="chead"><h3 class="ctitle">${esc(T.nutritionSummary.title)}</h3><span class="cmeta">${esc(rangeLabel(SUMMARY.start_date, SUMMARY.end_date))}</span></header>
+                     <div class="empty"><div class="big">🍽️</div><div>${esc(T.nutritionSummary.empty)}</div></div>
+                   </div>
+                   <div class="card c-cal">
+                     <span class="glow"></span>
+                     <header class="chead"><h3 class="ctitle">${esc(T.trends.title)}</h3><span class="cmeta">${esc(rangeLabel(SUMMARY.start_date, SUMMARY.end_date))}</span></header>
+                     <div class="empty"><div class="big">📈</div><div>${esc(T.trends.empty)}</div></div>
+                   </div>
+                   <div class="card c-cal">
+                     <span class="glow"></span>
+                     <header class="chead"><h3 class="ctitle">${esc(T.trends.title)}</h3><span class="cmeta">${esc(rangeLabel(W7, SERIES_END))}</span></header>
+                     <div class="empty"><div class="big">📈</div><div>${esc(tpl(T.trends.rangeEmpty, { range: 7 }))}</div></div>
                    </div>
                  </div>`,
             )}
 
             ${sect(
+                "Focus panel",
+                "The top of every readout card and the one thing on it that is not a tile: the ring (how far along), the figure (value against goal), the meta (the period, and the distance left), the sparkline. A <span> unless meals sit behind calories, when it is a button with a chevron. Flat and tiered: .strip.tiered is what splits the meta into a label that ellipsises and a delta that never does. One logged day names its figure a total and draws no chart.",
+                `<div class="ggrid">
+                   ${heroStates(false)}
+                   ${heroStates(true)}
+                   ${spec("one logged day · Total, no chart", heroIn(TOTALS, GOALS, { tiered: true, calLabel: T.nutritionSummary.total }))}
+                   ${spec("calories exactly on goal", heroIn({ ...TOTALS, calories: 2200 }, GOALS, { tiered: true }))}
+                   ${spec("mirroring Protein (focusApply) · ✕ returns to calories", mirrorSpec)}
+                 </div>`,
+            )}
+
+            ${sect(
+                "Focus panel — solo (weight-trends)",
+                "The stand-alone panel: no strip, no ring, no chevron, and THREE meta lines in every state, so a range toggle never changes the card's height. Each two-part line keeps its figure whole and lets only the prose give — `.fsince` on line 2, `.fgive` on line 3 — which is the ellipsis that stops a long translation printing across the panel's border. It has no emitter, so this markup is hand-written from weight-trends'. Shown full width and again at 232px: the narrow cell is where the ellipsis actually fires, and it only fires in a long locale, so review it with ?locale=de or uk.",
+                `<div class="gstack">
+                   ${wide(
+                       "latest reading · change since · gap and target",
+                       `<div class="card c-acc">${soloPanel(
+                           soloFigure(WEIGH_INS[WEIGH_INS.length - 1][1]),
+                           `${T.weightTrends.latest} · ${dayHeader(thisYear(WEIGH_INS[WEIGH_INS.length - 1][0]))}`,
+                           soloLine(
+                               T.weightTrends.sinceDate,
+                               "change",
+                               `−${macroDecimal(WEIGH_INS[0][1] - WEIGH_INS[WEIGH_INS.length - 1][1], 1)} ${unitLabel("kg")}`,
+                               { date: shortDate(thisYear(WEIGH_INS[0][0])) },
+                           ),
+                           soloTargetLine(WEIGH_INS[WEIGH_INS.length - 1][1]),
+                           bridgedWeightChart(
+                               SUMMARY.start_date,
+                               SUMMARY.end_date,
+                           ),
+                       )}</div>`,
+                   )}
+                   ${wide(
+                       "one reading · nothing to compare it with",
+                       `<div class="card c-acc">${soloPanel(
+                           soloFigure(WEIGH_INS[WEIGH_INS.length - 1][1]),
+                           `${T.weightTrends.latest} · ${dayHeader(thisYear(WEIGH_INS[WEIGH_INS.length - 1][0]))}`,
+                           soloQuiet(T.weightTrends.needTwo),
+                           soloTargetLine(WEIGH_INS[WEIGH_INS.length - 1][1]),
+                           bridgedWeightChart(
+                               SUMMARY.start_date,
+                               SUMMARY.end_date,
+                               [WEIGH_INS[WEIGH_INS.length - 1]],
+                           ),
+                       )}</div>`,
+                   )}
+                   ${wide(
+                       "no reading in the range · the shell is kept",
+                       `<div class="card c-acc">${soloPanel(
+                           soloFigure(null),
+                           T.weightTrends.latest,
+                           soloQuiet(
+                               tpl(T.weightTrends.rangeEmpty, { range: 7 }),
+                           ),
+                           soloTargetLine(null),
+                           bridgedWeightChart(
+                               SUMMARY.start_date,
+                               SUMMARY.end_date,
+                               [],
+                           ),
+                       )}</div>`,
+                   )}
+                 </div>
+                 <div class="grow" style="margin-top:12px">
+                   ${spec(
+                       "232px · where .fsince and .fgive ellipsise",
+                       `<div class="card gnarrow c-acc">${soloPanel(
+                           soloFigure(WEIGH_INS[WEIGH_INS.length - 1][1]),
+                           `${T.weightTrends.latest} · ${dayHeader(thisYear(WEIGH_INS[WEIGH_INS.length - 1][0]))}`,
+                           soloLine(
+                               T.weightTrends.sinceDate,
+                               "change",
+                               `−${macroDecimal(WEIGH_INS[0][1] - WEIGH_INS[WEIGH_INS.length - 1][1], 1)} ${unitLabel("kg")}`,
+                               { date: shortDate(thisYear(WEIGH_INS[0][0])) },
+                           ),
+                           soloTargetLine(WEIGH_INS[WEIGH_INS.length - 1][1]),
+                           bridgedWeightChart(
+                               SUMMARY.start_date,
+                               SUMMARY.end_date,
+                           ),
+                       )}</div>`,
+                   )}
+                 </div>`,
+            )}
+
+            ${sect(
+                "Sparkline (focus panel)",
+                "sparkMarkup on the calendar axis (calendarSlots): one slot per DAY of the range, so a day nobody logged is a gap in the line and the wash, never a closer neighbour. A day that logged only water is a gap on every food series and a reading on water. The goal's dashes are painted OVER the line, so a week exactly on goal still shows them. Rules: every day up to a month, Mondays up to four, none beyond; a dateless (fallback) axis marks every 7th slot. Drawn .still — the draw-in plays once, on the live card.",
+                `<div class="ggrid">${sparks}</div>`,
+            )}
+
+            ${sect(
+                "Strip — tiered (nutrition-summary · goal-progress · meal-logged · trends)",
+                "opts.tiers deals the same tiles into the three groups role names: the energy split three-up, the limits a size down behind a hairline, water as a closing bar. A limits rail is as wide as it has tiles (data-n) — four, three, two or one across, folding to two below 480px and 2×2 between 480 and 620. THE BREAKPOINTS FOLLOW THE VIEWPORT, not the specimen, so these are full-width and stacked: review them by resizing the frame. Meal-less, so every tile is a static span.",
+                `<div class="gstack">${tieredSpecs.map(([l, b]) => wide(l, b)).join("")}</div>`,
+            )}
+
+            ${sect(
+                "Strip — flat (legacy path, kept until the flag goes)",
+                "The untiered strip every widget rendered before opts.tiers: the panel, then ONE rail of equal tiles, the limits on it too, each tile its own gauge (the ground fills to its share of the goal). Kept reviewable because it is the rollback. The same macroPanel with no meals and no chartKeys: every tile a span, no chevron, no tap hint, no drawer. Full width only: its four-across rule (580px) is a viewport query too, so in a box narrower than the viewport it clips figures production never clips.",
+                `<div class="gstack">
+                   ${wide(
+                       "full width",
+                       `<div class="card">${inertPanel(
+                           macroPanel(TOTALS, GOALS, undefined, null, {
+                               drinkUnit: "us",
+                               stash: false,
+                           }),
+                       )}</div>`,
+                   )}
+                 </div>`,
+            )}
+
+            ${sect(
                 "Chip — every state",
-                "Emitted by macroChip / macroLimit / waterChip. Hover and :focus-visible are live: point at one, or Tab through them. The bordered pill is a control, the recessed one is data — that contrast is the whole affordance. Two CONTROL species share that pill and must stay tellable apart: a disclosure carries the chevron, aria-expanded and aria-controls; a chart toggle carries neither chevron nor aria-expanded, only aria-pressed, because it opens nothing. Over a ceiling keeps the same dot and the same shape — a rail of metrics reports, it does not warn — so the state is hue alone on a closed chip (value, underbar, hairline), with the wording in the visually-hidden .dcap and in the drawer.",
+                'Emitted by macroChip / macroLimit / waterChip, on the flat rail\'s shape. Hover is live — point at one; keyboard focus is reviewed on the live card, since a specimen is never a tab stop (see inertPanel). The bordered pill is a control, the recessed one is data — that contrast is the whole affordance. Two CONTROL species share that pill and must stay tellable apart: a disclosure carries the chevron and aria-expanded; a chart toggle carries neither chevron nor aria-expanded, only aria-pressed, because it opens nothing. Over a ceiling keeps the same dot and the same shape, the value printed against its limit ("58.2/45 g") and the fill and hairline in --over. Rounding edges: every state is decided on the PRINTED figure, so 159.6 of 160 is at goal, 45.04 of 45 is at limit and not over, and a limit of 0 with nothing drunk is kept, not "at limit".',
                 `<div class="grow">
-                   ${spec("interactive · disclosure", macroChip(PRO, live, true))}
-                   ${spec("open", opened(macroChip(PRO, live, true)))}
-                   ${spec("toggle · chart series only (aria-pressed, no chevron)", macroChip(PRO, toggles, true))}
-                   ${spec("toggle · pressed", macroChip(PRO, toggles, true).replace('aria-pressed="false"', 'aria-pressed="true"'))}
-                   ${spec("over a ceiling · hue only, same dot", macroLimit(SUG, live, true))}
-                   ${spec("over + open", opened(macroLimit(SUG, live, true)))}
+                   ${spec("interactive · disclosure", chipSpec(macroChip(PRO, live, true)))}
+                   ${spec("open", chipSpec(opened(macroChip(PRO, live, true))))}
+                   ${spec("toggle · chart series only (aria-pressed, no chevron)", chipSpec(macroChip(PRO, toggles, true)))}
+                   ${spec("toggle · pressed", chipSpec(pressed(macroChip(PRO, toggles, true))))}
+                   ${spec("over a ceiling · hue + figure, same dot", chipSpec(macroLimit(SUG, live, true)))}
+                   ${spec("over + open", chipSpec(opened(macroLimit(SUG, live, true))))}
                    ${spec("over · static (the same cue with no control)", macroLimit(SUG, flat, false))}
                    ${spec("static", macroChip(PRO, flat, false))}
                    ${spec("static · none logged", macroLimit(ALC, dry, false))}
                    ${spec("water (never a control)", waterChip(WAT, live, false))}
                    ${spec("tap hint (card foot)", '<span id="g-ghost"></span>')}
+                 </div>
+                 <div class="grow" style="margin-top:12px">
+                   ${spec("159.6 of 160 g · at goal", macroChip(PRO, macroCtxOf({ protein_g: 159.6 }, { protein_g: 160 }), false))}
+                   ${spec("45.04 of 45 g · at limit, not over", macroLimit(SUG, macroCtxOf({ sugar_g: 45.04 }, { sugar_g: 45 }), false))}
+                   ${spec("limit 0 · nothing drunk", macroLimit(ALC, macroCtxOf({ alcohol_g: 0 }, { alcohol_g: 0 }), false))}
+                   ${spec("limit 0 · 4.2 g drunk", macroLimit(ALC, macroCtxOf({ alcohol_g: 4.2 }, { alcohol_g: 0 }), false))}
                  </div>`,
             )}
 
             ${sect(
-                "Rail — the metric grid",
-                "macroPanel puts EVERY metric on one rail — the limits are not tucked behind anything any more. Equal columns, two of them below 480px and four above, so eight metrics are always a whole rectangle rather than a half-empty last row. Each tile is its own gauge: the background fills from the left to the metric's share of its goal, the way the site header's reading-progress wash does. Stressed here in a 232px column, where two columns get 106px each.",
-                `<div class="card gnarrow">${inertPanel(
-                    macroPanel(TOTALS, GOALS, undefined, null, {
-                        drinkUnit: "us",
-                    }),
-                    "narrow",
-                )}</div>`,
-            )}
-
-            ${sect(
-                "Hero — the calorie tile",
-                "The same component as a metric tile, one size up: it carries `chip` in its class list, so wash, border, radius, chevron slot and every state rule arrive already correct. Row two adds the delta pill, which is what closes the empty middle the old donut-plus-pill row had.",
-                `<div class="ggrid">
-                   ${spec("0% of goal", heroIn({ ...TOTALS, calories: 0 }, GOALS))}
-                   ${spec("62% of goal", heroIn({ ...TOTALS, calories: 1364 }, GOALS))}
-                   ${spec("over goal", heroIn({ ...TOTALS, calories: 2480 }, GOALS))}
-                   ${spec("no goal set", heroIn(TOTALS, null))}
-                                      ${spec("interactive (a button)", heroIn(TOTALS, GOALS, { meals: MEALS }))}
-                 </div>`,
-            )}
-
-            ${sect(
-                ".more row",
-                "The section-sized disclosure: goal-progress's weight block, and the drawer's own overflow line. The chevron rotates off aria-expanded, nothing else moves.",
-                `<div class="card">
-                   ${moreRow(false, "Weight", "78.4 → 75.0 kg")}
-                   <div style="height:8px"></div>
-                   ${moreRow(true, "Weight", "78.4 → 75.0 kg")}
+                ".more — section disclosure",
+                "A section-sized disclosure bar: the drawer's own overflow line, and the shape goal-progress' weight row started from. The chevron rotates off aria-expanded, nothing else moves. On the tiered strip the weight row is .more.mextra, handed to macroPanel through opts.extra: after the water bar, in the tiles' control language (--panel ground, the 3:1 --edge, the panel's tint-and-ring when open), opening the strip's ONE drawer. Its drawer's track is goal-progress' own CSS and is reviewed there.",
+                `<div class="gstack">
+                   ${wide(
+                       ".more · resting and open",
+                       `<div class="card">
+                          ${moreRow(false, T.goalProgress.weightLabel, `${esc(macroDecimal(78.4, 1))} → ${esc(macroDecimal(75, 1))} ${esc(unitLabel("kg"))}`)}
+                          <div style="height:8px"></div>
+                          ${moreRow(true, T.goalProgress.weightLabel, `${esc(macroDecimal(78.4, 1))} → ${esc(macroDecimal(75, 1))} ${esc(unitLabel("kg"))}`)}
+                        </div>`,
+                   )}
+                   ${wide("weight row on the tiered strip · resting", weightStrip(false))}
+                   ${wide("weight row on the tiered strip · open", weightStrip(true))}
                  </div>`,
             )}
 
             ${sect(
                 "Drawer",
-                "One per card, one open at a time, built by macroDetailBody. The caption is the exact goal line the old always-visible bars used to carry.",
+                "One per card, one open at a time, built by macroDetailBody: the metric, the goal state the tile had no room for, the meals behind it largest-first (eight, then a tail). A row names its day on a multi-day card and its meal type otherwise — translated, or the stored word when the server's enum has none. Over a ceiling, and over the calorie goal, the head goes --over with the panel that opened it.",
                 `<div class="ggrid">
-                   ${spec("a list", drawer(macroDetailBody(CARBS, live)))}
-                   ${spec("over a ceiling", drawer(macroDetailBody(SUG, live)))}
-                   ${spec(
+                   ${wide("a list", drawer(macroDetailBody(CARBS, live)))}
+                   ${wide("over a ceiling", drawer(macroDetailBody(SUG, live)))}
+                   ${wide("calories over goal", drawer(macroDetailBody(CAL, macroCtxOf({ ...TOTALS, calories: 2480 }, GOALS, undefined, MEALS, { drinkUnit: "us" }))))}
+                   ${wide(
                        "capped, with a tail",
                        drawer(
                            macroDetailBody(
@@ -640,96 +1878,103 @@
                            ),
                        ),
                    )}
-                   ${spec("nothing behind it", drawer(macroDetailBody(WAT, live)))}
+                   ${wide("dated rows (a multi-day range)", drawer(macroDetailBody(PRO, macroCtxOf(SUMMARY.averages, GOALS, undefined, SUMMARY.meals, { drinkUnit: "us" }))))}
+                   ${wide("alcohol · US drinks", drawer(macroDetailBody(ALC, drinkCtx("us"))))}
+                   ${wide("alcohol · UK units", drawer(macroDetailBody(ALC, drinkCtx("uk"))))}
+                   ${wide("meal types · 'brunch' falls back to itself", drawer(macroDetailBody(PRO, macroCtxOf({ protein_g: 69 }, GOALS, undefined, oddTypes, { drinkUnit: "us" }))))}
+                   ${wide("nothing behind it", drawer(macroDetailBody(WAT, live)))}
                  </div>`,
             )}
 
             ${sect(
-                "Charts",
-                'All three instances, each in a 232px column — the width where preserveAspectRatio="none" stretches hardest, so a missing vector-effect shows as a thin vertical segment. The last-point dot is the only marker. A zero-based chart carries the area fill and a data-scaled one must not: compare the first two.',
+                "Dates",
+                'Every header date, in every locale, through the real date.js: Intl first ("5–7 Jul", "5.–7. Juli"), the hand-rolled rangeLabelPlain only where Intl fails — its columns are here so that path is reviewable without breaking Intl. The year shows when a range crosses one or is not this year\'s. A pair that is not two real days passes through raw: 2026-02-31 rolls over in Date.UTC and must never print as "31 Feb". Current-year rows are built from the clock, so they stay year-free every year.',
+                `<div class="gstack">
+                   ${localeTable("Date labels, every locale", DATE_CASES)}
+                   ${localeTable("Days-logged captions, every locale", CAPTION_CASES)}
+                 </div>`,
+            )}
+
+            ${sect(
+                "Charts — trends · weight-trends grammar",
+                'The standalone .cwrap + .cfoot grammar, each in a 232px column — the width where preserveAspectRatio="none" stretches hardest, so a missing vector-effect shows as a thin vertical segment. A zero-based chart carries the area fill and a data-scaled one must not: compare the first two. The calendar weight chart bridges the days nobody weighed in and marks every reading, so six readings in a fortnight never pass for fourteen.',
                 `<div class="grow">
                    ${spec(
                        "zero-based · goal line · area",
-                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${seriesChart("calories")}</div><div class="cfoot">${seriesFoot("calories")}</div></div>`,
+                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${seriesChart("calories")}</div><div class="cfoot">${grammarFoot("calories", firstDay, lastDay)}</div></div>`,
                    )}
                    ${spec(
                        "data-scaled · dashed target · NO area",
-                       `<div class="card gnarrow c-acc"><div class="cwrap c-acc">${weightChart()}</div><div class="cfoot"><span>7 weigh-ins</span><span><b>target</b> 78.0 kg</span></div></div>`,
+                       `<div class="card gnarrow c-acc"><div class="cwrap c-acc">${weightChart()}</div><div class="cfoot"><span>${esc(plural(T.weightTrends.weighIns, WEIGHTS.length))}</span><span>${targetFoot(WEIGHT_TARGET)}</span></div></div>`,
                    )}
                    ${spec(
-                       "empty range",
-                       `<div class="card gnarrow"><div class="cempty">No weigh-ins in this range.</div><div class="cfoot"><span>—</span><span><b>target</b> 78.0 kg</span></div></div>`,
+                       "calendar axis · bridged · a mark per reading",
+                       `<div class="card gnarrow c-acc"><div class="cwrap c-acc">${bridgedWeightChart(SUMMARY.start_date, SUMMARY.end_date)}</div><div class="cfoot"><span>${esc(plural(T.weightTrends.weighIns, WEIGH_INS.length))}</span><span>${targetFoot(WEIGHT_TARGET)}</span></div></div>`,
                    )}
                    ${spec(
                        "near-flat · goal just above",
-                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${flatChart()}</div><div class="cfoot"><span>${FIRST_DAY}</span><span><b>avg</b> 2,035 · <b>goal</b> 2,200</span><span>${LAST_DAY}</span></div></div>`,
+                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${flatChart()}</div><div class="cfoot">${valuesFoot("calories", 2035, 2200, firstDay, lastDay)}</div></div>`,
                    )}
                    ${spec(
                        "one reading · nothing to fill",
-                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${chartSvg([2035], 0, 2530, 2200, "Calories, one day", true)}</div><div class="cfoot"><span>${LAST_DAY}</span><span><b>avg</b> 2,035</span><span>${LAST_DAY}</span></div></div>`,
+                       `<div class="card gnarrow c-cal"><div class="cwrap c-cal">${chartSvg([2035], 0, 2530, 2200, overRangeLabel(CAL, 7), true)}</div><div class="cfoot">${valuesFoot("calories", 2035, null, lastDay, lastDay)}</div></div>`,
                    )}
                    ${spec(
                        "same chart, full width",
-                       `<div class="card" style="width:100%"><div class="cwrap c-pro">${seriesChart("protein_g")}</div><div class="cfoot">${seriesFoot("protein_g")}</div></div>`,
+                       `<div class="card" style="width:100%"><div class="cwrap c-pro">${seriesChart("protein_g")}</div><div class="cfoot">${grammarFoot("protein_g", firstDay, lastDay)}</div></div>`,
                    )}
                  </div>`,
             )}
 
             ${sect(
                 "Segmented control",
-                "Dawn's thumb formula: --bg2 track, --panel thumb, --seg-shadow. It takes the header's meta slot, which grows that row from 26px to 30px.",
+                "Dawn's thumb formula: --bg2 track, --panel thumb, --seg-shadow. The window line (.cmeta.crow) comes BEFORE the control in the DOM, so a screen reader hears which window the figures cover before the control that changes it, and order puts it back under the title as the header's second row.",
                 `<div class="card">
-                   <header class="chead"><h1 class="ctitle">Trends</h1>${segControl(14)}</header>
+                   <header class="chead"><h3 class="ctitle">${esc(T.trends.title)}</h3><span class="cmeta crow">${esc(`${rangeLabel(SUMMARY.start_date, SUMMARY.end_date)} · ${daysLoggedCaption(SUMMARY.logged_days, SUMMARY.days_in_range)}`)}</span>${segControl(14)}</header>
                  </div>`,
             )}
 
             ${sect(
-                "Macro strip — static",
-                "The same macroPanel with no meals and no chartKeys behind it: every chip is a span, there is no chevron, no tap hint and no drawer. One code path, two species.",
-                `<div class="card">${staticStrip}</div>`,
-            )}
-
-            ${sect(
                 "Import progress",
-                "Two tracks, one fill: .steps is where you are in the flow (3px), .bar is a batch actually running (5px).",
+                "The step is the header's own meta (a label-free stepCount — the title already names the step), then two tracks, one fill: .steps is where you are in the flow (3px), .bar is a batch actually running (5px). Neither fill animates its width.",
                 `<div class="card">
+                   ${stepHead}
                    <div class="steps"><span style="width:50%"></span></div>
-                   <div class="slab">${esc(tpl(T.importMeals.stepOf, { n: 2, total: 4, label: T.importMeals.stepMap }))}</div>
                    <div class="sec">
                      <div class="bar"><span style="width:62%"></span></div>
-                     <div class="hint" style="margin-top:6px">Chunk 5 of 8 — 250 of 400 rows</div>
+                     <div class="hint" style="margin-top:6px">${esc(batchLine)}</div>
                    </div>
                  </div>`,
             )}
 
             ${sect(
                 "Fields & buttons",
-                "38px pills, not the site's 48px: the map step stacks sixteen of them inside a chat card. Focus is a border plus a 3px ring, because an outline cannot follow a 999px radius.",
+                "38px pills, not the site's 48px: the map step stacks sixteen of them inside a chat card. Focus is a border plus a 3px ring, because an outline cannot follow a 999px radius. These are live controls: with the live card, the resting drop zone and the three scrollable regions, they are the only things on the page that Tab stops on.",
                 `<div class="card">
                    <div class="field">
-                     <label class="label" for="g-sel">Map column: Calories</label>
+                     <label class="label" for="g-sel">${esc(T.importMeals.fieldLabels.calories)}</label>
                      <select class="select" id="g-sel">
                        <option>calories</option>
                        <option>protein_g</option>
-                       <option>(ignore this column)</option>
+                       <option>${esc(T.importMeals.notInFile)}</option>
                      </select>
                    </div>
                    <div class="field">
-                     <label class="label" for="g-in">Source app</label>
+                     <label class="label" for="g-in">${esc(T.importMeals.sourceAppLabel)}</label>
                      <input class="input" id="g-in" placeholder="myfitnesspal" />
-                     <span class="hint">Used to label rows that have no food name.</span>
+                     <span class="hint">${esc(T.importMeals.sourceAppHint)}</span>
                    </div>
                    <div class="field">
-                     <label class="label" for="g-bad">Expected row count</label>
-                     <input class="input invalid" id="g-bad" value="-3" />
-                     <span class="field-error">Must be a positive whole number.</span>
+                     <label class="label" for="g-bad">${esc(T.importMeals.dateFormatLabel)}</label>
+                     <input class="input invalid" id="g-bad" value="31/31/2026" />
+                     <span class="field-error">${esc(tpl(T.importMeals.dateUnreadable, { raw: "31/31/2026", format: T.importMeals.dateFormatDmy }))}</span>
                    </div>
                    <div class="actions">
-                     <button class="btn btn-primary" type="button">Import 42 meals</button>
-                     <button class="btn" type="button">Back</button>
-                     <button class="btn btn-danger" type="button">Discard</button>
-                     <button class="btn btn-sm" type="button">Small</button>
-                     <button class="btn" type="button" disabled>Disabled</button>
+                     <button class="btn btn-primary" type="button">${esc(plural(T.importMeals.importButton, 42))}</button>
+                     <button class="btn" type="button">${esc(T.importMeals.backToMapping)}</button>
+                     <button class="btn btn-danger" type="button">${esc(T.importMeals.chooseAnotherButton)}</button>
+                     <button class="btn btn-sm" type="button">${esc(T.importMeals.previewButton)}</button>
+                     <button class="btn" type="button" disabled>${esc(T.importMeals.importingEllipsis)}</button>
                    </div>
                  </div>`,
             )}
@@ -740,11 +1985,20 @@
                 `<div class="ggrid">
                    ${spec(
                        "resting",
-                       `<label class="drop">${icon("file", 24)}<strong>Choose your export file</strong>or drag it here<input type="file" class="drop-input" accept=".csv" /></label>`,
+                       `<label class="drop">${icon("file", 24)}<strong>${esc(T.importMeals.dropChoose)}</strong>${esc(T.importMeals.dropOr)}<input type="file" class="drop-input" accept=".csv" /></label>`,
                    )}
                    ${spec(
+                       // NO INPUT IN THE STATE SPECIMEN. Both copies carried a
+                       // real <input type="file">, hidden by clip-path rather
+                       // than display:none (form.css, so it stays keyboard
+                       // reachable), so Tab hit two file pickers announcing the
+                       // identical name and the second — a state that cannot be
+                       // produced by interacting at all — opened a file dialog.
+                       // "A specimen is looked at, not operated" (inertPanel).
+                       // The resting copy keeps its input, which is what makes
+                       // `.drop:has(.drop-input:focus-visible)` reviewable.
                        "file over it",
-                       `<label class="drop over">${icon("file", 24)}<strong>Choose your export file</strong>or drag it here<input type="file" class="drop-input" accept=".csv" /></label>`,
+                       `<div class="drop over">${icon("file", 24)}<strong>${esc(T.importMeals.dropChoose)}</strong>${esc(T.importMeals.dropOr)}</div>`,
                    )}
                  </div>`,
             )}
@@ -753,38 +2007,38 @@
                 "Notices — every severity",
                 "The icon is a different drawing in each, so severity survives monochrome and anyone who cannot separate the hues.",
                 `<div class="card">
-                   ${notice("ok", "check", "All 42 rows mapped cleanly.")}
-                   ${notice("warn", "warn", "12 rows had a date but no time; they will be logged at local noon.")}
-                   ${notice("error", "x", "expected_row_count is 40 but 42 rows were parsed.")}
-                   ${notice("", "info", "Neutral note on the same surface.")}
+                   ${notice("ok", "check", plural(T.importMeals.resultMealsImported, 42))}
+                   ${notice("warn", "warn", plural(T.importMeals.noTimeWarning, 12))}
+                   ${notice("error", "x", T.importMeals.preflightFailed)}
+                   ${notice("", "info", T.importMeals.recognizedHint)}
                  </div>`,
             )}
 
             ${sect(
                 "Preview table",
-                "Scrolls inside .tscroll — both axes — so a 400-row preview never pushes the card wider or taller than the host allows. The scroller is a tab stop, so it carries role=region, a name, and the shared focus ring: copy the markup contract, not just the class.",
-                `<div class="tscroll" role="region" tabindex="0" aria-label="Preview">
+                "Scrolls inside .tscroll — both axes — so a 400-row preview never pushes the card wider or taller than the host allows. The scroller is a tab stop, so it carries role=region, a name, and the shared focus ring: copy the markup contract, not just the class. The pill words are specimen labels, not shipped copy.",
+                `<div class="tscroll" role="region" tabindex="0" aria-label="${esc(T.importMeals.previewHeading)}">
                    <table class="tbl">
                      <thead><tr>
-                       <th>Line</th><th class="wide">Description</th><th>When</th>
-                       <th>Meal</th><th class="num">kcal</th><th>Status</th>
+                       <th>${esc(T.importMeals.tableLine)}</th><th class="wide">${esc(T.importMeals.tableFood)}</th><th>${esc(T.importMeals.tableWhen)}</th>
+                       <th>${esc(T.importMeals.tableMeal)}</th><th class="num">${esc(unitLabel("kcal"))}</th><th>${esc(T.importMeals.tableProblem)}</th>
                      </tr></thead>
                      <tbody>
                        <tr><td class="dim">2</td><td class="wide">Oatmeal (1 cup dry) with banana</td>
-                           <td>2026-01-15 08:30</td><td>breakfast</td><td class="num">300</td>
+                           <td>2026-01-15 08:30</td><td>${esc(mealTypeLabel("breakfast"))}</td><td class="num">300</td>
                            <td><span class="pill pill-ok">create</span></td></tr>
                        <tr><td class="dim">3</td><td class="wide">Rice, cooked</td>
-                           <td>2026-01-15 13:00</td><td>lunch</td><td class="num">400</td>
+                           <td>2026-01-15 13:00</td><td>${esc(mealTypeLabel("lunch"))}</td><td class="num">400</td>
                            <td><span class="pill pill-dim">duplicate</span></td></tr>
-                       <tr class="muted"><td class="dim">4</td><td class="wide">Breakfast (imported from MyFitnessPal)</td>
-                           <td>2026-01-16 12:00</td><td>breakfast</td><td class="num">250</td>
+                       <tr class="muted"><td class="dim">4</td><td class="wide">${esc(T.importMeals.noNameFallback)}</td>
+                           <td>2026-01-16 12:00</td><td>${esc(mealTypeLabel("breakfast"))}</td><td class="num">250</td>
                            <td><span class="pill pill-warn">noon</span></td></tr>
                        <tr class="bad"><td class="dim">5</td><td class="wide">Soup</td>
                            <td class="dim">2026-13-01</td><td class="dim">—</td><td class="num dim">—</td>
                            <td><span class="pill pill-bad">error</span></td></tr>
                      </tbody>
                    </table>
-                   <div class="tmore">Showing 4 of 412 rows</div>
+                   <div class="tmore">${esc(plural(T.importMeals.showingRows, 412, { shown: 4, total: 412 }))}</div>
                  </div>`,
             )}
 
@@ -803,28 +2057,89 @@
                     .join("")}</div></div>`,
             )}
 
+            ${sect(
+                "Nutrient glyphs",
+                "The filled set, one per metric that names a drawing, at 13 / 17 / 18 / 20px — the sizes a tile, a limit tile, the drawer head and the water bar ship at — each in its own metric's colour through the role class (--c), exactly as a tile colours it. Listed from MACROS, so a new metric's glyph appears here with it.",
+                `<div class="card"><div class="gicons">${MACROS.filter(
+                    (m) => m.glyph,
+                )
+                    .map((m) =>
+                        GLYPH_SIZES.map(
+                            (size) =>
+                                `<span class="gicon ${m.color}">${glyph(m.glyph, size)}<span class="glab">${m.glyph} ${size}</span></span>`,
+                        ).join(""),
+                    )
+                    .join("")}</div></div>`,
+            )}
+
           </div>`;
+
+                const liveRoot = document.getElementById("g-live");
+                // A new card: its axis, calories, and the draw-in owed again,
+                // then the first paint into the panel's `.fspark` — as
+                // nutrition-summary does after writing its root.
+                sparkReset(
+                    calendarSlots(
+                        SUMMARY.days,
+                        SUMMARY.start_date,
+                        SUMMARY.end_date,
+                    ),
+                    SUMMARY.goals,
+                );
+                sparkPaint(liveRoot.querySelector(".focus"), "calories", false);
 
                 // The tap hint is the one thing macroPanel builds inline, with
                 // no emitter to call — so the specimen is the live strip's own
-                // node rather than a copy that would stop tracking it. Cloning
-                // it is safe: macroToggle only ever hides the hint INSIDE the
-                // panel it scoped its query to.
-                const ghost = document.querySelector(".card [data-macro-hint]");
+                // node rather than a copy that would stop tracking it. Taken
+                // BEFORE macroRestore, which may hide the original under a
+                // reopened drawer, and stripped of data-macro-hint, the hook
+                // macroToggle hides it by.
+                const ghost = liveRoot.querySelector("[data-macro-hint]");
                 const slot = document.getElementById("g-ghost");
-                if (ghost && slot) slot.outerHTML = ghost.outerHTML;
+                if (ghost && slot) {
+                    const copy = ghost.cloneNode(true);
+                    copy.removeAttribute("data-macro-hint");
+                    copy.hidden = false;
+                    slot.replaceWith(copy);
+                }
+
+                // LAST, after the first sparkline paint: reopening a tile goes
+                // through macroToggle, whose onSeries repaints the panel for
+                // that metric. The locale and water unit are the page's again
+                // by now (inLocale and the water loop both put them back).
+                if (WIDGET_LOCALE !== pageLocale) setLocale(pageLocale);
+                macroRestore(liveRoot, was);
             }
 
             /*@include shared/macros.js@*/
 
+            /* The focus panel's sparkline: seriesValue, chartableKeys,
+               sparkMarkup, sparkReset and sparkPaint. After macros.js, whose
+               MACROS, focusApply and macroCtx it calls — and included from
+               here, never from inside another partial. */
+            /*@include shared/spark.js@*/
+
             initWidget({
                 name: "component-gallery",
-                loading: '<div class="empty">Loading gallery…</div>',
-                // The harness has no fixture for this key and sends
-                // { probe: true }; anything truthy paints the page.
-                coerce: () => ({ gallery: true }),
+                // Gallery chrome, not a shipping widget's line, so it stays
+                // English; the dictionary's own loading lines are reviewed as
+                // a specimen under "Empty states".
+                loading:
+                    '<div class="empty"><div class="big">🧩</div><div>Loading gallery…</div></div>',
+                // No tool feeds the gallery, but the harness sends it a
+                // payload carrying locale and water_unit like any widget's
+                // (so ?locale= and ?waterUnit= reach it). Anything else still
+                // paints the page — a bare { probe: true } included.
+                coerce: (p) => {
+                    const s = p && (p.structuredContent || p);
+                    return {
+                        gallery: true,
+                        locale: s && s.locale,
+                        water_unit: s && s.water_unit,
+                    };
+                },
                 render,
-                sample: { gallery: true },
+                sample: { gallery: true, locale: "en", water_unit: "l" },
                 onReady(api) {
                     __widgetApi = api;
                 },
