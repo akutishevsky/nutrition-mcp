@@ -58,16 +58,48 @@
                suits a readout of sibling blocks. This is a form: its children
                already carry their own margins, so it takes the card's surface
                and drops the card's layout. */
+            /* Padding is the shared card's 12px — the 14px this used to set
+               was the one card in the system with its own inset. */
             .imp > .card {
                 display: block;
-                padding: 14px;
             }
-            .imp h3 {
-                margin: 0 0 12px;
-                font-size: 15px;
-                font-weight: 800;
-                letter-spacing: -0.025em;
-                color: var(--ink);
+            /* The step rail sits inside the card, under its header. The card
+               is a block (above), so nothing but these margins spaces it: the
+               first notice, stat row or drop zone under it would otherwise butt
+               against a 3px line. */
+            .imp .steps {
+                margin: 8px 0 12px;
+            }
+            /* base.css zeroes a card-level foot's top margin because a flex
+               card's 10px gap already spaces it. This card is a block, so the
+               foot has to bring its own room back or its hairline lands flush
+               under the buttons. Same 12px .foot carries everywhere else. */
+            .imp > .card > .foot {
+                margin-top: 12px;
+            }
+            /* The required-field mark. --ink2, not the --over red it used to
+               be: red is this card's error signal, and "required" is not an
+               error. It is aria-hidden — the select itself carries
+               aria-required, which is what a screen reader announces. */
+            .req {
+                color: var(--ink2);
+                font-weight: 700;
+            }
+            .req-legend {
+                margin-bottom: 8px;
+            }
+            /* Visually hidden, still announced: the one role=status element
+               the import's progress is spoken through. */
+            .vh {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip-path: inset(50%);
+                white-space: nowrap;
+                border: 0;
             }
             /* One row per mappable field: the field's name and the first real
                value from the user's own file share a line, the column picker
@@ -170,7 +202,7 @@
                 align-items: center;
                 pointer-events: none;
                 opacity: 0;
-                transition: opacity 0.15s ease;
+                transition: opacity 0.15s var(--ease-out);
                 /* Above .tbl thead th, which table.css sticks at z-index 1. */
                 z-index: 2;
                 font-family: var(--mono);
@@ -396,7 +428,12 @@
             // "Email me" on its own costs two round trips — the first reply is
             // always "what does your file look like?" — so the answer ships with
             // the question.
-            function diagnosticsBlock() {
+            //
+            // `kind` is the notice's severity. Unset, it is the envelope notice
+            // shown under a finished-but-imperfect import; "error" is the
+            // render-failure card (renderFailed), which has nothing else on it
+            // and so must read as the error it is, not as a friendly aside.
+            function diagnosticsBlock(kind) {
                 if (!SUPPORT_EMAIL) return "";
                 const t = S.table;
                 const lines = [];
@@ -463,14 +500,14 @@
                     );
                 }
                 return notice(
-                    "",
+                    kind || "",
                     tpl(T.importMeals.emailNotice, {
                         email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
                     }) +
                         '<span class="diag">' +
                         esc(lines.join("\n")) +
                         "</span>",
-                    "✉",
+                    kind ? "" : "✉",
                 );
             }
 
@@ -721,6 +758,21 @@
                 busy: false,
                 progress: null, // { done, total, label }
                 result: null, // aggregate of every chunk
+                // Focus bookkeeping for render() — see keepFocus in bridge.js.
+                // focusOwned: the user pressed Import inside this widget, so
+                // focus is ours for the length of the run even though it sits
+                // on <body> the whole time (the button re-renders disabled the
+                // instant it is pressed). Cleared once the run ends and focus
+                // has been handed to the heading of wherever it ended.
+                focusOwned: false,
+                shownStep: null, // the step the last successful render drew
+                // A render threw (renderFailed). runImport stops sending
+                // chunks: the user can no longer see or stop the import.
+                aborted: false,
+                // The last thing said through the role=status region that is
+                // not progress — a dry run's failure, which moves no focus
+                // onto anything that would say it.
+                announce: "",
             };
 
             function esc(s) {
@@ -754,6 +806,21 @@
                     return String(x);
                 }
             }
+            // A count string in the right grammatical form, with the count
+            // itself printed in the widget's locale. plural() picks the form
+            // from the raw number (Intl.PluralRules needs a number, not "1.234")
+            // and then fills vars over its own {n}, so the display override
+            // wins while the selection stays numeric. Extra placeholders
+            // ({line}, {message}, {format}, {sample}) ride in `vars` — never
+            // tpl(plural(…), vars): plural()'s own tpl() blanks every
+            // placeholder it is not given, so they would be gone by then.
+            function pluralN(forms, n, vars) {
+                return plural(
+                    forms,
+                    n,
+                    Object.assign({ n: numLocale(n, true) }, vars),
+                );
+            }
             function cellNum(v) {
                 return v == null ? "—" : esc(numLocale(v, false));
             }
@@ -771,8 +838,13 @@
             // drawn icon with a character, used only for the envelope, which
             // the shared nine-icon set has no path for.
             function notice(kind, bodyHtml, glyph) {
+                // aria-hidden: the envelope is decoration beside a sentence
+                // that already says "email"; read aloud it is a stray symbol
+                // name. The drawn icons are aria-hidden by icon() itself.
                 const mark = glyph
-                    ? '<span class="nico">' + glyph + "</span>"
+                    ? '<span class="nico" aria-hidden="true">' +
+                      glyph +
+                      "</span>"
                     : icon(
                           { warn: "warn", error: "x", ok: "check" }[kind] ||
                               "info",
@@ -1097,8 +1169,41 @@
             /*@inlinets src/chunk.ts@*/
 
             // ---- step 3: import ----------------------------------------------
+            // The run's early exit once a render has failed (S.aborted). No
+            // render() here — the last one threw, and the error card it left is
+            // what the user should see. The model is told instead, because it
+            // is now the only party that can say what was written: chunks
+            // before `done` landed, and re-running the file is a no-op for
+            // them server-side. English, like the finished-import summary
+            // below: model-facing text, not UI.
+            function stopAborted(done, total) {
+                S.busy = false;
+                S.progress = null;
+                S.focusOwned = false;
+                if (API && API.updateModelContext) {
+                    const r = S.result;
+                    API.updateModelContext(
+                        "Bulk meal import stopped after " +
+                            done +
+                            " of " +
+                            total +
+                            " batches because the import view failed to display: " +
+                            r.created +
+                            " meals imported, " +
+                            r.deduplicated +
+                            " already logged, " +
+                            r.failed +
+                            " failed so far. Re-running the same file is safe — rows already written are skipped as duplicates.",
+                    );
+                }
+            }
+
             async function runImport() {
                 if (!API || !API.canCallTools) return;
+                // A fresh run starts un-aborted; if its own first render
+                // throws, the loop's check stops it before any chunk is sent.
+                S.aborted = false;
+                S.announce = "";
                 S.busy = true;
                 S.result = {
                     created: 0,
@@ -1135,11 +1240,16 @@
                     };
                     if (everyHasKcal) args.expected_total_kcal = kcal;
 
-                    S.progress.label = tpl(
+                    // A render that threw has replaced the card with an error
+                    // notice; nothing on screen shows this run any more, so it
+                    // must not keep writing behind it.
+                    if (S.aborted) return stopAborted(i, chunks.length);
+
+                    S.progress.label = pluralN(
                         i === 0
                             ? T.importMeals.checkingRows
                             : T.importMeals.importingRows,
-                        { n: rows.length },
+                        rows.length,
                     );
                     render();
 
@@ -1175,9 +1285,19 @@
                                 );
                                 S.busy = false;
                                 S.progress = null;
-                                render();
+                                // Focus has sat on <body> since Import was
+                                // pressed; hand it to this step's heading
+                                // (`land`), and say why through the status
+                                // region, since the heading does not.
+                                S.announce =
+                                    S.result.chunkErrors[
+                                        S.result.chunkErrors.length - 1
+                                    ];
+                                render({ land: true });
+                                S.focusOwned = false;
                                 return;
                             }
+                            if (S.aborted) return stopAborted(i, chunks.length);
                             // Passed — now write this chunk for real.
                             args.dry_run = false;
                             const real = await API.callTool(
@@ -1196,15 +1316,43 @@
                                 msg: e.message,
                             }),
                         );
+                        // A PREFLIGHT THAT COULD NOT BE RUN STOPS THE RUN, the
+                        // same way one that came back status:"failed" does just
+                        // above. This is the transport half of that failure —
+                        // callTool rejects on a JSON-RPC error and on its 90s
+                        // timeout — and it used to fall through to the next
+                        // chunk: chunk 0's rows were never written while every
+                        // chunk behind them was, so the file landed with a hole
+                        // in it and the card still said "Import complete". Only
+                        // i === 0: further down, one failed batch legitimately
+                        // must not stop the others.
+                        if (i === 0) {
+                            S.busy = false;
+                            S.progress = null;
+                            // Focus has sat on <body> since Import was pressed;
+                            // `land` hands it to this step's heading and the
+                            // status region says why, exactly as above.
+                            S.announce =
+                                S.result.chunkErrors[
+                                    S.result.chunkErrors.length - 1
+                                ];
+                            render({ land: true });
+                            S.focusOwned = false;
+                            return;
+                        }
                     }
                     S.progress.done = i + 1;
                     render();
                 }
 
+                if (S.aborted) return stopAborted(chunks.length, chunks.length);
                 S.busy = false;
                 S.progress = null;
                 S.step = "done";
                 render();
+                // The step change above is what moved focus to the heading;
+                // from here on focus is the user's again.
+                S.focusOwned = false;
 
                 // Tell the model what happened — a summary only, never rows.
                 if (API.updateModelContext) {
@@ -1242,13 +1390,55 @@
                 });
             }
 
+            // ONE LINE PER KIND OF WARNING, COUNTING THE WHOLE IMPORT.
+            //
+            // The server's aggregate warnings each lead with THAT CALL's own row
+            // count ("50 row(s) had a date but no time; they were logged at local
+            // noon."), and the file is split into chunks by calendar date under a
+            // 50-row cap — so two chunks of a date-only file are almost never the
+            // same size. Exact-string dedupe therefore only ever collapsed the
+            // count-free warnings: a 60-row file printed that sentence twice, at
+            // 50 and at 10, and neither number was the answer the user wants.
+            //
+            // Digits are masked to recognise the KIND; where two of a kind differ
+            // only in a leading count, the counts are added, so the surviving line
+            // describes the import rather than an internal batch boundary the user
+            // cannot see. Same shape but a different tail (a sample line, say) is
+            // still one line — the first — because a second copy of the sentence
+            // is the defect either way.
+            const warnKey = (w) => String(w).replace(/\d[\d.,\s]*/g, "#");
+            function addWarning(r, w) {
+                const at = r.warnings.findIndex(
+                    (x) => warnKey(x) === warnKey(w),
+                );
+                if (at === -1) {
+                    r.warnings.push(w);
+                    return;
+                }
+                const a = /^(\d+)([\s\S]*)$/.exec(r.warnings[at]);
+                const b = /^(\d+)([\s\S]*)$/.exec(w);
+                if (a && b && a[2] === b[2]) {
+                    r.warnings[at] = `${Number(a[1]) + Number(b[1])}${a[2]}`;
+                }
+            }
+
             function collect(sc) {
                 const r = S.result;
                 r.chunks++;
                 if (sc.dry_run) {
-                    for (const w of sc.warnings || []) {
-                        if (r.warnings.indexOf(w) === -1) r.warnings.push(w);
-                    }
+                    // THE DRY PASS CONTRIBUTES NO WARNINGS, because the real
+                    // pass of the same chunk re-emits them verbatim: the server
+                    // counts the bare-date rows before it branches on dry_run
+                    // (src/import.ts), so both passes return the identical
+                    // sentence and addWarning — which sums the leading counts
+                    // of two warnings of the same kind — added chunk 0's rows
+                    // twice. A 140-row file reported "190 row(s) had a date but
+                    // no time" directly under "140 meals imported", and a
+                    // single-chunk 20-row file reported exactly 2x. Counting
+                    // only the real passes makes the total the rows actually
+                    // sent. Nothing is lost on the failure path: a dry run that
+                    // comes back status:"failed" surfaces its reason through
+                    // chunkErrors in runImport, not through this list.
                     for (const row of sc.results || []) {
                         if (row.error) pushRowError(r, row);
                     }
@@ -1257,48 +1447,65 @@
                 r.created += sc.summary.created;
                 r.deduplicated += sc.summary.deduplicated;
                 r.failed += sc.summary.failed;
-                for (const w of sc.warnings || []) {
-                    if (r.warnings.indexOf(w) === -1) r.warnings.push(w);
-                }
+                for (const w of sc.warnings || []) addWarning(r, w);
                 for (const row of sc.results || []) {
                     if (row.error) pushRowError(r, row);
                 }
             }
 
             // ---- rendering ---------------------------------------------------
-            // A 3px progress rail and one mono line, in place of the four
-            // numbered pills that used to sit here. Two reasons: the pills cost
-            // ~26px of a card that has a form under it, and they were the one
-            // element in this widget that could not fit 320px — four labels,
-            // three arrows and four counters on one nowrap row overflowed in
-            // every locale with a word longer than "Preview".
-            // The two nodes share an unstyled wrapper so .imp's grid gap falls
-            // between the rail and the card, not between the rail and its own
-            // caption.
-            function steps() {
+            // Every step is one Dawn card, built the way every other widget's
+            // is: the card with its glow, a .chead header line, then the body,
+            // then the foot the bridge's settings note lands in. The card is
+            // c-acc because a form has no nutrient to be tinted by — the glow
+            // is the brand green, like the primary button under it.
+            function cardOpen() {
+                return '<section class="card c-acc"><div class="glow"></div>';
+            }
+
+            // The header line plus the step rail under it.
+            //
+            // The title names the step, so the mono .cmeta carries only the
+            // count ("Step 2 of 4"): the old caption, "Step 2 of 4 · Map
+            // columns", repeated the heading word for word on the map step in
+            // all nine locales once the two shared a line.
+            //
+            // The h1 is the focus target when the step changes (keepFocus's
+            // [data-focus-fallback]): tabindex="-1" makes it focusable by
+            // script only, and base.css draws no ring on it, since a ring
+            // round a heading reads as something to press. Its screen-reader
+            // announcement IS the step change.
+            //
+            // The rail — a 3px track in place of the four numbered pills that
+            // used to be here, which cost ~26px and overflowed 320px in every
+            // locale with a word longer than "Preview" — is aria-hidden: the
+            // count beside the title already says what it draws.
+            function cardHead(title) {
                 const order = ["file", "map", "preview", "done"];
-                const names = [
-                    T.importMeals.stepFile,
-                    T.importMeals.stepMap,
-                    T.importMeals.stepPreview,
-                    T.importMeals.stepImport,
-                ];
                 // Guard the -1: render() only ever passes one of the four, but
                 // a width of -0% and "step 0 of 4" is a nasty way to find out.
                 const at = Math.max(0, order.indexOf(S.step));
                 return (
-                    '<div><div class="steps"><span style="width:' +
-                    Math.round(((at + 1) / order.length) * 100) +
-                    '%"></span></div><div class="slab">' +
+                    '<header class="chead"><h1 class="ctitle" id="imp-title" tabindex="-1" data-focus-fallback>' +
+                    esc(title) +
+                    '</h1><span class="cmeta">' +
                     esc(
-                        tpl(T.importMeals.stepOf, {
+                        tpl(T.importMeals.stepCount, {
                             n: at + 1,
                             total: order.length,
-                            label: names[at],
                         }),
                     ) +
-                    "</div></div>"
+                    '</span></header><div class="steps" aria-hidden="true"><span style="width:' +
+                    Math.round(((at + 1) / order.length) * 100) +
+                    '%"></span></div>'
                 );
+            }
+
+            // The card's last line: the slot bridge.js puts its settings note
+            // in, so the note reads as this card's small print under a hairline
+            // rather than as a centred caption floating below the page.
+            function cardClose() {
+                return '<div class="foot" data-widget-foot></div></section>';
             }
 
             function fileStep() {
@@ -1320,9 +1527,8 @@
                     ? notice("warn", esc(T.importMeals.tzWarning))
                     : "";
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.chooseExportHeading) +
-                    "</h3>" +
+                    cardOpen() +
+                    cardHead(T.importMeals.chooseExportHeading) +
                     noTools +
                     tzWarn +
                     (S.errors.length ? notice("error", esc(S.errors[0])) : "") +
@@ -1338,7 +1544,7 @@
                     '<div class="hint" style="margin-top:8px">' +
                     esc(T.importMeals.recognizedHint) +
                     "</div>" +
-                    "</section>"
+                    cardClose()
                 );
             }
 
@@ -1455,14 +1661,13 @@
                         )
                         .join("");
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.mapColumnsHeading) +
-                    "</h3>" +
+                    cardOpen() +
+                    cardHead(T.importMeals.mapColumnsHeading) +
                     '<div class="stat-row"><span>' +
-                    boldCount(plural(T.importMeals.rowsCount, t.rows.length)) +
+                    boldCount(pluralN(T.importMeals.rowsCount, t.rows.length)) +
                     "</span><span>" +
                     boldCount(
-                        plural(T.importMeals.columnsCount, t.headers.length),
+                        pluralN(T.importMeals.columnsCount, t.headers.length),
                     ) +
                     "</span><span>" +
                     esc(t.encoding) +
@@ -1507,17 +1712,26 @@
                               ),
                           )
                         : "") +
+                    // The legend explains a mark that is aria-hidden, so it is
+                    // hidden from assistive tech as well: a screen reader hears
+                    // "required" from the select's own aria-required instead,
+                    // and a sentence about an asterisk it never announced
+                    // would only be noise.
+                    '<div class="hint req-legend" aria-hidden="true">' +
+                    esc(T.importMeals.requiredLegend) +
+                    "</div>" +
                     '<div class="map-grid">' +
                     mappableFields()
                         .map((f) => {
                             const sel = S.mapping[f.key];
                             const sample =
                                 sel >= 0 && t.rows[0] ? t.rows[0][sel] : "";
+                            const label = T.importMeals.fieldLabels[f.key];
                             return (
                                 '<div class="map-field"><div class="map-src">' +
-                                esc(T.importMeals.fieldLabels[f.key]) +
+                                esc(label) +
                                 (f.required
-                                    ? ' <span style="color:var(--over)">*</span>'
+                                    ? ' <span class="req" aria-hidden="true">*</span>'
                                     : "") +
                                 '</div><div class="map-sample">' +
                                 esc(
@@ -1528,9 +1742,19 @@
                                         : "",
                                 ) +
                                 "</div></div>" +
+                                // Named with the field's own label: the
+                                // .map-src beside it is a div, not a <label>,
+                                // so the picker was announced as a bare
+                                // "combo box". aria-label rather than a
+                                // label[for] so the .map-src/.map-sample pair
+                                // keeps the exact markup macros.test.ts pins.
                                 '<select class="select map-sel" data-field="' +
                                 f.key +
-                                '">' +
+                                '" aria-label="' +
+                                esc(label) +
+                                '"' +
+                                (f.required ? ' aria-required="true"' : "") +
+                                ">" +
                                 opts(sel) +
                                 "</select>"
                             );
@@ -1538,7 +1762,8 @@
                         .join("") +
                     "</div>" +
                     formatFieldsHtml() +
-                    '<div class="field"><label class="label">' +
+                    // for="srcapp": without it the text box had no name at all.
+                    '<div class="field"><label class="label" for="srcapp">' +
                     esc(T.importMeals.sourceAppLabel) +
                     "</label>" +
                     '<input class="input" id="srcapp" value="' +
@@ -1553,7 +1778,7 @@
                     '<button class="btn" id="backToFile">' +
                     esc(T.importMeals.chooseAnotherButton) +
                     "</button></div>" +
-                    "</section>"
+                    cardClose()
                 );
             }
 
@@ -1596,12 +1821,11 @@
                         S.rows.some((r) => r[c[0]] !== undefined),
                 );
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.previewHeading) +
-                    "</h3>" +
+                    cardOpen() +
+                    cardHead(T.importMeals.previewHeading) +
                     '<div class="stat-row"><span>' +
                     boldCount(
-                        plural(T.importMeals.mealsToImport, S.rows.length),
+                        pluralN(T.importMeals.mealsToImport, S.rows.length),
                     ) +
                     "</span><span>" +
                     boldCount(
@@ -1613,14 +1837,12 @@
                     (S.skipped
                         ? "<span>" +
                           boldCount(
-                              tpl(T.importMeals.rowsSkipped, {
-                                  n: S.skipped,
-                              }),
+                              pluralN(T.importMeals.rowsSkipped, S.skipped),
                           ) +
                           "</span>"
                         : "") +
                     "<span>" +
-                    boldCount(plural(T.importMeals.batchCount, chunks)) +
+                    boldCount(pluralN(T.importMeals.batchCount, chunks)) +
                     "</span></div>" +
                     // State the two conversions applied, so the confirmation step
                     // shows what will be sent rather than what the file said.
@@ -1641,27 +1863,31 @@
                         ? notice(
                               "warn",
                               esc(
-                                  tpl(T.importMeals.badDatesWarning, {
-                                      n: S.badDates,
-                                      format: dateFormatLabel(S.dateFormat),
-                                      sample: S.badDateSample
-                                          ? tpl(T.importMeals.badDateSample, {
-                                                line: S.badDateSample.line,
-                                                value: S.badDateSample.value,
-                                            })
-                                          : "",
-                                  }),
+                                  pluralN(
+                                      T.importMeals.badDatesWarning,
+                                      S.badDates,
+                                      {
+                                          format: dateFormatLabel(S.dateFormat),
+                                          sample: S.badDateSample
+                                              ? tpl(
+                                                    T.importMeals.badDateSample,
+                                                    {
+                                                        line: S.badDateSample
+                                                            .line,
+                                                        value: S.badDateSample
+                                                            .value,
+                                                    },
+                                                )
+                                              : "",
+                                      },
+                                  ),
                               ),
                           )
                         : "") +
                     (noTime
                         ? notice(
                               "warn",
-                              esc(
-                                  tpl(T.importMeals.noTimeWarning, {
-                                      n: noTime,
-                                  }),
-                              ),
+                              esc(pluralN(T.importMeals.noTimeWarning, noTime)),
                           )
                         : "") +
                     // A calendar date with more than max_rows_per_call rows on
@@ -1675,7 +1901,7 @@
                         ? notice(
                               "warn",
                               esc(
-                                  plural(
+                                  pluralN(
                                       T.importMeals.splitDatesCount,
                                       splitDates.length,
                                   ) +
@@ -1699,7 +1925,10 @@
                     // thing being scrolled is called on screen. tabindex="0" is
                     // explicit because focusable-scroller is Chrome behaviour,
                     // not a guarantee; table.css draws the ring.
-                    '<div class="tedge"><div class="tscroll" role="region" tabindex="0" aria-label="' +
+                    // data-focus-key: every progress tick rebuilds this table,
+                    // and a keyboard user scrolling it mid-import would
+                    // otherwise be dropped to <body> once per batch.
+                    '<div class="tedge"><div class="tscroll" role="region" tabindex="0" data-focus-key="preview-table" aria-label="' +
                     esc(T.importMeals.previewHeading) +
                     '"><table class="tbl"><thead><tr>' +
                     "<th>" +
@@ -1759,30 +1988,34 @@
                         )
                         .join("") +
                     "</tbody></table>" +
+                    "</div></div>" +
+                    // AFTER the scroller, and outside `.tedge`. As the last node
+                    // INSIDE `.tscroll` the one line saying the preview is
+                    // truncated sat ~1.7-2.5k px below the fold of the very box
+                    // it describes — on the step whose whole job is to confirm
+                    // what will be written, where the stat row names the total
+                    // but never says only 30 rows are shown. Outside `.tedge`
+                    // too: that wrapper's edge fades span its full height and
+                    // would paint over a caption merely outside the scroller.
                     (S.rows.length > shown.length
                         ? '<div class="tmore">' +
+                          // Selected on the TOTAL: the noun follows it ("of
+                          // 1,234 rows"), in every locale's word order.
                           esc(
-                              tpl(T.importMeals.showingRows, {
-                                  shown: shown.length,
-                                  total: S.rows.length,
+                              plural(T.importMeals.showingRows, S.rows.length, {
+                                  shown: numLocale(shown.length, true),
+                                  total: numLocale(S.rows.length, true),
                               }),
                           ) +
                           "</div>"
                         : "") +
-                    "</div></div>" +
                     (S.progress
                         ? '<div style="margin-top:12px"><div class="bar"><span style="width:' +
                           Math.round(
                               (S.progress.done / S.progress.total) * 100,
                           ) +
                           '%"></span></div><div class="hint" style="margin-top:6px">' +
-                          esc(
-                              tpl(T.importMeals.batchProgress, {
-                                  label: S.progress.label,
-                                  done: S.progress.done,
-                                  total: S.progress.total,
-                              }),
-                          ) +
+                          esc(progressText()) +
                           "</div></div>"
                         : "") +
                     (S.result && S.result.chunkErrors.length
@@ -1794,24 +2027,48 @@
                         ? notice(
                               "error",
                               esc(
-                                  tpl(T.importMeals.rowsWouldFail, {
-                                      n: S.result.rowErrors.length,
-                                      line: S.result.rowErrors[0].line,
-                                      message: S.result.rowErrors[0].message,
-                                  }),
+                                  pluralN(
+                                      T.importMeals.rowsWouldFail,
+                                      S.result.rowErrors.length,
+                                      {
+                                          line: S.result.rowErrors[0].line,
+                                          message:
+                                              S.result.rowErrors[0].message,
+                                      },
+                                  ),
                               ),
                           )
                         : "") +
                     (S.badDates > 0 ? diagnosticsBlock() : "") +
+                    // WHY THE PRIMARY BUTTON IS DEAD, on the card where it sits.
+                    // With the host withholding serverTools the user can still
+                    // parse, map and preview a file, and this step then greyed
+                    // out "Import 140 meals" with the only explanation two steps
+                    // back on the file card — which render() replaces wholesale,
+                    // so nothing carried it forward. Same translated string, no
+                    // new copy; aria-describedby ties it to the control, so the
+                    // reason is announced with the button rather than only read.
+                    (API && !API.canCallTools
+                        ? notice(
+                              "warn",
+                              '<span id="no-tools-why">' +
+                                  esc(T.importMeals.noToolsWarning) +
+                                  "</span>",
+                          )
+                        : "") +
                     '<div class="actions"><button class="btn btn-primary" id="doImport"' +
+                    (API && !API.canCallTools
+                        ? ' aria-describedby="no-tools-why"'
+                        : "") +
                     (S.busy || !(API && API.canCallTools) ? " disabled" : "") +
                     ">" +
                     esc(
                         S.busy
                             ? T.importMeals.importingEllipsis
-                            : tpl(T.importMeals.importButton, {
-                                  n: S.rows.length,
-                              }),
+                            : pluralN(
+                                  T.importMeals.importButton,
+                                  S.rows.length,
+                              ),
                     ) +
                     "</button>" +
                     '<button class="btn" id="backToMap"' +
@@ -1819,43 +2076,89 @@
                     ">" +
                     esc(T.importMeals.backToMapping) +
                     "</button></div>" +
-                    "</section>"
+                    cardClose()
                 );
             }
 
+            // The running import's one line: "Importing 50 rows… (batch 2 of
+            // 7)". Shown under the bar and spoken through the status region —
+            // one string, so what is heard is what is on screen.
+            function progressText() {
+                if (!S.progress) return "";
+                return tpl(T.importMeals.batchProgress, {
+                    label: S.progress.label,
+                    // THE BATCH NAMED IS THE ONE IN FLIGHT. S.progress.done is a
+                    // completed-work counter — the `.bar` above fills to it and
+                    // is right to — but this sentence names the batch whose rows
+                    // the label is describing, so printing the completed count
+                    // made it permanently one behind: a six-batch run opened on
+                    // "batch 0 of 6" and never reached "6 of 6", and a
+                    // single-batch import spent its whole run saying "batch 0 of
+                    // 1", which is never true of anything. Clamped because the
+                    // last chunk sets done = total before the done step paints.
+                    done: numLocale(
+                        Math.min(S.progress.done + 1, S.progress.total),
+                        true,
+                    ),
+                    total: numLocale(S.progress.total, true),
+                });
+            }
+
             function doneStep() {
+                // chunkErrors in the fallback too: `ok` below reads it, and a
+                // done step with no result (a re-delivery racing a restart)
+                // would otherwise throw on the first line.
                 const r = S.result || {
                     created: 0,
                     deduplicated: 0,
                     failed: 0,
+                    chunkErrors: [],
                 };
                 const ok = r.failed === 0 && !r.chunkErrors.length;
                 const tail =
                     (r.deduplicated
-                        ? tpl(T.importMeals.resultAlreadyLogged, {
-                              n: r.deduplicated,
-                          })
+                        ? pluralN(
+                              T.importMeals.resultAlreadyLogged,
+                              r.deduplicated,
+                          )
                         : "") +
                     (r.failed
-                        ? tpl(T.importMeals.resultFailed, { n: r.failed })
+                        ? pluralN(T.importMeals.resultFailed, r.failed)
                         : "") +
                     (S.skipped
-                        ? tpl(T.importMeals.resultSkipped, { n: S.skipped })
+                        ? pluralN(T.importMeals.resultSkipped, S.skipped)
                         : "");
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.importCompleteHeading) +
-                    "</h3>" +
+                    cardOpen() +
+                    cardHead(T.importMeals.importCompleteHeading) +
                     notice(
                         ok ? "ok" : "warn",
                         boldCount(
-                            tpl(T.importMeals.resultMealsImported, {
-                                n: r.created,
-                            }),
+                            pluralN(
+                                T.importMeals.resultMealsImported,
+                                r.created,
+                            ),
                         ) +
                             esc(tail) +
-                            ".",
+                            // The terminator is copy, not punctuation this
+                            // template owns: Japanese ends a sentence with "。",
+                            // and this one was closing "…記録済み" — whose own
+                            // comma is already the ideographic one — with a
+                            // Latin stop.
+                            esc(T.importMeals.sentenceEnd),
                     ) +
+                    // WHY IT FAILED, ON THE CARD, IN THE USER'S LANGUAGE. A
+                    // batch that threw pushes its reason here and falls through
+                    // to this step, where the only trace of it was the card
+                    // styling itself `warn` and the reason sitting inside the
+                    // copy-paste diagnostics dump — which is deliberately
+                    // English maintainer-facing text, not UI. So a failed import
+                    // and an import of zero rows looked the same: "0 meals
+                    // imported." and nothing else. The preview step already
+                    // renders this exact array this exact way.
+                    (r.chunkErrors || [])
+                        .map((e) => notice("error", esc(e)))
+                        .join("") +
                     (r.warnings || []).map((w) => notice("", esc(w))).join("") +
                     (r.rowErrors && r.rowErrors.length
                         ? // Same contract as the preview scroller above: a
@@ -1865,7 +2168,7 @@
                           // are. A dedicated leaf would read better; adding one
                           // touches all 9 copy files, which are another agent's
                           // this round (noted in the handover).
-                          '<div class="tedge"><div class="tscroll" role="region" tabindex="0" aria-label="' +
+                          '<div class="tedge"><div class="tscroll" role="region" tabindex="0" data-focus-key="error-table" aria-label="' +
                           esc(T.importMeals.tableProblem) +
                           '" style="max-height:160px"><table class="tbl"><thead><tr><th>' +
                           esc(T.importMeals.tableLine) +
@@ -1889,20 +2192,121 @@
                     '<div class="actions"><button class="btn" id="restart">' +
                     esc(T.importMeals.restartButton) +
                     "</button></div>" +
-                    "</section>"
+                    cardClose()
                 );
             }
 
-            function render() {
+            // Repaint the current step without losing the keyboard user.
+            //
+            // keepFocus (bridge.js) re-finds the focused control by its id /
+            // data-field / data-focus-key once the markup is replaced, and on a
+            // STEP CHANGE — Preview, Back, Import finishing — falls back to the
+            // new card's heading, so a screen reader announces where the user
+            // now is. Never on a progress repaint: the step is the same there,
+            // and re-focusing the heading would re-announce it once per batch.
+            // opts.land treats a same-step render as the end of a flow that
+            // owned focus (a failed dry run), so focus lands on the heading
+            // there too instead of staying on <body>.
+            //
+            // Only `.imp` is rewritten. The role=status region beside it is
+            // written once and then only has its text changed: a live region
+            // replaced wholesale is a new region, which assistive tech does not
+            // announce, so rebuilding it with the card would silence it.
+            //
+            // A render that throws goes to renderFailed instead of leaving a
+            // half-written card, or the loading line, standing.
+            function render(opts) {
                 const el = document.getElementById("root");
+                const stepChanged =
+                    S.shownStep !== S.step || !!(opts && opts.land);
+                const ok = tryRender(() =>
+                    keepFocus(
+                        el,
+                        () => {
+                            // Built before anything is written, so a throw
+                            // here leaves the DOM exactly as it was.
+                            let body = "";
+                            if (S.step === "file") body = fileStep();
+                            else if (S.step === "map") body = mapStep();
+                            else if (S.step === "preview") body = previewStep();
+                            else body = doneStep();
+                            let imp = el.querySelector(":scope > .imp");
+                            let live = el.querySelector(
+                                ':scope > [role="status"]',
+                            );
+                            if (!imp || !live) {
+                                el.innerHTML =
+                                    '<div class="imp"></div><div class="vh" role="status"></div>';
+                                imp = el.firstChild;
+                                live = el.lastChild;
+                            }
+                            // WHERE THE READER WAS INSIDE THE PREVIEW TABLE.
+                            // Every progress tick rebuilds this subtree, and the
+                            // preview scrolls ~1.7k px inside a 320px-tall box,
+                            // so a reader following the rows being written was
+                            // thrown back to the top once per batch — three
+                            // times in a three-chunk import, unasked. keepFocus
+                            // already restores WHICH control they were on, keyed
+                            // the same way; this restores WHERE they were in it.
+                            // Read before the write and applied only to a
+                            // scroller that came back under the same key.
+                            const scrolled = [];
+                            for (const sc of imp.querySelectorAll(
+                                "[data-focus-key]",
+                            ))
+                                if (sc.scrollTop || sc.scrollLeft)
+                                    scrolled.push({
+                                        key: sc.getAttribute("data-focus-key"),
+                                        top: sc.scrollTop,
+                                        left: sc.scrollLeft,
+                                    });
+                            imp.innerHTML = body;
+                            for (const sc of imp.querySelectorAll(
+                                "[data-focus-key]",
+                            )) {
+                                const was = scrolled.find(
+                                    (s) =>
+                                        s.key ===
+                                        sc.getAttribute("data-focus-key"),
+                                );
+                                if (!was) continue;
+                                sc.scrollTop = was.top;
+                                sc.scrollLeft = was.left;
+                            }
+                            const say = progressText() || S.announce;
+                            if (live.textContent !== say)
+                                live.textContent = say;
+                            S.shownStep = S.step;
+                            wire();
+                        },
+                        { owned: S.focusOwned, stepChanged },
+                    ),
+                );
+                if (!ok) renderFailed(el);
+            }
+
+            // What a throwing render leaves behind. Not paint()'s empty root:
+            // an import in progress is not a readout, and a card that vanished
+            // mid-run would leave the user unable to tell whether their meals
+            // were written. The support notice (with its diagnostics) is the
+            // existing copy that fits a broken screen; with the contact
+            // stripped by depersonalize.ts there is no copy left that does, and
+            // the root is emptied as paint() would. S.aborted stops runImport.
+            function renderFailed(el) {
+                S.aborted = true;
                 if (!el) return;
-                let body = "";
-                if (S.step === "file") body = fileStep();
-                else if (S.step === "map") body = mapStep();
-                else if (S.step === "preview") body = previewStep();
-                else body = doneStep();
-                el.innerHTML = '<div class="imp">' + steps() + body + "</div>";
-                wire();
+                let card = "";
+                try {
+                    const block = diagnosticsBlock("error");
+                    if (block)
+                        card =
+                            '<div class="imp">' +
+                            cardOpen() +
+                            block +
+                            cardClose() +
+                            "</div>";
+                } catch (_) {}
+                el.innerHTML = card;
             }
 
             // Turn each .tedge's edge fades on and off from its scroller's
@@ -2032,7 +2436,15 @@
                         render();
                     };
                 const doImport = document.getElementById("doImport");
-                if (doImport) doImport.onclick = () => runImport();
+                if (doImport)
+                    doImport.onclick = () => {
+                        // Pressed inside the widget, so the run owns focus
+                        // until it ends (see S.focusOwned) — which is what
+                        // lets the done step's heading receive it although the
+                        // button went disabled, and focus to <body>, at once.
+                        S.focusOwned = true;
+                        runImport();
+                    };
                 const restart = document.getElementById("restart");
                 if (restart)
                     restart.onclick = () => {
@@ -2052,8 +2464,13 @@
 
             initWidget({
                 name: "import-meals-widget",
+                // Read at boot, before any payload has named a locale, so this
+                // is always the English line — same as every other widget's
+                // loading state; the dictionary key is what lets that change.
                 loading:
-                    '<div class="empty"><div class="big">📥</div><div>Preparing import…</div></div>',
+                    '<div class="empty"><div class="big">📥</div><div>' +
+                    esc(T.importMeals.loading) +
+                    "</div></div>",
                 coerce: (payload) => {
                     if (!payload || typeof payload !== "object") return null;
                     // start_meal_import's own payload, or a wrapper round it.
