@@ -69,7 +69,15 @@ body {
     --fat: #f43f7e;
     --wat: #0ea5e9;
     --fib: #0d9488;
-    --sug: #84cc16;
+    /* Olive, not the design's lime #84cc16: that measured 1.98:1 on --panel
+       (1.80 once a .nm-tile mixes 14% of it back into the surface it sits
+       on) — the weakest hue in the set, and fresh-green on the one metric
+       that is a ceiling. #657f18 is 4.56:1 on --panel, 3.83 on its own
+       tile. DARK KEEPS THE LIME (#a3e635, 11.56:1 there); the right value
+       genuinely differs per theme. Same value and same reasoning as
+       public/widgets/src/shared/tokens.css — the in-chat cards and the page
+       must agree on what --sug means. */
+    --sug: #657f18;
     --caf: #a16207;
     /* The fat stat card's oil-bottle tile: golden, because the fat series'
        pink on a droplet read as blood. Never used for the fat bar itself. */
@@ -81,8 +89,14 @@ body {
     --cta-ink: #f7f7f9;
     /* "Past a limit" — a figure or a warning, never a surface (the
        system's one non-nutrient signal colour; the login error banner and
-       .nm-notice.is-warn tint themselves with it). */
-    --over: #d0452b;
+       .nm-notice.is-warn tint themselves with it). One step darker than
+       the hue it reads as, because it is almost always TEXT sitting on its
+       own 10-14% tint of itself rather than on bare --panel, and that tint
+       is the ground that actually paints: #d0452b -> #bb3a22 takes
+       .nm-delta.down from 3.78 to 4.53 and a .nm-notice.is-warn /
+       .error-banner link from 4.00 to 4.82. Dark (#ff6b52) already cleared
+       4.5:1 and is untouched. Matches tokens.css. */
+    --over: #bb3a22;
 
     /* Not in the design's token line but hardcoded in its markup; lifted
        here so no colour literal lives outside this block. --paper is the
@@ -134,7 +148,11 @@ body {
         --wat: #38bdf8;
         --fib: #14b8a6;
         --sug: #a3e635;
-        --caf: #d4a56a;
+        /* A true coffee brown. #d4a56a had drifted amber — dE 8.5 from
+           --cal in normal vision, confusable wherever the two tiles sit in
+           one grid (/tools). dE 17.1 at 5.22:1 on --panel. Light
+           (#a16207) was already correct. Matches tokens.css. */
+        --caf: #b8814e;
         --oil: #f0c04a;
         --shadow:
             0 1px 2px rgba(0, 0, 0, 0.4), 0 30px 70px -30px rgba(0, 0, 0, 0.8);
@@ -168,7 +186,7 @@ body[data-theme="dark"] {
     --wat: #38bdf8;
     --fib: #14b8a6;
     --sug: #a3e635;
-    --caf: #d4a56a;
+    --caf: #b8814e;
     --oil: #f0c04a;
     --shadow:
         0 1px 2px rgba(0, 0, 0, 0.4), 0 30px 70px -30px rgba(0, 0, 0, 0.8);
@@ -4066,6 +4084,15 @@ textarea.nm-input {
     *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
+        /* The delay has to go too, not just the duration. Around a dozen rules
+           here animate with `both` fill-mode and a delay (nm-rise at 0.08s and
+           up, nm-underline at 0.7s); `both` holds the element at its `from` —
+           opacity 0, translated — until the delay elapses, so cutting only the
+           duration left the hero underline invisible for 700ms and the
+           staggered hero lines for 80-300ms, under the one setting that asks
+           for less motion, not less content. Matches the widgets' own
+           reduced-motion block (public/widgets/src/shared/base.css). */
+        animation-delay: 0s !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
