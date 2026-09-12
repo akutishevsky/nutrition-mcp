@@ -38,11 +38,8 @@ const macrosApi = await (async () => {
     // whenever a locale is missing.
     const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
     const iconSrc = await Bun.file(`${SRC}/shared/icon.js`).text();
-    // shared/date.js too, exactly as nutrition-summary.html includes it: a
-    // drawer row's day goes through shortDate(). macros.js guards that call
-    // (`typeof shortDate === "function"`) because the dev gallery includes
-    // macros.js WITHOUT date.js, so both shapes are safe — what is pinned below
-    // is the real path.
+    // shared/date.js too, exactly as every template that includes macros.js
+    // does: a drawer row's day goes through shortDate(), unguarded.
     const dateSrc = await Bun.file(`${SRC}/shared/date.js`).text();
     const macrosSrc = await Bun.file(`${SRC}/shared/macros.js`).text();
     // `document`/`window` are left undefined so the partial's delegated event
@@ -99,7 +96,11 @@ const macrosApi = await (async () => {
             goal?: Vals | null,
             wording?: unknown,
             meals?: unknown[],
-            opts?: { drinkUnit?: string },
+            opts?: {
+                drinkUnit?: string;
+                calLabel?: string;
+                metricLabel?: (m: Macro) => string;
+            },
         ) => unknown;
         dayHasData: (day: Vals) => boolean;
         mealList: (m: Macro, meals: unknown[], flag?: string) => string;
@@ -294,8 +295,11 @@ test("an interactive tile names its value and goal state, then the action", () =
     // The VISIBLE figure verbatim ("2,035/2,200 kcal"), then only what the
     // figure does not already say — WCAG 2.5.3 label-in-name. It used to read
     // "2,035 kcal, of 2,200 kcal", which does not contain what the tile shows.
+    // The calorie PANEL leads with the label it prints, which is the period it
+    // covers ("Calories today", "Calories · 20 Nov", "Daily avg · logged days")
+    // and not the bare metric name — the visible run has to be in the name too.
     expect(labels.calories).toBe(
-        "Calories 2,035/2,200 kcal, 165 kcal left. Show the meals that contributed.",
+        "Calories today 2,035/2,200 kcal, 165 kcal left. Show the meals that contributed.",
     );
     expect(labels.carbs_g).toBe(
         "Carbs 205/220 g, 15 g left. Show the meals that contributed.",
@@ -430,7 +434,7 @@ test("a disclosing chip says aria-expanded; a chart-only chip says aria-pressed"
 
 // "Also shows this nutrient on the chart." is a promise about THIS chip. Gated
 // on the widget merely having a chart, nutrition-summary's calorie hero — which
-// chartableKeys() deliberately excludes — promised a chart change that tapping
+// chartableKeys() (shared/spark.js) deliberately excludes — promised a chart change that tapping
 // it never made (regression audit).
 test("only a chip the chart can actually draw claims to re-stroke it", () => {
     const html = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
@@ -440,7 +444,7 @@ test("only a chip the chart can actually draw claims to re-stroke it", () => {
     expect(labels.protein_g).toContain(WIDGET_STRINGS_EN.macros.alsoChart);
     expect(labels.calories).not.toContain(WIDGET_STRINGS_EN.macros.alsoChart);
     expect(labels.calories).toBe(
-        "Calories 2,035/2,200 kcal, 165 kcal left. Show the meals that contributed.",
+        "Calories today 2,035/2,200 kcal, 165 kcal left. Show the meals that contributed.",
     );
 });
 
@@ -516,9 +520,18 @@ test("every interactive tile's name contains its visible label and figure, and n
                     : chip.indexOf('<span class="dcap">');
             expect(from).toBeGreaterThan(-1);
             const figure = chip.slice(from, to).replace(/<[^>]*>/g, "");
-            const m = macroOf(key) as Macro & { label: string };
+            // The visible LABEL is read off the markup for the same reason the
+            // figure is: a tile prints its metric's name in `.k`, while the
+            // panel prints the period it covers in `.flabel` ("Calories today",
+            // "Daily avg · logged days") — which is the run a voice user says.
+            const visible = (
+                key === "calories"
+                    ? /<span class="flabel">([^<]*)<\/span>/
+                    : /<span class="k">([^<]*)<\/span>/
+            ).exec(chip)?.[1];
+            expect(visible).toBeTruthy();
             expect(
-                squash(label).startsWith(squash(`${m.label}${figure}`)),
+                squash(label).startsWith(squash(`${visible}${figure}`)),
             ).toBe(true);
             // "·" is decoration a screen reader either skips or calls
             // "middle dot"; the spoken name separates with a comma.
@@ -537,7 +550,14 @@ test("a static tile keeps its label, figure and goal caption exposed", () => {
     // when the wash became the gauge).
     expect(html).toContain('<span class="focus c-cal"');
     expect(html).toContain('2,035<span class="u">/2,200 kcal</span>');
-    expect(html).toContain(
+    // …and the panel says the rest of that caption OUT LOUD rather than in a
+    // clipped one: the goal rides the figure and the distance is the `.fdelta`
+    // line, both visible text. Which is why it carries no hidden caption of its
+    // own (focusInner): on a span panel the children stay in the accessibility
+    // tree, so the caption was a second reading of two figures already there —
+    // "165 kcal left" twice, and a literal "no goal set" twice with no goal.
+    expect(html).toContain('<b class="fdelta">165 kcal left</b>');
+    expect(html).not.toContain(
         '<span class="dcap">of 2,200 kcal · 165 kcal left</span>',
     );
     // The goal RIDES THE FIGURE on a static chip, dimmed: "148 /160 g". It used
@@ -567,8 +587,12 @@ test("every tile prints its figure against its goal; with no goal, the figure al
     expect(live).toContain('58.2<span class="u">/45 g</span>');
     // No goal to measure against: the figure stands alone rather than being
     // printed against nothing.
+    // `bare`, and a real space: with no goal the unit span holds nothing but
+    // the unit, so the 2px that separates a figure from "/160 g" printed
+    // "2,151kcal" on the panel — and the rule that stacks a goal below 480px
+    // had a lone "g" sitting on a line of its own under "151".
     const noGoals = macrosApi.macroPanel(VALS, null, undefined, MEALS);
-    expect(noGoals).toContain('148<span class="u">g</span>');
+    expect(noGoals).toContain('148<span class="u bare"> g</span>');
     expect(noGoals).not.toContain('148<span class="u">/');
     // A goal of 0 is never printed beside a figure — "5.2 /0 g" reads as a typo,
     // and the ceiling-0 breach is carried by the caption.
@@ -576,7 +600,7 @@ test("every tile prints its figure against its goal; with no goal, the figure al
         { ...VALS, alcohol_g: 5.2 },
         { ...GOALS, alcohol_g: 0 },
     );
-    expect(zeroCeiling).toContain('5.2<span class="u">g</span>');
+    expect(zeroCeiling).toContain('5.2<span class="u bare"> g</span>');
     expect(zeroCeiling).not.toContain("/0 g");
     expect(zeroCeiling).toContain("limit 0 g · 5.2 g over");
 });
@@ -600,9 +624,11 @@ test("with no goals every tile says so, calorie block included", () => {
     // are hidden from sight at every width now, so the assertion moves to the
     // one place the wording still has to be right.
     const captions = [...html.matchAll(/<span class="dcap">([^<]*)<\/span>/g)];
-    // 9, not 8: the calorie hero is a tile now and carries its own caption, so
-    // the "calorie block included" in this test's name is literal.
-    expect(captions.length).toBe(9); // calories + 3 macros + water + 4 limits
+    // 8: every TILE carries one. The calorie panel does not — it prints the
+    // same two facts as visible text (see the static-tile test), and the
+    // "calorie block included" in this test's name is covered by the `.fdelta`
+    // assertion above it rather than by a hidden caption.
+    expect(captions.length).toBe(8); // 3 macros + water + 4 limits
     // toContain, not toBe: alcohol's caption still leads with its drink gloss,
     // which is a reading and not a goal.
     for (const c of captions) expect(c[1]).toContain("no goal set");
@@ -870,6 +896,52 @@ test("each tiered rail reports how many tiles it has", () => {
     );
 });
 
+// A BREACH IS NEVER THE QUIET ONE. Below 480px a three-tile limits rail puts
+// one tile across the whole row, and that tile used to be whichever came last —
+// always Fiber, the group's only floor. So an unbreached metric painted ~1.9x
+// the wash area of the breached tile beside it, undoing the `--wash-scale` rule
+// that exists to promote a breach out of the level it sits in. railOf marks the
+// tile now: the breached one when there is one, and exactly one per rail, so no
+// cell is ever left empty.
+test("the narrow fold stretches the breached tile, not the last one", () => {
+    const folds = (html: string) =>
+        [...html.matchAll(/class="chip[^"]*\bfold\b[^"]*"/g)].map((m) => m[0]);
+
+    // Three limits — sugar (58.2 over a 45 g ceiling), caffeine, fiber — since
+    // alcohol is the opt-in most accounts do not carry.
+    const vals = { ...VALS, alcohol_g: null };
+    const breached = macrosApi.macroPanel(vals, GOALS, undefined, MEALS, {
+        tiers: true,
+    });
+    expect(folds(breached)).toHaveLength(1);
+    expect(folds(breached)[0]).toContain("c-sug");
+    expect(folds(breached)[0]).toContain("over");
+
+    // Nothing past a ceiling: the last tile takes the row, as it always did.
+    const calm = macrosApi.macroPanel(
+        { ...vals, sugar_g: 10 },
+        GOALS,
+        undefined,
+        MEALS,
+        { tiers: true },
+    );
+    expect(folds(calm)).toHaveLength(1);
+    expect(folds(calm)[0]).toContain("c-fib");
+
+    // Four tiles fold to 2x2 with no hole, and the flat rail wraps — neither
+    // stretches anything, so neither is marked.
+    expect(
+        folds(
+            macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+                tiers: true,
+            }),
+        ),
+    ).toHaveLength(0);
+    expect(
+        folds(macrosApi.macroPanel(vals, GOALS, undefined, MEALS)),
+    ).toHaveLength(0);
+});
+
 test("a tiered tile wears its glyph; an untiered one keeps the dot", () => {
     const tiered = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
         tiers: true,
@@ -1057,7 +1129,7 @@ test("caffeine is milligrams alone — the drink gloss is alcohol's only", () =>
     );
     expect(html).toContain("limit 400 mg");
     expect(caffeineCell({ caffeine_mg: 185 }, null)).toContain(
-        '185<span class="u">mg</span>',
+        '185<span class="u bare"> mg</span>',
     );
     expect(html).not.toContain("drinks");
     expect(
@@ -1330,6 +1402,13 @@ type FakeDoc = {
     addEventListener(type: string, fn: (e: unknown) => void): void;
 };
 let __doc: FakeDoc;
+type Snapshot = {
+    openKey: string;
+    focusInside: boolean;
+    focusKey: string;
+    focusOnPanel: boolean;
+    focusInDrawer: boolean;
+};
 // The partial's delegated handlers, captured as it registers them so a test
 // can dispatch a key to the real Escape handler rather than to a copy of it.
 const __listeners: Record<string, Array<(e: unknown) => void>> = {};
@@ -1392,6 +1471,14 @@ class FakeEl {
     }
     focus() {
         __doc.activeElement = this;
+    }
+    // Only `contains` — the one classList read the partial makes (telling the
+    // focus panel from a tile when restoring focus after a re-render).
+    get classList() {
+        return {
+            contains: (c: string) =>
+                (this.attrs.class || "").split(" ").includes(c),
+        };
     }
     contains(el: FakeEl | null) {
         for (let n = el; n; n = n.parent) if (n === this) return true;
@@ -1458,7 +1545,7 @@ const domApi = await (async () => {
         "WIDGET_STRINGS",
         "document",
         "window",
-        `${i18nSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroPanel, macroToggle, macroCloseDrawer, focusApply, macroReturn, macroCtx };`,
+        `${i18nSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroPanel, macroToggle, macroCloseDrawer, focusApply, macroReturn, macroCtx, macroSnapshot, macroRestore };`,
     );
     return factory(fmt, esc, { en: WIDGET_STRINGS_EN }, __doc, {}) as {
         macroPanel: (
@@ -1469,8 +1556,12 @@ const domApi = await (async () => {
             opts?: {
                 chartKeys?: string[];
                 onSeries?: (key: string, opened: boolean) => void;
+                extra?: unknown;
+                stash?: boolean;
             },
         ) => string;
+        macroSnapshot: (root: FakeEl) => Snapshot;
+        macroRestore: (root: FakeEl, was: Snapshot) => void;
         macroToggle: (cell: FakeEl) => void;
         macroCloseDrawer: (panel: FakeEl | null) => boolean;
         focusApply: (
@@ -2050,4 +2141,476 @@ test("a panel mirroring an open tile is a single return-to-calories control", ()
     domApi.macroReturn(fx);
     expect(d.water.getAttribute("aria-pressed")).toBe("false");
     expect(fx.getAttribute("data-macro")).toBe("calories");
+});
+
+// ---- opts.extra: one non-nutrient control on the shared drawer ------------
+//
+// goal-progress' weight row used to be a second disclosure with a drawer, a
+// click delegate and a cross-close of its own, reaching into macros.js' state
+// from outside. Through opts.extra it is one more control on the strip, so
+// every contract below is the strip's own — and each is pinned because the
+// plumbing that makes it work (one key resolved from either attribute) is
+// exactly the kind of thing that silently misses one path.
+
+const WEIGHT_DETAIL =
+    '<div class="dhead c-acc"><b class="dname" id="macro-drawer-name">Weight</b></div>';
+const weightExtra = (detail: (() => string) | null = () => WEIGHT_DETAIL) => ({
+    key: "weight",
+    row: (i: number) =>
+        `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="false" aria-controls="macro-drawer" style="--i:${i}">W</button>`,
+    detail,
+});
+
+// WITHOUT THE SLOT NOTHING MOVES. Every other widget on this partial renders
+// with no `extra`, so the only markup the slot may ever add is the row it is
+// handed and — when there is a detail — the drawer. An extra whose row is empty
+// and which discloses nothing must therefore leave the strip byte-for-byte what
+// it was, across both layouts and with and without meals.
+test("opts.extra adds only its row (and a drawer to open into), byte for byte", () => {
+    const MARK = "<!--weight-row-->";
+    for (const tiers of [false, true]) {
+        for (const meals of [MEALS, undefined]) {
+            const base = { tiers, chartKeys: ["protein_g"] };
+            const plain = macrosApi.macroPanel(
+                VALS,
+                GOALS,
+                undefined,
+                meals,
+                base,
+            );
+            // Inert: nothing to add, nothing changes.
+            expect(
+                macrosApi.macroPanel(VALS, GOALS, undefined, meals, {
+                    ...base,
+                    extra: { key: "weight", row: () => "", detail: null },
+                }),
+            ).toBe(plain);
+            // A row: spliced in once, and only it.
+            let seen: number | null = null;
+            const withRow = macrosApi.macroPanel(
+                VALS,
+                GOALS,
+                undefined,
+                meals,
+                {
+                    ...base,
+                    extra: {
+                        key: "weight",
+                        row: (i: number) => ((seen = i), MARK),
+                        detail: null,
+                    },
+                },
+            );
+            expect(withRow.split(MARK).length).toBe(2);
+            expect(withRow.replace(MARK, "")).toBe(plain);
+            // Handed the NEXT stagger index: three macros, one water, four
+            // limits are on the rails, so the row deals ninth (--i 8).
+            expect(seen).toBe(8);
+            // After every rail, before the drawer and the foot.
+            const at = withRow.indexOf(MARK);
+            expect(at).toBeGreaterThan(withRow.lastIndexOf('class="rail'));
+            if (meals) {
+                expect(at).toBeLessThan(withRow.indexOf('<div class="drawer"'));
+            }
+            expect(at).toBeLessThan(withRow.indexOf('<div class="foot"'));
+        }
+    }
+});
+
+// A meal-less day with a weight reading: the weight row is the ONLY thing that
+// opens the drawer, so the drawer must exist without a single meal behind it —
+// and the tap hint, which promises MEALS, must not.
+test("the drawer is emitted for an extra's detail even with no meals", () => {
+    const html = macrosApi.macroPanel(VALS, GOALS, undefined, [], {
+        tiers: true,
+        extra: weightExtra(),
+    });
+    expect(html).toContain('<div class="drawer" id="macro-drawer"');
+    expect(html).toContain("data-macro-panel");
+    expect(html).toContain('data-macro-extra="weight"');
+    expect(html).not.toContain("data-macro-hint");
+    // No detail (a reading-less weight line): no drawer, no handler region.
+    const none = macrosApi.macroPanel(VALS, GOALS, undefined, [], {
+        tiers: true,
+        extra: weightExtra(null),
+    });
+    expect(none).not.toContain('<div class="drawer"');
+    expect(none).not.toContain("data-macro-panel");
+});
+
+// One namespace for both species of control, so a collision is a card whose
+// drawer opens the wrong thing. It is a template bug, never data: it throws.
+test("an extra may not borrow a MACROS key", () => {
+    for (const key of ["water_ml", "calories", ""]) {
+        expect(() =>
+            macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+                extra: { key, row: () => "", detail: null },
+            }),
+        ).toThrow(/opts\.extra\.key/);
+    }
+});
+
+// The strip macroToggle reads, with a weight row between the rails and the
+// drawer — the shape goal-progress renders.
+function buildExtraStrip(onSeries?: (key: string, opened: boolean) => void) {
+    const d = buildStrip(["water_ml"], onSeries);
+    // buildStrip stashed a ctx without the extra; restash with it.
+    domApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+        chartKeys: ["water_ml"],
+        onSeries,
+        extra: weightExtra(),
+    });
+    const weight = new FakeEl("button", {
+        "data-macro-extra": "weight",
+        "aria-expanded": "false",
+        "aria-controls": "macro-drawer",
+    });
+    weight.parent = d.panel;
+    d.panel.children.splice(d.panel.children.indexOf(d.drawer), 0, weight);
+    return { ...d, weight };
+}
+
+// The ✕ inside an open drawer, as the real delegate finds it.
+function closeButtonIn(drawer: FakeEl) {
+    const x = new FakeEl("button", { "data-macro-close": "" });
+    drawer.add(x);
+    return x;
+}
+function click(target: FakeEl) {
+    for (const fn of __listeners.click || []) fn({ target });
+}
+
+test("the weight row opens the shared drawer and its ✕ hands focus back", () => {
+    const d = buildExtraStrip();
+    // Through the real click delegate: the row is found by [data-macro-extra].
+    d.weight.focus();
+    click(d.weight);
+    expect(d.weight.getAttribute("aria-expanded")).toBe("true");
+    expect(d.drawer.hidden).toBe(false);
+    expect(d.drawer.innerHTML).toBe(WEIGHT_DETAIL);
+    // The key the ✕ and Escape close by — without it both are no-ops.
+    expect(d.drawer.dataset.open).toBe("weight");
+    expect(__doc.activeElement).toBe(d.drawer);
+    // An open drawer is an answer; the instruction goes, like any other.
+    expect(d.hint.hidden).toBe(true);
+    // Nothing else on the strip is dragged along.
+    expect(d.protein.getAttribute("aria-expanded")).toBe("false");
+    expect(d.water.getAttribute("aria-pressed")).toBe("false");
+
+    const x = closeButtonIn(d.drawer);
+    x.focus();
+    click(x);
+    expect(d.drawer.hidden).toBe(true);
+    expect(d.drawer.dataset.open).toBe("");
+    expect(d.weight.getAttribute("aria-expanded")).toBe("false");
+    expect(__doc.activeElement).toBe(d.weight);
+    expect(d.hint.hidden).toBe(false);
+});
+
+// The cross-close is macroToggle's own exclusive loop now, in BOTH directions,
+// and the chart coupling hears only about MACROS keys — the weight has no
+// series to draw.
+test("weight and a tile close each other, both ways, through the one drawer", () => {
+    const calls: Array<[string, boolean]> = [];
+    const d = buildExtraStrip((key, opened) => calls.push([key, opened]));
+
+    domApi.macroToggle(d.weight);
+    expect(calls).toEqual([]);
+    // Tile takes the floor: the weight row resets, the drawer swaps.
+    domApi.macroToggle(d.protein);
+    expect(d.weight.getAttribute("aria-expanded")).toBe("false");
+    expect(d.protein.getAttribute("aria-expanded")).toBe("true");
+    expect(d.drawer.dataset.open).toBe("protein_g");
+    expect(d.drawer.innerHTML).toContain(
+        '<b class="dname" id="macro-drawer-name">Protein</b>',
+    );
+    expect(__doc.activeElement).toBe(d.drawer);
+    expect(calls).toEqual([["protein_g", true]]);
+
+    // And back: the weight row takes the floor from the tile.
+    domApi.macroToggle(d.weight);
+    expect(d.protein.getAttribute("aria-expanded")).toBe("false");
+    expect(d.weight.getAttribute("aria-expanded")).toBe("true");
+    expect(d.drawer.dataset.open).toBe("weight");
+    expect(d.drawer.innerHTML).toBe(WEIGHT_DETAIL);
+    expect(__doc.activeElement).toBe(d.drawer);
+    expect(d.hint.hidden).toBe(true);
+    expect(calls).toEqual([["protein_g", true]]);
+
+    // The ✕ returns focus to the control that opened THIS drawer.
+    expect(domApi.macroCloseDrawer(d.panel)).toBe(true);
+    expect(__doc.activeElement).toBe(d.weight);
+    expect(d.weight.getAttribute("aria-expanded")).toBe("false");
+});
+
+test("Escape from inside the weight drawer closes it and returns focus to the row", () => {
+    const d = buildExtraStrip();
+    domApi.macroToggle(d.weight);
+    expect(__doc.activeElement).toBe(d.drawer);
+    expect(pressEscape(d.drawer)).toBe(true);
+    expect(d.drawer.hidden).toBe(true);
+    expect(d.weight.getAttribute("aria-expanded")).toBe("false");
+    expect(__doc.activeElement).toBe(d.weight);
+    // Nothing open any more: the key is the host's again.
+    expect(pressEscape(d.weight)).toBe(false);
+
+    // A strip rebuilt under the open drawer: the remembered opener is gone
+    // from the document, so the ✕ falls back to the key — which has to find
+    // a [data-macro-extra] control, not only a [data-macro] one.
+    domApi.macroToggle(d.weight);
+    const e = buildExtraStrip();
+    e.drawer.hidden = false;
+    e.drawer.dataset.open = "weight";
+    e.weight.setAttribute("aria-expanded", "true");
+    expect(domApi.macroCloseDrawer(e.panel)).toBe(true);
+    expect(__doc.activeElement).toBe(e.weight);
+    expect(e.drawer.hidden).toBe(true);
+    expect(e.weight.getAttribute("aria-expanded")).toBe("false");
+});
+
+// ---- macroSnapshot / macroRestore: surviving a re-render -------------------
+//
+// A host re-delivering the tool result rebuilds the whole root under an open
+// drawer. nutrition-summary carried the only copy of the restore, so every
+// other widget dropped focus on <body> and lost the open metric — and the copy
+// matched `[data-macro]` alone, which would have lost goal-progress' weight
+// row. These pin the shared pair, including the weight row.
+
+// The strip mounted inside a #root, beside a stand-in for the host's composer:
+// "focus outside the widget" needs somewhere real to be, and `body` is where a
+// dropped focus lands, so it cannot double as that place.
+function mount<T extends { panel: FakeEl }>(d: T) {
+    const root = new FakeEl("div", { id: "root" });
+    const outside = new FakeEl("textarea", { id: "composer" });
+    __doc.body.children = [];
+    root.add(d.panel);
+    __doc.body.add(outside, root);
+    return { ...d, root, outside };
+}
+
+// render(): snapshot the old root, build and stash a new strip, restore.
+function rerender<T extends { panel: FakeEl }>(
+    old: { root: FakeEl },
+    build: () => T,
+) {
+    const was = domApi.macroSnapshot(old.root);
+    const next = mount(build());
+    domApi.macroRestore(next.root, was);
+    return { was, next };
+}
+
+test("an open drawer is still open after a re-render, with focus in it", () => {
+    const a = mount(buildStrip(["water_ml"]));
+    domApi.macroToggle(a.protein);
+    expect(__doc.activeElement).toBe(a.drawer);
+
+    const { was, next } = rerender(a, () => buildStrip(["water_ml"]));
+    expect(was).toEqual({
+        openKey: "protein_g",
+        focusInside: true,
+        focusKey: "",
+        focusOnPanel: false,
+        focusInDrawer: true,
+    });
+    expect(next.drawer.hidden).toBe(false);
+    expect(next.drawer.dataset.open).toBe("protein_g");
+    expect(next.drawer.innerHTML).toContain(
+        '<b class="dname" id="macro-drawer-name">Protein</b>',
+    );
+    expect(next.protein.getAttribute("aria-expanded")).toBe("true");
+    // The NEW drawer — the old node is gone from the document.
+    expect(__doc.activeElement).toBe(next.drawer);
+    expect(next.hint.hidden).toBe(true);
+    // …and the ✕ then closes through the new opener.
+    expect(domApi.macroCloseDrawer(next.panel)).toBe(true);
+    expect(__doc.activeElement).toBe(next.protein);
+});
+
+// FOCUS IS ONLY EVER RESTORED, NEVER TAKEN: a re-render the user did not ask
+// for must not pull focus into the iframe from the host's composer.
+test("focus outside the widget stays outside across a re-render", () => {
+    const a = mount(buildStrip(["water_ml"]));
+    domApi.macroToggle(a.protein);
+    a.outside.focus();
+
+    const { was, next } = rerender(a, () => buildStrip(["water_ml"]));
+    expect(was.focusInside).toBe(false);
+    // Reopened all the same…
+    expect(next.drawer.hidden).toBe(false);
+    expect(next.protein.getAttribute("aria-expanded")).toBe("true");
+    // …without moving focus — it is still on the composer the user was in —
+    // and the no-op shadowing drawer.focus is gone again.
+    expect(__doc.activeElement).toBe(a.outside);
+    expect(next.root.contains(__doc.activeElement)).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(next.drawer, "focus")).toBe(
+        false,
+    );
+    next.drawer.focus();
+    expect(__doc.activeElement).toBe(next.drawer);
+});
+
+test("focus on the drawer's ✕ lands back inside the drawer", () => {
+    const a = mount(buildStrip(["water_ml"]));
+    domApi.macroToggle(a.protein);
+    closeButtonIn(a.drawer).focus();
+
+    const { was, next } = rerender(a, () => buildStrip(["water_ml"]));
+    expect(was.focusInDrawer).toBe(true);
+    expect(next.drawer.contains(__doc.activeElement)).toBe(true);
+    expect(__doc.activeElement).not.toBe(__doc.body);
+});
+
+// The new payload may leave the open metric with no meals and off the chart:
+// there is then no control to reopen, and the card comes back closed — with
+// focus handed to the focus panel rather than dropped.
+test("a metric that lost its meals comes back closed", () => {
+    const a = mount(buildStrip(["water_ml"]));
+    domApi.macroToggle(a.protein);
+
+    const { next } = rerender(a, () => {
+        __doc.body.children = [];
+        domApi.macroPanel(VALS, GOALS, undefined, [], {});
+        // Protein is a static tile now: no data-macro, no state attribute.
+        const protein = new FakeEl("span", { class: "chip static c-pro" });
+        const fx = new FakeEl("button", { class: "focus c-cal" });
+        const panel = new FakeEl("div", { "data-macro-panel": "" });
+        panel.add(fx, protein);
+        return { panel, protein, fx };
+    });
+    expect(next.panel.querySelector(".drawer")).toBe(null);
+    expect(next.panel.querySelectorAll('[aria-expanded="true"]')).toEqual([]);
+    expect(__doc.activeElement).toBe(next.fx);
+});
+
+// A chart-only toggle opens no drawer; what was open is whichever control is
+// pressed, and focus returns to the control that held it.
+test("a pressed chart toggle and a focused tile survive a re-render", () => {
+    const calls: Array<[string, boolean]> = [];
+    const onSeries = (key: string, opened: boolean) =>
+        calls.push([key, opened]);
+    const a = mount(buildStrip(["water_ml"], onSeries));
+    domApi.macroToggle(a.water);
+    a.water.focus();
+
+    const { was, next } = rerender(a, () => buildStrip(["water_ml"], onSeries));
+    expect(was.openKey).toBe("water_ml");
+    expect(was.focusKey).toBe("water_ml");
+    expect(next.water.getAttribute("aria-pressed")).toBe("true");
+    expect(next.drawer.hidden).toBe(true);
+    expect(__doc.activeElement).toBe(next.water);
+    // The chart is re-stroked through the same path a tap takes.
+    expect(calls.at(-1)).toEqual(["water_ml", true]);
+});
+
+// The weight row is a `[data-macro-extra]` control: a snapshot that matched
+// `[data-macro]` alone would find nothing to reopen and nothing to refocus.
+test("an open weight (extra) drawer survives a re-render", () => {
+    const a = mount(buildExtraStrip());
+    domApi.macroToggle(a.weight);
+    expect(__doc.activeElement).toBe(a.drawer);
+
+    const { was, next } = rerender(a, () => buildExtraStrip());
+    expect(was.openKey).toBe("weight");
+    expect(next.drawer.hidden).toBe(false);
+    expect(next.drawer.dataset.open).toBe("weight");
+    expect(next.drawer.innerHTML).toBe(WEIGHT_DETAIL);
+    expect(next.weight.getAttribute("aria-expanded")).toBe("true");
+    expect(__doc.activeElement).toBe(next.drawer);
+
+    // Focus on the weight row itself (closed) comes back to the new row.
+    domApi.macroCloseDrawer(next.panel);
+    expect(__doc.activeElement).toBe(next.weight);
+    const again = rerender(next, () => buildExtraStrip());
+    expect(again.was).toMatchObject({ openKey: "", focusKey: "weight" });
+    expect(again.next.drawer.hidden).toBe(true);
+    expect(__doc.activeElement).toBe(again.next.weight);
+});
+
+// Without a document there is nothing that can hold focus: the snapshot says
+// so rather than throwing, and the restore still reopens through the stash.
+test("the snapshot and restore are guarded when there is no document", async () => {
+    const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
+    const iconSrc = await Bun.file(`${SRC}/shared/icon.js`).text();
+    const macrosSrc = await Bun.file(`${SRC}/shared/macros.js`).text();
+    const api = new Function(
+        "fmt",
+        "esc",
+        "WIDGET_STRINGS",
+        `${i18nSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroSnapshot, macroRestore };`,
+    )(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
+        macroSnapshot: (root: unknown) => Snapshot;
+        macroRestore: (root: unknown, was: Snapshot) => void;
+    };
+    const d = buildStrip(["water_ml"]);
+    d.drawer.dataset.open = "protein_g";
+    expect(api.macroSnapshot(d.panel)).toEqual({
+        openKey: "protein_g",
+        focusInside: false,
+        focusKey: "",
+        focusOnPanel: false,
+        focusInDrawer: false,
+    });
+    expect(api.macroSnapshot(null).openKey).toBe("");
+    expect(() => api.macroRestore(null, api.macroSnapshot(null))).not.toThrow();
+});
+
+// opts.stash: false renders a strip WITHOUT taking the one ctx slot. The dev
+// gallery's specimens used to overwrite the live card's ctx, so its drawer
+// opened whatever the last specimen held.
+test("a strip rendered with stash: false leaves the live ctx alone", () => {
+    domApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+        chartKeys: ["water_ml"],
+    });
+    const live = domApi.macroCtx() as { chartKeys: string[]; vals: Vals };
+    domApi.macroPanel({ calories: 1 }, null, undefined, [], { stash: false });
+    const after = domApi.macroCtx() as { chartKeys: string[]; vals: Vals };
+    expect(after).toBe(live);
+    expect(after.chartKeys).toEqual(["water_ml"]);
+    expect(after.vals).toBe(VALS);
+    // The default still stashes.
+    domApi.macroPanel({ calories: 1 }, null, undefined, [], {});
+    expect((domApi.macroCtx() as { chartKeys: string[] }).chartKeys).toEqual(
+        [],
+    );
+});
+
+// opts.metricLabel relabels the panel for every metric EXCEPT calories, whose
+// label is calLabel's (the period). Omitted, the markup does not move.
+test("metricLabel is used only for non-calorie metrics", () => {
+    const opts = {
+        calLabel: "7-day avg",
+        metricLabel: (m: Macro) => `${m.key} over 7 days`,
+    };
+    const ctx = macrosApi.macroCtxOf(VALS, GOALS, undefined, MEALS, opts);
+    expect(macrosApi.focusInner(macroOf("calories"), ctx)).toContain(
+        '<span class="flabel">7-day avg</span>',
+    );
+    expect(macrosApi.focusInner(macroOf("protein_g"), ctx)).toContain(
+        '<span class="flabel">protein_g over 7 days</span>',
+    );
+    expect(macrosApi.focusInner(macroOf("fiber_g"), ctx)).toContain(
+        '<span class="flabel">fiber_g over 7 days</span>',
+    );
+    // A falsy answer falls back to the metric's own name.
+    const blank = macrosApi.macroCtxOf(VALS, GOALS, undefined, MEALS, {
+        metricLabel: () => "",
+    });
+    expect(macrosApi.focusInner(macroOf("protein_g"), blank)).toContain(
+        '<span class="flabel">Protein</span>',
+    );
+    // The strip opens on calories, so passing it changes no markup at all.
+    for (const tiers of [false, true]) {
+        expect(
+            macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+                tiers,
+                calLabel: "7-day avg",
+                metricLabel: opts.metricLabel,
+            } as never),
+        ).toBe(
+            macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+                tiers,
+                calLabel: "7-day avg",
+            } as never),
+        );
+    }
 });

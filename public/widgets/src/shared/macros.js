@@ -578,13 +578,41 @@ function macroTappable(m, ctx) {
 // announce "middle dot", so the spoken name uses commas. Returned WITHOUT a
 // closing full stop: chipLabel and focusApply each finish the sentence with
 // the action they promise.
-function tileLabel(m, b) {
+// THE SEPARATOR IS LANGUAGE DATA, like every other punctuation mark in the
+// dictionary (see goalProgress.lastLoggedSuffix, which owns its own leading
+// ", " for exactly this reason). Both were hardcoded ASCII here, so a fully
+// translated Japanese tile announced "タンパク質 148/160 g, 12 g 残り. グラフ
+// に表示します。" — a halfwidth comma and a halfwidth stop welded onto a
+// sentence that ends in 。, each read out as a stray token. English is ", "
+// and ".", so its names are byte-identical to what they were.
+// THE NAME THE CONTROL PRINTS, not the metric's dictionary label. They differ
+// in exactly one place: the calorie focus panel, whose visible `.flabel` is the
+// PERIOD it covers (`ctx.calLabel` — "Calories today", "Calories · 20 Nov",
+// "Daily avg · logged days"), while every tile prints its own metric name. The
+// name-builder used macroLabel for both, so a backdated meal-logged card
+// printed "Calories · 20 Nov" and announced "Calories …" — the visible label
+// run was not in the accessible name (WCAG 2.5.3), and the one thing #114 and
+// #70 put on that line, the day and the denominator, was the part that went
+// missing. Calories is never a rail tile (the rails are macros / limits /
+// water), so this only ever moves the panel's own name.
+//
+// `ctx.metricLabel` is deliberately NOT consulted: it relabels `.flabel` only,
+// for a panel that is a <span> (trends), and tileLabel is also the TILE
+// name-builder — reading it here would rename every tile on that card. See the
+// note on metricLabel in macroCtxOf.
+function tileName(m, ctx) {
+    return m.role === "cal" && ctx && ctx.calLabel
+        ? ctx.calLabel
+        : macroLabel(m);
+}
+function tileLabel(m, b, ctx) {
+    const sep = T.macros.nameSep;
     const parts = [];
     if (m.direction === "ceiling" || !(b.target > 0) || b.missing) {
         parts.push(b.targetStr);
     }
     if (b.deltaStr) parts.push(b.deltaStr);
-    return `${macroLabel(m)} ${chipValueText(m, b)}, ${parts.join(", ")}`;
+    return `${tileName(m, ctx)} ${chipValueText(m, b)}${sep}${parts.join(sep)}`;
 }
 
 // What activating THIS chip does, said once and truthfully. Three cases, one
@@ -600,11 +628,12 @@ function tileLabel(m, b) {
 // and on EVERY tile of a range whose payload carries `meals: []`.
 //
 // Gated on macroOnChart — THIS chip being drawable — and not on the widget
-// merely having a chart: nutrition-summary's chartableKeys() deliberately
+// merely having a chart: chartableKeys() (shared/spark.js) deliberately
 // excludes the calorie hero, and gating on `ctx.chartKeys.length` had the hero
 // promising a chart change that tapping it never makes (regression audit).
 function chipLabel(m, b, ctx) {
-    const name = `${tileLabel(m, b)}.`;
+    // The terminator is the dictionary's too (see tileLabel): "。" in ja.
+    const name = `${tileLabel(m, b, ctx)}${T.macros.nameEnd}`;
     const meals = macroHasDetail(m, ctx);
     if (!macroOnChart(m, ctx))
         return `${name} ${T.macros.showMealsContributed}`;
@@ -740,8 +769,13 @@ function focusInner(m, ctx, control, mirror) {
     const on = control === undefined ? macroTappable(m, ctx) : !!control;
     // Calories names the PERIOD it covers ("Daily avg · logged days" — the one
     // place the denominator is named, #70); any other metric names itself,
-    // because the period has not changed and its own name is what just did.
-    const label = m.role === "cal" ? ctx.calLabel : macroLabel(m);
+    // because the period has not changed and its own name is what just did —
+    // unless the caller says the period DOES read differently per metric
+    // (ctx.metricLabel; see macroCtxOf).
+    const label =
+        m.role === "cal"
+            ? ctx.calLabel
+            : (ctx.metricLabel && ctx.metricLabel(m)) || macroLabel(m);
     // The distance left joins the label on one line instead of floating in a
     // pill at the far right of an otherwise empty row. It is the one part of
     // that line worth reading twice, so it is the one part in --ink.
@@ -761,7 +795,21 @@ function focusInner(m, ctx, control, mirror) {
     // is short in exactly those two languages. Split so chip.css can floor the
     // delta and shrink only the label — the same "floor it on the part that
     // must survive" `.fmain` already applies to the figure.
-    return `${focusRing(m, b)}<span class="fmain"><span class="v">${chipValue(m, b)}</span><span class="fmeta"><span class="flabel">${esc(label)}</span><span class="fsep">·</span>${delta}</span></span><span class="fspark"></span>${chev}<span class="dcap">${esc(macroCaption(m, b, ctx))}</span>`;
+    // THE HIDDEN CAPTION ONLY WHERE IT ADDS SOMETHING. A tile's `.dcap` is its
+    // screen-reader text because a tile prints no delta line; the panel prints
+    // both halves in `.fmain .v` and `.fdelta`, so for the cal / macro / bar
+    // roles macroCaption returns exactly what is already on screen. On a panel
+    // that is a <span> (trends always; nutrition-summary on an all-zero-kcal
+    // day) the children stay in the accessibility tree, so that duplicate was
+    // announced: "49 kcal under" twice, and with no goal the literal "no goal
+    // set" twice in a row. A LIMIT keeps it — there the caption alone carries
+    // the "limit 45 g" framing and alcohol's drink gloss, which no visible run
+    // states — and it reaches this panel through focusApply's mirror mode.
+    const cap =
+        m.role === "limit"
+            ? `<span class="dcap">${esc(macroCaption(m, b, ctx))}</span>`
+            : "";
+    return `${focusRing(m, b)}<span class="fmain"><span class="v">${chipValue(m, b)}</span><span class="fmeta"><span class="flabel">${esc(label)}</span><span class="fsep">·</span>${delta}</span></span><span class="fspark"></span>${chev}${cap}`;
 }
 
 // The panel. It is a <button> when there are meals behind the metric and a
@@ -870,7 +918,7 @@ function focusApply(fx, m, ctx, selected) {
             fx.setAttribute("data-macro-return", "");
             fx.setAttribute(
                 "aria-label",
-                tpl(T.macros.showingMetric, { metric: tileLabel(m, b) }),
+                tpl(T.macros.showingMetric, { metric: tileLabel(m, b, ctx) }),
             );
         } else {
             fx.removeAttribute("aria-label");
@@ -918,7 +966,16 @@ function chipValue(m, b) {
     // "58.2/45 g" says the breach in numbers — the informational cue, in the
     // slot that already exists. A metric with no goal prints the figure alone;
     // there is nothing to print it against.
-    if (!(b.target > 0)) return `${val}<span class="u">${unit}</span>`;
+    // A BARE UNIT IS NOT A GOAL. The goal branch below begins its span with
+    // "/" and carries its own space, so the 2px between figure and `.u` reads
+    // as a separator; with no goal the span holds nothing but the unit and the
+    // same 2px printed "2,151kcal" on the panel. It also has nothing to stack:
+    // `.u` is pushed onto its own line below 480px so a goal always wraps
+    // together (chip.css), which left a lone "g" on a line under "151". The
+    // `bare` class is what lets that rule skip this case, and the space is what
+    // makes the figure and its unit read as one quantity, as macroAmount and
+    // chipValueText already do.
+    if (!(b.target > 0)) return `${val}<span class="u bare"> ${unit}</span>`;
     return `${val}<span class="u">/${macroNum(m, b.goalShown)} ${unit}</span>`;
 }
 
@@ -998,7 +1055,10 @@ function chipMarkup(m, b, opts) {
     // size worth reading. `--p` is the progress the tile's own background
     // fills to — see chip.css. It is a percentage string so CSS can feather
     // the leading edge against it without any further arithmetic.
-    return `<${tag} class="chip${on ? "" : " static"}${over ? " over" : ""} ${m.color}"${type}${on ? tapAttrs(m, b, ctx) : ""} style="--p:${(b.frac * 100).toFixed(1)}%;--i:${opts.i || 0}">${macroMarkOutside(m, ctx)}<span class="ktop">${macroMarkInside(m, ctx)}<span class="k">${esc(macroLabel(m))}</span></span><span class="v">${chipValue(m, b)}</span>${chev}<span class="dcap">${esc(macroCaption(m, b, ctx))}</span></${tag}>`;
+    // `fold` marks the ONE tile a narrow rail may stretch across its whole row
+    // (chip.css's <480px limits fold). Which tile that is, is the rail's
+    // decision and nothing the chip can know — see railOf.
+    return `<${tag} class="chip${on ? "" : " static"}${over ? " over" : ""}${opts.fold ? " fold" : ""} ${m.color}"${type}${on ? tapAttrs(m, b, ctx) : ""} style="--p:${(b.frac * 100).toFixed(1)}%;--i:${opts.i || 0}">${macroMarkOutside(m, ctx)}<span class="ktop">${macroMarkInside(m, ctx)}<span class="k">${esc(macroLabel(m))}</span></span><span class="v">${chipValue(m, b)}</span>${chev}<span class="dcap">${esc(macroCaption(m, b, ctx))}</span></${tag}>`;
 }
 
 // Protein / carbs / fat — and water, which used to need an emitter of its own
@@ -1007,9 +1067,9 @@ function chipMarkup(m, b, opts) {
 // in five other places too, which is precisely the bug it caused.
 // `i` is the tile's position on the rail, and it exists only so chip.css can
 // stagger the entrance — it has no bearing on what a tile says.
-function macroChip(m, ctx, interactive, i) {
+function macroChip(m, ctx, interactive, i, fold) {
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
-    return chipMarkup(m, b, { ctx, interactive, i });
+    return chipMarkup(m, b, { ctx, interactive, i, fold });
 }
 
 // Kept as a name because the dev gallery renders the water specimen through it
@@ -1047,12 +1107,23 @@ function metricShown(m, ctx) {
 // how the focus panel ended up printing the figure for the same reading);
 // everything else is the figure and its unit, with the limit itself waiting in
 // the caption.
-function macroLimit(m, ctx, interactive, i) {
+function macroLimit(m, ctx, interactive, i, fold) {
     // The gate again, so the chip builder is safe to call on its own and can
     // never invent a reading the strip would have suppressed.
     if (!metricShown(m, ctx)) return "";
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
-    return chipMarkup(m, b, { ctx, interactive, i });
+    return chipMarkup(m, b, { ctx, interactive, i, fold });
+}
+
+// Past a CEILING — the one state a layout may never bury (see railOf). A floor
+// passed is not a breach, which is why the direction is half the test; it is
+// the same pair chipMarkup resolves `.over` from, asked of a metric the rail is
+// about to lay out rather than of a chip it has already built.
+function macroBreached(m, ctx) {
+    return (
+        m.direction === "ceiling" &&
+        macroBits(m, ctx.vals, ctx.goal, ctx.wording).over
+    );
 }
 
 // Everything the strip and its disclosure need, in one object: the values, the
@@ -1081,6 +1152,25 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // nutrition-summary.html and trends.html always pass their own more
         // specific calLabel (day count / range-averaged wording).
         calLabel: (opts && opts.calLabel) || T.macros.caloriesToday,
+        // The focus panel's label for any metric OTHER than calories, as a
+        // function of its MACROS entry. calLabel names the period calories
+        // covers; without this every other metric names only itself
+        // (macroLabel), which is right wherever the period is unambiguous —
+        // but trends averages protein over every calendar day and fiber over
+        // the days that recorded any, and the label is the only place that
+        // difference can be said once a tile has moved the panel. Optional,
+        // and a falsy result falls back to macroLabel, so a caller that omits
+        // it (nutrition-summary) renders byte-for-byte what it always did.
+        //
+        // It relabels `.flabel` ONLY. The accessible names (tileLabel,
+        // focusApply's showingMetric) keep macroLabel, so a caller that passes
+        // this must be one whose panel is NOT a button — a button's name has
+        // to contain its visible label (WCAG 2.5.3), and "Protein 7-day avg ·
+        // all days" is not in "Showing Protein …". Trends' panel is a <span>.
+        metricLabel:
+            opts && typeof opts.metricLabel === "function"
+                ? opts.metricLabel
+                : null,
         // Set by a widget that puts something of its own — a chart, a range
         // toggle's chart — between the header line and the strip, so the strip
         // opens with the same hairline that separates its own sections.
@@ -1107,7 +1197,60 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
             opts && Array.isArray(opts.chartKeys) ? opts.chartKeys.slice() : [],
         onSeries:
             opts && typeof opts.onSeries === "function" ? opts.onSeries : null,
+        // ONE CONTROL THAT IS NOT A NUTRIENT, sharing the strip's drawer —
+        // goal-progress' weight row. See macroExtraOf.
+        extra: macroExtraOf(opts && opts.extra),
     };
+}
+
+// The `opts.extra` slot: { key, row: (i) => string, detail: (() => string) |
+// null }. `row(i)` is the control's markup, handed the next stagger index so
+// its entrance deals after the last tile; `detail()` is the drawer body it
+// opens, or null when there is nothing to disclose (a weight row with no
+// reading is a line of text, not a button).
+//
+// It exists because the alternative was a SECOND drawer. goal-progress used to
+// render its weight row under the strip with a region of its own and a click
+// delegate of its own, and the two drawers closed each other by reaching into
+// each other's state — so the card had two disclosure contracts to keep in
+// step, and the foot sat between them instead of ending the card. Through this
+// slot the weight row is one more `[data-macro-extra]` control on the strip:
+// macroToggle's exclusive loop, the drawer, the ✕, Escape and the focus
+// hand-back all treat it exactly like a tile.
+//
+// THE KEY MUST NOT BE A MACROS KEY. Every lookup below resolves a control by
+// `dataset.macro || dataset.macroExtra`, one namespace for both, so an extra
+// named "water_ml" would be opened, closed and restored as if it were the
+// water tile. That is a template bug, never data, so it throws at render time
+// rather than degrading into a card whose drawer opens the wrong thing.
+function macroExtraOf(extra) {
+    if (!extra) return null;
+    if (
+        typeof extra.key !== "string" ||
+        !extra.key ||
+        MACROS.some((m) => m.key === extra.key)
+    ) {
+        throw new Error(
+            `macroPanel: opts.extra.key must be a non-MACROS key, got ${JSON.stringify(extra.key)}`,
+        );
+    }
+    if (typeof extra.row !== "function") {
+        throw new Error("macroPanel: opts.extra.row must be (i) => string");
+    }
+    return {
+        key: extra.key,
+        row: extra.row,
+        detail: typeof extra.detail === "function" ? extra.detail : null,
+    };
+}
+
+// The key a strip control answers to — a tile's MACROS key or the extra's own.
+// ONE resolution for every path that asks (the toggle, its exclusive loop, the
+// ✕'s fallback, the delegated handlers), so the two species cannot drift apart
+// the way two drawers did.
+const MACRO_CONTROL_SEL = "[data-macro],[data-macro-extra]";
+function macroKeyOf(cell) {
+    return cell.dataset.macro || cell.dataset.macroExtra || "";
 }
 
 // Full macro strip: the focus panel, ONE rail carrying every metric (macros,
@@ -1122,12 +1265,24 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
 //
 // `opts` is optional: { drinkUnit: "us" | "uk", calLabel: string,
 // divided: boolean, tiers: boolean, chartKeys: string[],
-// onSeries: (key, opened) => void }.
+// onSeries: (key, opened) => void,
+// extra: { key, row: (i) => string, detail: (() => string) | null },
+// metricLabel: (m) => string, stash: boolean }.
+// Without `extra` the markup is byte-identical to a strip that never had the
+// slot (macros.test.ts pins that); likewise without `metricLabel`.
 function macroPanel(vals, goal, wording, meals, opts) {
     const ctx = macroCtxOf(vals, goal, wording, meals, opts);
     // Stash it so the delegated toggle handler can build the breakdown on
     // demand. One strip per widget, so a single slot is enough.
-    __macroCtx = ctx;
+    //
+    // …which is exactly why a strip that is NOT the live one must be able to
+    // stay out of it. `opts.stash: false` builds the markup and leaves the slot
+    // alone. The dev gallery renders dozens of specimen strips around its one
+    // live card, and each specimen call used to overwrite the live card's ctx
+    // — so tapping the live card opened a drawer built from whichever specimen
+    // rendered last, with that specimen's chartKeys and onSeries. Default true:
+    // every production widget renders one strip, and that strip is the live one.
+    if (!opts || opts.stash !== false) __macroCtx = ctx;
 
     const cal = MACROS.find((m) => m.role === "cal");
     const macros = MACROS.filter((m) => m.role === "macro");
@@ -1146,10 +1301,15 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // opening. The strip itself is interactive if any of its chips is — that is
     // what earns the region the breakdown renders into.
     const tap = (m) => macroTappable(m, ctx);
-    const interactive = all.some(tap);
+    // The extra is a control only when it has something to disclose — a row
+    // with no detail is a line of text, and a strip of text needs no handler.
+    const extraOpens = !!(ctx.extra && ctx.extra.detail);
+    const interactive = all.some(tap) || extraOpens;
     // The hint promises MEALS, so it is gated on disclosure alone: a rail whose
     // chips only re-stroke a chart (trends) would be advertising something that
-    // is not there.
+    // is not there. The extra does not count: a weight row is not "the meals
+    // behind a metric", and on a meal-less day the hint would promise meals the
+    // card does not have.
     const discloses = all.some((m) => macroHasDetail(m, ctx));
 
     // What a tap does, said once — in the card's FOOT, not as a chip in the
@@ -1174,13 +1334,13 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // the note for both homes.
     const foot = `<div class="foot" data-widget-foot>${hint}</div>`;
 
-    const chipFor = (m, i) =>
+    const chipFor = (m, i, fold) =>
         // Two builders: a limit recorded as none says so in words rather than
         // as a 0, and carries its own display gate. Everything else — water
         // included, now that `display` decides how a figure reads — is one.
         m.role === "limit"
-            ? macroLimit(m, ctx, tap(m), i)
-            : macroChip(m, ctx, tap(m), i);
+            ? macroLimit(m, ctx, tap(m), i, fold)
+            : macroChip(m, ctx, tap(m), i, fold);
 
     // ONE RAIL, EVERY METRIC. The limits used to collapse behind a `.more` row
     // to buy height; they do not any more. A nutrient the user has recorded is
@@ -1212,7 +1372,33 @@ function macroPanel(vals, goal, wording, meals, opts) {
     let i0 = 0;
     const railOf = (cls, items) => {
         if (!items.length) return "";
-        const html = items.map((m, j) => chipFor(m, i0 + j)).join("");
+        // WHICH TILE THE NARROW FOLD STRETCHES, which is the rail's decision
+        // for the same reason `data-n` is: only the rail knows what it holds.
+        //
+        // Below 480px a three-tile rail folds to two columns and one tile takes
+        // the whole second row, so no cell is left empty (chip.css). That tile
+        // used to be whichever came LAST in MACROS order — which on the limits
+        // rail is always Fiber, the one floor in the group. So a fiber tile at
+        // 93% of its goal painted a wash 276px long at 320px while the sugar
+        // tile above it, 34% OVER its ceiling, painted 145: area is a stronger
+        // channel than saturation, and the geometry quietly undid
+        // `.r-limit .chip.over { --wash-scale: 1 }`, whose whole job is to
+        // promote a breach back out of the level it is sitting in. The macro
+        // rail is exempt from this fold over the same failure (see chip.css).
+        //
+        // So the breached tile takes the row when there is one, and the last
+        // tile otherwise. EXACTLY ONE is ever marked: two full-width rows on a
+        // three-tile rail would leave the third alone beside a dead cell, which
+        // is the hole the fold exists to close. A class rather than `:has()` —
+        // no shared partial uses `:has()`, and a class can be pinned.
+        let foldAt = -1;
+        if (ctx.tiers && items.length === 3 && cls !== "r-macro") {
+            const breached = items.findIndex((m) => macroBreached(m, ctx));
+            foldAt = breached === -1 ? items.length - 1 : breached;
+        }
+        const html = items
+            .map((m, j) => chipFor(m, i0 + j, j === foldAt))
+            .join("");
         i0 += items.length;
         // HOW MANY TILES THIS RAIL ACTUALLY HAS, which is what the tiered grid
         // lays itself out to. The column count used to be a constant per tier —
@@ -1255,9 +1441,15 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // arrival "Protein, region", and the rows are then read as rows. The name
     // follows the metric for free: macroDetailBody rewrites `.dname` (and its
     // id) on every open.
-    const drawer = discloses
-        ? `<div class="drawer" id="${MACRO_DRAWER_ID}" role="region" aria-labelledby="${MACRO_DRAWER_NAME_ID}" tabindex="-1" hidden></div>`
-        : "";
+    //
+    // Emitted for the extra's detail too, meals or no meals: on a day with a
+    // weight reading and nothing eaten the weight row is the ONLY thing that
+    // opens it, and without this it would have nowhere to open into — the
+    // exact reason goal-progress once kept a drawer of its own.
+    const drawer =
+        discloses || extraOpens
+            ? `<div class="drawer" id="${MACRO_DRAWER_ID}" role="region" aria-labelledby="${MACRO_DRAWER_NAME_ID}" tabindex="-1" hidden></div>`
+            : "";
     // THE DRAWER IS LAST, under every rail including water. It sat between the
     // limits and the water row for a while, on the reasoning that water can
     // never open it (no meal carries water_ml) so the breakdown belonged next
@@ -1270,9 +1462,16 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // its trigger when the calorie panel at the top opens it. What it actually
     // is, is detail for the whole strip — so it goes under the whole strip, and
     // the metric rows stay contiguous whether or not anything is open.
-    const body = tieredRails
-        ? tieredRails.join("") + water + drawer
-        : railOf("", macros.concat(waters, limits)) + drawer;
+    //
+    // The extra's row goes after every rail and before the drawer: it is not a
+    // nutrient, so it sits under the readings rather than among them, and it
+    // takes the next `--i` so the entrance still deals in reading order. Its
+    // index is read AFTER the rails are built — railOf advances i0 as it goes.
+    const rails = tieredRails
+        ? tieredRails.join("") + water
+        : railOf("", macros.concat(waters, limits));
+    const extraRow = ctx.extra ? ctx.extra.row(i0) : "";
+    const body = rails + extraRow + drawer;
     return `
       <div class="strip${ctx.tiers ? " tiered" : ""}${ctx.divided ? " sec" : ""}"${interactive ? " data-macro-panel" : ""}>
         ${focusPanel(cal, ctx)}
@@ -1333,16 +1532,12 @@ function mealList(m, meals, flag) {
             // "07-05" three lines under "5–7 Jul", which most of the nine
             // locales read as 7 May. shortDate prints no year either, so a
             // year-crossing range still shows "30 Dec" beside "2 Jan"; that is
-            // the header's job and the rows stay short. Guarded because
-            // shared/date.js is not included by every widget that includes this
-            // file (the dev gallery is not), and a row with no date never
-            // reaches this branch anyway.
+            // the header's job and the rows stay short. Unguarded: every
+            // template that includes this file includes shared/date.js ahead of
+            // it (the gallery was the last one that did not), and a slice-to-
+            // "07-05" fallback would only reintroduce the bug above.
             const sub = meal.date
-                ? esc(
-                      typeof shortDate === "function"
-                          ? shortDate(meal.date)
-                          : String(meal.date).slice(5),
-                  )
+                ? esc(shortDate(meal.date))
                 : meal.meal_type
                   ? esc(mealTypeLabel(meal.meal_type))
                   : "";
@@ -1420,9 +1615,15 @@ function macroToggle(cell) {
     const panel = cell.closest("[data-macro-panel]");
     const ctx = __macroCtx;
     if (!panel || !ctx) return;
-    const key = cell.dataset.macro;
-    const m = MACROS.find((mm) => mm.key === key);
-    if (!m) return;
+    const key = macroKeyOf(cell);
+    // The extra is resolved FIRST: its key is by construction not a MACROS
+    // key (macroExtraOf), so the `!m` bail-out below would swallow it.
+    const extra =
+        cell.dataset.macroExtra && ctx.extra && ctx.extra.key === key
+            ? ctx.extra
+            : null;
+    const m = extra ? null : MACROS.find((mm) => mm.key === key);
+    if (!extra && !m) return;
     // The chip's own state is the source of truth, so this works identically
     // for a chart-only rail, which has no drawer to read a state off. Which
     // attribute holds that state depends on the species — a disclosure says
@@ -1438,10 +1639,14 @@ function macroToggle(cell) {
     // trigger to whichever was first in document order and found it "closed".
     // Every other widget renders one element per key, so this is the same loop
     // there — including trends, whose rail is aria-pressed only.
-    panel.querySelectorAll("[data-macro]").forEach((c) => {
+    //
+    // The extra is in the loop too, which IS the cross-close in both
+    // directions: a tile opening resets the weight row, the weight row opening
+    // resets the tile, and neither needs to know the other exists.
+    panel.querySelectorAll(MACRO_CONTROL_SEL).forEach((c) => {
         c.setAttribute(
             tapStateAttr(c),
-            open && c.dataset.macro === key ? "true" : "false",
+            open && macroKeyOf(c) === key ? "true" : "false",
         );
     });
 
@@ -1452,8 +1657,11 @@ function macroToggle(cell) {
     // the answer is the one this call really produced.
     let disclosed = false;
     if (drawer) {
-        if (open && macroHasDetail(m, ctx)) {
-            drawer.innerHTML = macroDetailBody(m, ctx);
+        if (open && (extra ? !!extra.detail : macroHasDetail(m, ctx))) {
+            // The extra brings its own body — its head must still label the
+            // region, so it carries `.dname#${MACRO_DRAWER_NAME_ID}` and a
+            // `[data-macro-close]` ✕ exactly as macroDetailBody's does.
+            drawer.innerHTML = extra ? extra.detail() : macroDetailBody(m, ctx);
             drawer.dataset.open = key;
             drawer.hidden = false;
             // FOCUS FOLLOWS THE DISCLOSURE. The drawer is not adjacent to the
@@ -1470,15 +1678,19 @@ function macroToggle(cell) {
             disclosed = true;
         } else {
             // CROSS-CLOSE FOCUS. This branch also runs when something else
-            // closes an open drawer — the limits rail collapsing under it, or
-            // goal-progress's weight row taking the floor — and `hidden` on an
-            // ancestor of the focused element makes the browser drop focus on
-            // <body>, returning a keyboard user to the top of the tab ring.
-            // Handing focus to this chip first is the same disclosure contract
-            // the ✕ path already keeps: the region that is closing gives focus
-            // back to its trigger, which is still in the DOM. A caller that
-            // then opens something of its own focuses it AFTER this and wins
-            // (goal-progress does exactly that).
+            // closes an open drawer — a chart-only chip taking the floor from
+            // a disclosure — and `hidden` on an ancestor of the focused element
+            // makes the browser drop focus on <body>, returning a keyboard user
+            // to the top of the tab ring. Handing focus to this chip first is
+            // the same disclosure contract the ✕ path already keeps: the region
+            // that is closing gives focus back to its trigger, which is still
+            // in the DOM.
+            //
+            // A tile ↔ weight-row switch never lands here: the extra is a
+            // control in this same function (see macroExtraOf), so one opening
+            // over the other takes the branch above, which re-fills the drawer
+            // and focuses it. goal-progress used to cross-close a drawer of its
+            // own from outside, and relied on focusing it AFTER this ran.
             //
             // Guarded on containment, so the ordinary close — where focus is
             // already on the chip, or on nothing in particular — never yanks
@@ -1503,10 +1715,15 @@ function macroToggle(cell) {
     // nutrition-summary deleted "Tap a metric for the meals behind it" while
     // nothing opened to replace it — the instruction vanishing as a reward for
     // following it (regression recheck measured that).
+    //
+    // The extra's detail counts as an answer too: an open drawer is an open
+    // drawer, and the line telling the user to tap for one is noise above it.
+    // It returns on close by this same line.
     const hint = panel.querySelector("[data-macro-hint]");
     if (hint) hint.hidden = disclosed;
 
-    if (ctx.onSeries) ctx.onSeries(key, open);
+    // A chart series is a MACROS metric; the extra has none to draw.
+    if (m && ctx.onSeries) ctx.onSeries(key, open);
 }
 
 // Close whatever breakdown is open, THROUGH the control that opened it, so the
@@ -1521,7 +1738,11 @@ function macroCloseDrawer(panel) {
             : // Fallback for a strip rebuilt under an open drawer: by key, as
               // this always did. Ambiguous where a widget mirrors a metric on
               // two controls, which is exactly why the opener is remembered.
-              panel.querySelector(`[data-macro="${drawer.dataset.open}"]`);
+              // Either species of control, as macroKeyOf resolves them.
+              panel.querySelector(`[data-macro="${drawer.dataset.open}"]`) ||
+              panel.querySelector(
+                  `[data-macro-extra="${drawer.dataset.open}"]`,
+              );
     if (!cell) return false;
     // Focus goes back to the trigger BEFORE macroToggle empties the drawer:
     // closing destroys the ✕ that currently has focus, and the browser then
@@ -1572,6 +1793,125 @@ function macroReturn(fx) {
     if (ctx.onSeries) ctx.onSeries(cal.key, false);
 }
 
+// ---- Surviving a re-render ----------------------------------------------
+//
+// A host may re-deliver the tool result (or the model re-call the tool) while
+// a drawer is open, and every template's render() rebuilds its root with
+// innerHTML. That destroyed the focused control and the browser dropped focus
+// on <body>, returning a keyboard user to the top of the tab ring with the
+// metric they were reading gone. The pair below is the fix, and it lives here
+// rather than in each template because it is five templates' worth of the same
+// dozen lines — nutrition-summary carried the only copy, and a second copy is
+// exactly what drifts (the `[data-macro-extra]` weight row would have been
+// missed by it).
+//
+// Usage, and the ORDER MATTERS:
+//
+//   const was = macroSnapshot(root);   // BEFORE root.innerHTML is written
+//   root.innerHTML = …macroPanel(…)…;  // stashes the new strip's ctx
+//   …paint anything painted into the strip (a sparkline)…
+//   macroRestore(root, was);           // AFTER, so the restore runs on the
+//                                      // finished card and its onSeries
+//                                      // repaints over the first paint
+//
+// WHAT WAS OPEN, read before the card is thrown away: the drawer's
+// `data-open`, or — for a chart-only toggle, which opens no drawer — whichever
+// control is pressed. And where focus was: inside the widget at all, on which
+// metric's control (a tile, the extra, or the focus panel), or in the drawer.
+// Controls are matched with MACRO_CONTROL_SEL, so the extra (goal-progress'
+// weight row) is found exactly like a tile.
+//
+// Guarded when there is no document (the markup tests evaluate this partial
+// without one): nothing can hold focus there, so the snapshot says so.
+function macroSnapshot(root) {
+    const prevDrawer = root && root.querySelector(".drawer");
+    const pressed =
+        root && root.querySelector('[data-macro][aria-pressed="true"]');
+    const openKey =
+        (prevDrawer && prevDrawer.dataset.open) ||
+        (pressed && pressed.dataset.macro) ||
+        "";
+    const active =
+        typeof document !== "undefined" ? document.activeElement : null;
+    const focusInside = !!(
+        root &&
+        active &&
+        active !== root &&
+        root.contains(active)
+    );
+    const focusCtl =
+        focusInside && active.closest
+            ? active.closest(MACRO_CONTROL_SEL)
+            : null;
+    const focusKey = focusCtl ? macroKeyOf(focusCtl) : "";
+    const focusOnPanel = !!(focusCtl && focusCtl.classList.contains("focus"));
+    const focusInDrawer = !!(
+        focusInside &&
+        prevDrawer &&
+        prevDrawer.contains(active)
+    );
+    return { openKey, focusInside, focusKey, focusOnPanel, focusInDrawer };
+}
+
+// Put back what macroSnapshot found (see above).
+//
+// THROUGH macroToggle, not by re-creating its effects: the drawer's contents,
+// every control's state attribute, the hint, the chart series and
+// __macroOpener all move together there, and a second copy of that list here
+// is exactly what drifts. Only a control that still exists is re-opened — the
+// new data may have left that metric with no meals and off the chart, and then
+// the card simply comes back closed. The TILE is preferred over the focus
+// panel as the opener (the panel mirrors whatever a tile selected, and the ✕
+// hands focus back to the opener); calories has only the panel.
+//
+// FOCUS IS ONLY EVER RESTORED, NEVER TAKEN. macroToggle focuses the drawer it
+// opens, which is right for a tap and wrong here if focus was not inside the
+// widget: a re-render the user did not ask for must not pull focus into the
+// iframe from the host's composer. That one call is silenced on the new drawer
+// node by an own `focus` property shadowing the prototype's, removed straight
+// after. Where focus WAS inside, it lands where it was: in the drawer
+// (macroToggle already put it there), on the same metric's control, or failing
+// both on the focus panel — every call with preventScroll, because a focus()
+// inside a chat iframe can otherwise scroll the host page.
+//
+// Relies on the stash: macroToggle reads __macroCtx, so the strip under `root`
+// must be the one macroPanel last stashed (see opts.stash).
+function macroRestore(root, was) {
+    if (!root || !was) return;
+    const ctlFor = (key, panelFirst) => {
+        if (!key) return null;
+        const all = Array.from(
+            root.querySelectorAll(
+                `[data-macro="${key}"],[data-macro-extra="${key}"]`,
+            ),
+        );
+        const panel = all.find((c) => c.classList.contains("focus"));
+        const tile = all.find((c) => !c.classList.contains("focus"));
+        return panelFirst ? panel || tile : tile || panel;
+    };
+    const opener = ctlFor(was.openKey, false);
+    if (opener) {
+        const drawer = root.querySelector(".drawer");
+        if (drawer && !was.focusInside) drawer.focus = () => {};
+        macroToggle(opener);
+        if (drawer) delete drawer.focus;
+    }
+    if (!was.focusInside || typeof document === "undefined") return;
+    if (
+        was.focusInDrawer &&
+        opener &&
+        root.contains(document.activeElement) &&
+        document.activeElement !== root
+    ) {
+        return;
+    }
+    const target =
+        ctlFor(was.focusKey, was.focusOnPanel) || root.querySelector(".focus");
+    if (target && typeof target.focus === "function") {
+        target.focus({ preventScroll: true });
+    }
+}
+
 // Delegated once per document. No-ops on strips with no [data-macro] chips, so
 // widgets that pass neither meals nor chartKeys are unaffected.
 if (typeof document !== "undefined" && !window.__macroWired) {
@@ -1586,7 +1926,7 @@ if (typeof document !== "undefined" && !window.__macroWired) {
             macroReturn(back);
             return;
         }
-        const cell = e.target.closest("[data-macro]");
+        const cell = e.target.closest(MACRO_CONTROL_SEL);
         if (cell) macroToggle(cell);
     });
     // ESCAPE IS THE DRAWER'S KEYBOARD EXIT. It is the one region on this card
@@ -1615,7 +1955,7 @@ if (typeof document !== "undefined" && !window.__macroWired) {
     });
     document.addEventListener("keydown", (e) => {
         if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
-        const cell = e.target.closest("[data-macro]");
+        const cell = e.target.closest(MACRO_CONTROL_SEL);
         if (!cell) return;
         // A real <button> already turns Enter and Space into a click, and
         // handling the key as well would toggle twice — the second one closing
