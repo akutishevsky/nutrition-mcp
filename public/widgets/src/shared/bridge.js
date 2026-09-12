@@ -39,6 +39,161 @@
 //   hostInfo: object             // { name, version } of the host
 //   updateModelContext(text)     // push a short summary into the model's context
 // }
+//
+// Two helpers sit at TOP LEVEL, outside initWidget, because templates call them
+// from their own repaint paths (a range toggle, an import step) that never go
+// through paint(). Both are function declarations, so they are hoisted across
+// the one inline script element this file is spliced into — include order does
+// not matter. (Never write that element's tag literally in a comment here:
+// import-run.test.ts finds the widget's script by its last opening tag.) Both also tolerate a `document` that has nothing but getElementById:
+// import-run.test.ts stubs exactly that and drives runImport(), which renders
+// several times.
+//
+//   tryRender(fn) => boolean
+//   keepFocus(root, write, opts?) => boolean
+
+// Run a render; true if it finished, false (after logging) if it threw.
+//
+// NO DOM side effect, on purpose: what a failed render should leave behind is
+// the caller's decision, and the callers disagree. paint() empties the root
+// (see there), a range toggle keeps the body it already had and reverts the
+// range, and the import flow shows its own error notice and stops sending
+// chunks. A helper that blanked the root itself would make all three choices
+// for them — and would need a root to blank, which the test stub above lacks.
+function tryRender(fn) {
+    try {
+        fn();
+        return true;
+    } catch (e) {
+        try {
+            console.error("[widget] render failed:", e);
+        } catch (_) {}
+        return false;
+    }
+}
+
+// How a control is found again once write() has replaced it, in priority
+// order: an id (import-meals' buttons and inputs), a data-focus-key a template
+// sets on purpose, the trends / weight-trends seg buttons' data-range, and
+// import-meals' mapping selects' data-field. Strip tiles ([data-macro]) are
+// NOT here: macroSnapshot/macroRestore (macros.js) own them, because re-finding
+// the node is only half of it — the drawer, the pressed series and the opener
+// have to come back too.
+const FOCUS_KEYS = ["id", "data-focus-key", "data-range", "data-field"];
+
+// Rewrite part of a widget without dropping the keyboard user.
+//
+// A template that repaints by innerHTML destroys whatever control was focused,
+// and focus falls to <body>: the next Tab starts from the top of the document,
+// which inside a chat card is a user dumped out of the thing they were
+// operating. So: note, before write(), whether focus was ours and which keyed
+// control held it; after write(), focus the control carrying the same key.
+//
+// "Ours" means focus was inside root, or opts.owned is set AND this document
+// still has focus. owned is for a flow that knows focus is its own even though
+// it is on <body> right now — the import button re-renders disabled the moment
+// it is pressed, which is exactly what drops focus — and hasFocus() is what
+// keeps that flag from reaching into the host: if the user has since moved to
+// the host's composer, this iframe's document no longer has focus and nothing
+// is taken. When focus was not ours, keepFocus does nothing at all — a re-render
+// the user did not ask for must never pull focus out of the host.
+//
+// focus() on a disabled, hidden or inert element is a silent no-op, so success
+// is read back from activeElement rather than assumed. When it did not land and
+// opts.stepChanged is set, focus goes to the new view's [data-focus-fallback]
+// (a heading with tabindex="-1") instead. Only on a step change: a progress
+// repaint that re-focused the heading would have a screen reader re-announce it
+// on every chunk.
+//
+// opts = { owned?: boolean, stepChanged?: boolean }. Returns false only when
+// there was no root — then write() is SKIPPED, exactly as the `if (!el) return`
+// every render() used to open with, since write() has nothing to write into.
+function keepFocus(root, write, opts) {
+    const o = opts || {};
+    const doc = typeof document !== "undefined" ? document : null;
+    const el =
+        root ||
+        (doc && typeof doc.getElementById === "function"
+            ? doc.getElementById("root")
+            : null);
+    if (!el) return false;
+    const before = doc.activeElement || null;
+    const inside = !!before && el.contains(before);
+    let key = null;
+    if (inside && typeof before.getAttribute === "function") {
+        for (const attr of FOCUS_KEYS) {
+            const v = before.getAttribute(attr);
+            if (v) {
+                key = [attr, v];
+                break;
+            }
+        }
+    }
+    write();
+    const hasFocus =
+        typeof doc.hasFocus === "function" ? doc.hasFocus() : false;
+    if (!inside && !(o.owned && hasFocus)) return true;
+
+    let target = null;
+    if (key) {
+        // The same node when write() left it standing (a meta-only update),
+        // otherwise its replacement. Attribute selector rather than `#id` so
+        // one path serves every key; CSS.escape where the platform has it.
+        const v =
+            typeof CSS !== "undefined" && CSS.escape
+                ? CSS.escape(key[1])
+                : String(key[1]).replace(/["\\]/g, "\\$&");
+        target =
+            before.isConnected && el.contains(before)
+                ? before
+                : el.querySelector("[" + key[0] + '="' + v + '"]');
+    }
+    if (target && doc.activeElement !== target) {
+        try {
+            target.focus({ preventScroll: true });
+        } catch (_) {}
+    }
+    if (target && doc.activeElement === target) return true;
+    if (o.stepChanged) {
+        const fallback = el.querySelector("[data-focus-fallback]");
+        if (fallback) {
+            try {
+                fallback.focus({ preventScroll: true });
+            } catch (_) {}
+        }
+    }
+    return true;
+}
+
+// Floor a one-line box at the tallest text it will ever hold.
+//
+// A RANGE TOGGLE MAY NOT CHANGE THE CARD'S HEIGHT (STYLE_GUIDE §8). The window
+// line in trends' and weight-trends' headers is the one piece of header state a
+// range owns, and its tallest candidate is not the one on screen: "22 Okt. –
+// 20. Nov. 2025 · 30 Wiegungen" takes a second row where the 7-day label takes
+// one, so a toggle grew the card by a 14px line and the host resized the iframe
+// — on a tap that changed no data. Measured at 280-320px in de/nl/uk/ja on
+// weight-trends, and in plain English at 280px (and uk at 320px) on trends.
+//
+// EVERY candidate is measured rather than the longest-looking one: which string
+// wraps depends on the locale, on whether the window crosses a year, and on the
+// font the host renders in. `min-height`, not `height`, so a candidate that is
+// taller still than all of them on some future host is shown whole rather than
+// clipped. One pass per render and nothing animated, so the ResizeObserver
+// still sees a single settled size.
+function reserveLine(el, texts) {
+    if (!el || !texts || !texts.length) return;
+    const current = el.textContent;
+    el.style.minHeight = "";
+    let tallest = el.offsetHeight;
+    for (const text of texts) {
+        el.textContent = text;
+        if (el.offsetHeight > tallest) tallest = el.offsetHeight;
+    }
+    el.textContent = current;
+    el.style.minHeight = tallest + "px";
+}
+
 function initWidget(config) {
     const rootId = config.rootId || "root";
     const root = () => document.getElementById(rootId);
@@ -78,13 +233,19 @@ function initWidget(config) {
         }
         // Re-read every time: T is only resolved once a template's render()
         // has called setLocale(), which is after the element is first built.
-        footEl.textContent = T.chrome.widgetsNote;
+        // Written only when it DIFFERS: the observer below watches the whole
+        // subtree, so an unconditional write would be a mutation it reports to
+        // itself, and syncFooter → footNote → write → syncFooter never ends.
+        const text = T.chrome.widgetsNote;
+        if (footEl.textContent !== text) footEl.textContent = text;
         return footEl;
     }
     // Where the note goes: a widget's own foot if it declared one, otherwise
-    // the root. The LAST slot, not the first — the dev gallery renders several
-    // strips on one page and the note belongs at the end of it, not buried in
-    // the first specimen.
+    // the root. The LAST slot, not the first, so a page carrying several strips
+    // never buries the note in the first of them. The dev gallery goes one
+    // further and strips data-widget-foot from every strip it renders, its live
+    // card included, so the note falls back to the root and sits at the very
+    // end of the page, under the last specimen.
     function footSlot() {
         const el = root();
         if (!el) return null;
@@ -92,20 +253,24 @@ function initWidget(config) {
         return slots.length ? slots[slots.length - 1] : el;
     }
 
-    // Keep the note as #root's last child for as long as the root has content.
-    // paint() is NOT the only thing that writes to the root: trends and
-    // weight-trends repaint themselves from their own range toggles, replacing
-    // #root.innerHTML wholesale and taking the note with it. Re-appending after
-    // config.render() alone therefore loses the note on the first interaction,
-    // which is exactly the bug this exists to prevent — so the rule is enforced
-    // on the root itself and needs no cooperation from any template.
+    // Keep the note as the last child of its slot for as long as the root has
+    // content. paint() is NOT the only thing that writes here: widgets repaint
+    // from their own controls without going through it. Some rewrite #root
+    // wholesale, some only a body inside it (trends rewrites #tr-body on a
+    // range change), and either can take the note, or the foot holding it,
+    // down with the old DOM, or swap a body with a foot for one without (a
+    // range-empty body) and back. Re-appending after config.render() alone
+    // lost the note on the first interaction, which is exactly the bug this
+    // exists to prevent, so the rule is enforced from the root down and needs
+    // no cooperation from any template.
     function syncFooter() {
         const el = root();
         if (!el) return;
         // Genuinely empty must stay genuinely empty: meal-logged writes "" when
-        // there are no goals, and `.wrap:empty { padding: 0 }` (base.css) is
-        // what lets the host collapse the iframe to nothing. A note here would
-        // stop `:empty` matching and leave a stripe of chrome behind.
+        // there are no goals, and `.wrap` has no padding of its own (base.css),
+        // so an empty root measures 0 and the host collapses the iframe to
+        // nothing. A note here would give it height and leave a stripe of
+        // chrome behind.
         if (el.childNodes.length === 0) {
             if (footEl) footEl.remove();
             return;
@@ -120,21 +285,23 @@ function initWidget(config) {
         // A template that throws would otherwise leave whatever it last wrote —
         // on the first paint, the loading line — standing for good, with the
         // error swallowed by the postMessage handler that called us. Empty the
-        // root instead: `.wrap:empty` collapses the iframe to nothing (the
-        // state meal-logged uses on purpose), and the tool's text content still
+        // root instead: an empty, paddingless `.wrap` measures 0 and the host
+        // collapses the iframe to nothing (the state meal-logged uses on
+        // purpose), and the tool's text content still
         // reaches the reader. No message of our own, because a half-rendered or
-        // "something went wrong" card is not better than no card.
-        try {
-            config.render(data);
-        } catch (e) {
-            try {
-                console.error("[widget] render failed:", e);
-            } catch (_) {}
+        // "something went wrong" card is not better than no card. That emptying
+        // is paint()'s own choice, which is why tryRender leaves the DOM alone.
+        if (!tryRender(() => config.render(data))) {
             const el = root();
             if (el) el.innerHTML = "";
             return;
         }
         painted = true;
+        // A new payload is a new card, and it gets its own corrective measure:
+        // this one may be shorter than the last, and the shrink is what reports
+        // that honestly (sendSize).
+        corrected = false;
+        correctedFrom = -1;
         // Watch from the FIRST real paint only, so the note never decorates the
         // loading state or the no-host card — both of which write to the root
         // directly and neither of which is a widget.
@@ -142,20 +309,31 @@ function initWidget(config) {
             const el = root();
             if (el) {
                 footObserver = new MutationObserver(syncFooter);
-                // childList on the root alone — no `subtree`. Two reasons: a
-                // widget's own DOM churn (a drawer opening, a chart restroking)
-                // is none of this function's business, and footNote() writes
-                // the note's own text, which under `subtree` would be a
-                // mutation this observer reports to itself.
-                footObserver.observe(el, { childList: true });
+                // The whole subtree, not the root's own children. Watching the
+                // root alone missed every rewrite one level down: trends
+                // replaces only #tr-body on a range change, the strip's foot
+                // (and the note in it) went with the old body, and the root's
+                // childList never changed, so the note was gone until the next
+                // tool result. The price is that a widget's own churn (a drawer
+                // opening, a chart restroking) now reaches syncFooter too; it
+                // costs one querySelectorAll and ends at the lastChild check.
+                // Attributes and text are not watched: neither can move a node.
+                footObserver.observe(el, { childList: true, subtree: true });
             }
         }
-        // Self-limiting, deliberately. When the note lands in a `.foot` the
-        // append is a mutation of that slot, which this observer does not watch
-        // (no `subtree`), so it does not fire at all; when it falls back to the
-        // root the observer runs once more and on that pass the note IS the
-        // last child, so nothing happens and the loop ends there.
+        // Self-limiting, deliberately. Appending the note is itself a mutation
+        // the observer reports, so it runs once more; on that pass the note IS
+        // its slot's last child and footNote() finds its text already current,
+        // so nothing is written and the loop ends there. Both guards are
+        // load-bearing: drop either and this observer feeds itself forever.
         syncFooter();
+        // The report for this render, explicitly rather than through the
+        // observer: a render that leaves the root empty (meal-logged with no
+        // goals) changes no box, so no tick would follow — and that state's
+        // whole contract is `height=0`, which is also the first report the
+        // handshake deliberately skipped (see startSizing). Deduped on the last
+        // size sent, so where the observer does fire this costs nothing.
+        sendSize();
     }
     function show(payload) {
         const data = config.coerce(payload);
@@ -243,19 +421,122 @@ function initWidget(config) {
     let sizeLive = false;
     let lastW = -1;
     let lastH = -1;
+    // Whether this card has already spent its one corrective shrink, and the
+    // forced measure it corrected away — see the second measure in sendSize.
+    let corrected = false;
+    let correctedFrom = -1;
     function sendSize() {
         if (!host || !sizeLive) return;
+        // THE FIRST REPORT MUST DESCRIBE SOMETHING THE USER WILL SEE. Before
+        // the first paint an empty root is a widget still waiting for its
+        // payload, not a zero-height card: meal-logged is the one template
+        // whose `loading` is "" (it may legitimately end up empty, so it starts
+        // blank), and it was the one widget that opened with `size-changed
+        // height=0` — the host collapsing the iframe from its 130px default to
+        // nothing and back to 445, on the card shown after every log_meal.
+        //
+        // The test is here rather than on the handshake's own first call
+        // because the observer's boot tick can arrive first and report the same
+        // 0. After a paint it never applies: `painted` is set before paint()
+        // reports, so meal-logged's documented no-goals `height=0` — a render
+        // like any other — still goes out.
+        if (!painted) {
+            const el = root();
+            if (!el || !el.childNodes.length) return;
+        }
         const el = document.documentElement;
-        const prev = el.style.height;
+        // The frame the host is showing right now, read BEFORE the measure
+        // below replaces this element's own height with its content's.
+        const frame = el.clientHeight;
+        const prevHeight = el.style.height;
+        const prevOverflow = el.style.overflow;
         el.style.height = "max-content";
-        const height = Math.ceil(el.getBoundingClientRect().height);
-        el.style.height = prev;
+        // Measured with the viewport's scrollbar FORCED, so the measure and the
+        // layout the host will display agree on width.
+        //
+        // The host starts the frame short (a strict host, and the harness, at
+        // 130px), so the first measure runs while the document overflows it and
+        // a classic scrollbar is taking its width out of the layout. Whatever
+        // this rule does, it has to do the same thing before and after the host
+        // grows the frame, or one paint costs two reports (goal-progress' empty
+        // card 205 → 191 at 420px).
+        //
+        // Suppressing the scrollbar (`overflow: hidden`) achieved that and
+        // introduced a worse failure: it measured a layout that only exists
+        // once the content already fits. Where a card sits near a wrap
+        // threshold the two widths disagree — at 360px nutrition-summary's
+        // header takes one row at 360 and two at 345 — so the frame was set to
+        // the scrollbar-free height, the scrollbar stayed, the content re-wrapped
+        // taller than the frame, and every later measure returned the same
+        // suppressed value and was deduped away. A permanently clipped card with
+        // no corrective report: 19px cut off nutrition-summary at 360, 25px off
+        // trends at 280 in pl (the settings note cut mid-sentence), 15px off
+        // import-meals at 320.
+        //
+        // Forcing it instead is stable in the same way and errs the safe way:
+        // every measure describes the narrower, scrollbar-taken layout, so the
+        // first paint is still one report, and once the host grows the frame the
+        // content can only get SHORTER than what was reported — slack, never a
+        // clip. `hidden scroll`: only the vertical bar is forced, or a horizontal
+        // one would be measured in too. It costs nothing where scrollbars are
+        // overlays (macOS by default), which is exactly where this bug is
+        // invisible. Restored in the same task, so nothing is ever painted with a
+        // scrollbar it does not need.
+        el.style.overflow = "hidden scroll";
+        let height = Math.ceil(el.getBoundingClientRect().height);
+        // ONE CORRECTIVE SHRINK, after the host has actually grown the frame.
+        // Slack is the right error on the way UP (see above), but it is only
+        // ever meant to be a few pixels, and on a platform whose scrollbars take
+        // layout width the forced measure runs ~15px narrower than the frame the
+        // host ends up showing — enough for a short card's one sentence to wrap
+        // a line further than it really does. The dedupe below then kept that
+        // stale taller value with nothing to correct it: 34px of bare --bg under
+        // trends' German range-empty card, 13% of the card's own height, which
+        // reads as a rendering fault rather than as slack.
+        //
+        // `frame >= lastH` is the test for "the host has caught up": the content
+        // is no longer overflowing, so no scrollbar is being taken and the
+        // page's own overflow is the honest measure. The corrected height is the
+        // content's height at the scrollbar-free width, so a frame set to it
+        // does not overflow either — the state is a fixed point, not the start
+        // of a ping-pong. Once per paint all the same: a card sitting exactly on
+        // the threshold could otherwise re-take a scrollbar and trade the dead
+        // ground for a flicker.
+        //
+        // A CORRECTION IS STICKY WHILE THE CONTENT IS UNCHANGED. Shrinking the
+        // frame resizes the body, which is itself an observer tick, and that
+        // tick's forced measure reads the tall value again — so without this the
+        // host's own resize sent it straight back and undid the shrink one frame
+        // later (trends' whole-empty German card measured 245 -> 226 -> 245).
+        // The forced measure is the stable identity of "this content at this
+        // width": while it still reads what was corrected away there is nothing
+        // new to report, and a real content change moves it off that value and
+        // is reported as usual.
+        if (corrected && height === correctedFrom) {
+            el.style.overflow = prevOverflow;
+            el.style.height = prevHeight;
+            return;
+        }
+        if (!corrected && lastH >= 0 && frame >= lastH) {
+            el.style.overflow = prevOverflow;
+            const natural = Math.ceil(el.getBoundingClientRect().height);
+            if (natural < height) {
+                correctedFrom = height;
+                height = natural;
+                corrected = true;
+            }
+        }
+        el.style.overflow = prevOverflow;
+        el.style.height = prevHeight;
         const width = Math.ceil(window.innerWidth);
         if (width === lastW && height === lastH) return;
         lastW = width;
         lastH = height;
         notify("ui/notifications/size-changed", { width, height });
     }
+    // Reporting is held until the handshake settles, and released here. What
+    // that first report may say is sendSize's own rule (see there): before any
+    // paint, an empty root reports nothing at all.
     function startSizing() {
         sizeLive = true;
         sendSize();
