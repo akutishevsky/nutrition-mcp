@@ -15,6 +15,11 @@
   line. The payload already carries every macro for every day, so switching
   series costs no second round trip.
 
+  THE CARD ITSELF is composed in shared/summary-card.js, not here: the public
+  landing page renders the same card from the same payload at build time, with
+  no DOM. This template owns what needs one — the locale, the water unit, the
+  chart paint and the focus restore.
+
   Data arrives as the `structuredContent` of the get_nutrition_summary tool
   result; the shared bridge (shared/bridge.js) reads it across host conventions
   and calls render(). Standalone preview uses the SAMPLE below.
@@ -50,9 +55,9 @@
 
             /* shortDate(), used by shared/macros.js for a drawer row's day,
                plus the header's date helpers (ymd, rangeLabel, and
-               daysLoggedCaption behind loggedDaysCaption below) and the UTC
-               day arithmetic (utcDay, DAY_MS) the calendar x axis is stepped
-               with. */
+               daysLoggedCaption behind loggedDaysCaption, in
+               shared/summary-card.js) and the UTC day arithmetic (utcDay,
+               DAY_MS) the calendar x axis is stepped with. */
             /*@include shared/date.js@*/
 
             /*@include shared/icon.js@*/
@@ -282,68 +287,24 @@
                 ],
             };
 
-            // WIDGET_LOCALE, not the host browser's. `toLocaleString()` with no
-            // argument keys off navigator.language, so a German user whose
-            // browser is English read "58.2" and "2,035" inside German copy —
-            // and beside macroNum's own figures, which now group and separate
-            // through the same locale (macroDecimal, shared/macros.js). The
-            // locale is only known after setLocale() runs inside render(), so
-            // it is read per call rather than captured.
+            /* fmt() and esc(), the two helpers shared/macros.js requires in
+               scope. After shared/i18n.js because fmt() reads WIDGET_LOCALE —
+               see that partial for why a figure must not go through a bare
+               toLocaleString(). */
+            /*@include shared/fmt.js@*/
+            // ---- The card ------------------------------------------------
+            // Its whole composition — the header, the empty-state branch, the
+            // caption and the tiered strip — lives in shared/summary-card.js
+            // (summaryCard), because the public landing page renders the same
+            // card from the same payload at build time. This template owns
+            // only what needs a DOM: the locale, the unit, the chart paint and
+            // the restore.
             //
-            // Coerced through Number first: a payload replayed through a host
-            // that stringified its numbers hands over "58.2", and "58.2"
-            // .toFixed is a TypeError that took the whole card down.
-            function fmt(n, decimals) {
-                const x = Number(n);
-                if (n == null || !Number.isFinite(x)) return "0";
-                const r = decimals ? x.toFixed(decimals) : Math.round(x);
-                try {
-                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
-                } catch (_) {
-                    return Number(r).toLocaleString();
-                }
-            }
-            function esc(s) {
-                return String(s).replace(
-                    /[&<>"]/g,
-                    (c) =>
-                        ({
-                            "&": "&amp;",
-                            "<": "&lt;",
-                            ">": "&gt;",
-                            '"': "&quot;",
-                        })[c],
-                );
-            }
-
-            // ---- The trend chart ----------------------------------------------
-            // Lives in shared/spark.js (included after macros.js, below):
-            // seriesValue, chartableKeys, the chart markup and the paint state.
-            // render() resets it per card (sparkReset) and paints it into the
-            // focus panel (sparkPaint); a tile's onSeries repaints it.
-
-            // "3 days logged", or "15 of 30 days logged" when the payload also
-            // says how wide the window was. The wording and the span rules
-            // live in daysLoggedCaption (shared/date.js); this card only reads
-            // its payload. `days_in_range` is OPTIONAL — a host replaying a
-            // tool result from before it existed has no such field, and older
-            // payloads must render exactly as they always did, which is why
-            // it is handed over raw for daysLoggedCaption to vet.
-            //
-            // `logged_days` falls back to the rows actually held: without it
-            // the caption printed "DAYS LOGGED" with no number in front.
-            // Kept here, same name and signature, because
-            // public/widgets/summary-caption.test.ts extracts it by name.
-            function loggedDaysCaption(data) {
-                const raw = data.logged_days;
-                const logged =
-                    raw != null && raw !== "" && Number.isFinite(Number(raw))
-                        ? Number(raw)
-                        : Array.isArray(data.days)
-                          ? data.days.length
-                          : 0;
-                return daysLoggedCaption(logged, data.days_in_range);
-            }
+            // The chart itself lives in shared/spark.js (included after
+            // macros.js, below): seriesValue, chartableKeys, the chart markup
+            // and the paint state. summaryCard resets it per card
+            // (sparkReset); render() paints it into the focus panel
+            // (sparkPaint) and a tile's onSeries repaints it.
 
             function render(data) {
                 const root = document.getElementById("root");
@@ -362,126 +323,24 @@
                 // render(); both live in shared/macros.js.
                 const was = macroSnapshot(root);
 
-                const hasRange = !!(
-                    ymd(data && data.start_date) && ymd(data && data.end_date)
-                );
-                if (
-                    !data ||
-                    !Array.isArray(data.days) ||
-                    data.days.length === 0
-                ) {
-                    // A range with nothing in it still names the range: the
-                    // empty message alone could not say WHICH week was empty,
-                    // and a card with no header was the only one of this
-                    // widget's states that did not look like this widget.
-                    const empty = `
-              <div class="empty">
-                <div class="big">🍽️</div>
-                <div>${esc(T.nutritionSummary.empty)}</div>
-              </div>`;
-                    root.innerHTML = hasRange
-                        ? `
-          <div class="card c-cal">
-            <div class="glow"></div>
-            <header class="chead">
-              <h1 class="ctitle">${esc(T.nutritionSummary.title)}</h1>
-              <span class="cmeta">${esc(rangeLabel(data.start_date, data.end_date))}</span>
-            </header>
-            ${empty}
-            <div class="foot" data-widget-foot></div>
-          </div>`
-                        : empty;
+                root.innerHTML = summaryCard(data, {
+                    // The panel is found inside THIS card's root, never
+                    // document-wide — see sparkPaint in shared/spark.js.
+                    // No label: the panel is a button, whose own name
+                    // already carries every figure the line draws.
+                    onSeries: (key, opened) =>
+                        sparkPaint(
+                            root.querySelector(".focus"),
+                            opened ? key : "calories",
+                            opened,
+                        ),
+                });
+                // The empty-state card has no strip to restore into, and
+                // returning here is what it always did. The same test
+                // summaryCard branches on, `!data` included — a host can hand
+                // over nothing at all.
+                if (!data || !Array.isArray(data.days) || !data.days.length)
                     return;
-                }
-                const days = data.days
-                    .slice()
-                    .sort((a, b) => (a.date < b.date ? -1 : 1));
-                const multi = days.length > 1;
-                // Name the denominator: this average divides by the days that
-                // actually have a log, while the trends widget's figures divide
-                // by every calendar day in the window. Same macros, different
-                // number — labelling both is the fix for issue #70. Keyed on
-                // LOGGED days, not on the range: a week with one logged day
-                // averages over that one day, whose figure is also, exactly,
-                // the week's total.
-                const calLabel = multi
-                    ? T.nutritionSummary.dailyAvgLoggedDays
-                    : T.nutritionSummary.total;
-                // The HEADER, though, is keyed on the RANGE. A seven-day window
-                // with one logged day printed "7 JUL" alone, which reads as a
-                // single-day summary and hides the six empty days — the range
-                // plus "1 of 7 days logged" is what was actually asked for.
-                // Without a usable start/end (an old payload) the logged count
-                // decides, as it always did. A single day goes through
-                // rangeLabel(d, d) so a past year still shows.
-                const ranged = hasRange
-                    ? data.start_date !== data.end_date
-                    : multi;
-                const single = hasRange ? data.end_date : days[0].date;
-                const meta = ranged
-                    ? `${rangeLabel(hasRange ? data.start_date : days[0].date, hasRange ? data.end_date : days[days.length - 1].date)} · ${loggedDaysCaption(data)}`
-                    : rangeLabel(single, single);
-
-                // Two logged days is the least that draws a line; one is a
-                // card with no chart at all rather than a chart with nothing
-                // in it — however wide the range around it.
-                const charted = days.length >= 2;
-                // A new card: a new axis, calories, and the chart's entrance
-                // owed again (see `.fspark .cwrap.still` in chip.css).
-                sparkReset(
-                    charted
-                        ? calendarSlots(days, data.start_date, data.end_date)
-                        : [],
-                    data.goals,
-                );
-
-                // Calorie hero, the macro rail, the limits rail and the drawer.
-                // Tapping a chip opens the meals behind it and hands the chart
-                // that nutrient; closing it gives the chart back to calories.
-                const strip = macroPanel(
-                    data.averages,
-                    data.goals,
-                    undefined,
-                    data.meals,
-                    {
-                        // THREE VISUAL LEVELS instead of one flat rail of
-                        // eight identical tiles: the energy split (protein /
-                        // carbs / fat) three-up under the hero, water as a
-                        // full-width bar of its own because it is not food and
-                        // no meal carries it, and the four ceilings last,
-                        // behind a hairline and a size down. See "the tiers"
-                        // in shared/chip.css for what each level is made of.
-                        // Opt-in while the other widgets are still on the flat
-                        // rail — this one is the pilot.
-                        tiers: true,
-                        // "us" | "uk" for a user who tracks alcohol, null for
-                        // one who does not — and null is also the case in which
-                        // no alcohol figure reaches the strip at all.
-                        drinkUnit: data.drink_unit,
-                        calLabel,
-                        chartKeys: charted ? chartableKeys(days) : [],
-                        // The panel is found inside THIS card's root, never
-                        // document-wide — see sparkPaint in shared/spark.js.
-                        // No label: the panel is a button, whose own name
-                        // already carries every figure the line draws.
-                        onSeries: (key, opened) =>
-                            sparkPaint(
-                                root.querySelector(".focus"),
-                                opened ? key : "calories",
-                                opened,
-                            ),
-                    },
-                );
-
-                root.innerHTML = `
-          <div class="card c-cal">
-            <div class="glow"></div>
-            <header class="chead">
-              <h1 class="ctitle">${esc(T.nutritionSummary.title)}</h1>
-              <span class="cmeta">${esc(meta)}</span>
-            </header>
-            ${strip}
-          </div>`;
 
                 // The chart goes INSIDE the focus panel, under the figure row:
                 // the panel is the figure and its own chart as one object, so
@@ -489,8 +348,11 @@
                 // (see focusInner in shared/macros.js). macroPanel emits the
                 // panel as part of one strip, so the chart is painted into its
                 // `.fspark` slot afterwards rather than spliced into another
-                // module's markup as a string.
-                if (charted && root.querySelector(".focus")) {
+                // module's markup as a string — which is exactly what
+                // summaryCard's `inlineChart` does for the caller that has no
+                // DOM at all, and why this path does not use it (SPARK.painted
+                // must stay honest, so the entrance runs once).
+                if (summaryCharted(data) && root.querySelector(".focus")) {
                     sparkPaint(root.querySelector(".focus"), "calories", false);
                 }
                 // AFTER the first paint, not before it: re-opening a tile goes
@@ -527,6 +389,11 @@
                focusApply and macroCtx it calls — and included from here, never
                from inside another partial. */
             /*@include shared/spark.js@*/
+
+            /* The card itself — summaryCard, loggedDaysCaption,
+               summaryCharted — after macros.js and spark.js, whose macroPanel,
+               sparkReset, chartableKeys and sparkInline it calls. */
+            /*@include shared/summary-card.js@*/
 
             // Last, after every partial above has finished evaluating: with no
             // host, initWidget paints config.sample synchronously, and render()

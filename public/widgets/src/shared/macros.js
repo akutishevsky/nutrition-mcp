@@ -232,12 +232,35 @@ function dayHasData(day) {
     return TOP_LEVEL_MACRO_KEYS.some((k) => (day?.[k] || 0) > 0);
 }
 
-// One strip per widget, so one drawer per document — the same assumption
-// __macroCtx below already makes.
-const MACRO_DRAWER_ID = "macro-drawer";
+// THE DRAWER'S ID IS PER-STRIP, derived from `opts.idPrefix`.
+//
+// In chat one iframe holds one strip, so a fixed id was harmless. The public
+// site's landing page builds two of these cards from these same partials into
+// ONE document, and a duplicate id is a screen-reader bug there: every handler
+// below resolves the drawer by `panel.querySelector(".drawer")`, so BEHAVIOUR
+// was always independent per strip, but `aria-controls` / `aria-labelledby`
+// resolve by id and both cards' tiles would have pointed at whichever drawer
+// came first in document order.
+//
+// The prefix is CALLER-SUPPLIED and deterministic — never a counter, a
+// timestamp or Math.random(). The build-time renderer emits markup that a
+// drift test byte-compares against the generated HTML, so the same payload and
+// the same prefix must always produce the same bytes. A page with two strips
+// passes a distinct `idPrefix` per card; everything else omits it and keeps
+// the historical "macro-drawer".
+//
+// AND THERE IS NO CONSTANT FOR THAT DEFAULT, deliberately. There used to be
+// one, for the two templates that emit an `opts.extra` row of their own
+// (goal-progress, the dev-only gallery) and so write `aria-controls`
+// themselves — and both reached for it and ignored the id the strip was
+// handing them, which is the bug this pair of functions exists to make
+// impossible. An extra's `row(i, drawerId)` and `detail(drawerNameId)` are
+// given this strip's ids (see macroExtraOf); nothing else needs to name one.
+const MACRO_DRAWER_PREFIX = "macro";
+const macroDrawerId = (prefix) => `${prefix || MACRO_DRAWER_PREFIX}-drawer`;
 // The drawer head's metric name, which is what the drawer region is labelled
 // by (aria-labelledby) — see the drawer in macroPanel.
-const MACRO_DRAWER_NAME_ID = "macro-drawer-name";
+const macroDrawerNameId = (prefix) => `${macroDrawerId(prefix)}-name`;
 
 // The translated label for a metric, falling back to the English literal
 // above if the current locale's dictionary (T, from shared/i18n.js) is
@@ -660,7 +683,7 @@ function chipLabel(m, b, ctx) {
 // disclosure chevron on the toggle species for the same reason.
 function tapAttrs(m, b, ctx) {
     const state = macroHasDetail(m, ctx)
-        ? ` aria-expanded="false" aria-controls="${MACRO_DRAWER_ID}"`
+        ? ` aria-expanded="false" aria-controls="${ctx.drawerId}"`
         : ` aria-pressed="false"`;
     return ` data-macro="${m.key}"${state} aria-label="${esc(chipLabel(m, b, ctx))}"`;
 }
@@ -904,7 +927,7 @@ function focusApply(fx, m, ctx, selected) {
         fx.setAttribute("data-macro", m.key);
         if (macroHasDetail(m, ctx)) {
             fx.setAttribute("aria-expanded", state);
-            fx.setAttribute("aria-controls", MACRO_DRAWER_ID);
+            fx.setAttribute("aria-controls", ctx.drawerId);
         } else {
             fx.setAttribute("aria-pressed", state);
         }
@@ -926,11 +949,37 @@ function focusApply(fx, m, ctx, selected) {
     }
 }
 
-// The ctx macroPanel last stashed, so a template can re-render the focus panel
-// for a different metric without rebuilding the strip. One strip per document,
-// so one ctx is enough — the same assumption macroToggle already makes.
-function macroCtx() {
-    return __macroCtx;
+// The ctx behind ONE strip, so a template can re-render the focus panel for a
+// different metric without rebuilding the strip.
+//
+// Pass any element inside the strip — a chip, the focus panel, the strip
+// itself — and the ctx bound to that strip comes back. Omit it (or pass
+// something that is not in a stashed strip) and the LAST ctx macroPanel
+// stashed comes back, which is the whole story for a widget with one card: the
+// iframe holds exactly one strip, so the last one stashed is the only one
+// there is.
+//
+// The element form exists for a document that holds two live strips at once —
+// the public landing page renders the summary and trends cards from these same
+// partials — where a single slot would leave only the last-rendered strip
+// responding. See macroStash for how the binding is made.
+// Resolve the ctx bound to the strip `el` is in. The lookup must mirror
+// macroStash's keying EXACTLY — including its `|| el` fallback — or a caller
+// that hands one of them the host element and the other a node inside it
+// writes a binding the reader can never find, and silently gets
+// `__macroCtxLast` (i.e. the last strip rendered anywhere, which is the very
+// single-slot bug the WeakMap exists to remove). Failing that way is invisible:
+// there is no throw and no warning, just another card's meals in the drawer.
+function macroCtx(el) {
+    if (el) {
+        const panel =
+            typeof el.closest === "function"
+                ? el.closest("[data-macro-panel]") || el
+                : el;
+        const bound = __macroCtxByPanel.get(panel);
+        if (bound) return bound;
+    }
+    return __macroCtxLast;
 }
 
 // What a chip PRINTS. Two rules beyond "the figure and its unit":
@@ -1197,17 +1246,34 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
             opts && Array.isArray(opts.chartKeys) ? opts.chartKeys.slice() : [],
         onSeries:
             opts && typeof opts.onSeries === "function" ? opts.onSeries : null,
+        // THIS STRIP'S drawer ids, so two strips in one document do not both
+        // point their aria-controls / aria-labelledby at the same element.
+        // See MACRO_DRAWER_PREFIX for why the prefix is caller-supplied and
+        // not generated.
+        drawerId: macroDrawerId(opts && opts.idPrefix),
+        drawerNameId: macroDrawerNameId(opts && opts.idPrefix),
         // ONE CONTROL THAT IS NOT A NUTRIENT, sharing the strip's drawer —
         // goal-progress' weight row. See macroExtraOf.
         extra: macroExtraOf(opts && opts.extra),
     };
 }
 
-// The `opts.extra` slot: { key, row: (i) => string, detail: (() => string) |
-// null }. `row(i)` is the control's markup, handed the next stagger index so
-// its entrance deals after the last tile; `detail()` is the drawer body it
-// opens, or null when there is nothing to disclose (a weight row with no
-// reading is a line of text, not a button).
+// The `opts.extra` slot: { key, row: (i, drawerId) => string, detail:
+// ((drawerNameId) => string) | null }. `row(i, drawerId)` is the control's
+// markup, handed the next stagger index so its entrance deals after the last
+// tile, and this strip's drawer id so a row that discloses can write its own
+// aria-controls on a page carrying more than one strip (a single-strip widget
+// can ignore the second argument and still be right, since its strip is on
+// the default prefix);
+// `detail(drawerNameId)` is the drawer body it opens, or null when there is
+// nothing to disclose (a weight row with no reading is a line of text, not a
+// button).
+//
+// The detail is handed the same pair's NAME id for the same reason: its head
+// carries the `.dname` that the drawer is labelled by (aria-labelledby, which
+// resolves by id), exactly as macroDetailBody's does — so a second strip whose
+// extra wrote the default id would label its own drawer off the first strip's
+// heading, and duplicate that id while both are open.
 //
 // It exists because the alternative was a SECOND drawer. goal-progress used to
 // render its weight row under the strip with a region of its own and a click
@@ -1235,7 +1301,9 @@ function macroExtraOf(extra) {
         );
     }
     if (typeof extra.row !== "function") {
-        throw new Error("macroPanel: opts.extra.row must be (i) => string");
+        throw new Error(
+            "macroPanel: opts.extra.row must be (i, drawerId) => string",
+        );
     }
     return {
         key: extra.key,
@@ -1266,23 +1334,29 @@ function macroKeyOf(cell) {
 // `opts` is optional: { drinkUnit: "us" | "uk", calLabel: string,
 // divided: boolean, tiers: boolean, chartKeys: string[],
 // onSeries: (key, opened) => void,
-// extra: { key, row: (i) => string, detail: (() => string) | null },
-// metricLabel: (m) => string, stash: boolean }.
+// extra: { key, row: (i, drawerId) => string,
+//         detail: ((drawerNameId) => string) | null },
+// metricLabel: (m) => string, stash: boolean, idPrefix: string }.
+// `idPrefix` namespaces this strip's drawer ids (default "macro"); pass a
+// distinct one per strip when a single document holds more than one.
 // Without `extra` the markup is byte-identical to a strip that never had the
 // slot (macros.test.ts pins that); likewise without `metricLabel`.
 function macroPanel(vals, goal, wording, meals, opts) {
     const ctx = macroCtxOf(vals, goal, wording, meals, opts);
     // Stash it so the delegated toggle handler can build the breakdown on
-    // demand. One strip per widget, so a single slot is enough.
+    // demand. This function returns a STRING — the strip element does not
+    // exist yet — so all it can fill is the fallback slot; a caller that wants
+    // this ctx bound to the element for good calls macroStash(el, macroCtx())
+    // once the markup is in the document.
     //
-    // …which is exactly why a strip that is NOT the live one must be able to
-    // stay out of it. `opts.stash: false` builds the markup and leaves the slot
+    // Which is exactly why a strip that is NOT the live one must be able to
+    // stay out of the slot. `opts.stash: false` builds the markup and leaves it
     // alone. The dev gallery renders dozens of specimen strips around its one
     // live card, and each specimen call used to overwrite the live card's ctx
     // — so tapping the live card opened a drawer built from whichever specimen
     // rendered last, with that specimen's chartKeys and onSeries. Default true:
     // every production widget renders one strip, and that strip is the live one.
-    if (!opts || opts.stash !== false) __macroCtx = ctx;
+    if (!opts || opts.stash !== false) macroStash(null, ctx);
 
     const cal = MACROS.find((m) => m.role === "cal");
     const macros = MACROS.filter((m) => m.role === "macro");
@@ -1448,7 +1522,7 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // exact reason goal-progress once kept a drawer of its own.
     const drawer =
         discloses || extraOpens
-            ? `<div class="drawer" id="${MACRO_DRAWER_ID}" role="region" aria-labelledby="${MACRO_DRAWER_NAME_ID}" tabindex="-1" hidden></div>`
+            ? `<div class="drawer" id="${ctx.drawerId}" role="region" aria-labelledby="${ctx.drawerNameId}" tabindex="-1" hidden></div>`
             : "";
     // THE DRAWER IS LAST, under every rail including water. It sat between the
     // limits and the water row for a while, on the reasoning that water can
@@ -1470,7 +1544,7 @@ function macroPanel(vals, goal, wording, meals, opts) {
     const rails = tieredRails
         ? tieredRails.join("") + water
         : railOf("", macros.concat(waters, limits));
-    const extraRow = ctx.extra ? ctx.extra.row(i0) : "";
+    const extraRow = ctx.extra ? ctx.extra.row(i0, ctx.drawerId) : "";
     const body = rails + extraRow + drawer;
     return `
       <div class="strip${ctx.tiers ? " tiered" : ""}${ctx.divided ? " sec" : ""}"${interactive ? " data-macro-panel" : ""}>
@@ -1482,8 +1556,38 @@ function macroPanel(vals, goal, wording, meals, opts) {
 
 // ---- Interactive breakdown ------------------------------------------------
 // Set by macroPanel() when the strip is interactive; read by the delegated
-// handlers below.
-let __macroCtx = null;
+// handlers below through macroCtx().
+//
+// TWO PLACES, because macroPanel has no element to key on (it returns markup).
+// `__macroCtxLast` is the fallback every single-strip widget runs on, exactly
+// as the one slot this replaced did. `__macroCtxByPanel` is the per-strip
+// binding a document with more than one live strip needs, made by the caller
+// once its markup is in the DOM — a WeakMap, so a card thrown away by the next
+// render() takes its ctx with it.
+const __macroCtxByPanel = new WeakMap();
+let __macroCtxLast = null;
+
+// Bind `ctx` to the strip that `el` is in (or IS), and make it the fallback.
+// `el` may be null, which stashes the fallback only — what macroPanel itself
+// does.
+//
+// The usage for a second live strip on one page, straight after its markup is
+// written:
+//
+//   host.innerHTML = macroPanel(…);                 // fills the fallback slot
+//   macroStash(host.querySelector("[data-macro-panel]"), macroCtx());
+//
+// After that a tap anywhere in that strip resolves ITS ctx, whatever was
+// rendered since.
+function macroStash(el, ctx) {
+    const panel =
+        el && typeof el.closest === "function"
+            ? el.closest("[data-macro-panel]") || el
+            : el;
+    if (panel) __macroCtxByPanel.set(panel, ctx);
+    __macroCtxLast = ctx;
+    return ctx;
+}
 
 // The control that opened the drawer that is currently open, remembered as an
 // ELEMENT rather than looked up by key when the ✕ is pressed.
@@ -1494,8 +1598,16 @@ let __macroCtx = null;
 // selector and querySelector returns the first in document order — always the
 // panel, never the tile that actually opened the drawer. The ✕ then handed
 // focus to the wrong control (and, with the panel's state stuck at "false",
-// re-rendered the drawer it was asked to close). One drawer per document, so
-// one slot is enough — the same assumption __macroCtx already makes.
+// re-rendered the drawer it was asked to close).
+//
+// One slot, even though two live strips on one page CAN hold two drawers open
+// at once (opening one no longer closes the other). That is safe rather than
+// lucky: a strip whose opener belongs to another strip falls back to the
+// by-key lookup in macroCloseDrawer — the path a rebuilt strip already takes —
+// and the key is never ambiguous, because focusApply removes `data-macro` from
+// the panel in mirror mode, so no two controls carry one key at the same time.
+// Do not add a second single-slot global (a remembered opener, an
+// "is anything open" flag) on the assumption that only one drawer is open.
 let __macroOpener = null;
 
 // The list of meals that contributed a positive amount of one metric,
@@ -1598,7 +1710,7 @@ function macroDetailBody(m, ctx) {
     return `
       <div class="dhead ${m.color}${flag}">
         ${macroMark(m, ctx, 14)}
-        <b class="dname" id="${MACRO_DRAWER_NAME_ID}">${esc(macroLabel(m))}</b>
+        <b class="dname" id="${ctx.drawerNameId}">${esc(macroLabel(m))}</b>
         <span class="dcap${flag}">${esc(macroCaption(m, b, ctx))}</span>
         <button class="dx" type="button" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">${icon("x", 12)}</button>
       </div>${mealList(m, ctx.meals, flag)}`;
@@ -1613,7 +1725,8 @@ function macroDetailBody(m, ctx) {
 // re-reports so the host grows the iframe.
 function macroToggle(cell) {
     const panel = cell.closest("[data-macro-panel]");
-    const ctx = __macroCtx;
+    // THIS strip's ctx, not the last one rendered anywhere — see macroCtx.
+    const ctx = macroCtx(panel || cell);
     if (!panel || !ctx) return;
     const key = macroKeyOf(cell);
     // The extra is resolved FIRST: its key is by construction not a MACROS
@@ -1659,9 +1772,12 @@ function macroToggle(cell) {
     if (drawer) {
         if (open && (extra ? !!extra.detail : macroHasDetail(m, ctx))) {
             // The extra brings its own body — its head must still label the
-            // region, so it carries `.dname#${MACRO_DRAWER_NAME_ID}` and a
+            // region, so it carries `.dname` under this strip's own
+            // `ctx.drawerNameId` and a
             // `[data-macro-close]` ✕ exactly as macroDetailBody's does.
-            drawer.innerHTML = extra ? extra.detail() : macroDetailBody(m, ctx);
+            drawer.innerHTML = extra
+                ? extra.detail(ctx.drawerNameId)
+                : macroDetailBody(m, ctx);
             drawer.dataset.open = key;
             drawer.hidden = false;
             // FOCUS FOLLOWS THE DISCLOSURE. The drawer is not adjacent to the
@@ -1778,7 +1894,7 @@ function macroReleaseToggle(panel) {
 // element before and after, only its content and name change.
 function macroReturn(fx) {
     const panel = fx && fx.closest("[data-macro-panel]");
-    const ctx = __macroCtx;
+    const ctx = macroCtx(panel || fx);
     if (!panel || !ctx) return;
     const held = Array.from(panel.querySelectorAll("[data-macro]")).find(
         (c) => c.getAttribute(tapStateAttr(c)) === "true",
@@ -1874,8 +1990,9 @@ function macroSnapshot(root) {
 // both on the focus panel — every call with preventScroll, because a focus()
 // inside a chat iframe can otherwise scroll the host page.
 //
-// Relies on the stash: macroToggle reads __macroCtx, so the strip under `root`
-// must be the one macroPanel last stashed (see opts.stash).
+// Relies on the stash: macroToggle resolves its ctx through macroCtx(), so the
+// strip under `root` must be one macroPanel stashed — the last one, or one
+// bound to its own element by macroStash (see opts.stash).
 function macroRestore(root, was) {
     if (!root || !was) return;
     const ctlFor = (key, panelFirst) => {
@@ -1944,10 +2061,18 @@ if (typeof document !== "undefined" && !window.__macroWired) {
     document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape" && e.key !== "Esc") return;
         const target = e.target && e.target.closest ? e.target : null;
+        // Focus may have drifted off the strip (or onto <body>) while the
+        // drawer is still open. Then the ACTIVE ELEMENT's strip, which is the
+        // same strip on every widget here and the right one of the two on a
+        // page that holds more than one; only if that finds nothing does the
+        // document-wide query decide, as it always did.
+        const active =
+            document.activeElement && document.activeElement.closest
+                ? document.activeElement
+                : null;
         const panel =
             (target && target.closest("[data-macro-panel]")) ||
-            // Focus may have drifted off the strip (or onto <body>) while the
-            // drawer is still open; one strip per document, so this is the one.
+            (active && active.closest("[data-macro-panel]")) ||
             document.querySelector("[data-macro-panel]");
         if (macroCloseDrawer(panel) || macroReleaseToggle(panel)) {
             e.preventDefault();

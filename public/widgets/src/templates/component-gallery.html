@@ -195,36 +195,12 @@
 
             /*@include shared/bridge.js@*/
 
-            // macros.js needs these two in scope (same contract as every
-            // widget), and this is nutrition-summary's fmt, not a gallery
-            // variant: the page is the reference surface, so a figure it
-            // prints must be grouped in WIDGET_LOCALE exactly as the shipping
-            // card groups it — `toLocaleString()` with no argument reads the
-            // host browser's language instead, which is how a German card once
-            // printed "2,035" beside "58,2".
-            function fmt(n, decimals) {
-                const x = Number(n);
-                if (n == null || !Number.isFinite(x)) return "0";
-                const r = decimals ? x.toFixed(decimals) : Math.round(x);
-                try {
-                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
-                } catch (_) {
-                    return Number(r).toLocaleString();
-                }
-            }
-            function esc(s) {
-                return String(s).replace(
-                    /[&<>"]/g,
-                    (c) =>
-                        ({
-                            "&": "&amp;",
-                            "<": "&lt;",
-                            ">": "&gt;",
-                            '"': "&quot;",
-                        })[c],
-                );
-            }
-
+            /* macros.js needs these two in scope (same contract as every
+               widget), and the gallery gets the SHIPPING pair rather than a
+               variant of its own: the page is the reference surface, so a
+               figure it prints must be grouped in WIDGET_LOCALE exactly as the
+               shipping card groups it. */
+            /*@include shared/fmt.js@*/
             // ---- fixtures --------------------------------------------------
             // Deliberately mixed: protein under its floor, carbs past one (a
             // floor passed is not a breach, so no --over), sugar / alcohol /
@@ -1032,7 +1008,15 @@
             // macroDecimal so a trailing zero survives; the name from the
             // dictionary's weightAria with its own separator in
             // lastLoggedSuffix. inertPanel strips the hooks afterwards.
-            function weightRow(i, open) {
+            //
+            // The drawer id is the one macroPanel hands `row` — THIS page is
+            // the multi-strip document the per-strip id exists for, and this
+            // row is the only control on it that writes its own
+            // aria-controls. inertPanel removes that attribute from every
+            // specimen, so nothing here is wrong on screen today; taking the
+            // argument is what keeps the specimen an honest copy of what
+            // goal-progress ships.
+            function weightRow(i, open, drawerId) {
                 const u = unitLabel("kg");
                 const cur = macroDecimal(78.4, 1);
                 const tgt = macroDecimal(75, 1);
@@ -1046,7 +1030,7 @@
                         date: dayHeader(thisYear("07-14")),
                     }),
                 });
-                return `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="${open}" aria-controls="${MACRO_DRAWER_ID}" aria-label="${esc(aria)}" style="--i:${i}"><span class="dot"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(cur)} → ${esc(tgt)} ${esc(u)}</span><span class="chev">${icon("chev", 10)}</span></button>`;
+                return `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="${open}" aria-controls="${drawerId}" aria-label="${esc(aria)}" style="--i:${i}"><span class="dot"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(cur)} → ${esc(tgt)} ${esc(u)}</span><span class="chev">${icon("chev", 10)}</span></button>`;
             }
             function notice(variant, iconName, text) {
                 return `<div class="notice${variant ? " notice-" + variant : ""}">${icon(iconName, 16)}<span>${esc(text)}</span></div>`;
@@ -1520,7 +1504,8 @@
                         {
                             extra: {
                                 key: "weight",
-                                row: (i) => weightRow(i, open),
+                                row: (i, drawerId) =>
+                                    weightRow(i, open, drawerId),
                                 detail: null,
                             },
                         },

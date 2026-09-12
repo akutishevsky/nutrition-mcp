@@ -183,35 +183,9 @@
                 ],
             };
 
-            // WIDGET_LOCALE, not the host browser's: a bare toLocaleString()
-            // keys off navigator.language, so a German profile on an English
-            // browser printed "1,850/2,200 kcal" (read as 1.85) beside
-            // macroDecimal's "1,5/2,5 l" on the same rail. Same helper as
-            // nutrition-summary.html; the locale is read per call because
-            // setLocale() only runs inside render().
-            function fmt(n, decimals) {
-                const x = Number(n);
-                if (n == null || !Number.isFinite(x)) return "0";
-                const r = decimals ? x.toFixed(decimals) : Math.round(x);
-                try {
-                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
-                } catch (_) {
-                    return Number(r).toLocaleString();
-                }
-            }
-            function esc(s) {
-                return String(s).replace(
-                    /[&<>"]/g,
-                    (c) =>
-                        ({
-                            "&": "&amp;",
-                            "<": "&lt;",
-                            ">": "&gt;",
-                            '"': "&quot;",
-                        })[c],
-                );
-            }
-
+            /* fmt() and esc(), the two helpers shared/macros.js requires in
+               scope. After shared/i18n.js because fmt() reads WIDGET_LOCALE. */
+            /*@include shared/fmt.js@*/
             // `mealTypeLabel()` — the stored meal_type in the viewer's
             // language — lives in shared/macros.js, because this card prints
             // the same value twice: here on the header line and again on every

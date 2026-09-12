@@ -271,37 +271,12 @@
                 ],
             };
 
-            // WIDGET_LOCALE, not the host browser's: a bare toLocaleString()
-            // keys off navigator.language, so a German profile on an English
-            // browser printed "1,850/2,200 kcal" (read as 1.85) beside
-            // macroDecimal's "1,5/2,5 l" on the same rail. Same helper as
-            // nutrition-summary.html; the locale is read per call because
-            // setLocale() only runs inside render(). Nothing in this template
-            // calls it any more — the weight figures go through macroDecimal —
-            // but shared/macros.js requires it to be defined.
-            function fmt(n, decimals) {
-                const x = Number(n);
-                if (n == null || !Number.isFinite(x)) return "0";
-                const r = decimals ? x.toFixed(decimals) : Math.round(x);
-                try {
-                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
-                } catch (_) {
-                    return Number(r).toLocaleString();
-                }
-            }
-            function esc(s) {
-                return String(s).replace(
-                    /[&<>"]/g,
-                    (c) =>
-                        ({
-                            "&": "&amp;",
-                            "<": "&lt;",
-                            ">": "&gt;",
-                            '"': "&quot;",
-                        })[c],
-                );
-            }
-
+            /* fmt() and esc(), the two helpers shared/macros.js requires in
+               scope. Nothing in THIS template calls fmt() any more — the weight
+               figures go through macroDecimal — but macros.js still needs it
+               defined. After shared/i18n.js because fmt() reads
+               WIDGET_LOCALE. */
+            /*@include shared/fmt.js@*/
             // A weight reading as the payload sends it (a number, or a number a
             // host stringified), or null for "none". NaN is none too: it would
             // otherwise print "NaN kg" and plot a marker at NaN%.
@@ -476,24 +451,30 @@
                     // macroExtraOf): `data-macro-extra` so every strip lookup
                     // finds it as a control, aria-expanded + aria-controls
                     // naming the ONE drawer, and the next `--i` so its entrance
-                    // deals in after the last tile. `c-acc` sits on the button
+                    // deals in after the last tile. The id comes from the
+                    // STRIP (row's second argument), never the module default:
+                    // this widget renders one strip per iframe, but the
+                    // partial it hands the row to is also the public site's,
+                    // where two cards share a document and the default would
+                    // address the other card's drawer. `c-acc` sits on the button
                     // so `--c` — the dot, the open tint and ring — resolves.
                     //
                     // The accessible name starts with the visible label
                     // ("Weight …"), so label-in-name holds with the arrow kept
                     // visually.
-                    row: (i) =>
-                        `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="false" aria-controls="${MACRO_DRAWER_ID}" aria-label="${esc(aria)}" style="--i:${i}"><span class="dot"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(value)}</span><span class="chev">${icon("chev", 10)}</span></button>`,
-                    // The drawer body. Its head names the region, so it carries
-                    // `.dname#MACRO_DRAWER_NAME_ID` and the `[data-macro-close]`
+                    row: (i, drawerId) =>
+                        `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="false" aria-controls="${drawerId}" aria-label="${esc(aria)}" style="--i:${i}"><span class="dot"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(value)}</span><span class="chev">${icon("chev", 10)}</span></button>`,
+                    // The drawer body, handed the same strip's name id (see
+                    // the row above). Its head names the region, so it carries
+                    // that id on its `.dname` and the `[data-macro-close]`
                     // ✕ exactly as a metric's head does; the shared handlers act
                     // on nothing else. The ROLE CLASS goes on the head and the
                     // dot stays bare, as macroDetailBody does it — on the dot
                     // it would set --c on the dot itself.
-                    detail: () => `
+                    detail: (drawerNameId) => `
               <div class="dhead whead c-acc">
                 <span class="dot"></span>
-                <b class="dname" id="${MACRO_DRAWER_NAME_ID}">${esc(T.goalProgress.weightLabel)}</b>
+                <b class="dname" id="${drawerNameId}">${esc(T.goalProgress.weightLabel)}</b>
                 <span class="dcap">${esc(cap)}</span>
                 <button class="dx" type="button" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">${icon("x", 12)}</button>
               </div>${body}`,

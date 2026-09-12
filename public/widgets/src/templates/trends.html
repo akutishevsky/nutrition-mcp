@@ -37,8 +37,14 @@
   touch it. Two averaging rules coexist under it: calories, protein, carbs, fat
   and water count an empty day as 0, while fiber, sugar, alcohol and caffeine
   average only over the days that recorded them ("· days recorded") — see avgOf
-  below, which matches the tool's text output. The chart draws what the average
-  counts: an empty day is a 0 on the line, and only a real null is a gap.
+  in shared/trends-card.js, which matches the tool's text output. The chart
+  draws what the average counts: an empty day is a 0 on the line, and only a
+  real null is a gap.
+
+  THE CARD ITSELF is composed in shared/trends-card.js, not here: the public
+  landing page renders the same card from the same payload at build time, with
+  no DOM. This template owns what needs one — the locale, the water unit, the
+  range state, the chart paint and the focus restore.
 
   Data arrives as the `structuredContent` of the get_trends tool result; the
   shared bridge (shared/bridge.js) reads it across host conventions and calls
@@ -98,8 +104,6 @@
             /*@include shared/svg.js@*/
 
             /*@include shared/bridge.js@*/
-
-            const RANGES = [7, 14, 30];
 
             // ---- Sample data so the file renders on its own (browser preview) ----
             function buildSample() {
@@ -165,97 +169,9 @@
             }
             const SAMPLE = buildSample();
 
-            // WIDGET_LOCALE, not the host browser's: a bare toLocaleString()
-            // keys off navigator.language, so a German profile on an English
-            // browser printed "1,850/2,200 kcal" (read as 1.85) beside
-            // macroDecimal's "1,5/2,5 l" on the same rail. Same helper as
-            // nutrition-summary.html; the locale is read per call because
-            // setLocale() only runs inside render().
-            function fmt(n, decimals) {
-                const x = Number(n);
-                if (n == null || !Number.isFinite(x)) return "0";
-                const r = decimals ? x.toFixed(decimals) : Math.round(x);
-                try {
-                    return Number(r).toLocaleString(WIDGET_LOCALE || "en");
-                } catch (_) {
-                    return Number(r).toLocaleString();
-                }
-            }
-            function esc(s) {
-                return String(s).replace(
-                    /[&<>"]/g,
-                    (c) =>
-                        ({
-                            "&": "&amp;",
-                            "<": "&lt;",
-                            ">": "&gt;",
-                            '"': "&quot;",
-                        })[c],
-                );
-            }
-            // Trailing average over the days that actually carry this key:
-            // sum / count of non-null days — matches computeTrends'
-            // coveredSeries (src/insights.ts), which is where the tool's text
-            // trailingAverage comes from. Calories/protein/carbs/fat/water are
-            // never null (every day counts, as always), but fiber_g, sugar_g,
-            // alcohol_g and caffeine_mg arrive null on a day that never
-            // recorded them — dividing by days.length there would count a
-            // no-data day as a real zero, exactly the drift this fixes.
-            //
-            // A key that is null on EVERY day averages to null, not 0, which is
-            // what hides a metric the user has nothing to say about: alcohol_g
-            // when tracking is off, caffeine_mg when it was never recorded. A 0
-            // there would claim an alcohol-free / caffeine-free window instead.
-            function avgOf(days, key) {
-                if (!days.length) return 0;
-                let sum = 0;
-                let seen = 0;
-                for (const d of days) {
-                    if (d[key] == null) continue;
-                    seen++;
-                    sum += d[key] || 0;
-                }
-                if (!seen) return null;
-                return sum / seen;
-            }
-
-            // ---- Labels ----------------------------------------------------------
-
-            // The focus panel's label once a tile has moved it to another metric
-            // (opts.metricLabel, shared/macros.js). It keeps the DENOMINATOR on
-            // the card: without it a selected panel read the bare "Protein" and
-            // nothing said any more that the figure is a range average. Two
-            // wordings, because two averaging rules coexist (see avgOf): the
-            // limits — fiber, sugar, alcohol, caffeine — are the metrics that
-            // arrive null on a day that did not record them, so they average
-            // over "days recorded"; everything else counts every day. Keyed on
-            // `role` rather than on a key list, like the rest of the strip.
-            function metricLabelFor(n) {
-                return (m) =>
-                    tpl(
-                        m.role === "limit"
-                            ? T.trends.metricAvgRecorded
-                            : T.trends.metricAvgAllDays,
-                        { metric: macroLabel(m), range: n },
-                    );
-            }
-
-            // The sparkline's accessible name, as a function of the metric it
-            // is drawing (sparkPaint's opts.label). The panel is a <span>, not a
-            // button, so nothing else names the chart: this sentence is its
-            // entire description, and it switches with the series.
-            // metricOverRange deliberately carries no count-agreeing noun:
-            // Intl.PluralRules falls back to "other" for Polish/Ukrainian
-            // few/many, so a PluralForms key would read wrong at n = 2–4.
-            function chartLabelFor(n) {
-                return (m) =>
-                    m.role === "cal"
-                        ? tpl(T.trends.caloriesOverRange, { range: n })
-                        : tpl(T.trends.metricOverRange, {
-                              metric: macroLabel(m),
-                              range: n,
-                          });
-            }
+            /* fmt() and esc(), the two helpers shared/macros.js requires in
+               scope. After shared/i18n.js because fmt() reads WIDGET_LOCALE. */
+            /*@include shared/fmt.js@*/
 
             // ---- State + rendering ---------------------------------------------
 
@@ -272,144 +188,6 @@
                 prevKey: null,
             };
             let __widgetApi = null;
-
-            // The days in the last `range` calendar days, oldest first. The
-            // tool sends a bucket for every calendar day (zeros for unlogged
-            // days), so this is a window of the calendar, not of the logs.
-            function sliceFor(range) {
-                return STATE.data.days
-                    .slice()
-                    .sort((a, b) => (a.date < b.date ? -1 : 1))
-                    .slice(-range);
-            }
-
-            // The header's window line for ONE range, on its own — the only
-            // piece of header state a range change rewrites, and the only one
-            // whose height can move (a label carrying a year takes a second row
-            // where a short one does not). Split out so render() can measure
-            // every candidate before it paints; viewFor reads the same function,
-            // so the measured string and the printed one cannot differ.
-            function metaFor(range) {
-                const data = STATE.data;
-                const slice = sliceFor(range);
-                if (!slice.length) return "";
-                const end = ymd(data.end_date)
-                    ? data.end_date
-                    : slice[slice.length - 1].date;
-                return `${rangeLabel(slice[0].date, end)} · ${daysLoggedCaption(
-                    slice.filter(dayHasData).length,
-                    slice.length,
-                )}`;
-            }
-
-            // Everything a range owns, derived from STATE.data alone and
-            // WRITING NOTHING — so a range change can build it first and give
-            // up cleanly if it throws (see setRange). Returns the header meta,
-            // the body's markup, and what the sparkline needs once that markup
-            // is in the document: its calendar axis (null for a range with
-            // nothing in it, which has no strip) and its accessible names.
-            //
-            // One exception to "writes nothing": macroPanel stashes its ctx for
-            // the delegated handlers. That is harmless here because every
-            // caller writes this body into the document straight after.
-            function viewFor(range) {
-                const data = STATE.data;
-                const slice = sliceFor(range);
-                const n = slice.length;
-                const last = slice[n - 1];
-                // The header names the tool's window when it can: end_date is
-                // the day the series was cut at, and the buckets run up to it.
-                const end = ymd(data.end_date) ? data.end_date : last.date;
-                // dayHasData (shared/macros.js) derives its test from MACROS,
-                // so it covers exactly the top-level metrics — fiber, sugar,
-                // alcohol and caffeine never appear without a meal that already
-                // contributes calories, and a null on any of them must not
-                // count as a logged day.
-                const logged = slice.filter(dayHasData).length;
-                // "5–11 Jul · 5 of 7 days logged": the window, then how much of
-                // it was logged. This used to be the chart's own foot; it is the
-                // same header line nutrition-summary prints, and it is the one
-                // place the count of skipped days is said out loud. Built by
-                // metaFor, so render() can measure every range's candidate
-                // before painting one (see the reserveLine call there).
-                const meta = metaFor(range);
-
-                if (!logged) {
-                    // A range with nothing in it while a wider one has data (the
-                    // whole-empty card is render()'s). The header still names
-                    // the window and says "0 of 7 days logged"; the body says to
-                    // widen it. The foot is emitted so the bridge's settings note
-                    // keeps its home at the end of the card — without one it
-                    // falls back to the root, under the card instead of in it.
-                    return {
-                        meta,
-                        body: `
-              <div class="empty">
-                <div class="big">📈</div>
-                <div>${esc(tpl(T.trends.rangeEmpty, { range: n }))}</div>
-              </div>
-              <div class="foot" data-widget-foot></div>`,
-                        slots: null,
-                    };
-                }
-
-                const avg = {};
-                for (const m of MACROS) avg[m.key] = avgOf(slice, m.key);
-
-                const chartLabel = chartLabelFor(n);
-                // The panel is found inside THIS card's body, never
-                // document-wide — see sparkPaint in shared/spark.js.
-                const onSeries = (key, opened) =>
-                    sparkPaint(
-                        document.querySelector("#tr-body .focus"),
-                        opened ? key : "calories",
-                        opened,
-                        { label: chartLabel },
-                    );
-
-                // No per-meal rows in a trends payload, so nothing here
-                // discloses meals — chartKeys/onSeries are what keep the tiles
-                // interactive, as the panel's series selector. chartableKeys
-                // (shared/spark.js) is recomputed per range, so a metric whose
-                // every reading in THIS window is null or zero is a static tile
-                // rather than a toggle that draws a flat line on the floor.
-                // Calories is never among them: it is the default series, and
-                // deselecting any tile returns to it.
-                //
-                // The floor-metric averaged wording uses its own dedicated
-                // string (T.trends.avgUnder) — distinct from macros.floorUnder's
-                // live "still left today" framing and macros.ceilingUnder's
-                // safety-margin framing, neither of which fits a historical
-                // average's shortfall. See macroBits' wording.
-                //
-                // THE RING IS KEPT on purpose (the old layout dropped it for a
-                // flat hero): every tile on this card shows its average as a
-                // fraction of its goal, so a calorie headline without one would
-                // be the only exception on the card.
-                const body = macroPanel(
-                    avg,
-                    data.goals,
-                    { under: T.trends.avgUnder },
-                    null,
-                    {
-                        tiers: true,
-                        drinkUnit: data.drink_unit,
-                        // The one place the denominator is named: these are
-                        // averages over every calendar day in the window,
-                        // skipped days included.
-                        calLabel: tpl(T.trends.avgAllDays, { range: n }),
-                        metricLabel: metricLabelFor(n),
-                        chartKeys: chartableKeys(slice),
-                        onSeries,
-                    },
-                );
-                return {
-                    meta,
-                    body,
-                    slots: calendarSlots(slice, slice[0].date, end),
-                    label: chartLabel,
-                };
-            }
 
             // Put a freshly written body's sparkline in: a new axis and the
             // entrance owed again (sparkReset), then either calories or — when
@@ -490,37 +268,13 @@
                 }
 
                 const range = STATE.range;
-                const view = viewFor(range);
-                const seg = RANGES.map(
-                    (r) =>
-                        `<button type="button" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: r }))}">${r}</button>`,
-                ).join("");
-
+                const view = trendsView(STATE.data, range);
                 // keepFocus (shared/bridge.js) puts focus back on the seg button
                 // that held it — found again by its data-range — when a
                 // re-delivery rebuilds the header under it. A tile is not its
                 // business: macroRestore owns those.
-                //
-                // The meta is emitted BEFORE the seg, so a screen reader hears
-                // which window the figures cover before the control that
-                // changes it; `.cmeta.crow` (base.css) puts it back on the
-                // header's second row visually.
-                //
-                // The glow stays calorie-tinted whatever series is selected:
-                // the panel's own colour moves with the series, and a whole
-                // card changing hue on every tap was a second, louder copy of
-                // that one signal.
                 keepFocus(root, () => {
-                    root.innerHTML = `
-          <div class="card c-cal">
-            <div class="glow"></div>
-            <header class="chead">
-              <h1 class="ctitle">${esc(T.trends.title)}</h1>
-              <span class="cmeta crow" id="tr-meta">${esc(view.meta)}</span>
-              <div class="seg" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>
-            </header>
-            <div id="tr-body">${view.body}</div>
-          </div>`;
+                    root.innerHTML = trendsCard(view, { range });
                     paintChart(view, "");
                     // AFTER the first paint, not before it: re-pressing a tile
                     // goes through macroToggle, whose onSeries repaints the
@@ -535,7 +289,7 @@
                 // this. Measured once per payload, after the header exists.
                 reserveLine(
                     root.querySelector("#tr-meta"),
-                    RANGES.map(metaFor),
+                    RANGES.map((r) => trendsMeta(STATE.data, r)),
                 );
             }
 
@@ -565,7 +319,8 @@
                 // exactly as it was — the old range, pressed and painted —
                 // rather than a card whose toggle says 30 over 7 days of data.
                 let view = null;
-                if (!tryRender(() => (view = viewFor(n)))) return;
+                if (!tryRender(() => (view = trendsView(STATE.data, n))))
+                    return;
                 STATE.range = n;
                 STATE.userRange = n;
                 root.querySelectorAll("[data-range]").forEach((b) => {
@@ -607,6 +362,12 @@
                macroCtx it calls — and included from here, never from inside
                another partial. */
             /*@include shared/spark.js@*/
+
+            /* The card itself — RANGES, avgOf, the two label builders,
+               trendsSlice / trendsMeta / trendsView and trendsCard — after
+               macros.js and spark.js, whose macroPanel, chartableKeys,
+               sparkPaint and sparkInline it calls. */
+            /*@include shared/trends-card.js@*/
 
             // Last, after every partial above has finished evaluating: with no
             // host, initWidget paints config.sample synchronously, and render()

@@ -1,9 +1,11 @@
 // Behaviour tests for the shared sparkline partial (shared/spark.js).
 //
 // Same technique as macros.test.ts: the RAW partials are evaluated in the
-// order a charting template includes them — i18n, icon, date, svg, macros,
-// then spark, which a template includes itself after macros.js — with the
-// fmt/esc helpers every template supplies. `document` is left undefined, so
+// order a charting template includes them — i18n, fmt, icon, date, svg,
+// macros, then spark, which a template includes itself after macros.js.
+// shared/fmt.js is the real one the page ships, not a stand-in: the chart's
+// accessible name is caller-supplied text written into an attribute, and esc()
+// is what keeps it one. `document` is left undefined, so
 // only the pure half is covered here: seriesValue's gap rules, chartableKeys,
 // sparkMarkup's markup and sparkReset's state. sparkPaint writes into a live
 // focus panel through focusApply, and is checked in the harness instead.
@@ -12,34 +14,19 @@ import { WIDGET_STRINGS_EN } from "../../src/copy/widgets";
 
 const SRC = "./public/widgets/src";
 
-function fmt(n: number, decimals?: number) {
-    if (n == null || isNaN(n)) return "0";
-    const r = decimals ? n.toFixed(decimals) : Math.round(n);
-    return Number(r).toLocaleString();
-}
-// A REAL escaper, unlike macros.test.ts's identity stand-in: the chart's
-// accessible name is caller-supplied text written into an attribute.
-const esc = (s: unknown) =>
-    String(s).replace(
-        /[&<>"]/g,
-        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!,
-    );
-
 type Day = Record<string, number | string | null>;
 type Slot = { t: number | null; day: Day | null };
 const api = await (async () => {
     const parts = await Promise.all(
-        ["i18n", "icon", "date", "svg", "macros", "spark"].map((n) =>
+        ["i18n", "fmt", "icon", "date", "svg", "macros", "spark"].map((n) =>
             Bun.file(`${SRC}/shared/${n}.js`).text(),
         ),
     );
     const factory = new Function(
-        "fmt",
-        "esc",
         "WIDGET_STRINGS",
         `${parts.join("\n")}\nreturn { seriesValue, chartableKeys, sparkMarkup, sparkReset, SPARK, calendarSlots, MACROS };`,
     );
-    return factory(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
+    return factory({ en: WIDGET_STRINGS_EN }) as {
         seriesValue: (day: Day | null, key: string) => number | null;
         chartableKeys: (days: Day[]) => string[];
         sparkMarkup: (o: {

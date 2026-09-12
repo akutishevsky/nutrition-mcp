@@ -18,7 +18,7 @@
 
 import { WIDGET_STRINGS } from "./copy/widgets.js";
 
-const SRC_DIR = "./public/widgets/src";
+export const SRC_DIR = "./public/widgets/src";
 const INCLUDE_RE = /\/\*@include\s+([^\s@]+)\s*@\*\//g;
 
 // Second marker: inline a TypeScript module from src/ as plain JS.
@@ -82,7 +82,12 @@ export const WIDGET_TEMPLATES: Record<string, string> = {
 
 const cache = new Map<string, string>();
 
-async function readSrc(relPath: string): Promise<string> {
+// Exported (with SRC_DIR above and resolveIncludes below) so a BUILD-TIME renderer
+// can read the shared partials through this exact path instead of growing a
+// second reader that resolves markers its own way — scripts/gen-index.ts
+// evaluates them to render the landing page's widget cards. Nothing else about
+// them changed, and nothing here calls them differently.
+export async function readSrc(relPath: string): Promise<string> {
     const file = Bun.file(`${SRC_DIR}/${relPath}`);
     if (!(await file.exists())) {
         throw new Error(`widget source partial not found: ${relPath}`);
@@ -91,7 +96,7 @@ async function readSrc(relPath: string): Promise<string> {
 }
 
 // Expand every @include marker in `text`, recursively, guarding against cycles.
-async function resolveIncludes(
+export async function resolveIncludes(
     text: string,
     fromPath: string,
     stack: string[],

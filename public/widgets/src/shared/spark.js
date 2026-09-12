@@ -28,8 +28,13 @@
    reaches SPARK before this file's include line has been evaluated (with no
    host, initWidget paints the sample synchronously) finds `undefined` rather
    than dying on a TDZ ReferenceError — the failure macros.js's MACROS already
-   imposes an include order to avoid. One chart per document, so one state
-   object is enough — the same assumption macroCtx already makes. */
+   imposes an include order to avoid.
+
+   ONE chart state for the whole document — which macroCtx no longer assumes,
+   since it can bind a ctx per strip. A page holding two live charted strips
+   must therefore sparkReset() its own slots immediately before each paint, or
+   drive its second chart through sparkMarkup() directly (what a build-time
+   caller does: see `inlineChart` in shared/summary-card.js). */
 var SPARK = {
     slots: [],
     goals: null,
@@ -191,6 +196,25 @@ function sparkMarkup(o) {
           </div>`;
 }
 
+// Splice a chart into the `.fspark` slot of a strip's MARKUP, for a caller
+// that has no DOM to paint into — the public site renders these cards at build
+// time (shared/summary-card.js, shared/trends-card.js). `o` is sparkMarkup's
+// own options object. Returns the markup unchanged when there is nothing to
+// draw, so a short range needs no branch at the call site.
+//
+// The in-chat path deliberately does NOT use this: there the strip reaches the
+// document first and sparkPaint writes the node, which is what keeps
+// SPARK.painted — and so the once-only entrance (`.fspark .cwrap.still`,
+// chip.css) — honest. A function replacement, not a string one, because a `$`
+// in the generated markup would otherwise be read as a capture reference.
+function sparkInline(html, o) {
+    if (!o || !o.slots || !o.slots.length) return html;
+    return html.replace(
+        '<span class="fspark"></span>',
+        () => `<span class="fspark">${sparkMarkup(o)}</span>`,
+    );
+}
+
 // A new card: a new axis, new goals, calories, and the entrance owed again.
 // Call it once per render, before the first sparkPaint. An empty `slots` (a
 // card with fewer than two logged days) makes every later sparkPaint a
@@ -235,8 +259,10 @@ function sparkPaint(fx, key, selected, opts) {
     SPARK.key = m.key;
     // One call moves the button, the colour role class the chart
     // inherits --c from, the over state and the wash's `--p`
-    // together — see focusApply in shared/macros.js.
-    focusApply(fx, m, macroCtx(), !!selected);
+    // together — see focusApply in shared/macros.js. The ctx is
+    // resolved FROM the panel, so a page holding two live strips
+    // repaints each from its own (macroCtx, shared/macros.js).
+    focusApply(fx, m, macroCtx(fx), !!selected);
     // focusApply rebuilt the panel's children, so the sparkline
     // slot is a fresh empty node every time.
     const box = fx.querySelector(".fspark");

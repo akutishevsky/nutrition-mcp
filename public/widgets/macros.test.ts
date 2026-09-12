@@ -2,21 +2,15 @@
 // widget's alcohol gate.
 //
 // Widget code is inline template JS, so it has no import surface: `macros.js` is
-// evaluated here the way the assembler splices it into a page — with the fmt/esc
-// helpers each template supplies — and the caption strings are asserted against
-// real values. Without this the wording is pinned by nothing at all.
+// evaluated here the way the assembler splices it into a page — after
+// shared/fmt.js, the partial that supplies the fmt/esc every template pulls in
+// ahead of it — and the caption strings are asserted against real values.
+// Without this the wording is pinned by nothing at all.
 import { test, expect } from "bun:test";
 import { WIDGET_STRINGS_EN } from "../../src/copy/widgets";
 
 const SRC = "./public/widgets/src";
-
-// The same fmt/esc every template defines before including macros.js.
-function fmt(n: number, decimals?: number) {
-    if (n == null || isNaN(n)) return "0";
-    const r = decimals ? n.toFixed(decimals) : Math.round(n);
-    return Number(r).toLocaleString();
-}
-const esc = (s: unknown) => String(s);
+const partial = (name: string) => Bun.file(`${SRC}/shared/${name}.js`).text();
 
 type Bits = { goalLine: string; over: boolean; pct: number | null };
 type Macro = {
@@ -36,19 +30,22 @@ const macrosApi = await (async () => {
     // is wired in (WIDGET_STRINGS = { en: ... }): these tests assert English
     // wording, and macroLabel()/T.macros.* fall back to English by construction
     // whenever a locale is missing.
-    const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
-    const iconSrc = await Bun.file(`${SRC}/shared/icon.js`).text();
+    const i18nSrc = await partial("i18n");
+    // The REAL fmt/esc, from shared/fmt.js, rather than a stand-in written
+    // here: they decide how every figure on a chip is grouped and how every
+    // caption is escaped, so a hand-copy is the one thing on this card that
+    // could pass these tests while the shipping page differs.
+    const fmtSrc = await partial("fmt");
+    const iconSrc = await partial("icon");
     // shared/date.js too, exactly as every template that includes macros.js
     // does: a drawer row's day goes through shortDate(), unguarded.
-    const dateSrc = await Bun.file(`${SRC}/shared/date.js`).text();
-    const macrosSrc = await Bun.file(`${SRC}/shared/macros.js`).text();
+    const dateSrc = await partial("date");
+    const macrosSrc = await partial("macros");
     // `document`/`window` are left undefined so the partial's delegated event
     // wiring (guarded by `typeof document`) stays out of the way.
     const factory = new Function(
-        "fmt",
-        "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${iconSrc}\n${dateSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, GLYPHS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, macroDetailBody, focusInner, focusOver, macroDecimal, setLocale, setWaterUnit };`,
+        `${i18nSrc}\n${fmtSrc}\n${iconSrc}\n${dateSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, GLYPHS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, macroDetailBody, focusInner, focusOver, macroDecimal, setLocale, setWaterUnit };`,
     );
     // "de" is wired to the English dictionary deliberately: the locale test
     // below pins that FIGURES follow the widget's locale, not that any
@@ -56,7 +53,7 @@ const macrosApi = await (async () => {
     // "uk" is English wording with a Cyrillic UNITS block, so the unit-label
     // test below can tell a translated symbol from the English one without
     // depending on any locale file's actual prose.
-    return factory(fmt, esc, {
+    return factory({
         en: WIDGET_STRINGS_EN,
         de: WIDGET_STRINGS_EN,
         uk: {
@@ -88,6 +85,8 @@ const macrosApi = await (async () => {
                 drinkUnit?: string;
                 chartKeys?: string[];
                 tiers?: boolean;
+                idPrefix?: string;
+                extra?: unknown;
             },
         ) => string;
         macroLimit: (m: Macro, ctx: unknown, interactive?: boolean) => string;
@@ -100,6 +99,7 @@ const macrosApi = await (async () => {
                 drinkUnit?: string;
                 calLabel?: string;
                 metricLabel?: (m: Macro) => string;
+                idPrefix?: string;
             },
         ) => unknown;
         dayHasData: (day: Vals) => boolean;
@@ -1536,18 +1536,17 @@ const domApi = await (async () => {
             (__listeners[type] ||= []).push(fn);
         },
     };
-    const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
-    const iconSrc = await Bun.file(`${SRC}/shared/icon.js`).text();
-    const macrosSrc = await Bun.file(`${SRC}/shared/macros.js`).text();
+    const i18nSrc = await partial("i18n");
+    const fmtSrc = await partial("fmt");
+    const iconSrc = await partial("icon");
+    const macrosSrc = await partial("macros");
     const factory = new Function(
-        "fmt",
-        "esc",
         "WIDGET_STRINGS",
         "document",
         "window",
-        `${i18nSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroPanel, macroToggle, macroCloseDrawer, focusApply, macroReturn, macroCtx, macroSnapshot, macroRestore };`,
+        `${i18nSrc}\n${fmtSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroPanel, macroStash, macroToggle, macroCloseDrawer, focusApply, macroReturn, macroCtx, macroSnapshot, macroRestore };`,
     );
-    return factory(fmt, esc, { en: WIDGET_STRINGS_EN }, __doc, {}) as {
+    return factory({ en: WIDGET_STRINGS_EN }, __doc, {}) as {
         macroPanel: (
             vals: Vals,
             goal?: Vals | null,
@@ -1571,7 +1570,12 @@ const domApi = await (async () => {
             selected?: boolean,
         ) => void;
         macroReturn: (fx: FakeEl) => void;
-        macroCtx: () => unknown;
+        // This cast is the only description of the partial's API anywhere, so
+        // it has to carry macroCtx's optional element — read as `() => unknown`
+        // the next person concludes the ctx is global, which is what the
+        // WeakMap stopped being true.
+        macroCtx: (el?: FakeEl) => unknown;
+        macroStash: (el: FakeEl | null, ctx: unknown) => unknown;
     };
 })();
 
@@ -1958,7 +1962,12 @@ test("unit symbols follow the widget's locale everywhere they are printed", () =
         expect(labels.water_ml).toMatch(
             /^Water 2[.,]1\/2[.,]5 л, 0[.,]4 л left\./,
         );
-        expect(labels.calories).toContain("2,035/2,200 ккал");
+        // Grouping is the locale's too, now that this suite runs the real
+        // shared/fmt.js rather than a stand-in on the host's locale: uk groups
+        // with a no-break space where en uses a comma. The unit symbol is what
+        // this test is about, so the separator is matched loosely — it is
+        // pinned by the macroDecimal test above.
+        expect(labels.calories).toMatch(/2.035\/2.200 ккал/);
         expect(labels.calories).not.toContain("kcal");
         expect(html).toContain("400 мг");
         // The drawer's per-meal list prints the STORED unit's label.
@@ -2156,8 +2165,12 @@ const WEIGHT_DETAIL =
     '<div class="dhead c-acc"><b class="dname" id="macro-drawer-name">Weight</b></div>';
 const weightExtra = (detail: (() => string) | null = () => WEIGHT_DETAIL) => ({
     key: "weight",
-    row: (i: number) =>
-        `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="false" aria-controls="macro-drawer" style="--i:${i}">W</button>`,
+    // The drawer id comes from the strip (row's second argument), exactly as
+    // goal-progress' real row takes it — hardcoding "macro-drawer" here would
+    // pass on the default prefix and point at the wrong card's drawer on a
+    // page that holds two strips.
+    row: (i: number, drawerId: string) =>
+        `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="false" aria-controls="${drawerId}" style="--i:${i}">W</button>`,
     detail,
 });
 
@@ -2236,6 +2249,105 @@ test("the drawer is emitted for an extra's detail even with no meals", () => {
     });
     expect(none).not.toContain('<div class="drawer"');
     expect(none).not.toContain("data-macro-panel");
+});
+
+// TWO STRIPS IN ONE DOCUMENT. In chat one iframe holds one strip, so the
+// drawer's id could be a constant; the public site builds two of these cards
+// from these same partials into one page, and `aria-controls` /
+// `aria-labelledby` resolve by id — both cards' tiles would otherwise have
+// pointed at whichever drawer came first in document order, which is a screen
+// reader following the wrong card. `opts.idPrefix` namespaces the pair.
+//
+// DETERMINISTIC, not generated: the build-time renderer's markup is
+// byte-compared against the generated HTML by a drift test, so a counter, a
+// timestamp or Math.random() here would make that test impossible.
+test("opts.idPrefix namespaces the drawer's id and its label target", () => {
+    const opts = { tiers: true, extra: weightExtra() };
+    const a = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+        ...opts,
+        idPrefix: "card-a",
+    });
+    const b = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+        ...opts,
+        idPrefix: "card-b",
+    });
+    expect(a).toContain(
+        '<div class="drawer" id="card-a-drawer" role="region" aria-labelledby="card-a-drawer-name"',
+    );
+    expect(b).toContain(
+        '<div class="drawer" id="card-b-drawer" role="region" aria-labelledby="card-b-drawer-name"',
+    );
+    // Every disclosing tile points at ITS OWN card's drawer, and neither card
+    // mentions the other's id or the default one.
+    expect(a).toContain('aria-controls="card-a-drawer"');
+    expect(a).not.toContain("card-b-drawer");
+    expect(a).not.toContain('"macro-drawer"');
+    expect(b).not.toContain("card-a-drawer");
+    // Same for the drawer body's `.dname`, which is the aria-labelledby target
+    // and is rewritten on every open.
+    const ctx = macrosApi.macroCtxOf(VALS, GOALS, undefined, MEALS, {
+        idPrefix: "card-a",
+    });
+    expect(macrosApi.macroDetailBody(macroOf("protein_g"), ctx)).toContain(
+        '<b class="dname" id="card-a-drawer-name">',
+    );
+    // Two prefixes, ONE markup: strip the prefix and the cards are identical,
+    // so the id is the only thing `idPrefix` moves.
+    expect(a.split("card-a").join("X")).toBe(b.split("card-b").join("X"));
+    // And the default is the id every in-chat widget has always emitted.
+    const plain = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, opts);
+    expect(plain).toBe(a.split("card-a-drawer").join("macro-drawer"));
+});
+
+// The extra's row writes its own aria-controls (it is the template's markup,
+// not the strip's), so it is handed this strip's drawer id rather than left to
+// reach for the module-level default.
+test("an extra's row(i, drawerId) is handed this strip's drawer id", () => {
+    const seen: unknown[] = [];
+    macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+        tiers: true,
+        idPrefix: "card-a",
+        extra: {
+            key: "weight",
+            row: (i: number, drawerId: string) => {
+                seen.push([i, drawerId]);
+                return `<button data-macro-extra="weight" aria-controls="${drawerId}" style="--i:${i}">W</button>`;
+            },
+            detail: () => WEIGHT_DETAIL,
+        },
+    });
+    expect(seen).toHaveLength(1);
+    expect((seen[0] as unknown[])[1]).toBe("card-a-drawer");
+});
+
+// …AND NO TEMPLATE MAY REACH PAST IT. Two of them used to: goal-progress'
+// weight row and the gallery's copy of it wrote their own `aria-controls`
+// from a module-level default id instead of the argument above, which is
+// right for one strip per iframe and wrong on any page holding two — the
+// second card's row addressed the first card's drawer, and a screen reader
+// followed it there. The default constants are gone with them (see
+// MACRO_DRAWER_PREFIX), so the only way to name a drawer is to be handed it;
+// this is what keeps a new hardcoded id from creeping back in.
+test("no template hardcodes a drawer id, and no default constant exists", async () => {
+    for (const name of ["MACRO_DRAWER_ID", "MACRO_DRAWER_NAME_ID"]) {
+        expect(await partial("macros")).not.toContain(`const ${name}`);
+    }
+    const dir = `${SRC}/templates`;
+    const names = [...new Bun.Glob("*.html").scanSync(dir)];
+    expect(names.length).toBeGreaterThan(4);
+    for (const name of names) {
+        const src = await Bun.file(`${dir}/${name}`).text();
+        // Prose may still explain the default; markup may not write it.
+        for (const bad of [
+            "MACRO_DRAWER_ID",
+            "MACRO_DRAWER_NAME_ID",
+            'id="macro-drawer',
+            'aria-controls="macro-drawer',
+            'aria-labelledby="macro-drawer',
+        ]) {
+            expect(`${name}: ${src.includes(bad)}`).toBe(`${name}: false`);
+        }
+    }
 });
 
 // One namespace for both species of control, so a collision is a card whose
@@ -2529,15 +2641,14 @@ test("an open weight (extra) drawer survives a re-render", () => {
 // Without a document there is nothing that can hold focus: the snapshot says
 // so rather than throwing, and the restore still reopens through the stash.
 test("the snapshot and restore are guarded when there is no document", async () => {
-    const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
-    const iconSrc = await Bun.file(`${SRC}/shared/icon.js`).text();
-    const macrosSrc = await Bun.file(`${SRC}/shared/macros.js`).text();
+    const i18nSrc = await partial("i18n");
+    const fmtSrc = await partial("fmt");
+    const iconSrc = await partial("icon");
+    const macrosSrc = await partial("macros");
     const api = new Function(
-        "fmt",
-        "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroSnapshot, macroRestore };`,
-    )(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
+        `${i18nSrc}\n${fmtSrc}\n${iconSrc}\n${macrosSrc}\nreturn { macroSnapshot, macroRestore };`,
+    )({ en: WIDGET_STRINGS_EN }) as {
         macroSnapshot: (root: unknown) => Snapshot;
         macroRestore: (root: unknown, was: Snapshot) => void;
     };
@@ -2571,6 +2682,83 @@ test("a strip rendered with stash: false leaves the live ctx alone", () => {
     domApi.macroPanel({ calories: 1 }, null, undefined, [], {});
     expect((domApi.macroCtx() as { chartKeys: string[] }).chartKeys).toEqual(
         [],
+    );
+});
+
+// TWO LIVE STRIPS IN ONE DOCUMENT. Every widget in this repo renders one card,
+// so inside the iframe the fallback slot is the whole story — but the public
+// landing page builds the summary card and the trends card out of these same
+// partials into one page, and with a single slot only the LAST-rendered strip
+// answered a tap: the first card's drawer filled with the second card's meals
+// and its chart toggle called the second card's onSeries. macroStash binds a
+// ctx to its own strip; macroCtx(el) resolves the one the tapped element is in.
+function buildBoundStrip(
+    meals: unknown[],
+    onSeries: (key: string, opened: boolean) => void,
+) {
+    domApi.macroPanel(VALS, GOALS, undefined, meals, {
+        chartKeys: ["water_ml"],
+        onSeries,
+    });
+    const chip = (key: string, state: "aria-expanded" | "aria-pressed") =>
+        new FakeEl("button", { "data-macro": key, [state]: "false" });
+    const protein = chip("protein_g", "aria-expanded");
+    const water = chip("water_ml", "aria-pressed");
+    const hint = new FakeEl("span", { "data-macro-hint": "" });
+    const drawer = new FakeEl("div", { class: "drawer", id: "macro-drawer" });
+    drawer.hidden = true;
+    const panel = new FakeEl("div", { "data-macro-panel": "" });
+    panel.add(protein, water, hint, drawer);
+    // What a caller does once the markup is in the document: bind the ctx
+    // macroPanel just stashed to THIS strip, before the next card overwrites
+    // the fallback slot.
+    domApi.macroStash(panel, domApi.macroCtx());
+    return { panel, protein, water, drawer };
+}
+
+test("two live strips on one page each toggle from their own ctx", () => {
+    __doc.body.children = [];
+    const seriesA: string[] = [];
+    const seriesB: string[] = [];
+    const a = buildBoundStrip(MEALS, (k) => seriesA.push(k));
+    const b = buildBoundStrip(
+        [{ description: "Steak", meal_type: "dinner", protein_g: 55 }],
+        (k) => seriesB.push(k),
+    );
+    __doc.body.add(a.panel, b.panel);
+
+    // The FIRST card, tapped after the second one was built — the case a
+    // single slot got wrong.
+    domApi.macroToggle(a.protein);
+    expect(a.drawer.hidden).toBe(false);
+    expect(a.drawer.innerHTML).toContain("Porridge");
+    expect(a.drawer.innerHTML).not.toContain("Steak");
+    expect(b.drawer.hidden).toBe(true);
+
+    domApi.macroToggle(b.protein);
+    expect(b.drawer.innerHTML).toContain("Steak");
+    expect(b.drawer.innerHTML).not.toContain("Porridge");
+    // Independent cards: opening one does not close the other.
+    expect(a.drawer.hidden).toBe(false);
+    expect(a.drawer.innerHTML).toContain("Porridge");
+
+    // …and every tap re-strokes its OWN card's chart, never the other's:
+    // onSeries is the ctx's, so a shared slot crossed the two cards' charts
+    // exactly as it crossed their drawers.
+    expect(seriesA).toEqual(["protein_g"]);
+    expect(seriesB).toEqual(["protein_g"]);
+    domApi.macroToggle(a.water);
+    expect(seriesA).toEqual(["protein_g", "water_ml"]);
+    expect(seriesB).toEqual(["protein_g"]);
+    domApi.macroToggle(b.water);
+    expect(seriesB).toEqual(["protein_g", "water_ml"]);
+    expect(seriesA).toEqual(["protein_g", "water_ml"]);
+
+    // A bound strip keeps its ctx however many strips are rendered after it.
+    domApi.macroPanel({ calories: 1 }, null, undefined, [], {});
+    expect(domApi.macroCtx(a.protein)).not.toBe(domApi.macroCtx());
+    expect((domApi.macroCtx(a.protein) as { meals: unknown[] }).meals).toBe(
+        MEALS,
     );
 });
 
