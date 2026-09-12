@@ -11,14 +11,18 @@ ported into a chat card. The token names deliberately match the site's, so a
 colour decided on `/tools` is a one-line change here rather than a translation
 exercise, and a nutrient looks the same in both places.
 
-Every in-chat widget is **one Dawn card**: a header line, the widget's own top
-matter (a chart, a range toggle, a weight row), then the shared macro strip — a
-calorie hero with its gauge, **one** wrapping rail of nutrient chips, a `.more` row
-holding the limits behind it, and the one drawer all of them open into.
-Per-nutrient bars and always-visible goal captions are gone: the chip carries the
-number and a 2.5px progress underbar, and the goal, the distance to it and the
-meals behind it are one tap away. That is what bought back the ~150px the old
-layout spent on chrome before the first number.
+Every in-chat widget is **one Dawn card**: a header line (title, then the
+card's window or date, then any range toggle), then the shared macro strip — a
+calorie **focus panel** (a ring beside its figure, a two-line meta, and, where
+the widget has days to draw, a sparkline inside the panel), the tiles in three
+levels (the macros, the limits behind a hairline, water as a full-width bar),
+and the one drawer all of them open into, closed by a foot holding the tap hint
+and the bridge's settings note. A tile carries its metric's glyph, name and
+figure printed against its goal, over a progress wash that fills the tile
+itself; the goal, the distance to it and the meals behind it are one tap away.
+Two widgets are shaped differently: weight-trends is a stand-alone
+`.focus.solo` panel over a calendar-axis chart, and import-meals is a page of
+one card per step.
 
 ## Build system (how the shared code is reused)
 
@@ -31,20 +35,21 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/` and one
   template per widget in `templates/`.
 
-    | partial      | contents                                                                                                                                   |
-    | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-    | `tokens.css` | the four theme blocks — every colour, radius, font stack and easing (§1)                                                                   |
-    | `base.css`   | reset, type scale, `.wrap`, `.card`, `.glow`, the header line, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2)       |
-    | `chip.css`   | every interaction primitive: `.rail`, `.chip`, `.hero`/`.gauge`, `.more`, `.drawer`, `.seg` (§3–§7)                                        |
-    | `chart.css`  | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.cday`, `.chalo`, `.cdot`, `.cfoot`, `.cempty` (§8)  |
-    | `form.css`   | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                          |
-    | `table.css`  | the preview table and its status pills (§12)                                                                                               |
-    | `icon.js`    | the `ICONS` path table + `icon(name, size)` (§9)                                                                                           |
-    | `svg.js`     | chart geometry — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chDayLines` / `chDot` / `chDotMarkup` / `chY`, pure string math (§8) |
-    | `macros.js`  | the macro strip: `MACROS`, `macroBits`, `macroPanel`, `macroToggle` (§10)                                                                  |
-    | `date.js`    | `shortDate(iso)` / `isToday(iso)` for widgets that name a calendar day                                                                     |
-    | `i18n.js`    | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                       |
-    | `bridge.js`  | the whole iframe↔host handshake — `initWidget(config)`                                                                                     |
+    | partial      | contents                                                                                                                                                                                                                                                                                            |
+    | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `tokens.css` | the four theme blocks — every colour, radius, font stack, easing, and the per-theme glow strength `--glow-a` (§1)                                                                                                                                                                                   |
+    | `base.css`   | reset, type scale, `.wrap`, `.card`, `.glow`, the header line (`.chead > .cmeta.crow` included), the card foot `.foot` and the settings note `.wnote`, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2)                                                                        |
+    | `chip.css`   | every interaction primitive: the tile grids (`.rail`, and `.r-macro` / `.r-limit` / `.r-water` on a tiered strip), `.chip` and its progress wash, the focus panel (`.focus`, `.fring`, `.fmain`, `.fmeta`, `.fspark`, `.focus.solo`), `.more` / `.more.mextra`, `.drawer`, `.fhint`, `.seg` (§3–§7) |
+    | `chart.css`  | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.cday`, `.cpt`, `.chalo`, `.cdot`, `.cfoot` (§8)                                                                                                                                                              |
+    | `form.css`   | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                                                                                                                                                                                   |
+    | `table.css`  | the preview table and its status pills (§12)                                                                                                                                                                                                                                                        |
+    | `icon.js`    | the `ICONS` and `GLYPHS` path tables + `icon(name, size)` / `glyph(name, size)` (§9)                                                                                                                                                                                                                |
+    | `svg.js`     | chart geometry, pure string math — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chDayLines` / `chDot` / `chDotMarkup` / `chMarksMarkup` / `chY`, and the calendar x axis `calendarSlots` / `hairlineSlot` (§8)                                                                              |
+    | `macros.js`  | the macro strip: `MACROS`, `macroBits`, `macroPanel` (with its `opts.extra` slot), `macroToggle`, `focusApply`, `macroSnapshot` / `macroRestore` (§10)                                                                                                                                              |
+    | `spark.js`   | the focus panel's sparkline: `seriesValue`, `chartableKeys`, `sparkMarkup`, `sparkReset`, `sparkPaint` (§4) — included by the template itself, after `macros.js`                                                                                                                                    |
+    | `date.js`    | calendar days: `utcDay` / `DAY_MS`, `shortDate`, `isToday`, `ymd` (rejects an impossible day), `dayLabel`, `rangeLabel` (Intl first) / `rangeLabelPlain` (the hand-written fallback), `dayHeader`, `daysLoggedCaption`, `shiftDay`                                                                  |
+    | `i18n.js`    | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                                                                                                                                                                                |
+    | `bridge.js`  | the whole iframe↔host handshake — `initWidget(config)` — plus two top-level helpers, `tryRender(fn)` and `keepFocus(root, write, opts)`                                                                                                                                                             |
 
 - **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
@@ -58,25 +63,49 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
   immediately before that template's `/*@include shared/i18n.js@*/` line, never
   inside `i18n.js` itself — see the invariant on marker text at the end of this
   document.
-- **Include order is load-bearing:** `/*@i18n@*/` → `i18n.js` → `date.js` (only
-  where used) → `icon.js` → `svg.js` → `bridge.js` → the template's own code
-  (`fmt`, `esc`, `render`, `initWidget({…})`) → `macros.js`. `macros.js` needs
-  `fmt`, `esc`, `icon` and `T` already in scope; it declares no imports of its own,
+- **Include order is load-bearing:** `/*@i18n@*/` → `i18n.js` → `date.js` →
+  `icon.js` → `svg.js` (charting widgets) → `bridge.js` → the template's own code
+  (`fmt`, `esc`, `render`) → `macros.js` → `spark.js` (widgets with a sparkline)
+  → `initWidget({…})`. `macros.js` needs `fmt`, `esc`, `icon` and `T` already in
+  scope and calls `shortDate` unguarded, and `svg.js`'s calendar axis reads
+  `utcDay` / `DAY_MS` — so every template that includes either includes
+  `date.js` ahead of it. `spark.js` is included by the template, **never** from
+  inside another partial: a nested include would put its text inside
+  `macros.js`'s and break the verbatim-partial check. Nothing declares imports,
   because there is no module system inside the assembled file.
-- **The host bridge is shared JS.** `shared/bridge.js` exposes one global,
-  `initWidget(config)`, that runs the entire iframe↔host handshake, theme handling,
-  height reporting, the outbound `api.callTool` channel and the standalone preview
-  fallback. A template supplies only `{ name, loading, coerce, render, sample }`
-  plus an optional `onReady(api)`. Handshake details (the `appInfo`/`appCapabilities`
-  gotcha, `data-theme`, `size-changed`) live in **`CLAUDE.md` → Custom UI Widgets
-  (MCP Apps)**.
+- **`date.js` never prints an impossible day.** `ymd()` requires the string to
+  survive a `utcDay` round trip, so "2026-02-31" — which `Date.UTC` rolls into
+  3 March — passes through raw from `shortDate`, `dayLabel`, `rangeLabel` and
+  `dayHeader` rather than printing "31 Feb". The hand-written fallback
+  (`rangeLabelPlain`, only reached when `Intl.DateTimeFormat` fails) writes a
+  past year the Japanese way, `2025年3月2日` / `2025年6月28日 – 7月4日`, not
+  appended. `date.test.ts` pins both.
+- **The host bridge is shared JS.** `shared/bridge.js` exposes
+  `initWidget(config)`, which runs the entire iframe↔host handshake, theme
+  handling, height reporting, the outbound `api.callTool` channel and the
+  standalone preview fallback. A template supplies only
+  `{ name, loading, coerce, render, sample }` plus an optional `onReady(api)`.
+  Two helpers sit at top level for a template's own repaint paths, the ones that
+  never go through `paint()`: `tryRender(fn)` runs a render and returns false
+  (after logging) instead of throwing, with no DOM side effect — a range toggle
+  keeps its old body and reverts the range, the import stops sending chunks —
+  and `keepFocus(root, write, { owned, stepChanged })` re-focuses the control
+  that held focus before `write()` by its `id`, `data-focus-key`, `data-range`
+  or `data-field`, falls back to `[data-focus-fallback]` only on a step change,
+  and does nothing when focus was outside the widget. Handshake details (the
+  `appInfo`/`appCapabilities` gotcha, `data-theme`, `size-changed`) live in
+  **`CLAUDE.md` → Custom UI Widgets (MCP Apps)**.
 - `bun test src/widgets.test.ts` asserts every widget assembles with no unresolved
   markers, valid inline JS, and each partial inlined in full.
-- `bun test public/widgets/macros.test.ts` pins the strip's behaviour — the caption
-  wording, the limit-chip gates, the accessible names, which chips are interactive.
-  Widget code has no import surface, so that file evaluates `i18n.js + icon.js +
-macros.js` the way the assembler splices them into a page. If you change a
-  caption string, expect to change it there too.
+- `bun test public/widgets/macros.test.ts` pins the strip's behaviour — the
+  caption wording, the limit-chip gates, the accessible names, which chips are
+  interactive, the `opts.extra` slot, `macroSnapshot` / `macroRestore`, `stash`
+  and `metricLabel`. Widget code has no import surface, so that file evaluates
+  `i18n.js + icon.js + date.js + macros.js` the way the assembler splices them
+  into a page. If you change a caption string, expect to change it there too.
+  The other suites under `public/widgets/` pin one partial or widget each the
+  same way: `date`, `spark`, `bridge`, `form-css`, `summary-caption`,
+  `meal-logged`, `trends`, `import-card`, `import-run` and `gallery`.
 
 When the design changes, edit the partial in `src/shared/` once — every widget
 picks it up on next assembly. Do **not** re-inline or fork a shared block into a
@@ -101,22 +130,22 @@ are load-bearing:
   visibly lighter and instantly wrong.
 - **Negative tracking**, one step tighter than the site at every display size,
   because SF Pro / Segoe UI Variable / Roboto all set looser than Urbanist:
-  `-0.005em` on body, `-0.025em` on `.ctitle`, `-0.035em` on `.hval`.
+  `-0.005em` on body, `-0.025em` on `.ctitle`, `-0.035em` on the focus panel's figure (`.fmain .v`).
 - **`-webkit-font-smoothing: antialiased`**, the site's own smoothing, or the
   heavier weight goes chunky.
 
 **Type scale.** Everything is between 10 and 24px, because the widget is one card
 in a chat transcript, not a page.
 
-| size            | where                                                                        |
-| --------------- | ---------------------------------------------------------------------------- |
-| 24px / 800      | `.hval` — the hero figure, the only display type in the card                 |
-| 15px / 800      | `.ctitle` — the widget's name                                                |
-| 13.5px / 500    | `body` — the base, and every control (`.input`, `.btn`) at 13px              |
-| 12.5px          | `.more`, `.dname` (800), `.dlist li`, `.tbl`                                 |
-| 12px / 600–700  | `.chip`, `.seg button`, `.label`                                             |
-| 11.5px          | `.csub`, `.dcap`, `.hint`, `.dempty`, `.tmore`                               |
-| 10–10.5px, mono | the eyebrows: `.cmeta`, `.hlab`, `.cfoot`, `.slab`, `.tbl thead th`, `.pill` |
+| size            | where                                                                     |
+| --------------- | ------------------------------------------------------------------------- |
+| 24px / 800      | `.fmain .v` — the focus panel's figure, the only display type in the card |
+| 15px / 800      | `.ctitle` — the widget's name                                             |
+| 13.5px / 500    | `body` — the base, and every control (`.input`, `.btn`) at 13px           |
+| 12.5px          | `.more`, `.dname` (800), `.dlist li`, `.tbl`                              |
+| 12px / 600–700  | `.chip`, `.seg button`, `.label`                                          |
+| 11.5px          | `.csub`, `.dcap`, `.hint`, `.dempty`, `.tmore`                            |
+| 10–10.5px, mono | the eyebrows: `.cmeta`, `.cfoot`, `.tbl thead th`, `.pill`                |
 
 Mono is never decoration: it marks the eyebrow register — a range, a period label,
 a chart axis end, a step count, a column header. A figure is not an eyebrow, which
@@ -151,17 +180,18 @@ consumers are notice icons, which are graphics needing 3:1, so nothing lost by i
 | token                                                   | role                                                                                                                                       |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--bg`                                                  | the page ground behind the card                                                                                                            |
-| `--bg2`                                                 | every **recessed** surface: `.more`, `.drawer`, `.seg` track, `.chip.static`, `.tbl thead`, `.tmore`, `.hsub.mute`                         |
+| `--bg2`                                                 | every **recessed** surface: `.more`, `.drawer`, `.seg` track, `.chip.static`, `.tbl thead`, the `.more` bar                                |
 | `--panel`                                               | every **raised** surface: `.card`, `.chip`, `.input`/`.select`/`.btn`, the `.seg` thumb, the `.chalo` chart halo                           |
-| `--ink` / `--ink2` / `--ink3`                           | primary text / secondary (`.csub`, `.chip .k`, `.more`) / captions and eyebrows (`.cmeta`, `.hlab`, `.dcap`, `.cfoot`, `.hint`)            |
-| `--line` / `--line2`                                    | **structural** hairlines (card border, `.sec`, dividers, table rules) / one step darker, for dashed edges (`.drop`, `.chip.ghost`)         |
+| `--ink` / `--ink2` / `--ink3`                           | primary text / secondary (`.csub`, `.chip .k`, `.more`) / captions and eyebrows (`.cmeta`, `.dcap`, `.cfoot`, `.hint`, `.wnote`)           |
+| `--line` / `--line2`                                    | **structural** hairlines (card border, `.sec`, dividers, table rules) / one step darker: the static water bar's track outline              |
 | `--edge` / `--edge2`                                    | **control** boundaries — anything you can press — at 3:1 and its ~4:1 hover step. See below: `--line` is not strong enough to be one       |
 | `--acc`                                                 | the brand green: every `:focus-visible` outline, `.btn-primary`'s fill, the `.steps`/`.bar` fill                                           |
-| `--acc-text` / `--acc-ink` / `--acc-soft`               | accent **text on a tint** (`.hsub`, `.pill-ok`) / text **on** the accent fill / the tint itself                                            |
-| `--track`                                               | the unfilled part of anything that fills: the gauge's `.gt`, `.steps`/`.bar`, `.pill-dim`                                                  |
+| `--acc-text` / `--acc-ink` / `--acc-soft`               | accent **text on a tint** (`.pill-ok`, form.css's success text) / text **on** the accent fill / the tint itself                            |
+| `--track`                                               | the unfilled part of anything that fills: the focus ring's unfilled `.frt`, `.steps`/`.bar`, `.pill-dim`                                   |
 | `--cal --pro --car --fat --wat --fib --sug --caf --alc` | the data series, reached only through a `.c-*` role class (§2)                                                                             |
 | `--over` / `--warn`                                     | **signals, never series** — past a ceiling, and "worth a look". Neither gets a `.c-*` class                                                |
 | `--shadow` / `--seg-shadow`                             | the card's elevation / the segmented-control thumb's                                                                                       |
+| `--glow-a`                                              | the card glow's opacity — 0.13 light, 0.10 dark, because the blob sits under the header's `.cmeta`                                         |
 | `--ease-out`                                            | one easing curve for every transition and keyframe in the system                                                                           |
 | `--r-card` / `--r-in` / `--r-pill`                      | 20px card, 14px inner block, 999px pill                                                                                                    |
 | `--font` / `--mono`                                     | the two system stacks                                                                                                                      |
@@ -185,11 +215,14 @@ rather than going neutral grey, so the card gains definition without warming up.
 **It is applied by redeclaring the token, not by overriding `border-color`.** Eight
 rules draw a control border (resting, hover, breached, breached + hover — each on
 both `.chip` and `.focus`), three of them through `color-mix(… var(--line))`.
-`chip.css` hands `.chip` and `.focus` a different `--line`/`--line2`, so all eight
+`chip.css` hands the tiered strip's controls (`.strip.tiered .chip:not(.static)`,
+`.strip.tiered button.focus` — never a span panel or a static tile, which are data
+and keep the soft pair) a different `--line`/`--line2`, so all eight
 move at once, every existing state rule stays exactly as written, and the breach
 mix lands on 4.25:1 / 4.02:1 for free. Overriding the property under a descendant
 selector would instead need a higher-specificity twin of each rule, and would
 silently outrank `.chip[aria-expanded]`'s selected `--c` border at (0,2,0).
+`form.css` makes the same move for `.input`, `.select`, `.btn` and `.drop` (§11).
 
 **Still open, and a palette question rather than a widget one:** `--bg2` on
 `--panel` — the recessed ground under `.chip.static` and the drawer — measures
@@ -199,9 +232,12 @@ It cannot be fixed by darkening `--bg2`: `--panel` (`#161a22`) is close enough t
 black that _any_ darker surface tops out at 1.21:1 against it. The options are to
 lighten `--panel`, to let a recessed surface read lighter than the panel in dark
 (the usual dark-UI elevation convention, inverted from Dawn's), or to give
-recessed surfaces their own hairline.
+recessed surfaces their own hairline. The tiered water bar takes the third
+option for itself: static, it is a progress track, so it outlines in `--line2`
+(soft, well under the 3:1 control step) — which is what made meal-logged's
+always-visible water row read as a bar at all.
 
-Two values worth knowing the reason for:
+Three values worth knowing the reason for:
 
 - **`--r-card` is 20px, not the site's 26–28.** On a 336px-wide card a 28px radius
   eats visible corner area and reads as a lozenge. Same decision rule as the site
@@ -210,6 +246,11 @@ Two values worth knowing the reason for:
   Dawn's dark ambient has nothing outside the card to fall on inside an iframe and
   reads as a grey smudge — but this must not go back to `none` either: the 1px line
   is what separates the card from the host's chat ground.
+- **`--glow-a` is 0.10 in dark, 0.13 in light.** The blob sits exactly under the
+  header's right-hand `.cmeta`, and a bright series hue lifts the dark ground
+  under that 10.5px `--ink3` text more than it does in light: at 0.13 the worst
+  pixel measured 4.34:1 under `--acc` and 4.42:1 under `--cal`, below AA. 0.10
+  is 4.63 / 4.70; light's worst pixel is 4.57 / 4.89.
 
 ### Data-series palette
 
@@ -281,17 +322,25 @@ which is the same collision being fixed on caffeine. The amber band is full.
 <div class="wrap" id="root"></div>
 ```
 
-The padding lives on the element every template's `render()` replaces wholesale,
-which is deliberate: nesting a second element inside would move `bridge.js`'s
-appended footer note outside the element the template owns. `.wrap` is 10px of
-gutter, `max-width: 760px`, centred. `.wrap.page` is 14px, for the two full-page
-widgets (`import-meals`, `component-gallery`).
+`#root` is the element every template's `render()` replaces wholesale, which is
+deliberate: nesting a second element inside would move `bridge.js`'s appended
+footer note outside the element the template owns.
 
-**`.wrap:empty { padding: 0 }` is meal-logged's zero-height contract.** With no
-goals that widget writes `""` and the host must collapse the iframe to nothing;
-10px of padding would leave a stripe behind. `:empty` matches only an element with
-no child nodes at all, so nothing may be appended to an empty root — see the
-bridge's footer note in the invariants below.
+**`.wrap` has no padding, and the outermost card is flat.** Claude and ChatGPT
+each wrap the iframe in their own framed, rounded container, so a gutter here is
+an inset strip of `--bg` inside their frame and a radius is a second curve just
+inside theirs. The card goes edge to edge, `.wrap > .card` drops its border,
+radius and shadow, and `.wrap:not(.page)` paints `--panel` so the strip under
+the note is the same surface. `.wrap.page` is the exception: `import-meals` and
+`component-gallery` keep a 14px gutter on `--bg`, because their sections are
+cards on a page. A bare `.empty` standing in the root — the loading line, a
+no-data state, the bridge's no-host card — goes flat the same way
+(`.wrap:not(.page) > .empty`).
+
+**No padding is also meal-logged's zero-height contract.** With no goals that
+widget writes `""`; an empty, paddingless root measures 0 and the host collapses
+the iframe. So nothing may be appended to an empty root — the bridge removes its
+note when the root has no children (see the invariants below).
 
 **The body has no `min-height`, and must not get one.** The widget reports its own
 height by measuring content (`html { height: max-content }`, read the bounding
@@ -360,8 +409,8 @@ content, so the half being lost was the half worth reading. The stages:
 
 `min-width: 0` stays for the same old reason: a flex item must be allowed below its
 content width. The mono uppercase treatment is kept on purpose even though it costs
-~33% width over sentence case — it is the same eyebrow as `.slab` and the table
-head, and stages 2–3 are what pay for it.
+~33% width over sentence case — it is the same eyebrow as the table head
+(`.tbl thead th`), and stages 2–3 are what pay for it.
 
 **`.cmeta.kcal` is a tinted pill, not coloured text.** It was `color: var(--cal)` on
 `--panel`: 2.06:1 in light mode at 10.5px/700, on the single most important number
@@ -371,7 +420,15 @@ fill with a `--cal` hairline and a `--cal` dot drawn as `::before`, exactly what
 chip does. **Never paint 10.5px text in a series token.**
 
 The `.seg` toggle (§7) rides this line too, in the meta slot — it carries its own
-`margin-left: auto`.
+`margin-left: auto`. When a header carries both a meta and a toggle (trends,
+weight-trends), the meta is **`.cmeta.crow`**, written _before_ the `.seg` in the
+DOM so a screen reader hears title → window → toggle, and moved by
+`order: 3; flex-basis: 100%` to a left-aligned second row under the title. It
+shares `order: 3` with `.csub`, so a header carries one or the other.
+
+import-meals' title is a focus target (`tabindex="-1"`, `data-focus-fallback`) —
+focus moves there by script on a step change, never by Tab — so
+`.ctitle[tabindex="-1"]:focus` draws no ring.
 
 ### `.sec` — a hairline-topped block
 
@@ -382,9 +439,8 @@ The `.seg` toggle (§7) rides this line too, in the meta slot — it carries its
 }
 ```
 
-Exactly one idea, no variants. It is how a widget's own block (a weight row) or
-the strip itself opens a new section under something else — `macroPanel`'s
-`opts.divided` adds it to the strip.
+Exactly one idea, no variants. It is how the strip opens a new section under
+something a widget put above it — `macroPanel`'s `opts.divided` adds it.
 
 ### `.empty` — and who owns it
 
@@ -412,10 +468,26 @@ the strip itself opens a new section under something else — `macroPanel`'s
 logged in the range. The `.big` line is an emoji, not an SVG icon — a system glyph
 costs no fetch, and an empty state is the one place warmth beats precision. A state
 with something to say but nothing to plot is **not** an `.empty`: it is a line of
-text inside the card (goal-progress's `.wnote`).
+text inside the card (goal-progress's `.wempty` line when there is no weight reading).
 
 **`.empty` and `.empty .big` are not ours to rename**: `bridge.js` paints its
 connect-failure card with those two exact class names. `base.css` says so inline.
+
+### `.foot` and `.wnote` — the card foot and the settings note
+
+The card ends with one hairline block, `.foot` with `[data-widget-foot]`: the
+strip's tap hint (`.fhint`, chip.css) and the settings note `bridge.js` appends
+into it. Both are small print about the widget rather than anything it
+measured, so they share one line and one block. The rules live in `base.css`,
+not `chip.css`, because the note is bridge chrome — `import-meals` never
+includes `chip.css`. A foot that is a direct child of the card (a widget's own
+empty or range-empty body) is already spaced by the card's gap, so
+`.card > .foot` drops the 12px; `.foot:empty` draws nothing.
+
+Every data card now has a foot, so the note sits inside the card on every
+widget. Only a render with no foot — a bare no-data `.empty`, goal-progress'
+nothing-logged card, the gallery's page — gets it at the root, where
+`.wrap > .wnote` draws its own hairline and centres.
 
 ### `.c-*` — the nutrient role classes
 
@@ -426,7 +498,7 @@ connect-failure card with those two exact class names. `base.css` says so inline
 ```
 
 Dawn's `--c` indirection, and the reason nothing in `macros.js` ever writes a
-colour. Every consumer — chip dot, chip underbar, gauge arc, chart stroke, drawer
+colour. Every consumer — tile glyph and wash, panel ring, chart stroke, drawer
 dot, drawer value, card glow — reads `var(--c, var(--acc))` and never names a
 nutrient. Adding a nutrient is therefore **one `MACROS` entry, one token, one line
 here**. There are ten: `.c-acc`, `.c-cal`, `.c-pro`, `.c-car`, `.c-fat`, `.c-wat`,
@@ -451,48 +523,46 @@ rule to un-hide anything.**
 
 ## 3. The chip rail and the chip
 
-### `.rail` — chips wrap, they never scroll
+### `.rail` — an equal-column grid, never a scroll
 
 ```css
 .rail {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     padding: 2px;
     margin: -2px;
 }
-.rail + .rail {
-    margin-top: 6px;
+@media (min-width: 580px) {
+    .rail {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
 }
 ```
 
-An earlier draft made the rail a horizontally-scrolling shelf. All of it is gone,
-for three reasons that are each independently sufficient: a horizontal swipe inside
-a chat iframe fights the host's own scrolling; a post-paint `scrollWidth`
-measurement races bridge.js's rAF-debounced `ResizeObserver`; and a chip parked
-off-screen is a nutrient nobody finds. Two chips per row at 360px, three at ~440px.
+This is the **flat** strip — every tile on one grid. All four strip callers now
+pass `opts.tiers`, so it survives only as the rollback and in the gallery's
+legacy specimens (see "It is a flag" below). Two or four columns, never three:
+eight metrics at full house divide into a whole rectangle either way. 580px, not
+480, because at 480 four columns were narrower than a two-column tile at 300px
+and five locales' labels were already ellipsising.
 
-The `2px` padding / `-2px` margin pair is room for a focus ring that the card's
-`overflow: hidden` would otherwise clip. It costs no layout.
+It never scrolls sideways, for three reasons that are each independently
+sufficient: a horizontal swipe inside a chat iframe fights the host's own
+scrolling; a post-paint `scrollWidth` measurement races bridge.js's
+rAF-debounced `ResizeObserver`; and a tile parked off-screen is a nutrient
+nobody finds. The `2px` padding / `-2px` margin pair is room for a focus ring
+that the card's `overflow: hidden` would otherwise clip.
 
-**`macroPanel` emits ONE visible rail**, not two. Two identically-styled rails read
-as a single wrapped row anyway, and the split cost a whole line whenever the first
-one's last row was half empty. The `.rail + .rail` pair survives for anything that
-lays out two deliberately (the dev gallery), so that spacing is defined rather than
-accidental — and for the collapsed limits rail, whose own spacing comes from the
-`.more` row above it (`.more + .rail.limits`) rather than from `.rail + .rail`.
+**One rail per strip** (one per tier, on a tiered strip). `.rail[hidden]
+{ display: none }` stays as insurance: `display: grid` outranks the UA sheet's
+`[hidden]`. `.strip` is the strip's own wrapper; `.strip > .focus + .rail` is the
+spacing the flat layout needs, and `.sec` (§2) is added by `macros.js` when the
+widget put something of its own above.
 
-**`.rail[hidden] { display: none }` is required, not tidiness.** The `display: flex`
-above outranks the UA sheet's `[hidden] { display: none }`, so without it the
-collapsed limits rail renders wide open and its `.more` row toggles nothing at all.
-
-`.strip` is the strip's own wrapper (hero, rails, drawer); `.strip > .hero + .rail`
-is the only spacing rule it needs. `.sec` (§2) is added to it by `macros.js` when
-the widget put something of its own above.
-
-**Chips show their full label at every width.** There is no short-label span and no
-`labelsShort` translation matrix; height is bought back by shrinking the chip
-(30px tall, 12px type), never by hiding data.
+**Tiles show their full label at every width.** There is no short-label span
+and no `labelsShort` translation matrix; height is bought back by the grid and
+the tiers, never by hiding data.
 
 ### Tiers — the strip in three levels (`opts.tiers`)
 
@@ -553,7 +623,11 @@ work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
   before a word of it is read, and its wash — the same left-to-right ramp every
   tile carries — becomes a glass filling across the whole card instead of a
   swatch. 8px above it rather than the levels' 4-6px: it opens a block rather
-  than closing one.
+  than closing one. When it opens nothing — always on meal-logged (no meal
+  carries `water_ml`), and on nutrition-summary with no chart — it is a
+  `.chip.static`, and a static bar outlines its track in `--line2`: borderless
+  on `--bg2` the unfilled part measured 1.05:1 in dark, so a quarter-full glass
+  read as a short pill.
 - **A second register: the fill.** `.r-limit` sets `--wash-scale: 0.62`, so the
   whole group paints at 62% of its tuned strength. Size alone left level 3 close
   to level 2 on a narrow card, where its columns are also _wider_ (two up against
@@ -567,7 +641,12 @@ work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
   sitting in. That is the whole point of ranking these last: a metric that is fine
   may be read last; one that is not, may not. The old layout kept the same rule by
   physically hoisting a breached limit onto the visible rail — here the tile stays
-  where its role puts it and gains the weight instead.
+  where its role puts it and gains the weight instead. **Geometry counts as
+  weight**, which is why the narrow three-tile fold stretches `.chip.fold` — the
+  breached tile, picked by `railOf` — and not `:last-child`: a full-width tile
+  paints twice the wash at the same fraction, and the last limit is always Fiber,
+  the group's one floor, so the metric that was fine outranked the one that was
+  not by area while `--wash-scale` was busy making the opposite true.
 - **What the levels are NOT made of: the border.** Borderless-and-recessed is
   already this system's mark for `.chip.static` — "data, not a control" — so
   quieting level 3 by taking its pill away would tell a user that four tappable
@@ -586,16 +665,24 @@ work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
   a pixel high, which is a whole device pixel at 2x on the one element whose job
   is to look aligned.
 
-**It is a flag, and it is temporary.** Four widgets share this strip and they are
-being moved one at a time — `nutrition-summary` is the pilot; the others still
-render the flat rail, byte-for-byte as before, because `railOf("")` emits
-`<div class="rail">` with no modifier at all. Delete `opts.tiers` (and the `if` in
-`macroPanel`) once every caller passes it.
+**It is a flag, and it is temporary.** All four callers pass it now —
+`nutrition-summary` (the pilot), `goal-progress`, `meal-logged` and `trends` — so
+the flat path renders only in the gallery's legacy specimens. It stays this
+round as the rollback, because a merge to `main` ships straight to production;
+delete `opts.tiers` (the `if` in `macroPanel`, the flat rules, the gallery's
+legacy section) in a follow-up once the tiered heights are signed off in real
+hosts. What it cost, settled height at 320px: meal-logged 418 → 459 (+41, en and
+uk alike), goal-progress 455 → 481, trends 464 → 500. At 640px the growth is
+larger (meal-logged +82, goal-progress +68) because the flat grid fit on two
+lines there.
 
-### `.chip` — six species
+### `.chip` — five species
 
-A pill with a 1px border on a `--panel` fill — the site's universal "control" shape
-— carrying a colour dot, the metric's name, its value, and a chevron:
+A tile with a 1px border on a `--panel` fill — the site's universal "control"
+shape — carrying the metric's mark (a glyph on a tiered strip, a dot on the flat
+one), its name, its figure against its goal and a chevron; the progress is the
+tile's own background (below). Schematic — `chipMarkup` in `macros.js` is the
+source:
 
 ```html
 <button
@@ -605,23 +692,21 @@ A pill with a 1px border on a `--panel` fill — the site's universal "control" 
     aria-expanded="false"
     aria-controls="macro-drawer"
     aria-label="Protein 148/160 g, 12 g left. Show the meals that contributed."
-    style="--w:92.5%"
+    style="--p:92.5%;--i:0"
 >
-    <span class="dot"></span><span class="k">Protein</span
-    ><span class="v">148<span class="u">g</span></span
-    ><span class="chev">…</span><span class="dcap">of 160 g · 12 g left</span
-    ><span class="fill anim"></span>
+    [mark]<span class="ktop"><span class="k">Protein</span></span
+    ><span class="v">[figure against goal]</span><span class="chev">…</span
+    ><span class="dcap">[goal caption]</span>
 </button>
 ```
 
-| species                                                         | what it is                                                                                                                                                                                                                 |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **disclosure** — `<button>` + `aria-expanded` + `aria-controls` | **opens the drawer.** Carries the `.chev` chevron, which rotates 180° when open                                                                                                                                            |
-| **toggle** — `<button>` + `aria-pressed`, **no chevron**        | **selects a chart series and nothing else** (trends' whole rail). A different species, not a variant                                                                                                                       |
-| `.chip[aria-expanded="true"]` / `[aria-pressed="true"]`         | **selected** — a tint in the chip's own `--c` plus an inset ring. Both attributes are styled together, so selection looks identical whichever species it is                                                                |
-| `.chip.over`                                                    | **past a ceiling.** Reassigns `--c` to `--over`, so the dot, the wash and the hairline all turn from one line. The non-colour half is the FIGURE, which prints against its limit ("58.2/45 g"), plus the caption's wording |
-| `.chip.static` (a `<span>`)                                     | **data, not a control** — borderless, recessed onto `--bg2`, no chevron. Not a disabled button: the contrast between a bordered pill and a recessed one is what makes tappability obvious without reading either           |
-| `.chip.ghost`                                                   | **the hint**, as the rail's last chip: dashed, `data-macro-hint`, a pointing-hand icon and "Tap a metric for the meals behind it"                                                                                          |
+| species                                                         | what it is                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **disclosure** — `<button>` + `aria-expanded` + `aria-controls` | **opens the drawer.** Carries the `.chev` chevron, which rotates 180° when open                                                                                                                                                                                                               |
+| **toggle** — `<button>` + `aria-pressed`, **no chevron**        | **selects a chart series and nothing else** (trends' whole rail, where it also moves the focus panel to that metric). A different species, not a variant                                                                                                                                      |
+| `.chip[aria-expanded="true"]` / `[aria-pressed="true"]`         | **selected** — a tint in the tile's own `--c` plus an inset ring. Both attributes are styled together, so selection looks identical whichever species it is                                                                                                                                   |
+| `.chip.over`                                                    | **past a ceiling.** Reassigns `--c` to `--over`, so the glyph, the wash and the hairline all turn from one line. The non-colour half is the FIGURE, which prints against its limit ("58.2/45 g"), plus the caption's wording                                                                  |
+| `.chip.static` (a `<span>`)                                     | **data, not a control** — borderless, recessed onto `--bg2`, no chevron. Not a disabled button: the contrast between a bordered tile and a recessed one is what makes tappability obvious without reading either. The tiered water bar is the one static tile with an outline (`--line2`, §3) |
 
 **The disclosure and the toggle are two species, and conflating them was a real
 a11y defect.** `tapAttrs` used to write `aria-expanded` onto every interactive
@@ -648,35 +733,26 @@ from its neighbours. What replaced it is INFORMATION rather than an alarm: every
 tile prints its figure against its goal, so "58.2/45 g" states the breach in
 digits and survives greyscale on its own. Do not reintroduce the glyph.
 
-`.chip.ghost` is the one chip allowed to wrap (`white-space: normal`,
-`flex: 0 1 auto`, `min-width: 0`). The sentence is long and translated into nine
-languages, and a nowrap pill would be this card's only way to overflow 320px. It
-sits inside the row it describes, so it costs no extra line, and `macroToggle`
-hides it once a drawer is open — the instruction has been followed and the answer
-is on screen.
+**The tap hint is not a chip any more.** It was `.chip.ghost`, a dashed pill at
+the end of the rail; it is now `.fhint` in the card foot ("Tap a metric for the
+meals behind it", with the `point` icon), emitted only when some tile actually
+has meals behind it, and hidden by `macroToggle` while a drawer is open — the
+instruction has been followed and the answer is on screen.
 
-### THE BAR IS THE CHIP
+### The progress wash — the tile is the bar
 
-```css
-.chip .fill {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 2.5px;
-    width: var(--w, 0%);
-    background: var(--c, var(--acc));
-    opacity: 0.85;
-}
-```
+`.chip` paints `--wash`, a left-to-right gradient in the tile's own `--c`, as its
+background up to `--p` — the tile's fraction of its goal, a percentage string
+`chipMarkup` writes on the style attribute — with a feathered leading edge.
+There is no separate bar: progress is the tile, so it costs no row and, being a
+background, changes no layout. Its strength is `--wash-mix`, tuned per hue so
+the nine series land at comparable lightness, times `--wash-scale` (0.62 on the
+limits rail, 1 again on a breach — §3 Tiers). Scaled, never redeclared: a plain
+`--wash-mix` on a group would throw the per-hue tuning away.
 
-A 2.5px fill hugging the pill's bottom edge, clipped by the 999px radius so its
-ends curve with it. **This is the single biggest compactness win in the redesign:
-progress costs zero extra rows.** Its width changes no layout (absolute, inside
-`overflow: hidden`), which is what makes it the one animatable size in the system.
-
-The final width is always the declared one; the `fillIn` keyframe only decorates
-the arrival, and `macros.js` withholds the `.anim` class under reduced motion. A
-cancelled animation can therefore never leave a bar sitting at zero.
+`washIn` only decorates the arrival; the final fill is the declared one, so a
+cancelled animation or reduced motion can never leave a tile reading empty. The
+2.5px underbar this replaced is gone, and so is its `fillIn`.
 
 ### `.dcap` inside a chip is visually hidden, on purpose
 
@@ -686,132 +762,117 @@ presentational and a screen reader still hears "Protein 148/160 g · 12 g left",
 exactly what the old always-visible caption gave it. Inside an interactive
 chip it is inert, and the chip's own `aria-label` carries the same words.
 
-## 4. The hero and the gauge
+## 4. The focus panel
 
-Calories, always visible in every state of every widget. `.hero` is a `<button>`
-when meals sit behind it and a `<div>` otherwise, so its reset suits both.
+Calories, always visible in every state of every strip — the card's headline,
+drawn by `focusInner()` in `macros.js`. ONE row: ring, figure, meta, sparkline,
+chevron. It compacts by wrapping, not by a breakpoint: `.fspark` is the only
+flexible item, so on a wide card it takes what is left and on a narrow one it
+drops to its own full-width line under the figure.
 
-```html
-<button class="hero c-cal" type="button" …>
-    <svg
-        class="gauge"
-        width="48"
-        height="48"
-        viewBox="0 0 40 40"
-        role="img"
-        aria-label="Calories 2,076 kcal"
-    >
-        <circle class="gt" cx="20" cy="20" r="17"></circle>
-        <circle
-            class="ga anim"
-            cx="20"
-            cy="20"
-            r="17"
-            transform="rotate(-90 20 20)"
-            stroke-dasharray="106.81"
-            stroke-dashoffset="8.01"
-        ></circle>
-    </svg>
-    <span class="hmain">
-        <span class="hval">2,076<span class="hgoal">/ 2,200</span></span>
-        <span class="hlab">Calories today</span>
-    </span>
-    <span class="hsub">124 kcal left</span>
-    <span class="chev">…</span>
-</button>
-```
-
-**The gauge's numbers.** `r = 17`, so `2πr = 106.81` and
-`stroke-dashoffset = 106.81 × (1 − fraction)`. A viewBox of 40 with
-`stroke-width: 5` puts the outer edge at 19.5, so nothing clips and the SVG needs
-no overflow escape. Same two-step contract as the chip underbar: the real offset is
-the attribute, `gaugeIn` only sweeps up to it.
-
-**There is no centre text.** The figure sits 11px to the right at three times the
-size, and two copies of one number in a 48px span is exactly the redundancy this
-layout exists to remove. The percentage moved to the drawer caption, where it is
-the thing being asked for.
-
-**`.hsub` is the pill that says what to do about it** — the delta, or, with no
-goal, "no goal set". That matters: a lone figure beside an empty gauge otherwise
-reads as a widget that failed to load. `.hsub.over` swaps the accent tint for an
-`--over` one; `.hsub.mute` is for a delta with no target to judge it by.
-
-**`.hero.flat` drops the gauge** (trends). A range average against a daily goal is
-not a "how full is today" question, and the row loses 18px; the `.hsub` pill then
-centres instead of hugging the top.
-
-`.hval .hgoal` is the "/ 2,200" tail, and `.hval .u` is a unit riding the figure
-itself (weight-trends' "77.0 kg"). `.hlab` is the mono eyebrow naming the period
-the figure covers — the one caption that genuinely differs between widgets.
-
-**`.hlab` wraps, never ellipsises, and that rule belongs in `chip.css`.** It lived
-only in nutrition-summary's own `<style>`, so goal-progress, meal-logged and trends
-cut their calorie label in most locales at ≤ 360px — Spanish trends read "PROM. DE
-14 DÍAS · TODOS …", English goal-progress "CALORIES · 10…" at 320px (layout audit).
-It takes a second 13px line instead, and only at the widths that would have cut it.
-The shared rule uses `overflow-wrap: anywhere` rather than the template's original
-`overflow: visible`: an unbreakable German compound (TAGESDURCHSCHNITT) painted
-~31px outside its own box over whatever shared the line. This is the general
-lesson — **a fix made in one template is a fix the other three do not get.**
+- **`<button class="focus c-cal">` when it does something** — calories have
+  meals behind them, or the widget charts (nutrition-summary) — and
+  **`<span class="focus">` otherwise**: trends' always is (calories neither
+  discloses nor charts there), and so is nutrition-summary's on a day whose
+  every meal is 0 kcal. A span keeps the soft `--line` border, takes 9px instead
+  of 26px on the right (it never carries a chevron) and gets no hover: bordered
+  at the control step means pressable.
+- **The ring (`.fring`)** is the fraction of the goal: `r = 17`,
+  `2πr = 106.81`, `stroke-dashoffset = 106.81 × (1 − fraction)` on `.fra` over
+  the `--track` `.frt`. There is no centre text: the figure sits beside it at
+  three times the size. `ringIn` only sweeps up to the offset in the markup.
+- **`.fmain .v`** is the figure (24/800) with its `/goal` tail.
+- **The meta** is one `.fmeta` row on a flat strip and **two fixed lines** on a
+  tiered one — the label (`.flabel`, which ellipsises) and the delta (`.fdelta`,
+  `.over` / `.mute`). Fixed rather than a wrap, so a tile tap that repaints the
+  panel with another metric's words never changes the card's height.
+- **The panel follows the selection.** `focusApply(fx, m, ctx, selected)`
+  repaints figure, ring, colour and label for the tile that is open or pressed
+  (nutrition-summary, trends); closing it hands the panel back to calories.
+  `opts.metricLabel(m)` relabels a selected metric — trends' "Protein · 14-day
+  avg · all days" / "Fiber · 14-day avg · days recorded" — so the denominator
+  stays on screen while a tile is selected. It changes the visible text only,
+  not the accessible name, so it is only safe where the panel is a `<span>`.
+- **`.fspark` is the sparkline, painted by `shared/spark.js`** (nutrition-summary,
+  trends): `sparkReset(calendarSlots(days, start, end), goals)` once per
+  render, then `sparkPaint(fx, key, selected, opts)`. The first paint draws in;
+  every later one is `.fspark .cwrap.still` — a series switch is instant, and
+  the entrance plays once per tool result. Days are calendar slots (§8); a day
+  with no reading for the series is a gap (`seriesValue`), and trends draws a
+  day with nothing logged as 0, matching its "all days" average.
+- **`.focus.solo`** is weight-trends' stand-alone panel: no strip, no ring,
+  three meta lines — the latest reading and its date, the change since the
+  window's first reading, the distance to target with "· Target X". Each
+  two-part line is `.fdelta.fline`: the figure in its own element, the prose in
+  `.fsince` / `.fgive`, which alone ellipsise, so a figure is never cut. The
+  prose span carries its own leading space (`gap: 0`, `white-space: pre`), so no
+  newlines or indentation inside it.
 
 **Over-goal convention, everywhere:** the breached element reassigns `--c` to
-`--over`, so everything keyed on it — dot, wash, ring, sparkline stroke, hairline —
-turns together rather than in parts. The non-colour half of the cue is the figure
-printed against its limit ("58.2/45 g"), plus the caption's wording. Whatever
-carries the state must carry ALL of it: an element that sets its own `.c-*` role
-class outranks the reassignment, which is how a breached metric once rendered red
-on its tile and green in the drawer it opened.
+`--over`, so everything keyed on it — glyph, wash, ring, sparkline stroke,
+hairline — turns together rather than in parts. The non-colour half of the cue
+is the figure printed against its limit ("58.2/45 g"), plus the caption's
+wording. Whatever carries the state must carry ALL of it: an element that sets
+its own `.c-*` role class outranks the reassignment, which is how a breached
+metric once rendered red on its tile and green in the drawer it opened.
+Calories read as a ceiling on the panel (`focusOver`), and only there.
+
+**A fix made in one template is a fix the other three do not get.** The panel's
+label once wrapped only in nutrition-summary's own `<style>`, so goal-progress,
+meal-logged and trends cut it in most locales at ≤ 360px. Shared layout belongs
+in `chip.css`.
 
 ## 5. `.more` — the section-sized disclosure
 
-A full-width 32px bar on `--bg2`, for a disclosure that is a whole section rather
-than one chip: the strip's collapsed limits, goal-progress's weight row, and the
-drawer's own overflow line.
+A full-width 32px bar on `--bg2`, for a disclosure that is a whole section
+rather than one tile: the drawer's own overflow line, and — as `.more.mextra` —
+goal-progress's weight row.
 
 ```html
 <button
-    class="more"
+    class="more mextra c-acc"
     type="button"
-    data-weight
+    data-macro-extra="weight"
     aria-expanded="false"
-    aria-controls="weight-drawer"
+    aria-controls="macro-drawer"
+    style="--i:8"
 >
-    <span class="dot c-acc"></span>Weight<span class="mv">78.4 → 75.0 kg</span>
+    <span class="dot"></span>Weight<span class="mv">78.4 → 75.0 kg</span>
     <span class="chev">…</span>
 </button>
 ```
 
-`.more .chev` takes `margin-left: auto` — **unless** a `.mv` value already took the
-free space, in which case the chevron sits one gap away from it rather than
-splitting the row a second time (`.more .mv ~ .chev { margin-left: 0 }`).
-`.drawer .more` is the same control at 28px on a transparent ground, because inside
-the drawer it is a footnote, not a section head.
+`.more .chev` takes `margin-left: auto` — **unless** a `.mv` value already took
+the free space, in which case the chevron sits one gap away from it
+(`.more .mv ~ .chev { margin-left: 0 }`).
 
-### `.more.mlimits` — the collapsed limits row
+### `.more.mextra` — one more control on the strip (`opts.extra`)
 
-The strip's own use of it: `aria-controls` the limits `.rail`, and a `.mlab` that
-**names what it hides** — "Sugar · Caffeine · Fiber", joined from the already
-translated `macroLabel()` values, so a collapsed metric is still named on screen
-and this costs no new i18n copy. `.more.mlimits .chev` gives up the auto margin, so
-the chevron follows the label rather than being pushed to the far edge of a row
-whose content is a list.
+goal-progress used to render its weight row under the strip with a drawer of
+its own, its own toggle and a click delegate reaching into the macro drawer's
+state to close it — two disclosure contracts on one card, a second hairline
+band, and the foot sitting between them instead of ending the card. Through
+`macroPanel`'s `opts.extra = { key, row: (i) => string, detail: (() => string)
+| null }` the weight row is one more `[data-macro-extra]` control, spliced in
+after water: `macroToggle`'s exclusive loop, the shared `#macro-drawer`, its ✕,
+Escape and the focus hand-back all treat it exactly like a tile.
 
-Two rules make collapsing the limits safe, and both live in `macroPanel`:
+- **The key must not be a `MACROS` key** — every lookup resolves a control by
+  `dataset.macro || dataset.macroExtra`, one namespace — so `macroPanel` throws
+  on one rather than open the wrong thing.
+- `row(i)` returns the button above (`data-macro-extra`, `aria-expanded`,
+  `aria-controls="macro-drawer"`, and the `.c-*` class on the button so `--c`
+  resolves). `detail()` returns the drawer body and must include
+  `.dname#macro-drawer-name` (it names the region) and a `[data-macro-close]` ✕.
+  Without a reading there is no button: `detail: null`, and the row is a line of
+  text (`.wempty`).
+- On the tiered strip it takes the tiles' language, not the bar's: `--panel`
+  ground, `--edge` border, the open state's `--c` tint and inset ring, 10px
+  from the water bar above and from the foot below, the drawer 8px under it.
+- **The dot stays**, not a glyph: weight is not a `MACROS` nutrient, and a
+  different mark says it is a different kind of row.
 
-- **A breached limit is never hidden.** Anything over its ceiling is hoisted onto
-  the always-visible rail. Everything else here is a height trade; this is not.
-- **Two is the minimum worth hiding**, measured rather than assumed. A `.more` row
-  costs 32px and a chip row 30px plus a 6px gap, so tucking a single chip that
-  would have shared a row with its neighbour buys nothing and costs the whole 32 —
-  goal-progress, which breaches three of its four limits and leaves only fiber to
-  tuck, measured 32px **taller** at all four widths under an unconditional rule.
-
-`limitsToggle` closes any open chip inside the rail before collapsing it, through
-the normal `macroToggle` path: otherwise the drawer would go on showing a breakdown
-whose chip is no longer on screen, with a ✕ that has nowhere to hand focus back to.
-
-There are exactly **three** disclosure affordances and only three: the chip
+There are exactly **three** disclosure affordances and only three: the tile
 (inline), the `.more` row (section-sized), and the drawer both of them open into.
 
 ## 6. The drawer
@@ -900,20 +961,12 @@ observable in `document.activeElement` rather than hoped for:
 
 The chip's `aria-expanded` + `aria-controls` is what names the relationship.
 
-**The same contract binds every drawer, not just this one.** `goal-progress`'s
-weight drawer is a second instance of `.drawer` — new in this redesign, opened by a
-`.more` row rather than a chip — and it shipped with neither half: it carried the
-same never-firing `aria-live="polite"`, had no `tabindex`, and its ✕ dropped focus
-on `<body>` under a real click and a real Enter. It now matches `macro-drawer`
-exactly: `tabindex="-1"`, `weightToggle()` focuses it on open (**after** it
-cross-closes any open chip, since `macroToggle` emptying the macro drawer would
-otherwise steal the focus a moment later), and on close it focuses the `.more` row
-**before** setting `hidden`. That last step is guarded on
-`drawer.contains(document.activeElement)` rather than done unconditionally, because
-`weightToggle(false)` is _also_ the cross-close a chip fires — focusing the weight
-row there would yank focus off the chip the user just activated. **Copy that guard
-along with the focus call**: a disclosure hands focus back to its trigger only when
-it is the thing losing focus.
+**There is one drawer per card, the weight row's included.** goal-progress used
+to ship a second `.drawer` (`#weight-drawer`) with its own toggle; it carried
+the same never-firing `aria-live`, had no `tabindex`, and its ✕ dropped focus on
+`<body>`. Through `opts.extra` (§5) the weight row opens `#macro-drawer` like any
+tile, so the one guard that keeps a cross-close from stealing focus — hand focus
+back only when the drawer being closed is the thing holding it — is written once.
 
 **ANIMATE NOTHING THAT CHANGES LAYOUT HERE** — not `height`, `max-height`, `margin`
 or `padding`. `bridge.js` measures `documentElement` at `max-content` on a
@@ -963,10 +1016,16 @@ Selection is `aria-pressed`, not a class — the state and its styling are the s
 fact. It carries `margin-left: auto`, so dropping it into `.chead` puts it where
 `.cmeta` would otherwise sit; `flex: none` keeps it from being squeezed.
 
-**Interactivity:** buttons carry a `data-*` value; delegate the click on a container
-that survives re-renders (`#root`), read the value, update state, re-render. For a
-range/filter toggle, **prefer sending a superset of data and slicing client-side**
-over re-calling the tool — instant, and it needs no host tool-call support.
+**Interactivity:** buttons carry a `data-*` value; delegate the click on a
+container that survives re-renders (`#root`), read the value, update state,
+re-render. trends and weight-trends rewrite only the header's window text and
+the body on a toggle, so the pressed button itself is never destroyed;
+`keepFocus` (bridge.js) covers a rewrite that does replace it, keyed by
+`data-range`. A toggle that throws goes through `tryRender` and reverts: the
+range, the pressed button and the body stay as they were. For a range/filter
+toggle, **prefer sending a superset of data and slicing client-side** over
+re-calling the tool — instant, and it needs no host tool-call support. A press
+is `translateY(1px)` on `:active`, like every other control.
 
 ## 8. The chart grammar (`shared/chart.css` + `shared/svg.js`)
 
@@ -995,24 +1054,31 @@ card height stays independent of card width. Everything else follows from that:
   px: 10 for `.chalo` (`--panel`), 6 for `.cdot` (the line's `--cstroke`), which
   are the old `r=5`/`r=3` at the box's 1:1 vertical scale. A chart that re-points
   in place (trends) writes `chDot(x, y)` into both paths' `d`.
-- **`.cempty` is the same 52px box** when there is nothing to draw, so a range
-  toggle never makes the card jump.
-- **`.cday` is an optional hairline per day** (`chDayLines(pts)` in
-  `shared/svg.js`), painted first — **day → goal → area → line**. Its stroke is
-  a quarter of `--ink3`, deliberately quieter than the goal: scaffolding, not
-  information. Not `--line2`, because the tiered strip redeclares that on
-  `.focus` as the strong `--edge2` control border, and this chart sits inside
-  `.focus`. `shape-rendering: crispEdges` keeps each rule one device pixel
-  wide instead of a two-pixel smear at a fractional x. Only
-  `nutrition-summary`'s focus-panel chart draws it so far, and there the rules are
-  **placed per calendar day and thinned on long ranges**: one per day up to 31
-  slots, weekly up to ~120, none beyond — past that a rule per day is a grey haze
-  rather than a grid.
-- **The focus-panel instance paints the goal over the line**, not under it: its
-  order is day → area → line → goal. Its 2.5px data stroke hid the dashes
-  entirely whenever the series sat on its goal, which is the state the goal line
-  exists to show. The trends and weight-trends charts keep goal → area → line
-  (below).
+- **`.cday` is an optional hairline per day** (`chDayLines(pts)`), painted
+  first. Its stroke is a quarter of `--ink3`, deliberately quieter than the
+  goal: scaffolding, not information. Not `--line2`, because the tiered strip
+  redeclares that on `.focus` as the strong `--edge2` control border, and the
+  sparkline sits inside `.focus`. `shape-rendering: crispEdges` keeps each rule
+  one device pixel wide. The rules are **placed per calendar day**
+  (`calendarSlots(days, start, end)` in `svg.js`: one `{ t, day }` slot per
+  calendar day, `day` null where nothing was logged, falling back to one slot
+  per logged day when the range cannot be trusted) **and thinned on long
+  ranges** by `hairlineSlot(slot, i, n)`: every day up to 31 slots, Mondays up
+  to 120, none beyond — past that a rule per day is a grey haze rather than a
+  grid. The sparkline (nutrition-summary, trends) and weight-trends draw it.
+- **`.cpt` marks every reading on a bridged line** (`chMarksMarkup(pts)`,
+  weight-trends): the same zero-length, round-capped path as the dot, 4px in the
+  line's stroke, nulls skipped. Emit it before `chDotMarkup`, so the last
+  reading's halo and dot sit over their own mark.
+- **Goal behind the line is only the base order** (day → goal → area → line).
+  The sparkline and weight-trends' target paint over the line instead: a 2.5px
+  data stroke hid the dashes entirely whenever the series sat on its goal,
+  which is the state the goal line exists to show.
+
+**No shipped widget draws the standalone `.cwrap` + `.cfoot` any more.** trends'
+chart moved inside the focus panel, and weight-trends labels its chart from the
+panel's meta and the header's window line. The grammar stays as the base both
+are built from, and the gallery keeps its standalone specimens.
 
 `.cline` reads `var(--c, var(--cal))` and has a `stroke` transition, so re-strokes
 cross-fade: selecting a chip changes the wrapper's role class and nothing re-parses
@@ -1062,6 +1128,29 @@ there needs to know how wide the card is.
 zero-based weight chart flattens the trend into a straight line. See
 `weight-trends.html`.
 
+**weight-trends' x axis is the calendar, and its line bridges unweighed days.**
+Readings are spaced by `calendarSlots`, so weekly weigh-ins no longer look
+daily. Weight is a sampled quantity, so the line joins readings across the days
+nobody stepped on the scale — the sparkline, by contrast, breaks at a day with
+no reading, because an intake nobody logged is not an intake between two
+others. Every measured reading carries its own `.cpt` mark, so a bridged
+stretch cannot pass for daily data. A range toggle never changes the card's
+height: one reading keeps the chart box with a lone dot, and no reading keeps
+the whole panel ("—", the reason, the target, day lines plus the target line).
+
+**The header's window line is the other half of that rule**, and it holds for
+`trends` as well. The line a range owns ("22 Okt. – 20. Nov. 2025 · 30
+Wiegungen") is longer on 30 days than on 7 and takes a second row where the
+short one takes one, so both cards grew by a 14px line on a tap that changed no
+data — in German, Dutch, Ukrainian and Japanese below 320px, and in plain
+English on `trends` at 280px. Each template floors that box once per payload
+with `reserveLine(el, texts)` (`shared/bridge.js`), measuring **every** range's
+candidate rather than the longest-looking one: which string wraps depends on the
+locale, on whether the window crosses a year and on the host's font. `setRange`
+then only swaps `textContent` inside a box that cannot move. Do not put a
+blanket `min-height` on `.chead > .cmeta.crow` instead — that costs every card a
+line at every width.
+
 ## 9. Icons (`shared/icon.js`)
 
 `icon(name, size)` returns an inline `<svg class="ic">` string. Every path is drawn
@@ -1078,7 +1167,7 @@ warning triangle are one drawing at two sizes.
 | `up`    | a rise in a metric                                           |
 | `down`  | a fall                                                       |
 | `file`  | the drop zone                                                |
-| `point` | the pointing hand on the `.chip.ghost` hint                  |
+| `point` | the pointing hand on the `.fhint` tap hint                   |
 
 ### `GLYPHS` — the nutrient set, and it is **filled**
 
@@ -1204,12 +1293,13 @@ Every icon is `aria-hidden`: an icon here is always inside a control whose own
 ## 10. The macro strip (`macroPanel` — `shared/macros.js`)
 
 The intake-vs-goal view shared by `nutrition-summary`, `goal-progress`,
-`meal-logged` and `trends`. It is **not a card**: it is one block a widget drops
-inside its single `.card`, under whatever top matter that widget has. In order: the
-calorie hero; **one** visible rail (protein / carbs / fat, then water, then any
-limit currently breached, then the ghost hint as its last chip); the
-`.more.mlimits` row; the collapsed limits rail behind it; and the one drawer they
-all open into.
+`meal-logged` and `trends`, all four on the tiered strip. It is **not a card**:
+it is one block a widget drops inside its single `.card`, under whatever top
+matter that widget has. In order: the focus panel; the macro rail, the limits
+rail behind a hairline and the water bar (a flat strip puts them all on one
+grid); an optional `opts.extra` row — goal-progress' weight; the one drawer
+they all open into; and the foot, holding the `.fhint` tap hint and the
+bridge's note.
 
 ```js
 // vals / goal: objects keyed by calories, protein_g, carbs_g, fat_g, fiber_g,
@@ -1220,7 +1310,8 @@ all open into.
 //   always reads "under" / "over" / "at limit".
 // meals:   optional per-meal breakdown rows → every chip some meal actually
 //          contributed to becomes tappable, the limits included.
-// opts:    { drinkUnit, calLabel, divided, flatHero, chartKeys, onSeries }
+// opts:    { drinkUnit, calLabel, divided, tiers, chartKeys, onSeries,
+//            extra, metricLabel, stash }
 root.innerHTML = `
   <div class="card c-cal">
     <div class="glow"></div>
@@ -1239,12 +1330,12 @@ so a new nutrient lands exactly where its role says and an entry with no role (o
 an unknown one) renders nowhere at all rather than silently sprouting a fourth
 macro chip.
 
-| role    | where it renders                                                                                                      |
-| ------- | --------------------------------------------------------------------------------------------------------------------- |
-| `cal`   | the hero. **Never a chip** — it is the one number nobody should have to go looking for                                |
-| `macro` | a chip on the visible rail (protein, carbs, fat)                                                                      |
-| `limit` | a chip behind the `.more.mlimits` row — **unless it is over its ceiling**, which hoists it onto the visible rail (§5) |
-| `bar`   | a chip on the visible rail, after the macros (water), and only when the metric was actually tracked                   |
+| role    | where it renders                                                                                                                                              |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cal`   | the focus panel. **Never a tile** — it is the one number nobody should have to go looking for                                                                 |
+| `macro` | the macro rail (protein, carbs, fat), three columns at every width                                                                                            |
+| `limit` | the limits rail, behind a hairline. A breach is never hoisted or hidden: the tile takes its full wash back and prints its figure against the limit (§3 Tiers) |
+| `bar`   | the water bar, last, and only when the metric was actually tracked (`metricShown`)                                                                            |
 
 `TOP_LEVEL_MACRO_KEYS` and `dayHasData()` are derived from `cal`, `macro` and `bar`
 the same way, so "was anything logged this day?" (which trends uses to count logged
@@ -1349,10 +1440,11 @@ might be absent rather than zero.
     Fixed decimals rather than `fmt()`'s, and that is separate: `fmt` round-trips
     through `Number()`, so a round 2 L would print "2" beside a "2.5 L" goal.
 
-- `calLabel` names the period the hero's figure covers, and in two widgets it names
+- `calLabel` names the period the panel's figure covers, and in two widgets it names
   the **denominator**: `nutrition-summary` says "Daily avg · logged days", `trends`
   says "14-day avg · all days". Same macros, different number (issue #70) — that
-  label is the only place the difference is stated on screen.
+  label is the only place the difference is stated on screen. trends keeps it
+  there while a tile is selected, through `opts.metricLabel` (§4).
 
 ### A chip is a control when it opens meals, selects a series, or both
 
@@ -1368,7 +1460,10 @@ it passes `opts.chartKeys` and `opts.onSeries`, which turn each chip into the
 chart's **series selector**. Same rail, different job, no branch in `macros.js`.
 The coupling is an explicit ctx field rather than an ambient global specifically so
 a test can hand in a spy and so a template that forgets it gets a strip that
-discloses meals and nothing else, not a silent no-op.
+discloses meals and nothing else, not a silent no-op. trends recomputes
+`chartKeys` for every range, so a metric with nothing to draw in the window is a
+plain tile, and a selected metric survives a range change only while it is
+still chartable.
 
 **A button makes its children presentational**, so the gauge's `aria-label`, the
 metric name and the goal caption all drop out of the accessibility tree. An
@@ -1406,10 +1501,35 @@ confirmation.
 
 ### Pinned hooks
 
-`data-macro`, `data-macro-panel`, `data-macro-hint`, `data-macro-close`, the drawer
-id `macro-drawer`, and the `data-macro=… aria-expanded=… aria-label=…` attribute
+`data-macro`, `data-macro-extra`, `data-macro-panel`, `data-macro-hint`,
+`data-macro-close`, `data-widget-foot`, the drawer id `macro-drawer`, and the `data-macro=… aria-expanded=… aria-label=…` attribute
 order on a chip are all asserted by `macros.test.ts`. Selection is **exclusive**:
 tapping another chip, or the drawer's ✕, closes whatever was open.
+
+### A re-render keeps what the user had open — `macroSnapshot` / `macroRestore`
+
+A host re-delivers a tool result into the same iframe whenever the tool re-runs,
+and `render()` rewrites the root wholesale — which used to close whatever drawer
+was open and drop focus on `<body>`. Every strip widget brackets its write:
+
+```js
+const was = macroSnapshot(root); // before root.innerHTML is written
+root.innerHTML = card; // macroPanel stashes this root's ctx
+sparkPaint(fx, "calories", false); // any first sparkline paint
+macroRestore(root, was); // LAST: its onSeries repaints the panel
+```
+
+`macroSnapshot` records the open key (the drawer's `data-open`, else the pressed
+tile), and whether focus was inside the widget and on which control — a tile or
+extra, the panel, or the drawer. `macroRestore` reopens through `macroToggle` and
+hands focus back **only if it was inside the widget before**: a re-render the
+user did not ask for never takes focus from the host. Every `focus()` passes
+`preventScroll`.
+
+**`opts.stash: false`** builds a strip's markup without making it the one the
+delegated handlers act on. The gallery renders dozens of specimen strips around
+one live card, and before this flag its rail specimen took over the live card's
+state.
 
 ## 11. Form controls (`shared/form.css`)
 
@@ -1418,21 +1538,29 @@ that is a form rather than a readout. Everything is Dawn's pill language at a de
 scale: controls are **38px, not the site's 48px**, because the map step stacks
 sixteen of them inside a chat card.
 
-| class                                            | use                                                                                    |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `.field` / `.field-row` / `.label` / `.hint`     | vertical field stack, inline row, caption text                                         |
-| `.input`, `.select`                              | text input and dropdown; add `.invalid` for the error state                            |
-| `.field-error`                                   | the message under an invalid control                                                   |
-| `.btn`, `.btn-primary`, `.btn-danger`, `.btn-sm` | buttons; `.actions` wraps a row of them                                                |
-| `.drop` + `.drop-input`                          | file drop zone; add `.over` while dragging                                             |
-| `.notice`, `-ok` / `-warn` / `-error`            | inline banner on the card surface                                                      |
-| `.steps` / `.bar` (`> span`)                     | the step rail (3px) and a running import (5px); `.slab` is the mono caption under them |
+| class                                            | use                                                                                                                      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `.field` / `.label` / `.hint`                    | vertical field stack, its label, caption text                                                                            |
+| `.input`, `.select`                              | text input and dropdown; add `.invalid` for the error state                                                              |
+| `.field-error`                                   | the message under an invalid control                                                                                     |
+| `.btn`, `.btn-primary`, `.btn-danger`, `.btn-sm` | buttons; `.actions` wraps a row of them                                                                                  |
+| `.drop` + `.drop-input`                          | file drop zone; add `.over` while dragging                                                                               |
+| `.notice`, `-ok` / `-warn` / `-error`            | inline banner on the card surface                                                                                        |
+| `.steps` / `.bar` (`> span`)                     | the step rail (3px) and a running import (5px); the step count is the card header's `.cmeta` (`T.importMeals.stepCount`) |
 
 Things that are easy to get wrong:
 
 - **`.input` and `.select` set `height` with zero vertical padding**, not symmetric
   padding — an `<input>` and a `<select>` size their text box differently and would
   otherwise not land on the same 38px line.
+- **Controls redeclare the border tokens rather than overriding `border`.**
+  `.input`, `.select` and `.btn` take `--line: var(--edge); --line2:
+var(--edge2)`; `.drop` takes `--edge` for both and keeps `--acc` on hover.
+  The same move chip.css makes (§1): the soft `--line` measured 1.18–1.48:1 on a
+  control's edge, `--edge` is 2.99:1 in both themes. No transition here names a
+  layout property, and the `.steps`/`.bar` fills no longer transition at all —
+  every render rebuilt them at their final width, so it never ran.
+  `form-css.test.ts` pins all of it.
 - **The select chevron is an inlined `data:` SVG** with a literal stroke colour. The
   sandbox CSP allows `img-src data:` only, and `currentColor` does not work inside
   `url()`, so a mid-grey that reads on both themes is used instead.
@@ -1465,13 +1593,28 @@ one (a11y audit). Every current engine draws `outline` along the border radius, 
 the pill shape survives. The accent border stays as a secondary cue only — at ~3.4:1
 and 1px it is not load-bearing on its own.
 
+**import-meals is one card per step**, on nutrition-summary's grammar: the green
+glow, a header whose `.ctitle` names the step and is a focus target, a `.cmeta`
+"Step n of 4", the rail inside the card, and the foot the bridge's note lands in.
+Its renders go through `tryRender` and `keepFocus`: focus moves to the new
+step's heading only when the step changes, never on a progress repaint, and a
+pressed Import marks focus as the widget's for the run so it lands on "Import
+complete" even though the button re-rendered disabled — while `document.hasFocus()`
+keeps that from reaching into the host's composer. Progress is announced through
+one persistent `role="status"` region the repaints never rebuild. A render that
+throws leaves an error card and stops the import sending chunks.
+
 ## 12. Preview table (`shared/table.css`)
 
 For showing rows the user must confirm before a write. `.tscroll` wraps `.tbl`;
 `thead th` is sticky so column identity survives scrolling, which matters when the
 table _is_ the confirmation step. `.pill` + `-ok`/`-warn`/`-bad`/`-dim` marks
 per-row status; `.num` right-aligns numerics, `.wide` is the one column allowed to
-wrap, `.dim` recedes a cell, and `.tmore` is the truncation footer.
+wrap, `.dim` recedes a cell, and `.tmore` is the truncation caption. `.tmore` sits
+**after** the scroller, not inside it: as the last row in a 320px-tall `.tscroll`
+the one line saying the preview is truncated was a ~2k px scroll below the fold
+of the box it describes, which is no statement at all on a step whose job is to
+confirm what will be written.
 
 **`.tscroll` sets `min-width: 0`, and that is required, not cosmetic.** A grid or
 flex item defaults to `min-width: auto`, so a `white-space: nowrap` table's
@@ -1541,36 +1684,38 @@ actually overflow** (either axis), on the same `paint()` that toggles the edge c
 so a table that fits at 560px is not a stop that does nothing. It writes one property
 that moves no box, so it cannot feed bridge.js's ResizeObserver (invariant 1).
 
-`component-gallery`'s `.tscroll` specimen has no role or name of its own — it is a
-dev-only surface no client can reach, but a widget copying from the gallery should
-copy the markup contract above, not just the class.
+`component-gallery`'s `.tscroll` specimens carry the same contract
+(`role="region"`, `tabindex="0"`, an `aria-label`), so a widget copying from the
+gallery copies the markup, not just the class.
 
 ## Invariants
 
 These are the rules that break something real when ignored.
 
 1. **Never animate a layout property.** `opacity`, `transform`, `stroke-*`,
-   `color`, `background`, `border-color`, and the chip underbar's `width` (inside an
-   `overflow: hidden` pill, changing no layout) only. **Never** `height`,
+   `color`, `background`, `border-color`, and a tile's progress wash (a background, changing
+   no layout) only. **Never** `height`,
    `max-height`, `margin` or `padding`: `bridge.js` measures `documentElement` at
    `max-content` on a `ResizeObserver` tick, so an animated size becomes a 60Hz
    `size-changed` storm and a lurching iframe.
 2. **Nothing is made visible BY an animation.** The drawer's visibility is its
    `hidden` attribute; `rise` only decorates it. Any value painted in two steps (the
-   underbar's width, the gauge's `stroke-dashoffset`) keeps its final value in the
+   tile's wash, the ring's `stroke-dashoffset`) keeps its final value in the
    markup and takes the animating class only when `REDUCED` is false, so a cancelled
    or blanket-killed animation can never leave a bar at zero.
 3. **`.empty` and `.empty .big` belong to `bridge.js`.** It paints its
    connect-failure card with those exact class names, so they cannot be renamed in
    `base.css` independently of that file.
-4. **The footer note belongs to `bridge.js` too.** It appends one persistent element
-   ("You can enable or disable these widgets anytime…") as `#root`'s last child and
-   keeps it there with a `MutationObserver`, because several widgets repaint
-   themselves from their own controls without going through `paint()`. Two
-   consequences for a template: never assume your own last child stays last, and
-   **an empty root must be genuinely empty** — the bridge removes the note when the
-   root has no children, which is what keeps `.wrap:empty { padding: 0 }` matching
-   and lets `meal-logged` collapse the iframe to nothing.
+4. **The footer note belongs to `bridge.js` too.** It appends one persistent
+   element ("You can enable or disable these widgets anytime…") as the last child
+   of the card's `[data-widget-foot]` — `#root`'s last child when a render has no
+   foot — and keeps it there with a `MutationObserver` on the root's whole
+   subtree, because widgets repaint from their own controls without going
+   through `paint()`, and trends rewrites only its body. The observer's own write
+   is equality-guarded, or it would feed itself. Two consequences for a
+   template: never assume your own last child stays last, and **an empty root
+   must be genuinely empty** — the bridge removes the note when the root has no
+   children, which is what lets `meal-logged` collapse the iframe to nothing.
 5. **A partial may not contain marker text.** `src/widgets.test.ts` requires every
    `@include`d partial's full text to appear verbatim in the assembled output, and
    the assembler's regexes match plain text — comments included. So a partial must
@@ -1615,7 +1760,12 @@ Run `bun run harness` and open <http://localhost:8787>. It mimics a strict host
 `ui/notifications/initialized`, starts the iframe at 130px, applies the sandbox
 CSP) and additionally answers app-initiated `tools/call`. Query flags reproduce
 host behaviour: `?serverTools=0`, `?tools=0` (never answer), `?delay=3000` (stand
-in for a per-call approval prompt), `?maxHeight=600`, `?fail=1`, `?drinkUnit=us`.
+in for a per-call approval prompt), `?maxHeight=600`, `?fail=1`, `?drinkUnit=us`, plus the fixture variants — `?meals=1`,
+`?day=today|pastYear`, `?logged=none`, `?weight=…`, `?goals=none`,
+`?alcohol=on|off`, `?caffeine=none`, `?action=updated`, `?days=sparse|gap7|none`,
+`?range=7|14|30`, `?weights=sparse|single|gap7|none`, `?target=none`,
+`?end=pastYear|today` (the index page lists them all; each is schema-checked at
+boot).
 Its `size-changed height=N` log line is the honest height measurement — the iframe
 starts short and grows only on that notification.
 
@@ -1625,25 +1775,31 @@ worth measuring on. `assertFixturesMatchSchemas` pulls each tool's real
 intercepting `registerTool`, so no field list is restated anywhere) and refuses to
 start on a missing **or** stale key. They had drifted: `trends` sent `range_days`
 where the tool sends `default_range`, and `weight-trends` sent no `target`, so the
-range toggle opened on a fallback and the dashed target line plus its whole `.cfoot`
-phrase never rendered here — a clipping bug in that phrase reached an audit instead
+range toggle opened on a fallback and the dashed target line (with the `.cfoot` phrase
+weight-trends had then) never rendered here — a clipping bug in that phrase reached an audit instead
 of the harness. If you add a field to a tool's `outputSchema`, add it to the
 fixture; the harness will tell you.
 
 **Start with the component gallery:**
 <http://localhost:8787/host?widget=component-gallery> renders every shared primitive
-on one page — the whole card, the header line, the empty states, the chip in every
-state, a wrapping rail, the hero gauge at 0 / 62% / over, the `.more` row, the
-drawer (open, `+N more`, empty), all three chart instances, both segmented-control
-states, a static macro strip, the import progress rails, the pill fields and
-buttons, the drop zone, every notice severity, the preview table and the icon
-table. Extend it when you add a component.
+on one page — a live nutrition-summary card (the only strip whose controls
+work), the header line, the empty and loading states, the focus panel in every
+state flat and tiered, the sparkline across ranges and gaps, the tiered strip at
+every limit count and water unit, the legacy flat strip, the tile at its
+rounding edges, the `.more` row and goal-progress' weight row, the drawer, every
+date label in every locale, the standalone chart grammar, both segmented-control
+states, the import progress card, the pill fields and buttons, the drop zone,
+every notice severity, the preview table, and the icon and glyph tables.
+Specimens are inert — built with `stash: false` and stripped of their hooks, so
+nothing but the live card is a tab stop. It reads `locale` and `water_unit` from
+the harness's `RESULTS` entry, so `?locale=uk&waterUnit=us_fl_oz` reaches it.
+Extend it when you add a component.
 
 Then, for the widget itself:
 
-1. **Narrow first — 320px, then 360px.** Chips wrap two per row at 360 and three at
-   ~440, so the rail changes shape without a media query; check that no chip, the
-   ghost hint included, overflows. Then:
+1. **Narrow first — 320px, then 360px**, then 379, 480 and 620: the tiers'
+   column matrix changes at 380, 480, 580 and 620. No tile, label or figure may
+   overflow. Then:
 
     ```js
     const de = document.documentElement;
@@ -1658,8 +1814,8 @@ Then, for the widget itself:
    the range toggle, each tappable chip, the drawer's ✕, the `.more` row, and
    keyboard Enter/Space plus a visible `:focus-visible` ring on all of them. Confirm
    the bridge's footer note is still the last thing in the card after each one.
-4. **The states with no data:** a range with nothing logged (`.cempty`, with the
-   toggle still present), a metric recorded as a real zero ("none logged"), a metric
+4. **The states with no data:** a range with nothing logged (trends' range-empty body, weight-trends' panel
+   shell — the toggle still present, the height unchanged), a metric recorded as a real zero ("none logged"), a metric
    with no goal ("no goal set"), and — for `meal-logged` — no goals at all, which
    must report `size-changed height=0`.
 5. **Reduced motion.** Turn it on at the OS level and reload: every value must be at
@@ -1674,4 +1830,25 @@ via a `ResizeObserver`, which is also what makes an opened drawer grow the frame
 instead of being cut off. `shared/bridge.js` sends one report per actual change:
 it dedupes on the last width and height it sent, and holds everything until the
 handshake has settled. So a harness log that repeats the same `height=N` for one
-interaction is a regression, not observer noise.
+interaction is a regression, not observer noise. It measures with the viewport's
+scrollbar **forced** (`overflow: hidden scroll` on `<html>` for the instant of the
+measure), so every measure describes the same width whether or not the frame has
+grown yet — which is what keeps a first paint into the 130px frame to one report.
+Forced rather than suppressed, because the two are not symmetric: suppressing it
+measured a layout that only exists once the content already fits, so a card whose
+header sits near a wrap threshold reported the scrollbar-free height, kept its
+scrollbar, re-wrapped taller than the frame, and had every corrective measure
+deduped away — 19px of nutrition-summary cut off at 360px, the settings note cut
+mid-sentence on trends at 280px in pl. Forcing it can only leave the frame
+slightly tall once the bar goes away: slack, never a clip. It costs nothing where
+scrollbars are overlays (macOS by default), which is also where this class of bug
+is invisible — check it on a classic-scrollbar platform.
+
+**The first report describes a rendered state, not the pre-data root.** Reporting
+is released when the handshake settles, but an empty root at that moment is a
+widget still waiting for its payload: `meal-logged` starts blank on purpose (it
+may legitimately end up empty) and used to open with `height=0`, collapsing the
+iframe to nothing and back on the card shown after every `log_meal`. So an empty
+root reports nothing yet and the host keeps its default; `paint()` sends the first
+report instead — including the deliberate `height=0` of `meal-logged` with no
+goals, which is a render like any other.
