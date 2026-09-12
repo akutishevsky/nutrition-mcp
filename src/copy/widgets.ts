@@ -162,6 +162,17 @@ export interface WidgetStrings {
          * the tile's own name without a closing full stop ("Protein 148/160
          * g, 12 g left"), so it must stay verbatim for WCAG 2.5.3. */
         showingMetric: string;
+        /** How an accessible NAME is punctuated: the separator between its
+         * parts, and the stop that ends it (tileLabel / chipLabel in
+         * shared/macros.js). Punctuation is language data, exactly as
+         * goalProgress.lastLoggedSuffix already records — Japanese writes "、"
+         * and "。" — and both were hardcoded ASCII here, so a fully translated
+         * Japanese tile announced "タンパク質 148/160 g, 12 g 残り. グラフに表示
+         * します。": two halfwidth marks read out as stray tokens in the middle
+         * of a native sentence. English is ", " and ".", so English names are
+         * byte-identical to what they were. */
+        nameSep: string;
+        nameEnd: string;
         /** Template for the breakdown panel's title. Placeholder: {label}. */
         byMealTitle: string;
         /** aria-label on the breakdown panel's close button. */
@@ -251,6 +262,21 @@ export interface WidgetStrings {
         /** Template for the weight track's aria-label. Placeholders: {current},
          * {target}, {state}, {metaSuffix} (all pre-formatted/pre-translated). */
         weightAria: string;
+        /** The bare loading line, shown before the tool result arrives. */
+        loading: string;
+        /** Body of the empty card once it keeps its header: the date already
+         * sits in the .chead meta beside the title, so this line carries none.
+         * nothingLoggedFor stays for the bare fallback, where no header exists. */
+        nothingLogged: string;
+        /** The {metaSuffix} tail of weightAria / weightAriaNoTarget, and of the
+         * weight track's own role="img" label. Placeholder: {date}. It owns its
+         * leading separator because the separator is language data too: the
+         * template used to hardcode ", ", which is wrong in Japanese ("、"). */
+        lastLoggedSuffix: string;
+        /** weightAria for a reading with no target set, so the label never reads
+         * "target , ". Placeholders: {current} (pre-formatted with its unit),
+         * {metaSuffix} (a filled lastLoggedSuffix, or empty). */
+        weightAriaNoTarget: string;
     };
 
     /** templates/meal-logged.html's own top matter (the header line; the
@@ -270,9 +296,6 @@ export interface WidgetStrings {
         empty: string;
         /** The word after a floor-metric AVERAGE that fell short of its target, e.g. "124 kcal under". Distinct from macros.floorUnder (live "still left to eat today" framing, wrong for a historical average) and macros.ceilingUnder (safety-margin-before-a-limit framing in several locales, wrong for a shortfall). */
         avgUnder: string;
-        /** Template for the calories chart's caption. Placeholders: {logged},
-         * {total}. */
-        loggedOfTotal: string;
         /** Template for the calories chart's aria-label. Placeholder: {range}. */
         caloriesOverRange: string;
         /** Template for the chart's aria-label once a chip has switched the
@@ -290,13 +313,34 @@ export interface WidgetStrings {
         rangeDaysAriaLabel: string;
         /** Template for the strip's calorie caption. Placeholder: {range}. */
         avgAllDays: string;
+        /** The bare loading line, shown before the tool result arrives. */
+        loading: string;
+        /** The selected 7/14/30-day slice has nothing in it, while a wider one
+         * does — the header still names the window. Placeholder: {range}, a day
+         * count (7/14/30), which is why the phrasing never agrees a noun with it
+         * in a way uk/pl would get wrong at 2–4 (same reason as metricOverRange). */
+        rangeEmpty: string;
+        /** The focus panel's label while a tile has moved it to that metric, for
+         * metrics averaged over EVERY day in the window (an unlogged day counts
+         * as 0): calories, the macros, water. Keeps the denominator visible so a
+         * switched panel never reads as a plain daily figure. Placeholders:
+         * {metric} (a translated macros.labels entry), {range} (7/14/30). */
+        metricAvgAllDays: string;
+        /** metricAvgAllDays' twin for the limits (fiber, sugar, alcohol,
+         * caffeine), which are averaged over the days that RECORDED a value — a
+         * missing figure is "not measured", not a zero. Same placeholders. */
+        metricAvgRecorded: string;
     };
 
     /** templates/weight-trends.html's own top matter. No macro strip here. */
     weightTrends: {
         title: string;
         empty: string;
-        /** A selected range with no weigh-ins in it. Placeholder: {range}. */
+        /** A selected range with no weigh-ins in it. ONE sentence, no "try a
+         * wider range": it is the panel's single-line 13px meta, which
+         * ellipsises, so a second sentence was cut on every phone — and the
+         * range toggle it would point to sits right above it. Placeholder:
+         * {range}. */
         rangeEmpty: string;
         /** aria-label on the 7/14/30-day segmented control. */
         windowAriaLabel: string;
@@ -319,6 +363,8 @@ export interface WidgetStrings {
         /** Template. Placeholder: {value} (pre-formatted with its unit). */
         target: string;
         noTarget: string;
+        /** The bare loading line, shown before the tool result arrives. */
+        loading: string;
     };
 
     /** templates/import-meals.html's own strings — the file/map/preview/import
@@ -333,10 +379,16 @@ export interface WidgetStrings {
         stepMap: string;
         stepPreview: string;
         stepImport: string;
-        /** The line under the import progress rail naming where the flow is.
-         * Placeholders: {n}, {total}, {label} — {label} is one of the four
-         * step names above. */
-        stepOf: string;
+        /** The bare loading line, shown before the tool result arrives. */
+        loading: string;
+        /** The step count in the card header's .cmeta, beside a title that
+         * already names the step — so no {label}: the old "Step n of 4 · Map
+         * columns" caption repeated the title on every step. Placeholders:
+         * {n}, {total}. */
+        stepCount: string;
+        /** Legend for the red "*" on required mapping fields; the asterisk is
+         * aria-hidden, so this sentence is what explains it. */
+        requiredLegend: string;
         /** Labels for the column-mapping UI, keyed exactly like FIELDS[].key
          * in import-meals.html — every key here must have a match there. */
         fieldLabels: {
@@ -409,19 +461,13 @@ export interface WidgetStrings {
         mealsToImport: PluralForms;
         /** Template. Placeholder: {kcal}. */
         kcalTotal: string;
-        /** Template. Placeholder: {n}. */
-        rowsSkipped: string;
         batchCount: PluralForms;
         /** Template. Placeholders: {format}, {conversion}. */
         datesReadAs: string;
         energyConvertedNote: string;
         energyReadAsKcal: string;
-        /** Template. Placeholders: {n}, {format}, {sample}. */
-        badDatesWarning: string;
         /** Template. Placeholders: {line}, {value}. */
         badDateSample: string;
-        /** Template. Placeholder: {n}. */
-        noTimeWarning: string;
         /** "N date(s) have [too many meals]" — count of dates that had to be
          * split across import batches. Placeholder: {n}. */
         splitDatesCount: PluralForms;
@@ -443,33 +489,51 @@ export interface WidgetStrings {
         colAlcohol: string;
         colCaffeine: string;
         noNameFallback: string;
-        /** Template. Placeholders: {shown}, {total}. */
-        showingRows: string;
-        /** Template. Placeholder: {n}. */
-        checkingRows: string;
-        /** Template. Placeholder: {n}. */
-        importingRows: string;
         /** Template. Placeholders: {label}, {done}, {total}. */
         batchProgress: string;
         /** Template. Placeholders: {a}, {b}, {msg}. */
         rowsRange: string;
         preflightFailed: string;
-        /** Template. Placeholders: {n}, {line}, {message}. */
-        rowsWouldFail: string;
         importingEllipsis: string;
-        /** Template. Placeholder: {n}. */
-        importButton: string;
         backToMapping: string;
         importCompleteHeading: string;
-        /** Template. Placeholder: {n}. */
-        resultMealsImported: string;
-        /** Template. Placeholder: {n}. */
-        resultAlreadyLogged: string;
-        /** Template. Placeholder: {n}. */
-        resultFailed: string;
-        /** Template. Placeholder: {n}. */
-        resultSkipped: string;
         restartButton: string;
+        // Count-sensitive, read through plural(forms, n, vars) — never
+        // tpl(plural(…)), which drops the extra placeholders. uk and pl need all
+        // four forms: "3 рядки пропущено" / "3 pominięte wiersze" are exactly the
+        // 2–4 case the two-form strings these replaced got wrong. Placeholders
+        // are listed per key; {n} is always the count.
+        /** Placeholder: {n}. */
+        noTimeWarning: PluralForms;
+        /** Placeholder: {n}. */
+        rowsSkipped: PluralForms;
+        /** Placeholders: {n}, {format}, {sample}. */
+        badDatesWarning: PluralForms;
+        /** Placeholders: {n}, {line}, {message}. */
+        rowsWouldFail: PluralForms;
+        /** Placeholder: {n}. */
+        resultMealsImported: PluralForms;
+        /** Placeholder: {n}. */
+        importButton: PluralForms;
+        /** Placeholder: {n}. */
+        checkingRows: PluralForms;
+        /** Placeholder: {n}. */
+        importingRows: PluralForms;
+        /** Selected on {total} (the noun follows it), NOT on {shown}: pass
+         * total as the count. Placeholders: {shown}, {total}. */
+        showingRows: PluralForms;
+        /** Placeholder: {n}. */
+        resultAlreadyLogged: PluralForms;
+        /** Placeholder: {n}. */
+        resultFailed: PluralForms;
+        /** Placeholder: {n}. */
+        resultSkipped: PluralForms;
+        /** The full stop that ends the done step's summary sentence ("0 meals
+         * imported, 40 already logged."). Copy, not punctuation the template
+         * owns: Japanese ends a sentence with "。", and the tails above already
+         * use the ideographic comma, so a hardcoded "." was the one Latin mark
+         * in an otherwise native line. */
+        sentenceEnd: string;
         /** Template. Placeholder: {msg}. */
         couldNotReadFile: string;
         noDataRows: string;
@@ -552,6 +616,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         alsoChart: "Also shows this nutrient on the chart.",
         showOnChart: "Show this on the chart.",
         showingMetric: "Showing {metric}. Back to calories.",
+        nameSep: ", ",
+        nameEnd: ".",
         byMealTitle: "{label} by meal",
         closeBreakdown: "Close breakdown",
         noMealsContributed: "No logged meals contributed {label}.",
@@ -610,6 +676,10 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         toGain: "{amount} to gain",
         lastLogged: "last logged {date}",
         weightAria: "Weight {current}, target {target}, {state}{metaSuffix}",
+        loading: "Loading your goal progress…",
+        nothingLogged: "Nothing logged yet.",
+        lastLoggedSuffix: ", last logged {date}",
+        weightAriaNoTarget: "Weight {current}{metaSuffix}",
     },
     mealLogged: {
         titleLogged: "Meal logged",
@@ -620,17 +690,21 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         title: "Trends",
         empty: "No meals or water logged in this range yet.",
         avgUnder: "under",
-        loggedOfTotal: "{logged}/{total} days logged",
         caloriesOverRange: "Calories per day over the last {range} days",
         metricOverRange: "{metric} per day over the last {range} days",
         windowAriaLabel: "Trend window",
         rangeDaysAriaLabel: "{n} days",
         avgAllDays: "{range}-day avg · all days",
+        loading: "Loading your trends…",
+        rangeEmpty:
+            "Nothing logged in the last {range} days. Try a wider range.",
+        metricAvgAllDays: "{metric} · {range}-day avg · all days",
+        metricAvgRecorded: "{metric} · {range}-day avg · days recorded",
     },
     weightTrends: {
         title: "Weight",
         empty: "No weight logged in this range yet.",
-        rangeEmpty: "No weigh-ins in the last {range} days. Try a wider range.",
+        rangeEmpty: "No weigh-ins in the last {range} days.",
         windowAriaLabel: "Trend window",
         rangeAriaLabel: "Last {n} days",
         chartAriaLabel: "Weight from {from} to {to}, latest {latest}",
@@ -643,13 +717,16 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         toGain: "{amount} to gain",
         target: "Target {value}",
         noTarget: "No target set",
+        loading: "Loading your weight trends…",
     },
     importMeals: {
         stepFile: "File",
         stepMap: "Map columns",
         stepPreview: "Preview",
         stepImport: "Import",
-        stepOf: "Step {n} of {total} · {label}",
+        loading: "Preparing import…",
+        stepCount: "Step {n} of {total}",
+        requiredLegend: "Fields marked * are required.",
         fieldLabels: {
             logged_at: "Date / time",
             description: "Food name",
@@ -723,16 +800,11 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             other: "{n} meals to import",
         },
         kcalTotal: "{kcal} kcal total",
-        rowsSkipped: "{n} rows skipped",
         batchCount: { one: "{n} batch", other: "{n} batches" },
         datesReadAs: "Dates read as {format}; energy {conversion}.",
         energyConvertedNote: "converted from kJ to kcal",
         energyReadAsKcal: "read as kcal",
-        badDatesWarning:
-            "{n} row(s) were skipped because their date could not be read as {format}{sample}. Go back and set the date format that matches your file.",
         badDateSample: " (e.g. line {line}: {value})",
-        noTimeWarning:
-            "{n} row(s) have a date but no time — they will be logged at midday.",
         splitDatesCount: {
             one: "{n} date has",
             other: "{n} dates have",
@@ -752,22 +824,56 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         colAlcohol: "Alc",
         colCaffeine: "Caf",
         noNameFallback: "(no name — will be labelled by meal)",
-        showingRows: "Showing {shown} of {total} rows",
-        checkingRows: "Checking {n} rows…",
-        importingRows: "Importing {n} rows…",
         batchProgress: "{label} (batch {done} of {total})",
         rowsRange: "Rows {a}–{b}: {msg}",
         preflightFailed: "Preflight check failed.",
-        rowsWouldFail: "{n} row(s) would fail, e.g. line {line}: {message}",
         importingEllipsis: "Importing…",
-        importButton: "Import {n} meals",
         backToMapping: "Back to mapping",
         importCompleteHeading: "Import complete",
-        resultMealsImported: "{n} meals imported",
-        resultAlreadyLogged: ", {n} already logged",
-        resultFailed: ", {n} failed",
-        resultSkipped: ", {n} skipped",
         restartButton: "Import another file",
+        noTimeWarning: {
+            one: "{n} row has a date but no time — it will be logged at midday.",
+            other: "{n} rows have a date but no time — they will be logged at midday.",
+        },
+        rowsSkipped: {
+            one: "{n} row skipped",
+            other: "{n} rows skipped",
+        },
+        badDatesWarning: {
+            one: "{n} row was skipped because its date could not be read as {format}{sample}. Go back and set the date format that matches your file.",
+            other: "{n} rows were skipped because their date could not be read as {format}{sample}. Go back and set the date format that matches your file.",
+        },
+        rowsWouldFail: {
+            one: "{n} row would fail, e.g. line {line}: {message}",
+            other: "{n} rows would fail, e.g. line {line}: {message}",
+        },
+        resultMealsImported: {
+            one: "{n} meal imported",
+            other: "{n} meals imported",
+        },
+        importButton: {
+            one: "Import {n} meal",
+            other: "Import {n} meals",
+        },
+        checkingRows: {
+            one: "Checking {n} row…",
+            other: "Checking {n} rows…",
+        },
+        importingRows: {
+            one: "Importing {n} row…",
+            other: "Importing {n} rows…",
+        },
+        showingRows: {
+            one: "Showing {shown} of {total} row",
+            other: "Showing {shown} of {total} rows",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} already logged",
+            other: ", {n} already logged",
+        },
+        resultFailed: { one: ", {n} failed", other: ", {n} failed" },
+        resultSkipped: { one: ", {n} skipped", other: ", {n} skipped" },
+        sentenceEnd: ".",
         couldNotReadFile: "Could not read that file: {msg}",
         noDataRows: "No data rows found in that file.",
         emailNotice:

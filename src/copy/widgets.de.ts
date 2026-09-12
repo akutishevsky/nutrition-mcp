@@ -40,6 +40,8 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         alsoChart: "Zeigt diesen Nährstoff außerdem im Diagramm an.",
         showOnChart: "Im Diagramm anzeigen.",
         showingMetric: "Zeigt {metric}. Zurück zu den Kalorien.",
+        nameSep: ", ",
+        nameEnd: ".",
         byMealTitle: "{label} nach Mahlzeit",
         closeBreakdown: "Aufschlüsselung schließen",
         noMealsContributed:
@@ -99,6 +101,10 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         toGain: "{amount} bis zum Ziel (zunehmen)",
         lastLogged: "zuletzt protokolliert am {date}",
         weightAria: "Gewicht {current}, Ziel {target}, {state}{metaSuffix}",
+        loading: "Zielfortschritt wird geladen…",
+        nothingLogged: "Noch nichts protokolliert.",
+        lastLoggedSuffix: ", zuletzt protokolliert am {date}",
+        weightAriaNoTarget: "Gewicht {current}{metaSuffix}",
     },
     mealLogged: {
         titleLogged: "Mahlzeit protokolliert",
@@ -109,18 +115,21 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         title: "Trends",
         empty: "In diesem Zeitraum wurden noch keine Mahlzeiten oder kein Wasser protokolliert.",
         avgUnder: "unter",
-        loggedOfTotal: "{logged}/{total} Tage protokolliert",
         caloriesOverRange: "Kalorien pro Tag in den letzten {range} Tagen",
         metricOverRange: "{metric} pro Tag in den letzten {range} Tagen",
         windowAriaLabel: "Trendzeitraum",
         rangeDaysAriaLabel: "{n} Tage",
         avgAllDays: "{range}-Tage-Ø · alle Tage",
+        loading: "Trends werden geladen…",
+        rangeEmpty:
+            "In den letzten {range} Tagen nichts protokolliert. Versuch einen größeren Zeitraum.",
+        metricAvgAllDays: "{metric} · {range}-Tage-Ø · alle Tage",
+        metricAvgRecorded: "{metric} · {range}-Tage-Ø · erfasste Tage",
     },
     weightTrends: {
         title: "Gewicht",
         empty: "In diesem Zeitraum wurde noch kein Gewicht protokolliert.",
-        rangeEmpty:
-            "Keine Wiegungen in den letzten {range} Tagen. Versuch einen größeren Zeitraum.",
+        rangeEmpty: "Keine Wiegungen in den letzten {range} Tagen.",
         windowAriaLabel: "Trendzeitraum",
         rangeAriaLabel: "Letzte {n} Tage",
         chartAriaLabel: "Gewicht von {from} bis {to}, zuletzt {latest}",
@@ -129,17 +138,26 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         sinceDate: "{change} seit {date}",
         weighIns: { one: "{n} Wiegung", other: "{n} Wiegungen" },
         atTarget: "am Ziel",
-        toLose: "{amount} bis zum Ziel (abnehmen)",
-        toGain: "{amount} bis zum Ziel (zunehmen)",
+        // Short forms, like every other locale's ("{amount} af te vallen",
+        // "{amount} do zrzucenia"). "{amount} bis zum Ziel (abnehmen)" both
+        // restated "Ziel" and added a parenthetical, and this line ends in
+        // " · Ziel 75,0 kg" whose figure is the only part allowed to give
+        // (`.fgive`) — so at 280px German, and German alone, printed the gloss
+        // in full and cut the target weight mid-figure ("75,").
+        toLose: "noch {amount} abnehmen",
+        toGain: "noch {amount} zunehmen",
         target: "Ziel {value}",
         noTarget: "Kein Ziel festgelegt",
+        loading: "Gewichtsverlauf wird geladen…",
     },
     importMeals: {
         stepFile: "Datei",
         stepMap: "Spalten zuordnen",
         stepPreview: "Vorschau",
         stepImport: "Import",
-        stepOf: "Schritt {n} von {total} · {label}",
+        loading: "Import wird vorbereitet…",
+        stepCount: "Schritt {n} von {total}",
+        requiredLegend: "Mit * markierte Felder sind Pflichtfelder.",
         fieldLabels: {
             logged_at: "Datum / Uhrzeit",
             description: "Name des Lebensmittels",
@@ -214,16 +232,11 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             other: "{n} Mahlzeiten zu importieren",
         },
         kcalTotal: "{kcal} kcal insgesamt",
-        rowsSkipped: "{n} Zeilen übersprungen",
         batchCount: { one: "{n} Stapel", other: "{n} Stapel" },
         datesReadAs: "Datumswerte gelesen als {format}; Energie {conversion}.",
         energyConvertedNote: "von kJ in kcal umgerechnet",
         energyReadAsKcal: "als kcal gelesen",
-        badDatesWarning:
-            "{n} Zeile(n) wurden übersprungen, weil das Datum nicht als {format} gelesen werden konnte{sample}. Geh zurück und stell das Datumsformat ein, das zu deiner Datei passt.",
         badDateSample: " (z. B. Zeile {line}: {value})",
-        noTimeWarning:
-            "{n} Zeile(n) haben ein Datum, aber keine Uhrzeit — sie werden für die Mittagszeit protokolliert.",
         splitDatesCount: {
             one: "{n} Datum hat",
             other: "{n} Datumswerte haben",
@@ -243,23 +256,62 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         colAlcohol: "Alk.",
         colCaffeine: "Koff.",
         noNameFallback: "(kein Name — wird nach Mahlzeit benannt)",
-        showingRows: "Zeigt {shown} von {total} Zeilen",
-        checkingRows: "{n} Zeilen werden geprüft…",
-        importingRows: "{n} Zeilen werden importiert…",
         batchProgress: "{label} (Stapel {done} von {total})",
         rowsRange: "Zeilen {a}–{b}: {msg}",
         preflightFailed: "Vorabprüfung fehlgeschlagen.",
-        rowsWouldFail:
-            "{n} Zeile(n) würden fehlschlagen, z. B. Zeile {line}: {message}",
         importingEllipsis: "Wird importiert…",
-        importButton: "{n} Mahlzeiten importieren",
         backToMapping: "Zurück zur Zuordnung",
         importCompleteHeading: "Import abgeschlossen",
-        resultMealsImported: "{n} Mahlzeiten importiert",
-        resultAlreadyLogged: ", {n} bereits protokolliert",
-        resultFailed: ", {n} fehlgeschlagen",
-        resultSkipped: ", {n} übersprungen",
         restartButton: "Weitere Datei importieren",
+        noTimeWarning: {
+            one: "{n} Zeile hat ein Datum, aber keine Uhrzeit — sie wird für die Mittagszeit protokolliert.",
+            other: "{n} Zeilen haben ein Datum, aber keine Uhrzeit — sie werden für die Mittagszeit protokolliert.",
+        },
+        rowsSkipped: {
+            one: "{n} Zeile übersprungen",
+            other: "{n} Zeilen übersprungen",
+        },
+        badDatesWarning: {
+            one: "{n} Zeile wurde übersprungen, weil ihr Datum nicht als {format} gelesen werden konnte{sample}. Geh zurück und stell das Datumsformat ein, das zu deiner Datei passt.",
+            other: "{n} Zeilen wurden übersprungen, weil ihr Datum nicht als {format} gelesen werden konnte{sample}. Geh zurück und stell das Datumsformat ein, das zu deiner Datei passt.",
+        },
+        rowsWouldFail: {
+            one: "{n} Zeile würde fehlschlagen, z. B. Zeile {line}: {message}",
+            other: "{n} Zeilen würden fehlschlagen, z. B. Zeile {line}: {message}",
+        },
+        resultMealsImported: {
+            one: "{n} Mahlzeit importiert",
+            other: "{n} Mahlzeiten importiert",
+        },
+        importButton: {
+            one: "{n} Mahlzeit importieren",
+            other: "{n} Mahlzeiten importieren",
+        },
+        checkingRows: {
+            one: "{n} Zeile wird geprüft…",
+            other: "{n} Zeilen werden geprüft…",
+        },
+        importingRows: {
+            one: "{n} Zeile wird importiert…",
+            other: "{n} Zeilen werden importiert…",
+        },
+        showingRows: {
+            one: "Zeigt {shown} von {total} Zeile",
+            other: "Zeigt {shown} von {total} Zeilen",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} bereits protokolliert",
+            other: ", {n} bereits protokolliert",
+        },
+        resultFailed: {
+            one: ", {n} fehlgeschlagen",
+            other: ", {n} fehlgeschlagen",
+        },
+        resultSkipped: {
+            one: ", {n} übersprungen",
+            other: ", {n} übersprungen",
+        },
+        sentenceEnd: ".",
         couldNotReadFile: "Diese Datei konnte nicht gelesen werden: {msg}",
         noDataRows: "Keine Datenzeilen in dieser Datei gefunden.",
         emailNotice:
