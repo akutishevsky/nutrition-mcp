@@ -181,14 +181,20 @@ function keepFocus(root, write, opts) {
 // taller still than all of them on some future host is shown whole rather than
 // clipped. One pass per render and nothing animated, so the ResizeObserver
 // still sees a single settled size.
+// Measured with getBoundingClientRect, not offsetHeight: offsetHeight rounds
+// to whole pixels, and a floor rounded DOWN is not a floor. A two-line meta at
+// a 14.7px line-height is 29.391px tall and reserves 29px, so the card still
+// moves 0.391px on a toggle — the very thing this reserves against, just small
+// enough to read as a rendering artefact rather than a bug.
 function reserveLine(el, texts) {
     if (!el || !texts || !texts.length) return;
     const current = el.textContent;
     el.style.minHeight = "";
-    let tallest = el.offsetHeight;
+    let tallest = el.getBoundingClientRect().height;
     for (const text of texts) {
         el.textContent = text;
-        if (el.offsetHeight > tallest) tallest = el.offsetHeight;
+        const h = el.getBoundingClientRect().height;
+        if (h > tallest) tallest = h;
     }
     el.textContent = current;
     el.style.minHeight = tallest + "px";
