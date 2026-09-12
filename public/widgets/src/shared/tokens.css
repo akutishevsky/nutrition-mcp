@@ -111,7 +111,7 @@
 
        Both light values are one step darker than the hues they read as, and
        that is what the a11y audit forced: a signal here is almost always TEXT
-       (`.dcap.over`, `.pill-bad`, `.pill-warn`, `.hsub.over`, `.field-error`)
+       (`.dcap.over`, `.pill-bad`, `.pill-warn`, `.field-error`)
        and almost always sits on a surface LIGHTER than --panel is dark —
        --bg2, or the signal's own 9–12% tint of itself. Measured, light:
          --over  #d0452b -> #bb3a22   on --bg2       3.98 -> 4.85
@@ -132,6 +132,14 @@
         0 30px 70px -30px rgba(16, 19, 24, 0.25);
     --seg-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* The card glow's strength (base.css .glow). Per theme because the blob
+       sits exactly under the header's right-hand .cmeta, and in dark a bright
+       series hue lifts the ground under that 10.5px --ink3 text more than it
+       does in light: at 0.13 the worst pixel measured 4.34:1 under --acc and
+       4.42:1 under --cal, below AA (5.57:1 on bare --panel). 0.10 is 4.63 /
+       4.70. Light keeps 0.13, where the same pixel is 4.57 / 4.89. */
+    --glow-a: 0.13;
 
     /* Geometry. --r-card is 20px, not the site's 26–28: on a 336px-wide card a
        28px radius eats visible corner area and reads as a lozenge. Same
@@ -190,6 +198,7 @@
            grey smudge; the 1px line is what separates the card from the host's
            chat ground, so this must not go back to `none` either. */
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+        --glow-a: 0.1;
         color-scheme: dark;
     }
 }
@@ -225,6 +234,7 @@
     --shadow:
         0 1px 2px rgba(16, 19, 24, 0.04),
         0 30px 70px -30px rgba(16, 19, 24, 0.25);
+    --glow-a: 0.13;
     color-scheme: light;
 }
 
@@ -256,5 +266,6 @@
     --over: #ff6b52;
     --warn: #e0a030;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --glow-a: 0.1;
     color-scheme: dark;
 }

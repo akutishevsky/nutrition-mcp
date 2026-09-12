@@ -1,7 +1,8 @@
-/* The widget shell: reset, type scale, the one card, the header line, the
-   hairline section, the empty state, the nutrient role classes and the icon
-   primitive. Everything here is used by every widget; anything used by one
-   widget belongs in that template's own scoped block. */
+/* The widget shell: reset, type scale, the one card, the card foot and the
+   bridge's settings note, the header line, the hairline section, the empty
+   state, the nutrient role classes and the icon primitive. Everything here is
+   used by every widget; anything used by one widget belongs in that template's
+   own scoped block. */
 
 /* `--p` is the fraction a tile's wash fills to. Registering it is what lets it
    be ANIMATED: an unregistered custom property is an untyped token and CSS has
@@ -125,9 +126,81 @@ body {
     height: 220px;
     border-radius: 50%;
     background: var(--c, var(--acc));
-    opacity: 0.13;
+    /* Per theme (tokens.css): the header meta sits on this blob. */
+    opacity: var(--glow-a);
     filter: blur(46px);
     pointer-events: none;
+}
+
+/* ---- the card foot and the settings note ---------------------------------- */
+
+/* Here rather than in chip.css because this is bridge chrome, not strip
+   chrome: bridge.js appends the settings note to every widget it hosts,
+   including import-meals, which never includes chip.css and so used to paint
+   the note as an unstyled 13.5px line. The strip's own tap hint (`.fhint`)
+   stays in chip.css with the strip that emits it. */
+
+/* The bottom of the card: the tap hint, and the settings note bridge.js appends
+   into `[data-widget-foot]`. Both are small print ABOUT the widget rather than
+   anything it measured, so they share one hairline and one block instead of the
+   dashed full-width pill plus separate banded note they used to be — two boxes,
+   two hairlines and ~64px to carry two short lines.
+
+   Stacked, not a `space-between` row like `.cfoot`: the note is ~85 characters,
+   so it never shares a line with the hint at any width a chat card gets, and a
+   flex row would only have produced the same two lines with a ragged gap in the
+   middle of the first one.
+
+   Left-aligned, because they are read as prose. Centring small print makes it
+   look like a caption for the card above it, which is what the old banded note
+   read as. */
+/* 12px of margin, not 10: `.strip` is a plain block, so nothing but this rule
+   spaces the foot, and the rail's -2px focus-ring margin pulls whatever follows
+   it up by 2. Without the margin the hairline landed exactly on the bottom edge
+   of the last row of tiles. 12 - 2 leaves the 10px every other block in the
+   card is separated by, and the line then sits with 10px of air on both sides
+   of it. */
+.foot {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 3px;
+    justify-items: start;
+}
+/* …but a foot that is a DIRECT child of the card (a widget's own empty or
+   range-empty state, with no strip around it) is already spaced by the card's
+   10px flex gap, and has no rail pulling it up — the 12px above would stack
+   on that gap as 22px. Does not reach the strip's foot, which sits inside
+   `.strip`, not in the card. */
+.card > .foot {
+    margin-top: 0;
+}
+/* An empty foot is no foot: a strip with nothing to disclose, on a page where
+   the bridge put its note somewhere else, would otherwise draw a hairline under
+   the rail with 8px of nothing beneath it. */
+.foot:empty {
+    display: none;
+}
+
+/* The settings note. Quietest thing on the card by design — it is a standing
+   disclaimer, not an instruction, and it is on every widget. */
+.wnote {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--ink3);
+}
+/* Standing alone, under a render that emitted no foot to put it in (a bare
+   no-data `.empty` with no header to card it, the component gallery's page,
+   which strips every specimen's foot): it has to draw its own hairline and its
+   own room, and it centres, because there it IS a caption for what sits above.
+   Every CARD carries a foot — the headed empty states included, on all four
+   widgets that have one — so this is the fallback, not a widget's layout. */
+.wrap > .wnote {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    text-align: center;
 }
 
 /* Header line: title, right-aligned meta, subtitle on its own row.
@@ -152,6 +225,14 @@ body {
     letter-spacing: -0.025em;
     white-space: nowrap;
 }
+/* A title given `tabindex="-1"` is a programmatic focus target, not a control:
+   import-meals moves focus to it when the step changes so a screen reader
+   announces the new step. It is out of the tab order, so no keyboard user ever
+   lands on it expecting a ring — and a ring round a heading reads as something
+   to press. */
+.ctitle[tabindex="-1"]:focus {
+    outline: none;
+}
 /* Three stages of degradation, replacing the single-line ellipsis the layout
    audit caught (see .chead above). Nothing is ever clipped:
      1. it fits beside the title            -> one line, flush right;
@@ -162,8 +243,8 @@ body {
      3. even a full row is too narrow ("28 Dec 2025 – 4 Jan 2026 · 300 of 365
         days logged", or a wide locale at 320px) -> it wraps inside its own box.
    The mono uppercase eyebrow is kept on purpose even though the treatment costs
-   ~33% width over sentence case: it is the same eyebrow as .slab and the table
-   head, and stages 2–3 are what pay for it. `overflow-wrap: anywhere` is the
+   ~33% width over sentence case: it is the same eyebrow as the table head
+   (`.tbl thead th`, table.css), and stages 2–3 are what pay for it. `overflow-wrap: anywhere` is the
    last resort for an unbreakable compound (de "PROTOKOLLIERT"); it does not
    affect stages 1–2, which are decided by max-content. Only in stage 3 can a
    date range break mid-figure — a break that used to be a truncation.
@@ -214,6 +295,20 @@ body {
     border-radius: 50%;
     background: var(--cal);
     vertical-align: 1px; /* optical centre on a 10.5px line box */
+}
+/* A meta that always takes the header's second row: the window line of a card
+   whose header also carries a `.seg` (trends, weight-trends). The template emits
+   it BEFORE the `.seg` in the DOM, so a screen reader hears which window the
+   figures cover before the control that changes it; `order` then puts it back
+   under the title visually, and the full-width basis is what makes the flex
+   line break rather than squeezing it between the title and the control. Left-
+   aligned, because on a row of its own there is nothing for it to sit flush
+   against. Same `order` as `.csub` — a header never carries both. */
+.chead > .cmeta.crow {
+    order: 3;
+    flex-basis: 100%;
+    margin-left: 0;
+    text-align: left;
 }
 /* The header's third slot, always on its own row. TWO LINES, not one ellipsised
    line: on meal-logged this element is not context, it IS the confirmation —
@@ -272,9 +367,22 @@ body {
     border-radius: 0;
     box-shadow: none;
 }
+/* Standing bare in the root — a loading line, a no-data state with no range to
+   name, the bridge's no-host card — it IS the outermost surface, so it goes
+   flush with the host's frame exactly as `.wrap > .card` does: a border just
+   inside the host's border, a curve inside its curve and a shadow with nothing
+   to fall on are the same doubled edges there. Keeps its padding and --panel
+   ground, which is the root's ground here anyway. Scoped off `.page`: on
+   import-meals and the gallery the root is a gutter on --bg and a bare
+   `.empty` there is a card on a page, which should look like one. */
+.wrap:not(.page) > .empty {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
 
 /* Nutrient role classes: Dawn's --c indirection. Every consumer — chip dot,
-   chip underbar, gauge arc, chart stroke, drawer dot, card glow — reads
+   tile wash, panel ring, chart stroke, drawer dot, card glow — reads
    var(--c, var(--acc)) and never names a nutrient, so adding one is one MACROS
    entry, one token and one line here. --over and --warn are signals rather than
    series and deliberately get no role class. */

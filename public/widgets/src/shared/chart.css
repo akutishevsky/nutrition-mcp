@@ -1,8 +1,9 @@
 /* The one chart grammar: a 2.5px line, a fading area under it on zero-based
    charts, an optional dashed goal line, a single dot on the last point, and
    HTML labels underneath. Three instances share it (calories, a switched
-   nutrient series, weight — the last without the area, see .carea); the
-   geometry that feeds it is in shared/svg.js.
+   nutrient series, weight — the last without the area, see .carea, and with a
+   small mark on every reading, see .cpt); the geometry that feeds it is in
+   shared/svg.js.
 
    The svg is viewBox "0 0 480 52" with preserveAspectRatio="none" and a fixed
    52px CSS height, so the chart stretches horizontally and never grows
@@ -119,15 +120,23 @@
     stop-opacity: 0;
 }
 
-/* Painted BEHIND the area, not merely behind the line: markup order is
-   goal → area → line. On a near-flat series the goal sits two or three viewBox
-   units off the average, and two bare hairlines that close together read as one
-   thick smudge; once the series is the top edge of a filled region, a dashed
-   line running through (or above) that wash is unmistakably the other thing.
+/* In the base grammar the goal is painted BEHIND the area, not merely behind
+   the line: markup order goal → area → line. On a near-flat series the goal
+   sits two or three viewBox units off the average, and two bare hairlines that
+   close together read as one thick smudge; once the series is the top edge of a
+   filled region, a dashed line running through (or above) that wash is
+   unmistakably the other thing.
+
+   That order needs a wash to hide behind, so it is not universal. The focus
+   panel's sparkline paints its goal OVER the line (`.fspark .cgoal`, chip.css,
+   which says why), and so does a data-scaled chart with no wash at all
+   (weight-trends' target): under a bare 2.5px stroke the dashes would simply
+   vanish wherever the two meet.
 
    The two alternatives were rejected for concrete reasons. Lowering --ink3's
-   opacity would dim weight-trends' target line too, and reaching that target is
-   the entire subject of that card. And widening the y-domain headroom moves the
+   opacity would dim every target line with it, weight-trends' included, and
+   reaching that target is the entire subject of that card. And widening the
+   y-domain headroom moves the
    two lines CLOSER, not apart: both values are divided by the same `top`, so a
    larger headroom shrinks the gap between them — the current 1.15 is already
    the compromise. */
@@ -139,7 +148,7 @@
     vector-effect: non-scaling-stroke;
 }
 /* One vertical hairline per day (chDayLines in shared/svg.js), painted first so
-   everything else sits over it: order is day → goal → area → line. Without
+   everything else sits over it, whatever order the rest is in. Without
    them a 7-day series near its goal is a flat stroke across an empty wash, and
    nothing says where one day ends and the next begins.
 
@@ -183,6 +192,38 @@
     stroke: var(--cstroke, var(--c, var(--cal)));
     stroke-width: 6;
 }
+/* One mark per READING on a line that bridges the days between readings
+   (chMarksMarkup in shared/svg.js — weight-trends). A bridged line alone does
+   not say which of its vertices were measured; these do.
+
+   4px: visibly wider than the 2.5px line, so a mark reads as a bead on the
+   stroke rather than a kink in it, and well under the 6px last-reading dot,
+   which must stay the one mark that says "now". Same zero-length round-cap
+   geometry as .cdot, and the same stroke variant as the line, so it is the
+   line's own colour at the line's own contrast. No halo: it sits ON the line
+   it marks, and a --panel ring would cut the stroke on either side of it.
+   Painted under .chalo/.cdot by markup order (the last reading's own mark is
+   covered by its dot). */
+.cpt {
+    fill: none;
+    stroke: var(--cstroke, var(--c, var(--cal)));
+    stroke-width: 4;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+/* Scaffold motion inside a focus panel: the marks fade in with the day rules,
+   the goal and the dot (chip.css's `.fspark` list and its fadeIn keyframes)
+   rather than sitting there before the line has drawn through them, and a
+   repaint marked `.still` shows them at once, as it does the rest. Kept here
+   beside the mark it animates rather than added to chip.css's list. Reduced
+   motion needs nothing extra: base.css's global rule zeroes the delay as well
+   as the duration, so `both` never holds a mark invisible. */
+.fspark .cpt {
+    animation: fadeIn 0.5s var(--ease-out) 0.35s both;
+}
+.fspark .cwrap.still .cpt {
+    animation: none;
+}
 /* Every label is HTML here rather than <text> inside the svg, for three
    reasons that all follow from preserveAspectRatio="none": svg text would be
    stretched horizontally with the viewBox, it cannot ellipsise, and it ignores
@@ -191,8 +232,8 @@
    and belongs on the card's centre line, but flex distribution centred it
    between its neighbours instead, so a short left date and a long right one
    pushed it off-centre. `1fr auto 1fr` pins it to the middle whatever the two
-   dates measure. A two-span foot (weight-trends) still reads left/right,
-   because the empty middle column collapses to nothing. */
+   dates measure. A two-span foot still reads left/right, because the empty
+   middle column collapses to nothing. */
 .cfoot {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -226,14 +267,4 @@
 .cfoot b {
     color: var(--ink2);
     font-weight: 500;
-}
-
-/* Same 52px box when there is nothing to draw, so a range toggle never makes
-   the card jump. */
-.cempty {
-    height: 52px;
-    display: grid;
-    place-items: center;
-    font-size: 11.5px;
-    color: var(--ink3);
 }

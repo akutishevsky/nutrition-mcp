@@ -1,10 +1,13 @@
-/* Every interaction primitive the widgets have: the wrapping rails, the chip,
-   the calorie hero, the `.more` row, the one shared drawer, and the segmented
-   control. Pairs with shared/macros.js, which emits this markup.
+/* Every interaction primitive the widgets have: the tile grids (flat and
+   tiered), the tile, the focus panel, the `.more` row, the one shared drawer,
+   the card foot's tap hint, and the segmented control. Pairs with
+   shared/macros.js, which emits this markup (and shared/spark.js, which paints
+   the panel's sparkline).
 
    Nothing in here names a nutrient. Colour arrives as `--c`, set by the `.c-*`
-   role class base.css defines, so a chip, its dot, its underbar, the gauge arc
-   and the drawer head all tint from one class on one element.
+   role class base.css defines, so a tile, its glyph, its progress wash, the
+   panel's ring and line and the drawer head all tint from one class on one
+   element.
 
    Three disclosure affordances exist and only three: the chip (inline), the
    `.more` row (section-sized), and the drawer both of them open into. */
@@ -82,16 +85,28 @@
    existing state rule exactly as written, and the breach mix lands on 4.25:1
    light / 4.02:1 dark for free.
 
-   Declared on `.chip`/`.focus` themselves rather than on `.strip.tiered`, so it
+   Declared on the controls themselves rather than on `.strip.tiered`, so it
    reaches control borders ONLY: the tier divider (`.r-limit::before`), the
    card foot's rule and the `.sec` hairline all read `--line` from an ancestor
    and stay soft, which is the point of having two tokens (see tokens.css).
 
-   `.tiered` because this is the pilot's scope — it comes off with `opts.tiers`
-   when every widget is moved over, at which point these belong on `.chip` and
-   `.focus` outright. */
-.strip.tiered .chip,
-.strip.tiered .focus {
+   `button.focus`, NOT `.focus`. A panel that is a `<span>` is not a control —
+   trends' always is (calories neither discloses nor charts there), and so is
+   nutrition-summary's on a day whose every meal is 0 kcal — and at the 3:1
+   control edge it read as tappable and then did nothing on a click, breaking
+   the one rule the species language rests on: bordered means control. The span
+   keeps the soft `--line`, like every other piece of data on the card. The
+   same split for `.chip`: a `.chip.static` is data, so it keeps the soft pair
+   too — its border is transparent anyway, except the water bar's (below
+   `.chip.static`), which outlines its track in the soft `--line2` and must not
+   be drawn at the control step.
+
+   `.tiered` because this is the flag's scope — its four callers are
+   nutrition-summary, goal-progress, meal-logged and trends, and the flat path
+   stays only as the rollback. When the flag goes, these belong on `.chip` and
+   `button.focus` outright. */
+.strip.tiered .chip:not(.static),
+.strip.tiered button.focus {
     --line: var(--edge);
     --line2: var(--edge2);
 }
@@ -105,12 +120,12 @@
    levels are made here, and they are made out of SIZE, PROXIMITY and SHAPE:
 
      1  the focus panel      24px figure, its own tinted ground and a ring
-     2  .r-macro             three up, 17px figures, tucked under the hero
+     2  .r-macro             three up, 16px figures, tucked under the hero
      3  .r-limit             behind a hairline, two/four up, 12.5px figures
      -  .r-water             LAST, and a full-width bar — a different SHAPE,
                              not a tile, because it is not on the ladder
 
-   Size does most of the work, and 24 / 18 / 13 is deliberately a wide ladder:
+   Size does most of the work, and 24 / 16 / 12.5 is deliberately a wide ladder:
    at 15px against 24px (what the flat rail had) the tiles read as a second
    register of the hero rather than as a level below it.
 
@@ -229,13 +244,24 @@
    theirs. Four items fold to 2x2 with no hole; THREE leave one alone on the
    second row, and an empty cell beside it reads as something failing to load —
    so the odd one out takes the whole row. The macro rail is not folded (see
-   level 2 above); it narrows its tile instead. */
+   level 2 above); it narrows its tile instead.
+
+   WHICH tile that is, is `.fold`, not `:last-child`. A full-width tile paints a
+   wash twice as long at the same fraction of goal, and by DOM order the last
+   limit is always Fiber — the group's one FLOOR — so on the commonest
+   three-limit card a fiber tile comfortably under its goal was the loudest
+   block on a rail that also held a breach (measured 1.9x the wash area at 320
+   and 420px). That is precisely the failure the macro rail is exempted from
+   this fold over, and it quietly outranked `.r-limit .chip.over`'s
+   `--wash-scale: 1`, whose whole job is the opposite. railOf (shared/macros.js)
+   marks the breached tile instead, and marks exactly one per rail, so the row
+   under it still fills. */
 @media (max-width: 479px) {
     .strip.tiered .rail:not(.r-macro)[data-n="3"],
     .strip.tiered .rail:not(.r-macro)[data-n="4"] {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .strip.tiered .rail:not(.r-macro)[data-n="3"] > .chip:last-child {
+    .strip.tiered .rail:not(.r-macro)[data-n="3"] > .chip.fold {
         grid-column: 1 / -1;
     }
 }
@@ -398,19 +424,28 @@
 
 /* --- the narrow macro tile --- */
 
-/* Below 380 the macro tile gives up the glyph's column, and nothing else. At
+/* Below 402 the macro tile gives up the glyph's column, and nothing else. At
    280 the tile is 81px: glyph (20) + two 7px gaps + chevron (11) + 18px of
    border and inset left the figure 18px, and even with the goal wrapped under
    it "2,205" needs 46. Without the glyph the text column is ~52px at 280 and
-   ~86 at 379; with it, the long figure only clears by 10% from 380 up (tile
-   ~115px), which is where the column comes back.
+   ~86 at 379.
+
+   THE LABEL, NOT THE FIGURE, IS WHAT DECIDES THIS BREAKPOINT. It was 380,
+   chosen on the figure's clearance, and the glyph's ~27px column costs more
+   than the ~3px the tile itself gains across that step — so the text column
+   DROPPED from 56px at 378 to 52px at 380 and only climbed back past it near
+   400. Measured: fr "Protéines" (needs 56px) ellipsised at 380-394 and ja
+   "タンパク質" (59px) at 380-400, while neither clipped at 370 on a narrower
+   card. A wider card showing MORE truncation is the layout arguing with
+   itself, and it did it while showing the glyph that is supposed to restate
+   the very word being cut. 402 is where ja clears with the column back.
 
    The mark goes, not the chevron and not the figure: the chevron is the tile's
    one affordance, the figure is its reading, and the glyph restates a label
    that sits beside it in words. The series colour still reaches the tile
    through its wash and its selected ring, and the drawer head the tile opens
    keeps its glyph. */
-@media (max-width: 379px) {
+@media (max-width: 401px) {
     .strip.tiered .r-macro .chip {
         grid-template-columns: minmax(0, 1fr) auto;
         padding: 8px 6px;
@@ -433,9 +468,13 @@
    of one object in two different shapes (measured at 420: protein and carbs
    stacked, fat on one line). From 480 the column is ~85px with the glyph back,
    which holds any three-digit figure and its goal on one line, and the wrap
-   above is only the fallback for a figure nobody should be eating. */
+   above is only the fallback for a figure nobody should be eating.
+
+   `:not(.bare)` is the no-goal case (macros.js, chipValue): that `.u` holds
+   nothing but the unit, so there is no goal to stack and pushing it down left
+   a lone "g" on a line of its own under the figure. */
 @media (max-width: 479px) {
-    .strip.tiered .r-macro .chip > .v .u {
+    .strip.tiered .r-macro .chip > .v .u:not(.bare) {
         flex-basis: 100%;
     }
 }
@@ -985,6 +1024,19 @@
     color: var(--ink);
     font-weight: 600;
 }
+/* …except the tiered water bar, which is a TRACK, not a tile. Its whole job is
+   "how far along", and borderless on --bg2 the unfilled part of it measured
+   1.05:1 against the card in dark and 1.16:1 in light: past the wash's edge
+   the bar simply stopped, so a quarter-full glass read as a short pill. That
+   is meal-logged's water row on every render (water never has meals, so it is
+   static there), and nutrition-summary's on a day with no chart. The outline
+   is the soft `--line2` — structure, like span.focus's `--line` — not the
+   3:1 `--edge` a control wears, so the species rule ("bordered at the control
+   step = pressable") still holds. Before `.chip.static.over` so a breach, if
+   water ever gets one, still wins. */
+.r-water .chip.static {
+    border-color: var(--line2);
+}
 /* A BREACH IS STILL A BREACH WITHOUT THE PILL. `.chip.static`'s transparent
    border is the species marker, and at equal specificity written later it also
    erased `.chip.over`'s hairline — so a static over tile carried one cue fewer
@@ -1043,7 +1095,11 @@
         border-color 0.18s var(--ease-out),
         box-shadow 0.18s var(--ease-out);
 }
+/* A span panel never carries the chevron, so the 26px right gutter `.focus`
+   holds clear for it is dead space — taken straight off the meta lines, which
+   are the part of the panel that ellipsises. 9px mirrors the left inset. */
 span.focus {
+    padding-right: 9px;
     cursor: default;
 }
 /* HOVER IS SCOPED OFF THE STATES, and that is the whole reason for the
@@ -1154,12 +1210,12 @@ button.focus:active {
     --c: var(--over);
     border-color: color-mix(in srgb, var(--over) 45%, var(--line));
 }
-/* The sparkline needs telling separately: chartMarkup emits `.cwrap` WITH the
-   metric's own role class, because trends and weight-trends draw the same
-   wrapper outside any panel and depend on it. That class sets --c on the
-   wrapper itself, so it outranks the reassignment above and the chart stayed
-   in the series colour inside an otherwise red panel. Two classes deep beats
-   the one-class role. */
+/* The sparkline needs telling separately: sparkMarkup (shared/spark.js) emits
+   `.cwrap` WITH the metric's own role class, because the chart grammar's
+   wrapper carries its series colour wherever it is drawn, inside a panel or
+   outside one. That class sets --c on the wrapper itself, so it outranks the
+   reassignment above and the chart stayed in the series colour inside an
+   otherwise red panel. Two classes deep beats the one-class role. */
 .focus.over .cwrap {
     --c: var(--over);
 }
@@ -1278,9 +1334,12 @@ button.focus:active {
    190px in uk at 280, 102 of 215 in de at 300, cut in fr/nl/pl/it/es at 320. A
    label sharing its line with a figure only ever gets what the figure leaves;
    on its own line it gets the whole block, and the delta keeps its own.
-   (`.tiered` because that is the pilot's scope, and the flat-rail widgets'
-   panels — whose calorie label is a single word — are left exactly as they
-   were.)
+   (`.tiered` because that is the flag's scope — nutrition-summary,
+   goal-progress, meal-logged and trends — and the flat path's panels, whose
+   calorie label is a single word, are left exactly as they were. `.focus.solo`
+   is a panel standing outside any strip, written by hand by a template that
+   has one reading and no rail: it has the same two lines to hold, so it takes
+   the same three rules.)
 
    FIXED LINES, so the panel never changes height on a series switch. A chip tap
    re-renders this block with another metric's label and delta, and a layout
@@ -1294,7 +1353,8 @@ button.focus:active {
    A grid on `minmax(0, 1fr)`, not a flex row: its min-content is zero, so the
    label's length can never raise `.fmain`'s floor — which stays on the figure,
    the one run here that is `nowrap` for real. */
-.strip.tiered .fmeta {
+.strip.tiered .fmeta,
+.focus.solo .fmeta {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     row-gap: 2px;
@@ -1305,12 +1365,14 @@ button.focus:active {
    because the line break is this file's decision and the flat path still
    needs it. Presentational either way — the panel's accessible name carries
    its own wording. */
-.strip.tiered .fsep {
+.strip.tiered .fsep,
+.focus.solo .fsep {
     display: none;
 }
 /* `min-height` holds the delta's line when a metric has neither a delta nor a
    target to print, so that metric is not a line shorter than its neighbours. */
-.strip.tiered .fdelta {
+.strip.tiered .fdelta,
+.focus.solo .fdelta {
     min-height: 13px;
     white-space: nowrap;
 }
@@ -1319,6 +1381,43 @@ button.focus:active {
 }
 .fdelta.mute {
     color: var(--ink3);
+    font-weight: 600;
+}
+/* A META LINE IN TWO PARTS: a figure, then prose about it — the signed change
+   and "since {date}", the gap to target and "· Target X". As one nowrap run
+   with no clip, a long translation printed its tail straight across the panel
+   border, and a span panel has only its 9px inset to lose it in. As a flex
+   row the figure is the part that stays whole and only the prose ellipsises —
+   the same trade `.fmeta` makes on the flat path, where the label gives and
+   the delta keeps.
+
+   `gap: 0` because the prose carries its own separator: " since …" and
+   " · Target …" are whole translatable strings, and a gap would put space in
+   front of a locale whose string does not ask for any. */
+.fdelta.fline {
+    display: flex;
+    min-width: 0;
+    gap: 0;
+}
+.fdelta.fline > * {
+    flex: none;
+}
+/* `white-space: pre` is what keeps that separator. A flex item is blockified,
+   and a block drops the collapsible space at the start of its own line — the
+   very space the string carries in place of a gap. `pre` never wraps either,
+   so the line stays one line and the ellipsis still fires. */
+.fdelta .fgive,
+.fdelta .fsince {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: pre;
+}
+/* The target is the reference, not the reading: a step quieter than the gap
+   it follows — by ink and weight, not size, so the line keeps one height. */
+.fdelta .fgive {
+    color: var(--ink2);
     font-weight: 600;
 }
 
@@ -1355,8 +1454,8 @@ button.focus:active {
    the path to a length of 1 whatever its real geometry, so one dash covers it
    exactly and the offset sweeps 1 -> 0 — no measuring, no JS, and it works for
    7 points or 30. Scoped to `.fspark` because `stroke-dasharray: 1` on a path
-   WITHOUT that attribute would render as a dotted line, and trends and
-   weight-trends draw the same `.cline` without it.
+   WITHOUT that attribute would render as a dotted line, and chart.css's
+   `.cline` is drawn without it wherever a chart stands outside a panel.
 
    THE DASH IS ONLY THERE WHILE IT DRAWS. The pattern sits in the keyframes and
    the fill is `backwards`, so it applies through the delay and the sweep and
@@ -1364,8 +1463,8 @@ button.focus:active {
    reading: a day with a value between two unlogged ones is a zero-length
    subpath the round cap paints as a dot, and Chrome paints no cap on a
    zero-length piece of a dashed path — so on a gappy month those days simply
-   were not drawn. `.cwrap.still` (the template) sets `animation: none`, which
-   now also means no dash at all. */
+   were not drawn. `.cwrap.still` (below) sets `animation: none`, which now
+   also means no dash at all. */
 .fspark .cline {
     animation: drawIn 0.9s var(--ease-out) backwards;
 }
@@ -1375,6 +1474,34 @@ button.focus:active {
 .fspark .chalo,
 .fspark .cdot {
     animation: fadeIn 0.5s var(--ease-out) 0.35s both;
+}
+/* THE ENTRANCE PLAYS ONCE. The two rules above fade the chart's scaffolding
+   in (`.cday`/`.carea`/`.cgoal`, the dot) and draw the line, which is right on
+   the first paint and wrong on every one after it: a series switch goes
+   through focusApply, which rebuilds the panel's children, so each chip tap
+   and each close replayed a ~0.85s blink of grid, goal and wash that had not
+   meaningfully changed. sparkPaint (shared/spark.js) marks every paint after
+   the first `.cwrap.still`, until the next sparkReset.
+
+   The line's draw-in stops too, deliberately. The wash, the goal and the
+   last-reading dot all arrive instantly on a switch, so a line sweeping in
+   over them reads as the line lagging its own shadow, with the dot sitting at
+   an end the line has not reached yet — and the chip the user just tapped
+   already confirms the switch. The dash pattern lives only in the drawIn
+   keyframes, so `animation: none` means no dash at all — the whole line
+   drawn, lone readings included: nothing is ever made visible BY the
+   animation.
+
+   Here rather than in a template since the sparkline became a shared partial:
+   every panel that holds a sparkline owes it the same once-only entrance,
+   whichever code drew the chart. */
+.fspark .cwrap.still .cline,
+.fspark .cwrap.still .cday,
+.fspark .cwrap.still .carea,
+.fspark .cwrap.still .cgoal,
+.fspark .cwrap.still .chalo,
+.fspark .cwrap.still .cdot {
+    animation: none;
 }
 /* 48px, not the 34 it started at. At 34 the chart grammar's zero-based domain
    plus 1.15 headroom left a 30-day calorie series with SIX pixels of total
@@ -1431,40 +1558,8 @@ button.focus:active {
 
 /* ---- the card foot ------------------------------------------------------- */
 
-/* The bottom of the card: the tap hint, and the settings note bridge.js appends
-   into `[data-widget-foot]`. Both are small print ABOUT the widget rather than
-   anything it measured, so they share one hairline and one block instead of the
-   dashed full-width pill plus separate banded note they used to be — two boxes,
-   two hairlines and ~64px to carry two short lines.
+/* `.foot` and the settings note `.wnote` live in base.css (bridge chrome); only the strip's tap hint is here. */
 
-   Stacked, not a `space-between` row like `.cfoot`: the note is ~85 characters,
-   so it never shares a line with the hint at any width a chat card gets, and a
-   flex row would only have produced the same two lines with a ragged gap in the
-   middle of the first one.
-
-   Left-aligned, because they are read as prose. Centring small print makes it
-   look like a caption for the card above it, which is what the old banded note
-   read as. */
-/* 12px of margin, not 10: `.strip` is a plain block, so nothing but this rule
-   spaces the foot, and the rail's -2px focus-ring margin pulls whatever follows
-   it up by 2. Without the margin the hairline landed exactly on the bottom edge
-   of the last row of tiles. 12 - 2 leaves the 10px every other block in the
-   card is separated by, and the line then sits with 10px of air on both sides
-   of it. */
-.foot {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid var(--line);
-    display: grid;
-    gap: 3px;
-    justify-items: start;
-}
-/* An empty foot is no foot: a strip with nothing to disclose, on a page where
-   the bridge put its note somewhere else, would otherwise draw a hairline under
-   the rail with 8px of nothing beneath it. */
-.foot:empty {
-    display: none;
-}
 /* The instruction: a step louder than the note, because it is the only line
    here anyone is meant to act on. */
 .fhint {
@@ -1482,23 +1577,6 @@ button.focus:active {
 }
 .fhint > svg {
     color: var(--ink3);
-}
-
-/* The settings note. Quietest thing on the card by design — it is a standing
-   disclaimer, not an instruction, and it is on every widget. */
-.wnote {
-    font-size: 10px;
-    line-height: 1.4;
-    color: var(--ink3);
-}
-/* Standing alone, under a widget that emitted no foot to put it in
-   (weight-trends, import-meals): it has to draw its own hairline and its own
-   room, and it centres, because there it IS a caption for the card above. */
-.wrap > .wnote {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid var(--line);
-    text-align: center;
 }
 
 /* ---- the .more row ------------------------------------------------------- */
@@ -1552,6 +1630,73 @@ button.focus:active {
 .more:focus-visible {
     outline: 2px solid var(--acc);
     outline-offset: 2px;
+}
+
+/* ---- the extra row on the tiered strip ----------------------------------- */
+
+/* goal-progress' weight row, emitted through `opts.extra` (macros.js) as a
+   `.more.mextra`. On the strip it is one more CONTROL, so it takes the tiles'
+   language rather than the `.more` bar's: a borderless --bg2 bar is this
+   system's mark for data (`.chip.static`), and it would have been the one
+   tappable thing on the card without the 3:1 edge every other one has.
+
+   Shaped like the water bar above it — the same padding and gap, one line — so
+   the two rows that are not on the ladder read as one family under it. Its
+   insides (dot, label, value, chevron) are `.more`'s, untouched; the chevron's
+   focus ring and press are `.more`'s too.
+
+   `>` keeps this off every other `.more`: only a direct child of the strip is
+   the extra's row. */
+.strip.tiered > .more.mextra {
+    height: auto;
+    padding: 7px 12px;
+    gap: 8px;
+    /* Every run on the strip is --ink (see `.chip .k`); --ink2 here would make
+       the weight the one quiet word among the readings. */
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    /* 10px from the water bar, the rhythm the card keeps between blocks. The
+       rail above bleeds -2px for its focus ring, which collapses with this
+       margin, and puts 2px of its own padding back: 10 - 2 + 2. The -2px
+       below is that same bleed for whatever follows — `.foot`'s 12px (base.css)
+       was written against it, so the foot's hairline lands at 10px too. */
+    margin-top: 10px;
+    margin-bottom: -2px;
+    /* The tiles' entrance at the next `--i`, so it deals in after the last
+       tile — but no washIn: there is no gauge on this row to fill. */
+    animation: tileIn 0.4s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 35ms);
+    /* `.more`'s list plus the border and ring, which the open state changes and
+       which would otherwise snap while the ground eased (see `.chip`). */
+    transition:
+        background-color 0.18s var(--ease-out),
+        border-color 0.18s var(--ease-out),
+        box-shadow 0.18s var(--ease-out);
+}
+/* HOVER DECORATES ONLY THE RESTING ROW, for the reason `button.focus:hover`
+   spells out: at equal footing with the open rule it would take a selected
+   row's 14% ground back to 6% under the pointer. It also has to beat
+   `.more:hover`, whose --bg2 step belongs to the bar this row no longer is. The
+   edge deepens as a tile's does. */
+.strip.tiered > .more.mextra:not([aria-expanded="true"]):hover {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--c) 6%, var(--panel));
+    border-color: var(--edge2);
+}
+/* Open: the focus panel's tint-and-ring, since this row opens the same drawer
+   the panel and the tiles do — one state, one look. */
+.strip.tiered > .more.mextra[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--c) 14%, var(--panel));
+    border-color: var(--c);
+    box-shadow: inset 0 0 0 1px var(--c);
+}
+/* The drawer's 8px margin was written against a rail's -2px bleed and the 2px
+   of padding the rail puts back, which lands it 8px under a tile. This row
+   bleeds the same -2px but has no padding to return it, so without this the
+   drawer sat 6px under the one control whose drawer it is. */
+.strip.tiered > .more.mextra + .drawer {
+    margin-top: 10px;
 }
 
 /* ---- the drawer ---------------------------------------------------------- */
@@ -1649,6 +1794,29 @@ button.focus:active {
 .dcap.over {
     color: var(--ink2);
     font-weight: 700;
+}
+/* …AND ON A CHAT-CARD WIDTH IT TAKES A ROW OF ITS OWN. The caption is the only
+   shrinkable item in the head (`.dname` is `flex: none`, the ✕ is pinned
+   right), so the ellipsis ate its tail first — and its tail is the distance to
+   the goal, which is the whole reason the tile gave up its visible goal caption
+   ("the figure carries the goal now and the drawer carries the distance to
+   it", above). Measured clipping at 280px in plain English on calories and
+   caffeine, and still at 320px for alcohol in en/de, sugar and caffeine in uk
+   and calories in de/ja; on a LIMIT the breach wording ("70 mg over") appears
+   nowhere else on the card at all. The head has nothing else on that line, so
+   the caption wraps whole rather than dropping its run. `.dname` and the ✕ stay
+   on line one, so the 24x24 target and the region's aria-labelledby target are
+   untouched. Above 420px the head is wide enough and the single line stands. */
+@media (max-width: 419.98px) {
+    .dhead {
+        flex-wrap: wrap;
+    }
+    .dhead .dcap {
+        flex-basis: 100%;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
 }
 /* 24x24 is the floor, not a preference: WCAG 2.2 SC 2.5.8. At 22px this was
    the only sub-minimum target in the whole system (a11y audit). */
@@ -1805,13 +1973,21 @@ button.focus:active {
     -webkit-appearance: none;
     appearance: none;
     -webkit-tap-highlight-color: transparent;
+    /* The press is on the list at a shorter duration: at the ground's 0.2s a
+       nudge that lasts as long as the tap reads as lag, not as a press. */
     transition:
         background-color 0.2s var(--ease-out),
         box-shadow 0.2s var(--ease-out),
-        color 0.2s var(--ease-out);
+        color 0.2s var(--ease-out),
+        transform 0.1s var(--ease-out);
 }
 .seg button:hover {
     color: var(--ink);
+}
+/* The press every other control here has (`.chip`, `button.focus`, `.more`):
+   a segment was the one button that gave no sign of being pushed. */
+.seg button:active {
+    transform: translateY(1px);
 }
 .seg button[aria-pressed="true"] {
     background: var(--panel);

@@ -166,13 +166,18 @@
     background: var(--track);
 }
 
-/* Row count / truncation footer under a capped preview. Sticks to nothing —
-   it sits inside .tscroll, below the table, so it scrolls away with the rows
-   it is counting. */
+/* Row count / truncation line for a capped preview. A CAPTION UNDER THE BOX,
+   not a footer inside it. It used to be the last node inside `.tscroll`, which
+   put the only statement that the preview IS truncated ~1.7-2.5k px below the
+   fold of the very box it describes — reachable only by scrolling that box to
+   its end, on the one step whose job is to confirm what will be written, where
+   the stat row above names the total but never says only 30 rows are shown.
+   The template emits it after the `.tedge` wrapper closes, outside the edge
+   fades (which span the wrapper's whole height and would paint over it), and it
+   drops the hairline and recessed ground it wore as a footer: a second border
+   directly under the box's own reads as a broken frame. */
 .tmore {
-    padding: 7px 10px;
+    padding: 6px 2px 0;
     font-size: 11.5px;
     color: var(--ink3);
-    border-top: 1px solid var(--line);
-    background: var(--bg2);
 }
