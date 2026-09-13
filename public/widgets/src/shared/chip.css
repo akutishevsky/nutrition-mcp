@@ -5,9 +5,11 @@
    the panel's sparkline).
 
    Nothing in here names a nutrient. Colour arrives as `--c`, set by the `.c-*`
-   role class base.css defines, so a tile, its glyph, its progress wash, the
-   panel's ring and line and the drawer head all tint from one class on one
-   element.
+   role class base.css defines, so a tile, its progress wash, the panel's ring
+   and line and the drawer head all tint from one class on one element. The
+   glyph is the one thing on a tile that does not: it is the object in its own
+   two colours (base.css `.gi`), so nothing here paints it and an over state
+   leaves it alone.
 
    Three disclosure affordances exist and only three: the chip (inline), the
    `.more` row (section-sized), and the drawer both of them open into. */
@@ -349,7 +351,7 @@
    pixel above the tile's centre; the chevron now centres on the label's row,
    but the glyph still spans both rows and centres the same way, so the
    symmetry stays for the mark. */
-/* 7px between columns, not 4: the glyph is 20px of solid colour and the label
+/* 7px between columns, not 4: the glyph is 20px of dense colour and the label
    sat right up against it. That gap is the whole distance between a mark and
    the reading it belongs to, and it reads as crowding well before it reads as
    tight. */

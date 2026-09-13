@@ -177,18 +177,18 @@ test("a weight row with no reading discloses nothing", () => {
 // THE WEIGHT ROW WEARS THE STRIP'S MARK. Every other control on a tiered strip
 // carries a glyph, so a dot here read as the one row nobody had migrated, and
 // the drawer it opens names its subject the way a metric's does. The role
-// class stays on the row and the head, never on the glyph, and the visible
-// arrow reading survives the change.
+// class stays on the row and the head, never on the glyph (which paints its
+// own --gl-scale-* tokens), and the visible arrow reading survives the change.
 test("the weight row and its drawer head wear the scale glyph", () => {
     const { extra, ctx } = strip();
     const row = extra.row(8, ctx.drawerId);
     expect(row).toContain('<button class="more mextra c-acc"');
-    expect(row).toContain('<svg class="gi" width="20" height="20"');
+    expect(row).toContain('<svg class="gi gi-scale" width="20" height="20"');
     expect(row).not.toContain('class="dot"');
     expect(row).toContain("78.4 → 75.0 kg");
 
     const head = extra.detail!(ctx.drawerNameId).split('<b class="dname"')[0];
     expect(head).toContain('<div class="dhead whead c-acc">');
-    expect(head).toContain('<svg class="gi" width="18" height="18"');
+    expect(head).toContain('<svg class="gi gi-scale" width="18" height="18"');
     expect(head).not.toContain('class="dot"');
 });

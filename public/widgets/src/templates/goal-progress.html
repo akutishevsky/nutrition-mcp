@@ -462,7 +462,8 @@
                     // partial it hands the row to is also the public site's,
                     // where two cards share a document and the default would
                     // address the other card's drawer. `c-acc` sits on the button
-                    // so `--c` — the glyph, the open tint and ring — resolves.
+                    // so `--c` — the open tint and ring — resolves. The glyph
+                    // does not read it; it paints its own --gl-scale-* tokens.
                     //
                     // The mark is the `scale` glyph (icon.js), where it was a
                     // dot: every other control on this strip wears a glyph, and
@@ -479,8 +480,8 @@
                     // that id on its `.dname` and the `[data-macro-close]`
                     // ✕ exactly as a metric's head does; the shared handlers act
                     // on nothing else. The ROLE CLASS goes on the head and the
-                    // glyph stays bare, as macroDetailBody does it — on the
-                    // glyph it would set --c on the glyph itself. The same scale
+                    // glyph stays bare, as macroDetailBody does it: the class
+                    // colours the head, and the glyph ignores --c. The same scale
                     // as the row, at the 18px `.dhead .gi` gives every drawer
                     // head, so this drawer names its subject the way a
                     // metric's does.

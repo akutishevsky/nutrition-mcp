@@ -434,17 +434,76 @@ body {
 }
 
 /* The nutrient glyph — the second icon primitive, and the FILLED one. `.ic` is
-   UI affordance drawn in line; `.gi` is content drawn as a silhouette, because
-   at 13px a 1.75px stroke in a series token is barely ink (--sug measured
-   1.98:1 against the tile in light mode). It reads `currentColor` exactly as
-   `.ic` does, so the `.c-*` role class on an ancestor colours it with no rule
-   of its own — the same indirection that coloured the dot it replaces. */
+   UI affordance drawn in line; `.gi` is content drawn as a silhouette.
+
+   It does NOT read --c. It used to, and a series token is an identity, not the
+   colour of a food: the fat tile's avocado came out pink and the protein
+   tile's drumstick violet. Each drawing is now two paths (icon.js) — a base
+   `.ga` and a detail `.gb` — painted the two colours the object really is,
+   from the --gl-<glyph>-<layer> tokens in tokens.css. Everything that encodes
+   a quantity or a state keeps --c: the wash, the selection ring, the focus
+   panel, the sparkline, the drawer's role, and the over-limit red, which is
+   why an over tile's glyph stays its natural colours and the breach is still
+   carried by the red wash, hairline and ring and by the figure printed against
+   its limit.
+
+   The colour lives here and in tokens.css, never in the emitter: glyph()
+   writes a class per drawing and no fill. `.gi-<name>` hands its two tokens to
+   the layers through --ga / --gb, and the fallback is ink, so a drawing
+   added without tokens degrades to a legible one-colour glyph rather than to
+   black — and its detail still separates, because every detail is cut out of
+   its base with a gutter. No other rule anywhere may set a glyph's fill,
+   colour or stroke, or read --c on it; glyphs.test.ts scans every partial
+   and template stylesheet for that. */
 .gi {
     display: block;
     flex: none;
-    fill: currentColor;
-    stroke: none;
-    color: var(--c, var(--acc));
+}
+.gi .ga {
+    fill: var(--ga, var(--ink2));
+}
+.gi .gb {
+    fill: var(--gb, var(--ink2));
+}
+.gi-flame {
+    --ga: var(--gl-flame-a);
+    --gb: var(--gl-flame-b);
+}
+.gi-drumstick {
+    --ga: var(--gl-drumstick-a);
+    --gb: var(--gl-drumstick-b);
+}
+.gi-bowl {
+    --ga: var(--gl-bowl-a);
+    --gb: var(--gl-bowl-b);
+}
+.gi-avocado {
+    --ga: var(--gl-avocado-a);
+    --gb: var(--gl-avocado-b);
+}
+.gi-droplet {
+    --ga: var(--gl-droplet-a);
+    --gb: var(--gl-droplet-b);
+}
+.gi-cube {
+    --ga: var(--gl-cube-a);
+    --gb: var(--gl-cube-b);
+}
+.gi-glass {
+    --ga: var(--gl-glass-a);
+    --gb: var(--gl-glass-b);
+}
+.gi-cup {
+    --ga: var(--gl-cup-a);
+    --gb: var(--gl-cup-b);
+}
+.gi-leaf {
+    --ga: var(--gl-leaf-a);
+    --gb: var(--gl-leaf-b);
+}
+.gi-scale {
+    --ga: var(--gl-scale-a);
+    --gb: var(--gl-scale-b);
 }
 
 /* Nothing in this design is made visible BY an animation — the drawer's

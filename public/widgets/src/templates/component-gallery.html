@@ -219,11 +219,11 @@
                 justify-items: center;
                 gap: 5px;
             }
-            /* The stroked UI set is drawn in ink. The filled nutrient glyphs
-               need no rule: `.gi` (base.css) reads --c, and each `.gicon` in
-               the glyph grid carries its metric's role class — the same
-               indirection every tile uses, so a glyph shown here is coloured
-               exactly as it is on the card. */
+            /* The stroked UI set is drawn in ink. The nutrient glyphs need no
+               rule: `.gi-<name>` (base.css) paints each layer from its own
+               --gl-* tokens, the same classes a tile uses, so a glyph shown
+               here is coloured exactly as it is on the card — and no role
+               class is needed, because a glyph no longer reads --c. */
             .gicon .ic {
                 color: var(--ink);
             }
@@ -666,11 +666,11 @@
                 file: [24],
                 point: [12],
             };
-            // Every size a glyph ships at: 13 (the old tile size, and glyph()'s
-            // default), 17 (a limit tile), 18 (the drawer head), 20 (a macro
-            // tile, the water bar and goal-progress' weight row) — see `.gi` in
-            // chip.css.
-            const GLYPH_SIZES = [13, 17, 18, 20];
+            // Every size a glyph ships at: 17 (a limit tile, and glyph()'s
+            // default), 18 (the drawer head), 20 (a macro tile, the water bar
+            // and goal-progress' weight row) — see `.gi` in chip.css. No 13:
+            // nothing ships there, and the gallery shows what ships.
+            const GLYPH_SIZES = [17, 18, 20];
 
             // ---- chart specimens -------------------------------------------
             // Built from shared/svg.js rather than from copied coordinates, so
@@ -2151,21 +2151,19 @@
 
             ${sect(
                 "Glyphs",
-                "The filled set at 13 / 17 / 18 / 20px — the sizes a tile, a limit tile, the drawer head and the water bar ship at — each in the colour of what wears it, through the role class (--c): a metric's own series, and --acc for scale, which marks goal-progress' weight row rather than a nutrient. Listed from GLYPHS itself, as Icons is from ICONS, so a drawing no MACROS entry names still appears.",
+                "The two-colour set at 17 / 18 / 20px — the sizes a limit tile, the drawer head and a macro tile or the water bar ship at. Each drawing is its object's own colours (a base and a detail cut out of it, from the --gl-* tokens), not its metric's series: the series stays on the wash, the ring and the panel. There is no 13px column any more because nothing ships at 13, and there the gutters, the bone and the vein fall under a pixel; view this at 1x as well as 2x, since 1x is where a thin detail aliases. In light the flame's core is a near-white and the scale's dial is the panel itself, so the dial reads as a window in the slab with the needle standing in it. Listed from GLYPHS itself, as Icons is from ICONS, so a drawing no MACROS entry names still appears.",
                 `<div class="card"><div class="gmatrix" style="--n:${GLYPH_SIZES.length}">${Object.keys(
                     GLYPHS,
                 )
-                    .map((name) => {
-                        const m = MACROS.find((x) => x.glyph === name);
-                        const color = m ? m.color : "c-acc";
-                        return matrixRow(
+                    .map((name) =>
+                        matrixRow(
                             name,
                             GLYPH_SIZES.map(
                                 (size) =>
-                                    `<span class="gicon ${color}">${glyph(name, size)}<span class="glab">${size}</span></span>`,
+                                    `<span class="gicon">${glyph(name, size)}<span class="glab">${size}</span></span>`,
                             ),
-                        );
-                    })
+                        ),
+                    )
                     .join("")}</div></div>`,
             )}
 

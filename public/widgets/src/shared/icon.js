@@ -25,96 +25,167 @@ var ICONS = {
 };
 
 /* NUTRIENT GLYPHS — a second table, and FILLED where ICONS above are stroked.
-   Two reasons, and the first is measured: a series token is weak as ink in
-   light mode (--cal 2.06:1 against the tile, --sug 1.98, --car 2.54), so a
-   1.75px stroke in one of them at 13px is barely there. A filled silhouette
-   carries the same ink density as the 6px dot it replaces. The second is
-   register: the stroked set is UI affordance (chevron, close, notice), and
-   these are content — keeping the two visually distinct is the point, not an
+   The stroked set is UI affordance (chevron, close, notice); these are content,
+   and keeping the two registers visually distinct is the point, not an
    accident.
 
-   Drawn on the same 16-unit box, and chosen for what survives at 13px rather
-   than for what looks best at 48. That distinction cost a whole draft: the
-   first pass gave calories a flame, water a droplet and fiber a leaf, and at
-   13px all three collapsed into the same teardrop, while protein-as-drumstick
-   read as a lollipop and carbs-as-bread-slice as a rounded blob. Only a
-   silhouette with a HOLE, a NOTCH or a PROTRUSION stays legible that small:
+   TWO LAYERS PER DRAWING, painted the object's own colours. Each entry is a
+   base `a` — the silhouette — and a detail `b` painted after it, which sits
+   inside the base everywhere except the bowl, whose grain rides above the rim
+   on the ground: pit, bone, flame core, grain, wine, coffee,
+   vein, highlight, cube faces, dial. The colours are tokens (tokens.css,
+   --gl-<name>-a/-b), applied by class in base.css, never written here. They
+   used to be one path filled with the metric's series token, which painted
+   the fat tile's avocado pink and the protein tile's drumstick violet: a
+   series token is an identity, not the colour of a food, so it stays on what
+   encodes a quantity or a state (the wash, the ring, the focus panel, the
+   sparkline, the over-limit red) and the drawing is simply the object.
 
-     flame      a side tongue, so it is not the droplet
-     drumstick  a thin diagonal shaft — nothing else in the set has one
-     bowl       wide and flat-bottomed, the only horizontal shape here
-     avocado    a hole (evenodd), reads as a ring
-     droplet    owns the teardrop, which is why nothing else may be one
-     cube       the only square
-     glass      stem and foot
-     cup        a handle (evenodd)
-     leaf       a stem protruding past the blade
-     scale      a dial cut out of a slab (evenodd), its needle left standing
-                in the cut; the hole is what keeps it from the cube
+   EVERY DETAIL IS CUT OUT OF ITS BASE, with a gutter of at least 0.6 units
+   between the hole and the detail inside it. On a light ground that gutter
+   reads as part of a light detail; on a dark one it is a dark keyline. What
+   it buys is that the drawing still separates when both layers are painted
+   one colour — a monochrome use such as a single-ink fill: the pit, the dial,
+   the bone, the cube faces, the wine and the coffee all survive, where an
+   uncut detail would merge into a plain egg, slab or hexagon. (Chrome's
+   forced-colours mode is not that case: it keeps an SVG's authored fills.)
+   Two details bend the rule for 1x, where a gutter on both sides of a thin
+   part puts three sub-pixel stripes inside two pixels. The scale's needle has
+   no gutter: it is a wedge of the slab reaching into the dial, so it keeps
+   its mass (in one colour it merges into the dial, and the dial survives).
+   The leaf's vein keeps its gutter on ONE side, so the band is one line, not
+   a hatched stripe, and that gutter is the vein when the leaf is one colour.
+   A detail that overlaps its base instead of meeting it, as the vein does on
+   its other side and the dial does around the needle, has its edge over the
+   base, not the ground, and leaves no seam. Two rules keep a cut honest. Paths fill NONZERO, so solids wind clockwise and holes
+   counter-clockwise — and a hole must sit under exactly one solid, or the
+   overlapping solids stack their winding and the hole fails to cut (which is
+   why the bone and its hole are each one dog-bone outline, not a capsule plus
+   two circles). And a detail never shares an edge with its base: two
+   antialiased edges that meet exactly leave a seam of ground between them.
+
+   Drawn on the same 16-unit box, for 17px and up, the smallest size anything
+   ships at, and checked there at 1x as well as 2x. At 13px the gutter and the
+   thinnest parts (the bone core, the vein, the cube fold) fall under a pixel, so a silhouette with a HOLE, a
+   NOTCH or a PROTRUSION is still what tells two drawings apart at a glance:
+   the flame's tongue, the drumstick's shaft, the bowl's width, the
+   avocado's pit, the teardrop only the droplet may use, the cube's
+   hexagon, the glass's stem, the cup's handle, the leaf's stem and the
+   scale's dial.
 
    They are DECORATIVE: every tile names its metric in words beside the glyph,
-   so this adds a shape channel to a card that otherwise separates its metrics
-   by hue alone — which is the accessibility win — without becoming information
-   that has to carry 3:1 on its own. */
+   so a glyph adds a shape channel without becoming information that has to
+   carry 3:1 on its own. Every light base clears 3:1 on --panel and --bg2, but
+   not on a selected tile under its full wash (the numbers are in tokens.css). */
 var GLYPHS = {
+    // the side tongue keeps it off the droplet; the core is a light cut
     flame: {
-        d: "M9.1 1.1c.5 2.3-.6 3.8-1.8 5.1C6 7.6 4.9 8.9 4.9 10.5a4.3 4.3 0 0 0 8.6 0c0-2.1-1.2-3.4-2.2-4.6-.7-.8-1.1-1.7-1.1-2.6 0-.8-.4-1.5-1.1-2.2z M5.3 6.8C4.1 7.8 3 9 3 10.6c0 1 .3 1.9.9 2.6C2.3 12.5 1.3 11 1.3 9.2c0-1.4.6-2.7 1.6-3.6.6.6 1.5 1 2.4 1.2z",
+        a: {
+            d: "M9.1 1.1c.5 2.3-.6 3.8-1.8 5.1C6 7.6 4.9 8.9 4.9 10.5a4.3 4.3 0 0 0 8.6 0c0-2.1-1.2-3.4-2.2-4.6-.7-.8-1.1-1.7-1.1-2.6 0-.8-.4-1.5-1.1-2.2zM5.3 6.8C4.1 7.8 3 9 3 10.6c0 1 .3 1.9.9 2.6C2.3 12.5 1.3 11 1.3 9.2c0-1.4.6-2.7 1.6-3.6.6.6 1.5 1 2.4 1.2zM9.27 6.11L11.15 10.2A2.15 2.15 0 1 1 7.27 10.15z",
+        },
+        b: { d: "M9.25 7.5L10.61 10.45A1.55 1.55 0 1 1 7.81 10.41z" },
     },
+    // meat, and a bone whose 0.9-unit outline is the base: a cream bone holds
+    // on white, and the outline is a whole pixel at 18-20px
     drumstick: {
-        d: "M13 3a3.8 3.8 0 0 0-6.5 2.7c0 .5.1 1 .3 1.5L4.2 9.9a2 2 0 0 0-2.3 2.9 2 2 0 0 0 1.5.7 2 2 0 0 0 .7 1.5 2 2 0 0 0 2.9-2.3l2.8-2.6c.5.2 1 .3 1.5.3A3.8 3.8 0 0 0 13 3z",
+        a: {
+            d: "M6 5.75A4.25 4.25 0 1 1 14.5 5.75A4.25 4.25 0 1 1 6 5.75zM9.37 9.46L6.12 12.71A2.32 2.32 0 1 1 2.11 13.89A2.32 2.32 0 1 1 3.29 9.88L6.54 6.63A2 2 0 0 1 9.37 9.46zM5.65 8.79L3.69 10.75A1.42 1.42 0 1 0 2.74 13.26A1.42 1.42 0 1 0 5.25 12.31L7.21 10.35A1.1 1.1 0 0 0 5.65 8.79z",
+        },
+        b: {
+            d: "M6.79 9.92L4.61 12.1A0.82 0.82 0 1 1 3.17 12.83A0.82 0.82 0 1 1 3.9 11.39L6.08 9.21A0.5 0.5 0 0 1 6.79 9.92z",
+        },
     },
+    // grain above the rim, already a gutter apart: nothing to cut
     bowl: {
-        d: "M2.2 7.4h11.6a5.8 5.8 0 0 1-11.6 0z M4.9 6.6a3.1 3.1 0 0 1 6.2 0z",
+        a: { d: "M1.6 8.4h12.8a6.4 5.6 0 0 1-12.8 0z" },
+        b: { d: "M3 7.6a5 4.2 0 0 1 10 0z" },
     },
+    // the pit, in the hole that made the old one-colour avocado a ring
     avocado: {
-        d: "M8 1.7c2.6 0 4.7 3.3 4.7 6.5A4.7 4.7 0 0 1 8 14.4a4.7 4.7 0 0 1-4.7-6.2C3.3 5 5.4 1.7 8 1.7zM8 6.3a2.1 2.1 0 1 0 0 4.2 2.1 2.1 0 0 0 0-4.2z",
-        evenodd: true,
+        a: {
+            d: "M8 1.4c2.7 0 4.9 3.4 4.9 6.8A4.9 4.9 0 0 1 8 14.6a4.9 4.9 0 0 1-4.9-6.4C3.1 4.8 5.3 1.4 8 1.4zM5.2 9.7A2.8 2.8 0 1 0 10.8 9.7A2.8 2.8 0 1 0 5.2 9.7z",
+        },
+        b: { d: "M5.8 9.7A2.2 2.2 0 1 1 10.2 9.7A2.2 2.2 0 1 1 5.8 9.7z" },
     },
+    // a highlight band along the lower left
     droplet: {
-        d: "M8 1.6c2.9 3.5 4.6 5.9 4.6 7.9a4.6 4.6 0 0 1-9.2 0c0-2 1.7-4.4 4.6-7.9z",
+        a: {
+            d: "M8 1.2c3 3.6 4.8 6.1 4.8 8.3a4.8 4.8 0 0 1-9.6 0c0-2.2 1.8-4.7 4.8-8.3zM7.33 13.29A1.1 1.1 0 0 0 7.71 11.12A1.65 1.65 0 0 1 6.36 9.64A1.1 1.1 0 0 0 4.16 9.84A3.85 3.85 0 0 0 7.33 13.29z",
+        },
+        b: {
+            d: "M7.44 12.7A3.25 3.25 0 0 1 4.76 9.78A.5 .5 0 0 1 5.76 9.7A2.25 2.25 0 0 0 7.61 11.72A.5 .5 0 0 1 7.44 12.7z",
+        },
     },
+    // cream top and left faces cut out of a tan hexagon; the rest is the shade face
     cube: {
-        d: "M4.9 3h6.2A1.9 1.9 0 0 1 13 4.9v6.2A1.9 1.9 0 0 1 11.1 13H4.9A1.9 1.9 0 0 1 3 11.1V4.9A1.9 1.9 0 0 1 4.9 3z",
+        a: {
+            d: "M8 1.2L14.2 4.75L14.2 11.25L8 14.8L1.8 11.25L1.8 4.75zM3.06 4.95L8 7.78L12.94 4.95L8 2.12zM2.6 10.79L7.55 13.62L7.55 8.56L2.6 5.73z",
+        },
+        b: {
+            d: "M8 2.81L11.73 4.95L8 7.09L4.27 4.95zM3.2 6.76L6.95 8.91L6.95 12.59L3.2 10.44z",
+        },
     },
+    // wine cut out of the lower bowl; stem and foot stay base
     glass: {
-        d: "M4.6 2h6.8l-.5 4.3a3 3 0 0 1-2.2 2.5v3.8h2.1V14H5.2v-1.4h2.1V8.8a3 3 0 0 1-2.2-2.5z",
+        a: {
+            d: "M4 1.4H12V5.4A4 4 0 0 1 4 5.4zM7.25 8.8L8.75 8.8L8.75 12.9L7.25 12.9zM5.3 12.8L10.7 12.8A.8 .8 0 0 1 10.7 14.4L5.3 14.4A.8 .8 0 0 1 5.3 12.8zM4.95 4.3V5.4A3.05 3.05 0 0 0 11.05 5.4V4.3z",
+        },
+        b: { d: "M5.55 4.9H10.45V5.4A2.45 2.45 0 0 1 5.55 5.4z" },
     },
+    // coffee cut out below the rim; the handle is a C that never enters the body
     cup: {
-        d: "M2.8 4.1h8.1v1.3h1.3a2.2 2.2 0 0 1 0 4.4h-.4a4.2 4.2 0 0 1-9-2.4zm8.1 2.6v1.8h1.3a.9.9 0 0 0 0-1.8z",
-        evenodd: true,
+        a: {
+            d: "M1.4 3.2H11.4V9.2A3.6 3.6 0 0 1 7.8 12.8H5A3.6 3.6 0 0 1 1.4 9.2zM11 4.8A2.6 2.6 0 1 1 11 9.8L11 8.34A1.25 1.25 0 1 0 11 6.26zM3.95 6.95L8.85 6.95A1.45 1.45 0 0 0 8.85 4.05L3.95 4.05A1.45 1.45 0 0 0 3.95 6.95z",
+        },
+        b: {
+            d: "M3.95 4.65L8.85 4.65A.85 .85 0 0 1 8.85 6.35L3.95 6.35A.85 .85 0 0 1 3.95 4.65z",
+        },
     },
+    // a vein along the blade, its gutter on the lower side only: a gutter on
+    // both sides aliased into hatching on the diagonal at 1x
     leaf: {
-        d: "M13.7 2.3c-5.9-.6-10 1.8-10.6 5.9-.4 2.6 1.1 4.7 3.6 5.1 4.1.6 7.6-4.1 7-11z M1.9 14.6l-1-.9 4.7-5.1 1 .9z",
+        a: {
+            d: "M4.2 11.8C2.6 7 7.6 2 14 2c0 6.4-5 11.4-9.8 9.8zM4.8 12.3 1.9 15.1 1.1 14.3 4 11.5zM6.39 10.59L11.89 5.09A0.6 0.6 0 0 0 11.05 4.25L5.55 9.75A0.6 0.6 0 0 0 6.39 10.59z",
+        },
+        b: {
+            d: "M5.33 9.53L10.83 4.03A0.45 0.45 0 0 1 11.47 4.67L5.97 10.17A0.45 0.45 0 0 1 5.33 9.53z",
+        },
     },
-    /* Not a nutrient: goal-progress' weight row, which wears the strip's mark
-       like every tile above it. The slab is inset to 11.2 x 9.6 units so the
-       set's ink holds: 34% of the box at 20px, against 20-38% for the nine
-       above. The first draft filled the box edge to edge and measured 44%,
-       the heaviest shape on the card. The needle sits inside the cut, where
-       evenodd fills it back in. */
+    // a dial cut out of the slab; the needle is a wedge of the slab reaching
+    // into it, with no gutter of its own, so it keeps its mass at 1x
     scale: {
-        d: "M4.8 3.2h6.4a2.4 2.4 0 0 1 2.4 2.4v4.8a2.4 2.4 0 0 1-2.4 2.4H4.8a2.4 2.4 0 0 1-2.4-2.4V5.6a2.4 2.4 0 0 1 2.4-2.4z M4.6 7.9a3.4 3.4 0 0 1 6.8 0z M7.3 7.9l2.3-2.7.9.7-1.8 2z",
-        evenodd: true,
+        a: {
+            d: "M4.6 3h6.8A2.6 2.6 0 0 1 14 5.6v5A2.6 2.6 0 0 1 11.4 13.2H4.6A2.6 2.6 0 0 1 2 10.6v-5A2.6 2.6 0 0 1 4.6 3zM4.1 9.2L5.64 9.2L9.01 5.68L10.46 6.74L9.14 9.2L11.9 9.2V8.6A3.9 3.9 0 0 0 4.1 8.6z",
+        },
+        b: {
+            d: "M4.7 8.6A3.3 3.3 0 0 1 11.3 8.6L9.06 8.6L9.97 6.82L9.08 6.17L6.68 8.6z",
+        },
     },
 };
 
-/* Same contract as icon(): a string, aria-hidden, sized by the caller. `.gi`
-   (base.css) fills with currentColor, so a role class on an ancestor colours it
-   exactly as it coloured the dot it replaces. */
+/* Same contract as icon(): a string, aria-hidden, sized by the caller — 17px
+   by default, the limit tile's size, because nothing ships smaller and the
+   details only hold from there. It writes one class per drawing (`gi-<name>`)
+   and a class per layer, and no colour: base.css maps the classes onto the
+   tokens. The base comes first because the detail paints over its hole. */
 function glyph(name, size) {
     var g = GLYPHS[name];
     if (!g) return "";
-    var s = size || 13;
+    var s = size || 17;
+    var layer = function (cls, l) {
+        return '<path class="' + cls + '" d="' + l.d + '"/>';
+    };
     return (
-        '<svg class="gi" width="' +
+        '<svg class="gi gi-' +
+        name +
+        '" width="' +
         s +
         '" height="' +
         s +
-        '" viewBox="0 0 16 16" aria-hidden="true"><path d="' +
-        g.d +
-        '"' +
-        (g.evenodd ? ' fill-rule="evenodd"' : "") +
-        "/></svg>"
+        '" viewBox="0 0 16 16" aria-hidden="true">' +
+        layer("ga", g.a) +
+        layer("gb", g.b) +
+        "</svg>"
     );
 }
 

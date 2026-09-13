@@ -221,6 +221,7 @@ consumers are notice icons, which are graphics needing 3:1, so nothing lost by i
 | `--track`                                               | the unfilled part of anything that fills: the focus ring's unfilled `.frt`, `.steps`/`.bar`, `.pill-dim`                                   |
 | `--cal --pro --car --fat --wat --fib --sug --caf --alc` | the data series, reached only through a `.c-*` role class (§2)                                                                             |
 | `--over` / `--warn`                                     | **signals, never series** — past a ceiling, and "worth a look". Neither gets a `.c-*` class                                                |
+| `--gl-<glyph>-a` / `--gl-<glyph>-b`                     | the two colours of each nutrient glyph (§9) — the object's own, never a series; theme-invariant ones on bare `:root` only                  |
 | `--shadow` / `--seg-shadow`                             | the card's elevation / unused by the widgets (kept to mirror styles.css; `.seg` has no thumb)                                              |
 | `--glow-a`                                              | the card glow's opacity — 0.13 light, 0.10 dark, because the blob sits under the header's `.cmeta`                                         |
 | `--ease-out`                                            | one easing curve for every transition and keyframe in the system                                                                           |
@@ -529,9 +530,10 @@ nothing-logged card, the gallery's page — gets it at the root, where
 ```
 
 Dawn's `--c` indirection, and the reason nothing in `macros.js` ever writes a
-colour. Every consumer — tile glyph and wash, panel ring, chart stroke, drawer
+colour. Every consumer — tile wash, panel ring, chart stroke, drawer
 dot, drawer value, card glow — reads `var(--c, var(--acc))` and never names a
-nutrient. Adding a nutrient is therefore **one `MACROS` entry, one token, one line
+nutrient. The nutrient **glyph is not a consumer**: it is the object in its own
+two colours (§9), so a role class never reaches its fill. Adding a nutrient is therefore **one `MACROS` entry, one token, one line
 here**. There are ten: `.c-acc`, `.c-cal`, `.c-pro`, `.c-car`, `.c-fat`, `.c-wat`,
 `.c-fib`, `.c-sug`, `.c-caf`, `.c-alc`. `--over` and `--warn` deliberately get no
 role class: they are states, and a state must not be assignable as a series.
@@ -742,7 +744,7 @@ source:
 | **disclosure** — `<button>` + `aria-expanded` + `aria-controls` | **opens the drawer.** Carries the `.chev` chevron, which rotates 180° when open                                                                                                                                                                                                               |
 | **toggle** — `<button>` + `aria-pressed`, **no chevron**        | **selects a chart series and nothing else** (trends' whole rail, where it also moves the focus panel to that metric). A different species, not a variant                                                                                                                                      |
 | `.chip[aria-expanded="true"]` / `[aria-pressed="true"]`         | **selected** — a tint in the tile's own `--c` plus an inset ring. Both attributes are styled together, so selection looks identical whichever species it is                                                                                                                                   |
-| `.chip.over`                                                    | **past a ceiling.** Reassigns `--c` to `--over`, so the glyph, the wash and the hairline all turn from one line. The non-colour half is the FIGURE, which prints against its limit ("58.2/45 g"), plus the caption's wording                                                                  |
+| `.chip.over`                                                    | **past a ceiling.** Reassigns `--c` to `--over`, so the wash, the hairline and the ring all turn from one line. The glyph keeps its natural colours. The non-colour half is the FIGURE, which prints against its limit ("58.2/45 g"), plus the caption's wording                              |
 | `.chip.static` (a `<span>`)                                     | **data, not a control** — borderless, recessed onto `--bg2`, no chevron. Not a disabled button: the contrast between a bordered tile and a recessed one is what makes tappability obvious without reading either. The tiered water bar is the one static tile with an outline (`--line2`, §3) |
 
 **The disclosure and the toggle are two species, and conflating them was a real
@@ -846,8 +848,10 @@ drops to its own full-width line under the figure.
   newlines or indentation inside it.
 
 **Over-goal convention, everywhere:** the breached element reassigns `--c` to
-`--over`, so everything keyed on it — glyph, wash, ring, sparkline stroke,
-hairline — turns together rather than in parts. The non-colour half of the cue
+`--over`, so everything keyed on it — wash, ring, sparkline stroke,
+hairline — turns together rather than in parts. The glyph is not keyed on it
+and keeps its natural colours: what an object is does not change because too
+much of it was eaten. The non-colour half of the cue
 is the figure printed against its limit ("58.2/45 g"), plus the caption's
 wording. Whatever carries the state must carry ALL of it: an element that sets
 its own `.c-*` role class outranks the reassignment, which is how a breached
@@ -991,8 +995,8 @@ and turns `--over` on a breached ceiling.
 
 **`.dv` is NOT painted in the series token.** It was, and on the drawer's `--bg2`
 that failed AA on seven of nine nutrients in light mode — 1.71:1 for sugar, 1.47:1
-for its `.u` unit under an `opacity: 0.7` on top. The colour identity is carried by
-the nutrient's glyph in `.dhead`; the numbers are read in `--ink`, and the unit is `--ink3`
+for its `.u` unit under an `opacity: 0.7` on top. The identity is carried by the
+nutrient's glyph (its shape) and the head's role class in `.dhead`; the numbers are read in `--ink`, and the unit is `--ink3`
 real text ranked by size, never an alpha on top of a token. `.dcap.over` is
 likewise `--ink2` at 700 rather than `--over` text, which measured 3.98:1 on
 `--bg2` (`--over` is AA-corrected against `--panel`, not against this surface) —
@@ -1300,45 +1304,144 @@ warning triangle are one drawing at two sizes.
 | `file`  | the drop zone                                                |
 | `point` | the pointing hand on the `.fhint` tap hint                   |
 
-### `GLYPHS` — the nutrient set, and it is **filled**
+### `GLYPHS` — the nutrient set: filled, and **two colours**
 
 `glyph(name, size)` is the second table in the same file, drawn on the same
-16-unit box but with `fill: currentColor` and no stroke (`.gi`, base.css). It
-replaces the colour dot on every tile of a tiered strip, and the `.c-*` role
-class on an ancestor colours it exactly as it coloured the dot. One drawing is
-not a nutrient: `scale` marks goal-progress' weight row (`c-acc`), which no
-`MACROS` entry names.
+16-unit box and filled rather than stroked. It replaces the colour dot on every
+tile of a tiered strip. One drawing is not a nutrient: `scale` marks
+goal-progress' weight row, which no `MACROS` entry names.
 
-Note the emitted `width`/`height` are a **fallback**: `.gi`'s CSS overrides
-them, which is what lets the size step at a breakpoint without the emitter
-knowing anything about width.
+It emits `<svg class="gi gi-<name>" … aria-hidden="true">` holding exactly two
+paths, `<path class="ga">` then `<path class="gb">`, and **no colour**. The
+emitted `width`/`height` are a **fallback**: `.gi`'s CSS overrides them, which is
+what lets the size step at a breakpoint without the emitter knowing anything
+about width. The default is **17**, the smallest size anything ships at.
 
-| glyph       | metric   | what makes it legible at 13px        |
-| ----------- | -------- | ------------------------------------ |
-| `flame`     | calories | a side tongue, so it is not a drop   |
-| `drumstick` | protein  | a thin diagonal shaft                |
-| `bowl`      | carbs    | wide, flat-bottomed                  |
-| `avocado`   | fat      | a hole (`evenodd`) — reads as a ring |
-| `droplet`   | water    | owns the teardrop                    |
-| `cube`      | sugar    | the only square                      |
-| `glass`     | alcohol  | stem and foot                        |
-| `cup`       | caffeine | a handle (`evenodd`)                 |
-| `leaf`      | fiber    | a stem past the blade                |
-| `scale`     | weight   | a dial cut from a slab (`evenodd`)   |
+**Each drawing is its object, in the object's own two colours**: a green avocado
+with a brown pit, a golden-brown drumstick with a cream bone, red wine in a grey
+glass. It used to be one path filled with the metric's series token through
+`--c`, which painted the fat tile's avocado pink and the protein tile's
+drumstick violet. A series token is an **identity**, not the colour of a food,
+so it stays on everything that encodes a quantity or a state (the wash, the
+selection ring, the focus panel, the sparkline, the drawer head's role, the
+over-limit red), and `.gi` no longer reads `--c` at all.
 
-**Filled, not stroked, and that is measured.** A series token is weak as ink in
-light mode — `--cal` is 2.06:1 against the tile, `--car` 2.54 — so
-a 1.75px stroke in one of them at 13px is barely there. A filled silhouette
-carries the ink density of the 6px dot it replaces. It also keeps the two
-registers apart: `ICONS` is UI affordance drawn in line, `GLYPHS` is content
-drawn as a shape.
+| glyph       | metric   | base `a`                       | detail `b`, cut out of it    | at a glance           |
+| ----------- | -------- | ------------------------------ | ---------------------------- | --------------------- |
+| `flame`     | calories | orange flame and side tongue   | a near-white core            | a tongue, not a drop  |
+| `drumstick` | protein  | meat, and the bone's 0.9 ring  | the cream bone               | a diagonal shaft      |
+| `bowl`      | carbs    | a neutral bowl                 | grain above the rim          | wide, flat-bottomed   |
+| `avocado`   | fat      | green fruit                    | the brown pit                | the pit               |
+| `droplet`   | water    | blue drop                      | a highlight band             | owns the teardrop     |
+| `cube`      | sugar    | tan hexagon (the shade face)   | cream top and left faces     | the only hexagon      |
+| `glass`     | alcohol  | a neutral glass, stem and foot | the wine                     | stem and foot         |
+| `cup`       | caffeine | latte mug with a C handle      | the coffee below the rim     | a handle              |
+| `leaf`      | fiber    | green blade and stem           | the vein, gutter on one side | a stem past the blade |
+| `scale`     | weight   | a neutral slab and its needle  | the dial around the needle   | a dial in a slab      |
 
-**Draw for 13px, not for 48.** The first pass gave calories a flame, water a
-droplet and fiber a leaf, and at 13px all three collapsed into the same
-teardrop; protein-as-drumstick read as a lollipop and carbs-as-bread-slice as a
-rounded blob. Only a silhouette with a **hole, a notch or a protrusion** stays
-legible that small — hence the table's third column, which is the actual design
-constraint. Preview a candidate at 13px beside its label before believing it.
+**The colours are tokens, applied by class.** `base.css` gives each `.gi-<name>`
+its `--ga` / `--gb` from `--gl-<name>-a` / `--gl-<name>-b` in `tokens.css`, and
+the layers fill from those, falling back to `--ink2`. Where a layer's colour
+comes from, in order of preference:
+
+1. **Its own metric's series token**, when the natural colour is close to it
+   (OKLab ΔE ≤ 8) and the base still clears 3:1. Dark flame is `--cal` (ΔE 7.8)
+   and dark droplet is `--wat` (ΔE 0). Light `--cal` is 2.06:1 and light `--wat`
+   2.77:1 on `--panel`, so the light ones keep their own values. Coffee is ΔE 24
+   from `--caf`, the leaf ΔE 9.8 from `--fib` (which reads teal), and wine ΔE
+   18.5 from `--alc` (magenta in light, orchid in dark, not wine), so none of
+   those alias.
+2. **Never another metric's token.** Painting the avocado in `--fib` and `--car`
+   would put fiber's and carbs' identities on the fat tile. `glyphs.test.ts`
+   fails on it.
+3. **A design neutral for a container**: bowl, glass and scale are `--edge2` in
+   light (4.05:1) and `--ink2` in dark. The dark bowl was `--ink3`, which fell to
+   2.09:1 under the carbs wash; `--ink2` measures 2.77.
+4. **Otherwise a named value**, `--gl-<glyph>-<layer>`. A value that is the same
+   in both themes is declared **once**, on bare `:root`, and nowhere else; every
+   other one is in all four blocks. `glyphs.test.ts` checks both halves.
+
+**Measured on the grounds a glyph really sits on.** A selected tile is not just
+its 18% `--c` ground: the progress wash is painted over it, and the glyph sits
+inside that ramp. The worst case is a low-progress day, when the mark lands just
+past the glyph and the wash is at full strength under it (the per-hue mix, ×0.62
+on a limit tile). Light bases against `--panel` / `--bg2` / selected / selected
+under the full wash:
+
+| glyph     | panel | bg2  | selected | + full wash |
+| --------- | ----- | ---- | -------- | ----------- |
+| drumstick | 4.37  | 3.78 | 3.49     | 2.50        |
+| bowl      | 4.05  | 3.50 | 3.41     | 2.70        |
+| avocado   | 4.09  | 3.53 | 3.23     | 2.37        |
+| droplet   | 4.10  | 3.54 | 3.41     | 2.64        |
+| cube      | 4.10  | 3.55 | 3.28     | 2.77        |
+| glass     | 4.05  | 3.50 | 3.00     | 2.47        |
+| cup       | 3.92  | 3.39 | 3.08     | 2.53        |
+| leaf      | 4.12  | 3.56 | 3.32     | 2.74        |
+
+The flame is 3.97 / 3.44 and never sits on a wash (the focus panel and the drawer
+head). The scale is 4.05 / 3.50, and 3.35 on its open row (14% `--acc`). A
+selected **over** tile under its 27% `--over` wash is the worst ground there is:
+2.06 (cup) to 2.30 (drumstick). The avocado, cup and leaf bases were darkened to
+clear 3:1 on `--panel` (`#5f8a1c`, `#a8764c`, `#2a8f3d`). Dark bases are 4.51:1 or
+better on a selected tile, 2.77 (bowl) to 5.57 under the full wash, and 3.16 or
+better on the washed over tile.
+
+So **3:1 holds on every ground without a wash, and not under a full one.** The
+glyph is decorative and named in words beside it, so that is not an SC 1.4.11
+failure, but it is the honest figure. Closing the gap is a trade-off, not a
+tweak: either darken the light bases further, which pushes the avocado, cup and
+drumstick away from the colours they are, or start the wash's ramp past the glyph
+column, which changes how a low-progress tile reads.
+
+The bowl's grain is the one detail that sits on the ground rather than inside its
+base: 2.95 on `--panel` and 2.55 on `--bg2` in light. Every other detail is judged
+against its base, and the gutter separates the two whatever that ratio is.
+
+**Every detail is cut out of its base, with a gutter of at least 0.6 units.** On
+a light ground the gutter reads as part of a light detail (the flame's core, the
+vein, the bone); on a dark ground it is a dark keyline. What it buys is that the
+drawing still separates when both layers are painted **one** colour, a monochrome
+use such as a single-ink fill: the pit, the dial, the bone, the cube faces, the
+wine and the coffee survive, where an uncut avocado was a plain egg. This was
+checked at 17px in both themes at 1x and 2x. Chrome's forced-colours mode is
+**not** that case: it keeps an SVG's authored fills, and the glyph was checked
+on both Canvas polarities there.
+
+**Two details bend the gutter rule, for 1x.** A gutter on both sides of a thin
+part puts three sub-pixel stripes inside about two pixels, and on a diagonal that
+aliases into hatching. So the **scale's needle has no gutter**: it is a wedge of
+the slab (about 1.9 units at its root) reaching into the dial, and in one colour
+it merges into the dial while the dial itself survives. The **leaf's vein keeps
+its gutter on one side only**, so the band is one line, and in one colour that
+gutter is the vein. Where a detail overlaps its base rather than meeting it (the
+vein's other edge, the dial around the needle), its edge lies over the base, not
+the ground, and leaves no seam. The drumstick's bone ring is 0.9 units, a whole
+pixel at 18 to 20px, where 0.55 went ragged.
+Paths fill nonzero: solids wind clockwise and holes counter-clockwise, and a
+hole must sit under exactly **one** solid, or the overlapping solids stack their
+winding and the hole silently fails to cut. A detail never shares an exact edge
+with its base either, because two antialiased edges that meet leave a seam.
+
+**Over a limit the glyph keeps its natural colours.** `.chip.over` and
+`.dhead.over` reassign `--c`, which the glyph does not read, so it cannot turn
+red. The breach is the red wash, hairline and ring, plus the figure printed
+against its limit. There is **no keyline** around a glyph on an over ground.
+Every detail but the bowl's grain has its base around it, so nothing smears into
+the red, and the grain sits above the rim where the base's silhouette still
+shapes it. The cost is contrast, not legibility: 2.06 to 2.30 in light under the
+washed over ground (the figures above). `glyphs.test.ts` scans every partial and
+template stylesheet so that no rule sets a glyph's fill, colour or stroke or
+reads `--c` on it.
+
+**Draw for 17px, and keep a shape channel.** The first pass gave calories a
+flame, water a droplet and fiber a leaf, and at 13px all three collapsed into the
+same teardrop. Only a silhouette with a **hole, a notch or a protrusion** tells
+two drawings apart at a glance, hence the table's last column, which is still
+the design constraint. Nothing ships under 17px: below it the gutter, the bone
+core and the vein fall under a pixel, which is also why the gallery dropped its
+13px column. Preview a candidate at 17px on a 1x display beside its label before
+believing it.
 
 **It takes a column and centres across both rows, exactly as the chevron does**
 — a mark at the top-left beside a control centred at the right reads as two
@@ -1397,9 +1500,9 @@ same figure clears by 10%. The extra row below that costs ~46px.
 
 **Sizes**: 20px (macro/water, and goal-progress' weight row), 17px (limits),
 18px in the drawer head — one size
-per tier at every width. The 13px it shipped at was legible in isolation and
+per tier at every width. The 13px it first shipped at was legible in isolation and
 barely present on the card, which is the difference between reading a glyph and
-noticing one.
+noticing one; `glyph()`'s own default is now 17.
 
 **The metric names a drawing, never the reverse.** `MACROS[].glyph` is
 `"drumstick"`, not `"protein"` — the same indirection as `color: "c-pro"` — so
@@ -1415,14 +1518,14 @@ a dot on the tile and the glyph in its drawer.
 **They are decorative.** Every tile names its metric in words beside the glyph,
 so this adds a **shape channel** to a card that otherwise separates its metrics
 by hue alone — the accessibility win — without becoming information that has to
-carry 3:1 on its own.
+carry 3:1 on its own. It stays `aria-hidden`.
 
 **Not a sprite, and not emoji for everything.** A `<symbol>` block would have to
 live outside `#root` (every `render()` replaces `#root.innerHTML` wholesale), so
 templates would own DOM in two places instead of one, and `<use href="#x">`
 fragment resolution has enough host-dependent edge cases inside a sandboxed
-opaque-origin iframe that a silently blank icon is a real risk. Ten paths is ~1.3
-KB; the plumbing would cost more than the duplication.
+opaque-origin iframe that a silently blank icon is a real risk. Twenty paths is
+~3 KB; the plumbing would cost more than the duplication.
 
 Every icon is `aria-hidden`: an icon here is always inside a control whose own
 `aria-label` already says the thing.
@@ -1481,8 +1584,8 @@ days) stays a question about top-level metrics only.
 **`MACROS[].color` is a role class, not a colour** (`"c-pro"`, not a hex or a
 `var()`), and no emitter in the file ever writes a colour. `mealList` puts the role
 class once on the `.dlist` container, but the drawer's numbers no longer read `--c`
-from it (see §6), so inside the drawer the tint is carried by the nutrient's glyph in
-`.dhead`.
+from it (see §6), so inside the drawer the metric is named by the nutrient's glyph
+and the head's role class in `.dhead`.
 
 ### Fiber and sugar are limit chips, not children of carbs
 

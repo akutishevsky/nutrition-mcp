@@ -162,6 +162,73 @@
         ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Mono",
         "Roboto Mono", monospace;
 
+    /* GLYPH LAYERS (shared/icon.js; base.css `.gi-*` maps them). Every
+       nutrient glyph is two paths, a base `.ga` (the silhouette) and a detail
+       `.gb` (pit, bone, core, grain, wine, coffee, vein, highlight, faces,
+       dial), cut out of the base with a 0.6-unit gutter. Every detail sits
+       inside its base except the bowl's grain, which touches the ground. Each is painted the colour
+       its OBJECT is — a green avocado, a brown drumstick — and never the
+       metric's series token, which is an identity: painting a fat tile's
+       avocado in --fat made it pink, and painting it in another metric's token
+       (--fib, --car) would put that metric's identity on the wrong tile.
+
+       Three sources, in this order of preference:
+         1. the glyph's OWN series token, where the natural colour is close
+            (OKLab ΔE <= 8) and the base still clears 3:1 — dark flame is
+            --cal (ΔE 7.8), dark droplet is --wat (ΔE 0). Light --cal (2.06:1)
+            and --wat (2.77:1) fail the 3:1, and coffee (ΔE 24), leaf (ΔE 9.8,
+            --fib reads teal) and wine (ΔE 18.5, --alc is magenta, not wine)
+            are not close in either theme, so those stay their own values;
+         2. a design neutral for a CONTAINER (bowl, glass, scale) — --edge2 in
+            light (4.05:1), --ink2 in dark (the bowl was --ink3, the weakest
+            dark base under the carbs wash at 2.09:1; --ink2 is 2.77);
+         3. a hand-picked value, named --gl-<glyph>-<layer>.
+
+       Two groups below: the theme-invariant values, declared ONCE, here on
+       bare :root and nowhere else; then the themed ones, repeated in all four
+       blocks. The flame's core is a near-white, not --panel, so it still
+       separates from a white ground.
+
+       Measured light bases on --panel / --bg2 / a selected tile (18% --c) /
+       that tile with its wash at full strength under the glyph (the per-hue
+       mix, x0.62 on a limit tile — the ground on a low-progress day, when the
+       mark lands just past the glyph): drumstick 4.37/3.78/3.49/2.50, bowl
+       4.05/3.50/3.41/2.70, avocado 4.09/3.53/3.23/2.37, droplet 4.10/3.54/
+       3.41/2.64, cube 4.10/3.55/3.28/2.77, glass 4.05/3.50/3.00/2.47, cup
+       3.92/3.39/3.08/2.53, leaf 4.12/3.56/3.32/2.74. The flame (focus panel,
+       drawer head) is 3.97/3.44 and wears no wash; the scale is 4.05/3.50 and
+       3.35 on its open row (14% --acc). A selected OVER tile under its 27%
+       --over wash is the worst ground there is: 2.06 (cup) to 2.30
+       (drumstick). Dark bases are 4.51:1 or better on a selected tile, 2.77
+       (bowl) to 5.57 under the full wash, and 3.16 or better on the washed
+       over tile. So 3:1 holds on the grounds without a wash and not under a
+       full one; the glyph is decorative and named in text, so that is not a
+       1.4.11 failure. The bowl's grain, the one detail on the ground, is
+       2.95/2.55 in light. Any other detail is measured against its base; the
+       gutter separates the two whatever that ratio is. */
+    --gl-flame-b: #fff3d6;
+    --gl-drumstick-b: #f8eedb;
+    --gl-avocado-b: #7a4a24;
+    --gl-droplet-b: #e0f2fe;
+    --gl-cube-b: #fbf3e3;
+    --gl-scale-b: var(--panel);
+
+    /* Glyph layers, themed: repeated in all four blocks (see GLYPH LAYERS above). */
+    --gl-flame-a: #dd520b;
+    --gl-drumstick-a: #b8621b;
+    --gl-bowl-a: var(--edge2);
+    --gl-bowl-b: #c98a0e;
+    --gl-avocado-a: #5f8a1c;
+    --gl-droplet-a: #0284c7;
+    --gl-cube-a: #8f7a5f;
+    --gl-glass-a: var(--edge2);
+    --gl-glass-b: #9f1239;
+    --gl-cup-a: #a8764c;
+    --gl-cup-b: #4a2a12;
+    --gl-leaf-a: #2a8f3d;
+    --gl-leaf-b: #c7f0cf;
+    --gl-scale-a: var(--edge2);
+
     /* Native controls (select, input, scrollbars) follow the theme only when
        color-scheme is declared; without it a dark widget renders light OS
        chrome that ignores every token above. Present in all four blocks. */
@@ -202,6 +269,20 @@
            chat ground, so this must not go back to `none` either. */
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
         --glow-a: 0.1;
+        --gl-flame-a: var(--cal);
+        --gl-drumstick-a: #d9893a;
+        --gl-bowl-a: var(--ink2);
+        --gl-bowl-b: #f5c542;
+        --gl-avocado-a: #8fc043;
+        --gl-droplet-a: var(--wat);
+        --gl-cube-a: #b9a07a;
+        --gl-glass-a: var(--ink2);
+        --gl-glass-b: #e0456f;
+        --gl-cup-a: #d9b48c;
+        --gl-cup-b: #6a3f1d;
+        --gl-leaf-a: #5cc26e;
+        --gl-leaf-b: #1d5a2b;
+        --gl-scale-a: var(--ink2);
         color-scheme: dark;
     }
 }
@@ -238,6 +319,20 @@
         0 1px 2px rgba(16, 19, 24, 0.04),
         0 30px 70px -30px rgba(16, 19, 24, 0.25);
     --glow-a: 0.13;
+    --gl-flame-a: #dd520b;
+    --gl-drumstick-a: #b8621b;
+    --gl-bowl-a: var(--edge2);
+    --gl-bowl-b: #c98a0e;
+    --gl-avocado-a: #5f8a1c;
+    --gl-droplet-a: #0284c7;
+    --gl-cube-a: #8f7a5f;
+    --gl-glass-a: var(--edge2);
+    --gl-glass-b: #9f1239;
+    --gl-cup-a: #a8764c;
+    --gl-cup-b: #4a2a12;
+    --gl-leaf-a: #2a8f3d;
+    --gl-leaf-b: #c7f0cf;
+    --gl-scale-a: var(--edge2);
     color-scheme: light;
 }
 
@@ -270,5 +365,19 @@
     --warn: #e0a030;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
     --glow-a: 0.1;
+    --gl-flame-a: var(--cal);
+    --gl-drumstick-a: #d9893a;
+    --gl-bowl-a: var(--ink2);
+    --gl-bowl-b: #f5c542;
+    --gl-avocado-a: #8fc043;
+    --gl-droplet-a: var(--wat);
+    --gl-cube-a: #b9a07a;
+    --gl-glass-a: var(--ink2);
+    --gl-glass-b: #e0456f;
+    --gl-cup-a: #d9b48c;
+    --gl-cup-b: #6a3f1d;
+    --gl-leaf-a: #5cc26e;
+    --gl-leaf-b: #1d5a2b;
+    --gl-scale-a: var(--ink2);
     color-scheme: dark;
 }

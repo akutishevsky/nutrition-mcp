@@ -75,7 +75,15 @@ const macrosApi = await (async () => {
             wording?: { under?: string; over?: string },
         ) => Bits;
         MACROS: Macro[];
-        GLYPHS: Record<string, { d: string; evenodd?: boolean }>;
+        // Two layers per drawing (shared/icon.js): the base silhouette `a`
+        // and the detail `b` painted over its cut-out.
+        GLYPHS: Record<
+            string,
+            {
+                a: { d: string };
+                b: { d: string };
+            }
+        >;
         macroPanel: (
             vals: Vals,
             goal?: Vals | null,
@@ -946,12 +954,12 @@ test("a tiered tile wears its glyph; an untiered one keeps the dot", () => {
     const tiered = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
         tiers: true,
     });
-    expect(tiered).toContain('class="gi"');
+    expect(tiered).toContain('<svg class="gi gi-');
     expect(tiered).not.toContain('<span class="dot"></span>');
 
     const flat = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS);
     expect(flat).toContain('<span class="dot"></span>');
-    expect(flat).not.toContain('class="gi"');
+    expect(flat).not.toContain('class="gi ');
 });
 
 // The drawer head names its nutrient with the glyph, not a colour dot, on every
@@ -964,7 +972,9 @@ test("a drawer head wears its metric's glyph, tiered or not", () => {
                 macrosApi.macroCtxOf(VALS, GOALS, undefined, MEALS),
             )
             .split('<b class="dname"')[0];
-        expect(head).toContain('<svg class="gi" width="18" height="18"');
+        expect(head).toMatch(
+            /<svg class="gi gi-[a-z]+" width="18" height="18"/,
+        );
         expect(head).not.toContain('class="dot"');
     }
 });
@@ -975,7 +985,8 @@ test("a drawer head wears its metric's glyph, tiered or not", () => {
 test("every MACROS entry names a glyph, and every glyph exists", () => {
     for (const m of macrosApi.MACROS) {
         expect(m.glyph).toBeTruthy();
-        expect(macrosApi.GLYPHS[m.glyph!]).toBeTruthy();
+        expect(macrosApi.GLYPHS[m.glyph!]?.a.d).toBeTruthy();
+        expect(macrosApi.GLYPHS[m.glyph!]?.b.d).toBeTruthy();
     }
 });
 

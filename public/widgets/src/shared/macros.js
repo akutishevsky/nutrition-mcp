@@ -61,7 +61,9 @@
 //          reading and prints as one.
 //
 // `color` is a ROLE CLASS, not a colour: it sets --c (see base.css), which the
-// glyph, the wash, the gauge arc and the drawer head all read. No emitter
+// wash, the gauge arc and the drawer head all read — everything that encodes a
+// quantity or a state. The glyph does not: it is the object in its own two
+// colours (--gl-* tokens), so a fat tile's avocado is green. No emitter
 // here ever writes a colour, so adding a nutrient is one MACROS entry, one
 // token and one role class.
 //
@@ -1044,7 +1046,7 @@ function chipValueText(m, b) {
 // fallback exactly as it was, so an untiered widget's tiles are unchanged.
 function macroMark(m, ctx, size) {
     return ctx && ctx.tiers && m.glyph
-        ? glyph(m.glyph, size || 17)
+        ? glyph(m.glyph, size)
         : '<span class="dot"></span>';
 }
 
