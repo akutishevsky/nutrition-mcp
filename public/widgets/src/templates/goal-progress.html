@@ -462,23 +462,31 @@
                     // partial it hands the row to is also the public site's,
                     // where two cards share a document and the default would
                     // address the other card's drawer. `c-acc` sits on the button
-                    // so `--c` — the dot, the open tint and ring — resolves.
+                    // so `--c` — the glyph, the open tint and ring — resolves.
+                    //
+                    // The mark is the `scale` glyph (icon.js), where it was a
+                    // dot: every other control on this strip wears a glyph, and
+                    // a lone dot under them read as the one row nobody had
+                    // migrated. chip.css sizes it to the water bar's 20px.
                     //
                     // The accessible name starts with the visible label
                     // ("Weight …"), so label-in-name holds with the arrow kept
                     // visually.
                     row: (i, drawerId) =>
-                        `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="false" aria-controls="${drawerId}" aria-label="${esc(aria)}" style="--i:${i}"><span class="dot"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(value)}</span><span class="chev">${icon("chev", 10)}</span></button>`,
+                        `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="false" aria-controls="${drawerId}" aria-label="${esc(aria)}" style="--i:${i}">${glyph("scale", 20)}${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(value)}</span><span class="chev">${icon("chev", 10)}</span></button>`,
                     // The drawer body, handed the same strip's name id (see
                     // the row above). Its head names the region, so it carries
                     // that id on its `.dname` and the `[data-macro-close]`
                     // ✕ exactly as a metric's head does; the shared handlers act
                     // on nothing else. The ROLE CLASS goes on the head and the
-                    // dot stays bare, as macroDetailBody does it — on the dot
-                    // it would set --c on the dot itself.
+                    // glyph stays bare, as macroDetailBody does it — on the
+                    // glyph it would set --c on the glyph itself. The same scale
+                    // as the row, at the 18px `.dhead .gi` gives every drawer
+                    // head, so this drawer names its subject the way a
+                    // metric's does.
                     detail: (drawerNameId) => `
               <div class="dhead whead c-acc">
-                <span class="dot"></span>
+                ${glyph("scale", 18)}
                 <b class="dname" id="${drawerNameId}">${esc(T.goalProgress.weightLabel)}</b>
                 <span class="dcap">${esc(cap)}</span>
                 <button class="dx" type="button" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">${icon("x", 12)}</button>

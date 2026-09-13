@@ -117,9 +117,15 @@
                 align-items: flex-start;
                 gap: 12px;
             }
+            /* align-content: start on both specimen cells. Inside a `.ggrid`
+               a cell is stretched to the tallest neighbour in its row, and a
+               grid hands that extra height to its auto rows, so the LABEL row
+               grew (69px, 106px) and floated the specimen mid-cell between two
+               empty bands. */
             .gitem {
                 display: grid;
                 justify-items: start;
+                align-content: start;
                 gap: 5px;
                 min-width: 0;
             }
@@ -137,6 +143,7 @@
             .gwide {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr);
+                align-content: start;
                 gap: 5px;
                 min-width: 0;
             }
@@ -144,6 +151,32 @@
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
                 gap: 12px;
+            }
+            /* THE CHIP STATES ON ONE GRID, LABELS INCLUDED. In a `.grow` each
+               specimen was as wide as its label, so "toggle · chart series
+               only (aria-pressed, no chevron)" made a 323px cell beside a
+               92px one and the chips sat ragged. Here the columns are equal,
+               a label wraps inside its own column, and each specimen spans two
+               rows of a subgrid, so every label in a row shares one track and
+               every chip in that row starts on the same line. 128px is what
+               keeps two columns at 320px, where the section is 277px wide. */
+            .gchips {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+                gap: 14px 12px;
+            }
+            .gchips > .gitem {
+                grid-row: span 2;
+                grid-template-rows: subgrid;
+                row-gap: 5px;
+            }
+            /* The tap hint is a 208px line of foot text, not a pill, so it
+               gets its own full-width row after both chip grids. Spanning two
+               tracks inside a grid, it sat alone on a third row at 760 with
+               three tracks empty beside it, and no position in either grid
+               fills a row at every column count. */
+            .gtap {
+                margin-top: 14px;
             }
             /* 232px is roughly a chat card's inner width on a phone: it makes
                a 480-unit chart stretch hardest and a header's meta take its
@@ -154,17 +187,37 @@
                 width: 232px;
                 max-width: 100%;
             }
-            .gicons {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 14px;
+            /* ONE ROW PER DRAWING, ONE COLUMN PER SIZE. A wrapping run of
+               fixed 62px cells broke two ways: a label wider than its cell
+               ("DRUMSTICK 13" is 73px) wrapped to a second line and knocked its
+               row out of line, and the run's last cell ("point 12") was left
+               alone on a row. Named once per row, a drawing's sizes sit side by
+               side in the same columns on every row. The rows flow into as
+               many columns as fit, one on a phone: 84px holds the longest name,
+               and each size needs 40px plus its gap. --n is the most sizes any
+               drawing in the matrix has. */
+            .gmatrix {
+                display: grid;
+                grid-template-columns: repeat(
+                    auto-fill,
+                    minmax(min(100%, calc(84px + var(--n) * 44px)), 1fr)
+                );
+                gap: 12px 24px;
+            }
+            .gmrow {
+                display: grid;
+                grid-template-columns: 84px repeat(var(--n), minmax(0, 48px));
+                align-items: end;
+                column-gap: 4px;
+            }
+            .gmrow > .glab {
+                align-self: center;
+                white-space: nowrap;
             }
             .gicon {
                 display: grid;
                 justify-items: center;
-                align-content: start;
                 gap: 5px;
-                width: 62px;
             }
             /* The stroked UI set is drawn in ink. The filled nutrient glyphs
                need no rule: `.gi` (base.css) reads --c, and each `.gicon` in
@@ -613,9 +666,10 @@
                 file: [24],
                 point: [12],
             };
-            // Every size a nutrient glyph ships at: 13 (the old tile size, and
-            // glyph()'s default), 17 (a limit tile), 18 (the drawer head), 20
-            // (a macro tile and the water bar) — see `.gi` in chip.css.
+            // Every size a glyph ships at: 13 (the old tile size, and glyph()'s
+            // default), 17 (a limit tile), 18 (the drawer head), 20 (a macro
+            // tile, the water bar and goal-progress' weight row) — see `.gi` in
+            // chip.css.
             const GLYPH_SIZES = [13, 17, 18, 20];
 
             // ---- chart specimens -------------------------------------------
@@ -671,9 +725,12 @@
             }
             // A figure and its unit for a .cfoot, the unit in its own `.u`:
             // the foot is an uppercase eyebrow and SI symbols are
-            // case-sensitive (see `.cfoot .u` in chart.css).
+            // case-sensitive (see `.cfoot .u` in chart.css). A no-break
+            // space between them, as between any figure and its unit: the
+            // foot's middle wraps in a narrow card, and a plain space there
+            // left "KCAL" alone at the start of the next line.
             function footAmount(m, v) {
-                return `${esc(macroNum(m, v))} <span class="u">${esc(macroUnit(m))}</span>`;
+                return `${esc(macroNum(m, v))}&nbsp;<span class="u">${esc(macroUnit(m))}</span>`;
             }
             // The grammar's three-span foot: first day, the series' average
             // (and goal), last day. Every figure through macroNum/macroUnit,
@@ -701,10 +758,17 @@
             // unit per foot, on the figure that carries it.
             function valuesFoot(key, avg, goal, first, last) {
                 const m = macroOf(key);
+                // The goal's word is held to its figure for the same reason
+                // as footAmount's unit: "GOAL / 2,200" at a 320px card. And
+                // the separator is held to the phrase it INTRODUCES — a plain
+                // space before the dot, a no-break one after it — so a wrap
+                // starts the next line with "· goal 2,200" rather than
+                // leaving a "·" hanging off the end of the average's line.
+                // Any real .cfoot emitter owes its separators the same.
                 const g =
                     goal == null
                         ? ""
-                        : ` · <b>${esc(T.nutritionSummary.goal)}</b> ${esc(macroNum(m, goal))}`;
+                        : ` ·&nbsp;<b>${esc(T.nutritionSummary.goal)}</b>&nbsp;${esc(macroNum(m, goal))}`;
                 return `<span>${esc(first)}</span><span><b>${esc(macroLabel(m))} ${esc(T.nutritionSummary.avg)}</b> ${footAmount(m, avg)}${g}</span><span>${esc(last)}</span>`;
             }
             // "Target 78.0 kg" with the unit in its `.u` (see footAmount).
@@ -719,7 +783,7 @@
                     tpl(T.weightTrends.target, { value: TARGET_SLOT }),
                 ).replace(
                     TARGET_SLOT,
-                    `${esc(macroDecimal(v, 1))} <span class="u">${esc(unitLabel("kg"))}</span>`,
+                    `${esc(macroDecimal(v, 1))}&nbsp;<span class="u">${esc(unitLabel("kg"))}</span>`,
                 );
             }
             // The case the area fill exists for, and the one that has to be
@@ -895,6 +959,12 @@
             function wide(label, body) {
                 return `<div class="gwide"><span class="glab">${label}</span>${body}</div>`;
             }
+            // A row of the icon / glyph matrix: the drawing's name once, then
+            // one cell per size labelled with the size alone, so the name is
+            // never what sets (or wraps) a cell's width. See .gmatrix.
+            function matrixRow(name, cells) {
+                return `<div class="gmrow"><span class="glab">${name}</span>${cells.join("")}</div>`;
+            }
             // The open chip is the real emitter's markup with the one attribute
             // a tap would have flipped. A hand-written open chip would stop
             // tracking chipMarkup the moment it changed.
@@ -1031,7 +1101,7 @@
                         date: dayHeader(thisYear("07-14")),
                     }),
                 });
-                return `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="${open}" aria-controls="${drawerId}" aria-label="${esc(aria)}" style="--i:${i}"><span class="dot"></span>${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(cur)} → ${esc(tgt)} ${esc(u)}</span><span class="chev">${icon("chev", 10)}</span></button>`;
+                return `<button class="more mextra c-acc" type="button" data-macro-extra="weight" aria-expanded="${open}" aria-controls="${drawerId}" aria-label="${esc(aria)}" style="--i:${i}">${glyph("scale", 20)}${esc(T.goalProgress.weightLabel)}<span class="mv">${esc(cur)} → ${esc(tgt)} ${esc(u)}</span><span class="chev">${icon("chev", 10)}</span></button>`;
             }
             function notice(variant, iconName, text) {
                 return `<div class="notice${variant ? " notice-" + variant : ""}">${icon(iconName, 16)}<span>${esc(text)}</span></div>`;
@@ -1213,7 +1283,10 @@
                 // tiered, since `.strip.tiered` is what splits the meta line
                 // into label · delta), inside a card: its selected tint and
                 // over state color-mix against --panel, which is not honest on
-                // the page ground.
+                // the page ground. And at the full width of its cell, through
+                // wide(): a panel spans its card in every widget, and as a
+                // shrink-to-fit spec() the tiered no-goal panel measured 170px
+                // beside 277px neighbours at 320, a width it never takes.
                 const heroIn = (vals, goal, o) => {
                     o = o || {};
                     const ctx = macroCtxOf(vals, goal, undefined, o.meals, {
@@ -1250,7 +1323,7 @@
                         ],
                     ]
                         .map(([l, b]) =>
-                            spec(`${tiered ? "tiered" : "flat"} · ${l}`, b),
+                            wide(`${tiered ? "tiered" : "flat"} · ${l}`, b),
                         )
                         .join("");
                 // The panel handed another metric, as a tap on the live card
@@ -1358,7 +1431,7 @@
                         ),
                     ],
                     [
-                        "a lone reading between gaps · a dot",
+                        "a lone reading between gaps · a mark",
                         sparkSpecimen(
                             calDays(W7, 7, (i) => i !== 2 && i !== 4),
                             W7,
@@ -1391,6 +1464,30 @@
                         "365 days · no rules",
                         sparkSpecimen(
                             calDays(W365, 365, (i) => i % 5 !== 4),
+                            W365,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    // The two above log in runs, so they carry no lone
+                    // reading. These do on every day they log: past a month
+                    // each mark drops to line weight (`.cpt.dense`), and at
+                    // 4px they merged into a band over the goal and the dot.
+                    [
+                        "90 days · every other day, marks at line weight",
+                        sparkSpecimen(
+                            calDays(W90, 90, (i) => i % 2 === 0),
+                            W90,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    [
+                        "365 days · every other day, a texture under the dot",
+                        sparkSpecimen(
+                            calDays(W365, 365, (i) => i % 2 === 0),
                             W365,
                             SERIES_END,
                             "calories",
@@ -1519,7 +1616,12 @@
                 // `.gitem` (fit-content) the caption's min-content would size
                 // the card instead — "2.0 US drinks · limit 20 g · 7.7 g over"
                 // pushed one to 368px on a 320px page — so every drawer
-                // specimen is a full-width `wide()` cell rather than a `spec()`.
+                // specimen is a full-width `wide()` cell rather than a `spec()`,
+                // and the cells are stacked in a `.gstack`, not tiled in a
+                // `.ggrid`: the head lets that caption wrap only below a 420px
+                // VIEWPORT (chip.css), so a 353px grid cell on a 760px page kept
+                // it on one line and clipped both alcohol captions, a cut no
+                // card at that viewport ever shows.
                 const drawer = (body) =>
                     `<div class="card"><div class="drawer">${inertPanel(body)}</div></div>`;
                 const drinkCtx = (unit) =>
@@ -1692,9 +1794,9 @@
                 `<div class="ggrid">
                    ${heroStates(false)}
                    ${heroStates(true)}
-                   ${spec("one logged day · Total, no chart", heroIn(TOTALS, GOALS, { tiered: true, calLabel: T.nutritionSummary.total }))}
-                   ${spec("calories exactly on goal", heroIn({ ...TOTALS, calories: 2200 }, GOALS, { tiered: true }))}
-                   ${spec("mirroring Protein (focusApply) · ✕ returns to calories", mirrorSpec)}
+                   ${wide("one logged day · Total, no chart", heroIn(TOTALS, GOALS, { tiered: true, calLabel: T.nutritionSummary.total }))}
+                   ${wide("calories exactly on goal", heroIn({ ...TOTALS, calories: 2200 }, GOALS, { tiered: true }))}
+                   ${wide("mirroring Protein (focusApply) · ✕ returns to calories", mirrorSpec)}
                  </div>`,
             )}
 
@@ -1775,7 +1877,7 @@
 
             ${sect(
                 "Sparkline (focus panel)",
-                "sparkMarkup on the calendar axis (calendarSlots): one slot per DAY of the range, so a day nobody logged is a gap in the line and the wash, never a closer neighbour. A day that logged only water is a gap on every food series and a reading on water. The goal's dashes are painted OVER the line, so a week exactly on goal still shows them. Rules: every day up to a month, Mondays up to four, none beyond; a dateless (fallback) axis marks every 7th slot. Drawn .still — the draw-in plays once, on the live card.",
+                "sparkMarkup on the calendar axis (calendarSlots): one slot per DAY of the range, so a day nobody logged is a gap in the line and the wash, never a closer neighbour. A day that logged only water is a gap on every food series and a reading on water. The goal's dashes are painted OVER the line, so a week exactly on goal still shows them. A reading with a gap on each side has no segment to draw, so it gets a 4px mark of its own, plainly under the 6px last-reading dot. Rules: every day up to a month, Mondays up to four, none beyond; a dateless (fallback) axis marks every 7th slot. Drawn .still — the draw-in plays once, on the live card.",
                 `<div class="ggrid">${sparks}</div>`,
             )}
 
@@ -1804,7 +1906,7 @@
             ${sect(
                 "Chip — every state",
                 'Emitted by macroChip / macroLimit / waterChip, on the flat rail\'s shape. Hover is live — point at one; keyboard focus is reviewed on the live card, since a specimen is never a tab stop (see inertPanel). The bordered pill is a control, the recessed one is data — that contrast is the whole affordance. Two CONTROL species share that pill and must stay tellable apart: a disclosure carries the chevron and aria-expanded; a chart toggle carries neither chevron nor aria-expanded, only aria-pressed, because it opens nothing. Over a ceiling keeps the same dot and the same shape, the value printed against its limit ("58.2/45 g") and the fill and hairline in --over. Rounding edges: every state is decided on the PRINTED figure, so 159.6 of 160 is at goal, 45.04 of 45 is at limit and not over, and a limit of 0 with nothing drunk is kept, not "at limit".',
-                `<div class="grow">
+                `<div class="gchips">
                    ${spec("interactive · disclosure", chipSpec(macroChip(PRO, live, true)))}
                    ${spec("open", chipSpec(opened(macroChip(PRO, live, true))))}
                    ${spec("toggle · chart series only (aria-pressed, no chevron)", chipSpec(macroChip(PRO, toggles, true)))}
@@ -1815,14 +1917,14 @@
                    ${spec("static", macroChip(PRO, flat, false))}
                    ${spec("static · none logged", macroLimit(ALC, dry, false))}
                    ${spec("water (never a control)", waterChip(WAT, live, false))}
-                   ${spec("tap hint (card foot)", '<span id="g-ghost"></span>')}
                  </div>
-                 <div class="grow" style="margin-top:12px">
+                 <div class="gchips" style="margin-top:12px">
                    ${spec("159.6 of 160 g · at goal", macroChip(PRO, macroCtxOf({ protein_g: 159.6 }, { protein_g: 160 }), false))}
                    ${spec("45.04 of 45 g · at limit, not over", macroLimit(SUG, macroCtxOf({ sugar_g: 45.04 }, { sugar_g: 45 }), false))}
                    ${spec("limit 0 · nothing drunk", macroLimit(ALC, macroCtxOf({ alcohol_g: 0 }, { alcohol_g: 0 }), false))}
                    ${spec("limit 0 · 4.2 g drunk", macroLimit(ALC, macroCtxOf({ alcohol_g: 4.2 }, { alcohol_g: 0 }), false))}
-                 </div>`,
+                 </div>
+                 <div class="gtap">${wide("tap hint (card foot)", '<span id="g-ghost"></span>')}</div>`,
             )}
 
             ${sect(
@@ -1845,7 +1947,7 @@
             ${sect(
                 "Drawer",
                 "One per card, one open at a time, built by macroDetailBody: the metric, the goal state the tile had no room for, every meal behind it largest-first (past eight rows the list scrolls in a named, focusable region). A row names its day on a multi-day card and its meal type otherwise — translated, or the stored word when the server's enum has none. Over a ceiling, and over the calorie goal, the head goes --over with the panel that opened it.",
-                `<div class="ggrid">
+                `<div class="gstack">
                    ${wide("a list", drawer(macroDetailBody(CARBS, live)))}
                    ${wide("over a ceiling", drawer(macroDetailBody(SUG, live)))}
                    ${wide("calories over goal", drawer(macroDetailBody(CAL, macroCtxOf({ ...TOTALS, calories: 2480 }, GOALS, undefined, MEALS, { drinkUnit: "us" }))))}
@@ -1915,7 +2017,7 @@
             ${sect(
                 "Segmented control",
                 // Token names sit in nowrap spans: "--edge" otherwise breaks after its first hyphen at 320px.
-                'The site header\'s own switch (.nm-theme): a 1px <span style="white-space:nowrap">--edge</span> hairline track and the selected segment filled solid with <span style="white-space:nowrap">--ink</span>, numerals in <span style="white-space:nowrap">--panel</span>. It names no series, so it stays ink whatever <span style="white-space:nowrap">--c</span> the card or the focus panel carries. The focus ring keeps the system\'s 2px <span style="white-space:nowrap">--acc</span> at a 1px offset in a 4px gap, so it never lands on the neighbouring ink pill. Under forced colors the selection adds a 2px CanvasText border, the one pair every palette guarantees. The window line (.cmeta.crow) comes BEFORE the control in the DOM, so a screen reader hears which window the figures cover before the control that changes it, and order puts it back under the title as the header\'s second row.',
+                'The site header\'s own switch (.nm-theme): a 1px <span style="white-space:nowrap">--edge</span> hairline track and the selected segment filled solid with <span style="white-space:nowrap">--ink</span>, numerals in <span style="white-space:nowrap">--panel</span>. It names no series, so it stays ink whatever <span style="white-space:nowrap">--c</span> the card or the focus panel carries. The focus ring is the system\'s 2px <span style="white-space:nowrap">--acc</span> drawn inside the segment, so it never fuses with the track\'s end caps or lands on a neighbouring ink pill. Under forced colors the selection adds a 2px CanvasText border, the one pair every palette guarantees. The window line (.cmeta.crow) comes BEFORE the control in the DOM, so a screen reader hears which window the figures cover before the control that changes it, and order puts it back under the title as the header\'s second row.',
                 `<div class="card">
                    <header class="chead"><h3 class="ctitle">${esc(T.trends.title)}</h3><span class="cmeta crow">${esc(`${rangeLabel(SUMMARY.start_date, SUMMARY.end_date)} · ${daysLoggedCaption(SUMMARY.logged_days, SUMMARY.days_in_range)}`)}</span>${segControl(14)}</header>
                  </div>`,
@@ -2032,30 +2134,38 @@
             ${sect(
                 "Icons",
                 "Every path in shared/icon.js at the size it ships at — a path that only breaks when it is scaled down breaks here. Listed from ICONS itself, so a new icon appears without anyone updating this section.",
-                `<div class="card"><div class="gicons">${Object.keys(ICONS)
+                `<div class="card"><div class="gmatrix" style="--n:${Math.max(1, ...Object.values(ICON_SIZES).map((s) => s.length))}">${Object.keys(
+                    ICONS,
+                )
                     .map((name) =>
-                        (ICON_SIZES[name] || [16])
-                            .map(
+                        matrixRow(
+                            name,
+                            (ICON_SIZES[name] || [16]).map(
                                 (size) =>
-                                    `<span class="gicon">${icon(name, size)}<span class="glab">${name} ${size}</span></span>`,
-                            )
-                            .join(""),
+                                    `<span class="gicon">${icon(name, size)}<span class="glab">${size}</span></span>`,
+                            ),
+                        ),
                     )
                     .join("")}</div></div>`,
             )}
 
             ${sect(
-                "Nutrient glyphs",
-                "The filled set, one per metric that names a drawing, at 13 / 17 / 18 / 20px — the sizes a tile, a limit tile, the drawer head and the water bar ship at — each in its own metric's colour through the role class (--c), exactly as a tile colours it. Listed from MACROS, so a new metric's glyph appears here with it.",
-                `<div class="card"><div class="gicons">${MACROS.filter(
-                    (m) => m.glyph,
+                "Glyphs",
+                "The filled set at 13 / 17 / 18 / 20px — the sizes a tile, a limit tile, the drawer head and the water bar ship at — each in the colour of what wears it, through the role class (--c): a metric's own series, and --acc for scale, which marks goal-progress' weight row rather than a nutrient. Listed from GLYPHS itself, as Icons is from ICONS, so a drawing no MACROS entry names still appears.",
+                `<div class="card"><div class="gmatrix" style="--n:${GLYPH_SIZES.length}">${Object.keys(
+                    GLYPHS,
                 )
-                    .map((m) =>
-                        GLYPH_SIZES.map(
-                            (size) =>
-                                `<span class="gicon ${m.color}">${glyph(m.glyph, size)}<span class="glab">${m.glyph} ${size}</span></span>`,
-                        ).join(""),
-                    )
+                    .map((name) => {
+                        const m = MACROS.find((x) => x.glyph === name);
+                        const color = m ? m.color : "c-acc";
+                        return matrixRow(
+                            name,
+                            GLYPH_SIZES.map(
+                                (size) =>
+                                    `<span class="gicon ${color}">${glyph(name, size)}<span class="glab">${size}</span></span>`,
+                            ),
+                        );
+                    })
                     .join("")}</div></div>`,
             )}
 

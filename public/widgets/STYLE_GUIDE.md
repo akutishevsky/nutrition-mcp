@@ -874,7 +874,7 @@ goal-progress's weight row.
     aria-controls="macro-drawer"
     style="--i:8"
 >
-    <span class="dot"></span>Weight<span class="mv">78.4 → 75.0 kg</span>
+    ${glyph("scale", 20)}Weight<span class="mv">78.4 → 75.0 kg</span>
     <span class="chev">…</span>
 </button>
 ```
@@ -906,8 +906,13 @@ Escape and the focus hand-back all treat it exactly like a tile.
 - On the tiered strip it takes the tiles' language, not the bar's: `--panel`
   ground, `--edge` border, the open state's `--c` tint and inset ring, 10px
   from the water bar above and from the foot below, the drawer 8px under it.
-- **The dot stays**, not a glyph: weight is not a `MACROS` nutrient, and a
-  different mark says it is a different kind of row.
+- **Its mark is the `scale` glyph** (§9), at the water bar's 20px and 18px in
+  its drawer head. It was a dot, on the reasoning that weight is not a
+  `MACROS` nutrient and a different mark says a different kind of row. On a
+  strip where every other control wears a glyph, the one dot read as the row
+  nobody had migrated; the arrow in its figure and the shape of a scale
+  already say it is not food. 20px inside its 7px padding and 1px edge is
+  36px, the water bar's height, with the label at the water label's x.
 
 There are exactly **three** disclosure affordances and only three: the tile
 (inline), the `.more` row (section-sized), and the drawer both of them open into.
@@ -1063,15 +1068,21 @@ of bordered pills.
   leaves `:hover` on the segment just tapped, which is the selected one. A stuck disc
   on a segment whose tap did not select is 15.77:1 / 12.73:1 away from the fill, so it
   never passes for a selection. **Press** is `translateY(1px)`, like every tile.
-- **Focus** is the system's 2px `--acc` ring at a **1px** offset, the one departure from
-  the 2px offset elsewhere. At 2px, with segments 2px apart, the ring on a resting
-  segment lay across the neighbouring ink pill (`--acc` on `--ink` is 1.57:1 in dark).
-  With the 4px gap and 1px offset it ends 1px short of the neighbour and sits on card
-  ground on a selected and a resting segment alike (5.01:1 light / 10.0:1 dark on
-  `--panel`; ≥4.2:1 / ≥8.3:1 on the glow-tinted ground it really sits on), and
-  vertically covers only the padding and the hairline. The control sits on the card's
-  `.glow`, so raising `--glow-a` or giving the card a greener `--c` narrows the ring
-  and numeral margins. Re-measure on real pixels, not on `--panel`.
+- **Focus** is the system's 2px `--acc` ring drawn **inside** the segment
+  (`outline-offset: -2px`), the one departure from the 2px outside offset elsewhere.
+  Outside there is no room: 2px of track padding plus a 1px hairline is exactly a 1px
+  gap and a 2px ring, so a 1px offset covered the hairline, and on the first and last
+  segment the ring's curve was the track's end cap, which turned green and fused with
+  the border. Offset 0 or −1px puts the ring against the ink fill (1.57:1 dark) or the
+  hairline (1.68:1 light); 3px of track padding makes the header 56.7px. Inset, the
+  ring keeps 2px of card ground to the hairline and the 4px gap to a neighbour, and
+  measures ≥4.27:1 light / ≥8.36:1 dark on the glow-tinted ground it really sits on
+  (5.02:1 / 10.0:1 on `--panel`). On the **selected** segment the fill steps back
+  behind an `inset 0 0 0 3px var(--panel)` shadow, so the ring touches card colour on
+  both sides rather than the ink; a shadow, not padding, so the box never changes on
+  focus. The control sits on the card's `.glow`, so raising `--glow-a` or giving the
+  card a greener `--c` narrows the ring and numeral margins. Re-measure on real
+  pixels, not on `--panel`.
 - **Forced colors** drop the fill, which is the whole selected state, so the pressed
   segment opts out (`forced-color-adjust: none`) and paints `SelectedItem` /
   `SelectedItemText`, the system pair for a selected control (`Highlight` /
@@ -1081,7 +1092,11 @@ of bordered pills.
   segment also takes a `2px solid CanvasText` border, the one pair every palette
   guarantees, and `padding: 0 7px` to give back those 2px a side, so its height and
   width match its neighbours. The opt-out also exempts the outline from forcing, so
-  every segment's `:focus-visible` names `outline-color: CanvasText` there.
+  every segment's `:focus-visible` names `outline-color: CanvasText` there. The
+  selected segment's ring goes back outside (`outline-offset: 1px`, `box-shadow: none`):
+  inset, it would land on that CanvasText border and vanish, and the shadow would paint
+  `--panel` through the opt-out. The hairline is CanvasText there as well, so an end
+  cap thickens rather than changing hue.
 
 ```html
 <div class="seg" role="group" aria-label="Trend window">
@@ -1142,11 +1157,18 @@ card height stays independent of card width. Everything else follows from that:
   which would stretch the stroke with them and leave near-vertical segments visibly
   thinner than near-horizontal ones — worse the wider the card gets.
 - **Every label is HTML (`.cfoot`), never `<text>` inside the SVG.** SVG text would
-  be stretched with the viewBox, cannot ellipsise, and ignores the flex layout that
-  pins the two ends to the card's edges.
+  be stretched with the viewBox, cannot ellipsise, and ignores the grid that pins
+  the two ends to the card's edges.
+- **In a narrow card the foot's middle wraps and its ends never do.** The first and
+  last spans are `nowrap`, so a date or a count ("9 Jul", "7 weigh-ins") is never
+  broken; the middle wraps between words only, centred, with `word-break: keep-all`
+  for ja. Join a figure to its unit and a goal word to its figure with `&nbsp;`,
+  or they part at the wrap ("2,089 / KCAL", "GOAL / 2,200"). A two-span foot's
+  second span goes to the last track, on the right edge. Measured floor: a 206px
+  foot (232px card) in all nine locales.
 - **`.chalo` is a `--panel` halo under the last point**, so the marker stays legible
-  where the line doubles back under it. It is the only marker: it says which end is
-  now. **Draw it with `chDotMarkup(x, y)`, never a `<circle>`.** A circle's `r` is
+  where the line doubles back under it. It is the only mark that says which end
+  is now. **Draw it with `chDotMarkup(x, y)`, never a `<circle>`.** A circle's `r` is
   in viewBox units, so `preserveAspectRatio="none"` stretches it into an oval (~1.6×
   wide on a 700px card, tall on a narrow one). The helper emits halo and dot as
   zero-length paths (`d="M x yL x y"`, from `chDot`) with round caps under
@@ -1169,7 +1191,16 @@ card height stays independent of card width. Everything else follows from that:
 - **`.cpt` marks every reading on a bridged line** (`chMarksMarkup(pts)`,
   weight-trends): the same zero-length, round-capped path as the dot, 4px in the
   line's stroke, nulls skipped. Emit it before `chDotMarkup`, so the last
-  reading's halo and dot sit over their own mark.
+  reading's halo and dot sit over their own mark. The sparkline (`sparkMarkup`)
+  calls it with only its **lone** readings, a day with a gap on each side and so
+  no segment to sit on: each is a 4px bead under the 6px last-reading dot, where a
+  zero-length piece of the 2.5px line was a speck (and vanished during the
+  dashed draw-in). The line path itself never carries a zero-length subpath.
+  **Only up to `CH_DAILY_SLOTS` (31) slots**, the same line `hairlineSlot`
+  draws: past it a day is narrower than the bead (~2.4px on 90 days, ~0.6px on
+  365 in a 320px card), and a year of alternate days became one solid band
+  over the goal and the dot. There the marks carry `.dense` and drop to the
+  line's own 2.5px, a texture under the goal and the dot.
 - **Goal behind the line is only the base order** (day → goal → area → line).
   The sparkline and weight-trends' target paint over the line instead: a 2.5px
   data stroke hid the dashes entirely whenever the series sat on its goal,
@@ -1274,7 +1305,9 @@ warning triangle are one drawing at two sizes.
 `glyph(name, size)` is the second table in the same file, drawn on the same
 16-unit box but with `fill: currentColor` and no stroke (`.gi`, base.css). It
 replaces the colour dot on every tile of a tiered strip, and the `.c-*` role
-class on an ancestor colours it exactly as it coloured the dot.
+class on an ancestor colours it exactly as it coloured the dot. One drawing is
+not a nutrient: `scale` marks goal-progress' weight row (`c-acc`), which no
+`MACROS` entry names.
 
 Note the emitted `width`/`height` are a **fallback**: `.gi`'s CSS overrides
 them, which is what lets the size step at a breakpoint without the emitter
@@ -1291,6 +1324,7 @@ knowing anything about width.
 | `glass`     | alcohol  | stem and foot                        |
 | `cup`       | caffeine | a handle (`evenodd`)                 |
 | `leaf`      | fiber    | a stem past the blade                |
+| `scale`     | weight   | a dial cut from a slab (`evenodd`)   |
 
 **Filled, not stroked, and that is measured.** A series token is weak as ink in
 light mode — `--cal` is 2.06:1 against the tile, `--car` 2.54 — so
@@ -1361,7 +1395,8 @@ guess and measured 0.7% slack — a fit that holds on the SF Pro it was taken on
 and clips on Segoe UI Variable or Roboto, which is not a fit at all. At 620 the
 same figure clears by 10%. The extra row below that costs ~46px.
 
-**Sizes**: 20px (macro/water), 17px (limits), 18px in the drawer head — one size
+**Sizes**: 20px (macro/water, and goal-progress' weight row), 17px (limits),
+18px in the drawer head — one size
 per tier at every width. The 13px it shipped at was legible in isolation and
 barely present on the card, which is the difference between reading a glyph and
 noticing one.
@@ -1386,8 +1421,8 @@ carry 3:1 on its own.
 live outside `#root` (every `render()` replaces `#root.innerHTML` wholesale), so
 templates would own DOM in two places instead of one, and `<use href="#x">`
 fragment resolution has enough host-dependent edge cases inside a sandboxed
-opaque-origin iframe that a silently blank icon is a real risk. Nine paths is ~400
-bytes; the plumbing would cost more than the duplication.
+opaque-origin iframe that a silently blank icon is a real risk. Ten paths is ~1.3
+KB; the plumbing would cost more than the duplication.
 
 Every icon is `aria-hidden`: an icon here is always inside a control whose own
 `aria-label` already says the thing.
@@ -1688,7 +1723,7 @@ var(--edge2)`; `.drop` takes `--edge` for both and keeps `--acc` on hover.
 
 `:focus-visible` is styled once for every control, and it is **the same treatment
 `chip.css` draws** on its tiles and panel — `outline: 2px solid var(--acc); outline-offset: 2px`
-(`.seg` alone narrows the offset to 1px, §7) — not a
+(`.seg` alone draws it inset, at −2px, §7) — not a
 local variant. It used to be `outline: none` plus a 3px 35%-alpha accent shadow, on
 the theory that only a box-shadow follows a 999px radius; composited, that ring
 measured ~1.6:1 against its ground, far under the 3:1 SC 2.4.11 asks of a focus
@@ -1775,7 +1810,7 @@ needed:
 
 - `table.css` gives `.tscroll:focus-visible` the same `outline: 2px solid var(--acc);
 outline-offset: 2px` the design's other focusable surfaces draw (SPEC §7; `.seg`
-  is the one 1px exception, §7).
+  is the one inset exception, §7).
   The offset ring lands _outside_ the scroller, where nothing clips it; drawn inside,
   it would scroll away with the rows.
 - The **template** supplies `role="region"` + `aria-label` + `tabindex="0"`, because
@@ -1848,8 +1883,9 @@ These are the rules that break something real when ignored.
    drawer's `.dv` (1.47–4.26:1) and `.cmeta.kcal` (2.06:1) were both blockers.
 10. **Every interactive element uses the same focus ring**
     (`outline: 2px solid var(--acc); outline-offset: 2px`). The one exception is
-    `.seg button`, at a 1px offset, so the ring clears a neighbouring ink segment
-    (§7); colour and width are unchanged there. A translucent box-shadow
+    `.seg button`, drawn inset at −2px, because the track leaves no room outside
+    and an outside ring fused with its end caps (§7); colour and width are
+    unchanged there. A translucent box-shadow
     substitute measured ~1.6:1 and is not an indicator.
 11. **A disclosure hands focus both ways.** Opening moves focus into the region
     (`focus({ preventScroll: true })`); closing returns it to the control that

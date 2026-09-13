@@ -2,7 +2,8 @@
    charts, an optional dashed goal line, a single dot on the last point, and
    HTML labels underneath. Three instances share it (calories, a switched
    nutrient series, weight — the last without the area, see .carea, and with a
-   small mark on every reading, see .cpt); the geometry that feeds it is in
+   small mark on every reading, see .cpt, which the first two give only to a
+   reading with a gap on each side); the geometry that feeds it is in
    shared/svg.js.
 
    The svg is viewBox "0 0 480 52" with preserveAspectRatio="none" and a fixed
@@ -167,7 +168,7 @@
     shape-rendering: crispEdges;
 }
 /* The last point sits on a --panel halo so it stays legible where the line
-   doubles back under it. It is the only marker: it says which end is now.
+   doubles back under it. It is the only mark that says which end is now.
 
    Both are STROKES on a zero-length path (chDotMarkup in shared/svg.js), not
    filled circles: a circle's r is in viewBox units and so stretched with the
@@ -203,7 +204,14 @@
    line's own colour at the line's own contrast. No halo: it sits ON the line
    it marks, and a --panel ring would cut the stroke on either side of it.
    Painted under .chalo/.cdot by markup order (the last reading's own mark is
-   covered by its dot). */
+   covered by its dot).
+
+   The focus panel's sparkline puts the same mark on a reading with a gap on
+   each side (sparkMarkup, shared/spark.js). There it has no line to sit on and
+   is the only thing drawing that day, and the same 4px is the point: a round
+   cap of the 2.5px line was a speck, while anything nearer the 6px dot would
+   read as a second "now". It inherits the over state with --cstroke, like
+   the line. */
 .cpt {
     fill: none;
     stroke: var(--cstroke, var(--c, var(--cal)));
@@ -221,19 +229,37 @@
 .fspark .cpt {
     animation: fadeIn 0.5s var(--ease-out) 0.35s both;
 }
+/* A lone reading on a window longer than a month (sparkMarkup passes
+   `dense` past CH_DAILY_SLOTS, svg.js). There a day is narrower than the
+   bead: at 320px a slot is ~2.4px on 90 days and ~0.6px on 365, and a year of
+   alternate days drew one solid 4px band over the goal dashes that the 6px
+   dot could not be picked out of. At the line's own 2.5px the same days read
+   as the line's texture, under the goal and the dot. */
+.fspark .cpt.dense {
+    stroke-width: 2.5;
+}
 .fspark .cwrap.still .cpt {
     animation: none;
 }
 /* Every label is HTML here rather than <text> inside the svg, for three
    reasons that all follow from preserveAspectRatio="none": svg text would be
    stretched horizontally with the viewBox, it cannot ellipsise, and it ignores
-   the flex layout that keeps the two ends pinned to the card's edges. */
+   the grid that keeps the two ends pinned to the card's edges. */
 /* Three columns, not space-between: the middle span is the series' own figure
    and belongs on the card's centre line, but flex distribution centred it
    between its neighbours instead, so a short left date and a long right one
    pushed it off-centre. `1fr auto 1fr` pins it to the middle whatever the two
-   dates measure. A two-span foot still reads left/right, because the empty
-   middle column collapses to nothing. */
+   dates measure, as long as both dates fit in their share.
+
+   When they do not, the middle gives way and the ends never do. The auto
+   column used to take the width first, so at a 232px card the ends were
+   squeezed to 20px: "9 Jul" printed as "9 / JUL", and "7 weigh-ins" broke at
+   its own hyphen onto three lines. nowrap on the ends makes their min-content
+   the whole phrase, which floors both 1fr tracks there, and the middle wraps
+   into what is left, between words only. The floor that sets, measured over
+   all nine locales with the longest middle (calories, average and goal): a
+   206px foot, the gallery's 232px card. fr overflows at a 192px foot, below
+   the 256px card chip.css designs down to. */
 .cfoot {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -255,6 +281,26 @@
 }
 .cfoot > :last-child {
     text-align: right;
+}
+.cfoot > :first-child,
+.cfoot > :last-child {
+    white-space: nowrap;
+}
+/* Centred once it wraps. On one line its auto column is exactly its own
+   width, so this changes nothing until then. keep-all because ja writes no
+   space inside "平均" or "目標", and a CJK run otherwise breaks between any two
+   characters: at a narrow foot the middle printed "平 / 均". */
+.cfoot > :nth-child(2):not(:last-child) {
+    text-align: center;
+    word-break: keep-all;
+}
+/* A two-span foot (weight: the count, then the target) put its second span in
+   the AUTO column, not the last: right-aligned inside a column exactly its own
+   width, it sat centred, 57px short of the card's right edge at 232px. Sent to
+   the third track, the empty middle collapses the way the grid comment above
+   says it does. */
+.cfoot > :nth-child(2):last-child {
+    grid-column: 3;
 }
 /* A unit symbol keeps its case inside the uppercase eyebrow: SI symbols are
    case-sensitive (G is giga, K is kelvin), so "75.0 KG" and "151 G" are wrong

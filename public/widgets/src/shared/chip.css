@@ -193,6 +193,15 @@
     width: 20px;
     height: 20px;
 }
+/* goal-progress' weight row is shaped like the water bar above it, so its
+   mark takes the bar's size: 20px inside 7px of padding and a 1px edge is
+   36px, the water bar's height to the pixel, and it puts "Weight" at the
+   same x as "Water". Sized here rather than by the emitted attribute so the
+   decision lives with the tiers'. */
+.strip.tiered > .more.mextra > .gi {
+    width: 20px;
+    height: 20px;
+}
 /* A shade smaller on the denser tier, in step with its 11px label — the whole
    tile steps down together or it stops looking like one thing. */
 .r-limit .gi {
@@ -1492,11 +1501,13 @@ button.focus:active {
    THE DASH IS ONLY THERE WHILE IT DRAWS. The pattern sits in the keyframes and
    the fill is `backwards`, so it applies through the delay and the sweep and
    is gone once the line is whole. As a standing rule it hid every LONE
-   reading: a day with a value between two unlogged ones is a zero-length
-   subpath the round cap paints as a dot, and Chrome paints no cap on a
-   zero-length piece of a dashed path — so on a gappy month those days simply
-   were not drawn. `.cwrap.still` (below) sets `animation: none`, which now
-   also means no dash at all. */
+   reading, back when a day with a value between two unlogged ones was a
+   zero-length subpath the round cap painted as a dot: Chrome paints no cap on
+   a zero-length piece of a dashed path, so on a gappy month those days simply
+   were not drawn. A lone reading is no longer in the path at all (it is a
+   `.cpt` mark, which fades in with the dot; see chart.css), but a dash that
+   outlives the sweep would still be a defect. `.cwrap.still` (below) sets
+   `animation: none`, which also means no dash at all. */
 .fspark .cline {
     animation: drawIn 0.9s var(--ease-out) backwards;
 }
@@ -1521,8 +1532,8 @@ button.focus:active {
    an end the line has not reached yet — and the chip the user just tapped
    already confirms the switch. The dash pattern lives only in the drawIn
    keyframes, so `animation: none` means no dash at all — the whole line
-   drawn, lone readings included: nothing is ever made visible BY the
-   animation.
+   drawn, and a lone reading's `.cpt` mark shown at once by its own `.still`
+   rule in chart.css: nothing is ever made visible BY the animation.
 
    Here rather than in a template since the sparkline became a shared partial:
    every panel that holds a sparkline owes it the same once-only entrance,
@@ -1684,8 +1695,9 @@ button.focus:active {
 
    Shaped like the water bar above it — the same padding and gap, one line — so
    the two rows that are not on the ladder read as one family under it. Its
-   insides (dot, label, value, chevron) are `.more`'s, untouched; the chevron's
-   focus ring and press are `.more`'s too.
+   insides (mark, label, value, chevron) are `.more`'s, untouched; the chevron's
+   focus ring and press are `.more`'s too. The mark is the `scale` glyph, sized
+   with the water bar's under SIZE above.
 
    `>` keeps this off every other `.more`: only a direct child of the strip is
    the extra's row. */
@@ -2043,7 +2055,7 @@ button.focus:active {
        card surface is what shows through around the segment;
      - 24px pills with a 9px side padding, not 30px circles, and 2px track
        padding, not 3px, so the track is the header's old 30px;
-     - a 4px gap, not 2px (see :focus-visible);
+     - a 4px gap, not 2px (see the gap's own note);
      - a resting segment gets an 8% --ink disc on hover and every segment the
        tile press, where the site changes only the numeral's colour.
 
@@ -2062,8 +2074,9 @@ button.focus:active {
 .seg {
     display: flex;
     flex: none;
-    /* 4px, not the site's 2px: the gap is where a neighbour's focus ring
-       lands. See :focus-visible below. */
+    /* 4px, not the site's 2px. It was widened to hold a ring drawn outside
+       the segment; the ring is inset now (see :focus-visible), and the gap
+       stays so the control's width and resting look do not move. */
     gap: 4px;
     margin-left: auto;
     padding: 2px;
@@ -2119,19 +2132,29 @@ button.focus:active {
     background: var(--ink);
     color: var(--panel);
 }
-/* THE SYSTEM'S RING, ONE PIXEL CLOSER. At the usual 2px offset the ring
-   reaches 4px past the box, and with segments 2px apart it lay across the
-   neighbouring ink pill — in dark, --acc on --ink is 1.57:1, so on an
-   unselected segment beside the selection the ring half-vanished into it. The
-   gap is 4px and the offset 1px, so the ring ends 1px short of the neighbour
-   and always sits on card ground: --acc against --panel is 5.01:1 light /
-   10.0:1 dark, and ≥4.2 / ≥8.3 on the glow-tinted pixels actually there, on
-   a selected and a resting segment alike. Vertically it covers
-   exactly the padding and the hairline, never past the group, so nothing
-   outside the control is painted. Colour and width are the system's. */
+/* THE SYSTEM'S RING, DRAWN INSIDE THE SEGMENT. Outside there is no room for
+   it: the track gives 2px of padding and a 1px hairline, and a ring that does
+   not touch the ink fill needs a 1px gap plus its own 2px. At a 1px offset it
+   therefore covered the hairline exactly, and on the first and last segment
+   its curve IS the track's end cap, so the whole cap turned green and read as
+   the border changing colour rather than as a ring. Offset 0 or -1px puts
+   --acc against the fill (1.57:1 in dark) or the hairline (1.68:1 in light),
+   and 3px of track padding makes the header 56.7px. Inset at -2px the ring
+   is the button's own edge: 2px of card ground always separates it from the
+   hairline and the 4px gap from a neighbour, and --acc on the ground is
+   ≥4.27:1 light / ≥8.36:1 dark on the glow-tinted pixels actually there
+   (5.02 / 10.0 on --panel). Nothing outside the button is painted. Colour
+   and width are the system's; only the side of the edge differs. */
 .seg button:focus-visible {
     outline: 2px solid var(--acc);
-    outline-offset: 1px;
+    outline-offset: -2px;
+}
+/* Inset, the selected segment's ring would lie on the ink (1.57:1 in dark),
+   so the fill steps back 3px behind a --panel gap and the ring touches card
+   colour on both sides; the numerals still sit on ink. A shadow, not a border
+   or padding, so the segment's box never changes on focus. */
+.seg button[aria-pressed="true"]:focus-visible {
+    box-shadow: inset 0 0 0 3px var(--panel);
 }
 /* FORCED COLORS drop author backgrounds, and the ink fill is the entire
    selected state, so the pressed segment would be identical to its
@@ -2141,9 +2164,8 @@ button.focus:active {
    an engine that does not know SelectedItem and drops that declaration.
    The opt-out also exempts the OUTLINE from forcing, so a focused pressed
    segment would keep the author's --acc while every other ring took the
-   user's palette. The ring sits outside the fill, on Canvas, so every
-   segment's ring is named CanvasText here, which is what the engine forces
-   an author outline to anyway.
+   user's palette. So every segment's ring is named CanvasText here, which is
+   what the engine forces an author outline to anyway.
    THE PAIR IS NOT ENOUGH ON ITS OWN. SelectedItem/SelectedItemText promises
    text-on-fill contrast, not fill-against-Canvas: in Chrome's light palette
    (and Firefox's "override colors: always", which takes the same values)
@@ -2167,6 +2189,16 @@ button.focus:active {
     }
     .seg button:focus-visible {
         outline-color: CanvasText;
+    }
+    /* Inset, the selected segment's ring would land exactly on its CanvasText
+       border and vanish, and the --panel shadow would paint an author colour
+       through the opt-out. So this one ring goes back outside, across the
+       Canvas padding. The hairline there is CanvasText too, so an end cap
+       thickens instead of changing hue, and the Canvas gap keeps ring and
+       border apart. */
+    .seg button[aria-pressed="true"]:focus-visible {
+        outline-offset: 1px;
+        box-shadow: none;
     }
 }
 

@@ -425,6 +425,12 @@ test("representative rules from each partial survive intact", () => {
     expect(CSS).toContain(`${SCOPE} .fspark .cpt {`);
     expect(CSS).toContain(`${SCOPE} .cline {`);
     expect(CSS).toContain(`${SCOPE} .cfoot .u {`);
+    // The foot's wrapping contract: whole-phrase ends, and a two-span foot's
+    // second span on the last track rather than the centred auto one.
+    expect(CSS).toMatch(
+        /\.nm-widget-card \.cfoot > :first-child,\n\.nm-widget-card \.cfoot > :last-child \{/,
+    );
+    expect(CSS).toContain(`${SCOPE} .cfoot > :nth-child(2):last-child {`);
 });
 
 test("the transform is deterministic", () => {

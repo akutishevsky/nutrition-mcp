@@ -92,6 +92,7 @@ test("retired gallery code and classes stay gone", async () => {
         'id="g-chart"',
         'id="g-foot"',
         'class="slab"',
+        'class="gicons"',
         "T.importMeals.stepOf",
     ]) {
         expect(src).not.toContain(gone);
@@ -109,4 +110,14 @@ test("the assembled gallery carries the shared helpers it calls", async () => {
     ]) {
         expect(html).toContain(fn);
     }
+});
+
+test("a chart foot never parts a figure from its unit or its goal word", async () => {
+    // A .cfoot's middle wraps in a narrow card (chart.css). With a plain
+    // space the gallery printed "2,089 / KCAL" at 232px and "GOAL / 2,200"
+    // at 320px.
+    const src = await script();
+    expect(src).toContain('${esc(macroNum(m, v))}&nbsp;<span class="u">');
+    expect(src).toContain("</b>&nbsp;${esc(macroNum(m, goal))}");
+    expect(src).not.toContain(')} <span class="u">');
 });

@@ -55,7 +55,7 @@ function chPath(pts) {
    day nobody logged stays unfilled instead of the wash bridging it. Each run of
    readings closes into its own subpath. A run of ONE point closes to zero width
    and paints nothing, which is right: there is no span under a single reading,
-   and the line's round cap already draws it as a dot. */
+   and the sparkline draws that reading as a mark instead (chMarksMarkup). */
 function chArea(pts) {
     var d = "",
         run = [],
@@ -181,13 +181,28 @@ function chY(v, yMin, yMax) {
    <circle> would stretch into an oval; see chDot), one path per reading. `pts`
    may carry nulls, which draw nothing, so a caller can hand over the same
    calendar-slotted array its hairlines are built from. Emit these BEFORE
-   chDotMarkup, so the last reading's halo and larger dot sit over its mark. */
-function chMarksMarkup(pts) {
-    var s = "",
+   chDotMarkup, so the last reading's halo and larger dot sit over its mark.
+
+   The focus panel's sparkline (sparkMarkup, shared/spark.js) calls this with
+   only its LONE readings. Its line breaks at a gap rather than bridging it, so
+   a reading with a gap on each side has no segment to sit on, and drawn as a
+   zero-length piece of the 2.5px line it was a speck.
+
+   `mod` is an optional extra class for every mark: the sparkline passes
+   "dense" past CH_DAILY_SLOTS, where a 4px bead is wider than its day (see
+   `.fspark .cpt.dense` in chart.css). */
+function chMarksMarkup(pts, mod) {
+    var cls = mod ? "cpt " + mod : "cpt",
+        s = "",
         i;
     for (i = 0; i < pts.length; i++) {
         if (pts[i]) {
-            s += '<path class="cpt" d="' + chDot(pts[i][0], pts[i][1]) + '"/>';
+            s +=
+                '<path class="' +
+                cls +
+                '" d="' +
+                chDot(pts[i][0], pts[i][1]) +
+                '"/>';
         }
     }
     return s;
@@ -246,8 +261,13 @@ function calendarSlots(days, start, end) {
 // slot from wherever the range began); wider than that, none — a
 // weekly rule every 5px is the same slab again. A fallback axis
 // with no dates marks every seventh slot, the nearest honest thing.
+/* The longest window still drawn a day at a time: a rule on every day here,
+   and a full-size `.cpt` on a lone reading in the sparkline (sparkMarkup).
+   Past it a slot is too narrow for either. `var` for CH_GRAD_N's reason. */
+var CH_DAILY_SLOTS = 31;
+
 function hairlineSlot(slot, i, n) {
-    if (n <= 31) return true;
+    if (n <= CH_DAILY_SLOTS) return true;
     if (n > 120) return false;
     return slot.t === null ? i % 7 === 0 : new Date(slot.t).getUTCDay() === 1;
 }

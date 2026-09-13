@@ -49,6 +49,8 @@ var ICONS = {
      glass      stem and foot
      cup        a handle (evenodd)
      leaf       a stem protruding past the blade
+     scale      a dial cut out of a slab (evenodd), its needle left standing
+                in the cut; the hole is what keeps it from the cube
 
    They are DECORATIVE: every tile names its metric in words beside the glyph,
    so this adds a shape channel to a card that otherwise separates its metrics
@@ -83,6 +85,16 @@ var GLYPHS = {
     },
     leaf: {
         d: "M13.7 2.3c-5.9-.6-10 1.8-10.6 5.9-.4 2.6 1.1 4.7 3.6 5.1 4.1.6 7.6-4.1 7-11z M1.9 14.6l-1-.9 4.7-5.1 1 .9z",
+    },
+    /* Not a nutrient: goal-progress' weight row, which wears the strip's mark
+       like every tile above it. The slab is inset to 11.2 x 9.6 units so the
+       set's ink holds: 34% of the box at 20px, against 20-38% for the nine
+       above. The first draft filled the box edge to edge and measured 44%,
+       the heaviest shape on the card. The needle sits inside the cut, where
+       evenodd fills it back in. */
+    scale: {
+        d: "M4.8 3.2h6.4a2.4 2.4 0 0 1 2.4 2.4v4.8a2.4 2.4 0 0 1-2.4 2.4H4.8a2.4 2.4 0 0 1-2.4-2.4V5.6a2.4 2.4 0 0 1 2.4-2.4z M4.6 7.9a3.4 3.4 0 0 1 6.8 0z M7.3 7.9l2.3-2.7.9.7-1.8 2z",
+        evenodd: true,
     },
 };
 

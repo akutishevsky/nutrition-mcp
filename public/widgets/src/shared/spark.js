@@ -119,18 +119,25 @@ function sparkMarkup(o) {
     );
 
     // Built here rather than with chPath(), which has no way to
-    // express a gap: a run of readings is one subpath, and a
-    // reading alone between two gaps gets a zero-length segment so
-    // the round line cap paints it as a dot instead of nothing.
+    // express a gap: a run of readings is one subpath. A reading
+    // alone between two gaps is left OUT of the path. It used to be
+    // a zero-length segment the round cap painted as a dot, but that
+    // dot is only the line's own 2.5px wide — four of nine logged
+    // days on a gappy fortnight read as specks beside the 6px
+    // last-reading dot — and Chrome paints no cap on a zero-length
+    // piece of a dashed path, so through the draw-in those days were
+    // not there at all. Each one gets a mark instead (`marks`).
     let d = "";
     let last = -1;
+    const lone = [];
     for (let i = 0; i < raw.length; i++) {
         if (raw[i] === null) continue;
-        const xy = `${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}`;
         const joined = i > 0 && raw[i - 1] !== null;
-        d += (joined ? "L" : "M") + xy;
         if (!joined && (i + 1 >= raw.length || raw[i + 1] === null)) {
-            d += "L" + xy;
+            lone.push(pts[i]);
+        } else {
+            const xy = `${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}`;
+            d += (joined ? "L" : "M") + xy;
         }
         last = i;
     }
@@ -155,6 +162,24 @@ function sparkMarkup(o) {
     const dayLines = chDayLines(
         pts.filter((_, i) => hairlineSlot(slots[i], i, slots.length)),
     );
+    // A lone reading's mark is weight-trends' per-reading bead
+    // (chMarksMarkup, svg.js; `.cpt`, chart.css): 4px, wide enough
+    // to read as a day that logged, and plainly under the 6px dot on
+    // its 10px halo. A zero-length round cap rather than a <circle>
+    // for chDot's reason — under preserveAspectRatio="none" a circle
+    // is an oval. A lone LAST reading is marked too; its dot covers it.
+    //
+    // ONLY WHILE A DAY IS WIDE ENOUGH TO HOLD ONE. Past a month
+    // (CH_DAILY_SLOTS, the same line hairlineSlot draws) a slot is
+    // ~2.4px at 90 days in a 320px card and ~0.6px at 365, so
+    // alternate days as 4px beads overlapped into a band heavier than
+    // the line, buried the goal dashes and swallowed the now-dot. There
+    // the marks go back to the line's own weight (`.cpt.dense`,
+    // chart.css): a texture under the dot and the goal, not beads.
+    const marks = chMarksMarkup(
+        lone,
+        slots.length > CH_DAILY_SLOTS ? "dense" : "",
+    );
     // One dot, on the last reading: it is the only thing that says
     // which end of the line is now.
     const dot = last >= 0 ? chDotMarkup(pts[last][0], pts[last][1]) : "";
@@ -170,14 +195,15 @@ function sparkMarkup(o) {
     // saying "2.1 L". Nor a date foot: the card header prints the
     // range.
     //
-    // PAINT ORDER: day → area → line → GOAL → dot. The goal used
-    // to go under the wash and the line (day → goal → area →
+    // PAINT ORDER: day → area → line → GOAL → marks → dot. The goal
+    // used to go under the wash and the line (day → goal → area →
     // line, the shared grammar's order), which hid it completely
     // whenever the series sat ON it: 2,200 kcal every day against
     // a 2,200 goal drew the 2.5px data stroke straight over the
     // dashes and the card showed no goal at all. Over the line,
-    // the dashes read as the reference crossing the data; the dot
-    // stays last so the "now" marker is never struck through.
+    // the dashes read as the reference crossing the data; the
+    // marks and then the dot come after it, so a dash never cuts a
+    // lone reading and the "now" marker is never struck through.
     //
     // The literal below is indented as it always was: its whitespace
     // is part of the painted markup, and keeping it byte-for-byte is
@@ -191,7 +217,7 @@ function sparkMarkup(o) {
             <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" ${a11y}>
               ${dayLines}${area}
               <path class="cline" pathLength="1" d="${d}"/>
-              ${goalLine}${dot}
+              ${goalLine}${marks}${dot}
             </svg>
           </div>`;
 }

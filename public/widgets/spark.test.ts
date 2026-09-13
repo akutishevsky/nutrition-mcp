@@ -204,15 +204,98 @@ test("an unknown key falls back to calories", () => {
     expect(html).toContain(`class="cwrap ${color("calories")}"`);
 });
 
-test("gaps break the line; a lone reading is a zero-length segment", () => {
+test("gaps break the line; a lone reading is a mark, not a path segment", () => {
     const html = sparkMarkup({ slots: weekSlots, key: "calories", goals });
     const d = html.match(/class="cline" pathLength="1" d="([^"]*)"/)![1]!;
     // Runs: 07-01..02, then 07-05 alone (07-03 unlogged, 07-04 water-only,
-    // 07-06 unlogged), then 07-07 alone — three subpaths.
-    expect(d.match(/M/g)!.length).toBe(3);
-    // Each lone reading is "M x yL x y", which the round cap paints as a dot.
-    const lone = [...d.matchAll(/M([\d.]+ [\d.]+)L([\d.]+ [\d.]+)(?=M|$)/g)];
-    expect(lone.filter((m) => m[1] === m[2]).length).toBe(2);
+    // 07-06 unlogged), then 07-07 alone. Only the run is a subpath: as a
+    // zero-length segment a lone reading was a speck the width of the line.
+    expect(d.match(/M/g)!.length).toBe(1);
+    expect(d).not.toMatch(/M([\d.]+ [\d.]+)L\1(?=M|$)/);
+    // Each lone reading is a zero-length .cpt mark on its own day's x (slots
+    // 4 and 6 of 7, at 6 + i/6 * 468), 07-07's included: its dot covers it.
+    const marks = [
+        ...html.matchAll(
+            /class="cpt" d="M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)"/g,
+        ),
+    ];
+    expect(marks.map((m) => m[1])).toEqual(["318.0", "474.0"]);
+    for (const m of marks) expect([m[3], m[4]]).toEqual([m[1], m[2]]);
+    // After the goal, so no dash cuts one; before the halo, so the dot stays
+    // the one mark on top.
+    expect(html.indexOf('class="cgoal"')).toBeLessThan(
+        html.indexOf('class="cpt"'),
+    );
+    expect(html.lastIndexOf('class="cpt"')).toBeLessThan(
+        html.indexOf('class="chalo"'),
+    );
+});
+
+test("a mark only where a reading has a gap on each side, on either axis", () => {
+    const count = (html: string) => (html.match(/class="cpt"/g) ?? []).length;
+    // Water reads the water-only 07-04, so only 07-07 stands alone.
+    expect(
+        count(sparkMarkup({ slots: weekSlots, key: "water_ml", goals })),
+    ).toBe(1);
+    const full = calendarSlots(
+        [meal("2026-07-01", 1800), meal("2026-07-02", 1900)],
+        "2026-07-01",
+        "2026-07-02",
+    );
+    expect(count(sparkMarkup({ slots: full, key: "calories", goals }))).toBe(0);
+    // A range that cannot be trusted falls back to the dateless axis, which
+    // reads a gap the same way.
+    const plain = calendarSlots(
+        [
+            meal("2026-07-01", 1800),
+            { date: "2026-07-02", meal_count: 0, calories: 0, water_ml: 900 },
+            meal("2026-07-03", 1900),
+            meal("2026-07-04", 2000),
+        ],
+        "not a date",
+        "2026-07-04",
+    );
+    expect(plain.every((s) => s.t === null)).toBe(true);
+    expect(count(sparkMarkup({ slots: plain, key: "calories", goals }))).toBe(
+        1,
+    );
+});
+
+test("past a month a lone reading's mark drops to line weight", () => {
+    // Every other day logged, so every reading stands alone.
+    const gappy = (start: string, end: string, n: number) =>
+        calendarSlots(
+            Array.from({ length: n }, (_, i) => {
+                const d = new Date(
+                    Date.parse(`${start}T00:00:00Z`) + i * 864e5,
+                );
+                return meal(d.toISOString().slice(0, 10), 1800 + i);
+            }).filter((_, i) => i % 2 === 0),
+            start,
+            end,
+        );
+    const full = (html: string) => (html.match(/class="cpt"/g) ?? []).length;
+    const dense = (html: string) =>
+        (html.match(/class="cpt dense"/g) ?? []).length;
+
+    // A month: a slot is wide enough for the 4px bead.
+    const month = gappy("2026-07-01", "2026-07-31", 31);
+    expect(month.length).toBe(31);
+    const m = sparkMarkup({ slots: month, key: "calories", goals });
+    expect(full(m)).toBe(16);
+    expect(dense(m)).toBe(0);
+
+    // A quarter and a year: no full-size mark at all.
+    for (const [start, end, n] of [
+        ["2026-05-03", "2026-07-31", 90],
+        ["2025-08-01", "2026-07-31", 365],
+    ] as const) {
+        const slots = gappy(start, end, n);
+        expect(slots.length).toBe(n);
+        const html = sparkMarkup({ slots, key: "calories", goals });
+        expect(full(html)).toBe(0);
+        expect(dense(html)).toBe(Math.ceil(n / 2));
+    }
 });
 
 test("the goal line is drawn only for a positive goal", () => {
