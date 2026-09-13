@@ -1039,17 +1039,24 @@ function chipValueText(m, b) {
     return `${val}/${macroNum(m, b.goalShown)} ${unit}`;
 }
 
-// The metric's mark: its glyph where the strip has one and the entry names a
-// drawing, the plain colour dot otherwise. ONE decision point, called by both
-// the tile and the drawer head — they sit on screen together whenever a
-// breakdown is open, so a card that drew one as a shape and the other as a dot
-// would be showing the same metric two ways at once. The `.dot` class is kept
-// on the fallback exactly as it was, so an untiered widget's markup is
-// unchanged.
+// A TILE's mark: its glyph where the strip is tiered and the entry names a
+// drawing, the plain colour dot otherwise. The `.dot` class is kept on the
+// fallback exactly as it was, so an untiered widget's tiles are unchanged.
 function macroMark(m, ctx, size) {
     return ctx && ctx.tiers && m.glyph
         ? glyph(m.glyph, size || 17)
         : '<span class="dot"></span>';
+}
+
+// The DRAWER HEAD's mark: the glyph whenever the metric names one, tiered or
+// not. The head is the only place in the drawer that carries the metric's
+// identity next to its name, and a shape says which nutrient it is where a dot
+// is only a hue. Every shipping strip is tiered, so there tile and head match.
+// On the flat rollback strip a tile keeps its dot while the drawer shows the
+// glyph; that path is being removed, and the drawer need not wait for it. A
+// metric with no drawing keeps the dot. 18px is what `.dhead .gi` sizes it to.
+function drawerMark(m) {
+    return m.glyph ? glyph(m.glyph, 18) : '<span class="dot"></span>';
 }
 
 // Where the mark SITS, which differs by species and is why this is not one
@@ -1706,13 +1713,13 @@ function macroDetailBody(m, ctx) {
     // must agree with whatever opened it, and only the panel can open the
     // calorie drawer.
     const flag = focusOver(m, b) ? " over" : "";
-    // The ROLE CLASS goes on the head, not on the dot — exactly as a tile puts
-    // it on the chip and leaves its dot bare. On the dot it set --c on the dot
-    // ITSELF, which outranks the --over the head reassigns, so a breached
+    // The ROLE CLASS goes on the head, not on the mark — exactly as a tile puts
+    // it on the chip and leaves its mark bare. On the mark it set --c on the
+    // mark ITSELF, which outranks the --over the head reassigns, so a breached
     // metric kept its series colour here however the head was flagged.
     return `
       <div class="dhead ${m.color}${flag}">
-        ${macroMark(m, ctx, 14)}
+        ${drawerMark(m)}
         <b class="dname" id="${ctx.drawerNameId}">${esc(macroLabel(m))}</b>
         <span class="dcap${flag}">${esc(macroCaption(m, b, ctx))}</span>
         <button class="dx" type="button" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">${icon("x", 12)}</button>

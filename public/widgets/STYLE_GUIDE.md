@@ -933,8 +933,16 @@ under the whole strip, and the metric rows stay contiguous open or closed.
     tabindex="-1"
     hidden
 >
-    <div class="dhead">
-        <span class="dot c-pro"></span>
+    <div class="dhead c-pro">
+        <svg
+            class="gi"
+            width="18"
+            height="18"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+        >
+            …
+        </svg>
         <b class="dname" id="macro-drawer-name">Protein</b>
         <span class="dcap">of 160 g · 12 g left</span>
         <button
@@ -979,7 +987,7 @@ and turns `--over` on a breached ceiling.
 **`.dv` is NOT painted in the series token.** It was, and on the drawer's `--bg2`
 that failed AA on seven of nine nutrients in light mode — 1.71:1 for sugar, 1.47:1
 for its `.u` unit under an `opacity: 0.7` on top. The colour identity is carried by
-the `.dot` in `.dhead`; the numbers are read in `--ink`, and the unit is `--ink3`
+the nutrient's glyph in `.dhead`; the numbers are read in `--ink`, and the unit is `--ink3`
 real text ranked by size, never an alpha on top of a token. `.dcap.over` is
 likewise `--ink2` at 700 rather than `--over` text, which measured 3.98:1 on
 `--bg2` (`--over` is AA-corrected against `--panel`, not against this surface) —
@@ -1316,11 +1324,13 @@ noticing one.
 **The metric names a drawing, never the reverse.** `MACROS[].glyph` is
 `"drumstick"`, not `"protein"` — the same indirection as `color: "c-pro"` — so
 the shape table and the metric table stay independent and no emitter learns
-which shape belongs to which nutrient. `macroMark()` is the one decision point,
-called by both the tile and the drawer head: they are on screen together
-whenever a breakdown is open, so a card that drew one as a shape and the other
-as a dot would show one metric two ways at once. A metric with no glyph, or a
-widget not yet tiered, falls back to `.dot` unchanged.
+which shape belongs to which nutrient. `macroMark()` decides a tile's mark: the
+glyph on a tiered strip, `.dot` unchanged on the flat one or for a metric with no
+glyph. `drawerMark()` decides the drawer head's, and draws the glyph whenever the
+metric has one, tiered or not. The head is where the drawer names its nutrient,
+and a shape identifies it where a dot is only a hue. Every shipping strip is
+tiered, so the tile and the head match there. Only the flat rollback strip shows
+a dot on the tile and the glyph in its drawer.
 
 **They are decorative.** Every tile names its metric in words beside the glyph,
 so this adds a **shape channel** to a card that otherwise separates its metrics
@@ -1389,9 +1399,10 @@ the same way, so "was anything logged this day?" (which trends uses to count log
 days) stays a question about top-level metrics only.
 
 **`MACROS[].color` is a role class, not a colour** (`"c-pro"`, not a hex or a
-`var()`), and no emitter in the file ever writes a colour. `mealList` still puts the
-role class on each `<li>`, but the drawer's numbers no longer read `--c` from it —
-see §6 — so inside the drawer the tint is carried by the one dot in `.dhead`.
+`var()`), and no emitter in the file ever writes a colour. `mealList` puts the role
+class once on the `.dlist` container, but the drawer's numbers no longer read `--c`
+from it (see §6), so inside the drawer the tint is carried by the nutrient's glyph in
+`.dhead`.
 
 ### Fiber and sugar are limit chips, not children of carbs
 

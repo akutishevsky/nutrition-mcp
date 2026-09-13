@@ -954,6 +954,21 @@ test("a tiered tile wears its glyph; an untiered one keeps the dot", () => {
     expect(flat).not.toContain('class="gi"');
 });
 
+// The drawer head names its nutrient with the glyph, not a colour dot, on every
+// strip: a context built without `tiers` is exactly what drew the dot before.
+test("a drawer head wears its metric's glyph, tiered or not", () => {
+    for (const key of ["protein_g", "sugar_g", "water_ml"]) {
+        const head = macrosApi
+            .macroDetailBody(
+                macroOf(key),
+                macrosApi.macroCtxOf(VALS, GOALS, undefined, MEALS),
+            )
+            .split('<b class="dname"')[0];
+        expect(head).toContain('<svg class="gi" width="18" height="18"');
+        expect(head).not.toContain('class="dot"');
+    }
+});
+
 // Every metric the strip can render has a drawing, so no tile falls back to a
 // dot on a card where its neighbours are glyphs — the one case that would look
 // like a bug rather than like a widget that has not been migrated.
