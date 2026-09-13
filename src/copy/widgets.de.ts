@@ -47,10 +47,6 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         noMealsContributed:
             "Keine protokollierten Mahlzeiten haben zu {label} beigetragen.",
         untitledMeal: "Unbenannte Mahlzeit",
-        moreMeals: {
-            one: "+ {n} kleinere Mahlzeit",
-            other: "+ {n} kleinere Mahlzeiten",
-        },
     },
     nutritionSummary: {
         title: "Ernährungsübersicht",

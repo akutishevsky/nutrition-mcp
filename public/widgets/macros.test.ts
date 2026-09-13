@@ -1884,6 +1884,33 @@ test("a drawer's colour rides the list, not each row", () => {
     expect(body).toContain('<ul class="dlist c-sug over">');
 });
 
+// A LONG LIST SCROLLS; IT IS NEVER CUT. The drawer used to stop at eight rows
+// and print "+ N smaller meals", a count of meals no control could reveal. Every
+// contributing meal is a row now, and past eight the list sits in a named,
+// focusable scroll region (a scrollable box is a tab stop). A short list gets
+// no wrapper, so it is not an empty tab stop.
+test("a drawer lists every meal, scrolling past eight rows", () => {
+    const meals = (n: number) =>
+        Array.from({ length: n }, (_, i) => ({
+            description: `Meal ${i + 1}`,
+            carbs_g: 100 - i,
+        }));
+    const long = macrosApi.mealList(macroOf("carbs_g"), meals(11));
+    expect(long.match(/<li /g)).toHaveLength(11);
+    expect(long).toContain("Meal 11");
+    expect(long).not.toContain("dmore");
+    expect(long).not.toContain("smaller meal");
+    expect(long).toStartWith(
+        '<div class="dscroll" role="region" tabindex="0" aria-label="Carbs by meal">',
+    );
+    expect(long).toContain('<ul class="dlist c-car">');
+
+    const short = macrosApi.mealList(macroOf("carbs_g"), meals(8));
+    expect(short.match(/<li /g)).toHaveLength(8);
+    expect(short).not.toContain("dscroll");
+    expect(short).not.toContain("tabindex");
+});
+
 // The card header spells a calendar day out ("5–7 Jul", month names translated,
 // a year exactly where it matters); the drawer three lines below printed an ISO
 // slice, "07-05" — which most of the nine locales read as 7 May, and which

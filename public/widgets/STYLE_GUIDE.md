@@ -952,15 +952,25 @@ under the whole strip, and the metric rows stay contiguous open or closed.
             <span class="dn">Grilled chicken salad</span>
             <span class="ds">lunch</span>
         </li>
-        <li class="dmore">+ 3 smaller meals</li>
     </ul>
 </div>
 ```
 
 `.dlist li` is a three-column grid (`54px minmax(0, 1fr) auto`): the value
 right-aligned in `--ink`, the description ellipsised, the meal type or date last.
-`.dmore` (the capped list's tail count) and `.dempty` are the drawer talking about
-itself rather than a row of data, so neither takes the grid.
+`.dempty` is the drawer talking about itself rather than a row of data, so it
+takes no grid.
+
+**Every contributing meal is a row; a long list scrolls, it is never cut.** Past
+eight rows `mealList` wraps the `<ul>` in
+`<div class="dscroll" role="region" tabindex="0" aria-label="Protein by meal">`
+(`T.macros.byMealTitle`), capped at `max-height: 208px`: eight and a half rows, so
+the half-row at the edge says there is more on overlay scrollbars. The wrapper, not
+the list, carries the role, because `role="region"` on a `<ul>` would erase its list
+semantics. It is a tab stop with the shared `--acc` ring, like `.tscroll`, and it
+exists only when there is something to scroll. It replaced a "+ 3 smaller meals"
+tail that counted meals no control could reveal. The row stagger stops at the
+ninth row, so rows scrolled into view are not still fading in.
 
 **The caption is the whole reason the per-nutrient bars could go away**: `.dcap`
 carries the goal and the distance to it, in the words `macroBits` already produced,

@@ -1611,7 +1611,9 @@ function macroStash(el, ctx) {
 let __macroOpener = null;
 
 // The list of meals that contributed a positive amount of one metric,
-// largest-first, capped so a long range stays readable.
+// largest-first. EVERY meal is listed: past ROWS the list scrolls inside the
+// drawer instead of stopping at a "+ N smaller meals" tail, which counted meals
+// a long range put out of reach entirely.
 function mealList(m, meals, flag) {
     // A single meal's contribution is a fraction of the day's, so grams get a
     // tenth here even where the chip rounds them whole — a 3.4 g and a 3.1 g
@@ -1629,10 +1631,8 @@ function mealList(m, meals, flag) {
         return `<div class="dempty">${esc(tpl(T.macros.noMealsContributed, { label: macroLabel(m) }))}</div>`;
     }
 
-    const CAP = 8;
-    const shown = rows.slice(0, CAP);
-    const extra = rows.length - shown.length;
-    const items = shown
+    const ROWS = 8;
+    const items = rows
         .map(({ meal, v }, i) => {
             // Prefer a date tag for multi-day ranges, otherwise the meal type.
             // Translated: the single-day widgets print the type on their header
@@ -1673,12 +1673,15 @@ function mealList(m, meals, flag) {
         </li>`;
         })
         .join("");
-    const more =
-        extra > 0
-            ? `<li class="dmore">${esc(plural(T.macros.moreMeals, extra))}</li>`
-            : "";
     // The group's colour, once, where the head's own reassignment can reach it.
-    return `<ul class="dlist ${m.color}${flag || ""}">${items}${more}</ul>`;
+    const list = `<ul class="dlist ${m.color}${flag || ""}">${items}</ul>`;
+    if (rows.length <= ROWS) return list;
+    // A SCROLLABLE BOX IS A TAB STOP, so it gets a name and the system's ring
+    // (`.dscroll`, chip.css), the same contract as `.tscroll`. The role goes on
+    // a wrapper, not the <ul>: role="region" on the list would erase its list
+    // semantics. Only a list that actually scrolls is wrapped, because a
+    // focusable box with nothing to scroll is an empty stop on the tab path.
+    return `<div class="dscroll" role="region" tabindex="0" aria-label="${esc(tpl(T.macros.byMealTitle, { label: macroLabel(m) }))}">${list}</div>`;
 }
 
 // The drawer's contents for one metric: which metric it is, the goal state the

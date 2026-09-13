@@ -173,7 +173,8 @@ export interface WidgetStrings {
          * byte-identical to what they were. */
         nameSep: string;
         nameEnd: string;
-        /** Template for the breakdown panel's title. Placeholder: {label}. */
+        /** Accessible name of a breakdown's meal list once it is long enough
+         *  to scroll (a scrollable box is a tab stop). Placeholder: {label}. */
         byMealTitle: string;
         /** aria-label on the breakdown panel's close button. */
         closeBreakdown: string;
@@ -181,8 +182,6 @@ export interface WidgetStrings {
         noMealsContributed: string;
         /** Fallback name for a meal with no description. */
         untitledMeal: string;
-        /** The "+ N more" line at the end of a capped meal list. Placeholder: {n}. */
-        moreMeals: PluralForms;
     };
 
     /** templates/nutrition-summary.html's own top matter. */
@@ -622,10 +621,6 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         closeBreakdown: "Close breakdown",
         noMealsContributed: "No logged meals contributed {label}.",
         untitledMeal: "Untitled meal",
-        moreMeals: {
-            one: "+ {n} smaller meal",
-            other: "+ {n} smaller meals",
-        },
     },
     nutritionSummary: {
         title: "Nutrition summary",

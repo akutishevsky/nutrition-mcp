@@ -42,10 +42,6 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         closeBreakdown: "Cerrar desglose",
         noMealsContributed: "Ninguna comida registrada contribuyó a {label}.",
         untitledMeal: "Comida sin título",
-        moreMeals: {
-            one: "+ {n} comida más pequeña",
-            other: "+ {n} comidas más pequeñas",
-        },
     },
     nutritionSummary: {
         title: "Resumen nutricional",

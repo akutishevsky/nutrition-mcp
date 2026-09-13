@@ -1911,10 +1911,12 @@ button.focus:active {
     gap: 1px;
 }
 /* The breakdown deals its rows in, largest first — the order they are already
-   sorted in, so the sequence reads as the ranking it is. */
+   sorted in, so the sequence reads as the ranking it is. The stagger stops at
+   the ninth row, the first one `.dscroll` hides: a 30-day list runs to dozens,
+   and an uncapped delay kept rows you scroll to invisible for over a second. */
 .dlist li {
     animation: rowIn 0.3s var(--ease-out) both;
-    animation-delay: calc(var(--i, 0) * 28ms);
+    animation-delay: calc(min(var(--i, 0), 8) * 28ms);
     display: grid;
     /* minmax, not a hard 54px: a 5-digit calorie figure overflowed its cell
        leftwards, out of the drawer's padding and clear of its background. */
@@ -1970,15 +1972,39 @@ button.focus:active {
 .ds::first-letter {
     text-transform: uppercase;
 }
-/* The capped list's tail count, and the empty state. Both are the drawer
-   talking about itself rather than a row of data, so neither takes the grid. */
-.dlist .dmore {
-    display: block;
-    margin-top: 4px;
-    font-size: 11.5px;
-    font-weight: 500;
-    color: var(--ink3);
+/* PAST EIGHT ROWS THE LIST SCROLLS, rather than stopping at a "+ N smaller
+   meals" tail that counted meals nobody could open. mealList wraps the list in
+   this box only when it has more rows than that, so a short list keeps its
+   natural height and is not a tab stop. 208px is eight and a half rows (23.5px
+   each plus the 1px gap): the row cut in half at the bottom edge is what says
+   there is more on overlay scrollbars, which show nothing until you scroll. A
+   FIXED max-height, never an animated one (see the drawer above), so the bridge
+   measures one settled height.
+
+   A scrollable box is a tab stop, so it carries role="region", a name and the
+   system's ring: the same contract as `.tscroll` in table.css. */
+/* The 6px on the right keeps the date column off a classic scrollbar, which
+   otherwise sits flush against "11 Jul". */
+.dscroll {
+    margin-top: 7px;
+    padding-right: 6px;
+    max-height: 208px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    border-radius: 4px;
 }
+.dscroll > .dlist {
+    margin-top: 0;
+}
+.dscroll:focus {
+    outline: none;
+}
+.dscroll:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+}
+/* The empty state: the drawer talking about itself rather than a row of data,
+   so it takes no grid. */
 .dempty {
     margin-top: 6px;
     font-size: 11.5px;

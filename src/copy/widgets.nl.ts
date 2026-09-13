@@ -42,10 +42,6 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         closeBreakdown: "Overzicht sluiten",
         noMealsContributed: "Geen gelogde maaltijden droegen bij aan {label}.",
         untitledMeal: "Naamloze maaltijd",
-        moreMeals: {
-            one: "+ {n} kleinere maaltijd",
-            other: "+ {n} kleinere maaltijden",
-        },
     },
     nutritionSummary: {
         title: "Voedingsoverzicht",

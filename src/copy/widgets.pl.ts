@@ -43,12 +43,6 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         noMealsContributed:
             "Żaden zapisany posiłek nie wniósł wartości {label}.",
         untitledMeal: "Posiłek bez nazwy",
-        moreMeals: {
-            one: "+ {n} mniejszy posiłek",
-            few: "+ {n} mniejsze posiłki",
-            many: "+ {n} mniejszych posiłków",
-            other: "+ {n} mniejszych posiłków",
-        },
     },
     nutritionSummary: {
         title: "Podsumowanie odżywiania",

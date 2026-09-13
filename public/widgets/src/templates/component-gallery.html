@@ -281,9 +281,10 @@
                     caffeine_mg: 470,
                 },
             ];
-            // Eleven contributing rows, so the drawer's 8-row cap AND its
-            // "+3 more" tail are both visible. Only the four fields a drawer
-            // row reads are filled in; mealList ignores everything else.
+            // Eleven contributing rows: three more than the drawer shows before
+            // its list scrolls, so the scroll region and its half-row edge are
+            // visible. Only the four fields a drawer row reads are filled in;
+            // mealList ignores everything else.
             const MEALS_MANY = [
                 ["Overnight oats with berries", "breakfast", 62],
                 ["Grilled chicken & rice bowl", "lunch", 78],
@@ -1843,13 +1844,13 @@
 
             ${sect(
                 "Drawer",
-                "One per card, one open at a time, built by macroDetailBody: the metric, the goal state the tile had no room for, the meals behind it largest-first (eight, then a tail). A row names its day on a multi-day card and its meal type otherwise — translated, or the stored word when the server's enum has none. Over a ceiling, and over the calorie goal, the head goes --over with the panel that opened it.",
+                "One per card, one open at a time, built by macroDetailBody: the metric, the goal state the tile had no room for, every meal behind it largest-first (past eight rows the list scrolls in a named, focusable region). A row names its day on a multi-day card and its meal type otherwise — translated, or the stored word when the server's enum has none. Over a ceiling, and over the calorie goal, the head goes --over with the panel that opened it.",
                 `<div class="ggrid">
                    ${wide("a list", drawer(macroDetailBody(CARBS, live)))}
                    ${wide("over a ceiling", drawer(macroDetailBody(SUG, live)))}
                    ${wide("calories over goal", drawer(macroDetailBody(CAL, macroCtxOf({ ...TOTALS, calories: 2480 }, GOALS, undefined, MEALS, { drinkUnit: "us" }))))}
                    ${wide(
-                       "capped, with a tail",
+                       "eleven rows · the list scrolls",
                        drawer(
                            macroDetailBody(
                                CARBS,
@@ -1934,7 +1935,7 @@
 
             ${sect(
                 "Fields & buttons",
-                "38px pills, not the site's 48px: the map step stacks sixteen of them inside a chat card. Focus is a border plus a 3px ring, because an outline cannot follow a 999px radius. These are live controls: with the live card, the resting drop zone and the three scrollable regions, they are the only things on the page that Tab stops on.",
+                "38px pills, not the site's 48px: the map step stacks sixteen of them inside a chat card. Focus is a border plus a 3px ring, because an outline cannot follow a 999px radius. These are live controls: with the live card, the resting drop zone and the five scrollable regions (three tables, two long drawer lists), they are the only things on the page that Tab stops on.",
                 `<div class="card">
                    <div class="field">
                      <label class="label" for="g-sel">${esc(T.importMeals.fieldLabels.calories)}</label>

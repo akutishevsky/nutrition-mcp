@@ -42,12 +42,6 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         closeBreakdown: "Закрити деталізацію",
         noMealsContributed: "Жодна із зареєстрованих страв не містить {label}.",
         untitledMeal: "Страва без назви",
-        moreMeals: {
-            one: "+ ще {n} менша страва",
-            few: "+ ще {n} менші страви",
-            many: "+ ще {n} менших страв",
-            other: "+ ще {n} менших страв",
-        },
     },
     nutritionSummary: {
         title: "Підсумок харчування",

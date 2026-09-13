@@ -53,10 +53,6 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         closeBreakdown: "Chiudi il dettaglio",
         noMealsContributed: "Nessun pasto registrato ha contribuito a {label}.",
         untitledMeal: "Pasto senza titolo",
-        moreMeals: {
-            one: "+ {n} pasto più piccolo",
-            other: "+ {n} pasti più piccoli",
-        },
     },
     nutritionSummary: {
         title: "Riepilogo nutrizionale",
