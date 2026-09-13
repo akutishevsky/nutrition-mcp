@@ -1,4 +1,5 @@
-// The demo payloads the landing page's two widget cards are rendered from.
+// The demo payloads the landing page's widget cards are rendered from: the
+// hero's summary card and the examples carousel's eight.
 //
 // LOCALE-INDEPENDENT, on purpose and by construction: this file holds numbers,
 // payload keys and fixed calendar dates, and not one string a visitor reads.
@@ -36,10 +37,16 @@
 // falls back.
 
 import type {
+    DrinkUnit,
+    GoalProgressPayload,
+    MealProgressPayload,
+    StartImportPayload,
     SummaryPayload,
     TrendsPayload,
+    WeightTrendsPayload,
     WidgetGoals,
     WidgetMealRow,
+    WidgetTotals,
     WidgetTrendsDay,
 } from "../widget-static.js";
 
@@ -142,6 +149,10 @@ export interface DemoAdd {
     fib?: number;
     sugar?: number;
     caf?: number;
+    /** Grams of ethanol. Read only by the examples' meal-logged builder, and
+     *  only when that card's drink unit says alcohol tracking is on — exactly
+     *  as the server gates it (mealBreakdown / totalsPayloadOf). */
+    alc?: number;
 }
 
 /** One meal behind the hero chat's summary card: the caller's LOCALIZED
@@ -367,7 +378,464 @@ export const DEMO_TRENDS: TrendsPayload = {
     days: DEMO_TRENDS_ROWS.map(demoTrendsDay),
 };
 
+// ---- The examples slides' cards -------------------------------------------
+//
+// The landing page's examples carousel is ten short conversations, and eight of
+// them call a tool that returns a widget: log_meal (four times),
+// get_goal_progress, get_trends (DEMO_TRENDS above), get_weight_trends and
+// start_meal_import. The builders below produce those tools' structuredContent
+// from the figures each conversation states — and from nothing else, so the
+// reply beside a card and the card itself cannot disagree.
+//
+// Meal DESCRIPTIONS are still the caller's: they are the user's own words and
+// the page translates them (see the note at the top of this file). Everything
+// else here is numbers, dates and enum values.
+
+/** Each examples conversation is its own day.
+ *
+ *  Two real cards on one page that name the SAME day must state the same totals
+ *  for it, and these conversations do not share a day's meals — a breakfast-only
+ *  card and a lunch-only card on one date would be two different accounts of
+ *  that date. So every slide that shows a dated card gets a date of its own,
+ *  none of them inside the trends window (2025-08-09 … DEMO_TRENDS_END_DATE) or
+ *  on the hero's DEMO_SUMMARY_DATE, and all in a PAST year for the reason given
+ *  at the top of this file.
+ *
+ *  The ORDER matters in one place: the goal-progress card reports the latest
+ *  weigh-in overall, which is the one the weight-trend conversation logged, so
+ *  that day comes first. */
+export const DEMO_EXAMPLE_DATES = {
+    "weight-trend": "2025-09-12",
+    "goals-progress": "2025-09-13",
+    "log-meal": "2025-09-15",
+    "photo-meal": "2025-09-16",
+    "scan-barcode": "2025-09-17",
+    "track-drinks": "2025-09-19",
+    "import-history": "2025-09-22",
+} as const;
+
+/** Tenths, as the server rounds every gram figure it sends. */
+const round1 = (n: number): number => Math.round(n * 10) / 10;
+
+/** A `meals[]` row, as mealBreakdown (src/mcp.ts) builds one for a single-day
+ *  card: no date (the card labels rows by meal type), integers for calories,
+ *  tenths for grams, alcohol only while tracking is on (0 on a meal without
+ *  any), and caffeine null unless this meal carried a figure. */
+function exampleMealRow(m: DemoMealInput, drinkUnit: DrinkUnit): WidgetMealRow {
+    return {
+        description: m.description,
+        meal_type: m.meal_type,
+        date: null,
+        calories: Math.round(num(m.add.kcal)),
+        protein_g: round1(num(m.add.pro)),
+        carbs_g: round1(num(m.add.car)),
+        fat_g: round1(num(m.add.fat)),
+        fiber_g: round1(num(m.add.fib)),
+        sugar_g: round1(num(m.add.sugar)),
+        alcohol_g: drinkUnit ? round1(num(m.add.alc)) : null,
+        caffeine_mg: m.add.caf == null ? null : round1(m.add.caf),
+    };
+}
+
+/** A day's totals, as totalsPayloadOf builds them: the meals summed, water
+ *  beside them, alcohol only while tracking is on, and caffeine null unless
+ *  some meal on the day carried a figure (a 0 there would claim a measured
+ *  caffeine-free day). */
+function exampleDayTotals(
+    meals: readonly DemoMealInput[],
+    waterMl: number,
+    drinkUnit: DrinkUnit,
+): WidgetTotals {
+    const sum = (k: keyof DemoAdd) =>
+        meals.reduce((t, m) => t + num(m.add[k]), 0);
+    return {
+        calories: Math.round(sum("kcal")),
+        protein_g: round1(sum("pro")),
+        carbs_g: round1(sum("car")),
+        fat_g: round1(sum("fat")),
+        fiber_g: round1(sum("fib")),
+        sugar_g: round1(sum("sugar")),
+        alcohol_g: drinkUnit ? round1(sum("alc")) : null,
+        caffeine_mg: meals.some((m) => m.add.caf != null)
+            ? round1(sum("caf"))
+            : null,
+        water_ml: waterMl,
+    };
+}
+
+/** The log_meal / update_meal payload (buildMealProgress in src/mcp.ts).
+ *
+ *  `logged` is the meal the tool call just wrote; `dayMeals` is every meal on
+ *  that date at the moment of the call, `logged` included — the totals are
+ *  that list summed, so they can never disagree with the rows behind them.
+ *  Water logged LATER in the conversation is not in `waterMl`: the card is the
+ *  day as it stood when log_meal returned.
+ *
+ *  `drinkUnit` is the account's alcohol setting: null (tracking off) for every
+ *  demo conversation except the one that turns it on. */
+export function demoMealLoggedPayload(opts: {
+    date: string;
+    logged: DemoMealInput;
+    dayMeals?: readonly DemoMealInput[];
+    waterMl?: number;
+    drinkUnit?: DrinkUnit;
+    action?: "logged" | "updated";
+    locale: string;
+}): MealProgressPayload {
+    const dayMeals = opts.dayMeals ?? [opts.logged];
+    if (!dayMeals.includes(opts.logged)) {
+        throw new Error(
+            "demoMealLoggedPayload: dayMeals must contain the logged meal — the card's strip is that day's totals, the logged meal among them",
+        );
+    }
+    const drinkUnit = opts.drinkUnit ?? null;
+    const add = opts.logged.add;
+    return {
+        action: opts.action ?? "logged",
+        date: opts.date,
+        drink_unit: drinkUnit,
+        water_unit: DEMO_WATER_UNIT,
+        locale: opts.locale,
+        logged_meal: {
+            description: opts.logged.description,
+            meal_type: opts.logged.meal_type,
+            calories: add.kcal ?? null,
+            protein_g: add.pro ?? null,
+            carbs_g: add.car ?? null,
+            fat_g: add.fat ?? null,
+            fiber_g: add.fib ?? null,
+            sugar_g: add.sugar ?? null,
+            alcohol_g: drinkUnit ? (add.alc ?? null) : null,
+            caffeine_mg: add.caf ?? null,
+        },
+        // goalsPayloadOf passes the stored alcohol goal through, and the demo
+        // account has none — so DEMO_GOALS as it is, even with tracking on.
+        has_goals: true,
+        goals: DEMO_GOALS,
+        totals: exampleDayTotals(dayMeals, opts.waterMl ?? 0, drinkUnit),
+        meals: dayMeals.map((m) => exampleMealRow(m, drinkUnit)),
+    };
+}
+
+/** What each meal-logging conversation logs, as the chat states it. Every
+ *  figure the reply quotes is here; carbs, fat and sugar where the reply is
+ *  silent are chosen so the macros add up to the calories within a few kcal.
+ *
+ *  Each is the only entry on its own day (DEMO_EXAMPLE_DATES), so its card's
+ *  totals are that one meal and the water bar reads empty — the water the
+ *  log-meal conversation logs comes in a LATER turn, through log_water, which
+ *  returns no widget. */
+export const DEMO_EXAMPLE_MEALS = {
+    // Oatmeal with berries and a coffee: the coffee's 95 mg is why caffeine
+    // shows.
+    "log-meal": {
+        meal_type: "breakfast",
+        add: {
+            kcal: 320,
+            pro: 11,
+            car: 56,
+            fat: 6,
+            fib: 6,
+            sugar: 12,
+            caf: 95,
+        },
+        drinkUnit: null,
+    },
+    // Beef borscht with sour cream and rye bread. No caffeine figure, so no
+    // caffeine tile.
+    "photo-meal": {
+        meal_type: "lunch",
+        add: { kcal: 470, pro: 24, car: 43, fat: 22, fib: 7, sugar: 10 },
+        drinkUnit: null,
+    },
+    // A 330 ml can of Coca-Cola (barcode 5449000000996): 139 kcal and 35 g
+    // sugar from Open Food Facts, 32 mg caffeine from the maker's own figure,
+    // and a measured 0 for everything a soft drink has none of.
+    "scan-barcode": {
+        meal_type: "lunch",
+        add: {
+            kcal: 139,
+            pro: 0,
+            car: 35,
+            fat: 0,
+            fib: 0,
+            sugar: 35,
+            caf: 32,
+        },
+        drinkUnit: null,
+    },
+    // A UK pint (568 ml) of 4% lager: 568 × 0.04 × 0.789 = 17.9 g of ethanol.
+    // The conversation has just turned alcohol tracking on in UK units, so
+    // this is the one card with a drink unit — and the alcohol tile.
+    "track-drinks": {
+        meal_type: "dinner",
+        add: {
+            kcal: 180,
+            pro: 2,
+            car: 12,
+            fat: 0,
+            fib: 0,
+            sugar: 0,
+            alc: 17.9,
+        },
+        drinkUnit: "uk",
+    },
+} as const satisfies Record<
+    string,
+    {
+        meal_type: DemoMealInput["meal_type"];
+        add: DemoAdd;
+        drinkUnit: DrinkUnit;
+    }
+>;
+
+export type DemoExampleMealSlide = keyof typeof DEMO_EXAMPLE_MEALS;
+
+/** The meal-logged card behind one of the four meal-logging conversations,
+ *  with the caller's localized `description` for the meal. */
+export function demoExampleMealLogged(
+    slide: DemoExampleMealSlide,
+    description: string,
+    locale: string,
+): MealProgressPayload {
+    const spec = DEMO_EXAMPLE_MEALS[slide];
+    const logged: DemoMealInput = {
+        description,
+        meal_type: spec.meal_type,
+        add: spec.add,
+    };
+    return demoMealLoggedPayload({
+        date: DEMO_EXAMPLE_DATES[slide],
+        logged,
+        drinkUnit: spec.drinkUnit,
+        locale,
+    });
+}
+
+/** The demo account's weight: the weigh-in the weight-trend conversation logs,
+ *  against its target. The goal-progress card reports the same reading. */
+export const DEMO_WEIGHT = {
+    current: 78.4,
+    target: 75,
+    unit: "kg",
+    logged_on: DEMO_EXAMPLE_DATES["weight-trend"],
+} as const;
+
+/** The four meals behind the goal-progress card, in the order they were
+ *  eaten, without their descriptions (the caller's, localized). They sum to
+ *  exactly what the conversation's reply quotes — 1,540 kcal and 104 g protein,
+ *  so 460 kcal and 56 g left of DEMO_GOALS' 2,000 and 160 — and the flat white
+ *  is where the day's caffeine came from. */
+export const DEMO_GOAL_PROGRESS_MEALS = [
+    {
+        meal_type: "breakfast",
+        add: { kcal: 420, pro: 24, car: 52, fat: 12, fib: 5, sugar: 22 },
+    },
+    {
+        meal_type: "lunch",
+        add: { kcal: 610, pro: 46, car: 58, fat: 20, fib: 7, sugar: 6 },
+    },
+    {
+        meal_type: "snack",
+        add: { kcal: 110, pro: 6, car: 9, fat: 6, fib: 0, sugar: 9, caf: 130 },
+    },
+    {
+        meal_type: "dinner",
+        add: { kcal: 400, pro: 28, car: 53, fat: 10, fib: 8, sugar: 3 },
+    },
+] as const satisfies readonly Omit<DemoMealInput, "description">[];
+
+/** Water on the goal-progress day: 1.5 L across three entries. */
+export const DEMO_GOAL_PROGRESS_WATER = { ml: 1500, entries: 3 } as const;
+
+/** The get_goal_progress payload behind the goals conversation.
+ *  `descriptions` are the four meals' localized descriptions, in
+ *  DEMO_GOAL_PROGRESS_MEALS order. */
+export function demoGoalProgressPayload(
+    descriptions: readonly string[],
+    locale: string,
+): GoalProgressPayload {
+    if (descriptions.length !== DEMO_GOAL_PROGRESS_MEALS.length) {
+        throw new Error(
+            `demoGoalProgressPayload: ${DEMO_GOAL_PROGRESS_MEALS.length} meal descriptions expected, got ${descriptions.length}`,
+        );
+    }
+    const meals: DemoMealInput[] = DEMO_GOAL_PROGRESS_MEALS.map((m, i) => ({
+        description: descriptions[i]!,
+        meal_type: m.meal_type,
+        add: m.add,
+    }));
+    return {
+        date: DEMO_EXAMPLE_DATES["goals-progress"],
+        meal_count: meals.length,
+        water_entries: DEMO_GOAL_PROGRESS_WATER.entries,
+        drink_unit: DEMO_DRINK_UNIT,
+        water_unit: DEMO_WATER_UNIT,
+        locale,
+        goals: DEMO_GOALS,
+        totals: exampleDayTotals(meals, DEMO_GOAL_PROGRESS_WATER.ml, null),
+        // The tool sends a weight whenever there is a reading or a target;
+        // this account has both.
+        weight: { ...DEMO_WEIGHT },
+        meals: meals.map((m) => exampleMealRow(m, null)),
+    };
+}
+
+/** The weigh-ins behind the weight-trends card: [days before the end date,
+ *  kg]. Twelve in the 30-day window, chosen so the card and the reply quote
+ *  the same things — the first reading in the window is 80.2 (so "−1.8 kg"),
+ *  the last is today's 78.4 (so "3.4 kg to lose" against 75), and the four in
+ *  the trailing seven days average exactly 78.7 (the reply's 7-day average,
+ *  which computeWeightTrend takes over the readings in those days). */
+const DEMO_WEIGHT_READINGS: readonly (readonly [
+    daysBack: number,
+    kg: number,
+])[] = [
+    [29, 80.2],
+    [26, 80.0],
+    [23, 79.9],
+    [20, 79.6],
+    [17, 79.5],
+    [14, 79.3],
+    [11, 79.1],
+    [8, 79.0],
+    [6, 78.9],
+    [4, 78.8],
+    [2, 78.7],
+    [0, DEMO_WEIGHT.current],
+];
+
+/** `iso` moved `delta` whole UTC days. */
+function shiftIso(iso: string, delta: number): string {
+    const t = Date.parse(`${iso}T00:00:00Z`) + delta * 86_400_000;
+    return new Date(t).toISOString().slice(0, 10);
+}
+
+/** The get_weight_trends payload behind the weight conversation: the tool
+ *  called with no arguments, so the default 30-day window ending on the day of
+ *  the weigh-in the conversation logged. */
+export function demoWeightTrendsPayload(locale: string): WeightTrendsPayload {
+    const end = DEMO_WEIGHT.logged_on;
+    return {
+        end_date: end,
+        unit: DEMO_WEIGHT.unit,
+        target: DEMO_WEIGHT.target,
+        default_range: 30,
+        locale,
+        days: DEMO_WEIGHT_READINGS.map(([back, kg]) => ({
+            date: shiftIso(end, -back),
+            weight: kg,
+        })),
+    };
+}
+
+/** The start_meal_import payload behind the import conversation, opened after
+ *  the timezone was set — so `tz_configured` is true and the first step carries
+ *  no timezone warning. Everything but the timezone, the day and the locale is
+ *  the server's own constant; validateDemoPayload compares them against
+ *  startImportPayload (src/mcp.ts) so they cannot drift. */
+export function demoStartImportPayload(locale: string): StartImportPayload {
+    return {
+        tz: "America/Chicago",
+        tz_configured: true,
+        today: DEMO_EXAMPLE_DATES["import-history"],
+        max_rows_per_call: 50,
+        import_tool_name: "bulk_import_meals",
+        known_source_apps: [
+            "myfitnesspal",
+            "cronometer",
+            "loseit",
+            "macrofactor",
+        ],
+        widgets_enabled: true,
+        drink_unit: DEMO_DRINK_UNIT,
+        locale,
+    };
+}
+
 // ---- The guard ------------------------------------------------------------
+
+/** The tools a demo payload can stand in for. */
+export type DemoTool =
+    | "get_nutrition_summary"
+    | "get_trends"
+    | "log_meal"
+    | "update_meal"
+    | "get_goal_progress"
+    | "get_weight_trends"
+    | "start_meal_import";
+
+// Registering all 36 tools to read their schemas back is not free, and a
+// generator validates dozens of payloads — once per process is enough.
+let schemasOnce: Promise<{
+    schemas: Map<string, { parse(v: unknown): unknown }>;
+    droppedKeys: (a: unknown, b: unknown) => Set<string>;
+}> | null = null;
+
+function liveSchemas() {
+    schemasOnce ??= import("../widget-schemas.js").then((m) => ({
+        schemas: m.collectOutputSchemas(),
+        droppedKeys: (a: unknown, b: unknown) => m.droppedKeys(a, b),
+    }));
+    return schemasOnce;
+}
+
+/** Parse ONE payload against `tool`'s real outputSchema and throw on the first
+ *  discrepancy — a missing or mistyped field, or a key parse() silently strips
+ *  (see validateDemoPayloads below for why both). For start_meal_import it
+ *  also checks every server constant in the payload against what
+ *  startImportPayload actually sends. Pass what you RENDER. */
+export async function validateDemoPayload(
+    tool: DemoTool,
+    payload: unknown,
+): Promise<void> {
+    const { schemas, droppedKeys } = await liveSchemas();
+    const schema = schemas.get(tool);
+    if (!schema) {
+        throw new Error(
+            `${tool} has no outputSchema — the landing page's demo payload has nothing to validate against`,
+        );
+    }
+    let parsed: unknown;
+    try {
+        parsed = schema.parse(payload);
+    } catch (err) {
+        throw new Error(
+            `landing-page demo payload for ${tool} does not match its outputSchema: ${
+                err instanceof Error ? err.message : String(err)
+            }`,
+        );
+    }
+    const dropped = [...droppedKeys(payload, parsed)];
+    if (dropped.length) {
+        throw new Error(
+            `landing-page demo payload for ${tool} carries ${dropped.length} key(s) the tool does not send, ` +
+                `which parse() silently strips: ${dropped.join(", ")}`,
+        );
+    }
+    if (tool === "start_meal_import") {
+        const p = payload as StartImportPayload;
+        // Dynamic for the same reason widget-schemas.js is (see below).
+        const { startImportPayload } = await import("../mcp.js");
+        const real = startImportPayload({
+            tz: p.tz,
+            tzConfigured: p.tz_configured,
+            widgetsEnabled: p.widgets_enabled,
+            alcohol: p.drink_unit,
+            locale: p.locale,
+        }) as Record<string, unknown>;
+        for (const [key, value] of Object.entries(real)) {
+            // The server's `today` is the real clock's; the demo's is fixed.
+            if (key === "today") continue;
+            const demo = (p as unknown as Record<string, unknown>)[key];
+            if (JSON.stringify(demo) !== JSON.stringify(value)) {
+                throw new Error(
+                    `landing-page demo payload for start_meal_import says ${key}=${JSON.stringify(demo)}, but the server sends ${JSON.stringify(value)}`,
+                );
+            }
+        }
+    }
+}
 
 /** Parse both payloads against the tools' REAL outputSchemas and throw on the
  *  first discrepancy. Call it before rendering — scripts/gen-index.ts does,
@@ -407,36 +875,6 @@ export async function validateDemoPayloads(
     summary: SummaryPayload,
     trends: TrendsPayload = DEMO_TRENDS,
 ): Promise<void> {
-    const { collectOutputSchemas, droppedKeys } =
-        await import("../widget-schemas.js");
-    const schemas = collectOutputSchemas();
-    const cases: [tool: string, payload: unknown][] = [
-        ["get_nutrition_summary", summary],
-        ["get_trends", trends],
-    ];
-    for (const [tool, payload] of cases) {
-        const schema = schemas.get(tool);
-        if (!schema) {
-            throw new Error(
-                `${tool} has no outputSchema — the landing page's demo payload has nothing to validate against`,
-            );
-        }
-        let parsed: unknown;
-        try {
-            parsed = schema.parse(payload);
-        } catch (err) {
-            throw new Error(
-                `landing-page demo payload for ${tool} does not match its outputSchema: ${
-                    err instanceof Error ? err.message : String(err)
-                }`,
-            );
-        }
-        const dropped = [...droppedKeys(payload, parsed)];
-        if (dropped.length) {
-            throw new Error(
-                `landing-page demo payload for ${tool} carries ${dropped.length} key(s) the tool does not send, ` +
-                    `which parse() silently strips: ${dropped.join(", ")}`,
-            );
-        }
-    }
+    await validateDemoPayload("get_nutrition_summary", summary);
+    await validateDemoPayload("get_trends", trends);
 }

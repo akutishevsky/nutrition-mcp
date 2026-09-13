@@ -3,12 +3,14 @@
 // Nothing the running server does may import this module. Like src/routes.ts
 // (a data module with no side-effecting imports) and src/widget-schemas.ts (a
 // throwaway McpServer purely to read schemas back), this is a generator- and
-// test-only surface: scripts/gen-index.ts calls it to put the REAL
-// get_nutrition_summary and get_trends cards on the landing page, and
-// src/widget-static.test.ts calls it to pin what they render. It lives in src/
-// rather than scripts/ for one reason — `bun run typecheck` is scoped to src/
-// and CI-gated, so drift here fails a PR instead of only failing whoever next
-// runs a generator.
+// test-only surface: scripts/gen-index.ts calls it to put the REAL widget
+// cards on the landing page — get_nutrition_summary, get_trends, the
+// log_meal / update_meal card, get_goal_progress, get_weight_trends and a
+// still picture of start_meal_import's first step — and src/widget-static.test.ts
+// and src/widget-static-cards.test.ts call it to pin what they render. It
+// lives in src/ rather than scripts/ for one reason — `bun run typecheck` is
+// scoped to src/ and CI-gated, so drift here fails a PR instead of only
+// failing whoever next runs a generator.
 //
 // WHY EVALUATE THE PARTIALS INSTEAD OF PORTING THEM. The landing page used to
 // carry hand-approximated mockups of these cards (`.nm-widget`, `.nm-trend`),
@@ -16,10 +18,10 @@
 // it had the wrong abbreviation for Carbs in German and the wrong word for
 // Sugar in Japanese, a hardcoded polyline for a chart, and goals written down
 // in three places. So the site renders the cards by running the SAME shared
-// partials the widget iframe runs — shared/macros.js, shared/spark.js,
-// shared/summary-card.js, shared/trends-card.js and everything they stand on —
-// in a `new Function` sandbox with no DOM. The markup is byte-identical to
-// chat by construction rather than by review.
+// partials the widget iframe runs — shared/macros.js, shared/spark.js, the
+// shared/*-card.js partials and everything they stand on — in a `new Function`
+// sandbox with no DOM. The markup is byte-identical to chat by construction
+// rather than by review.
 //
 // HOW THE SANDBOX IS BUILT. Exactly as public/widgets/macros.test.ts builds
 // its one: the WIDGET_STRINGS dictionary is prepended as a plain-data `const`
@@ -33,7 +35,8 @@
 // WHICH PARTIALS. Read out of the template's own `<script>` region rather than
 // listed here, so a partial added to a template reaches the site build with no
 // second list to update. The one exclusion is by name and deliberate: see
-// EXCLUDED_PARTIALS.
+// EXCLUDED_PARTIALS. The one ADDITION is a template's marked site-card region
+// (see siteRegionsOf) — code that stays in the template but that a card needs.
 
 import { WIDGET_STRINGS } from "./copy/widgets.js";
 import { readSrc, resolveIncludes, WIDGET_TEMPLATES } from "./widgets.js";
@@ -41,11 +44,11 @@ import type { SiteLocale } from "./routes.js";
 
 // ---- Payload shapes -------------------------------------------------------
 //
-// Hand-written mirrors of the two tools' `outputSchema`s (src/mcp.ts), because
-// those are declared inline on registerTool and there is no exported Zod object
+// Hand-written mirrors of the tools' `outputSchema`s (src/mcp.ts), because
+// most are declared inline on registerTool and there is no exported Zod object
 // to `z.infer` from. They are not the guard: the guard is that every payload
 // rendered through here is `parse()`d against the LIVE schema first — see
-// validateDemoPayloads in src/copy/widget-demo.ts, which also catches the keys
+// validateDemoPayload in src/copy/widget-demo.ts, which also catches the keys
 // a z.object() silently STRIPS rather than rejects.
 
 /** One row of `meals[]` — MEAL_BREAKDOWN_ITEM in src/mcp.ts. */
@@ -103,14 +106,17 @@ export interface WidgetTrendsDay extends Omit<
     sugar_g: number | null;
 }
 
+export type WaterUnit = "l" | "us_fl_oz" | "uk_fl_oz";
+export type DrinkUnit = "us" | "uk" | null;
+
 /** get_nutrition_summary's outputSchema. */
 export interface SummaryPayload {
     start_date: string;
     end_date: string;
     logged_days: number;
     days_in_range: number;
-    drink_unit: "us" | "uk" | null;
-    water_unit: "l" | "us_fl_oz" | "uk_fl_oz";
+    drink_unit: DrinkUnit;
+    water_unit: WaterUnit;
     locale: string;
     goals: WidgetGoals | null;
     averages: WidgetTotals;
@@ -128,11 +134,78 @@ export interface SummaryPayload {
 export interface TrendsPayload {
     end_date: string;
     default_range: number;
-    drink_unit: "us" | "uk" | null;
-    water_unit: "l" | "us_fl_oz" | "uk_fl_oz";
+    drink_unit: DrinkUnit;
+    water_unit: WaterUnit;
     locale: string;
     goals: WidgetGoals | null;
     days: WidgetTrendsDay[];
+}
+
+/** MEAL_PROGRESS_OUTPUT_SCHEMA — what log_meal AND update_meal return. */
+export interface MealProgressPayload {
+    action: "logged" | "updated";
+    date: string;
+    drink_unit: DrinkUnit;
+    water_unit: WaterUnit;
+    locale: string;
+    logged_meal: {
+        description: string;
+        meal_type: string | null;
+        calories: number | null;
+        protein_g: number | null;
+        carbs_g: number | null;
+        fat_g: number | null;
+        fiber_g: number | null;
+        sugar_g: number | null;
+        alcohol_g: number | null;
+        caffeine_mg: number | null;
+    };
+    has_goals: boolean;
+    goals: WidgetGoals | null;
+    totals: WidgetTotals;
+    meals: WidgetMealRow[];
+}
+
+/** get_goal_progress' outputSchema. */
+export interface GoalProgressPayload {
+    date: string;
+    meal_count: number;
+    water_entries: number;
+    drink_unit: DrinkUnit;
+    water_unit: WaterUnit;
+    locale: string;
+    goals: WidgetGoals | null;
+    totals: WidgetTotals;
+    weight: {
+        current: number | null;
+        target: number | null;
+        unit: string;
+        logged_on: string | null;
+    } | null;
+    meals: WidgetMealRow[];
+}
+
+/** get_weight_trends' outputSchema. */
+export interface WeightTrendsPayload {
+    end_date: string;
+    unit: string;
+    target: number | null;
+    default_range: number;
+    locale: string;
+    days: { date: string; weight: number }[];
+}
+
+/** START_IMPORT_OUTPUT_SCHEMA — what start_meal_import returns. */
+export interface StartImportPayload {
+    tz: string;
+    tz_configured: boolean;
+    today: string;
+    max_rows_per_call: number;
+    import_tool_name: string;
+    known_source_apps: string[];
+    widgets_enabled: boolean;
+    drink_unit: DrinkUnit;
+    locale: string;
 }
 
 // ---- The sandbox ----------------------------------------------------------
@@ -187,6 +260,36 @@ export async function scriptPartialsOf(widgetKey: string): Promise<string[]> {
     return seen;
 }
 
+/** A block of a template's own script that a card needs but that stays in the
+ *  template, between a start marker comment and an end marker comment.
+ *
+ *  goal-progress.html is the one user: its weight row (weightNum, weightFig,
+ *  weightExtra) is template code by decision, and shared/goal-progress-card.js
+ *  is handed weightExtra as an argument. The site needs that function too — at
+ *  build time here and in the runtime bundle (scripts/gen-widget-card.ts) — so
+ *  both read the block out of the template VERBATIM rather than keeping a
+ *  second copy.
+ *
+ *  Plain block comments, not an assembler marker: src/widgets.ts ignores them,
+ *  so the assembled widget is unaffected. */
+export const SITE_REGION_RE =
+    /\/\* site-card:start \*\/([\s\S]*?)\/\* site-card:end \*\//g;
+
+/** The site-card regions of a template's script, in document order. Empty for
+ *  a template that marks none. */
+export async function siteRegionsOf(widgetKey: string): Promise<string[]> {
+    const templateFile = WIDGET_TEMPLATES[widgetKey];
+    if (!templateFile) throw new Error(`unknown widget: ${widgetKey}`);
+    const template = await readSrc(`templates/${templateFile}`);
+    const out: string[] = [];
+    for (const script of template.matchAll(SCRIPT_RE)) {
+        for (const m of (script[1] ?? "").matchAll(SITE_REGION_RE)) {
+            out.push(m[1] ?? "");
+        }
+    }
+    return out;
+}
+
 /** U+2028 / U+2029 are legal inside a JSON string but JSON.stringify leaves
  *  them raw; they are legal inside a JS string literal too since ES2019, so
  *  this is belt-and-braces for an older engine reading a generated artefact. */
@@ -197,17 +300,31 @@ function jsLiteral(value: unknown): string {
 }
 
 /** Everything every card needs, whichever template it came from. */
-const COMMON_EXPORTS = [
-    "setLocale",
-    "setWaterUnit",
-    "MACROS",
-    "macroLabel",
-] as const;
+const COMMON_EXPORTS = ["setLocale"] as const;
+
+/** What a template that includes shared/macros.js gets on top — the water
+ *  unit and the MACROS table. weight-trends and import-meals include no
+ *  macros.js, and naming these there would be a ReferenceError at `return`. */
+const MACRO_EXPORTS = ["setWaterUnit", "MACROS", "macroLabel"] as const;
 
 /** Per template, the emitters that template's own card partial defines. */
 const TEMPLATE_EXPORTS: Record<string, readonly string[]> = {
     "nutrition-summary": ["summaryCard", "summaryCharted", "loggedDaysCaption"],
     trends: ["trendsView", "trendsCard", "trendsMeta", "RANGES"],
+    "meal-logged": ["mealLoggedCard"],
+    // weightExtra comes from goal-progress.html's site-card region.
+    "goal-progress": [
+        "goalProgressCard",
+        "goalProgressShowsStrip",
+        "weightExtra",
+    ],
+    "weight-trends": [
+        "weightTrendsCard",
+        "weightTrendsBody",
+        "weightTrendsMeta",
+        "WEIGHT_RANGES",
+    ],
+    "import-meals": ["importFileStep"],
 };
 
 /** WHERE EACH CARD'S CHART GRADIENT IDS START.
@@ -224,12 +341,17 @@ const TEMPLATE_EXPORTS: Record<string, readonly string[]> = {
  *
  *  So each render sets the counter first. The bases are a block per card
  *  rather than 0 for both, because ids are document-global in HTML and the
- *  landing page carries both cards: two charts each restarting at 1 would
+ *  landing page carries several cards: two charts each restarting at 1 would
  *  collide. A caller rendering two of the SAME card into one document passes
- *  its own `chartIdBase`, exactly as it passes its own `idPrefix`. */
+ *  its own `chartIdBase`, exactly as it passes its own `idPrefix`.
+ *
+ *  weight-trends draws no area (and so no gradient) today; its block is
+ *  reserved so that changing that cannot collide with the trends card.
+ *  meal-logged, goal-progress and import-meals include no shared/svg.js. */
 const CHART_ID_BASE: Record<string, number> = {
     "nutrition-summary": 0,
     trends: 100,
+    "weight-trends": 200,
 };
 
 /** A MACROS entry, as much of it as a caller out here has any business reading. */
@@ -246,15 +368,19 @@ export interface MacroEntry {
 
 interface BaseSandbox {
     setLocale(locale: string): unknown;
-    setWaterUnit(code: string | null | undefined): void;
-    MACROS: MacroEntry[];
-    macroLabel(m: MacroEntry): string;
     /** Present only when the template includes shared/svg.js — see
      *  CHART_ID_BASE. */
     setChartIdBase?(base: number): void;
 }
 
-interface SummarySandbox extends BaseSandbox {
+/** A template that includes shared/macros.js. */
+interface MacroSandbox extends BaseSandbox {
+    setWaterUnit(code: string | null | undefined): void;
+    MACROS: MacroEntry[];
+    macroLabel(m: MacroEntry): string;
+}
+
+interface SummarySandbox extends MacroSandbox {
     summaryCard(
         data: SummaryPayload,
         opts: { inlineChart?: boolean; idPrefix?: string },
@@ -271,7 +397,7 @@ interface TrendsView {
     label?: unknown;
 }
 
-interface TrendsSandbox extends BaseSandbox {
+interface TrendsSandbox extends MacroSandbox {
     trendsView(
         data: TrendsPayload,
         range: number,
@@ -285,9 +411,50 @@ interface TrendsSandbox extends BaseSandbox {
     RANGES: number[];
 }
 
+interface MealLoggedSandbox extends MacroSandbox {
+    mealLoggedCard(
+        data: MealProgressPayload,
+        opts: { idPrefix?: string },
+    ): string;
+}
+
+interface GoalProgressSandbox extends MacroSandbox {
+    goalProgressCard(
+        data: GoalProgressPayload,
+        opts: { weightExtra: unknown; idPrefix?: string },
+    ): string;
+    goalProgressShowsStrip(data: GoalProgressPayload): boolean;
+    weightExtra: unknown;
+}
+
+interface WeightTrendsSandbox extends BaseSandbox {
+    weightTrendsCard(
+        data: WeightTrendsPayload,
+        range: number,
+        opts: { still?: boolean },
+    ): string;
+    weightTrendsBody(
+        data: WeightTrendsPayload,
+        range: number,
+        still: boolean,
+    ): string;
+    weightTrendsMeta(data: WeightTrendsPayload, range: number): string;
+    WEIGHT_RANGES: number[];
+}
+
+interface ImportSandbox extends BaseSandbox {
+    importFileStep(o: {
+        noTools: boolean;
+        supportEmail: string | null;
+        tzConfigured: boolean;
+        errors: string[];
+        step: string;
+    }): string;
+}
+
 // One compiled sandbox per (template, locale).
 //
-// Per TEMPLATE because the two templates include different card partials, and
+// Per TEMPLATE because the templates include different card partials, and
 // the partial list is read from the template rather than restated here.
 //
 // Per LOCALE because the partials carry ambient per-render state — WIDGET_LOCALE
@@ -317,8 +484,12 @@ async function sandboxFor(
                 resolveIncludes(await readSrc(rel), rel, [rel]),
             ),
         );
+        // After the partials: a region's functions call into them only when
+        // they run, and declarations hoist either way.
+        const regions = await siteRegionsOf(widgetKey);
         const names = [
             ...COMMON_EXPORTS,
+            ...(partials.includes("shared/macros.js") ? MACRO_EXPORTS : []),
             ...(TEMPLATE_EXPORTS[widgetKey] ?? []),
         ];
         // The one handle this module adds to the sandbox rather than reads out
@@ -336,6 +507,7 @@ async function sandboxFor(
             // WIDGET_STRINGS to already be in scope.
             `const WIDGET_STRINGS = ${jsLiteral(WIDGET_STRINGS)};`,
             ...sources,
+            ...regions,
             `return { ${[...names, ...extras].join(", ")} };`,
         ].join("\n");
         const sandbox = new Function(body)() as BaseSandbox;
@@ -349,12 +521,12 @@ async function sandboxFor(
     return built;
 }
 
-// ---- The two cards --------------------------------------------------------
+// ---- The cards ------------------------------------------------------------
 
-/** Options both renderers take.
+/** Options every renderer takes.
  *
  *  `idPrefix` namespaces the strip's drawer ids (`macro-drawer` by default).
- *  A page holding TWO of these cards must pass a distinct one per card or both
+ *  A page holding TWO strip cards must pass a distinct one per card or both
  *  cards' tiles point their `aria-controls` / `aria-labelledby` at whichever
  *  drawer comes first in document order — see MACRO_DRAWER_PREFIX in
  *  shared/macros.js, which is where the option is honoured. */
@@ -438,6 +610,103 @@ export async function renderTrendsCard(
     return sb.trendsCard(view, { range, inlineChart: true });
 }
 
+/** The log_meal / update_meal card (shared/meal-logged-card.js), as a string.
+ *
+ *  THROWS on a payload with no goals. The widget renders NOTHING then — an
+ *  empty root the host collapses — so a demo payload that reaches here without
+ *  goals is a bug in the demo, and an empty string on the page would be one
+ *  nobody sees. `idPrefix` is required in practice as soon as a page holds a
+ *  second strip card. */
+export async function renderMealLoggedCard(
+    payload: MealProgressPayload,
+    locale: SiteLocale,
+    opts: StaticCardOptions = {},
+): Promise<string> {
+    const sb = (await sandboxFor("meal-logged", locale)) as MealLoggedSandbox;
+    sb.setLocale(locale);
+    sb.setWaterUnit(payload.water_unit);
+    seedChartIds(sb, "meal-logged", opts);
+    const card = sb.mealLoggedCard(payload, { idPrefix: opts.idPrefix });
+    if (!card) {
+        throw new Error(
+            "renderMealLoggedCard: meal-logged renders nothing without goals (has_goals false or goals null) — give the demo payload goals",
+        );
+    }
+    return card;
+}
+
+/** The get_goal_progress card (shared/goal-progress-card.js, with
+ *  goal-progress.html's own weight row), as a string. */
+export async function renderGoalProgressCard(
+    payload: GoalProgressPayload,
+    locale: SiteLocale,
+    opts: StaticCardOptions = {},
+): Promise<string> {
+    const sb = (await sandboxFor(
+        "goal-progress",
+        locale,
+    )) as GoalProgressSandbox;
+    sb.setLocale(locale);
+    sb.setWaterUnit(payload.water_unit);
+    seedChartIds(sb, "goal-progress", opts);
+    return sb.goalProgressCard(payload, {
+        weightExtra: sb.weightExtra,
+        idPrefix: opts.idPrefix,
+    });
+}
+
+/** The get_weight_trends card (shared/weight-trends-card.js), opened on
+ *  `range`, as a string.
+ *
+ *  `range` must be one of WEIGHT_RANGES and is the window that reads as
+ *  pressed. The card carries fixed ids (`#wt-meta`, `#wt-body`), so a page
+ *  holds one of these. Rendered as a FIRST paint (not `.still`), so the chart
+ *  draws in once, as the other two chart cards' do. */
+export async function renderWeightTrendsCard(
+    payload: WeightTrendsPayload,
+    locale: SiteLocale,
+    range: number,
+    opts: StaticCardOptions = {},
+): Promise<string> {
+    const sb = (await sandboxFor(
+        "weight-trends",
+        locale,
+    )) as WeightTrendsSandbox;
+    sb.setLocale(locale);
+    seedChartIds(sb, "weight-trends", opts);
+    if (!sb.WEIGHT_RANGES.includes(range)) {
+        throw new Error(
+            `renderWeightTrendsCard: range ${range} is not one of ${sb.WEIGHT_RANGES.join("/")}`,
+        );
+    }
+    return sb.weightTrendsCard(payload, range, { still: false });
+}
+
+/** start_meal_import's FIRST STEP, as the widget draws it before a file is
+ *  chosen — for a still picture of the importer, not a working one.
+ *
+ *  Wrapped in `<div class="imp">`, the container import-meals' render() writes
+ *  every step into and the one its own CSS lays the card out under
+ *  (`.imp > .card`). Its `role="status"` sibling is left out: a picture has
+ *  nothing to announce. The host is taken to be one that can call tools (so no
+ *  "cannot run here" warning) and there is no pre-flight error; the timezone
+ *  notice follows the payload's `tz_configured`, exactly as in chat. The file
+ *  input is real markup — making it inert is the page's job. */
+export async function renderImportFileStep(
+    payload: StartImportPayload,
+    locale: SiteLocale,
+): Promise<string> {
+    const sb = (await sandboxFor("import-meals", locale)) as ImportSandbox;
+    sb.setLocale(locale);
+    return `<div class="imp">${sb.importFileStep({
+        noTools: false,
+        supportEmail: null,
+        tzConfigured: payload.tz_configured,
+        errors: [],
+        step: "file",
+    })}</div>`;
+}
+
 /** The MACROS table, resolved in `locale` — the strip's own list of metrics,
  *  in the order and with the roles the card lays them out by. Exposed so a
  *  caller (a test, a generator that wants to name the metrics beside the card)
@@ -445,7 +714,7 @@ export async function renderTrendsCard(
 export async function macrosFor(
     locale: SiteLocale,
 ): Promise<{ entries: MacroEntry[]; label(m: MacroEntry): string }> {
-    const sb = await sandboxFor("nutrition-summary", locale);
+    const sb = (await sandboxFor("nutrition-summary", locale)) as MacroSandbox;
     sb.setLocale(locale);
     return { entries: sb.MACROS, label: (m) => sb.macroLabel(m) };
 }

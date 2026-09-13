@@ -222,12 +222,25 @@ export const INDEX_IT: IndexDoc = {
             "Foto: una scodella di borscht con un cucchiaio di panna acida e aneto, e accanto una fetta di pane di segale",
         photoPackageAlt:
             "Foto: il codice a barre su una lattina di Coca-Cola, numero 5449000000996",
+        threadLabel: "Conversazione",
+        importerAlt:
+            "L'importatore in chat al primo passaggio: scegli il file CSV esportato da MyFitnessPal, Cronometer, Lose It! o MacroFactor",
+        importerCaption:
+            "Anteprima dell'importatore come appare nella tua chat",
         slides: [
             {
                 id: "log-meal",
                 title: "Registra a parole tue",
                 description:
-                    "Dì cosa hai mangiato e bevuto come lo racconteresti a un amico. Calorie, macro, fibre e caffeina vengono calcolate, e agli orari ci pensa lui.",
+                    "Dillo come lo racconteresti a un amico. Se manca la porzione o di quale pasto si tratta, chiede prima di stimare. Fibre e zuccheri vanno su ogni voce, la caffeina su tutto ciò che ne contiene, e «stamattina» cade nel tuo fuso orario.",
+                toolNotes: {
+                    log_meal:
+                        "Salva la colazione con macro, fibre, zuccheri e caffeina del caffè",
+                    log_water:
+                        "Aggiunge i 500 ml delle 07:00 al totale d'acqua di oggi",
+                    get_current_time:
+                        "Trova data e ora di oggi per collocare «le 7 di stamattina»",
+                },
                 messages: [
                     {
                         from: "user",
@@ -246,12 +259,23 @@ export const INDEX_IT: IndexDoc = {
                         text: "Aggiunti 500 ml d'acqua alle 07:00 di stamattina.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 1,
+                cardMeals: [
+                    "Porridge con frutti di bosco (1 tazza) e caffè (1 tazzina)",
+                ],
             },
             {
                 id: "photo-meal",
                 title: "Fotografa il piatto",
                 description:
-                    "Invia una foto: capisce da dove viene il pasto, controlla le tue registrazioni passate, poi fa una breve domanda alla volta. Non registra mai basandosi solo sull'immagine.",
+                    "Una foto apre un'intervista, non un'ipotesi. Chiarisce prima se è fatto in casa o al ristorante, guarda le registrazioni passate, poi fa una domanda per messaggio su porzioni e olio o salse nascosti, e registra quando approvi il riepilogo.",
+                toolNotes: {
+                    log_meal:
+                        "Registra il pasto solo a domande chiuse e dopo il tuo sì",
+                    search_meals:
+                        "Trova i borscht già registrati per chiederti quale",
+                },
                 messages: [
                     { from: "user", photo: "meal", text: "Pranzo" },
                     {
@@ -269,7 +293,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Capito. Quindi hai finito una scodella intera di borscht con manzo e 2 cucchiai di panna acida, più la fetta di pane di segale: circa 470 kcal, 24 g di proteine. Lo registro come pranzo?",
+                        text: "Capito. Supponendo che tu abbia finito la scodella: borscht con manzo con 2 cucchiai di panna acida e una fetta di pane di segale, circa 470 kcal, 24 g di proteine. Lo registro come pranzo?",
                     },
                     { from: "user", text: "Sì" },
                     {
@@ -277,12 +301,23 @@ export const INDEX_IT: IndexDoc = {
                         text: "Pranzo registrato: 470 kcal · 24 g di proteine · 43 g di carboidrati · 22 g di grassi · 7 g di fibre · 10 g di zuccheri.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 7,
+                cardMeals: [
+                    "Borscht con manzo (1 scodella) con panna acida (2 cucchiai) e pane di segale (1 fetta)",
+                ],
             },
             {
                 id: "scan-barcode",
                 title: "Scansiona un codice a barre",
                 description:
-                    "Fotografa la confezione. Il prodotto arriva da Open Food Facts, ricalcolato su quanto ne hai davvero consumato, e gli eventuali dati mancanti vengono completati.",
+                    "Fotografa la confezione: le cifre sotto il codice a barre si cercano su Open Food Facts e ti chiede quanto ne hai preso. La caffeina, assente su Open Food Facts, arriva dal marchio o da una ricerca web; fibre o zuccheri mancanti sono stimati.",
+                toolNotes: {
+                    lookup_barcode:
+                        "Recupera i valori in etichetta della lattina da Open Food Facts",
+                    log_meal:
+                        "Registra la lattina intera con il pranzo, caffeina inclusa",
+                },
                 messages: [
                     {
                         from: "user",
@@ -296,15 +331,24 @@ export const INDEX_IT: IndexDoc = {
                     { from: "user", text: "Tutta" },
                     {
                         from: "ai",
-                        text: "Registrata con il pranzo: 139 kcal, 35 g di zuccheri, 0 g di fibre. Open Food Facts non ha il dato sulla caffeina, quindi ho usato quello di Coca-Cola: circa 32 mg a lattina.",
+                        text: "Registrata con il pranzo: 139 kcal e 35 g di zuccheri. Open Food Facts non ha il dato sulla caffeina, quindi ho usato quello di Coca-Cola: circa 32 mg a lattina.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 3,
+                cardMeals: ["Coca-Cola (lattina da 330 ml)"],
             },
             {
                 id: "goals-progress",
                 title: "Obiettivi e progressi",
                 description:
-                    "Imposta target e limiti giornalieri con una frase, poi chiedi a che punto è la giornata e quanto manca.",
+                    "Imposta target da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere ogni valore rispetto al suo obiettivo, e quanto manca.",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "Salva target di kcal e proteine e un limite di caffeina di 400 mg",
+                    get_goal_progress:
+                        "Mostra oggi rispetto a ogni obiettivo e quanto manca",
+                },
                 messages: [
                     {
                         from: "user",
@@ -325,32 +369,51 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Oggi sei a 1540 kcal e 104 g di proteine: mancano ancora 460 kcal e 56 g di proteine per arrivare ai tuoi target. Quindi sì, un dolce da circa 200 kcal ci sta, purché il resto sia soprattutto proteine.",
+                        text: "Sei a 1540 kcal e 104 g di proteine: mancano ancora 460 kcal e 56 g di proteine per arrivare ai tuoi target. Quindi sì, un dolce da circa 200 kcal ci sta, purché il resto sia soprattutto proteine.",
                     },
+                ],
+                widget: "goal-progress",
+                widgetAfter: 5,
+                cardMeals: [
+                    "Yogurt greco con granola e frutti di bosco (1 ciotola)",
+                    "Wrap di pollo con insalata (1 wrap)",
+                    "Flat white (1 tazza)",
+                    "Salmone con riso e broccoli (1 piatto)",
                 ],
             },
             {
                 id: "review-week",
                 title: "Rivedi la settimana",
                 description:
-                    "Chiedi com'è andata la settimana e il widget degli andamenti si apre direttamente in chat. Passa tra 7, 14 e 30 giorni, oppure tocca un nutriente per vederne il grafico.",
+                    "Chiedi com'è andata la settimana e il widget degli andamenti si apre in chat con le tue medie e i giorni registrati. Passa tra 7, 14 e 30 giorni o tocca un nutriente per vederne il grafico, senza nuove richieste. Può anche dirti le tue serie e i giorni a obiettivo.",
+                toolNotes: {
+                    get_trends:
+                        "Fa la media di 7, 14 e 30 giorni e apre il widget degli andamenti",
+                },
                 messages: [
                     {
                         from: "user",
-                        text: "Com'è andata la settimana scorsa?",
+                        text: "Come sono andate le ultime due settimane?",
                     },
                     {
                         from: "ai",
-                        text: "Hai fatto una media di 1830 kcal al giorno negli ultimi 14 giorni, 13 dei quali registrati — 170 sotto il tuo obiettivo. Le proteine sono state il tuo macro più costante.",
+                        text: "Hai fatto una media di 1830 kcal al giorno negli ultimi 14 giorni (13 dei quali registrati), 170 sotto il tuo obiettivo. Le proteine sono state il tuo macro più costante.",
                     },
                 ],
                 widget: "trends",
+                widgetAfter: 1,
             },
             {
                 id: "weight-trend",
                 title: "Traccia il tuo peso",
                 description:
-                    "Registra una pesata in kg o lb e vedi l'andamento reale: la variazione del mese, una media livellata e quanto manca al tuo obiettivo.",
+                    "Registra una pesata in kg o lb e vedi l'andamento oltre le oscillazioni quotidiane: media livellata, variazione del mese e quanto manca all'obiettivo. Una lettura impossibile, come grammi digitati come chili, viene bloccata prima di salvarla.",
+                toolNotes: {
+                    log_weight:
+                        "Salva 78,4 kg e rifiuta una lettura fisicamente impossibile",
+                    get_weight_trends:
+                        "Livella 30 giorni in medie mobili e la distanza dal target",
+                },
                 messages: [
                     {
                         from: "user",
@@ -361,12 +424,18 @@ export const INDEX_IT: IndexDoc = {
                         text: "Registrati 78,4 kg. Hai perso 1,8 kg negli ultimi 30 giorni, con una media a 7 giorni di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
                     },
                 ],
+                widget: "weight-trends",
+                widgetAfter: 1,
             },
             {
                 id: "meal-patterns",
                 title: "Scopri le tue abitudini",
                 description:
-                    "Chiedi cosa influenza quanto mangi. Confronta giorni feriali e weekend, giorni con e senza colazione, cene presto e cene tardi.",
+                    "Chiedi quando mangi di più e confronta le tue registrazioni: giorni feriali e weekend, giorni con e senza colazione, pranzi abbondanti, cene presto e cene tardi. Segnala anche i giorni insoliti, e riporta abitudini, non cause.",
+                toolNotes: {
+                    get_meal_patterns:
+                        "Confronta feriali, weekend e orari di cena su 30 giorni",
+                },
                 messages: [
                     { from: "user", text: "Mangio di più nel weekend?" },
                     {
@@ -387,7 +456,13 @@ export const INDEX_IT: IndexDoc = {
                 id: "track-drinks",
                 title: "Anche i drink",
                 description:
-                    "Il tracciamento dell'alcol si attiva solo su richiesta. Scegli drink standard USA o unità britanniche, e ogni bevanda viene registrata in grammi di alcol in base a quantità e gradazione.",
+                    "Il tracciamento dell'alcol resta spento finché non lo chiedi. Scegli drink standard USA o unità britanniche, e ogni bevanda viene calcolata in grammi di alcol in base a quantità e gradazione. Se lo disattivi viene nascosto, mai cancellato.",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "Attiva l'alcol, in grammi accanto alle unità britanniche",
+                    log_meal:
+                        "Calcola l'alcol della pinta da quantità e gradazione",
+                },
                 messages: [
                     {
                         from: "user",
@@ -408,15 +483,26 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Registrata con la cena: una pinta da 568 ml al 4% contiene 18 g di alcol, 2,3 unità britanniche, circa 180 kcal.",
+                        text: "Registrata con la cena: una pinta da 568 ml al 4% contiene 17,9 g di alcol, 2,3 unità britanniche, circa 180 kcal.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 5,
+                cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
             },
             {
                 id: "import-history",
                 title: "Porta il tuo storico",
                 description:
-                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? La tua esportazione viene letta nel browser e nulla viene salvato finché non confermi.",
+                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? Prima controlla il tuo fuso orario, l'esportazione viene letta nel browser, nulla viene salvato finché non confermi l'anteprima e reimportare lo stesso file non duplica mai un pasto.",
+                toolNotes: {
+                    start_meal_import:
+                        "Apre in chat l'importatore per il tuo file esportato",
+                    get_profile:
+                        "Nota che non è ancora impostato un fuso orario",
+                    set_timezone:
+                        "Imposta America/Chicago perché gli orari cadano nel giorno giusto",
+                },
                 messages: [
                     {
                         from: "user",
@@ -429,15 +515,21 @@ export const INDEX_IT: IndexDoc = {
                     { from: "user", text: "Chicago" },
                     {
                         from: "ai",
-                        text: "Fuso orario impostato su America/Chicago. Ora scegli il file esportato nell'importatore. Viene letto nel tuo browser e nulla viene salvato finché non confermi l'anteprima.",
+                        text: "Fuso orario impostato su America/Chicago. Ora scegli il file esportato nell'importatore qui sotto. Viene letto nel tuo browser e nulla viene salvato finché non confermi l'anteprima.",
                     },
                 ],
+                widget: "import-meals",
+                widgetAfter: 3,
             },
             {
                 id: "export-data",
                 title: "Porta via i tuoi dati",
                 description:
-                    "Con una sola richiesta ottieni uno ZIP con ogni pasto, registrazione d'acqua, pesata, obiettivo e impostazione, e il file dei pasti si può reimportare direttamente.",
+                    "Una sola richiesta raccoglie ogni pasto, registrazione d'acqua e pesata, più obiettivi e impostazioni, in uno ZIP di file CSV con un README in inglese semplice. Ogni timestamp indica il suo fuso orario, e meals.csv si reimporta direttamente.",
+                toolNotes: {
+                    export_all_data:
+                        "Comprime sei file e restituisce un link privato valido 60 minuti",
+                },
                 messages: [
                     {
                         from: "user",

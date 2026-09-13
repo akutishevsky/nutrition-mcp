@@ -213,12 +213,25 @@ export const INDEX_NL: IndexDoc = {
             "Foto: een kom borsjtsj met een schepje zure room en dille, met een snee roggebrood ernaast",
         photoPackageAlt:
             "Foto: de barcode op een blikje Coca-Cola, nummer 5449000000996",
+        threadLabel: "Gesprek",
+        importerAlt:
+            "De importer in de chat bij de eerste stap: kies je geëxporteerde CSV-bestand uit MyFitnessPal, Cronometer, Lose It! of MacroFactor",
+        importerCaption:
+            "Voorbeeld van de importer zoals die in je chat verschijnt",
         slides: [
             {
                 id: "log-meal",
                 title: "In gewone woorden loggen",
                 description:
-                    "Zeg wat je hebt gegeten en gedronken, zoals je het aan een vriend zou vertellen. Calorieën, macro's, vezels en cafeïne worden berekend en tijden voor je ingevuld.",
+                    "Zeg het zoals je het een vriend zou vertellen. Ontbreekt de portie of de maaltijd, dan wordt eerst gevraagd en pas daarna geschat. Vezels en suiker staan bij elke invoer, cafeïne bij alles waar het in zit, en “vanochtend” valt in jouw tijdzone.",
+                toolNotes: {
+                    log_meal:
+                        "Slaat het ontbijt op met macro's, vezels, suiker en cafeïne",
+                    log_water:
+                        "Telt de 500 ml om 07:00 mee in het water van vandaag",
+                    get_current_time:
+                        "Zoekt datum en tijd op, zodat “rond 7 uur vanochtend” klopt",
+                },
                 messages: [
                     {
                         from: "user",
@@ -237,12 +250,21 @@ export const INDEX_NL: IndexDoc = {
                         text: "500 ml water toegevoegd om 07:00 vanochtend.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 1,
+                cardMeals: ["Havermout met bessen (1 kom) en koffie (1 kop)"],
             },
             {
                 id: "photo-meal",
                 title: "Fotografeer je bord",
                 description:
-                    "Stuur een foto: eerst wordt duidelijk waar de maaltijd vandaan komt, dan worden je eerdere logs bekeken en volgt steeds één korte vraag. Er wordt nooit alleen op de foto gelogd.",
+                    "Een foto start een vraaggesprek, geen gok. Eerst: zelfgemaakt of restaurant? Dan worden je eerdere logs bekeken, volgt per bericht één vraag over porties en verborgen olie of saus, en wordt pas gelogd als je de samenvatting goedkeurt.",
+                toolNotes: {
+                    log_meal:
+                        "Logt pas als alle vragen beantwoord zijn en je ja zegt",
+                    search_meals:
+                        "Vindt hoe je borsjtsj eerder logde, om te vragen welke",
+                },
                 messages: [
                     { from: "user", photo: "meal", text: "Lunch" },
                     {
@@ -260,7 +282,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Helder. Je hebt dus een hele kom borsjtsj met rundvlees en 2 el zure room op, plus de snee roggebrood: ongeveer 470 kcal, 24 g eiwit. Loggen als lunch?",
+                        text: "Helder. Ervan uitgaande dat je de kom leeg hebt gegeten: borsjtsj met rundvlees, 2 el zure room en een snee roggebrood, ongeveer 470 kcal, 24 g eiwit. Loggen als lunch?",
                     },
                     { from: "user", text: "Ja" },
                     {
@@ -268,12 +290,23 @@ export const INDEX_NL: IndexDoc = {
                         text: "Lunch gelogd: 470 kcal · 24 g eiwit · 43 g koolhydraten · 22 g vet · 7 g vezels · 10 g suiker.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 7,
+                cardMeals: [
+                    "Borsjtsj met rundvlees (1 kom) met zure room (2 el) en roggebrood (1 snee)",
+                ],
             },
             {
                 id: "scan-barcode",
                 title: "Scan een barcode",
                 description:
-                    "Fotografeer de verpakking. Het product komt uit Open Food Facts, omgerekend naar hoeveel je er echt van had, en ontbrekende gegevens worden aangevuld.",
+                    "Fotografeer de verpakking: de cijfers onder de barcode worden opgezocht in Open Food Facts, en er volgt de vraag hoeveel je had. Cafeïne, die Open Food Facts mist, komt van het merk of online; ontbrekende vezels of suiker worden geschat.",
+                toolNotes: {
+                    lookup_barcode:
+                        "Haalt de etiketwaarden van het blikje uit Open Food Facts",
+                    log_meal:
+                        "Logt het hele blikje bij de lunch, cafeïne inbegrepen",
+                },
                 messages: [
                     {
                         from: "user",
@@ -287,15 +320,24 @@ export const INDEX_NL: IndexDoc = {
                     { from: "user", text: "Helemaal" },
                     {
                         from: "ai",
-                        text: "Gelogd bij de lunch: 139 kcal, 35 g suiker, 0 g vezels. Open Food Facts heeft geen cafeïnewaarde, dus ik heb die van Coca-Cola zelf gebruikt: ongeveer 32 mg per blikje.",
+                        text: "Gelogd bij de lunch: 139 kcal en 35 g suiker. Open Food Facts heeft geen cafeïnewaarde, dus ik heb die van Coca-Cola zelf gebruikt: ongeveer 32 mg per blikje.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 3,
+                cardMeals: ["Coca-Cola (blikje van 330 ml)"],
             },
             {
                 id: "goals-progress",
                 title: "Doelen stellen, stand checken",
                 description:
-                    "Stel dagelijkse doelen en limieten in met één zin en vraag daarna hoe je er vandaag voor staat en hoeveel er nog te gaan is.",
+                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven voor suiker, alcohol en cafeïne; alleen wat je noemt verandert. Vraag daarna naar elke dag en zie elk getal naast zijn doel, en wat er nog te gaan is.",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "Slaat calorie- en eiwitdoel op en een cafeïnelimiet van 400 mg",
+                    get_goal_progress:
+                        "Toont vandaag naast elk doel en wat er nog te gaan is",
+                },
                 messages: [
                     {
                         from: "user",
@@ -316,29 +358,51 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Je zit vandaag op 1.540 kcal en 104 g eiwit: nog 460 kcal en 56 g eiwit te gaan tot je doelen. Dus ja, een toetje van zo'n 200 kcal past, zolang de rest vooral eiwit is.",
+                        text: "Je zit op 1.540 kcal en 104 g eiwit: nog 460 kcal en 56 g eiwit te gaan tot je doelen. Dus ja, een toetje van zo'n 200 kcal past, zolang de rest vooral eiwit is.",
                     },
+                ],
+                widget: "goal-progress",
+                widgetAfter: 5,
+                cardMeals: [
+                    "Griekse yoghurt met granola en bessen (1 kom)",
+                    "Kipwrap met salade (1 wrap)",
+                    "Flat white (1 kop)",
+                    "Zalm met rijst en broccoli (1 bord)",
                 ],
             },
             {
                 id: "review-week",
                 title: "Bekijk de week",
                 description:
-                    "Vraag hoe je week ging en de trendswidget opent gewoon in de chat. Wissel tussen 7, 14 en 30 dagen, of tik op een voedingsstof om die in een grafiek te zien.",
+                    "Vraag hoe je week ging en de trendswidget opent in de chat met je gemiddelden en gelogde dagen. Wissel tussen 7, 14 en 30 dagen of tik op een voedingsstof voor een grafiek, zonder nieuw verzoek. Ook je reeksen en dagen op doel kun je opvragen.",
+                toolNotes: {
+                    get_trends:
+                        "Middelt je laatste 7, 14 en 30 dagen en opent de trendswidget",
+                },
                 messages: [
-                    { from: "user", text: "Hoe zag vorige week eruit?" },
+                    {
+                        from: "user",
+                        text: "Hoe zijn de afgelopen twee weken gegaan?",
+                    },
                     {
                         from: "ai",
-                        text: "Je zat de afgelopen 14 dagen gemiddeld op 1.830 kcal per dag, waarvan 13 gelogd — 170 onder je doel. Eiwit was je stabielste macro.",
+                        text: "Je zat de afgelopen 14 dagen gemiddeld op 1.830 kcal per dag (13 daarvan gelogd), 170 onder je doel. Eiwit was je stabielste macro.",
                     },
                 ],
                 widget: "trends",
+                widgetAfter: 1,
             },
             {
                 id: "weight-trend",
                 title: "Volg je gewicht",
                 description:
-                    "Log een weging in kg of lb en zie de echte trend: de verandering over de maand, een afgevlakt gemiddelde en de afstand tot je streefgewicht.",
+                    "Log een weging in kg of lb en zie de trend achter de dagelijkse schommelingen: een afgevlakt gemiddelde, de verandering over de maand en de afstand tot je streefgewicht. Een onmogelijke meting, zoals gram als kilo, wordt vóór opslaan geweigerd.",
+                toolNotes: {
+                    log_weight:
+                        "Slaat 78,4 kg op en weigert een fysiek onmogelijke meting",
+                    get_weight_trends:
+                        "Middelt 30 dagen voortschrijdend, met de afstand tot je doel",
+                },
                 messages: [
                     {
                         from: "user",
@@ -349,12 +413,18 @@ export const INDEX_NL: IndexDoc = {
                         text: "78,4 kg gelogd. Je bent de afgelopen 30 dagen 1,8 kg afgevallen, met een 7-daags gemiddelde van 78,7 kg. Nog 3,4 kg tot je streefgewicht van 75 kg.",
                     },
                 ],
+                widget: "weight-trends",
+                widgetAfter: 1,
             },
             {
                 id: "meal-patterns",
                 title: "Ontdek je patronen",
                 description:
-                    "Vraag wat je inname bepaalt. Het vergelijkt doordeweekse dagen met weekenden, dagen met en zonder ontbijt, en vroeg met laat avondeten.",
+                    "Vraag wanneer je meer eet en het vergelijkt je eigen logs: doordeweeks met het weekend, dagen met en zonder ontbijt, grote lunches, vroeg met laat avondeten. Het markeert ook ongewone dagen en meldt patronen, geen oorzaken.",
+                toolNotes: {
+                    get_meal_patterns:
+                        "Vergelijkt doordeweeks, weekend en tijden van avondeten over 30 dagen",
+                },
                 messages: [
                     { from: "user", text: "Eet ik meer in het weekend?" },
                     {
@@ -375,7 +445,13 @@ export const INDEX_NL: IndexDoc = {
                 id: "track-drinks",
                 title: "Ook drankjes bijhouden",
                 description:
-                    "Alcoholregistratie zet je zelf aan. Kies Amerikaanse standaardglazen of Britse eenheden, en elk drankje wordt gelogd als gram alcohol op basis van hoeveelheid en sterkte.",
+                    "Alcoholregistratie blijft uit tot je erom vraagt. Kies Amerikaanse standaardglazen of Britse eenheden, en elk drankje wordt omgerekend naar gram alcohol uit hoeveelheid en sterkte. Zet je het later uit, dan blijft alles verborgen, nooit gewist.",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "Zet alcohol aan, in gram met Britse eenheden erbij",
+                    log_meal:
+                        "Berekent de alcohol in de pint uit hoeveelheid en sterkte",
+                },
                 messages: [
                     { from: "user", text: "Ik wil ook bijhouden wat ik drink" },
                     {
@@ -393,15 +469,26 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Gelogd bij het avondeten: een pint van 568 ml met 4% is 18 g alcohol, 2,3 Britse eenheden, ongeveer 180 kcal.",
+                        text: "Gelogd bij het avondeten: een pint van 568 ml met 4% is 17,9 g alcohol, 2,3 Britse eenheden, ongeveer 180 kcal.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 5,
+                cardMeals: ["Pils, 4% (1 pint, 568 ml)"],
             },
             {
                 id: "import-history",
                 title: "Neem je geschiedenis mee",
                 description:
-                    "Overstappen van MyFitnessPal, Cronometer, Lose It! of MacroFactor? Je export wordt in de browser gelezen en er wordt niets opgeslagen tot je bevestigt.",
+                    "Overstappen van MyFitnessPal, Cronometer, Lose It! of MacroFactor? Eerst wordt je tijdzone gecheckt, dan je export in de browser omgezet. Niets wordt opgeslagen tot je het voorbeeld bevestigt, en opnieuw hetzelfde bestand importeren geeft geen dubbele maaltijden.",
+                toolNotes: {
+                    start_meal_import:
+                        "Opent de importer in de chat voor je exportbestand",
+                    get_profile:
+                        "Merkt op dat er nog geen tijdzone is ingesteld",
+                    set_timezone:
+                        "Stelt America/Chicago in, zodat tijden op de juiste dag vallen",
+                },
                 messages: [
                     {
                         from: "user",
@@ -414,15 +501,21 @@ export const INDEX_NL: IndexDoc = {
                     { from: "user", text: "Chicago" },
                     {
                         from: "ai",
-                        text: "Tijdzone ingesteld op America/Chicago. Kies nu je exportbestand in de importer. Het wordt in je browser gelezen en er wordt niets opgeslagen tot je het voorbeeld bevestigt.",
+                        text: "Tijdzone ingesteld op America/Chicago. Kies nu je exportbestand in de importer hieronder. Het wordt in je browser gelezen en er wordt niets opgeslagen tot je het voorbeeld bevestigt.",
                     },
                 ],
+                widget: "import-meals",
+                widgetAfter: 3,
             },
             {
                 id: "export-data",
                 title: "Neem je gegevens mee",
                 description:
-                    "Eén verzoek levert een ZIP op met al je maaltijden, waterregistraties, wegingen, doelen en instellingen, en het maaltijdbestand importeer je zo weer terug.",
+                    "Eén verzoek pakt al je maaltijden, waterregistraties en wegingen, plus je doelen en instellingen, in een ZIP met CSV-bestanden en een README in eenvoudig Engels. Elk tijdstip noemt zijn tijdzone, en meals.csv importeer je zo weer terug.",
+                toolNotes: {
+                    export_all_data:
+                        "Zipt zes bestanden en geeft een privélink die 60 minuten werkt",
+                },
                 messages: [
                     {
                         from: "user",

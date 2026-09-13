@@ -2218,20 +2218,20 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     scroll-snap-align: center;
     scroll-snap-stop: always;
 }
-/* The left column: a compact head — the icon beside the tool the
-   conversation calls and the title — over the description. Top-aligned on
-   every slide, level with the chat window's head, so it sits in the same
-   place whichever slide is showing. */
+/* The left column: a compact head — the icon beside the title — over the
+   description and, under a hairline, the tools the conversation calls, each
+   chip with a line saying what it did here. Top-aligned on every slide,
+   level with the chat window's head, so it sits in the same place whichever
+   slide is showing. */
 .nm-ex-info {
     align-self: start;
     padding-top: 10px;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
-        "icon tool"
         "icon title"
         "desc desc"
-        "more more";
+        "uses uses";
     column-gap: 18px;
     justify-items: start;
 }
@@ -2272,8 +2272,6 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
    accent-tinted fill, an underlined name and an arrow that nudges forward.
    Only colours and a transform change — no layout property animates. */
 .nm-ex-tool {
-    grid-area: tool;
-    align-self: end;
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -2294,8 +2292,8 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
 }
 .nm-ex-title {
     grid-area: title;
-    align-self: start;
-    margin: 4px 0 0;
+    align-self: center;
+    margin: 0;
     font-weight: 800;
     font-size: clamp(26px, 2.6vw, 34px);
     line-height: 1.08;
@@ -2310,18 +2308,47 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     color: var(--ink2);
     text-wrap: pretty;
 }
-/* The other tools the conversation calls: smaller than the primary chip
-   beside the icon, and wrapping as a row of their own. */
-.nm-ex-more {
-    grid-area: more;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+/* The tools the conversation calls, one row each: the chip (a link), then a
+   line in --ink2 saying what that tool did in this conversation — plain text
+   after the link, so the link's accessible name stays the tool's. The
+   primary tool's row comes first, with the plug; the others follow under the
+   small "Also uses" heading. On two columns the chip sits over its note; one
+   column runs the note on after the chip (see the 860px block). */
+.nm-ex-uses {
+    grid-area: uses;
+    justify-self: stretch;
+    margin: 26px 0 0;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+}
+.nm-ex-tools {
+    display: grid;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.nm-ex-use {
+    display: grid;
+    justify-items: start;
     gap: 6px;
-    margin: 16px 0 0;
+}
+.nm-ex-note {
+    max-width: 38ch;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink2);
+    text-wrap: pretty;
+}
+/* Japanese has no spaces, so without this a line breaks between any two
+   characters, mid-katakana (タイムゾ / ーン). auto-phrase breaks between
+   phrases where the engine supports it and is ignored elsewhere. */
+.nm-ex-desc:lang(ja),
+.nm-ex-note:lang(ja) {
+    word-break: auto-phrase;
 }
 .nm-ex-more-l {
-    margin-right: 2px;
+    margin: 20px 0 12px;
     font-family: var(--mono);
     font-size: 11px;
     letter-spacing: 0.04em;
@@ -2404,12 +2431,122 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
    --panel sit a shade apart. */
 .nm-ex-chat {
     min-width: 0;
+    min-height: 640px;
     display: flex;
     flex-direction: column;
     padding: 8px 12px 10px;
     background: var(--bg2);
     border: 1px solid var(--line);
     border-radius: 24px;
+}
+/* THE WINDOW HAS A FIXED FOOTPRINT AND THE CONVERSATION SCROLLS INSIDE IT.
+   Eight of the ten threads carry a real widget card (seven live, plus the
+   importer's first step as a still picture), which runs to 400-600px,
+   so a thread sized to its content would make every slide as tall as the
+   longest conversation plus its card. Instead the thread contributes NO
+   height of its own (flex-basis 0, min-height 0): the slide is as tall as
+   the taller of the left column and the window's floor above (640px here,
+   less on one column), which is today's footprint, and the thread takes
+   whatever the window has between its head and its composer. That also
+   means a card's drawer opening grows the thread's scroll height, never the
+   slide.
+
+   It is a named, focusable region (role, aria-label, tabindex in
+   gen-index.ts), so a keyboard can reach it and scroll it with the arrow
+   keys. Its ring is drawn on the WINDOW (below), not on the thread: the
+   thread's fade is a mask, and a mask clips an outline. overscroll-behavior
+   stays auto on purpose, so a wheel or a swipe that reaches either end of
+   the conversation carries on scrolling the page. */
+.nm-ex-thread {
+    flex: 1 1 0;
+    min-height: 0;
+    /* Insurance, not the mechanism: flex-basis 0 with min-height 0 already
+       keeps the thread out of the slide's height at every width (measured
+       with and without this at 1440, 820 and 390). An earlier second
+       .nm-ex-thread rule set flex: 1 0 auto over the basis, which is what
+       once grew every slide to 999px; size containment keeps the content
+       from counting should any later rule do that again. */
+    contain: size;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line2) transparent;
+    /* Compact: a conversation runs to eight bubbles plus a card. 6px, not
+       more, above the first bubble: at 1440 the trends conversation is then
+       exactly the window's height instead of 3px over it, which scrolled a
+       wheel's first 3px inside the thread and drew a sliver of fade. */
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 6px;
+}
+/* Only where :has() exists: an engine without it keeps the thread's own
+   ring rather than losing the focus indicator altogether. */
+@supports selector(:has(*)) {
+    .nm-ex-chat .nm-ex-thread:focus-visible {
+        outline: none;
+    }
+    .nm-ex-chat:has(> .nm-ex-thread:focus-visible) {
+        outline: 2px solid var(--acc);
+        outline-offset: 3px;
+    }
+}
+/* A soft fade on whichever edge has more conversation past it, and only
+   while it does: two scroll-linked animations drive the mask's two fade
+   lengths from the thread's own scroll position, over the first and the
+   last 32px of it. A thread that does not overflow has an inactive
+   timeline, so both stay 0 and nothing fades. No script, and an engine
+   without scroll timelines simply shows no fade. A mask reads only alpha,
+   so the token's hue is irrelevant. */
+@property --ex-fade-t {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+@property --ex-fade-b {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+@keyframes nm-ex-fade-t {
+    from {
+        --ex-fade-t: 0px;
+    }
+    to {
+        --ex-fade-t: 28px;
+    }
+}
+@keyframes nm-ex-fade-b {
+    from {
+        --ex-fade-b: 28px;
+    }
+    to {
+        --ex-fade-b: 0px;
+    }
+}
+@supports (animation-timeline: scroll()) {
+    .nm-ex-thread {
+        -webkit-mask-image: linear-gradient(
+            180deg,
+            transparent,
+            var(--ink) var(--ex-fade-t),
+            var(--ink) calc(100% - var(--ex-fade-b)),
+            transparent
+        );
+        mask-image: linear-gradient(
+            180deg,
+            transparent,
+            var(--ink) var(--ex-fade-t),
+            var(--ink) calc(100% - var(--ex-fade-b)),
+            transparent
+        );
+        animation:
+            nm-ex-fade-t linear both,
+            nm-ex-fade-b linear both;
+        animation-timeline: scroll(self), scroll(self);
+        animation-range:
+            0 32px,
+            calc(100% - 32px) 100%;
+    }
 }
 .nm-ex-chat-head {
     flex: none;
@@ -2421,16 +2558,6 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     font-size: 12.5px;
     font-weight: 600;
     color: var(--ink3);
-}
-/* Compact: a conversation runs to eight bubbles, and the longest one sets
-   every slide's height. It grows to fill the window, which is what holds
-   the composer at the foot. */
-.nm-ex-thread {
-    flex: 1 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-top: 10px;
 }
 /* The composer: decoration, hidden from assistive tech, and wordless (a
    placeholder would be copy to translate for a field nobody can type in):
@@ -2595,6 +2722,35 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     border-radius: 20px;
     overflow: hidden;
 }
+/* The importer's picture. Its template's root is a padded `.wrap.page` with
+   the step card inside, so `.wrap > .card` never flattens it and it read as
+   a card inside a card. Flush and flat here, like every other example card. */
+.nm-ex-thread > .nm-widget-card[data-widget="import-meals"] > .wrap.page {
+    padding: 0;
+}
+.nm-ex-thread > .nm-widget-card[data-widget="import-meals"] .imp > .card {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+/* Nothing in a picture is a control, whatever its drop zone looks like… */
+.nm-widget-card[role="img"] * {
+    cursor: default;
+}
+/* …and the caption under it says so where a pointer or touch user looks
+   (role="img" and inert only reach a keyboard and a screen reader). */
+.nm-ex-still {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: -2px 6px 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--ink3);
+}
+.nm-ex-still i {
+    font-size: 11px;
+}
 /* Replayed by the script for a button- or tab-initiated change only (a
    swipe drags the bubbles in already visible). Never the resting state:
    without script, or under reduced motion, nothing here applies. */
@@ -2750,7 +2906,11 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     .nm-ex-slide {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto 1fr;
-        gap: 16px;
+        /* 13px, not 16px: the one-column slide is its tallest left column
+           plus the window's floor, and at 820px 16px made the section 3px
+           taller than before the chat window scrolled. The gap, not the
+           floor, so no conversation loses height. */
+        gap: 13px;
         padding: 20px;
         border-radius: 26px;
     }
@@ -2769,7 +2929,6 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
         font-size: 12px;
     }
     .nm-ex-title {
-        margin-top: 2px;
         font-size: 24px;
     }
     .nm-ex-desc {
@@ -2780,7 +2939,11 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     /* The bubbles get the window's width back: at 86% of one column's chat
        a reply wrapped a line more, on every slide, and the longest slide
        sets everyone's height. */
+    /* The window's floor on one column, where the left column sits above it
+       rather than beside it: 560px keeps the slide at today's height at
+       820px wide, with the conversation scrolling inside. */
     .nm-ex-chat {
+        min-height: 560px;
         padding: 8px 10px 10px;
         border-radius: 20px;
     }
@@ -2799,8 +2962,40 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
         left: -200px;
         top: -240px;
     }
-    .nm-ex-desc + .nm-ex-more {
+    /* One column: every line here adds to every slide's height (the
+       tallest slide sets them all), so the note runs on after its chip
+       instead of under it, and the hairline's spacing tightens. */
+    .nm-ex-uses {
         margin-top: 12px;
+        padding-top: 10px;
+    }
+    /* The rows' own font, not the column's 17px: each wrapped line of a
+       note is a line box of the ROW, and at the inherited 26px it cost
+       5px a line on every slide. */
+    .nm-ex-tools {
+        gap: 6px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    /* The row is the block whose lines the run-on note wraps in, so the
+       orphan-avoiding wrap has to sit here: on the inline note it did
+       nothing, and notes ended on a lone "days" or "く". */
+    .nm-ex-use {
+        display: block;
+        text-wrap: pretty;
+    }
+    .nm-ex-use .nm-ex-tool,
+    .nm-ex-use .nm-ex-chip {
+        margin-right: 4px;
+        vertical-align: middle;
+    }
+    .nm-ex-note {
+        max-width: none;
+        line-height: inherit;
+    }
+    .nm-ex-more-l {
+        margin: 8px 0 4px;
+        line-height: 1.4;
     }
     /* No negative right margin here: a fade ends at the box's own edge,
        the bar's gap away from the counter, instead of 6px past it — and a
@@ -2861,8 +3056,16 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     .nm-ex-desc {
         margin-top: 10px;
         font-size: 14.5px;
+        line-height: 1.5;
     }
+    /* A phone's left column is taller (the description wraps more), so the
+       window's floor is a little higher than at 820px — and still lower
+       than the conversations used to make it, which keeps the slide at or
+       under today's height at 390px and 360px. 626px, not 600px, so the
+       trends conversation fits whole on a phone (at 600px it ran 24-26px
+       past the window: a scroll that looked like a glitch). */
     .nm-ex-chat {
+        min-height: 626px;
         padding: 8px;
     }
     .nm-ex-chat-head {

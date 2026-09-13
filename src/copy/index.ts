@@ -159,10 +159,11 @@ export type ExampleMessage =
     | { from: "user"; photo: ExamplePhoto; text?: string }
     | { from: "ai"; text: string };
 
-/** One slide of the examples carousel: the left column (tinted icon, the MCP
- * tool chips, `title` as the slide's <h3>, `description`) and the right
- * column (a chat window holding `messages` and, on the trends slide, the real
- * card). The icon, tint and tool names are EX_META's in
+/** One slide of the examples carousel: the left column (tinted icon, `title`
+ * as the slide's <h3>, `description`, then the list of MCP tools the
+ * conversation calls, each chip followed by its `toolNotes` line) and the right
+ * column (a chat window holding `messages` and, on eight slides, the real
+ * widget card its tool call returns, after message `widgetAfter`). The icon, tint and tool names are EX_META's in
  * scripts/gen-index.ts, keyed by `id` — structural, never translated, and
  * written once for all nine locales rather than once per locale. */
 export interface ExampleSlide {
@@ -171,18 +172,62 @@ export interface ExampleSlide {
     /** Short, e.g. "Log in plain words". Also the selected tab's label, so
      * keep it to a few words. */
     title: string;
-    /** One or two plain sentences under the title (~36ch per line, ~160
-     * characters in total) saying what the conversation shows. */
+    /** Two or three plain sentences under the title (~200–240 characters)
+     * saying what the conversation shows AND what a visitor would not guess
+     * from it: that it asks before estimating, what it checks first, what it
+     * guarantees ("nothing is saved until you confirm a preview"). Every
+     * claim must hold for the server's tool descriptions and instructions in
+     * src/mcp.ts, not just for this demo conversation. */
     description: string;
+    /** One line per MCP tool this slide's conversation calls, keyed by the
+     * tool's name: exactly the tools EX_META (scripts/gen-index.ts) lists
+     * for `id`, no more and no fewer. The KEYS are structure — copy them
+     * verbatim; only the values translate. Rows render in EX_META's order,
+     * not this record's, so key order is not checked. Each value is
+     * printed as plain text right after that tool's chip and says what the
+     * tool did in THIS conversation ("Records the 500 ml at 07:00 toward
+     * today's water total"), not what it does in general. Keep it to about
+     * 60 characters and never repeat the tool name: on a phone every line
+     * here adds height to every slide, because the tallest one sets them
+     * all. The type cannot catch a missing key; the generator's assert and
+     * src/landing-script.test.ts are the guard, refusing a missing, extra
+     * or empty note. */
+    toolNotes: Record<string, string>;
     /** The conversation, user and ai alternating as a chat would. */
     messages: ExampleMessage[];
-    /** Which real in-chat widget this slide shows under its last message, if
-     * any. A discriminator, not content: the card is the real get_trends
-     * card, rendered from src/copy/widget-demo.ts's series and translated by
-     * WIDGET_STRINGS. Its slide's last ai message quotes that card's
-     * figures (src/widget-card.test.ts). */
-    widget?: "trends";
+    /** Structural: copy verbatim. Which real in-chat widget the tool call
+     * behind this conversation returns, if any — only a tool that declares a
+     * widget in src/mcp.ts gets one (log_meal and update_meal: meal-logged;
+     * get_goal_progress, get_trends, get_weight_trends; start_meal_import:
+     * import-meals). The card carries no copy from this file except
+     * `cardMeals`: every word on it is WIDGET_STRINGS', and its figures are
+     * src/copy/widget-demo.ts's. */
+    widget?: ExampleWidget;
+    /** Structural: copy verbatim. The index into `messages` of the ai reply
+     * the card follows — the reply of the turn whose tool call returned it,
+     * which is not always the last one (log-meal's card follows its first
+     * reply; the water it logs next returns no widget). That reply quotes
+     * the card's figures wherever it states them (src/widget-card.test.ts).
+     * Set exactly when `widget` is. */
+    widgetAfter?: number;
+    /** The meals the card lists, as they would be STORED by log_meal — the
+     * description, not the sentence the user typed, with household measures
+     * in brackets ("Oatmeal with berries (1 bowl) and coffee (1 cup)").
+     * Translated: they are the user's own text, shown in the card's header
+     * and drawer. One entry on a meal-logged card; four on the goal-progress
+     * card, in eating order (breakfast, lunch, an afternoon flat white,
+     * dinner — DEMO_GOAL_PROGRESS_MEALS in src/copy/widget-demo.ts). Absent
+     * on every other slide. */
+    cardMeals?: string[];
 }
+
+/** The widgets an example slide can show. */
+export type ExampleWidget =
+    | "trends"
+    | "meal-logged"
+    | "goal-progress"
+    | "weight-trends"
+    | "import-meals";
 
 /**
  * The landing page's copy. Plain text everywhere except the four trusted-
@@ -299,8 +344,9 @@ export interface IndexDoc {
          * "slide"); they are spoken, never shown. */
         carouselRole: string;
         slideRole: string;
-        /** Small label before a slide's secondary tool chips, e.g. "Also
-         * uses" — the primary tool is the prominent chip beside the icon. */
+        /** Small heading over the secondary rows of a slide's tool list, e.g.
+         * "Also uses" — the primary tool's row sits above it, with the plug
+         * icon. Not shown on a slide that calls a single tool. */
         moreToolsLabel: string;
         /** Accessible name of every examples tool chip, which links to that
          * tool's card on the tools page. {tool} is the bare tool name the chip
@@ -313,8 +359,23 @@ export interface IndexDoc {
          * drawing, so describe what the photo shows, not the drawing. */
         photoMealAlt: string;
         photoPackageAlt: string;
-        /** 10 slides, in English's order (see ExampleSlide.id); the
-         * `review-week` one carries the real trends card. */
+        /** Accessible name of each chat window's scrolling conversation, e.g.
+         * "Conversation". The thread is a keyboard-focusable region (it
+         * scrolls inside a fixed-height window), so it needs a name; the
+         * slide around it already says which example it is. */
+        threadLabel: string;
+        /** Accessible name of the importer card on the import-history slide,
+         * which is a still picture of the importer's first step (its
+         * controls do nothing on this page). Say what it shows, e.g. "The
+         * in-chat importer, at its first step: choose your export file". */
+        importerAlt: string;
+        /** The visible caption under that picture, telling a pointer or touch
+         * user it is a preview rather than a control (its drop zone still looks
+         * like a button). Hidden from assistive tech, which gets importerAlt.
+         * e.g. "Preview of the importer as it opens in your chat". */
+        importerCaption: string;
+        /** 10 slides, in English's order (see ExampleSlide.id); eight carry a
+         * real in-chat widget card (ExampleSlide.widget). */
         slides: ExampleSlide[];
     };
 
@@ -636,12 +697,24 @@ export const INDEX_EN: IndexDoc = {
             "Photo: a bowl of borscht with a spoonful of sour cream and dill, and a slice of rye bread beside it",
         photoPackageAlt:
             "Photo: the barcode on a can of Coca-Cola, number 5449000000996",
+        threadLabel: "Conversation",
+        importerAlt:
+            "The in-chat importer at its first step: choose your export CSV file, from MyFitnessPal, Cronometer, Lose It! or MacroFactor",
+        importerCaption: "Preview of the importer as it opens in your chat",
         slides: [
             {
                 id: "log-meal",
                 title: "Log in plain words",
                 description:
-                    "Say what you ate and drank the way you'd tell a friend. Calories, macros, fiber and caffeine are worked out, and times are resolved for you.",
+                    "Say it the way you'd tell a friend. If the portion or which meal it was is missing, it asks before estimating. Fiber and sugar go on every entry, caffeine on anything that has some, and “this morning” lands in your timezone.",
+                toolNotes: {
+                    log_meal:
+                        "Saves breakfast with macros, fiber, sugar and the coffee's caffeine",
+                    log_water:
+                        "Records the 500 ml at 07:00 toward today's water total",
+                    get_current_time:
+                        "Finds today's date and clock so “7 this morning” lands right",
+                },
                 messages: [
                     {
                         from: "user",
@@ -660,12 +733,21 @@ export const INDEX_EN: IndexDoc = {
                         text: "Added 500 ml of water at 07:00 this morning.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 1,
+                cardMeals: ["Oatmeal with berries (1 bowl) and coffee (1 cup)"],
             },
             {
                 id: "photo-meal",
                 title: "Snap your plate",
                 description:
-                    "Send a photo and it settles where the meal is from, checks your past logs, then asks one short question at a time. It never logs from the picture alone.",
+                    "A photo starts an interview, not a guess. It settles homemade or restaurant first, checks your past logs, then asks one question per message about portions and hidden oil or sauce, and logs once you approve the summary.",
+                toolNotes: {
+                    log_meal:
+                        "Logs the meal only once every question is settled and you say yes",
+                    search_meals:
+                        "Finds the ways you've logged borscht before, so it can ask which",
+                },
                 messages: [
                     { from: "user", photo: "meal", text: "Lunch" },
                     {
@@ -683,7 +765,7 @@ export const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Got it. So you finished a full bowl of beef borscht with 2 tbsp sour cream, and the slice of rye bread: about 470 kcal, 24 g protein. Log it as lunch?",
+                        text: "Got it. Assuming you finished the bowl: beef borscht with 2 tbsp sour cream and a slice of rye bread, about 470 kcal, 24 g protein. Log it as lunch?",
                     },
                     { from: "user", text: "Yes" },
                     {
@@ -691,12 +773,23 @@ export const INDEX_EN: IndexDoc = {
                         text: "Logged lunch: 470 kcal · 24 g protein · 43 g carbs · 22 g fat · 7 g fiber · 10 g sugar.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 7,
+                cardMeals: [
+                    "Beef borscht (1 bowl) with sour cream (2 tbsp) and rye bread (1 slice)",
+                ],
             },
             {
                 id: "scan-barcode",
                 title: "Scan a barcode",
                 description:
-                    "Photograph the package. The product comes from Open Food Facts, scaled to what you actually had, and any gaps in its data are filled in.",
+                    "Photograph the package: the digits under the barcode are looked up in Open Food Facts, and it asks how much you had. Caffeine, which Open Food Facts lacks, comes from the brand or a web search; missing fiber or sugar is estimated.",
+                toolNotes: {
+                    lookup_barcode:
+                        "Pulls the can's label figures from Open Food Facts",
+                    log_meal:
+                        "Logs the whole can with lunch, caffeine included",
+                },
                 messages: [
                     {
                         from: "user",
@@ -710,15 +803,24 @@ export const INDEX_EN: IndexDoc = {
                     { from: "user", text: "All of it" },
                     {
                         from: "ai",
-                        text: "Logged with lunch: 139 kcal, 35 g sugar, 0 g fiber. Open Food Facts has no caffeine figure, so I used Coca-Cola's own: about 32 mg a can.",
+                        text: "Logged with lunch: 139 kcal and 35 g sugar. Open Food Facts has no caffeine figure, so I used Coca-Cola's own: about 32 mg a can.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 3,
+                cardMeals: ["Coca-Cola (330 ml can)"],
             },
             {
                 id: "goals-progress",
                 title: "Set goals, check in",
                 description:
-                    "Set daily targets and limits in a sentence, then ask where today stands and how much is left to go.",
+                    "Set targets to reach, like calories and protein, and limits to stay under for sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see each figure against its goal, and what's left to go.",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "Saves calorie and protein targets and a 400 mg caffeine limit",
+                    get_goal_progress:
+                        "Shows today against each goal and what's left to go",
+                },
                 messages: [
                     {
                         from: "user",
@@ -739,29 +841,48 @@ export const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "You're at 1,540 kcal and 104 g protein today: 460 kcal and 56 g of protein still to go before your targets. So yes, a dessert of about 200 kcal fits, as long as most of the rest is protein.",
+                        text: "You're at 1,540 kcal and 104 g protein: 460 kcal and 56 g of protein still to go before your targets. So yes, a dessert of about 200 kcal fits, as long as most of the rest is protein.",
                     },
+                ],
+                widget: "goal-progress",
+                widgetAfter: 5,
+                cardMeals: [
+                    "Greek yogurt with granola and berries (1 bowl)",
+                    "Chicken wrap with salad (1 wrap)",
+                    "Flat white (1 cup)",
+                    "Salmon with rice and broccoli (1 plate)",
                 ],
             },
             {
                 id: "review-week",
                 title: "Review the week",
                 description:
-                    "Ask how the week went and the trends widget opens right in the chat. Switch between 7, 14 and 30 days, or tap a nutrient to chart it.",
+                    "Ask how the week went and the trends card opens in the chat with your averages and days logged. Switch between 7, 14 and 30 days or tap a nutrient to chart it, with no new request. It can also tell you your streaks and days on target.",
+                toolNotes: {
+                    get_trends:
+                        "Averages your last 7, 14 and 30 days and opens the trends card",
+                },
                 messages: [
-                    { from: "user", text: "How did last week look?" },
+                    { from: "user", text: "How have the last two weeks gone?" },
                     {
                         from: "ai",
-                        text: "You averaged 1,830 kcal a day across 13 of the last 14 days — 170 under your target. Protein was your steadiest macro.",
+                        text: "You averaged 1,830 kcal a day over the last 14 days (13 of them logged), 170 under your target. Protein was your steadiest macro.",
                     },
                 ],
                 widget: "trends",
+                widgetAfter: 1,
             },
             {
                 id: "weight-trend",
                 title: "Track your weight",
                 description:
-                    "Log a weigh-in in kg or lb and see the real trend: change over the month, a smoothed average and the distance to your target.",
+                    "Log a weigh-in in kg or lb and see the trend under the day-to-day noise: a smoothed average, the change over the month and the gap to your target. An impossible reading, like grams typed as kilograms, is caught before it's saved.",
+                toolNotes: {
+                    log_weight:
+                        "Saves 78.4 kg and turns away a physically impossible reading",
+                    get_weight_trends:
+                        "Smooths 30 days into moving averages and the gap to target",
+                },
                 messages: [
                     {
                         from: "user",
@@ -772,12 +893,18 @@ export const INDEX_EN: IndexDoc = {
                         text: "Logged 78.4 kg. You're down 1.8 kg over the last 30 days, with a 7-day average of 78.7 kg. 3.4 kg to go to your 75 kg target.",
                     },
                 ],
+                widget: "weight-trends",
+                widgetAfter: 1,
             },
             {
                 id: "meal-patterns",
                 title: "Spot your patterns",
                 description:
-                    "Ask what drives your intake. It compares weekdays with weekends, days with and without breakfast, and early dinners with late ones.",
+                    "Ask when you eat more and it compares your own logs: weekdays with weekends, days with and without breakfast, big lunches, early dinners with late ones. It flags unusual days too, and reports patterns, not causes.",
+                toolNotes: {
+                    get_meal_patterns:
+                        "Compares weekdays, weekends and dinner times over 30 days",
+                },
                 messages: [
                     { from: "user", text: "Do I eat more on weekends?" },
                     {
@@ -798,7 +925,13 @@ export const INDEX_EN: IndexDoc = {
                 id: "track-drinks",
                 title: "Track drinks too",
                 description:
-                    "Alcohol tracking is opt-in. Choose US standard drinks or UK units, and every drink is logged as grams of alcohol from its size and strength.",
+                    "Alcohol tracking stays off until you ask for it. Pick US standard drinks or UK units, and each drink is worked out as grams of alcohol from its size and strength. Switch it off later and it's hidden, never deleted.",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "Turns alcohol on, shown in grams alongside UK units",
+                    log_meal:
+                        "Works out the pint's alcohol from its size and strength",
+                },
                 messages: [
                     {
                         from: "user",
@@ -819,15 +952,25 @@ export const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Logged with dinner: a 568 ml pint at 4% is 18 g of alcohol, 2.3 UK units, about 180 kcal.",
+                        text: "Logged with dinner: a 568 ml pint at 4% is 17.9 g of alcohol, 2.3 UK units, about 180 kcal.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 5,
+                cardMeals: ["Lager, 4% (1 pint, 568 ml)"],
             },
             {
                 id: "import-history",
                 title: "Bring your history",
                 description:
-                    "Moving from MyFitnessPal, Cronometer, Lose It! or MacroFactor? Your export is read in the browser, and nothing is saved until you confirm.",
+                    "Moving from MyFitnessPal, Cronometer, Lose It! or MacroFactor? It checks your timezone first, your export is mapped in the browser, nothing is saved until you confirm a preview, and importing the same file again never doubles a meal.",
+                toolNotes: {
+                    start_meal_import:
+                        "Opens the in-chat importer for your export file",
+                    get_profile: "Spots that no timezone is set yet",
+                    set_timezone:
+                        "Sets America/Chicago so imported times land on the right day",
+                },
                 messages: [
                     {
                         from: "user",
@@ -840,15 +983,21 @@ export const INDEX_EN: IndexDoc = {
                     { from: "user", text: "Chicago" },
                     {
                         from: "ai",
-                        text: "Timezone set to America/Chicago. Now pick your export file in the importer. It's read in your browser, and nothing is saved until you confirm the preview.",
+                        text: "Timezone set to America/Chicago. Now pick your export file in the importer below. It's read in your browser, and nothing is saved until you confirm the preview.",
                     },
                 ],
+                widget: "import-meals",
+                widgetAfter: 3,
             },
             {
                 id: "export-data",
                 title: "Take your data",
                 description:
-                    "One request gives you a ZIP of every meal, water entry, weigh-in, goal and setting, and the meals file can be imported straight back.",
+                    "One request packs every meal, water entry and weigh-in, plus your goals and settings, into a ZIP of CSV files with a plain-English README. Every timestamp names its timezone, and meals.csv imports straight back in.",
+                toolNotes: {
+                    export_all_data:
+                        "Zips six files and returns a private link that lasts 60 minutes",
+                },
                 messages: [
                     { from: "user", text: "Back up all my data" },
                     {

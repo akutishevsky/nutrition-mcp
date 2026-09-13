@@ -8,19 +8,33 @@ import {
     renderSummaryCard,
     renderTrendsCard,
     scriptPartialsOf,
+    siteRegionsOf,
     type TrendsPayload,
 } from "./widget-static.js";
-import { buildWidgetCardCss } from "./widget-css.js";
 import {
+    BUNDLED_TEMPLATES,
+    assertNoRedeclarations,
+    buildCardSheet,
+} from "../scripts/gen-widget-card.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { registerTools } from "./mcp.js";
+import {
+    EXAMPLE_CARD_TOOL,
+    EX_META,
     LANDING_TRENDS_RANGE,
+    exampleCardPayload,
     heroCardStates,
+    renderExampleCard,
     sumExchanges,
     trendsCardPayload,
 } from "../scripts/gen-index.js";
+import { validateDemoPayload } from "./copy/widget-demo.js";
+import type { ExampleSlideId } from "./copy/index.js";
 
-// THE DRIFT GUARD for the landing page's two in-chat widget cards.
+// THE DRIFT GUARD for the landing page's in-chat widget cards.
 //
-// The page ships the REAL get_nutrition_summary and get_trends cards, drawn
+// The page ships the REAL widget cards (the hero's summary card and the
+// examples carousel's eight), drawn
 // at build time by the widget's own emitters (src/widget-static.ts), plus a
 // mechanically-scoped copy of the widget CSS and a bundle of the same JS
 // partials as a deferred runtime (scripts/gen-widget-card.ts). Three
@@ -112,23 +126,56 @@ test("every locale's hero card on disk is the card the emitters render now", asy
     }
 });
 
-test("every locale's trends card on disk is the card the emitters render now", async () => {
+// Every example slide's card, in every locale, in its own slide's thread and
+// right after the reply its tool call belongs to (ExampleSlide.widgetAfter).
+test("every locale's example cards on disk are the cards the emitters render now", async () => {
     const pages = await landingPages();
     expect(pages.length).toBeGreaterThan(0);
     for (const { locale, path, html } of pages) {
-        const card = asShipped(
-            await renderTrendsCard(
-                trendsCardPayload(locale),
+        const slides = INDEX[locale]!.examples.slides;
+        const withCards = slides.filter((s) => s.widget);
+        expect(withCards.map((s) => `${s.id}:${s.widget}`)).toEqual([
+            "log-meal:meal-logged",
+            "photo-meal:meal-logged",
+            "scan-barcode:meal-logged",
+            "goals-progress:goal-progress",
+            "review-week:trends",
+            "weight-trend:weight-trends",
+            "track-drinks:meal-logged",
+            "import-history:import-meals",
+        ]);
+        for (const slide of withCards) {
+            const card = exampleCardPayload(slide, locale)!;
+            const shipped = asShipped(
+                await renderExampleCard(card, slide.id, locale),
                 locale,
-                LANDING_TRENDS_RANGE,
-            ),
-            locale,
-        );
-        expect(
-            html.includes(card),
-            `${path}: the trends card is not the one the widget emitters render now — ` +
-                `re-run bun run scripts/gen-index.ts`,
-        ).toBe(true);
+            );
+            const at = html.indexOf(shipped);
+            expect(
+                at >= 0,
+                `${path}: the ${slide.id} ${card.kind} card is not the one the widget emitters render now — ` +
+                    `re-run bun run scripts/gen-index.ts`,
+            ).toBe(true);
+            // Inside its own slide's thread, right after the bubble it
+            // follows: the thread opens after this slide's tag, and exactly
+            // widgetAfter + 1 bubbles sit between that and the card.
+            const slideAt = html.indexOf(`data-ex-id="${slide.id}"`);
+            const thread = html.indexOf("data-ex-thread>", slideAt);
+            expect(slideAt).toBeGreaterThan(-1);
+            expect(thread).toBeGreaterThan(slideAt);
+            expect(at).toBeGreaterThan(thread);
+            const between = html.slice(thread, at);
+            expect(
+                between.includes("data-ex-slide>"),
+                `${path} ${slide.id}: the card sits in another slide`,
+            ).toBe(false);
+            const bubbles = [
+                ...between.matchAll(/<div class="nm-ex-(?:q|a)[" ]/g),
+            ].length;
+            expect(`${path} ${slide.id}: card after ${bubbles} bubbles`).toBe(
+                `${path} ${slide.id}: card after ${slide.widgetAfter! + 1} bubbles`,
+            );
+        }
     }
 });
 
@@ -140,7 +187,13 @@ test("every locale's trends card on disk is the card the emitters render now", a
 // Drop any one of them and the card still renders — wrong, or dead.
 test("each card is wrapped the way the runtime and the scoped CSS expect", async () => {
     for (const { path, html } of await landingPages()) {
-        for (const kind of ["nutrition-summary", "trends"] as const) {
+        for (const kind of [
+            "nutrition-summary",
+            "trends",
+            "meal-logged",
+            "goal-progress",
+            "weight-trends",
+        ] as const) {
             const open = html.indexOf(
                 `<div class="nm-widget-card" data-widget="${kind}"`,
             );
@@ -158,6 +211,165 @@ test("each card is wrapped the way the runtime and the scoped CSS expect", async
             ).toContain(
                 `<script type="application/json" data-widget-payload="${kind}">`,
             );
+        }
+        // The importer is a picture: one named image, its controls inert, no
+        // payload for the runtime to bind (it has no binder).
+        const imp = html.match(
+            /<div class="nm-widget-card" data-widget="import-meals" role="img" aria-label="([^"]+)">\s*<div class="wrap page" inert>/,
+        );
+        expect(
+            imp,
+            `${path}: the importer picture is wrapped as an inert, named image`,
+        ).toBeTruthy();
+        expect(html).not.toContain('data-widget-payload="import-meals"');
+        // …and says so to a pointer or touch user too, whom role="img" and
+        // inert never reach: the drop zone still LOOKS like a button.
+        expect(
+            html.slice(html.indexOf('data-widget="import-meals" role="img"')),
+            `${path}: the importer picture has no visible preview caption under it`,
+        ).toMatch(
+            /^[^]*?<\/div>\s*<p class="nm-ex-still" aria-hidden="true"><i class="fa-solid fa-eye"><\/i> \S/,
+        );
+    }
+});
+
+// What each card-bearing slide's reply quotes, as plain numbers. The reply
+// beside a card is the ai message the card follows (ExampleSlide.widgetAfter),
+// and each of these figures must be printed by the card AND quoted by that
+// reply in the card's own formatting for the locale ("1,540", "1.540",
+// "1 540"). Figures the reply states but the card does not print (a 0 the
+// card calls "none logged", the weight reply's text-only 7-day average) are
+// left out, as are figures the card prints and the reply never mentions.
+const QUOTED_FIGURES: Partial<Record<ExampleSlideId, number[]>> = {
+    "log-meal": [320, 11, 6, 95],
+    "photo-meal": [470, 24, 43, 22, 7, 10],
+    "scan-barcode": [139, 35, 32],
+    "goals-progress": [1540, 104, 460, 56],
+    "weight-trend": [78.4, 1.8, 3.4],
+    "track-drinks": [17.9, 2.3, 180],
+};
+
+/** Every figure token in a run of markup's text, separators and decimals
+ *  included, as the card prints them. */
+function figureTokens(markup: string): string[] {
+    const text = markup
+        .replace(/<[^>]*>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&#8239;/g, " ");
+    return [...text.matchAll(/\d(?:[\d.,   ]*\d)?/g)].map((m) => m[0]);
+}
+
+/** Whether a figure token spells `n` in some locale's format: the same digits
+ *  AND the same decimals, so 17.9 matches "17.9" or "17,9" but never "179" or
+ *  "1.79", and 1540 matches "1,540", "1.540" or "1 540" but never "15.40". */
+function spells(token: string, n: number): boolean {
+    const [int, frac = ""] = String(n).split(".");
+    const groups = token.split(/[.,\s\u00a0\u202f]/u);
+    if (groups.join("") !== int + frac) return false;
+    if (frac) return groups.length >= 2 && groups.at(-1) === frac;
+    return groups.slice(1).every((g) => g.length === 3);
+}
+
+test("each example card's reply quotes the figures its card prints", async () => {
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        for (const slide of INDEX[locale]!.examples.slides) {
+            const want = QUOTED_FIGURES[slide.id];
+            if (!want) continue;
+            const card = exampleCardPayload(slide, locale);
+            expect(
+                card?.kind ?? null,
+                `${locale} ${slide.id}: the slide shows no card`,
+            ).not.toBeNull();
+            if (!card) continue;
+            const tokens = figureTokens(
+                await renderExampleCard(card, slide.id, locale),
+            );
+            const reply = slide.messages[slide.widgetAfter!];
+            expect(
+                reply?.from,
+                `${locale} ${slide.id}: the card follows an ai reply`,
+            ).toBe("ai");
+            for (const n of want) {
+                // The card's own spelling(s) of that number.
+                const spelled = [
+                    ...new Set(tokens.filter((t) => spells(t, n))),
+                ];
+                expect(
+                    spelled.length,
+                    `${locale} ${slide.id}: the card does not print ${n}`,
+                ).toBeGreaterThan(0);
+                expect(
+                    spelled.some((t) => reply!.text!.includes(t)),
+                    `${locale} ${slide.id}: the reply "${reply!.text}" does not quote the card's ${spelled.join(" / ")}`,
+                ).toBe(true);
+            }
+        }
+    }
+});
+
+// A card on a slide stands for a widget one of that slide's tools REALLY
+// returns — read back from src/mcp.ts's own registrations, not a list kept
+// here — and the converse: a slide whose tools include one that returns a
+// widget must show its card (meal-patterns and export-data call none).
+test("every example card is a widget one of its slide's tools declares", () => {
+    const server = new McpServer(
+        { name: "widget-card-test", version: "0.0.0" },
+        { capabilities: { tools: {}, resources: {} } },
+    );
+    const widgetOf = new Map<string, string>();
+    const original = server.registerTool.bind(server);
+    (server as unknown as { registerTool: unknown }).registerTool = (
+        name: string,
+        config: { _meta?: { ui?: { resourceUri?: string } } },
+        handler: unknown,
+    ) => {
+        const uri = config?._meta?.ui?.resourceUri;
+        if (uri) widgetOf.set(name, uri);
+        return (original as unknown as (...a: unknown[]) => unknown)(
+            name,
+            config,
+            handler,
+        );
+    };
+    // widgetsEnabled true: with widgets off no tool declares a resource.
+    registerTools(server, "widget-card-test", true, null);
+    expect(widgetOf.size).toBeGreaterThan(0);
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        for (const slide of INDEX[locale]!.examples.slides) {
+            const tools: string[] = EX_META[slide.id].tools;
+            if (!slide.widget) {
+                const returning = tools.filter((t) => widgetOf.has(t));
+                expect(
+                    `${locale} ${slide.id}: calls widget tools [${returning.join(", ")}] but shows no card`,
+                ).toBe(
+                    `${locale} ${slide.id}: calls widget tools [] but shows no card`,
+                );
+                continue;
+            }
+            const tool = EXAMPLE_CARD_TOOL[slide.widget];
+            expect(
+                tools,
+                `${locale} ${slide.id}: its ${slide.widget} card stands for ${tool}, which the slide does not call`,
+            ).toContain(tool);
+            expect(
+                widgetOf.get(tool),
+                `${locale} ${slide.id}: ${tool} does not return the ${slide.widget} widget`,
+            ).toBe(`ui://widget/${slide.widget}.html`);
+        }
+    }
+});
+
+// The payload each example card is drawn from, in every locale, against the
+// live tool schema — the object the page embeds, not a canonical one.
+test("every locale's example card payloads match the live tool schemas", async () => {
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        for (const slide of INDEX[locale]!.examples.slides) {
+            const card = exampleCardPayload(slide, locale);
+            if (card)
+                await validateDemoPayload(
+                    EXAMPLE_CARD_TOOL[card.kind],
+                    card.payload,
+                );
         }
     }
 });
@@ -191,32 +403,77 @@ test("each page loads the scoped CSS and the runtime, in the order that works", 
 
 test("public/widget-card.css is a fresh build of the widget partials", async () => {
     const disk = await Bun.file("./public/widget-card.css").text();
-    const fresh = await buildWidgetCardCss();
+    // src/widget-css.ts's sheet, then the other page cards' own rules
+    // (goal-progress' weight track, the importer's form and step rail).
+    const fresh = await buildCardSheet();
     // The generator prepends its own banner and nothing else, so the file is
     // the transform's current output with a comment in front of it.
     expect(
         disk.endsWith(fresh),
         "public/widget-card.css is stale — re-run bun run scripts/gen-widget-card.ts",
     ).toBe(true);
+    // The rules that were missing before the sheet carried them: without the
+    // track the weight drawer's bar has no height, and the importer's drop
+    // zone is an unstyled label.
+    expect(disk).toContain(
+        '.nm-widget-card:where([data-widget="goal-progress"]) .wtrack {',
+    );
+    expect(disk).toContain(
+        '.nm-widget-card:where([data-widget="import-meals"]) .drop {',
+    );
 });
 
 test("public/widget-card.js is a fresh build of the widget partials", async () => {
     // The generator's own partial list, derived the same way: every
-    // shared/*.js the two card templates @include (bridge.js excluded — no
-    // host, no iframe), in include order, union across the two, then
-    // site/boot.js last.
+    // shared/*.js the bound card templates @include (bridge.js excluded — no
+    // host, no iframe), in include order, union across them, then each
+    // template's site-card regions, then site/boot.js last.
+    const keys = BUNDLED_TEMPLATES.map((f) => f.replace(/\.html$/, ""));
+    expect(keys).toEqual([
+        "nutrition-summary",
+        "trends",
+        "meal-logged",
+        "goal-progress",
+        "weight-trends",
+    ]);
     const merged: string[] = [];
-    for (const key of ["nutrition-summary", "trends"]) {
+    for (const key of keys) {
         for (const rel of await scriptPartialsOf(key))
             if (!merged.includes(rel)) merged.push(rel);
     }
     expect(merged.length).toBeGreaterThan(0);
     expect(merged).not.toContain("shared/bridge.js");
-    let source = "";
-    for (const rel of [...merged, "site/boot.js"]) {
-        source +=
-            (await resolveIncludes(await readSrc(rel), rel, [rel])) + "\n";
+    // A still picture is not driven, so its code does not ship.
+    expect(merged).not.toContain("shared/import-card.js");
+    const units: { label: string; text: string }[] = [];
+    for (const rel of merged) {
+        units.push({
+            label: rel,
+            text: await resolveIncludes(await readSrc(rel), rel, [rel]),
+        });
     }
+    for (const key of keys) {
+        for (const text of await siteRegionsOf(key))
+            units.push({ label: `${key}#region`, text });
+    }
+    units.push({
+        label: "site/boot.js",
+        text: await resolveIncludes(
+            await readSrc("site/boot.js"),
+            "site/boot.js",
+            ["site/boot.js"],
+        ),
+    });
+    // A function declared twice would silently replace the other for every
+    // card on the page; the generator refuses, and so does this.
+    expect(() => assertNoRedeclarations(units)).not.toThrow();
+    expect(() =>
+        assertNoRedeclarations([
+            { label: "a", text: "function esc(s) {}" },
+            { label: "b", text: "    function esc(s) {}" },
+        ]),
+    ).toThrow(/esc/);
+    const source = units.map((u) => u.text + "\n").join("");
     // The same call the generator makes, not a regex: these partials are full
     // of regex and template literals whose whitespace is painted markup.
     const body = new Bun.Transpiler({ loader: "js" }).transformSync(source);
@@ -258,6 +515,16 @@ test("each locale's strings file carries that locale's current dictionary", asyn
                     `${path}: the "${loc}.${ns}" namespace is stale — re-run bun run scripts/gen-widget-card.ts`,
                 ).toEqual(live[ns]);
             }
+            // What the bound cards reach for, and not what the still picture
+            // would: the importer's table is the heaviest in the dictionary.
+            for (const ns of ["mealLogged", "goalProgress", "weightTrends"]) {
+                expect(`${path} ${loc} ships ${ns}: ${ns in dict}`).toBe(
+                    `${path} ${loc} ships ${ns}: true`,
+                );
+            }
+            expect(
+                `${path} ${loc} ships importMeals: ${"importMeals" in dict}`,
+            ).toBe(`${path} ${loc} ships importMeals: false`);
         }
     }
 });
@@ -391,9 +658,9 @@ test("the trends slide's reply quotes the figures its card prints", async () => 
         const quote = (what: string, figure: string | undefined) => {
             expect(figure, `${locale}: the card prints ${what}`).toBeTruthy();
             expect(
-                // The reply beside the card is the slide's LAST ai message:
-                // the card follows it.
-                slide!.messages.findLast((m) => m.from === "ai")?.text,
+                // The reply beside the card is the ai message the card
+                // follows (ExampleSlide.widgetAfter).
+                slide!.messages[slide!.widgetAfter!]?.text,
                 `${locale}: the reply does not quote the card's ${what} "${figure}" — ` +
                     `the card and the prose beside it have drifted apart`,
             ).toContain(figure!);

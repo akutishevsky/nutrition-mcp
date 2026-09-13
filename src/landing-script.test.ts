@@ -571,9 +571,9 @@ test("#patreon-updates renders hidden on every landing page", async () => {
     }
 });
 
-// Each example slide prints the MCP tools its conversation calls (EX_META in
-// scripts/gen-index.ts, keyed by slide id): the primary one as .nm-ex-tool
-// beside the icon, the rest as .nm-ex-chip. Those names are hand-kept, like
+// Each example slide lists the MCP tools its conversation calls (EX_META in
+// scripts/gen-index.ts, keyed by slide id): the primary one as .nm-ex-tool,
+// first in the tool list, the rest as .nm-ex-chip. Those names are hand-kept, like
 // the tool count, so a rename in src/mcp.ts would leave a stale chip on nine
 // landing pages without this.
 test("every examples tool chip names a tool src/mcp.ts registers", async () => {
@@ -642,16 +642,32 @@ test("every examples tool chip links to its card on this locale's tools page", a
             ].map((m) => m[1]!),
         );
         expect(cardIds.size).toBeGreaterThan(0);
+        // Every chip is one row of its slide's tool list: the link, then that
+        // tool's note (ExampleSlide.toolNotes) as plain text AFTER it — never
+        // inside the link, where it would bury the tool name the chip shows
+        // in a sentence-long accessible name.
         const links = [
             ...html.matchAll(
-                /<a class="(nm-ex-tool|nm-ex-chip)" href="([^"]*)" aria-label="([^"]*)">(?:(?!<\/a>)[\s\S])*?<code>([^<]+)<\/code>/g,
+                /<li class="nm-ex-use"><a class="(nm-ex-tool|nm-ex-chip)" href="([^"]*)" aria-label="([^"]*)">(?:(?!<\/a>)[\s\S])*?<code>([^<]+)<\/code>(?:(?!<\/a>)[\s\S])*<\/a> <span class="nm-ex-note">([^<]*)<\/span><\/li>/g,
             ),
         ];
-        const want = INDEX[locale]!.examples.slides.flatMap(
-            (s) => EX_META[s.id].tools,
-        );
+        const slides = INDEX[locale]!.examples.slides;
+        const want = slides.flatMap((s) => EX_META[s.id].tools);
         expect(`${path}: ${links.map((m) => m[4]).join(",")}`).toBe(
             `${path}: ${want.join(",")}`,
+        );
+        // No chip outside a row, so none renders without its note.
+        expect(
+            `${path}: ${(html.match(/<a class="nm-ex-(?:tool|chip)"/g) ?? []).length} chips`,
+        ).toBe(`${path}: ${want.length} chips`);
+        expect(
+            `${path}: ${links.map((m) => `${m[4]}: ${unescapeHtml(m[5]!)}`).join(" | ")}`,
+        ).toBe(
+            `${path}: ${slides
+                .flatMap((s) =>
+                    EX_META[s.id].tools.map((t) => `${t}: ${s.toolNotes?.[t]}`),
+                )
+                .join(" | ")}`,
         );
         for (const m of links) {
             const [, , href, aria, name] = m as unknown as string[];
@@ -685,6 +701,29 @@ test("every locale's example slides mirror English's structure", async () => {
     );
     for (const locale of Object.keys(INDEX) as SiteLocale[]) {
         expect(exampleStructure(INDEX[locale]!.examples.slides)).toEqual(en);
+    }
+    // Every slide has its description and exactly one non-empty note per
+    // tool EX_META lists for it. The note's KEY is the tool name — structure,
+    // copied verbatim — and only its words translate, so a locale that drops,
+    // adds or renames one would print a chip with nothing beside it.
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        for (const s of INDEX[locale]!.examples.slides) {
+            const at = `${locale} ${s.id}`;
+            expect(`${at} description: ${Boolean(s.description?.trim())}`).toBe(
+                `${at} description: true`,
+            );
+            const notes: Record<string, unknown> = s.toolNotes ?? {};
+            const tools = EX_META[s.id].tools;
+            expect(`${at} notes: ${Object.keys(notes).sort().join(",")}`).toBe(
+                `${at} notes: ${[...tools].sort().join(",")}`,
+            );
+            for (const t of tools) {
+                const note = notes[t];
+                expect(
+                    `${at} ${t}: ${typeof note === "string" && note.trim() !== ""}`,
+                ).toBe(`${at} ${t}: true`);
+            }
+        }
     }
     const pages = await landingPages();
     expect(pages.length).toBeGreaterThan(0);
@@ -793,4 +832,55 @@ test("the examples track is equal-height by CSS, and the script never sizes it",
             `${path}: ${slides} composers`,
         );
     }
+    // THE CONVERSATION SCROLLS INSIDE A FIXED WINDOW. Eight threads carry a
+    // real card, so a thread that sized to its content would make every
+    // slide as tall as the longest conversation plus its card. The thread
+    // must contribute no height of its own (flex-basis 0, min-height 0) and
+    // scroll instead, with the window's floor holding the footprint.
+    const thread = /\n\.nm-ex-thread \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(thread).toContain("flex: 1 1 0;");
+    expect(thread).toContain("min-height: 0;");
+    // Size containment is insurance on top of the basis: it keeps the
+    // content from counting should a later rule override flex-basis again
+    // (a second .nm-ex-thread rule with flex: 1 0 auto once grew every slide).
+    expect(thread).toContain("contain: size;");
+    expect(thread).toContain("overflow-y: auto;");
+    // Scrolling must chain to the page at the thread's ends.
+    expect(thread).not.toContain("overscroll-behavior");
+    const chat = /\n\.nm-ex-chat \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(chat).toMatch(/min-height: \d+px;/);
+});
+
+// Each chat window's conversation scrolls, so it is a keyboard stop: a named
+// region a keyboard can focus and scroll with the arrow keys, in the page's
+// language — and the carousel starts each newly active slide's conversation
+// at its first message.
+test("every example thread is a named, focusable region", async () => {
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { locale, path, html } of pages) {
+        const label = INDEX[locale]!.examples.threadLabel;
+        expect(`${locale} threadLabel: ${Boolean(label?.trim())}`).toBe(
+            `${locale} threadLabel: true`,
+        );
+        const slides = INDEX[locale]!.examples.slides.length;
+        const threads = html.match(/<div class="nm-ex-thread"[^>]*>/g) ?? [];
+        expect(`${path}: ${threads.length} threads`).toBe(
+            `${path}: ${slides} threads`,
+        );
+        for (const t of threads)
+            expect(t).toBe(
+                `<div class="nm-ex-thread" role="region" aria-label="${attr(label)}" tabindex="0" data-ex-thread>`,
+            );
+    }
+    const start = LANDING_SCRIPT.indexOf('querySelector("[data-ex-track]")');
+    const carousel = LANDING_SCRIPT.slice(start);
+    expect(carousel).toContain('querySelector("[data-ex-thread]")');
+    expect(carousel).toContain("scrollTop = 0");
+    // A drawer opened inside a card is focused with preventScroll, so the
+    // script scrolls the THREAD to it — never the page (no scrollIntoView).
+    expect(carousel).toContain('"focusin"');
+    expect(
+        carousel.slice(0, carousel.indexOf("// ---------- live stats")),
+    ).not.toContain("scrollIntoView");
 });

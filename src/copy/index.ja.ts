@@ -4,6 +4,12 @@
 // chat's nutrient deltas / clock strings are copied verbatim from INDEX_EN
 // rather than translated.
 //
+// NOTE on sugar: the in-chat widget strings (src/copy/widgets.ja.ts, not
+// this file) label the sugar tile 糖質, while this prose says 糖類, so an
+// examples reply that names sugar sits above a real card that says 糖質.
+// Known and deliberate: 糖質 means net carbohydrate, so the prose keeps the
+// accurate 糖類, and the card's label is the widget copy's to change.
+//
 // Terminology kept consistent across the widget labels and prose:
 // protein → タンパク質, carbs → 炭水化物, fat → 脂質, fiber → 食物繊維,
 // (total) sugar → 糖類, alcohol → アルコール（純アルコール換算のグラム）,
@@ -230,12 +236,23 @@ export const INDEX_JA: IndexDoc = {
             "写真：サワークリームとディルをのせたボルシチと、横に添えたライ麦パン1枚",
         photoPackageAlt:
             "写真：コカ・コーラの缶のバーコード、番号5449000000996",
+        threadLabel: "会話",
+        importerAlt:
+            "最初のステップにあるチャット内インポーター：MyFitnessPal、Cronometer、Lose It!、MacroFactorのエクスポートCSVファイルを選択",
+        importerCaption: "チャットに表示されるインポーターのプレビュー",
         slides: [
             {
                 id: "log-meal",
                 title: "ふだんの言葉で記録",
                 description:
-                    "食べたもの・飲んだものを、友だちに話すように伝えるだけ。カロリー、主要栄養素、食物繊維、カフェインを計算し、時刻も自動で割り出します。",
+                    "友だちに話すように伝えるだけ。量やどの食事かがわからなければ、推定する前に確認します。食物繊維と糖類はすべての記録に、カフェインは含まれるものに入り、「今朝」もあなたのタイムゾーンで記録されます。",
+                toolNotes: {
+                    log_meal:
+                        "主要栄養素、食物繊維、糖類、コーヒーのカフェイン込みで朝食を記録",
+                    log_water: "07:00の500 mlを今日の水分の合計に加算",
+                    get_current_time:
+                        "今日の日付と時刻を確認し、「今朝7時」を正しく記録",
+                },
                 messages: [
                     {
                         from: "user",
@@ -254,12 +271,19 @@ export const INDEX_JA: IndexDoc = {
                         text: "今朝07:00に水500 mlを追加しました。",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 1,
+                cardMeals: ["ベリー入りオートミール（1杯）とコーヒー（1杯）"],
             },
             {
                 id: "photo-meal",
                 title: "お皿を撮るだけ",
                 description:
-                    "写真を送ると、どこの料理かを確かめ、過去の記録を参照してから、短い質問を1つずつします。写真だけで記録することはありません。",
+                    "写真は推測ではなく、質問のきっかけです。まず手作りか外食かを確かめ、過去の記録を参照し、量や見えない油・ソースについて1回に1つずつ質問。まとめを承認すると記録します。",
+                toolNotes: {
+                    log_meal: "質問がすべて済み、あなたが承認してから記録",
+                    search_meals: "以前のボルシチの記録を探し、どれか尋ねる",
+                },
                 messages: [
                     { from: "user", photo: "meal", text: "昼食" },
                     {
@@ -277,7 +301,7 @@ export const INDEX_JA: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "わかりました。牛肉入りボルシチ1杯、サワークリーム大さじ2、ライ麦パン1枚をすべて食べたとして、約470 kcal、タンパク質24 gです。昼食として記録しますか?",
+                        text: "わかりました。1杯を食べきったと仮定すると、牛肉入りボルシチにサワークリーム大さじ2、ライ麦パン1枚で、約470 kcal、タンパク質24 gです。昼食として記録しますか?",
                     },
                     { from: "user", text: "はい" },
                     {
@@ -285,12 +309,21 @@ export const INDEX_JA: IndexDoc = {
                         text: "昼食を記録しました：470 kcal · タンパク質24 g · 炭水化物43 g · 脂質22 g · 食物繊維7 g · 糖類10 g。",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 7,
+                cardMeals: [
+                    "牛肉入りボルシチ（1杯）、サワークリーム（大さじ2）、ライ麦パン（1枚）",
+                ],
             },
             {
                 id: "scan-barcode",
                 title: "バーコードをスキャン",
                 description:
-                    "パッケージを撮影するだけ。Open Food Factsの商品データを実際に口にした量に合わせて換算し、データの欠けている部分も補います。",
+                    "パッケージを撮影すると、バーコードの下の数字をOpen Food Factsで検索し、どれだけ口にしたかを尋ねます。Open Food Factsにないカフェインはブランドの公表値かWeb検索から、欠けている食物繊維や糖類は推定で補います。",
+                toolNotes: {
+                    lookup_barcode: "缶のラベルの数値をOpen Food Factsから取得",
+                    log_meal: "缶1本分をカフェイン込みで昼食に記録",
+                },
                 messages: [
                     {
                         from: "user",
@@ -304,15 +337,23 @@ export const INDEX_JA: IndexDoc = {
                     { from: "user", text: "全部飲んだ" },
                     {
                         from: "ai",
-                        text: "昼食に追加して記録しました：139 kcal、糖類35 g、食物繊維0 g。Open Food Factsにはカフェインの数値がないため、コカ・コーラ公式の値を使いました：1缶あたり約32 mgです。",
+                        text: "昼食に追加して記録しました：139 kcal、糖類35 g。Open Food Factsにはカフェインの数値がないため、コカ・コーラ公式の値を使いました：1缶あたり約32 mgです。",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 3,
+                cardMeals: ["コカ・コーラ（330 ml缶）"],
             },
             {
                 id: "goals-progress",
                 title: "目標を決めて確認",
                 description:
-                    "1日の目標と上限を一言で設定し、今日の状況とあとどれくらい残っているかを聞くだけ。",
+                    "カロリーやタンパク質のように達成したい目標と、糖類・アルコール・カフェインのように超えたくない上限を設定。変わるのは伝えた項目だけです。どの日についても、各数値を目標と比べ、あとどれだけ残っているかを確認できます。",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "カロリーとタンパク質の目標、カフェイン上限400 mgを保存",
+                    get_goal_progress: "今日の各目標に対する状況と残りを表示",
+                },
                 messages: [
                     {
                         from: "user",
@@ -333,29 +374,48 @@ export const INDEX_JA: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "今日はここまで1,540 kcal、タンパク質104 g。目標まではあと460 kcal、タンパク質56 gです。残りをほぼタンパク質でとるなら、200 kcalくらいのデザートは大丈夫です。",
+                        text: "ここまで1,540 kcal、タンパク質104 g。目標まではあと460 kcal、タンパク質56 gです。残りをほぼタンパク質でとるなら、200 kcalくらいのデザートは大丈夫です。",
                     },
+                ],
+                widget: "goal-progress",
+                widgetAfter: 5,
+                cardMeals: [
+                    "グラノーラとベリーのギリシャヨーグルト（1杯）",
+                    "チキンとサラダのラップサンド（1個）",
+                    "フラットホワイト（1杯）",
+                    "サーモンとライス、ブロッコリー（1皿）",
                 ],
             },
             {
                 id: "review-week",
                 title: "1週間を振り返る",
                 description:
-                    "1週間の様子を聞くと、チャットの中でトレンドウィジェットが開きます。7日・14日・30日を切り替えたり、栄養素をタップしてグラフで確認したりできます。",
+                    "1週間の様子を聞くと、平均と記録日数を載せたトレンドウィジェットがチャット内に開きます。7日・14日・30日の切り替えも、栄養素をタップしたグラフ表示も、新たなリクエストなしで。連続記録や目標達成日数も答えられます。",
+                toolNotes: {
+                    get_trends:
+                        "直近7日・14日・30日を平均し、トレンドウィジェットを開く",
+                },
                 messages: [
-                    { from: "user", text: "先週はどうだった?" },
+                    { from: "user", text: "この2週間はどうだった?" },
                     {
                         from: "ai",
                         text: "直近14日間（うち13日を記録）の平均は1日1,830 kcalで、目標より170少ない結果でした。タンパク質が最も安定した栄養素です。",
                     },
                 ],
                 widget: "trends",
+                widgetAfter: 1,
             },
             {
                 id: "weight-trend",
                 title: "体重を記録",
                 description:
-                    "体重をkgまたはlbで記録すれば、本当のトレンドがわかります。1か月の変化、平滑化した平均、目標までの差を確認できます。",
+                    "体重をkgまたはlbで記録すれば、日々の変動に隠れたトレンドがわかります。平滑化した平均、1か月の変化、目標までの差を表示。gをkgと打ち間違えたようなありえない値は、保存前に弾きます。",
+                toolNotes: {
+                    log_weight:
+                        "78.4 kgを保存し、物理的にありえない値は受け付けない",
+                    get_weight_trends:
+                        "30日分を移動平均で平滑化し、目標までの差を算出",
+                },
                 messages: [
                     {
                         from: "user",
@@ -366,12 +426,17 @@ export const INDEX_JA: IndexDoc = {
                         text: "78.4 kgを記録しました。直近30日間で1.8 kg減、7日間平均は78.7 kgです。目標の75 kgまであと3.4 kgです。",
                     },
                 ],
+                widget: "weight-trends",
+                widgetAfter: 1,
             },
             {
                 id: "meal-patterns",
                 title: "自分の傾向を知る",
                 description:
-                    "摂取量を左右しているものを聞いてみましょう。平日と週末、朝食のある日とない日、早めの夕食と遅めの夕食を比較します。",
+                    "いつ多く食べているかを聞くと、あなた自身の記録を比較します：平日と週末、朝食のある日とない日、しっかりした昼食、早めと遅めの夕食。いつもと違う日も知らせ、伝えるのは原因ではなく傾向です。",
+                toolNotes: {
+                    get_meal_patterns: "30日分の平日・週末と夕食の時間を比較",
+                },
                 messages: [
                     { from: "user", text: "週末の方がたくさん食べてる?" },
                     {
@@ -392,7 +457,12 @@ export const INDEX_JA: IndexDoc = {
                 id: "track-drinks",
                 title: "お酒も記録",
                 description:
-                    "アルコール記録はオンにした場合のみ。US標準ドリンクかUKユニットを選ぶと、どの飲み物も量と度数から純アルコールのグラム数で記録されます。",
+                    "アルコール記録は、頼むまでオフのまま。US標準ドリンクかUKユニットを選ぶと、どの飲み物も量と度数から純アルコールのグラム数を算出します。あとでオフにしても非表示になるだけで、削除はされません。",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "アルコール記録をオンにし、グラム数とUKユニットを併記",
+                    log_meal: "パイントの純アルコール量を量と度数から算出",
+                },
                 messages: [
                     {
                         from: "user",
@@ -413,15 +483,25 @@ export const INDEX_JA: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "夕食に追加して記録しました：568 mlの1パイント、度数4%で純アルコール18 g、2.3 UKユニット、約180 kcalです。",
+                        text: "夕食に追加して記録しました：568 mlの1パイント、度数4%で純アルコール17.9 g、2.3 UKユニット、約180 kcalです。",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 5,
+                cardMeals: ["ラガー、4%（1パイント、568 ml）"],
             },
             {
                 id: "import-history",
                 title: "履歴を引き継ぐ",
                 description:
-                    "MyFitnessPal、Cronometer、Lose It!、MacroFactorからの乗り換えですか? エクスポートはブラウザ内で読み込まれ、確認するまで何も保存されません。",
+                    "MyFitnessPal、Cronometer、Lose It!、MacroFactorからの乗り換えですか? まずタイムゾーンを確認。エクスポートはブラウザ内で対応付けられ、プレビューを確認するまで何も保存されず、同じファイルを再度インポートしても食事は重複しません。",
+                toolNotes: {
+                    start_meal_import:
+                        "エクスポートファイル用のチャット内インポーターを開く",
+                    get_profile: "タイムゾーンが未設定だと気づく",
+                    set_timezone:
+                        "America/Chicagoに設定し、インポートした時刻を正しい日に",
+                },
                 messages: [
                     {
                         from: "user",
@@ -434,15 +514,21 @@ export const INDEX_JA: IndexDoc = {
                     { from: "user", text: "シカゴ" },
                     {
                         from: "ai",
-                        text: "タイムゾーンをAmerica/Chicagoに設定しました。次に、インポーターでエクスポートファイルを選んでください。ファイルはブラウザ内で読み込まれ、プレビューを確認するまで何も保存されません。",
+                        text: "タイムゾーンをAmerica/Chicagoに設定しました。次に、下のインポーターでエクスポートファイルを選んでください。ファイルはブラウザ内で読み込まれ、プレビューを確認するまで何も保存されません。",
                     },
                 ],
+                widget: "import-meals",
+                widgetAfter: 3,
             },
             {
                 id: "export-data",
                 title: "データを持ち出す",
                 description:
-                    "一度頼むだけで、すべての食事、水分、体重、目標、設定をまとめたZIPが手に入ります。食事のファイルはそのままインポートし直せます。",
+                    "一度頼むだけで、すべての食事、水分、体重の記録と目標・設定を、CSVファイルと平易な英語のREADMEを含むZIPにまとめます。すべてのタイムスタンプにタイムゾーンが明記され、meals.csvはそのままインポートし直せます。",
+                toolNotes: {
+                    export_all_data:
+                        "6つのファイルをZIPにまとめ、60分間有効な非公開リンクを返す",
+                },
                 messages: [
                     { from: "user", text: "データを全部バックアップして" },
                     {

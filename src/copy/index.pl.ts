@@ -211,12 +211,25 @@ export const INDEX_PL: IndexDoc = {
             "Zdjęcie: miska barszczu z łyżką śmietany i koperkiem, a obok kromka żytniego chleba",
         photoPackageAlt:
             "Zdjęcie: kod kreskowy na puszce Coca-Coli, numer 5449000000996",
+        threadLabel: "Rozmowa",
+        importerAlt:
+            "Importer w czacie na pierwszym kroku: wybierz plik CSV z eksportem z MyFitnessPal, Cronometer, Lose It! albo MacroFactor",
+        importerCaption:
+            "Podgląd importera w takiej postaci, w jakiej pojawia się w czacie",
         slides: [
             {
                 id: "log-meal",
                 title: "Pisz zwykłymi słowami",
                 description:
-                    "Powiedz, co zjadłeś/aś i wypiłeś/aś, tak jak opowiadasz znajomemu. Kalorie, makroskładniki, błonnik i kofeina zostaną wyliczone, a godziny ustalone za Ciebie.",
+                    "Powiedz to tak, jak znajomemu. Gdy brakuje porcji albo nie wiadomo, który to posiłek, AI dopyta, zanim oszacuje. Błonnik i cukry trafiają do każdego wpisu, kofeina do wszystkiego, co ją zawiera, a „dziś rano” wypada w Twojej strefie czasowej.",
+                toolNotes: {
+                    log_meal:
+                        "Zapisuje śniadanie: makro, błonnik, cukry i kofeina z kawy",
+                    log_water:
+                        "Dolicza 500 ml z 07:00 do dzisiejszej sumy wody",
+                    get_current_time:
+                        "Sprawdza datę i godzinę, żeby dobrze umieścić „7 rano”",
+                },
                 messages: [
                     {
                         from: "user",
@@ -235,12 +248,23 @@ export const INDEX_PL: IndexDoc = {
                         text: "Dodano 500 ml wody o 07:00 dziś rano.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 1,
+                cardMeals: [
+                    "Owsianka z owocami (1 miska) i kawa (1 filiżanka)",
+                ],
             },
             {
                 id: "photo-meal",
                 title: "Zrób zdjęcie talerza",
                 description:
-                    "Wyślij zdjęcie, a AI ustali, skąd jest posiłek, sprawdzi Twoje wcześniejsze wpisy i zada po jednym krótkim pytaniu. Nigdy nie zapisuje na podstawie samego zdjęcia.",
+                    "Zdjęcie zaczyna wywiad, a nie zgadywanie. AI najpierw ustala, czy to domowe, czy z restauracji, zagląda do Twoich wpisów, potem pyta o porcje i ukryty olej lub sos, jedno pytanie na wiadomość. Zapisuje po akceptacji podsumowania.",
+                toolNotes: {
+                    log_meal:
+                        "Zapisuje dopiero, gdy wszystko jasne i powiesz „tak”",
+                    search_meals:
+                        "Znajduje wcześniejsze wpisy barszczu, by dopytać, który to",
+                },
                 messages: [
                     { from: "user", photo: "meal", text: "Obiad" },
                     {
@@ -258,7 +282,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Jasne. Czyli zjedzona cała miska barszczu z wołowiną i 2 łyżkami śmietany, do tego kromka żytniego chleba: około 470 kcal, 24 g białka. Zapisać jako obiad?",
+                        text: "Jasne. Zakładając, że miska jest zjedzona do końca: barszcz z wołowiną z 2 łyżkami śmietany i kromka żytniego chleba, około 470 kcal, 24 g białka. Zapisać jako obiad?",
                     },
                     { from: "user", text: "Tak" },
                     {
@@ -266,12 +290,22 @@ export const INDEX_PL: IndexDoc = {
                         text: "Zapisano obiad: 470 kcal · 24 g białka · 43 g węglowodanów · 22 g tłuszczu · 7 g błonnika · 10 g cukru.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 7,
+                cardMeals: [
+                    "Barszcz z wołowiną (1 miska) ze śmietaną (2 łyżki) i chlebem żytnim (1 kromka)",
+                ],
             },
             {
                 id: "scan-barcode",
                 title: "Zeskanuj kod kreskowy",
                 description:
-                    "Zrób zdjęcie opakowania. Dane produktu pochodzą z Open Food Facts, są przeliczane na to, co faktycznie spożyłeś/aś, a braki w danych zostają uzupełnione.",
+                    "Zrób zdjęcie opakowania: cyfry spod kodu kreskowego są wyszukiwane w Open Food Facts, a AI pyta o ilość. Kofeina, której Open Food Facts nie podaje, pochodzi od producenta albo z wyszukiwania w sieci; brakujący błonnik czy cukry są szacowane.",
+                toolNotes: {
+                    lookup_barcode:
+                        "Pobiera dane z etykiety puszki z Open Food Facts",
+                    log_meal: "Zapisuje całą puszkę do obiadu, razem z kofeiną",
+                },
                 messages: [
                     {
                         from: "user",
@@ -285,15 +319,24 @@ export const INDEX_PL: IndexDoc = {
                     { from: "user", text: "Całą" },
                     {
                         from: "ai",
-                        text: "Zapisano do obiadu: 139 kcal, 35 g cukru, 0 g błonnika. Open Food Facts nie podaje kofeiny, więc przyjęto wartość od samej Coca-Coli: około 32 mg na puszkę.",
+                        text: "Zapisano do obiadu: 139 kcal i 35 g cukru. Open Food Facts nie podaje kofeiny, więc przyjęto wartość od samej Coca-Coli: około 32 mg na puszkę.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 3,
+                cardMeals: ["Coca-Cola (puszka 330 ml)"],
             },
             {
                 id: "goals-progress",
                 title: "Ustaw cele, sprawdzaj postęp",
                 description:
-                    "Ustaw dzienne cele i limity jednym zdaniem, a potem zapytaj, jak wygląda dzisiejszy dzień i ile jeszcze zostało.",
+                    "Ustaw cele do osiągnięcia, jak kalorie i białko, oraz limity dla cukrów, alkoholu i kofeiny; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, by zobaczyć każdą wartość na tle celu i ile jeszcze zostało.",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "Zapisuje cele kalorii i białka oraz limit kofeiny 400 mg",
+                    get_goal_progress:
+                        "Pokazuje dzisiejszy dzień na tle celów i ile jeszcze zostało",
+                },
                 messages: [
                     {
                         from: "user",
@@ -314,29 +357,48 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Dziś masz już 1540 kcal i 104 g białka: do celów brakuje jeszcze 460 kcal i 56 g białka. Więc tak, deser o wartości około 200 kcal się zmieści, o ile reszta to głównie białko.",
+                        text: "Masz już 1540 kcal i 104 g białka: do celów brakuje jeszcze 460 kcal i 56 g białka. Więc tak, deser o wartości około 200 kcal się zmieści, o ile reszta to głównie białko.",
                     },
+                ],
+                widget: "goal-progress",
+                widgetAfter: 5,
+                cardMeals: [
+                    "Jogurt grecki z granolą i owocami (1 miska)",
+                    "Wrap z kurczakiem i sałatą (1 wrap)",
+                    "Flat white (1 filiżanka)",
+                    "Łosoś z ryżem i brokułami (1 talerz)",
                 ],
             },
             {
                 id: "review-week",
                 title: "Przejrzyj tydzień",
                 description:
-                    "Zapytaj, jak minął tydzień, a widżet trendów otworzy się prosto w czacie. Przełączaj między 7, 14 i 30 dniami albo dotknij składnika, żeby zobaczyć jego wykres.",
+                    "Zapytaj, jak minął tydzień, a widżet trendów otworzy się w czacie ze średnimi i liczbą dni z wpisami. Przełączaj 7, 14 i 30 dni albo dotknij składnika, by zobaczyć wykres, bez nowego zapytania. AI powie Ci też o seriach i dniach zgodnych z celem.",
+                toolNotes: {
+                    get_trends:
+                        "Liczy średnie z 7, 14 i 30 dni i otwiera widżet trendów",
+                },
                 messages: [
-                    { from: "user", text: "Jak wyglądał ostatni tydzień?" },
+                    { from: "user", text: "Jak minęły ostatnie dwa tygodnie?" },
                     {
                         from: "ai",
-                        text: "Średnio 1830 kcal dziennie przez ostatnie 14 dni, z czego 13 z wpisami — 170 poniżej celu. Białko było Twoim najstabilniejszym makroskładnikiem.",
+                        text: "Średnio 1830 kcal dziennie przez ostatnie 14 dni (13 z nich z wpisami), 170 poniżej celu. Białko było Twoim najstabilniejszym makroskładnikiem.",
                     },
                 ],
                 widget: "trends",
+                widgetAfter: 1,
             },
             {
                 id: "weight-trend",
                 title: "Śledź swoją wagę",
                 description:
-                    "Zapisz pomiar wagi w kg albo lb i zobacz prawdziwy trend: zmianę w ciągu miesiąca, wygładzoną średnią i to, ile zostało do wagi docelowej.",
+                    "Zapisz pomiar wagi w kg albo lb i zobacz trend spod codziennych wahań: wygładzoną średnią, zmianę w ciągu miesiąca i to, ile zostało do wagi docelowej. Niemożliwy odczyt, np. gramy wpisane jako kilogramy, zostaje wyłapany przed zapisem.",
+                toolNotes: {
+                    log_weight:
+                        "Zapisuje 78,4 kg i odrzuca fizycznie niemożliwy odczyt",
+                    get_weight_trends:
+                        "Wygładza 30 dni w średnie kroczące i liczy dystans do celu",
+                },
                 messages: [
                     {
                         from: "user",
@@ -347,12 +409,18 @@ export const INDEX_PL: IndexDoc = {
                         text: "Zapisano 78,4 kg. W ciągu ostatnich 30 dni ubyło Ci 1,8 kg, a średnia z 7 dni to 78,7 kg. Do celu 75 kg zostało 3,4 kg.",
                     },
                 ],
+                widget: "weight-trends",
+                widgetAfter: 1,
             },
             {
                 id: "meal-patterns",
                 title: "Odkryj swoje nawyki",
                 description:
-                    "Zapytaj, od czego zależy, ile jesz. AI porówna dni robocze z weekendami, dni ze śniadaniem i bez niego oraz wczesne kolacje z późnymi.",
+                    "Zapytaj, kiedy jesz więcej, a AI porówna Twoje własne wpisy: dni robocze z weekendami, dni ze śniadaniem i bez, duże obiady, wczesne kolacje z późnymi. Wskaże też nietypowe dni i opisze wzorce, nie przyczyny.",
+                toolNotes: {
+                    get_meal_patterns:
+                        "Porównuje dni robocze, weekendy i pory kolacji z 30 dni",
+                },
                 messages: [
                     { from: "user", text: "Czy w weekendy jem więcej?" },
                     {
@@ -373,7 +441,13 @@ export const INDEX_PL: IndexDoc = {
                 id: "track-drinks",
                 title: "Śledź też alkohol",
                 description:
-                    "Śledzenie alkoholu włączasz tylko, jeśli chcesz. Wybierz standardowe drinki amerykańskie albo jednostki brytyjskie, a każdy napój zostanie zapisany w gramach alkoholu według objętości i mocy.",
+                    "Alkohol śledzisz tylko wtedy, gdy o to poprosisz. Wybierz standardowe drinki amerykańskie albo jednostki brytyjskie, a każdy napój zostanie przeliczony na gramy alkoholu według objętości i mocy. Po wyłączeniu dane są ukryte, a nie usunięte.",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "Włącza alkohol, w gramach obok jednostek brytyjskich",
+                    log_meal:
+                        "Przelicza alkohol w pincie według objętości i mocy",
+                },
                 messages: [
                     {
                         from: "user",
@@ -394,15 +468,26 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Zapisano do kolacji: pinta 568 ml o mocy 4% to 18 g alkoholu, 2,3 jednostki brytyjskiej, około 180 kcal.",
+                        text: "Zapisano do kolacji: pinta 568 ml o mocy 4% to 17,9 g alkoholu, 2,3 jednostki brytyjskiej, około 180 kcal.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 5,
+                cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
             },
             {
                 id: "import-history",
                 title: "Przenieś swoją historię",
                 description:
-                    "Przechodzisz z MyFitnessPal, Cronometer, Lose It! albo MacroFactor? Eksport jest odczytywany w przeglądarce i nic nie zostanie zapisane, dopóki nie potwierdzisz.",
+                    "Przechodzisz z MyFitnessPal, Cronometer, Lose It! albo MacroFactor? AI najpierw sprawdza strefę czasową, eksport jest mapowany w przeglądarce, nic nie zostaje zapisane przed potwierdzeniem podglądu, a ponowny import pliku nigdy nie dubluje posiłków.",
+                toolNotes: {
+                    start_meal_import:
+                        "Otwiera importer w czacie dla Twojego pliku eksportu",
+                    get_profile:
+                        "Zauważa, że strefa czasowa nie jest jeszcze ustawiona",
+                    set_timezone:
+                        "Ustawia America/Chicago, by importy trafiły na właściwy dzień",
+                },
                 messages: [
                     {
                         from: "user",
@@ -415,15 +500,21 @@ export const INDEX_PL: IndexDoc = {
                     { from: "user", text: "W Chicago" },
                     {
                         from: "ai",
-                        text: "Strefa czasowa ustawiona na America/Chicago. Teraz wybierz plik eksportu w importerze. Jest odczytywany w Twojej przeglądarce i nic nie zostanie zapisane, dopóki nie potwierdzisz podglądu.",
+                        text: "Strefa czasowa ustawiona na America/Chicago. Teraz wybierz plik eksportu w importerze poniżej. Jest odczytywany w Twojej przeglądarce i nic nie zostanie zapisane, dopóki nie potwierdzisz podglądu.",
                     },
                 ],
+                widget: "import-meals",
+                widgetAfter: 3,
             },
             {
                 id: "export-data",
                 title: "Zabierz swoje dane",
                 description:
-                    "Jedna prośba i dostajesz ZIP ze wszystkimi posiłkami, wpisami wody, pomiarami wagi, celami i ustawieniami, a plik z posiłkami da się od razu zaimportować z powrotem.",
+                    "Jedna prośba pakuje wszystkie posiłki, wpisy wody i pomiary wagi, a do tego cele i ustawienia, w ZIP z plikami CSV i prostym README po angielsku. Każdy znacznik czasu podaje swoją strefę, a meals.csv importuje się prosto z powrotem.",
+                toolNotes: {
+                    export_all_data:
+                        "Pakuje sześć plików i daje prywatny link ważny 60 minut",
+                },
                 messages: [
                     {
                         from: "user",

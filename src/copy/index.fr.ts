@@ -218,12 +218,25 @@ export const INDEX_FR: IndexDoc = {
             "Photo : un bol de bortsch avec une cuillerée de crème aigre et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:
             "Photo : le code-barres d'une canette de Coca-Cola, numéro 5449000000996",
+        threadLabel: "Conversation",
+        importerAlt:
+            "L'outil d'import dans le chat, à sa première étape : choisis ton fichier CSV d'export, depuis MyFitnessPal, Cronometer, Lose It! ou MacroFactor",
+        importerCaption:
+            "Aperçu de l'outil d'import tel qu'il s'affiche dans ton chat",
         slides: [
             {
                 id: "log-meal",
                 title: "Enregistrer en une phrase",
                 description:
-                    "Dis ce que tu as mangé et bu comme tu le raconterais à un ami. Calories, macros, fibres et caféine sont calculées, et les heures sont déduites pour toi.",
+                    "Dis-le comme tu le raconterais à un ami. S'il manque la portion ou le repas concerné, il demande avant d'estimer. Fibres et sucres sur chaque entrée, caféine sur tout ce qui en contient, et « ce matin » tombe dans ton fuseau horaire.",
+                toolNotes: {
+                    log_meal:
+                        "Petit-déjeuner enregistré : macros, fibres, sucres, caféine",
+                    log_water:
+                        "Ajoute les 500 ml de 07:00 au total d'eau du jour",
+                    get_current_time:
+                        "Donne la date et l'heure pour bien placer « 7 h ce matin »",
+                },
                 messages: [
                     {
                         from: "user",
@@ -242,12 +255,23 @@ export const INDEX_FR: IndexDoc = {
                         text: "500 ml d'eau ajoutés à 07:00 ce matin.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 1,
+                cardMeals: [
+                    "Porridge aux fruits rouges (1 bol) et café (1 tasse)",
+                ],
             },
             {
                 id: "photo-meal",
                 title: "Photographier son assiette",
                 description:
-                    "Envoie une photo : il détermine d'où vient le repas, consulte tes anciens enregistrements, puis pose une courte question à la fois. Il n'enregistre jamais à partir de la seule image.",
+                    "Une photo ouvre un échange, pas une devinette : fait maison ou restaurant d'abord, un œil sur tes anciens repas, puis une question par message sur les portions et l'huile ou la sauce cachées. Il enregistre quand tu valides le résumé.",
+                toolNotes: {
+                    log_meal:
+                        "N'enregistre qu'une fois tout réglé et ton oui donné",
+                    search_meals:
+                        "Retrouve tes bortschs passés pour te demander lequel",
+                },
                 messages: [
                     { from: "user", photo: "meal", text: "Déjeuner" },
                     {
@@ -265,7 +289,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Compris. Donc tu as fini un bol entier de bortsch au bœuf avec 2 c. à soupe de crème aigre, et la tranche de pain de seigle : environ 470 kcal, 24 g de protéines. Je l'enregistre en déjeuner ?",
+                        text: "Compris. En supposant que tu as fini le bol : bortsch au bœuf avec 2 c. à soupe de crème aigre et une tranche de pain de seigle, environ 470 kcal, 24 g de protéines. Je l'enregistre en déjeuner ?",
                     },
                     { from: "user", text: "Oui" },
                     {
@@ -273,12 +297,23 @@ export const INDEX_FR: IndexDoc = {
                         text: "Déjeuner enregistré : 470 kcal · 24 g de protéines · 43 g de glucides · 22 g de lipides · 7 g de fibres · 10 g de sucres.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 7,
+                cardMeals: [
+                    "Bortsch au bœuf (1 bol) avec crème aigre (2 c. à soupe) et pain de seigle (1 tranche)",
+                ],
             },
             {
                 id: "scan-barcode",
                 title: "Scanner un code-barres",
                 description:
-                    "Photographie l'emballage. Le produit vient d'Open Food Facts, ajusté à ce que tu as vraiment pris, et les trous dans ses données sont comblés.",
+                    "Photographie l'emballage : les chiffres sous le code-barres sont cherchés dans Open Food Facts, puis il demande combien tu en as pris. La caféine, qu'Open Food Facts n'a pas, vient de la marque ou du web ; fibres ou sucres manquants sont estimés.",
+                toolNotes: {
+                    lookup_barcode:
+                        "Récupère les valeurs de l'étiquette dans Open Food Facts",
+                    log_meal:
+                        "Enregistre la canette entière au déjeuner, caféine comprise",
+                },
                 messages: [
                     {
                         from: "user",
@@ -292,15 +327,24 @@ export const INDEX_FR: IndexDoc = {
                     { from: "user", text: "Oui, en entier" },
                     {
                         from: "ai",
-                        text: "Enregistré avec le déjeuner : 139 kcal, 35 g de sucre, 0 g de fibres. Open Food Facts n'indique pas de caféine, alors j'ai repris le chiffre de Coca-Cola : environ 32 mg par canette.",
+                        text: "Enregistré avec le déjeuner : 139 kcal et 35 g de sucre. Open Food Facts n'indique pas de caféine, alors j'ai repris le chiffre de Coca-Cola : environ 32 mg par canette.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 3,
+                cardMeals: ["Coca-Cola (canette de 330 ml)"],
             },
             {
                 id: "goals-progress",
                 title: "Fixer ses objectifs, faire le point",
                 description:
-                    "Fixe tes cibles et tes limites quotidiennes en une phrase, puis demande où en est ta journée et ce qu'il te reste.",
+                    "Fixe des cibles à atteindre, comme calories et protéines, et des limites à ne pas dépasser pour sucres, alcool et caféine ; seul ce que tu cites change. Puis interroge n'importe quel jour : chaque valeur face à son objectif, et ce qu'il reste.",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "Fixe calories et protéines, et limite la caféine à 400 mg",
+                    get_goal_progress:
+                        "Montre ta journée face à chaque objectif et ce qu'il reste",
+                },
                 messages: [
                     {
                         from: "user",
@@ -321,32 +365,51 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Tu en es à 1 540 kcal et 104 g de protéines aujourd'hui : il te reste 460 kcal et 56 g de protéines avant tes objectifs. Donc oui, un dessert d'environ 200 kcal passe, à condition que le reste soit surtout protéiné.",
+                        text: "Tu en es à 1 540 kcal et 104 g de protéines : il te reste 460 kcal et 56 g de protéines avant tes objectifs. Donc oui, un dessert d'environ 200 kcal passe, à condition que le reste soit surtout protéiné.",
                     },
+                ],
+                widget: "goal-progress",
+                widgetAfter: 5,
+                cardMeals: [
+                    "Yaourt grec avec granola et fruits rouges (1 bol)",
+                    "Wrap au poulet et salade (1 wrap)",
+                    "Flat white (1 tasse)",
+                    "Saumon avec riz et brocoli (1 assiette)",
                 ],
             },
             {
                 id: "review-week",
                 title: "Faire le bilan de la semaine",
                 description:
-                    "Demande comment s'est passée ta semaine et le widget Tendances s'ouvre directement dans le chat. Passe de 7 à 14 ou 30 jours, ou touche un nutriment pour afficher sa courbe.",
+                    "Demande le bilan de ta semaine : le widget Tendances s'ouvre dans le chat avec tes moyennes et jours enregistrés. Passe de 7 à 14 ou 30 jours ou touche un nutriment pour sa courbe, sans nouvelle requête. Il te dit aussi tes séries et tes jours dans l'objectif.",
+                toolNotes: {
+                    get_trends:
+                        "Calcule tes moyennes sur 7, 14 et 30 jours et ouvre le widget",
+                },
                 messages: [
                     {
                         from: "user",
-                        text: "Ça a donné quoi, la semaine dernière ?",
+                        text: "Ça a donné quoi, ces deux dernières semaines ?",
                     },
                     {
                         from: "ai",
-                        text: "Tu as tourné à 1 830 kcal par jour en moyenne sur les 14 derniers jours, dont 13 enregistrés — 170 sous ton objectif. Les protéines ont été ta macro la plus régulière.",
+                        text: "Tu as tourné à 1 830 kcal par jour en moyenne sur les 14 derniers jours (dont 13 enregistrés), 170 sous ton objectif. Les protéines ont été ta macro la plus régulière.",
                     },
                 ],
                 widget: "trends",
+                widgetAfter: 1,
             },
             {
                 id: "weight-trend",
                 title: "Suivre son poids",
                 description:
-                    "Enregistre une pesée en kg ou en lb et vois la vraie tendance : l'évolution sur le mois, une moyenne lissée et l'écart avec ton poids cible.",
+                    "Enregistre une pesée en kg ou en lb et vois la tendance derrière les variations du quotidien : moyenne lissée, évolution sur le mois, écart avec ton poids cible. Une valeur impossible, des grammes tapés en kilos par exemple, est repérée avant l'enregistrement.",
+                toolNotes: {
+                    log_weight:
+                        "Enregistre 78,4 kg et refuse une valeur physiquement impossible",
+                    get_weight_trends:
+                        "Lisse 30 jours en moyennes mobiles, avec l'écart à la cible",
+                },
                 messages: [
                     {
                         from: "user",
@@ -357,12 +420,18 @@ export const INDEX_FR: IndexDoc = {
                         text: "78,4 kg enregistrés. Tu as perdu 1,8 kg sur les 30 derniers jours, avec une moyenne sur 7 jours de 78,7 kg. Encore 3,4 kg avant ton objectif de 75 kg.",
                     },
                 ],
+                widget: "weight-trends",
+                widgetAfter: 1,
             },
             {
                 id: "meal-patterns",
                 title: "Repérer ses habitudes",
                 description:
-                    "Demande ce qui fait varier ce que tu manges. Il compare la semaine et le week-end, les jours avec et sans petit-déjeuner, les dîners tôt et les dîners tardifs.",
+                    "Demande quand tu manges plus et il compare tes propres enregistrements : semaine et week-end, jours avec ou sans petit-déjeuner, gros déjeuners, dîners tôt ou tard. Il signale aussi les jours inhabituels, et décrit des habitudes, pas des causes.",
+                toolNotes: {
+                    get_meal_patterns:
+                        "Compare semaine, week-end et heure du dîner sur 30 jours",
+                },
                 messages: [
                     {
                         from: "user",
@@ -386,7 +455,13 @@ export const INDEX_FR: IndexDoc = {
                 id: "track-drinks",
                 title: "Suivre aussi les boissons",
                 description:
-                    "Le suivi de l'alcool est facultatif. Choisis les verres standards américains ou les unités britanniques, et chaque boisson est enregistrée en grammes d'alcool selon son volume et son degré.",
+                    "L'alcool n'est suivi que si tu le demandes. Choisis les verres standards américains ou les unités britanniques : chaque boisson est convertie en grammes d'alcool selon son volume et son degré. Désactivé ensuite, il est masqué, jamais supprimé.",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "Active l'alcool, en grammes avec les unités britanniques",
+                    log_meal:
+                        "Calcule l'alcool de la pinte selon son volume et son degré",
+                },
                 messages: [
                     {
                         from: "user",
@@ -407,15 +482,26 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Enregistré avec le dîner : une pinte de 568 ml à 4 %, c'est 18 g d'alcool, 2,3 unités britanniques, environ 180 kcal.",
+                        text: "Enregistré avec le dîner : une pinte de 568 ml à 4 %, c'est 17,9 g d'alcool, 2,3 unités britanniques, environ 180 kcal.",
                     },
                 ],
+                widget: "meal-logged",
+                widgetAfter: 5,
+                cardMeals: ["Lager, 4 % (1 pinte, 568 ml)"],
             },
             {
                 id: "import-history",
                 title: "Importer son historique",
                 description:
-                    "Tu viens de MyFitnessPal, Cronometer, Lose It! ou MacroFactor ? Ton export est lu dans le navigateur, et rien n'est enregistré avant ta confirmation.",
+                    "Tu viens de MyFitnessPal, Cronometer, Lose It! ou MacroFactor ? Il vérifie d'abord ton fuseau horaire, l'export est lu dans le navigateur, rien n'est enregistré avant que tu confirmes l'aperçu, et réimporter le même fichier ne double jamais un repas.",
+                toolNotes: {
+                    start_meal_import:
+                        "Ouvre l'outil d'import dans le chat pour ton fichier d'export",
+                    get_profile:
+                        "Remarque qu'aucun fuseau horaire n'est encore défini",
+                    set_timezone:
+                        "Règle America/Chicago pour dater les imports au bon jour",
+                },
                 messages: [
                     {
                         from: "user",
@@ -428,15 +514,21 @@ export const INDEX_FR: IndexDoc = {
                     { from: "user", text: "À Chicago" },
                     {
                         from: "ai",
-                        text: "Fuseau horaire réglé sur America/Chicago. Choisis maintenant ton fichier d'export dans l'outil d'import. Il est lu dans ton navigateur, et rien n'est enregistré avant que tu confirmes l'aperçu.",
+                        text: "Fuseau horaire réglé sur America/Chicago. Choisis maintenant ton fichier d'export dans l'outil d'import ci-dessous. Il est lu dans ton navigateur, et rien n'est enregistré avant que tu confirmes l'aperçu.",
                     },
                 ],
+                widget: "import-meals",
+                widgetAfter: 3,
             },
             {
                 id: "export-data",
                 title: "Emporter ses données",
                 description:
-                    "Une seule demande te donne un ZIP avec chaque repas, entrée d'eau, pesée, objectif et réglage, et le fichier des repas se réimporte tel quel.",
+                    "Une seule demande regroupe chaque repas, entrée d'eau et pesée, plus tes objectifs et réglages, dans un ZIP de fichiers CSV avec un README en anglais simple. Chaque horodatage indique son fuseau horaire, et meals.csv se réimporte directement.",
+                toolNotes: {
+                    export_all_data:
+                        "Zippe six fichiers et renvoie un lien privé valable 60 minutes",
+                },
                 messages: [
                     { from: "user", text: "Sauvegarde toutes mes données" },
                     {

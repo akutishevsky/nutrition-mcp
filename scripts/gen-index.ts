@@ -54,16 +54,32 @@ import {
     type IndexDoc,
 } from "../src/copy/index.js";
 import {
+    renderGoalProgressCard,
+    renderImportFileStep,
+    renderMealLoggedCard,
     renderSummaryCard,
     renderTrendsCard,
+    renderWeightTrendsCard,
+    type GoalProgressPayload,
+    type MealProgressPayload,
+    type StartImportPayload,
     type SummaryPayload,
     type TrendsPayload,
+    type WeightTrendsPayload,
 } from "../src/widget-static.js";
 import {
+    DEMO_EXAMPLE_MEALS,
+    DEMO_GOAL_PROGRESS_MEALS,
     DEMO_TRENDS,
+    demoExampleMealLogged,
+    demoGoalProgressPayload,
+    demoStartImportPayload,
     demoSummaryPayload,
-    validateDemoPayloads,
+    demoWeightTrendsPayload,
+    validateDemoPayload,
+    type DemoExampleMealSlide,
     type DemoMealInput,
+    type DemoTool,
 } from "../src/copy/widget-demo.js";
 import { WIDGET_STRINGS } from "../src/copy/widgets.js";
 
@@ -117,7 +133,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     });
                 }
                 // ---------- widget cards: keep the settings note ----------
-                // The two cards on this page are the real in-chat widgets, and
+                // The cards on this page are the real in-chat widgets, and
                 // they carry the real settings note. In chat a MutationObserver
                 // in shared/bridge.js keeps that note as the last child of the
                 // card's last [data-widget-foot], for one reason: widgets
@@ -432,8 +448,8 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             });
                     }
                     // Keep the selected tab inside the row, clear of both fades (48px,
-                    // the fade's width). Scrolls the row only - scrollIntoView would
-                    // move the page as well.
+                    // the fade's width). Scrolls the row only - asking the element
+                    // itself to scroll into view would move the page as well.
                     function exRevealTab(tab) {
                         exFade();
                         var row = tab && tab.parentNode;
@@ -458,6 +474,11 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             exActive >= 0 &&
                             exSlides[exActive].contains(document.activeElement);
                         exActive = i;
+                        // The conversation scrolls inside its window, so a slide
+                        // coming in reads from its first message, whatever the
+                        // visitor left it scrolled to last time.
+                        var exThread = exSlides[i].querySelector("[data-ex-thread]");
+                        if (exThread) exThread.scrollTop = 0;
                         exSlides.forEach(function (slide, k) {
                             // Off-screen slides leave the tab order and the
                             // accessibility tree - the trends card's buttons would
@@ -598,6 +619,40 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     });
                     // The tab row is one tab stop (roving tabindex); the arrows move
                     // along it, Home and End jump to its ends, and moving is choosing.
+                    // A card's drawer takes focus with preventScroll (shared/
+                    // macros.js), which keeps the PAGE still - and, in a thread
+                    // that scrolls, can leave the drawer below the window's
+                    // edge. So focus arriving inside a thread brings the drawer
+                    // (or the focused control) into the THREAD's view, by
+                    // scrolling the thread alone: asking the element itself to
+                    // scroll into view would move the page as well.
+                    function exKeepInThread(thread, el) {
+                        var tb = thread.getBoundingClientRect();
+                        var eb = el.getBoundingClientRect();
+                        var pad = 12;
+                        var d = 0;
+                        if (eb.bottom > tb.bottom - pad)
+                            d = Math.min(eb.bottom - tb.bottom + pad, eb.top - tb.top - pad);
+                        else if (eb.top < tb.top + pad) d = eb.top - tb.top - pad;
+                        if (Math.abs(d) > 1)
+                            thread.scrollTo({
+                                top: thread.scrollTop + d,
+                                behavior: exStill() ? "auto" : "smooth",
+                            });
+                    }
+                    exSlides.forEach(function (slide) {
+                        var thread = slide.querySelector("[data-ex-thread]");
+                        if (!thread) return;
+                        thread.addEventListener("focusin", function (e) {
+                            var target = e.target;
+                            if (target === thread) return;
+                            var box = (target.closest && target.closest(".drawer")) || target;
+                            // After the frame the drawer is laid out in.
+                            requestAnimationFrame(function () {
+                                exKeepInThread(thread, box);
+                            });
+                        });
+                    });
                     exTabs.forEach(function (tab, i) {
                         tab.addEventListener("click", function () {
                             exGoTo(i, false);
@@ -1393,8 +1448,8 @@ function barcodeSvg(): string {
 
 // ---------------------------------------------- the real widget cards
 //
-// The two cards on this page — the get_nutrition_summary card in the hero
-// chat and the get_trends card on the review-week examples slide — are not
+// The cards on this page — the get_nutrition_summary card in the hero chat
+// and the eight on the examples slides (see renderExampleCard) — are not
 // approximations of the in-chat widgets. They ARE the in-chat widgets,
 // rendered at BUILD TIME: src/widget-static.ts evaluates the very shared
 // partials the iframe runs (shared/macros.js, shared/spark.js,
@@ -1602,7 +1657,7 @@ function payloadJson(payload: unknown): string {
  *    re-runs the same emitter on the same payload to rebuild the ctx its
  *    handlers resolve through. */
 function widgetCardBlock(
-    kind: "nutrition-summary" | "trends",
+    kind: Exclude<CardKind, "import-meals">,
     card: string,
     payload: unknown,
     locale: SiteLocale,
@@ -1642,7 +1697,7 @@ ${parked.join("\n")}
  *  is the PAGE's business rather than the widget's.
  *
  *  This is the landing page only — deliberately not in HEAD_ASSETS. It is
- *  ~35 KB of CSS (5.7 KB over the wire) for two cards that exist on one
+ *  ~60 KB of CSS for the nine cards that exist on one
  *  page, and every other generated page would carry it for nothing.
  *
  *  The inline block is the house rule for layout only one page needs
@@ -1738,32 +1793,205 @@ function assertIdsAreUnique(html: string, file: string): void {
     }
 }
 
-/** Both cards of one locale's page, rendered and wrapped. */
+/** Every kind of card the landing page renders. */
+export type CardKind =
+    | "nutrition-summary"
+    | "trends"
+    | "meal-logged"
+    | "goal-progress"
+    | "weight-trends"
+    | "import-meals";
+
+/** The card an example slide shows, with the payload it is drawn from. */
+export type ExampleCard =
+    | { kind: "trends"; payload: TrendsPayload }
+    | { kind: "meal-logged"; payload: MealProgressPayload }
+    | { kind: "goal-progress"; payload: GoalProgressPayload }
+    | { kind: "weight-trends"; payload: WeightTrendsPayload }
+    | { kind: "import-meals"; payload: StartImportPayload };
+
+/** The tool whose outputSchema each example card's payload stands in for. */
+export const EXAMPLE_CARD_TOOL: Record<ExampleCard["kind"], DemoTool> = {
+    trends: "get_trends",
+    "meal-logged": "log_meal",
+    "goal-progress": "get_goal_progress",
+    "weight-trends": "get_weight_trends",
+    "import-meals": "start_meal_import",
+};
+
+/** How many `cardMeals` a card of each kind lists. */
+const CARD_MEALS: Record<ExampleCard["kind"], number> = {
+    trends: 0,
+    "meal-logged": 1,
+    "goal-progress": DEMO_GOAL_PROGRESS_MEALS.length,
+    "weight-trends": 0,
+    "import-meals": 0,
+};
+
+/** The strip's drawer ids on an example card. Ids are document-global and
+ *  the page holds seven strips besides the hero's, so each card takes its slide's id. */
+export const exampleIdPrefix = (id: ExampleSlideId): string => `ex-${id}`;
+
+/** The card behind a slide, for `locale`, or null on a slide without one.
+ *  Figures are src/copy/widget-demo.ts's; the meal descriptions are the
+ *  slide's own `cardMeals`, in the page's language. */
+export function exampleCardPayload(
+    slide: ExampleSlide,
+    locale: SiteLocale,
+): ExampleCard | null {
+    if (!slide.widget) return null;
+    const meals = slide.cardMeals ?? [];
+    if (
+        meals.length !== CARD_MEALS[slide.widget] ||
+        meals.some((m) => typeof m !== "string" || !m.trim())
+    ) {
+        throw new Error(
+            `${locale}: examples slide "${slide.id}" needs exactly ${CARD_MEALS[slide.widget]} non-empty cardMeals for its ${slide.widget} card, got ${meals.length}.`,
+        );
+    }
+    switch (slide.widget) {
+        case "trends":
+            return { kind: "trends", payload: trendsCardPayload(locale) };
+        case "meal-logged":
+            if (!(slide.id in DEMO_EXAMPLE_MEALS))
+                throw new Error(
+                    `examples slide "${slide.id}" shows a meal-logged card, but DEMO_EXAMPLE_MEALS (src/copy/widget-demo.ts) has no meal for it`,
+                );
+            return {
+                kind: "meal-logged",
+                payload: demoExampleMealLogged(
+                    slide.id as DemoExampleMealSlide,
+                    meals[0]!,
+                    locale,
+                ),
+            };
+        case "goal-progress":
+            return {
+                kind: "goal-progress",
+                payload: demoGoalProgressPayload(meals, locale),
+            };
+        case "weight-trends":
+            return {
+                kind: "weight-trends",
+                payload: demoWeightTrendsPayload(locale),
+            };
+        case "import-meals":
+            return {
+                kind: "import-meals",
+                payload: demoStartImportPayload(locale),
+            };
+    }
+}
+
+/** An example card's markup, exactly as the emitters return it (before the
+ *  settings note). src/widget-card.test.ts renders through this too. */
+export async function renderExampleCard(
+    card: ExampleCard,
+    slideId: ExampleSlideId,
+    locale: SiteLocale,
+): Promise<string> {
+    const idPrefix = exampleIdPrefix(slideId);
+    switch (card.kind) {
+        case "trends":
+            return renderTrendsCard(
+                card.payload,
+                locale,
+                LANDING_TRENDS_RANGE,
+                { idPrefix },
+            );
+        case "meal-logged":
+            return renderMealLoggedCard(card.payload, locale, { idPrefix });
+        case "goal-progress":
+            return renderGoalProgressCard(card.payload, locale, { idPrefix });
+        case "weight-trends":
+            // Its own default window: get_weight_trends called with no
+            // `days`, as the conversation does.
+            return renderWeightTrendsCard(
+                card.payload,
+                locale,
+                card.payload.default_range,
+            );
+        case "import-meals":
+            return renderImportFileStep(card.payload, locale);
+    }
+}
+
+/** An example card wrapped for the page.
+ *
+ *  Seven are live (widgetCardBlock, bound by /widget-card.js). The importer is
+ *  a STILL PICTURE of its first step: its real flow parses a file in the
+ *  browser and calls bulk_import_meals, neither of which means anything on
+ *  this page. So it ships no payload, its controls are `inert`, and the
+ *  wrapper is one `role="img"` named by `examples.importerAlt`. The
+ *  `data-widget` value still matters: the importer's scoped CSS hangs off
+ *  `:where([data-widget="import-meals"])` (scripts/gen-widget-card.ts). The
+ *  `.page` class is the importer template's own root class. */
+function exampleCardBlock(
+    card: ExampleCard,
+    markup: string,
+    doc: IndexDoc,
+    locale: SiteLocale,
+    indent: string,
+): string {
+    if (card.kind !== "import-meals")
+        return widgetCardBlock(card.kind, markup, card.payload, locale, indent);
+    // The caption is what tells a MOUSE or TOUCH user it is a picture: the
+    // dashed drop zone still looks like a button, and role="img" + inert only
+    // reach a keyboard and a screen reader. It repeats what the image's name
+    // already says, so it is hidden from assistive tech.
+    return `${indent}<div class="nm-widget-card" data-widget="import-meals" role="img" aria-label="${attr(doc.examples.importerAlt)}">
+${indent}    <div class="wrap page" inert>${withSettingsNote(markup, locale)}
+${indent}    </div>
+${indent}</div>
+${indent}<p class="nm-ex-still" aria-hidden="true"><i class="fa-solid fa-eye"></i> ${esc(doc.examples.importerCaption)}</p>`;
+}
+
+/** Every card of one locale's page, rendered and wrapped. */
 export interface LandingCards {
     /** One block per distinct hero state, in thread order. The last is the
      *  state the thread ends on and the one rendered into the conversation;
      *  any earlier ones are parked outside it for the replay to bring in. */
     hero: string[];
-    trends: string;
+    /** One block per example slide that shows a card, keyed by slide id. */
+    examples: Partial<Record<ExampleSlideId, string>>;
 }
 
 async function renderLandingCards(
     doc: IndexDoc,
     locale: SiteLocale,
 ): Promise<LandingCards> {
+    // First, so a locale still missing a slide's card fields fails by name
+    // rather than half-way through a payload.
+    assertExamplesMirrorEnglish(doc, locale);
     const states = heroCardStates(doc, locale);
     if (!states.length) {
         throw new Error(
             "no hero exchange is marked `widget: true`, so the landing page would ship a chat with no summary card",
         );
     }
-    const trends = trendsCardPayload(locale);
+    const exampleCards = doc.examples.slides.flatMap((s) => {
+        const card = exampleCardPayload(s, locale);
+        return card ? [{ slide: s, card }] : [];
+    });
     // Against the LIVE outputSchemas, before a single card is drawn — the
     // same guard scripts/widget-harness.ts runs over its fixtures, and for
     // the same reason: a payload the tool would never send renders a card
     // that quietly falls back. It also catches the failure Zod does not
     // raise, a key `z.object()` strips rather than rejects.
-    for (const s of states) await validateDemoPayloads(s.payload, trends);
+    for (const s of states)
+        await validateDemoPayload("get_nutrition_summary", s.payload);
+    for (const { card } of exampleCards)
+        await validateDemoPayload(EXAMPLE_CARD_TOOL[card.kind], card.payload);
+    const examples: LandingCards["examples"] = {};
+    for (const { slide, card } of exampleCards) {
+        examples[slide.id] = exampleCardBlock(
+            card,
+            await renderExampleCard(card, slide.id, locale),
+            doc,
+            locale,
+            " ".repeat(36),
+        );
+    }
     const hero: string[] = [];
     for (const s of states) {
         hero.push(
@@ -1780,16 +2008,7 @@ async function renderLandingCards(
             ),
         );
     }
-    return {
-        hero,
-        trends: widgetCardBlock(
-            "trends",
-            await renderTrendsCard(trends, locale, LANDING_TRENDS_RANGE),
-            trends,
-            locale,
-            " ".repeat(28),
-        ),
-    };
+    return { hero, examples };
 }
 
 /** One exchange of the hero thread, statically.
@@ -2031,9 +2250,10 @@ ${cards}
 }
 
 /** What each example slide shows beside its words: the icon and tint of its
- *  left column and its tab, and the MCP tools its conversation calls — the
- *  first printed as the prominent chip beside the icon, the rest as the small
- *  "also uses" chips under the description.
+ *  left column and its tab, and the MCP tools its conversation calls — each
+ *  printed as one row of the tool list under the description: its chip, then
+ *  that slide's ExampleSlide.toolNotes line for it. The first row carries the
+ *  plug icon; the rest sit under the "Also uses" heading.
  *
  *  STRUCTURE, NOT COPY, and written ONCE for all nine locales: keyed by
  *  ExampleSlide.id, so a translation cannot give a slide another slide's icon
@@ -2107,7 +2327,15 @@ export function exampleStructure(slides: readonly ExampleSlide[]): string[] {
     return slides.map((s) =>
         [
             s?.id,
-            s?.widget ?? "-",
+            // The card, the reply it follows and how many meals it lists:
+            // all three are structure, and the last is the one count a
+            // translation could get wrong while translating the meals.
+            s?.widget
+                ? `${s.widget}@${s.widgetAfter ?? "?"}`
+                : s?.widgetAfter != null
+                  ? `-@${s.widgetAfter}`
+                  : "-",
+            `meals:${Array.isArray(s?.cardMeals) ? s.cardMeals.length : 0}`,
             ...(Array.isArray(s?.messages)
                 ? s.messages.map((m) =>
                       m.from === "user" && m.photo ? `user+${m.photo}` : m.from,
@@ -2120,8 +2348,11 @@ export function exampleStructure(slides: readonly ExampleSlide[]): string[] {
 /** A locale whose slides do not mirror English's structure would render a
  *  different conversation, a missing card or, when a slide still has the old
  *  userText / aiText shape, crash half-way through the page. Refuse it by
- *  name instead. Also refuses an empty bubble: every typed message needs its
- *  words, and only a photo turn may go without a caption. */
+ *  name instead. Also refuses an empty bubble (every typed message needs its
+ *  words, and only a photo turn may go without a caption), an empty
+ *  description, and toolNotes that do not name exactly the slide's EX_META
+ *  tools, each with a non-empty line — a missing note would leave a chip
+ *  with nothing beside it, or crash on a locale still on the old shape. */
 function assertExamplesMirrorEnglish(doc: IndexDoc, locale: SiteLocale): void {
     const en = INDEX.en!.examples.slides;
     const slides = Array.isArray(doc.examples.slides)
@@ -2146,6 +2377,40 @@ function assertExamplesMirrorEnglish(doc: IndexDoc, locale: SiteLocale): void {
                 );
         }),
     );
+    for (const key of [
+        "threadLabel",
+        "importerAlt",
+        "importerCaption",
+    ] as const)
+        if (!doc.examples[key]?.trim())
+            throw new Error(`${locale}: examples.${key} is empty.`);
+    slides.forEach((s) => {
+        // A card follows the reply of the turn whose tool call returned it.
+        if (
+            s.widget &&
+            (!Number.isInteger(s.widgetAfter) ||
+                s.messages[s.widgetAfter!]?.from !== "ai")
+        )
+            throw new Error(
+                `${locale}: examples slide "${s.id}" widgetAfter must be the index of the ai reply its ${s.widget} card follows, got ${s.widgetAfter}.`,
+            );
+        if (!s.description?.trim())
+            throw new Error(
+                `${locale}: examples slide "${s.id}" has no description.`,
+            );
+        const notes: Record<string, unknown> = s.toolNotes ?? {};
+        const want = [...EX_META[s.id].tools].sort().join(",");
+        const got = Object.keys(notes).sort().join(",");
+        if (got !== want)
+            throw new Error(
+                `${locale}: examples slide "${s.id}" toolNotes must name exactly its tools (${want}), got "${got || "(none)"}".`,
+            );
+        for (const [tool, note] of Object.entries(notes))
+            if (typeof note !== "string" || !note.trim())
+                throw new Error(
+                    `${locale}: examples slide "${s.id}" has an empty toolNotes.${tool}.`,
+                );
+    });
 }
 
 /** The meal a user photographs on the photo-meal slide: a bowl of borscht
@@ -2268,26 +2533,43 @@ function renderExamples(
             // says where it goes and contains that name.
             const toolLink = (t: string, cls: string, lead: string): string =>
                 `<a class="${cls}" href="${attr(`${toolsPath}#${t}`)}" aria-label="${attr(e.toolLinkLabel.replace("{tool}", t))}">${lead}<code>${esc(t)}</code><i class="fa-solid fa-arrow-right nm-ex-go" aria-hidden="true"></i></a>`;
+            // One row per tool: its chip, then what that tool did in this
+            // conversation. The note sits AFTER the link, never inside it, so
+            // the link's accessible name stays "<tool> on the Tools page".
+            const row = (t: string, cls: string, lead: string): string =>
+                `\n                                        <li class="nm-ex-use">${toolLink(t, cls, lead)} <span class="nm-ex-note">${esc(s.toolNotes[t]!)}</span></li>`;
             const more = moreTools.length
-                ? `\n                                <p class="nm-ex-more"><span class="nm-ex-more-l">${esc(e.moreToolsLabel)}</span>${moreTools
-                      .map((t) => toolLink(t, "nm-ex-chip", ""))
-                      .join("")}</p>`
+                ? `\n                                    <p class="nm-ex-more-l" id="ex-more-${i + 1}">${esc(e.moreToolsLabel)}</p>\n                                    <ul class="nm-ex-tools" aria-labelledby="ex-more-${i + 1}">${moreTools
+                      .map((t) => row(t, "nm-ex-chip", ""))
+                      .join("")}\n                                    </ul>`
                 : "";
+            // The real card the conversation's tool call returned, right
+            // after the reply of that turn (widgetAfter) — not always the
+            // last bubble: log-meal's card follows its first reply, and the
+            // water it logs next returns none. The live cards work: drawers,
+            // tile taps and the trends / weight 7 / 14 / 30 toggles.
+            const card = cards.examples[s.id];
+            if (Boolean(s.widget) !== Boolean(card))
+                throw new Error(
+                    `${locale}: examples slide "${s.id}" ${s.widget ? `wants a ${s.widget} card that was not rendered` : "was rendered a card it does not name"}.`,
+                );
             const messages = s.messages
-                .map((m) => renderExampleMessage(e, m, " ".repeat(36)))
+                .map(
+                    (m, k) =>
+                        renderExampleMessage(e, m, " ".repeat(36)) +
+                        (card && k === s.widgetAfter ? `\n${card}` : ""),
+                )
                 .join("\n");
-            // The real get_trends card, and it is live: its 7 / 14 / 30
-            // toggle re-slices and re-averages the same 30-day payload in
-            // the browser, exactly as the in-chat one does, and a tile moves
-            // the focus panel and the chart to that metric.
-            const widget = s.widget === "trends" ? `\n${cards.trends}` : "";
             return `                        <div class="nm-ex-slide" id="ex-slide-${i + 1}" role="tabpanel" aria-roledescription="${attr(e.slideRole)}" aria-label="${attr(position(i))}" data-ex-id="${attr(s.id)}" data-ex-slide>
                             <div class="nm-ex-info ${meta.tint}">
                                 <span class="nm-ex-glow" aria-hidden="true"></span>
                                 <span class="nm-ex-icon" aria-hidden="true"><i class="fa-solid ${meta.icon}"></i></span>
-                                ${toolLink(tool!, "nm-ex-tool", `<i class="fa-solid fa-plug" aria-hidden="true"></i>`)}
                                 <h3 class="nm-ex-title">${esc(s.title)}</h3>
-                                <p class="nm-ex-desc">${esc(s.description)}</p>${more}
+                                <p class="nm-ex-desc">${esc(s.description)}</p>
+                                <div class="nm-ex-uses">
+                                    <ul class="nm-ex-tools">${row(tool!, "nm-ex-tool", `<i class="fa-solid fa-plug" aria-hidden="true"></i>`)}
+                                    </ul>${more}
+                                </div>
                             </div>
                             <div class="nm-ex-chat">
                                 <div class="nm-ex-chat-head">
@@ -2296,8 +2578,8 @@ function renderExamples(
                                         ${esc(e.status)}
                                     </span>
                                 </div>
-                                <div class="nm-ex-thread">
-${messages}${widget}
+                                <div class="nm-ex-thread" role="region" aria-label="${attr(e.threadLabel)}" tabindex="0" data-ex-thread>
+${messages}
                                 </div>
                                 <div class="nm-ex-compose" aria-hidden="true"><i class="fa-solid fa-plus"></i><span class="nm-ex-compose-caret"></span><span class="nm-ex-compose-send"><i class="fa-solid fa-arrow-up"></i></span></div>
                             </div>

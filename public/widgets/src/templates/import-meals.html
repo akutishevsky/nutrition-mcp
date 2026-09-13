@@ -380,6 +380,11 @@
 
             /*@include shared/icon.js@*/
 
+            /* The card shell (esc, notice, cardOpen, cardHead, cardClose below
+               wrap it) and the first step's markup, shared with the landing
+               page's static picture of that step. */
+            /*@include shared/import-card.js@*/
+
             /*@include shared/bridge.js@*/
 
             // The real, unit-tested CSV parser (src/csv.ts + src/csv.test.ts).
@@ -775,13 +780,10 @@
                 announce: "",
             };
 
+            // The importer's escaper (it maps null to "" and escapes "'") —
+            // shared/import-card.js's impEsc, under the name every step uses.
             function esc(s) {
-                return String(s == null ? "" : s)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#39;");
+                return impEsc(s);
             }
             // Escapes a translated "{n} rows"-style string, then bolds the
             // digit run wherever it landed — robust to word order, unlike
@@ -831,34 +833,10 @@
                 );
             }
 
-            // Every notice is the same object: a leading mark naming the
-            // severity by SHAPE, then the message. The shape is what carries
-            // it — the tint alone would leave "warning" and "error" identical
-            // to anyone who cannot separate the two hues. `glyph` overrides the
-            // drawn icon with a character, used only for the envelope, which
-            // the shared nine-icon set has no path for.
+            // A severity-marked notice — see impNotice in
+            // shared/import-card.js.
             function notice(kind, bodyHtml, glyph) {
-                // aria-hidden: the envelope is decoration beside a sentence
-                // that already says "email"; read aloud it is a stray symbol
-                // name. The drawn icons are aria-hidden by icon() itself.
-                const mark = glyph
-                    ? '<span class="nico" aria-hidden="true">' +
-                      glyph +
-                      "</span>"
-                    : icon(
-                          { warn: "warn", error: "x", ok: "check" }[kind] ||
-                              "info",
-                          15,
-                      );
-                return (
-                    '<div class="notice' +
-                    (kind ? " notice-" + kind : "") +
-                    '">' +
-                    mark +
-                    "<span>" +
-                    bodyHtml +
-                    "</span></div>"
-                );
+                return impNotice(kind, bodyHtml, glyph);
             }
 
             // ---- step 1: file ------------------------------------------------
@@ -1454,98 +1432,32 @@
             }
 
             // ---- rendering ---------------------------------------------------
-            // Every step is one Dawn card, built the way every other widget's
-            // is: the card with its glow, a .chead header line, then the body,
-            // then the foot the bridge's settings note lands in. The card is
-            // c-acc because a form has no nutrient to be tinted by — the glow
-            // is the brand green, like the primary button under it.
+            // Every step is one Dawn card: impCardOpen / impCardHead /
+            // impCardClose in shared/import-card.js say how it is built. These
+            // wrappers hand them this widget's state (S.step) so every step
+            // below can keep calling them by these names.
             function cardOpen() {
-                return '<section class="card c-acc"><div class="glow"></div>';
+                return impCardOpen();
             }
 
-            // The header line plus the step rail under it.
-            //
-            // The title names the step, so the mono .cmeta carries only the
-            // count ("Step 2 of 4"): the old caption, "Step 2 of 4 · Map
-            // columns", repeated the heading word for word on the map step in
-            // all nine locales once the two shared a line.
-            //
-            // The h1 is the focus target when the step changes (keepFocus's
-            // [data-focus-fallback]): tabindex="-1" makes it focusable by
-            // script only, and base.css draws no ring on it, since a ring
-            // round a heading reads as something to press. Its screen-reader
-            // announcement IS the step change.
-            //
-            // The rail — a 3px track in place of the four numbered pills that
-            // used to be here, which cost ~26px and overflowed 320px in every
-            // locale with a word longer than "Preview" — is aria-hidden: the
-            // count beside the title already says what it draws.
             function cardHead(title) {
-                const order = ["file", "map", "preview", "done"];
-                // Guard the -1: render() only ever passes one of the four, but
-                // a width of -0% and "step 0 of 4" is a nasty way to find out.
-                const at = Math.max(0, order.indexOf(S.step));
-                return (
-                    '<header class="chead"><h1 class="ctitle" id="imp-title" tabindex="-1" data-focus-fallback>' +
-                    esc(title) +
-                    '</h1><span class="cmeta">' +
-                    esc(
-                        tpl(T.importMeals.stepCount, {
-                            n: at + 1,
-                            total: order.length,
-                        }),
-                    ) +
-                    '</span></header><div class="steps" aria-hidden="true"><span style="width:' +
-                    Math.round(((at + 1) / order.length) * 100) +
-                    '%"></span></div>'
-                );
+                return impCardHead(title, S.step);
             }
 
-            // The card's last line: the slot bridge.js puts its settings note
-            // in, so the note reads as this card's small print under a hairline
-            // rather than as a centred caption floating below the page.
             function cardClose() {
-                return '<div class="foot" data-widget-foot></div></section>';
+                return impCardClose();
             }
 
+            // Step 1 lives in shared/import-card.js (importFileStep), because
+            // the public site draws a still picture of it from the same code.
             function fileStep() {
-                const noTools =
-                    API && !API.canCallTools
-                        ? notice("warn", esc(T.importMeals.noToolsWarning)) +
-                          (SUPPORT_EMAIL
-                              ? notice(
-                                    "",
-                                    tpl(T.importMeals.emailFallback, {
-                                        email:
-                                            "<b>" + esc(SUPPORT_EMAIL) + "</b>",
-                                    }),
-                                    "✉",
-                                )
-                              : "")
-                        : "";
-                const tzWarn = !CFG.tz_configured
-                    ? notice("warn", esc(T.importMeals.tzWarning))
-                    : "";
-                return (
-                    cardOpen() +
-                    cardHead(T.importMeals.chooseExportHeading) +
-                    noTools +
-                    tzWarn +
-                    (S.errors.length ? notice("error", esc(S.errors[0])) : "") +
-                    '<label class="drop" id="drop">' +
-                    icon("file", 22) +
-                    "<strong>" +
-                    esc(T.importMeals.dropChoose) +
-                    "</strong><span>" +
-                    esc(T.importMeals.dropOr) +
-                    "</span>" +
-                    '<input type="file" class="drop-input" id="file" accept=".csv,text/csv,text/plain" />' +
-                    "</label>" +
-                    '<div class="hint" style="margin-top:8px">' +
-                    esc(T.importMeals.recognizedHint) +
-                    "</div>" +
-                    cardClose()
-                );
+                return importFileStep({
+                    noTools: !!(API && !API.canCallTools),
+                    supportEmail: SUPPORT_EMAIL,
+                    tzConfigured: CFG.tz_configured,
+                    errors: S.errors,
+                    step: S.step,
+                });
             }
 
             // Worked examples: the first real value from the user's own file, run

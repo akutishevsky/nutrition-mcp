@@ -1,15 +1,18 @@
 /* Makes the landing page's widget cards live.
 
    The cards themselves are RENDERED AT BUILD TIME by the real emitters
-   (shared/summary-card.js, shared/trends-card.js — see scripts/gen-index.ts),
-   so the markup in public/index.html is the same string chat gets. This file
-   is the other half: it re-attaches the behaviour that markup implies —
-   the drawer, the tile taps that move the focus panel, Escape, and the trends
-   7 / 14 / 30 toggle — WITHOUT repainting anything on load. A repaint would
+   (shared/summary-card.js, shared/trends-card.js, shared/meal-logged-card.js,
+   shared/goal-progress-card.js, shared/weight-trends-card.js — see
+   scripts/gen-index.ts), so the markup in public/index.html is the same string
+   chat gets. This file is the other half: it re-attaches the behaviour that
+   markup implies — the drawer, the tile taps that move the focus panel,
+   goal-progress' weight row, Escape, and the trends and weight-trends
+   7 / 14 / 30 toggles — WITHOUT repainting anything on load. A repaint would
    flash, and it would throw away the exact bytes the drift test pins.
 
    It is the last partial in public/widget-card.js (scripts/gen-widget-card.ts),
-   which is every shared JS partial the two card templates include EXCEPT
+   which is every shared JS partial the bound card templates include (plus
+   goal-progress.html's site-card region, its weight row) EXCEPT
    shared/bridge.js: there is no MCP host here, no iframe to size and no
    postMessage handshake to run. The three helpers that only live in bridge.js
    are therefore not in scope — `tryRender` is a try/catch below, `keepFocus`
@@ -132,10 +135,11 @@ function stashCard(panel, ids) {
    by re-running the card's own emitter — never a formatter hand-written for
    this file), and written back only where it differs from the shipped bytes.
    Six locales in nine, and every locale on an engine that agrees, therefore
-   touch no DOM at all and cannot flash. On these two cards the whole of that
-   surface is the header meta: the tiles, the panel labels and the chart names
-   carry figures and ranges, never a date, and the drawer is written at tap
-   time by the visitor's engine already.
+   touch no DOM at all and cannot flash. On the summary and trends cards the whole
+   of that surface is the header meta; a single-day card (meal-logged,
+   goal-progress) also dates its sub-line and its panel label
+   (DAY_CARD_TEXTS), and weight-trends names its chart with two dates. The
+   drawer is written at tap time by the visitor's engine already.
 
    THE RESIDUAL, stated plainly: a visitor with JavaScript disabled reads the
    BUILD engine's spelling, which can differ from their browser's by a few
@@ -152,21 +156,57 @@ function syncMeta(el, text) {
 }
 
 /** The same, for a card whose emitter returns one string and keeps no separate
- *  handle on its header: render a fresh copy, pair its header metas with the
- *  shipped ones in document order and sync each. Parsed into a <template>, so
- *  the copy is inert and never reaches the document. A count mismatch means
- *  the card's shape moved under this file — leave the bytes alone rather than
- *  write one card's date into another's slot. */
-function syncCardMeta(root, html) {
+ *  handle on its header: render a fresh copy, pair its date-bearing elements
+ *  with the shipped ones in document order and sync each. Parsed into a
+ *  <template>, so the copy is inert and never reaches the document. A count
+ *  mismatch means the card's shape moved under this file — leave the bytes
+ *  alone rather than write one card's date into another's slot.
+ *
+ *  `texts` are selectors whose TEXT carries a date, and every one of them must
+ *  be a text-only element (textContent replaces children). `labels` are
+ *  selectors whose `aria-label` carries one. The two single-day cards spend a
+ *  date in more places than the header meta — see DAY_CARD_TEXTS. */
+const HEADER_META = [".chead .cmeta"];
+function syncCardMeta(root, html, texts, labels) {
     const doc = document.createElement("template");
     doc.innerHTML = html;
-    const fresh = doc.content.querySelectorAll(".chead .cmeta");
-    const live = root.querySelectorAll(".chead .cmeta");
-    if (!fresh.length || fresh.length !== live.length) return;
-    for (let i = 0; i < live.length; i++) {
-        syncMeta(live[i], fresh[i].textContent);
+    const pairs = function (sel) {
+        const fresh = doc.content.querySelectorAll(sel);
+        const live = root.querySelectorAll(sel);
+        return fresh.length && fresh.length === live.length
+            ? { fresh: fresh, live: live }
+            : null;
+    };
+    for (const sel of texts || HEADER_META) {
+        const p = pairs(sel);
+        if (!p) continue;
+        for (let i = 0; i < p.live.length; i++) {
+            syncMeta(p.live[i], p.fresh[i].textContent);
+        }
+    }
+    for (const sel of labels || []) {
+        const p = pairs(sel);
+        if (!p) continue;
+        for (let i = 0; i < p.live.length; i++) {
+            const want = p.fresh[i].getAttribute("aria-label");
+            if (want && p.live[i].getAttribute("aria-label") !== want) {
+                p.live[i].setAttribute("aria-label", want);
+            }
+        }
     }
 }
+
+/* Where a single-day card (meal-logged, goal-progress) prints a date: the
+   header meta (goal-progress' "13 Sep 2025 · 4 meals"), the header subtitle
+   (meal-logged's "15 Sep 2025 · Breakfast · …"), the calorie panel's label
+   ("Calories on 15 Sep") — and, spoken, the panel's name when it is a button
+   and the weight row's name ("…, last logged 12 Sep 2025"). All four text
+   slots are text-only elements in the emitters. */
+const DAY_CARD_TEXTS = [".chead .cmeta", ".chead .csub", ".focus .flabel"];
+const DAY_CARD_LABELS = [
+    ".focus[aria-label]",
+    "[data-macro-extra][aria-label]",
+];
 
 /** bridge.js's reserveLine, for a page that does not load bridge.js: floor the
  *  window line at the tallest range label so a toggle cannot move the card.
@@ -251,6 +291,8 @@ function reserveMeta(el, texts) {
 /** get_nutrition_summary: one strip, one chart, no controls of its own —
  *  every tap is macros.js's, and all this owes it is the ctx and the axis. */
 function bindSummaryCard(root, data) {
+    // An empty-state card has no strip: nothing discloses, nothing charts.
+    if (!root.querySelector("[data-macro-panel]")) return;
     useCard(data);
     const ids = drawerIds(root);
     let slots = [];
@@ -282,6 +324,8 @@ function bindSummaryCard(root, data) {
  *  averaging, window line and markup are the shared functions the in-chat
  *  card uses; what is written out here is only where they land. */
 function bindTrendsCard(root, data) {
+    // An empty-state card has no strip: nothing discloses, nothing charts.
+    if (!root.querySelector("[data-macro-panel]")) return;
     useCard(data);
     const ids = drawerIds(root);
     const bodyOf = function () {
@@ -377,6 +421,130 @@ function bindTrendsCard(root, data) {
     });
 }
 
+/** log_meal / update_meal: one strip, no chart, no controls of its own — a
+ *  tile or the calorie panel opens the meals behind it in this card's drawer,
+ *  and ✕ / Escape hand focus back, all macros.js's. All this owes the card is
+ *  the ctx (so several of these cards on one page each open their OWN meals)
+ *  and this browser's spelling of its dates. */
+function bindMealLoggedCard(root, data) {
+    useCard(data);
+    const ids = drawerIds(root);
+    // The markup is thrown away; the call is here for the ctx it stashes and
+    // the dates it recomputes (see bindSummaryCard).
+    const html = mealLoggedCard(data, {});
+    if (!html) return;
+    const panel = root.querySelector("[data-macro-panel]");
+    if (panel) stashCard(panel, ids);
+    syncCardMeta(root, html, DAY_CARD_TEXTS, DAY_CARD_LABELS);
+}
+
+/** get_goal_progress: the same, plus the weight row — one more control on the
+ *  strip (`data-macro-extra="weight"`) opening the same drawer, whose body is
+ *  goal-progress.html's own weightExtra (bundled from its site-card region). */
+function bindGoalProgressCard(root, data) {
+    useCard(data);
+    const ids = drawerIds(root);
+    const html = goalProgressCard(data, { weightExtra: weightExtra });
+    if (goalProgressShowsStrip(data)) {
+        const panel = root.querySelector("[data-macro-panel]");
+        if (panel) stashCard(panel, ids);
+    }
+    syncCardMeta(root, html, DAY_CARD_TEXTS, DAY_CARD_LABELS);
+}
+
+/** An element's SVG name, or "" — the chart's aria-label carries two dates. */
+function svgLabel(scope) {
+    const svg = scope && scope.querySelector("svg[aria-label]");
+    return svg ? svg.getAttribute("aria-label") : "";
+}
+
+/** get_weight_trends: no strip and no drawer, only the 7 / 14 / 30 toggle —
+ *  weight-trends.html's setRange minus the bridge. The window, the panel and
+ *  the chart are shared/weight-trends-card.js's; what is written out here is
+ *  only where they land. */
+function bindWeightTrendsCard(root, data) {
+    const meta = root.querySelector("#wt-meta");
+    const body = root.querySelector("#wt-body");
+    // The empty card has no toggle and nothing to switch.
+    if (!meta || !body) return;
+    useCard(data);
+    // The RENDERED range wins over the payload's default: what is pressed in
+    // the HTML is what the visitor is looking at.
+    const pressed = root.querySelector('[data-range][aria-pressed="true"]');
+    let range =
+        WEIGHT_RANGES.indexOf(data && data.default_range) >= 0
+            ? data.default_range
+            : 30;
+    if (pressed && WEIGHT_RANGES.indexOf(Number(pressed.dataset.range)) >= 0) {
+        range = Number(pressed.dataset.range);
+    }
+
+    // This browser's spelling of the dates. The header line is text; the body
+    // spends them in the panel label, the change line and the chart's name, so
+    // it is compared as a whole and rewritten only when this engine spells
+    // something differently. `.still` on the rewrite: the chart already drew
+    // in from the shipped bytes, and a second entrance would be a flash.
+    syncMeta(meta, weightTrendsMeta(data, range));
+    const fresh = document.createElement("template");
+    fresh.innerHTML = weightTrendsBody(data, range, true);
+    if (
+        fresh.content.textContent !== body.textContent ||
+        svgLabel(fresh.content) !== svgLabel(body)
+    ) {
+        body.innerHTML = fresh.innerHTML;
+    }
+    // AFTER the sync, over this browser's three candidates (see reserveMeta).
+    reserveMeta(
+        meta,
+        WEIGHT_RANGES.map(function (r) {
+            return weightTrendsMeta(data, r);
+        }),
+    );
+
+    root.addEventListener("click", function (e) {
+        const btn = e.target.closest ? e.target.closest("[data-range]") : null;
+        if (!btn || !root.contains(btn)) return;
+        const n = Number(btn.dataset.range);
+        if (!n || n === range || WEIGHT_RANGES.indexOf(n) < 0) return;
+        // Built BEFORE anything is written, so a throw leaves the card exactly
+        // as it was rather than a toggle claiming 30 over 7 days of data.
+        let html = "";
+        let text = "";
+        try {
+            useCard(data);
+            html = weightTrendsBody(data, n, true);
+            text = weightTrendsMeta(data, n);
+        } catch (err) {
+            try {
+                console.error("[widget-card] range failed:", err);
+            } catch (_) {}
+            return;
+        }
+        range = n;
+        // The seg buttons are never rebuilt — the one being operated must stay
+        // under the pointer and under the focus ring.
+        root.querySelectorAll("[data-range]").forEach(function (b) {
+            b.setAttribute(
+                "aria-pressed",
+                String(Number(b.dataset.range) === n),
+            );
+        });
+        meta.textContent = text;
+        body.innerHTML = html;
+    });
+}
+
+/* Which binder a card kind takes. A kind the page names that is not here is a
+   card this bundle cannot drive (the importer's first step is a still picture
+   and ships no payload at all), so it is said once and left static. */
+const BINDERS = {
+    "nutrition-summary": bindSummaryCard,
+    trends: bindTrendsCard,
+    "meal-logged": bindMealLoggedCard,
+    "goal-progress": bindGoalProgressCard,
+    "weight-trends": bindWeightTrendsCard,
+};
+
 function bindWidgetCard(script) {
     const card =
         (script.closest && script.closest(".nm-widget-card")) ||
@@ -386,15 +554,41 @@ function bindWidgetCard(script) {
     // is bound on the card element, which contains the same strip either way.
     const root = card.querySelector(".wrap") || card;
     const data = JSON.parse(script.textContent);
-    // An empty-state card has no strip: nothing discloses, nothing charts.
-    if (!root.querySelector("[data-macro-panel]")) return;
+    // Named on the script or the card, as scripts/gen-index.ts always does.
+    // The shape fallback only knows the first two kinds, which is all it was
+    // ever written for.
     const kind =
         script.getAttribute("data-widget-payload") ||
         card.getAttribute("data-widget") ||
         (data && data.default_range != null ? "trends" : "nutrition-summary");
-    if (kind === "trends") bindTrendsCard(root, data);
-    else bindSummaryCard(root, data);
+    const bind = BINDERS[kind];
+    if (!bind) {
+        try {
+            console.warn(
+                '[widget-card] no binder for card kind "' +
+                    kind +
+                    '"; it stays static',
+            );
+        } catch (e) {}
+        return;
+    }
+    bind(root, data);
     warnLocale(data);
+    levelCardHeadings(card);
+}
+
+/* A card's title is an <h1> because in chat it IS the document: the iframe
+   holds nothing else. On this page it sits inside the page's outline — the
+   hero card under the page's own <h1>, an example card under its slide's <h3>
+   — so a heading-by-heading reader met "Meal logged" announced as a second
+   top-level heading. The markup must stay byte-for-byte the widget's, so the
+   level is corrected here, as ARIA, once the runtime binds. No binder
+   rewrites a card's header (they repaint a strip or a body), so this holds. */
+function levelCardHeadings(card) {
+    const level = card.closest("[data-ex-slide]") ? "4" : "2";
+    card.querySelectorAll("h1.ctitle").forEach(function (h) {
+        h.setAttribute("aria-level", level);
+    });
 }
 
 /* THE STRINGS FILE IS PER PAGE AND THE PAYLOAD IS PER CARD. They agree by

@@ -282,6 +282,16 @@
                defined. After shared/i18n.js because fmt() reads
                WIDGET_LOCALE. */
             /*@include shared/fmt.js@*/
+
+            /* The weight row below — weightNum, weightFig, weightExtra — is
+               the one piece of this card the public site's landing page reads
+               straight out of THIS template rather than out of a partial: the
+               block between the two marker comments is evaluated verbatim by
+               src/widget-static.ts and bundled verbatim by
+               scripts/gen-widget-card.ts, and shared/goal-progress-card.js is
+               handed weightExtra as an argument. Keep the markers around the
+               three functions, and keep anything else out from between them. */
+            /* site-card:start */
             // A weight reading as the payload sends it (a number, or a number a
             // host stringified), or null for "none". NaN is none too: it would
             // otherwise print "NaN kg" and plot a marker at NaN%.
@@ -494,6 +504,7 @@
               </div>${body}`,
                 };
             }
+            /* site-card:end */
 
             let __widgetApi = null;
 
@@ -508,127 +519,13 @@
                 // by macroRestore at the end of render() (shared/macros.js).
                 const was = macroSnapshot(root);
 
-                if (!data || typeof data !== "object") {
-                    root.innerHTML = `
-            <div class="empty">
-              <div class="big">🎯</div>
-              <div>${esc(T.goalProgress.empty)}</div>
-            </div>`;
-                    return;
-                }
-
-                const totals = data.totals || {};
-                const meals = data.meal_count || 0;
-                const water = data.water_entries || 0;
-                const w = data.weight;
-                const nothingLogged =
-                    meals === 0 &&
-                    water === 0 &&
-                    !(w && (w.current != null || w.target != null));
-                // "10 Jul" this year, "20 Nov 2025" otherwise; a date that is
-                // not a real day passes through as it came (dayHeader).
-                const day = dayHeader(data.date);
-
-                if (nothingLogged) {
-                    // A day with nothing in it still names the day, in a card
-                    // that looks like this widget — nutrition-summary's empty
-                    // range does the same. The body line is date-free because
-                    // the header already carries the date. Only when the date
-                    // is unusable is there no header to put it in, and then
-                    // the bare block says it inline as it always did.
-                    root.innerHTML = ymd(data.date)
-                        ? `
-          <div class="card c-cal">
-            <div class="glow"></div>
-            <header class="chead">
-              <h1 class="ctitle">${esc(T.goalProgress.title)}</h1>
-              <span class="cmeta">${esc(day)}</span>
-            </header>
-            <div class="empty">
-              <div class="big">🎯</div>
-              <div>${esc(T.goalProgress.nothingLogged)}</div>
-            </div>
-            <div class="foot" data-widget-foot></div>
-          </div>`
-                        : `
-            <div class="empty">
-              <div class="big">🎯</div>
-              <div>${esc(tpl(T.goalProgress.nothingLoggedFor, { date: day || T.goalProgress.thisDay }))}</div>
-            </div>`;
-                    return;
-                }
-
-                // The date this widget shows is arbitrary — get_goal_progress
-                // takes any date — so the calorie label only says "today" when
-                // it actually is the viewer's today (#114); otherwise it names
-                // the day. shortDate, not dayHeader: the header meta already
-                // carries the year where it matters, and a year in the panel
-                // label would be what ellipsises away the metric word (ja).
-                const calLabel = isToday(data.date)
-                    ? T.macros.caloriesToday
-                    : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
-
-                const strip = macroPanel(
-                    totals,
-                    data.goals,
-                    undefined,
-                    data.meals,
-                    {
-                        // nutrition-summary's three levels: the energy split
-                        // three-up under the panel, the ceilings a size down,
-                        // water as the closing bar (see "the tiers" in
-                        // shared/chip.css). No chartKeys and no onSeries — this
-                        // payload is one day, with no series to draw — so a
-                        // tile opens its meals and nothing else, and the panel
-                        // stays the day's calorie headline.
-                        tiers: true,
-                        // "us" | "uk" for a user who tracks alcohol, null for
-                        // one who does not.
-                        drinkUnit: data.drink_unit,
-                        calLabel,
-                        // The weight row, after water and before the drawer,
-                        // opening that same drawer. See weightExtra.
-                        extra: weightExtra(w),
-                    },
-                );
-
-                // A day with a weight reading but no meals or water still shows
-                // the strip (all zeros against the goals), so say why. Date-free
-                // for the same reason as the empty card: the meta names the day.
-                const bare = meals === 0 && water === 0;
-                // The day itself and what was logged on it — the context the
-                // strip's numbers are read against. A missing date drops its
-                // slot rather than opening the line with " · ".
-                //
-                // …but the counts exist to say what the strip's numbers are made
-                // of, and at zero they add nothing the `.csub` directly under
-                // them does not already say — in the loudest slot on the card,
-                // and at the price of a whole header row on a phone ("15 Jul ·
-                // 0 meals · 0 waters" cannot sit beside the title, which cost
-                // ~25px at 280px in 8 of 9 locales). The fully-empty card two
-                // branches up prints the day alone for exactly this reason, and
-                // this is the one state that contradicted it.
-                const meta = [
-                    day,
-                    bare ? "" : plural(T.goalProgress.mealsCount, meals),
-                    bare ? "" : plural(T.goalProgress.waterCount, water),
-                ]
-                    .filter(Boolean)
-                    .join(" · ");
-                const sub = bare
-                    ? `<span class="csub">${esc(T.goalProgress.nothingLogged)}</span>`
-                    : "";
-
-                root.innerHTML = `
-          <div class="card c-cal">
-            <div class="glow"></div>
-            <header class="chead">
-              <h1 class="ctitle">${esc(T.goalProgress.title)}</h1>
-              <span class="cmeta">${esc(meta)}</span>
-              ${sub}
-            </header>
-            ${strip}
-          </div>`;
+                // The card — the strip, or one of the two empty states — is
+                // shared/goal-progress-card.js, which the public site's landing
+                // page renders from too. It is handed this template's own
+                // weight row.
+                root.innerHTML = goalProgressCard(data, { weightExtra });
+                // The empty states have no strip, so nothing to put back.
+                if (!goalProgressShowsStrip(data)) return;
 
                 // Re-open what was open (a tile's drawer or the weight's) and
                 // put focus back only if it was inside the widget — never
@@ -646,6 +543,8 @@
             }
 
             /*@include shared/macros.js@*/
+
+            /*@include shared/goal-progress-card.js@*/
 
             // Last, after every partial above has finished evaluating: with no
             // host, initWidget paints config.sample synchronously, and render()
