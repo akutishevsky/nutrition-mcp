@@ -111,7 +111,7 @@ const MACROS = [
         label: "Carbs",
         unit: "g",
         color: "c-car",
-        glyph: "bowl",
+        glyph: "bread",
         decimals: 0,
         role: "macro",
     },

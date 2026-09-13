@@ -473,9 +473,9 @@ body {
     --ga: var(--gl-drumstick-a);
     --gb: var(--gl-drumstick-b);
 }
-.gi-bowl {
-    --ga: var(--gl-bowl-a);
-    --gb: var(--gl-bowl-b);
+.gi-bread {
+    --ga: var(--gl-bread-a);
+    --gb: var(--gl-bread-b);
 }
 .gi-avocado {
     --ga: var(--gl-avocado-a);

@@ -164,60 +164,94 @@
 
     /* GLYPH LAYERS (shared/icon.js; base.css `.gi-*` maps them). Every
        nutrient glyph is two paths, a base `.ga` (the silhouette) and a detail
-       `.gb` (pit, bone, core, grain, wine, coffee, vein, highlight, faces,
-       dial), cut out of the base with a 0.6-unit gutter. Every detail sits
-       inside its base except the bowl's grain, which touches the ground. Each is painted the colour
-       its OBJECT is — a green avocado, a brown drumstick — and never the
+       `.gb` (inner flame, bone and glaze, crumb, pit, highlight, faces, wine,
+       coffee, vein, dial), cut out of the base with a 0.6-unit gutter, and
+       every detail sits inside its base. Each is painted the colour its
+       OBJECT is — a green avocado, a roast drumstick — and never the
        metric's series token, which is an identity: painting a fat tile's
-       avocado in --fat made it pink, and painting it in another metric's token
-       (--fib, --car) would put that metric's identity on the wrong tile.
+       avocado in --fat made it pink, and painting it in another metric's
+       token (--fib, --car) would put that metric's identity on the wrong
+       tile. A hand-picked value a few ΔE from another metric's token does
+       the same without a var(): the dark crust once sat ΔE 3.0 from --cal,
+       under the calorie panel, so glyphs.test.ts measures every base against
+       --cal (>= 8) as well as checking aliases.
 
        Three sources, in this order of preference:
          1. the glyph's OWN series token, where the natural colour is close
-            (OKLab ΔE <= 8) and the base still clears 3:1 — dark flame is
-            --cal (ΔE 7.8), dark droplet is --wat (ΔE 0). Light --cal (2.06:1)
-            and --wat (2.77:1) fail the 3:1, and coffee (ΔE 24), leaf (ΔE 9.8,
-            --fib reads teal) and wine (ΔE 18.5, --alc is magenta, not wine)
-            are not close in either theme, so those stay their own values;
-         2. a design neutral for a CONTAINER (bowl, glass, scale) — --edge2 in
-            light (4.05:1), --ink2 in dark (the bowl was --ink3, the weakest
-            dark base under the carbs wash at 2.09:1; --ink2 is 2.77);
+            (OKLab ΔE <= 8) and the base still clears 3:1 — dark droplet is
+            --wat (ΔE 0). Light --wat (2.77:1) fails the 3:1. The flame is an
+            orange-red, ΔE 21 light / 11 dark from --cal, so that it lifts off
+            the amber focus panel and drawer instead of sinking into them;
+            coffee, leaf (ΔE 9.8, --fib reads teal) and wine (ΔE 18.5, --alc
+            is magenta, not wine) are not close in either theme, so those
+            stay their own values too;
+         2. a design neutral for a CONTAINER (glass, scale) — --edge2 in
+            light (4.05:1), --ink2 in dark;
          3. a hand-picked value, named --gl-<glyph>-<layer>.
 
        Two groups below: the theme-invariant values, declared ONCE, here on
        bare :root and nowhere else; then the themed ones, repeated in all four
-       blocks. The flame's core is a near-white, not --panel, so it still
-       separates from a white ground.
+       blocks. The flame's inner flame is one yellow in both themes; the
+       gutter, not the ratio, separates it from the orange.
+
+       THREE WARM BROWNS sit a tile or a rail apart: the drumstick, the
+       bread's crust and the cup. As first drawn the drumstick and the crust
+       were ΔE 5.2 light / 6.2 dark (OKLab x100) on ADJACENT macro tiles, and
+       a deuteranopia simulation (Machado 2009) took them to 4.4 / 4.9, one
+       khaki. They are now (normal / deuteranopia):
+         drumstick-bread  10.2 / 9.1 light   11.0 / 8.9 dark
+         drumstick-cup     8.7 / 7.2 light   18.1 / 16.1 dark
+         bread-cup         5.3 / 5.4 light    9.4 / 9.1 dark
+       Light: the drumstick is the designer's roast #a8521c (OKLab L 0.54,
+       nearer the family's 0.58-0.61 than a darker oxblood) and the crust a
+       golden #b8780f. The cup stays the latte #a8764c the set was approved
+       in, so in light the toast and the mug are a close pair, ΔE 5.3 and
+       nearly one grey, told apart by silhouette (glyphs.test.ts holds that
+       pair to 5, every other pair to 8).
+       Dark: the crust is a baked #d4963f (chroma 0.126, not the saturated
+       yellow ring that crumb-on-crust at 1.53:1 made), ΔE 9.3 from --cal,
+       and the drumstick went redder to #cc6a3e to keep its distance from it.
+       The cup and the sugar cube are ΔE 4.4 light on one rail, as they were:
+       the handle and the hexagon tell those apart.
+
+       Named but not separated by colour: under deuteranopia the light crust
+       is ΔE 3.0 from the flame (1.0 at #a86f00) and the dark one 2.2. The
+       flame is on the calorie panel and the drawer head, never on the macro
+       rail, so shape carries that pair; a flame moved onto a tile beside
+       carbs must be re-measured. The flame and the drumstick are ΔE 6.0 and
+       5.7 from --over in light, and the dark flame 5.0: an over state is the
+       red wash, ring and figure, never the glyph, which keeps its colours.
 
        Measured light bases on --panel / --bg2 / a selected tile (18% --c) /
        that tile with its wash at full strength under the glyph (the per-hue
        mix, x0.62 on a limit tile — the ground on a low-progress day, when the
-       mark lands just past the glyph): drumstick 4.37/3.78/3.49/2.50, bowl
-       4.05/3.50/3.41/2.70, avocado 4.09/3.53/3.23/2.37, droplet 4.10/3.54/
+       mark lands just past the glyph): drumstick 5.40/4.67/4.32/3.09, bread
+       3.66/3.17/3.08/2.44, avocado 4.09/3.53/3.23/2.37, droplet 4.10/3.54/
        3.41/2.64, cube 4.10/3.55/3.28/2.77, glass 4.05/3.50/3.00/2.47, cup
-       3.92/3.39/3.08/2.53, leaf 4.12/3.56/3.32/2.74. The flame (focus panel,
-       drawer head) is 3.97/3.44 and wears no wash; the scale is 4.05/3.50 and
-       3.35 on its open row (14% --acc). A selected OVER tile under its 27%
-       --over wash is the worst ground there is: 2.06 (cup) to 2.30
-       (drumstick). Dark bases are 4.51:1 or better on a selected tile, 2.77
-       (bowl) to 5.57 under the full wash, and 3.16 or better on the washed
-       over tile. So 3:1 holds on the grounds without a wash and not under a
-       full one; the glyph is decorative and named in text, so that is not a
-       1.4.11 failure. The bowl's grain, the one detail on the ground, is
-       2.95/2.55 in light. Any other detail is measured against its base; the
-       gutter separates the two whatever that ratio is. */
-    --gl-flame-b: #fff3d6;
-    --gl-drumstick-b: #f8eedb;
+       4.89/4.23/3.86/3.16, leaf 4.12/3.56/3.32/2.74. The flame (focus panel,
+       drawer head) is 4.47/3.87, 3.92 on an 18% --cal ground, and wears no
+       wash; the scale is 4.05/3.50 and 3.35 on its open row (14% --acc). A
+       selected OVER tile under its 27% --over wash is the worst ground there
+       is: 1.93 (bread) to 2.17, then 2.58 (cup) and 2.84 (drumstick). Dark
+       bases are 3.53 (drumstick) or better on a selected tile, 2.14
+       (drumstick) to 5.56 under the full wash, and 2.35 (drumstick) or
+       better on the washed over tile. So 3:1 holds on the grounds without a
+       wash and not under a full one; the glyph is decorative and named in
+       text, so that is not a 1.4.11 failure. A detail is measured against
+       its base; the gutter separates the two whatever that ratio is. */
+    --gl-flame-b: #ffc83d;
+    --gl-drumstick-b: #fbe9cf;
+    --gl-bread-b: #f7dfa6;
     --gl-avocado-b: #7a4a24;
     --gl-droplet-b: #e0f2fe;
     --gl-cube-b: #fbf3e3;
     --gl-scale-b: var(--panel);
 
-    /* Glyph layers, themed: repeated in all four blocks (see GLYPH LAYERS above). */
-    --gl-flame-a: #dd520b;
-    --gl-drumstick-a: #b8621b;
-    --gl-bowl-a: var(--edge2);
-    --gl-bowl-b: #c98a0e;
+    /* Glyph layers, themed: repeated in all four blocks (see GLYPH LAYERS
+       above). */
+    --gl-flame-a: #d2490a;
+    --gl-drumstick-a: #a8521c;
+    --gl-bread-a: #b8780f;
     --gl-avocado-a: #5f8a1c;
     --gl-droplet-a: #0284c7;
     --gl-cube-a: #8f7a5f;
@@ -269,10 +303,9 @@
            chat ground, so this must not go back to `none` either. */
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
         --glow-a: 0.1;
-        --gl-flame-a: var(--cal);
-        --gl-drumstick-a: #d9893a;
-        --gl-bowl-a: var(--ink2);
-        --gl-bowl-b: #f5c542;
+        --gl-flame-a: #ff7a2e;
+        --gl-drumstick-a: #cc6a3e;
+        --gl-bread-a: #d4963f;
         --gl-avocado-a: #8fc043;
         --gl-droplet-a: var(--wat);
         --gl-cube-a: #b9a07a;
@@ -319,10 +352,9 @@
         0 1px 2px rgba(16, 19, 24, 0.04),
         0 30px 70px -30px rgba(16, 19, 24, 0.25);
     --glow-a: 0.13;
-    --gl-flame-a: #dd520b;
-    --gl-drumstick-a: #b8621b;
-    --gl-bowl-a: var(--edge2);
-    --gl-bowl-b: #c98a0e;
+    --gl-flame-a: #d2490a;
+    --gl-drumstick-a: #a8521c;
+    --gl-bread-a: #b8780f;
     --gl-avocado-a: #5f8a1c;
     --gl-droplet-a: #0284c7;
     --gl-cube-a: #8f7a5f;
@@ -365,10 +397,9 @@
     --warn: #e0a030;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
     --glow-a: 0.1;
-    --gl-flame-a: var(--cal);
-    --gl-drumstick-a: #d9893a;
-    --gl-bowl-a: var(--ink2);
-    --gl-bowl-b: #f5c542;
+    --gl-flame-a: #ff7a2e;
+    --gl-drumstick-a: #cc6a3e;
+    --gl-bread-a: #d4963f;
     --gl-avocado-a: #8fc043;
     --gl-droplet-a: var(--wat);
     --gl-cube-a: #b9a07a;

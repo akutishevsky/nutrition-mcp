@@ -1318,7 +1318,7 @@ what lets the size step at a breakpoint without the emitter knowing anything
 about width. The default is **17**, the smallest size anything ships at.
 
 **Each drawing is its object, in the object's own two colours**: a green avocado
-with a brown pit, a golden-brown drumstick with a cream bone, red wine in a grey
+with a brown pit, a roast drumstick with a cream bone, red wine in a grey
 glass. It used to be one path filled with the metric's series token through
 `--c`, which painted the fat tile's avocado pink and the protein tile's
 drumstick violet. A series token is an **identity**, not the colour of a food,
@@ -1326,18 +1326,18 @@ so it stays on everything that encodes a quantity or a state (the wash, the
 selection ring, the focus panel, the sparkline, the drawer head's role, the
 over-limit red), and `.gi` no longer reads `--c` at all.
 
-| glyph       | metric   | base `a`                       | detail `b`, cut out of it    | at a glance           |
-| ----------- | -------- | ------------------------------ | ---------------------------- | --------------------- |
-| `flame`     | calories | orange flame and side tongue   | a near-white core            | a tongue, not a drop  |
-| `drumstick` | protein  | meat, and the bone's 0.9 ring  | the cream bone               | a diagonal shaft      |
-| `bowl`      | carbs    | a neutral bowl                 | grain above the rim          | wide, flat-bottomed   |
-| `avocado`   | fat      | green fruit                    | the brown pit                | the pit               |
-| `droplet`   | water    | blue drop                      | a highlight band             | owns the teardrop     |
-| `cube`      | sugar    | tan hexagon (the shade face)   | cream top and left faces     | the only hexagon      |
-| `glass`     | alcohol  | a neutral glass, stem and foot | the wine                     | stem and foot         |
-| `cup`       | caffeine | latte mug with a C handle      | the coffee below the rim     | a handle              |
-| `leaf`      | fiber    | green blade and stem           | the vein, gutter on one side | a stem past the blade |
-| `scale`     | weight   | a neutral slab and its needle  | the dial around the needle   | a dial in a slab      |
+| glyph       | metric   | base `a`                       | detail `b`, cut out of it      | at a glance            |
+| ----------- | -------- | ------------------------------ | ------------------------------ | ---------------------- |
+| `flame`     | calories | orange-red flame, left lick    | a yellow inner flame, tipped   | two tips and a belly   |
+| `drumstick` | protein  | roast meat, the bone's ring    | the cream bone, a glaze streak | a taper into two knobs |
+| `bread`     | carbs    | golden crust                   | the cream crumb                | lobes over a waist     |
+| `avocado`   | fat      | green fruit                    | the brown pit                  | the pit                |
+| `droplet`   | water    | blue drop                      | a highlight band               | owns the teardrop      |
+| `cube`      | sugar    | tan hexagon (the shade face)   | cream top and left faces       | the only hexagon       |
+| `glass`     | alcohol  | a neutral glass, stem and foot | the wine                       | stem and foot          |
+| `cup`       | caffeine | latte mug with a C handle      | the coffee below the rim       | a handle               |
+| `leaf`      | fiber    | green blade and stem           | the vein, gutter on one side   | a stem past the blade  |
+| `scale`     | weight   | a neutral slab and its needle  | the dial around the needle     | a dial in a slab       |
 
 **The colours are tokens, applied by class.** `base.css` gives each `.gi-<name>`
 its `--ga` / `--gb` from `--gl-<name>-a` / `--gl-<name>-b` in `tokens.css`, and
@@ -1345,21 +1345,58 @@ the layers fill from those, falling back to `--ink2`. Where a layer's colour
 comes from, in order of preference:
 
 1. **Its own metric's series token**, when the natural colour is close to it
-   (OKLab ΔE ≤ 8) and the base still clears 3:1. Dark flame is `--cal` (ΔE 7.8)
-   and dark droplet is `--wat` (ΔE 0). Light `--cal` is 2.06:1 and light `--wat`
-   2.77:1 on `--panel`, so the light ones keep their own values. Coffee is ΔE 24
-   from `--caf`, the leaf ΔE 9.8 from `--fib` (which reads teal), and wine ΔE
-   18.5 from `--alc` (magenta in light, orchid in dark, not wine), so none of
-   those alias.
-2. **Never another metric's token.** Painting the avocado in `--fib` and `--car`
-   would put fiber's and carbs' identities on the fat tile. `glyphs.test.ts`
-   fails on it.
-3. **A design neutral for a container**: bowl, glass and scale are `--edge2` in
-   light (4.05:1) and `--ink2` in dark. The dark bowl was `--ink3`, which fell to
-   2.09:1 under the carbs wash; `--ink2` measures 2.77.
+   (OKLab ΔE ≤ 8) and the base still clears 3:1. Dark droplet is `--wat` (ΔE 0);
+   light `--wat` is 2.77:1 on `--panel`, so the light one keeps its own value.
+   The flame is not `--cal` in either theme: it is an orange-red (ΔE 21 light,
+   11 dark), so it lifts off the amber focus panel and drawer instead of
+   sinking into them. The leaf is ΔE 9.8 from `--fib` (which reads teal) and
+   wine ΔE 18.5 from `--alc` (magenta in light, orchid in dark, not wine), and
+   the cup is not `--caf` either, so none of those alias.
+2. **Never another metric's token, or anything close to one.** Painting the
+   avocado in `--fib` and `--car` would put fiber's and carbs' identities on
+   the fat tile. A hand-picked hex does the same without a `var()`: the dark
+   crust once sat ΔE 3.0 from `--cal`, on the tile under the calorie panel.
+   `glyphs.test.ts` fails on an alias, and on any base within ΔE 8 of
+   `--cal`.
+3. **A design neutral for a container**: glass and scale are `--edge2` in
+   light (4.05:1) and `--ink2` in dark.
 4. **Otherwise a named value**, `--gl-<glyph>-<layer>`. A value that is the same
    in both themes is declared **once**, on bare `:root`, and nowhere else; every
    other one is in all four blocks. `glyphs.test.ts` checks both halves.
+
+**Three warm browns, spread apart.** The drumstick, the bread's crust and the
+cup are all browns: the first two sit on adjacent macro tiles, the cup on the
+rail below. As first drawn the drumstick and the crust were ΔE 5.2 light / 6.2
+dark (OKLab ×100), and a deuteranopia simulation (Machado 2009) took them to
+4.4 / 4.9: one khaki. `glyphs.test.ts` keeps every pair at ΔE 8 or more, except bread–cup in light,
+which it holds to 5 (below).
+
+| pair            | ΔE light | ΔE dark | deuteranopia light | deuteranopia dark |
+| --------------- | -------- | ------- | ------------------ | ----------------- |
+| drumstick–bread | 10.2     | 11.0    | 9.1                | 8.9               |
+| drumstick–cup   | 8.7      | 18.1    | 7.2                | 16.1              |
+| bread–cup       | 5.3      | 9.4     | 5.4                | 9.1               |
+
+In light the drumstick is the designer's roast `#a8521c`, whose OKLab
+lightness (0.54) sits near the family's 0.58–0.61 instead of an oxblood that
+was the darkest mark on the card, and the crust is a golden `#b8780f`. The cup
+stays the latte `#a8764c` the set was approved in. A darker mocha would have
+put it ΔE 11.8 from the crust, but it changed a drawing nobody asked to change,
+so in light the toast and the mug are a close pair (ΔE 5.3, nearly one grey)
+told apart by silhouette, a lobed slice against a handled mug, and the test
+holds that pair to 5 rather than 8. In dark the crust is a baked
+`#d4963f`, chroma 0.126 (a saturated `#eeab20` read as a yellow ring round a
+cream slice, like cheese), ΔE 9.3 from `--cal`, and the drumstick went redder
+to `#cc6a3e` to keep its distance from it.
+
+Two near pairs are left to shape. The cup and the sugar cube are ΔE 4.4 apart
+in light on the same rail, as before, and the handle and the hexagon separate
+them. Under deuteranopia the crust is ΔE 3.0 from the flame in light and 2.2 in
+dark; the flame lives on the calorie panel and the drawer head, never on the
+macro rail, so a flame moved onto a tile beside carbs has to be re-measured.
+The flame and the drumstick are ΔE 6.0 and 5.7 from `--over` in light, and the
+dark flame 5.0; that is safe only because an over state is carried by the wash,
+ring and figure and never by the glyph.
 
 **Measured on the grounds a glyph really sits on.** A selected tile is not just
 its 18% `--c` ground: the progress wash is painted over it, and the glyph sits
@@ -1370,67 +1407,78 @@ under the full wash:
 
 | glyph     | panel | bg2  | selected | + full wash |
 | --------- | ----- | ---- | -------- | ----------- |
-| drumstick | 4.37  | 3.78 | 3.49     | 2.50        |
-| bowl      | 4.05  | 3.50 | 3.41     | 2.70        |
+| drumstick | 5.40  | 4.67 | 4.32     | 3.09        |
+| bread     | 3.66  | 3.17 | 3.08     | 2.44        |
 | avocado   | 4.09  | 3.53 | 3.23     | 2.37        |
 | droplet   | 4.10  | 3.54 | 3.41     | 2.64        |
 | cube      | 4.10  | 3.55 | 3.28     | 2.77        |
 | glass     | 4.05  | 3.50 | 3.00     | 2.47        |
-| cup       | 3.92  | 3.39 | 3.08     | 2.53        |
+| cup       | 4.89  | 4.23 | 3.86     | 3.16        |
 | leaf      | 4.12  | 3.56 | 3.32     | 2.74        |
 
-The flame is 3.97 / 3.44 and never sits on a wash (the focus panel and the drawer
-head). The scale is 4.05 / 3.50, and 3.35 on its open row (14% `--acc`). A
-selected **over** tile under its 27% `--over` wash is the worst ground there is:
-2.06 (cup) to 2.30 (drumstick). The avocado, cup and leaf bases were darkened to
-clear 3:1 on `--panel` (`#5f8a1c`, `#a8764c`, `#2a8f3d`). Dark bases are 4.51:1 or
-better on a selected tile, 2.77 (bowl) to 5.57 under the full wash, and 3.16 or
-better on the washed over tile.
+The flame is 4.47 / 3.87, 3.92 on an 18% `--cal` ground, and never sits on a
+wash (the focus panel and the drawer head). The scale is 4.05 / 3.50, and 3.35
+on its open row (14% `--acc`). A selected **over** tile under its 27% `--over`
+wash is the worst ground there is: 1.93 (bread) to 2.17, then 2.58 (cup) and
+2.84 (drumstick). The avocado and leaf bases were darkened to clear 3:1 on
+`--panel` (`#5f8a1c`, `#2a8f3d`). Dark bases are 3.53:1 (drumstick) or better
+on a selected tile, 2.14 (drumstick) to 5.56 under the full wash, and 2.35
+(drumstick) or better on the washed over tile; the redder dark drumstick is
+what bought its distance from the crust.
 
 So **3:1 holds on every ground without a wash, and not under a full one.** The
 glyph is decorative and named in words beside it, so that is not an SC 1.4.11
 failure, but it is the honest figure. Closing the gap is a trade-off, not a
-tweak: either darken the light bases further, which pushes the avocado, cup and
+tweak: either darken the light bases further, which pushes the avocado, crust and
 drumstick away from the colours they are, or start the wash's ramp past the glyph
 column, which changes how a low-progress tile reads.
 
-The bowl's grain is the one detail that sits on the ground rather than inside its
-base: 2.95 on `--panel` and 2.55 on `--bg2` in light. Every other detail is judged
-against its base, and the gutter separates the two whatever that ratio is.
+Every detail sits inside its base, so a detail is judged against its base, and
+the gutter separates the two whatever that ratio is.
 
-**Every detail is cut out of its base, with a gutter of at least 0.6 units.** On
-a light ground the gutter reads as part of a light detail (the flame's core, the
-vein, the bone); on a dark ground it is a dark keyline. What it buys is that the
-drawing still separates when both layers are painted **one** colour, a monochrome
-use such as a single-ink fill: the pit, the dial, the bone, the cube faces, the
-wine and the coffee survive, where an uncut avocado was a plain egg. This was
-checked at 17px in both themes at 1x and 2x. Chrome's forced-colours mode is
-**not** that case: it keeps an SVG's authored fills, and the glyph was checked
-on both Canvas polarities there.
+**Every detail is cut out of its base, with a gutter of 0.6 units** (0.56 at
+the tightest rounded corner, where a round-join offset is sampled). On a light
+ground the gutter reads as part of a light detail (the crumb, the vein, the
+bone); on a dark ground it is a dark keyline. What it buys is that the drawing
+still separates when both layers are painted **one** colour, a monochrome use
+such as a single-ink fill: the pit, the dial, the bone, the crumb, the cube
+faces, the wine and the coffee survive, where an uncut avocado was a plain egg.
+This was checked at 17px in both themes at 1x and 2x. Chrome's forced-colours
+mode is **not** that case: it keeps an SVG's authored fills, and the glyph was
+checked on both Canvas polarities there.
 
-**Two details bend the gutter rule, for 1x.** A gutter on both sides of a thin
-part puts three sub-pixel stripes inside about two pixels, and on a diagonal that
-aliases into hatching. So the **scale's needle has no gutter**: it is a wedge of
-the slab (about 1.9 units at its root) reaching into the dial, and in one colour
-it merges into the dial while the dial itself survives. The **leaf's vein keeps
-its gutter on one side only**, so the band is one line, and in one colour that
-gutter is the vein. Where a detail overlaps its base rather than meeting it (the
-vein's other edge, the dial around the needle), its edge lies over the base, not
-the ground, and leaves no seam. The drumstick's bone ring is 0.9 units, a whole
-pixel at 18 to 20px, where 0.55 went ragged.
+**Two details bend the gutter rule, for 1x.** A gutter on both sides of a
+thin part puts three sub-pixel stripes inside about two pixels, and on a
+diagonal that aliases into hatching. So the **scale's needle has no gutter**:
+it is a wedge of the slab (about 1.9 units at its root) reaching into the dial,
+and in one colour it merges into the dial while the dial itself survives. The
+**leaf's vein keeps its gutter on one side only**, so the band is one line, and
+in one colour that gutter draws the vein. Where a detail overlaps its base
+rather than meeting it (the vein's other edge, the dial around the needle), its
+edge lies over the base, not the ground, and leaves no seam.
+
+The glaze took longest, and it keeps the rule. Painted over the meat it read as
+shine but broke the cut rule. Cut as a short dash, the keyline round it turned
+the leg into a bird's head in dark. Cut as a long 0.8-unit arc on both sides it
+read as a grey eyelid, and a one-sided crescent left a shadow line under the
+cream. It is now a short streak 1.4 units wide along the upper-left rim, cut
+out with the full gutter all round, wide enough that the keylines fall either
+side of a real cream band. The bone ring is 0.85 units, where 0.55 went ragged, and the flame's orange
+band under its inner flame is 1.35 units, a pixel and a third at 17px.
+
 Paths fill nonzero: solids wind clockwise and holes counter-clockwise, and a
-hole must sit under exactly **one** solid, or the overlapping solids stack their
-winding and the hole silently fails to cut. A detail never shares an exact edge
-with its base either, because two antialiased edges that meet leave a seam.
+hole must sit under exactly **one** solid, or the overlapping solids stack
+their winding and the hole silently fails to cut. A detail never shares an
+exact edge with its base either, because two antialiased edges that meet leave
+a seam.
 
 **Over a limit the glyph keeps its natural colours.** `.chip.over` and
 `.dhead.over` reassign `--c`, which the glyph does not read, so it cannot turn
 red. The breach is the red wash, hairline and ring, plus the figure printed
 against its limit. There is **no keyline** around a glyph on an over ground.
-Every detail but the bowl's grain has its base around it, so nothing smears into
-the red, and the grain sits above the rim where the base's silhouette still
-shapes it. The cost is contrast, not legibility: 2.06 to 2.30 in light under the
-washed over ground (the figures above). `glyphs.test.ts` scans every partial and
+Every detail has its base around it, so nothing smears into the red. The cost is
+contrast, not legibility: 1.93 to 2.84 in light under the washed over ground
+(the figures above). `glyphs.test.ts` scans every partial and
 template stylesheet so that no rule sets a glyph's fill, colour or stroke or
 reads `--c` on it.
 

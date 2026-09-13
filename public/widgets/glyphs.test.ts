@@ -35,6 +35,18 @@ test("the shipped set is the whole table, and non-trivial", () => {
     expect(Object.keys(GLYPHS).sort()).toEqual([...SHIPPED].sort());
 });
 
+// Carbs is a slice of bread. The bowl it replaced was the one drawing whose
+// detail sat on the ground instead of inside its base; a stale `bowl` name
+// anywhere (MACROS, a `.gi-bowl` rule, a --gl-bowl-* token) would leave the
+// carbs tile drawing a grey fallback in one place and not another.
+test("carbs draws the bread, and nothing names the bowl any more", () => {
+    expect(SHIPPED).toContain("bread");
+    expect(SHIPPED).not.toContain("bowl");
+    expect(GLYPHS.bowl).toBeUndefined();
+    expect(baseCss).not.toContain(".gi-bowl");
+    expect(tokensCss).not.toContain("--gl-bowl-");
+});
+
 test("every glyph has a base and a detail layer", () => {
     for (const [name, g] of Object.entries(GLYPHS)) {
         expect(Object.keys(g).sort(), name).toEqual(["a", "b"]);
@@ -171,6 +183,12 @@ const foreignSeries = (glyphName: string, text: string) =>
         .map((v) => v[1])
         .filter((v) => SERIES.includes(v) && v !== OWN[glyphName]);
 
+test("each chosen drawing belongs to its metric", () => {
+    expect(OWN.flame).toBe("cal");
+    expect(OWN.drumstick).toBe("pro");
+    expect(OWN.bread).toBe("car");
+});
+
 test("no glyph layer is painted with another metric's series token", () => {
     expect(Object.keys(OWN).length).toBeGreaterThanOrEqual(9);
     for (const theme of [BARE, MEDIA_DARK, LIGHT, DARK]) {
@@ -182,6 +200,85 @@ test("no glyph layer is painted with another metric's series token", () => {
     const rules = [...baseCss.matchAll(/\.gi-([a-z]+)\s*\{([^}]*)\}/g)];
     expect(rules.length).toBeGreaterThanOrEqual(SHIPPED.length);
     for (const r of rules) expect(foreignSeries(r[1], r[2]), r[0]).toEqual([]);
+});
+
+// A var() alias is not the only way to put another metric's identity on a
+// tile: a hand-picked hex a few ΔE from --cal does it too. The dark crust once
+// sat 3.0 from --cal, directly under the calorie panel, and every alias check
+// above passed. So measure it, in OKLab (ΔE x100), against --cal in both
+// themes, and keep the three warm browns — the drumstick and the crust on
+// adjacent macro tiles, the cup on the rail below — apart from each other.
+const hexOf = (theme: Map<string, string>, name: string): string => {
+    let value = theme.get(name) ?? BARE.get(name) ?? "";
+    for (let hop = 0; hop < 4; hop++) {
+        const alias = /^var\((--[a-z0-9-]+)\)$/.exec(value);
+        if (!alias) break;
+        value = theme.get(alias[1]) ?? BARE.get(alias[1]) ?? "";
+    }
+    return value;
+};
+const oklab = (hex: string): number[] => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+        const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [
+        0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+        1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+        0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+    ];
+};
+const deltaE = (x: string, y: string) => {
+    const [p, q] = [oklab(x), oklab(y)];
+    return 100 * Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+};
+
+test("no glyph base is within ΔE 8 of --cal unless it is the flame", () => {
+    for (const theme of [BARE, MEDIA_DARK, LIGHT, DARK]) {
+        const cal = hexOf(theme, "--cal");
+        expect(cal).toMatch(/^#[0-9a-f]{6}$/);
+        for (const name of SHIPPED) {
+            if (OWN[name] === "cal") continue;
+            const base = hexOf(theme, `--gl-${name}-a`);
+            expect(deltaE(base, cal), `${name} ${base}`).toBeGreaterThanOrEqual(
+                8,
+            );
+        }
+    }
+});
+
+test("the three warm browns stay apart in both themes", () => {
+    // [x, y, light floor, dark floor]. Bread and cup keep a lower LIGHT floor
+    // on purpose: the cup stays the latte #a8764c the set was approved in, and
+    // in light that puts the toast and the mug a neighbouring pair of browns
+    // (ΔE 5.3) told apart by silhouette — a lobed slice against a handled mug —
+    // rather than by colour. Every other pair, and bread-cup in dark, holds 8.
+    const pairs = [
+        ["drumstick", "bread", 8, 8],
+        ["drumstick", "cup", 8, 8],
+        ["bread", "cup", 5, 8],
+    ] as const;
+    const themes = [
+        [BARE, false],
+        [MEDIA_DARK, true],
+        [LIGHT, false],
+        [DARK, true],
+    ] as const;
+    for (const [theme, dark] of themes) {
+        for (const [x, y, lightFloor, darkFloor] of pairs) {
+            const [a, b] = [
+                hexOf(theme, `--gl-${x}-a`),
+                hexOf(theme, `--gl-${y}-a`),
+            ];
+            expect(
+                deltaE(a, b),
+                `${x} ${a} / ${y} ${b}`,
+            ).toBeGreaterThanOrEqual(dark ? darkFloor : lightFloor);
+        }
+    }
 });
 
 // ---- the over state -----------------------------------------------------
