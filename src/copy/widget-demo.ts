@@ -526,8 +526,11 @@ export function demoMealLoggedPayload(opts: {
  *  log-meal conversation logs comes in a LATER turn, through log_water, which
  *  returns no widget. */
 export const DEMO_EXAMPLE_MEALS = {
-    // Oatmeal with berries and a coffee: the coffee's 95 mg is why caffeine
-    // shows.
+    // Oatmeal made with milk, blueberries and a black coffee: the coffee's
+    // 95 mg is why caffeine shows. Sugar is a milk-based bowl's — ~40 g oats
+    // (~0.4 g) in ~200 ml milk (~10 g) with ~75 g blueberries (~7 g); the 12 g
+    // this used to say only fits a bowl cooked in water, and the conversation
+    // says milk. 11×4 + 56×4 + 6×9 = 322 kcal.
     "log-meal": {
         meal_type: "breakfast",
         add: {
@@ -536,7 +539,7 @@ export const DEMO_EXAMPLE_MEALS = {
             car: 56,
             fat: 6,
             fib: 6,
-            sugar: 12,
+            sugar: 18,
             caf: 95,
         },
         drinkUnit: null,
@@ -549,8 +552,10 @@ export const DEMO_EXAMPLE_MEALS = {
         drinkUnit: null,
     },
     // A 330 ml can of Coca-Cola (barcode 5449000000996): 139 kcal and 35 g
-    // sugar from Open Food Facts, 32 mg caffeine from the maker's own figure,
-    // and a measured 0 for everything a soft drink has none of.
+    // sugar from Open Food Facts, 33 mg caffeine from the maker's own figure
+    // (Coca-Cola's FAQ: "There is 33 mg in a 330 ml can of Coca-Cola." — Open
+    // Food Facts lists no caffeine), and a measured 0 for everything a soft
+    // drink has none of.
     "scan-barcode": {
         meal_type: "lunch",
         add: {
@@ -560,7 +565,7 @@ export const DEMO_EXAMPLE_MEALS = {
             fat: 0,
             fib: 0,
             sugar: 35,
-            caf: 32,
+            caf: 33,
         },
         drinkUnit: null,
     },
@@ -750,6 +755,124 @@ export function demoStartImportPayload(locale: string): StartImportPayload {
         widgets_enabled: true,
         drink_unit: DEMO_DRINK_UNIT,
         locale,
+    };
+}
+
+/** The file the import conversation picks in the importer: a MyFitnessPal
+ *  "Nutrition Summary" export. */
+export interface DemoImportFile {
+    fileName: string;
+    csv: string;
+}
+
+/** The export's first and last logged days: six months, ending the day before
+ *  the conversation's own date. */
+export const DEMO_IMPORT_FIRST_DAY = "2025-03-24";
+export const DEMO_IMPORT_LAST_DAY = shiftIso(
+    DEMO_EXAMPLE_DATES["import-history"],
+    -1,
+);
+
+/** The header a current MyFitnessPal export writes, verbatim: twenty columns,
+ *  no Time column, and no food name (MyFitnessPal exports one row per meal per
+ *  day, carrying the totals but not the foods). */
+const DEMO_IMPORT_HEADERS = [
+    "Date",
+    "Meal",
+    "Calories",
+    "Fat (g)",
+    "Saturated Fat",
+    "Polyunsaturated Fat",
+    "Monounsaturated Fat",
+    "Trans Fat",
+    "Cholesterol",
+    "Sodium (mg)",
+    "Potassium",
+    "Carbohydrates (g)",
+    "Fiber",
+    "Sugar",
+    "Protein (g)",
+    "Vitamin A",
+    "Vitamin C",
+    "Calcium",
+    "Iron",
+    "Note",
+] as const;
+
+/** One day's meals, in the order MyFitnessPal writes them (alphabetically, so
+ *  Dinner before Lunch): [meal, kcal, fat, carbs, fiber, sugar, protein]. */
+const DEMO_IMPORT_MEALS: readonly (readonly [
+    meal: string,
+    kcal: number,
+    fat: number,
+    carbs: number,
+    fiber: number,
+    sugar: number,
+    protein: number,
+])[] = [
+    ["Breakfast", 412, 14.2, 48.6, 6.1, 17.3, 24.8],
+    ["Dinner", 781, 31.7, 74.2, 7.9, 11.6, 48.3],
+    ["Lunch", 638, 22.4, 66.9, 8.4, 9.2, 41.5],
+    ["Snacks", 236, 11.3, 24.1, 3.2, 14.8, 9.6],
+];
+
+/** The export itself, generated rather than typed: 603 meal rows over 163
+ *  logged days, DEMO_IMPORT_FIRST_DAY … DEMO_IMPORT_LAST_DAY.
+ *
+ *  Shaped like a real 2026 MyFitnessPal file, checked against published ones:
+ *  no BOM, CRLF line ends, NO totals row at the end (older exports had one),
+ *  calories with one decimal, meals alphabetical within a day. Some days are
+ *  not logged at all, some skip the snack or the breakfast, and each figure
+ *  wobbles by a deterministic step so the preview does not read as one row
+ *  repeated.
+ *
+ *  Every count the importer's screens print — rows, kcal, batches, what was
+ *  imported and the server's warnings — is NOT restated here: the site runs
+ *  this file through the importer's own code (src/widget-static.ts) and the
+ *  real bulk_import_meals logic, and src/widget-static-cards.test.ts pins the
+ *  result. */
+export function demoImportFile(): DemoImportFile {
+    const lines: string[] = [DEMO_IMPORT_HEADERS.join(",")];
+    for (let d = 0; ; d++) {
+        const day = shiftIso(DEMO_IMPORT_FIRST_DAY, d);
+        if (day > DEMO_IMPORT_LAST_DAY) break;
+        // Days not logged at all.
+        if (d % 13 === 6 || d % 29 === 17) continue;
+        DEMO_IMPORT_MEALS.forEach(
+            ([meal, kcal, fat, carbs, fiber, sugar, protein], i) => {
+                if (d % 5 === 3 && meal === "Snacks") return;
+                if (d % 11 === 4 && meal === "Breakfast") return;
+                const j = ((d * 7 + i * 3) % 11) - 5;
+                lines.push(
+                    [
+                        day,
+                        meal,
+                        (kcal + j * 9).toFixed(1),
+                        (fat + j * 0.3).toFixed(1),
+                        "4.1",
+                        "2.0",
+                        "5.3",
+                        "0",
+                        "35",
+                        "640",
+                        "410",
+                        (carbs + j).toFixed(1),
+                        fiber.toFixed(1),
+                        sugar.toFixed(1),
+                        (protein + j * 0.5).toFixed(1),
+                        "0",
+                        "12",
+                        "8",
+                        "6",
+                        "",
+                    ].join(","),
+                );
+            },
+        );
+    }
+    return {
+        fileName: `Nutrition-Summary-${DEMO_IMPORT_FIRST_DAY}-to-${DEMO_IMPORT_LAST_DAY}.csv`,
+        csv: lines.join("\r\n") + "\r\n",
     };
 }
 

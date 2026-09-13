@@ -785,52 +785,20 @@
             function esc(s) {
                 return impEsc(s);
             }
-            // Escapes a translated "{n} rows"-style string, then bolds the
-            // digit run wherever it landed — robust to word order, unlike
-            // hardcoding "<b>N</b> rows" around a fixed English shape.
-            // A number in the WIDGET's locale. A bare toLocaleString() keys
-            // off the host browser's language, so a French card on an English
-            // browser read "12,345 kcal au total" (twelve point three…), and a
-            // raw JS number always prints a dot ("2092.5 kJ", "12.5" in a
-            // Polish table). Every digit kept (maximumFractionDigits: 20 is
-            // the shortest round-trip, same as String(n)) — this re-punctuates
-            // what the file said, it does not round it. Grouping only where
-            // asked: a table cell stays compact.
+            // Number formatting and count strings in the widget's locale —
+            // impNumLocale / impPluralN / impCellNum / impBoldCount in
+            // shared/import-card.js say how, and why never tpl(plural(…)).
             function numLocale(n, grouping) {
-                const x = Number(n);
-                if (!Number.isFinite(x)) return String(n);
-                try {
-                    return new Intl.NumberFormat(WIDGET_LOCALE || "en", {
-                        maximumFractionDigits: 20,
-                        useGrouping: !!grouping,
-                    }).format(x);
-                } catch (_) {
-                    return String(x);
-                }
+                return impNumLocale(n, grouping);
             }
-            // A count string in the right grammatical form, with the count
-            // itself printed in the widget's locale. plural() picks the form
-            // from the raw number (Intl.PluralRules needs a number, not "1.234")
-            // and then fills vars over its own {n}, so the display override
-            // wins while the selection stays numeric. Extra placeholders
-            // ({line}, {message}, {format}, {sample}) ride in `vars` — never
-            // tpl(plural(…), vars): plural()'s own tpl() blanks every
-            // placeholder it is not given, so they would be gone by then.
             function pluralN(forms, n, vars) {
-                return plural(
-                    forms,
-                    n,
-                    Object.assign({ n: numLocale(n, true) }, vars),
-                );
+                return impPluralN(forms, n, vars);
             }
             function cellNum(v) {
-                return v == null ? "—" : esc(numLocale(v, false));
+                return impCellNum(v);
             }
             function boldCount(text) {
-                return esc(text).replace(
-                    /\d[\d,.\s ]*\d|\d/,
-                    (m) => "<b>" + m + "</b>",
-                );
+                return impBoldCount(text);
             }
 
             // A severity-marked notice — see impNotice in
@@ -915,26 +883,14 @@
             // store every row 4.184x too high while reporting success. So each
             // control is shown next to a worked example from the user's own first
             // row — a wrong setting is then visible before anything is written.
-            // Functions, not static arrays, so a locale switch (setLocale runs
-            // before every render()) relabels these without rebuilding them.
+            // The pickers' options live in shared/import-card.js
+            // (impDateFormatOptions / impEnergyUnitOptions), with the map step
+            // that draws them.
             function dateFormatOptions() {
-                return [
-                    ["iso", `${T.importMeals.dateFormatYmd} (2026-07-18)`],
-                    ["dmy", `${T.importMeals.dateFormatDmy} (18/07/2026)`],
-                    ["mdy", `${T.importMeals.dateFormatMdy} (07/18/2026)`],
-                ];
+                return impDateFormatOptions();
             }
             function energyUnitOptions() {
-                return [
-                    [
-                        "kcal",
-                        `${T.importMeals.energyUnitKcal} (${unitLabel("kcal")})`,
-                    ],
-                    [
-                        "kj",
-                        `${T.importMeals.energyUnitKj} (${unitLabel("kj")})`,
-                    ],
-                ];
+                return impEnergyUnitOptions();
             }
 
             // Some exports put the whole timestamp in the date column. toIsoDate
@@ -952,8 +908,7 @@
             }
 
             function dateFormatLabel(fmt) {
-                const o = dateFormatOptions().find((x) => x[0] === fmt);
-                return o ? o[1].replace(/\s*\(.*\)$/, "") : String(fmt);
+                return impDateFormatLabel(fmt);
             }
             // English-only, for diagnosticsBlock() alone: that block is a
             // copy-paste dump addressed to the (English-speaking) maintainer
@@ -1460,652 +1415,116 @@
                 });
             }
 
-            // Worked examples: the first real value from the user's own file, run
-            // through the very functions the import will use. Returns escaped HTML.
-            function dateExampleHtml() {
-                if (!(S.mapping.logged_at >= 0))
-                    return esc(T.importMeals.dateMapHint);
+            // Steps 2-4 live in shared/import-card.js too (importMapStep,
+            // importPreviewStep, importDoneStep), for the same reason as step 1.
+            // What stays here is the half the site cannot run on its own: turning
+            // this widget's state — the parsed file, the mapping, csv.ts's
+            // conversions, chunk.ts's batches — into the plain data those
+            // emitters draw. The site's build (src/widget-static.ts) calls these
+            // same *StepData functions over its demo file, so a picture on the
+            // landing page is this widget's own reading of that file.
+
+            // The date picker's worked example: the first real value from the
+            // user's own file, run through the very functions the import will
+            // use. See impDateExampleHtml for how it reads.
+            function dateExample() {
+                if (!(S.mapping.logged_at >= 0)) return { mapped: false };
                 const raw = columnCells("logged_at", 1)[0];
-                if (raw === undefined) return esc(T.importMeals.dateNoneHint);
+                if (raw === undefined) return { mapped: true, raw };
                 const iso = toIsoDate(raw, S.dateFormat);
-                if (iso === null)
-                    return esc(
-                        tpl(T.importMeals.dateUnreadable, {
-                            raw,
-                            format: dateFormatLabel(S.dateFormat),
-                        }),
-                    );
-                const time = normalizeTime(timeInDateCell(raw));
-                return esc(
-                    tpl(T.importMeals.dateConverted, {
-                        raw,
-                        result: iso + (time ? " " + time : ""),
-                    }),
-                );
+                return {
+                    mapped: true,
+                    raw,
+                    iso,
+                    time:
+                        iso === null
+                            ? null
+                            : normalizeTime(timeInDateCell(raw)),
+                };
             }
-            function energyExampleHtml() {
-                if (!(S.mapping.calories >= 0))
-                    return esc(T.importMeals.energyMapHint);
-                const v = columnNumbers("calories", 1)[0];
-                if (v === undefined) return esc(T.importMeals.energyNoneHint);
-                if (S.energyUnit === "kj")
-                    return esc(
-                        tpl(T.importMeals.energyConverted, {
-                            v: numLocale(v, true),
-                            kcal: numLocale(toKcal(v, "kj"), true),
-                        }),
-                    );
-                return esc(
-                    tpl(T.importMeals.energyNoConversion, {
-                        v: numLocale(v, true),
-                    }),
-                );
+            // Likewise for the energy picker (impEnergyExampleHtml).
+            function energyExample() {
+                if (!(S.mapping.calories >= 0)) return { mapped: false };
+                const value = columnNumbers("calories", 1)[0];
+                return {
+                    mapped: true,
+                    value,
+                    kcal:
+                        value !== undefined && S.energyUnit === "kj"
+                            ? toKcal(value, "kj")
+                            : undefined,
+                };
             }
 
-            function formatFieldsHtml() {
-                const select = (id, options, sel) =>
-                    '<select class="select" id="' +
-                    id +
-                    '">' +
-                    options
-                        .map(
-                            (o) =>
-                                '<option value="' +
-                                o[0] +
-                                '"' +
-                                (sel === o[0] ? " selected" : "") +
-                                ">" +
-                                esc(o[1]) +
-                                "</option>",
-                        )
-                        .join("") +
-                    "</select>";
-                return (
-                    '<div style="margin-top:12px">' +
-                    // Undecidable, so it must not be dressed up as auto-detected.
-                    (S.dateAmbiguous
-                        ? notice(
-                              "warn",
-                              esc(T.importMeals.dateAmbiguousWarning),
-                          )
-                        : "") +
-                    '<div class="field"><label class="label" for="dateFormat">' +
-                    esc(T.importMeals.dateFormatLabel) +
-                    "</label>" +
-                    select("dateFormat", dateFormatOptions(), S.dateFormat) +
-                    '<span class="hint">' +
-                    dateExampleHtml() +
-                    "</span></div>" +
-                    '<div class="field"><label class="label" for="energyUnit">' +
-                    esc(T.importMeals.energyUnitLabel) +
-                    "</label>" +
-                    select("energyUnit", energyUnitOptions(), S.energyUnit) +
-                    '<span class="hint">' +
-                    energyExampleHtml() +
-                    "</span></div>" +
-                    "</div>"
-                );
+            function mapStepData() {
+                return {
+                    table: S.table,
+                    fields: mappableFields(),
+                    mapping: S.mapping,
+                    addedSugarColumns: addedSugarColumns(),
+                    caffeineGramsColumns: caffeineGramsColumns(),
+                    alcoholTracked: alcoholTracked(),
+                    alcoholColumn: alcoholColumn(),
+                    dateFormat: S.dateFormat,
+                    dateAmbiguous: S.dateAmbiguous,
+                    dateExample: dateExample(),
+                    energyUnit: S.energyUnit,
+                    energyExample: energyExample(),
+                    sourceApp: S.sourceApp,
+                    step: S.step,
+                };
             }
 
             function mapStep() {
-                const t = S.table;
-                const opts = (sel) =>
-                    '<option value="-1"' +
-                    (sel === -1 ? " selected" : "") +
-                    ">" +
-                    esc(T.importMeals.notInFile) +
-                    "</option>" +
-                    t.headers
-                        .map(
-                            (h, i) =>
-                                '<option value="' +
-                                i +
-                                '"' +
-                                (sel === i ? " selected" : "") +
-                                ">" +
-                                esc(
-                                    h ||
-                                        tpl(T.importMeals.columnFallback, {
-                                            n: i + 1,
-                                        }),
-                                ) +
-                                "</option>",
-                        )
-                        .join("");
-                return (
-                    cardOpen() +
-                    cardHead(T.importMeals.mapColumnsHeading) +
-                    '<div class="stat-row"><span>' +
-                    boldCount(pluralN(T.importMeals.rowsCount, t.rows.length)) +
-                    "</span><span>" +
-                    boldCount(
-                        pluralN(T.importMeals.columnsCount, t.headers.length),
-                    ) +
-                    "</span><span>" +
-                    esc(t.encoding) +
-                    ", " +
-                    esc(T.importMeals.delimiterLabel) +
-                    " <b>" +
-                    esc(
-                        t.delimiter === "\t"
-                            ? T.importMeals.tabLabel
-                            : t.delimiter,
-                    ) +
-                    "</b></span></div>" +
-                    t.warnings.map((w) => notice("warn", esc(w))).join("") +
-                    (S.mapping.sugar_g === -1 && addedSugarColumns().length
-                        ? notice(
-                              "",
-                              esc(
-                                  tpl(T.importMeals.addedSugarNotice, {
-                                      column: addedSugarColumns()[0],
-                                  }),
-                              ),
-                          )
-                        : "") +
-                    (S.mapping.caffeine_mg === -1 &&
-                    caffeineGramsColumns().length
-                        ? notice(
-                              "",
-                              esc(
-                                  tpl(T.importMeals.caffeineGramsNotice, {
-                                      column: caffeineGramsColumns()[0],
-                                  }),
-                              ),
-                          )
-                        : "") +
-                    (!alcoholTracked() && alcoholColumn()
-                        ? notice(
-                              "",
-                              esc(
-                                  tpl(T.importMeals.alcoholNotice, {
-                                      column: alcoholColumn(),
-                                  }),
-                              ),
-                          )
-                        : "") +
-                    // The legend explains a mark that is aria-hidden, so it is
-                    // hidden from assistive tech as well: a screen reader hears
-                    // "required" from the select's own aria-required instead,
-                    // and a sentence about an asterisk it never announced
-                    // would only be noise.
-                    '<div class="hint req-legend" aria-hidden="true">' +
-                    esc(T.importMeals.requiredLegend) +
-                    "</div>" +
-                    '<div class="map-grid">' +
-                    mappableFields()
-                        .map((f) => {
-                            const sel = S.mapping[f.key];
-                            const sample =
-                                sel >= 0 && t.rows[0] ? t.rows[0][sel] : "";
-                            const label = T.importMeals.fieldLabels[f.key];
-                            return (
-                                '<div class="map-field"><div class="map-src">' +
-                                esc(label) +
-                                (f.required
-                                    ? ' <span class="req" aria-hidden="true">*</span>'
-                                    : "") +
-                                '</div><div class="map-sample">' +
-                                esc(
-                                    sample
-                                        ? tpl(T.importMeals.sampleValue, {
-                                              sample,
-                                          })
-                                        : "",
-                                ) +
-                                "</div></div>" +
-                                // Named with the field's own label: the
-                                // .map-src beside it is a div, not a <label>,
-                                // so the picker was announced as a bare
-                                // "combo box". aria-label rather than a
-                                // label[for] so the .map-src/.map-sample pair
-                                // keeps the exact markup macros.test.ts pins.
-                                '<select class="select map-sel" data-field="' +
-                                f.key +
-                                '" aria-label="' +
-                                esc(label) +
-                                '"' +
-                                (f.required ? ' aria-required="true"' : "") +
-                                ">" +
-                                opts(sel) +
-                                "</select>"
-                            );
-                        })
-                        .join("") +
-                    "</div>" +
-                    formatFieldsHtml() +
-                    // for="srcapp": without it the text box had no name at all.
-                    '<div class="field"><label class="label" for="srcapp">' +
-                    esc(T.importMeals.sourceAppLabel) +
-                    "</label>" +
-                    '<input class="input" id="srcapp" value="' +
-                    esc(S.sourceApp) +
-                    '" placeholder="myfitnesspal" />' +
-                    '<span class="hint">' +
-                    esc(T.importMeals.sourceAppHint) +
-                    "</span></div>" +
-                    '<div class="actions"><button class="btn btn-primary" id="toPreview">' +
-                    esc(T.importMeals.previewButton) +
-                    "</button>" +
-                    '<button class="btn" id="backToFile">' +
-                    esc(T.importMeals.chooseAnotherButton) +
-                    "</button></div>" +
-                    cardClose()
-                );
+                return importMapStep(mapStepData());
             }
 
-            function previewStep() {
-                const shown = S.rows.slice(0, 30);
-                const kcal = S.rows.reduce((a, r) => a + (r.calories ?? 0), 0);
-                const noTime = S.rows.filter(
-                    (r) => !/\d\d:\d\d/.test(String(r.logged_at)),
-                ).length;
-                const { chunks: previewChunks, splitDates } = chunkRows(
+            // Everything but the diagnostics notice, which names the
+            // maintainer's contact and so stays this template's to add.
+            function previewStepData() {
+                const { chunks, splitDates } = chunkRows(
                     S.rows,
                     CFG.max_rows_per_call,
                 );
-                const chunks = previewChunks.length;
-                // Fiber, sugar, alcohol and caffeine are missing from most
-                // exports, so their columns appear only when this file actually
-                // carries them — four columns of "—" would push the macros that
-                // do have values off the visible width for no information.
-                // Alcohol additionally never appears with tracking off: the
-                // rows carry none by then, but the column is filtered by the
-                // opt-in as well as by the data, so a stray value could not
-                // put ethanol on screen. Caffeine has no such gate; it is
-                // filtered by the data alone.
-                //
-                // Column labels come from T.importMeals.col* (they were English
-                // literals — "C" and "Sug" mean nothing in Polish or French),
-                // escaped here, so c[1] is HTML: the unit sits in a .u span
-                // that the uppercase header leaves alone (table.css).
-                const extra = [
-                    ["fiber_g", esc(T.importMeals.colFiber)],
-                    ["sugar_g", esc(T.importMeals.colSugar)],
-                    ["alcohol_g", esc(T.importMeals.colAlcohol), true],
-                    [
-                        "caffeine_mg",
-                        `${esc(T.importMeals.colCaffeine)} <span class="u">${esc(unitLabel("mg"))}</span>`,
-                    ],
-                ].filter(
-                    (c) =>
-                        (!c[2] || alcoholTracked()) &&
-                        S.rows.some((r) => r[c[0]] !== undefined),
-                );
-                return (
-                    cardOpen() +
-                    cardHead(T.importMeals.previewHeading) +
-                    '<div class="stat-row"><span>' +
-                    boldCount(
-                        pluralN(T.importMeals.mealsToImport, S.rows.length),
-                    ) +
-                    "</span><span>" +
-                    boldCount(
-                        tpl(T.importMeals.kcalTotal, {
-                            kcal: numLocale(kcal, true),
-                        }),
-                    ) +
-                    "</span>" +
-                    (S.skipped
-                        ? "<span>" +
-                          boldCount(
-                              pluralN(T.importMeals.rowsSkipped, S.skipped),
-                          ) +
-                          "</span>"
-                        : "") +
-                    "<span>" +
-                    boldCount(pluralN(T.importMeals.batchCount, chunks)) +
-                    "</span></div>" +
-                    // State the two conversions applied, so the confirmation step
-                    // shows what will be sent rather than what the file said.
-                    '<div class="hint" style="margin-bottom:10px">' +
-                    esc(
-                        tpl(T.importMeals.datesReadAs, {
-                            format: dateFormatLabel(S.dateFormat),
-                            conversion:
-                                S.energyUnit === "kj"
-                                    ? T.importMeals.energyConvertedNote
-                                    : T.importMeals.energyReadAsKcal,
-                        }),
-                    ) +
-                    "</div>" +
-                    // Importing fewer rows than the file holds is the exact failure
-                    // this flow exists to prevent, so never let it pass silently.
-                    (S.badDates
-                        ? notice(
-                              "warn",
-                              esc(
-                                  pluralN(
-                                      T.importMeals.badDatesWarning,
-                                      S.badDates,
-                                      {
-                                          format: dateFormatLabel(S.dateFormat),
-                                          sample: S.badDateSample
-                                              ? tpl(
-                                                    T.importMeals.badDateSample,
-                                                    {
-                                                        line: S.badDateSample
-                                                            .line,
-                                                        value: S.badDateSample
-                                                            .value,
-                                                    },
-                                                )
-                                              : "",
-                                      },
-                                  ),
-                              ),
-                          )
-                        : "") +
-                    (noTime
-                        ? notice(
-                              "warn",
-                              esc(pluralN(T.importMeals.noTimeWarning, noTime)),
-                          )
-                        : "") +
-                    // A calendar date with more than max_rows_per_call rows on
-                    // its own has to be split across more than one import
-                    // call — max_rows_per_call and "keep every date together"
-                    // cannot both hold there. Flagged so the user knows why,
-                    // and because two identical rows for that date landing in
-                    // different calls can dedupe against each other instead of
-                    // both being written (see chunkRows in src/chunk.ts).
-                    (splitDates.length
-                        ? notice(
-                              "warn",
-                              esc(
-                                  pluralN(
-                                      T.importMeals.splitDatesCount,
-                                      splitDates.length,
-                                  ) +
-                                      tpl(T.importMeals.splitDatesWarning, {
-                                          max: CFG.max_rows_per_call,
-                                          date: splitDates[0],
-                                      }),
-                              ),
-                          )
-                        : "") +
-                    // .tedge wraps the scroller so its edge fades stay put
-                    // while the rows move under them; wireScrollEdges() turns
-                    // them on from scrollLeft.
-                    //
-                    // role/tabindex/aria-label, not decoration: the scroller is
-                    // a real tab stop (browsers focus a keyboard-scrollable box
-                    // whether or not we ask them to), and it was announcing as
-                    // an unnamed group ahead of every button on this step. The
-                    // name is the step's own heading — the widest column of the
-                    // table is off-screen at 320px, so "Preview" is what the
-                    // thing being scrolled is called on screen. tabindex="0" is
-                    // explicit because focusable-scroller is Chrome behaviour,
-                    // not a guarantee; table.css draws the ring.
-                    // data-focus-key: every progress tick rebuilds this table,
-                    // and a keyboard user scrolling it mid-import would
-                    // otherwise be dropped to <body> once per batch.
-                    '<div class="tedge"><div class="tscroll" role="region" tabindex="0" data-focus-key="preview-table" aria-label="' +
-                    esc(T.importMeals.previewHeading) +
-                    '"><table class="tbl"><thead><tr>' +
-                    "<th>" +
-                    esc(T.importMeals.tableLine) +
-                    "</th><th>" +
-                    esc(T.importMeals.tableWhen) +
-                    "</th><th>" +
-                    esc(T.importMeals.tableMeal) +
-                    "</th><th class='wide'>" +
-                    esc(T.importMeals.tableFood) +
-                    "</th>" +
-                    '<th class="num"><span class="u">' +
-                    esc(unitLabel("kcal")) +
-                    '</span></th><th class="num">' +
-                    esc(T.importMeals.colProtein) +
-                    '</th><th class="num">' +
-                    esc(T.importMeals.colCarbs) +
-                    '</th><th class="num">' +
-                    esc(T.importMeals.colFat) +
-                    "</th>" +
-                    extra
-                        .map((c) => '<th class="num">' + c[1] + "</th>")
-                        .join("") +
-                    "</tr></thead><tbody>" +
-                    shown
-                        .map(
-                            (r) =>
-                                "<tr><td class='dim'>" +
-                                r.source_line +
-                                "</td><td>" +
-                                esc(r.logged_at) +
-                                "</td><td>" +
-                                esc(r.meal_type || "—") +
-                                "</td><td class='wide'>" +
-                                esc(
-                                    r.description ||
-                                        T.importMeals.noNameFallback,
-                                ) +
-                                '</td><td class="num">' +
-                                cellNum(r.calories) +
-                                '</td><td class="num">' +
-                                cellNum(r.protein_g) +
-                                '</td><td class="num">' +
-                                cellNum(r.carbs_g) +
-                                '</td><td class="num">' +
-                                cellNum(r.fat_g) +
-                                "</td>" +
-                                extra
-                                    .map(
-                                        (c) =>
-                                            '<td class="num">' +
-                                            cellNum(r[c[0]]) +
-                                            "</td>",
-                                    )
-                                    .join("") +
-                                "</tr>",
-                        )
-                        .join("") +
-                    "</tbody></table>" +
-                    "</div></div>" +
-                    // AFTER the scroller, and outside `.tedge`. As the last node
-                    // INSIDE `.tscroll` the one line saying the preview is
-                    // truncated sat ~1.7-2.5k px below the fold of the very box
-                    // it describes — on the step whose whole job is to confirm
-                    // what will be written, where the stat row names the total
-                    // but never says only 30 rows are shown. Outside `.tedge`
-                    // too: that wrapper's edge fades span its full height and
-                    // would paint over a caption merely outside the scroller.
-                    (S.rows.length > shown.length
-                        ? '<div class="tmore">' +
-                          // Selected on the TOTAL: the noun follows it ("of
-                          // 1,234 rows"), in every locale's word order.
-                          esc(
-                              plural(T.importMeals.showingRows, S.rows.length, {
-                                  shown: numLocale(shown.length, true),
-                                  total: numLocale(S.rows.length, true),
-                              }),
-                          ) +
-                          "</div>"
-                        : "") +
-                    (S.progress
-                        ? '<div style="margin-top:12px"><div class="bar"><span style="width:' +
-                          Math.round(
-                              (S.progress.done / S.progress.total) * 100,
-                          ) +
-                          '%"></span></div><div class="hint" style="margin-top:6px">' +
-                          esc(progressText()) +
-                          "</div></div>"
-                        : "") +
-                    (S.result && S.result.chunkErrors.length
-                        ? S.result.chunkErrors
-                              .map((e) => notice("error", esc(e)))
-                              .join("")
-                        : "") +
-                    (S.result && S.result.rowErrors.length && !S.busy
-                        ? notice(
-                              "error",
-                              esc(
-                                  pluralN(
-                                      T.importMeals.rowsWouldFail,
-                                      S.result.rowErrors.length,
-                                      {
-                                          line: S.result.rowErrors[0].line,
-                                          message:
-                                              S.result.rowErrors[0].message,
-                                      },
-                                  ),
-                              ),
-                          )
-                        : "") +
-                    (S.badDates > 0 ? diagnosticsBlock() : "") +
-                    // WHY THE PRIMARY BUTTON IS DEAD, on the card where it sits.
-                    // With the host withholding serverTools the user can still
-                    // parse, map and preview a file, and this step then greyed
-                    // out "Import 140 meals" with the only explanation two steps
-                    // back on the file card — which render() replaces wholesale,
-                    // so nothing carried it forward. Same translated string, no
-                    // new copy; aria-describedby ties it to the control, so the
-                    // reason is announced with the button rather than only read.
-                    (API && !API.canCallTools
-                        ? notice(
-                              "warn",
-                              '<span id="no-tools-why">' +
-                                  esc(T.importMeals.noToolsWarning) +
-                                  "</span>",
-                          )
-                        : "") +
-                    '<div class="actions"><button class="btn btn-primary" id="doImport"' +
-                    (API && !API.canCallTools
-                        ? ' aria-describedby="no-tools-why"'
-                        : "") +
-                    (S.busy || !(API && API.canCallTools) ? " disabled" : "") +
-                    ">" +
-                    esc(
-                        S.busy
-                            ? T.importMeals.importingEllipsis
-                            : pluralN(
-                                  T.importMeals.importButton,
-                                  S.rows.length,
-                              ),
-                    ) +
-                    "</button>" +
-                    '<button class="btn" id="backToMap"' +
-                    (S.busy ? " disabled" : "") +
-                    ">" +
-                    esc(T.importMeals.backToMapping) +
-                    "</button></div>" +
-                    cardClose()
-                );
+                return {
+                    rows: S.rows,
+                    skipped: S.skipped,
+                    badDates: S.badDates,
+                    badDateSample: S.badDateSample,
+                    dateFormat: S.dateFormat,
+                    energyUnit: S.energyUnit,
+                    chunks: chunks.length,
+                    splitDates,
+                    maxRows: CFG.max_rows_per_call,
+                    alcoholTracked: alcoholTracked(),
+                    progress: S.progress,
+                    busy: S.busy,
+                    result: S.result,
+                    noTools: !!(API && !API.canCallTools),
+                    canCallTools: !!(API && API.canCallTools),
+                    step: S.step,
+                };
             }
 
-            // The running import's one line: "Importing 50 rows… (batch 2 of
-            // 7)". Shown under the bar and spoken through the status region —
-            // one string, so what is heard is what is on screen.
+            function previewStep() {
+                const o = previewStepData();
+                o.diagHtml = S.badDates > 0 ? diagnosticsBlock() : "";
+                return importPreviewStep(o);
+            }
+
+            // The running import's one line — impProgressText.
             function progressText() {
-                if (!S.progress) return "";
-                return tpl(T.importMeals.batchProgress, {
-                    label: S.progress.label,
-                    // THE BATCH NAMED IS THE ONE IN FLIGHT. S.progress.done is a
-                    // completed-work counter — the `.bar` above fills to it and
-                    // is right to — but this sentence names the batch whose rows
-                    // the label is describing, so printing the completed count
-                    // made it permanently one behind: a six-batch run opened on
-                    // "batch 0 of 6" and never reached "6 of 6", and a
-                    // single-batch import spent its whole run saying "batch 0 of
-                    // 1", which is never true of anything. Clamped because the
-                    // last chunk sets done = total before the done step paints.
-                    done: numLocale(
-                        Math.min(S.progress.done + 1, S.progress.total),
-                        true,
-                    ),
-                    total: numLocale(S.progress.total, true),
-                });
+                return impProgressText(S.progress);
+            }
+
+            function doneStepData() {
+                return { result: S.result, skipped: S.skipped, step: S.step };
             }
 
             function doneStep() {
-                // chunkErrors in the fallback too: `ok` below reads it, and a
-                // done step with no result (a re-delivery racing a restart)
-                // would otherwise throw on the first line.
-                const r = S.result || {
-                    created: 0,
-                    deduplicated: 0,
-                    failed: 0,
-                    chunkErrors: [],
-                };
-                const ok = r.failed === 0 && !r.chunkErrors.length;
-                const tail =
-                    (r.deduplicated
-                        ? pluralN(
-                              T.importMeals.resultAlreadyLogged,
-                              r.deduplicated,
-                          )
-                        : "") +
-                    (r.failed
-                        ? pluralN(T.importMeals.resultFailed, r.failed)
-                        : "") +
-                    (S.skipped
-                        ? pluralN(T.importMeals.resultSkipped, S.skipped)
-                        : "");
-                return (
-                    cardOpen() +
-                    cardHead(T.importMeals.importCompleteHeading) +
-                    notice(
-                        ok ? "ok" : "warn",
-                        boldCount(
-                            pluralN(
-                                T.importMeals.resultMealsImported,
-                                r.created,
-                            ),
-                        ) +
-                            esc(tail) +
-                            // The terminator is copy, not punctuation this
-                            // template owns: Japanese ends a sentence with "。",
-                            // and this one was closing "…記録済み" — whose own
-                            // comma is already the ideographic one — with a
-                            // Latin stop.
-                            esc(T.importMeals.sentenceEnd),
-                    ) +
-                    // WHY IT FAILED, ON THE CARD, IN THE USER'S LANGUAGE. A
-                    // batch that threw pushes its reason here and falls through
-                    // to this step, where the only trace of it was the card
-                    // styling itself `warn` and the reason sitting inside the
-                    // copy-paste diagnostics dump — which is deliberately
-                    // English maintainer-facing text, not UI. So a failed import
-                    // and an import of zero rows looked the same: "0 meals
-                    // imported." and nothing else. The preview step already
-                    // renders this exact array this exact way.
-                    (r.chunkErrors || [])
-                        .map((e) => notice("error", esc(e)))
-                        .join("") +
-                    (r.warnings || []).map((w) => notice("", esc(w))).join("") +
-                    (r.rowErrors && r.rowErrors.length
-                        ? // Same contract as the preview scroller above: a
-                          // named, ringed tab stop rather than an anonymous one.
-                          // Named with the table's own "Problem" column header —
-                          // the one translated leaf that says what these rows
-                          // are. A dedicated leaf would read better; adding one
-                          // touches all 9 copy files, which are another agent's
-                          // this round (noted in the handover).
-                          '<div class="tedge"><div class="tscroll" role="region" tabindex="0" data-focus-key="error-table" aria-label="' +
-                          esc(T.importMeals.tableProblem) +
-                          '" style="max-height:160px"><table class="tbl"><thead><tr><th>' +
-                          esc(T.importMeals.tableLine) +
-                          '</th><th class="wide">' +
-                          esc(T.importMeals.tableProblem) +
-                          "</th></tr></thead><tbody>" +
-                          r.rowErrors
-                              .slice(0, 20)
-                              .map(
-                                  (e) =>
-                                      "<tr class='bad'><td class='dim'>" +
-                                      e.line +
-                                      "</td><td class='wide'>" +
-                                      esc(e.message) +
-                                      "</td></tr>",
-                              )
-                              .join("") +
-                          "</tbody></table></div></div>"
-                        : "") +
-                    (ok ? "" : diagnosticsBlock()) +
-                    '<div class="actions"><button class="btn" id="restart">' +
-                    esc(T.importMeals.restartButton) +
-                    "</button></div>" +
-                    cardClose()
-                );
+                const o = doneStepData();
+                o.diagHtml = impDoneOk(S.result) ? "" : diagnosticsBlock();
+                return importDoneStep(o);
             }
 
             // Repaint the current step without losing the keyboard user.

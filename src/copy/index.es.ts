@@ -215,10 +215,16 @@ export const INDEX_ES: IndexDoc = {
         photoPackageAlt:
             "Foto: el código de barras de una lata de Coca-Cola, número 5449000000996",
         threadLabel: "Conversación",
-        importerAlt:
-            "El importador del chat en su primer paso: elige tu archivo CSV de exportación de MyFitnessPal, Cronometer, Lose It! o MacroFactor",
+        importerAlt: {
+            file: "El importador del chat, paso 1 de 4: elige tu archivo CSV de exportación de MyFitnessPal, Cronometer, Lose It! o MacroFactor",
+            map: "Paso 2 de 4: las columnas del archivo se asignaron automáticamente; esta exportación no incluye nombres de alimentos",
+            preview:
+                "Paso 3 de 4: vista previa de 603 comidas, 322.343 kcal, antes de guardar nada",
+            done: "Paso 4 de 4: 603 comidas importadas",
+        },
         importerCaption:
-            "Vista previa del importador tal como aparece en tu chat",
+            "Las pantallas del importador en orden; en tu chat es una sola tarjeta que se va actualizando",
+        downloadExpires: "Caduca en 60 minutos",
         slides: [
             {
                 id: "log-meal",
@@ -231,35 +237,44 @@ export const INDEX_ES: IndexDoc = {
                     log_water:
                         "Suma los 500 ml de las 07:00 al total de agua de hoy",
                     get_current_time:
-                        "Mira la fecha y la hora para situar «las 7 de esta mañana»",
+                        "Mira la fecha de hoy para que «sobre las 7» quede a las 07:00",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "Un tazón de avena con frutos rojos y un café para desayunar",
+                        text: "avena con arándanos y un café para desayunar",
                     },
                     {
                         from: "ai",
-                        text: "Desayuno registrado: unas 320 kcal, 11 g de proteína y 6 g de fibra. El café sumó 95 mg de cafeína.",
+                        text: "¿Qué tamaño tenía el tazón, y la avena era con leche o con agua? ¿Le pusiste algo al café?",
                     },
                     {
                         from: "user",
-                        text: "Y 500 ml de agua sobre las 7 de esta mañana, después de correr",
+                        text: "un tazón normal, con leche. el café solo",
+                    },
+                    {
+                        from: "ai",
+                        text: "Desayuno registrado: unas 320 kcal, 11 g de proteína y 6 g de fibra. Con el café llevas 95 mg de tu límite de 400 mg de cafeína.",
+                    },
+                    {
+                        from: "user",
+                        text: "ah, y sobre las 7 me bebí como medio litro de agua, antes de salir a correr",
                     },
                     {
                         from: "ai",
                         text: "Añadidos 500 ml de agua a las 07:00 de esta mañana.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 1,
-                cardMeals: ["Avena con frutos rojos (1 tazón) y café (1 taza)"],
+                cards: [{ kind: "meal-logged", after: 3 }],
+                cardMeals: [
+                    "Avena con leche y arándanos (1 tazón) y café solo (1 taza)",
+                ],
             },
             {
                 id: "photo-meal",
                 title: "Fotografía tu plato",
                 description:
-                    "Una foto inicia una entrevista, no una conjetura. Primero aclara si es casera o de restaurante, mira tus registros previos, hace una pregunta por mensaje sobre raciones y aceite o salsa ocultos, y registra cuando apruebas el resumen.",
+                    "Una foto inicia una entrevista, no una conjetura. Aclara si es casero o de restaurante, mira cómo has registrado ese plato antes, pregunta de una en una por raciones y extras, y solo registra cuando apruebas el resumen.",
                 toolNotes: {
                     log_meal:
                         "Registra la comida solo cuando todo está claro y dices que sí",
@@ -267,34 +282,39 @@ export const INDEX_ES: IndexDoc = {
                         "Busca tus borsch registrados antes para preguntar cuál",
                 },
                 messages: [
-                    { from: "user", photo: "meal", text: "Almuerzo" },
-                    {
-                        from: "ai",
-                        text: "Borsch con crema agria y una rebanada de pan de centeno. Parece casero, ¿verdad?",
-                    },
-                    { from: "user", text: "Sí, la receta de mi madre" },
-                    {
-                        from: "ai",
-                        text: "Ya has registrado el borsch de dos maneras: con ternera (~320 kcal el plato) y sin carne (~180). ¿Cuál es este?",
-                    },
                     {
                         from: "user",
-                        text: "Con ternera. Le puse dos cucharadas de crema agria",
+                        photo: "meal",
+                        text: "el borsch de mi madre, de almuerzo",
                     },
                     {
                         from: "ai",
-                        text: "Entendido. Suponiendo que te terminaste el plato: borsch con ternera con 2 cdas. de crema agria y una rebanada de pan de centeno, unas 470 kcal y 24 g de proteína. ¿Lo registro como almuerzo?",
+                        text: "Tiene muy buena pinta. Has registrado borsch 6 veces: 5 con ternera (unas 320 kcal el plato, la última el 2 sept) y una sin carne (unas 180). ¿Cuál es este?",
                     },
-                    { from: "user", text: "Sí" },
+                    { from: "user", text: "con ternera" },
+                    {
+                        from: "ai",
+                        text: "Vale, con ternera. Quedan dos cosas: la crema agria y cuánto comiste. ¿Cuántas cucharadas de crema agria le pusiste, más o menos?",
+                    },
+                    { from: "user", text: "2 cucharadas, quizá un poco más" },
+                    {
+                        from: "ai",
+                        text: "Cuento 2 cucharadas generosas. ¿Te terminaste el plato?",
+                    },
+                    { from: "user", text: "entero, y el pan también" },
+                    {
+                        from: "ai",
+                        text: "Entonces: borsch con ternera (1 plato) con 2 cdas. generosas de crema agria, y una rebanada de pan de centeno por lo que se ve en la foto. Unas 470 kcal y 24 g de proteína. ¿Lo registro como almuerzo?",
+                    },
+                    { from: "user", text: "sí" },
                     {
                         from: "ai",
                         text: "Almuerzo registrado: 470 kcal · 24 g de proteína · 43 g de carbohidratos · 22 g de grasa · 7 g de fibra · 10 g de azúcar.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 7,
+                cards: [{ kind: "meal-logged", after: 9 }],
                 cardMeals: [
-                    "Borsch con ternera (1 plato) con crema agria (2 cdas.) y pan de centeno (1 rebanada)",
+                    "Borsch con ternera (1 plato, entero) con crema agria (2 cdas.) y pan de centeno (1 rebanada)",
                 ],
             },
             {
@@ -312,20 +332,19 @@ export const INDEX_ES: IndexDoc = {
                     {
                         from: "user",
                         photo: "package",
-                        text: "Me tomé esto con el almuerzo",
+                        text: "me tomé esto con el almuerzo. ¿cómo de malo es, en serio?",
                     },
                     {
                         from: "ai",
-                        text: "Es una Coca-Cola de 330 ml: 139 kcal y 35 g de azúcar, según Open Food Facts. ¿Te tomaste la lata entera?",
+                        text: "Es una lata de Coca-Cola de 330 ml: 139 kcal y 35 g de azúcar, según Open Food Facts. ¿Te tomaste la lata entera?",
                     },
-                    { from: "user", text: "Entera" },
+                    { from: "user", text: "entera" },
                     {
                         from: "ai",
-                        text: "Registrada con el almuerzo: 139 kcal y 35 g de azúcar. Open Food Facts no tiene el dato de cafeína, así que usé el de la propia Coca-Cola: unos 32 mg por lata.",
+                        text: "Registrada con el almuerzo: 139 kcal, 35 g de azúcar y 33 mg de cafeína, con el dato de la propia Coca-Cola, porque Open Food Facts no incluye la cafeína. Y sobre lo mala que es: ese azúcar ya supera por sí solo la mitad de tu límite diario de 60 g, y Open Food Facts le da Nutri-Score E y NOVA 4, ultraprocesado.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 3,
+                cards: [{ kind: "meal-logged", after: 3 }],
                 cardMeals: ["Coca-Cola (lata de 330 ml)"],
             },
             {
@@ -342,28 +361,27 @@ export const INDEX_ES: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "Define mis objetivos: 2000 kcal, 160 g de proteína y un límite de cafeína. ¿Cuál sería razonable?",
+                        text: "quiero definir un poco. ponme 2000 kcal y 160 g de proteína. y ¿cuál es un tope de cafeína sensato? prácticamente vivo a base de café",
                     },
                     {
                         from: "ai",
-                        text: "Una referencia habitual es el máximo de la EFSA y la FDA para adultos sanos: 400 mg al día, unas cuatro tazas de café de filtro. ¿Uso ese?",
+                        text: "La EFSA y la FDA sitúan el máximo para adultos sanos en 400 mg al día, unas cuatro tazas de café de filtro; en el embarazo, la EFSA aconseja 200 mg. ¿Pongo 400 como tu límite?",
                     },
-                    { from: "user", text: "Sí, 400" },
+                    { from: "user", text: "sí, 400" },
                     {
                         from: "ai",
-                        text: "Objetivos actualizados: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg.",
+                        text: "Hecho: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg. Lo demás sigue igual: 220 g de carbohidratos, 70 g de grasa, 30 g de fibra, 2,5 L de agua y tu límite de 60 g de azúcar.",
                     },
                     {
                         from: "user",
-                        text: "¿Todavía me cabe un postre esta noche?",
+                        text: "¿todavía me cabe un postre esta noche?",
                     },
                     {
                         from: "ai",
-                        text: "Llevas 1540 kcal y 104 g de proteína: te quedan 460 kcal y 56 g de proteína para llegar a tus objetivos. Así que sí, te cabe un postre de unas 200 kcal, siempre que el resto sea sobre todo proteína.",
+                        text: "Sí. Llevas 1540 kcal y 104 g de proteína, así que te quedan 460 kcal y 56 g de proteína. Lo más justo es el azúcar: 40 de tus 60 g de límite, así que un yogur griego con frutos rojos encaja mejor que una tarta, y además te ayuda con la proteína.",
                     },
                 ],
-                widget: "goal-progress",
-                widgetAfter: 5,
+                cards: [{ kind: "goal-progress", after: 5 }],
                 cardMeals: [
                     "Yogur griego con granola y frutos rojos (1 tazón)",
                     "Wrap de pollo con ensalada (1 wrap)",
@@ -383,21 +401,25 @@ export const INDEX_ES: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "¿Qué tal han ido las dos últimas semanas?",
+                        text: "¿qué tal han ido las dos últimas semanas? tengo la sensación de haber ido a trompicones",
                     },
                     {
                         from: "ai",
-                        text: "Promediaste 1830 kcal al día en los últimos 14 días (13 de ellos registrados), 170 por debajo de tu objetivo. La proteína fue tu macro más estable.",
+                        text: "Más estable de lo que parece. Promediaste 1830 kcal al día, 170 por debajo de tus 2000, pero eso cuenta como cero el único día de los 14 que no registraste. En los 13 días registrados fueron unas 1970, con 9 días a menos de un 10% de tu objetivo. Y llevas una racha de 10 días registrando.",
+                    },
+                    { from: "user", text: "¿y el azúcar?" },
+                    {
+                        from: "ai",
+                        text: "Ese es el que hay que vigilar. Promedió 52 g y superó tu límite de 60 g en 4 de los 13 días.",
                     },
                 ],
-                widget: "trends",
-                widgetAfter: 1,
+                cards: [{ kind: "trends", after: 1 }],
             },
             {
                 id: "weight-trend",
                 title: "Controla tu peso",
                 description:
-                    "Registra tu peso en kg o lb y ve la tendencia bajo el ruido del día a día: una media suavizada, el cambio del mes y lo que te falta para tu objetivo. Una lectura imposible, como gramos escritos como kilos, se detecta antes de guardarse.",
+                    "Registra tu peso en kg o lb y ve la tendencia bajo el ruido del día a día: una media suavizada, el cambio del mes y lo que te falta para tu objetivo. Una lectura imposible, como una coma decimal olvidada, se detecta antes de guardarse.",
                 toolNotes: {
                     log_weight:
                         "Guarda 78,4 kg y rechaza una lectura físicamente imposible",
@@ -405,17 +427,21 @@ export const INDEX_ES: IndexDoc = {
                         "Suaviza 30 días en medias móviles y la distancia al objetivo",
                 },
                 messages: [
+                    { from: "user", text: "me acabo de pesar, 784" },
+                    {
+                        from: "ai",
+                        text: "784 kg no es un peso posible para una persona, así que no lo he guardado. ¿Querías decir 78,4?",
+                    },
                     {
                         from: "user",
-                        text: "Acabo de pesarme: 78,4 kg. ¿Cómo va la tendencia?",
+                        text: "jaja sí, se me olvidó la coma. ¿cómo voy?",
                     },
                     {
                         from: "ai",
-                        text: "Registrados 78,4 kg. Has bajado 1,8 kg en los últimos 30 días, con una media de 7 días de 78,7 kg. Te faltan 3,4 kg para tu objetivo de 75 kg.",
+                        text: "Guardados 78,4 kg. Has bajado 1,8 kg desde el 14 ago, unos 0,4 kg por semana, y tu media de 7 días es de 78,7 kg. Te faltan 3,4 kg para tu objetivo de 75 kg.",
                     },
                 ],
-                widget: "weight-trends",
-                widgetAfter: 1,
+                cards: [{ kind: "weight-trends", after: 3 }],
             },
             {
                 id: "meal-patterns",
@@ -424,21 +450,29 @@ export const INDEX_ES: IndexDoc = {
                     "Pregunta cuándo comes más y compara tus propios registros: entre semana y fin de semana, días con y sin desayuno, almuerzos grandes, cenas tempranas y tardías. También señala días atípicos, y muestra patrones, no causas.",
                 toolNotes: {
                     get_meal_patterns:
-                        "Compara entre semana, fines de semana y horas de cena en 30 días",
+                        "Compara días con y sin desayuno, horas de cena y fines de semana en 30 días",
                 },
                 messages: [
-                    { from: "user", text: "¿Como más los fines de semana?" },
+                    {
+                        from: "user",
+                        text: "¿como más los días que no desayuno? me da esa impresión",
+                    },
                     {
                         from: "ai",
-                        text: "En realidad no. En los últimos 30 días, entre semana promedias 1986 kcal y los fines de semana, 1977.",
+                        text: "Un poco, sí. Registraste 28 de los últimos 30 días y no desayunaste en 6. Esos días promediaron 2215 kcal, frente a 1940 en los 22 días con desayuno, y unos 35 g menos de proteína.",
                     },
                     {
                         from: "user",
-                        text: "¿Hay algo que marque la diferencia?",
+                        text: "¿y las cenas tardías? los días de gimnasio no ceno hasta las 9",
                     },
                     {
                         from: "ai",
-                        text: "La hora de la cena, sí. Los días que cenas a las 20:00 o más tarde promedian 2150 kcal, frente a 1915 cuando cenas antes.",
+                        text: "También destacan: los 9 días que cenaste a las 20:00 o más tarde promediaron 2165 kcal, frente a 1920 en los otros 19. Las dos cosas son patrones de tu registro, no prueban que ninguna sea la causa.",
+                    },
+                    { from: "user", text: "¿y los fines de semana?" },
+                    {
+                        from: "ai",
+                        text: "Casi igual: los fines de semana promedias 2010 kcal y entre semana, 1993.",
                     },
                 ],
             },
@@ -456,28 +490,35 @@ export const INDEX_ES: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "Me gustaría controlar también lo que bebo",
+                        text: "¿puedes contar también lo que bebo? quiero beber un poco menos",
                     },
                     {
                         from: "ai",
-                        text: "Claro. ¿Lo cuento en bebidas estándar de EE. UU. o en unidades del Reino Unido?",
-                    },
-                    { from: "user", text: "Unidades del Reino Unido" },
-                    {
-                        from: "ai",
-                        text: "Seguimiento de alcohol activado, en gramos junto a las unidades del Reino Unido. Funciona desde tu siguiente mensaje, sin abrir un chat nuevo.",
+                        text: "Claro. ¿Muestro el alcohol en bebidas estándar de EE. UU. o en unidades del Reino Unido?",
                     },
                     {
                         from: "user",
-                        text: "Me tomé una pinta de lager al 4% con la cena",
+                        text: "unidades del Reino Unido, vivo en Mánchester",
                     },
+                    {
+                        from: "ai",
+                        text: "Seguimiento de alcohol activado, en gramos junto a las unidades del Reino Unido.",
+                    },
+                    {
+                        from: "user",
+                        text: "me tomé una pinta de lager con la cena",
+                    },
+                    {
+                        from: "ai",
+                        text: "¿Qué graduación tenía? Las lager suelen tener entre un 4 y un 5%, y lo pone en el grifo o en la lata.",
+                    },
+                    { from: "user", text: "creo que 4%" },
                     {
                         from: "ai",
                         text: "Registrada con la cena: una pinta de 568 ml al 4% son 17,9 g de alcohol, 2,3 unidades del Reino Unido y unas 180 kcal.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 5,
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
             },
             {
@@ -491,25 +532,50 @@ export const INDEX_ES: IndexDoc = {
                     get_profile:
                         "Detecta que aún no hay zona horaria configurada",
                     set_timezone:
-                        "Configura America/Chicago para que las horas caigan en su día",
+                        "Fija America/Chicago para que las comidas queden en hora local",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "¿Puedes traer mi historial de MyFitnessPal?",
+                        text: "me paso desde MyFitnessPal. ¿puedes traerte mi diario de comidas? ya tengo la exportación",
                     },
                     {
                         from: "ai",
-                        text: "Claro. Antes, tu zona horaria no está configurada, así que las horas importadas se leerían como UTC. ¿Dónde vives?",
+                        text: "Sí. Antes, una cosa: tu zona horaria no está configurada, así que las comidas importadas quedarían en hora UTC en vez de en tu hora local. ¿Dónde vives?",
                     },
                     { from: "user", text: "Chicago" },
                     {
                         from: "ai",
-                        text: "Zona horaria configurada: America/Chicago. Ahora elige tu archivo de exportación en el importador de abajo. Se lee en tu navegador y no se guarda nada hasta que confirmes la vista previa.",
+                        text: "Configurada: America/Chicago. Ahora elige en el importador de abajo el CSV Nutrition-Summary de tu exportación de MyFitnessPal. Se lee en tu propio navegador y no se guarda nada hasta que confirmes la vista previa.",
+                    },
+                    {
+                        from: "user",
+                        text: "ha asignado las columnas, pero en nombre del alimento pone «no está en este archivo», ¿es normal?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Es normal en MyFitnessPal: su exportación tiene una fila por comida y día, con los totales pero sin nombres de alimentos. Cada comida se etiqueta con su tipo de comida, con sus calorías y macros intactas.",
+                    },
+                    {
+                        from: "user",
+                        text: "603 comidas. ¿dice que se registrarán al mediodía?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Sí, la exportación tiene fechas pero no horas. El mediodía deja cada comida en su día correcto en Chicago; lo único es que no verás a qué hora comiste de verdad.",
+                    },
+                    { from: "user", text: "¡listo! ¿ha entrado todo?" },
+                    {
+                        from: "ai",
+                        text: "Todo: 603 comidas importadas y ninguna fallida.",
                     },
                 ],
-                widget: "import-meals",
-                widgetAfter: 3,
+                cards: [
+                    { kind: "import-meals", after: 3, step: "file" },
+                    { kind: "import-meals", after: 3, step: "map" },
+                    { kind: "import-meals", after: 5, step: "preview" },
+                    { kind: "import-meals", after: 7, step: "done" },
+                ],
             },
             {
                 id: "export-data",
@@ -523,19 +589,28 @@ export const INDEX_ES: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "Haz una copia de seguridad de todos mis datos",
+                        text: "mi dietista quiere ver mi registro de comidas. ¿me lo puedes sacar en una hoja de cálculo?",
                     },
                     {
                         from: "ai",
-                        text: "Hecho: un ZIP con 1204 comidas, 318 registros de agua, 64 pesajes, tus objetivos y los ajustes de tu perfil. Aquí tienes el enlace de descarga. Funciona durante 60 minutos.",
+                        text: "Aquí lo tienes: un ZIP con 1204 comidas, 318 registros de agua y 64 pesajes, además de tus objetivos y ajustes. Tu registro de comidas es el meals.csv que va dentro, y se abre en Excel o Google Sheets.",
+                        download: "export-zip",
                     },
                     {
                         from: "user",
-                        text: "¿Podré restaurarlos más adelante?",
+                        text: "¿no le puedo mandar el enlace sin más?",
                     },
                     {
                         from: "ai",
-                        text: "Tus comidas, sí. meals.csv se vuelve a importar directamente, y cualquier comida que aún tengas se reconoce por su id y se omite, así que nada se duplica. El agua, el peso, los objetivos y los ajustes solo se exportan, así que guarda el ZIP.",
+                        text: "Mejor descárgalo y mándale el archivo. El enlace deja de funcionar a los 60 minutos, y cualquiera que lo tenga puede abrir toda tu exportación, peso y ajustes incluidos, no solo las comidas.",
+                    },
+                    {
+                        from: "user",
+                        text: "bueno saberlo. ¿podría restaurar desde ahí más adelante si hiciera falta?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Tus comidas, sí. meals.csv se vuelve a importar directamente, y cualquier comida que aún tengas se reconoce por su id y se omite, así que nada se duplica. El agua, el peso, los objetivos y los ajustes van en el ZIP solo para que los conserves; no se pueden volver a importar.",
                     },
                 ],
             },

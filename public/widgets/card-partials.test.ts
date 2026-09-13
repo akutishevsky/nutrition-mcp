@@ -458,3 +458,260 @@ describe("import-meals' first step is shared/import-card.js's", async () => {
         w.S.step = "file";
     });
 });
+
+// The later steps moved the same way: the site draws still pictures of the map,
+// preview and done screens (src/widget-static.ts), so their markup is
+// shared/import-card.js's and the template supplies only the data. What these
+// pin is that the template's steps ARE those emitters over its own data — no
+// inline fork left behind — and that a page's id prefix renames ids and
+// nothing else. (The extraction itself was checked byte for byte against the
+// pre-extraction template over 102 states in six locales.)
+describe("import-meals' later steps are shared/import-card.js's", async () => {
+    const document = {
+        getElementById: () => null,
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        activeElement: null,
+        hasFocus: () => false,
+        addEventListener() {},
+    };
+    const w = new Function(
+        "document",
+        "window",
+        `${await scriptOf("import-meals")}
+         return {
+             S,
+             setAPI: (a) => { API = a; },
+             setCFG: (c) => { CFG = Object.assign({}, CFG, c); },
+             setLocale, parseCsv, autoMap, guessSourceApp, resniffDateFormat,
+             resniffEnergyUnit, buildRows, diagnosticsBlock,
+             fileStep, mapStep, previewStep, doneStep, progressText,
+             mapStepData, previewStepData, doneStepData,
+             importFileStep, importMapStep, importPreviewStep, importDoneStep,
+             impProgressText, impDoneOk,
+         };`,
+    )(document, {}) as Record<string, any>;
+
+    // A MyFitnessPal-shaped file, and one that trips every notice the map and
+    // preview steps have: a BOM, tabs, a totals row, an added-sugar and a
+    // grams-caffeine column, an alcohol column, kJ, an unreadable date.
+    const FILES: Record<string, string> = {
+        mfp:
+            "Date,Meal,Calories,Fat (g),Carbohydrates (g),Fiber,Sugar,Protein (g),Note\r\n" +
+            Array.from(
+                { length: 36 },
+                (_, i) =>
+                    `2025-03-${String(10 + Math.floor(i / 4)).padStart(2, "0")},${["Breakfast", "Dinner", "Lunch", "Snacks"][i % 4]},${(300 + i * 1.5).toFixed(1)},12.5,40.2,5,9.1,22.3,${i === 2 ? "Pizza & <b>" : ""}`,
+            ).join("\r\n") +
+            "\r\n",
+        odd:
+            "﻿Day\tFood Name\tMeal\tEnergy (kJ)\tProtein\tAdded Sugar (g)\tCaffeine (g)\tAlcohol (g)\n" +
+            "05/06/2026\tPorridge\tBreakfast\t1300\t9\t4\t0.1\t0\n" +
+            "31/31/2026\tToast\tLunch\t900\t5\t2\t0\t14\n" +
+            "Totals\t\t\t2200\t14\t6\t0.1\t14\n",
+    };
+
+    function load(csv: string, drinkUnit: string | null) {
+        w.setCFG({ drink_unit: drinkUnit, max_rows_per_call: 50 });
+        w.S.table = w.parseCsv(new TextEncoder().encode(csv));
+        w.autoMap();
+        w.guessSourceApp();
+        w.resniffDateFormat();
+        w.resniffEnergyUnit();
+        w.S.step = "map";
+    }
+
+    test("mapStep / previewStep / doneStep are the emitters over the widget's own data", () => {
+        for (const locale of ["en", "ja", "pl"]) {
+            w.setLocale(locale);
+            for (const [name, csv] of Object.entries(FILES)) {
+                for (const drinkUnit of [null, "uk"]) {
+                    const at = `${locale} ${name} ${drinkUnit}`;
+                    load(csv, drinkUnit);
+                    expect(`${at}: ${w.mapStep()}`).toBe(
+                        `${at}: ${w.importMapStep(w.mapStepData())}`,
+                    );
+
+                    w.buildRows();
+                    w.S.step = "preview";
+                    for (const api of [
+                        null,
+                        { canCallTools: false },
+                        { canCallTools: true },
+                    ]) {
+                        for (const busy of [false, true]) {
+                            w.setAPI(api);
+                            w.S.busy = busy;
+                            w.S.progress = busy
+                                ? { done: 1, total: 3, label: "x" }
+                                : null;
+                            w.S.result = busy
+                                ? {
+                                      created: 0,
+                                      deduplicated: 0,
+                                      failed: 0,
+                                      chunkErrors: ["Rows 2–3: <no>"],
+                                      rowErrors: [{ line: 2, message: "m" }],
+                                      warnings: [],
+                                  }
+                                : null;
+                            const diag =
+                                w.S.badDates > 0 ? w.diagnosticsBlock() : "";
+                            expect(w.previewStep()).toBe(
+                                w.importPreviewStep({
+                                    ...w.previewStepData(),
+                                    diagHtml: diag,
+                                }),
+                            );
+                            expect(w.progressText()).toBe(
+                                w.impProgressText(w.S.progress),
+                            );
+                        }
+                    }
+                    // The support dump is the preview's only on bad dates.
+                    expect(w.previewStep().includes('class="diag"')).toBe(
+                        w.S.badDates > 0,
+                    );
+
+                    w.S.step = "done";
+                    w.S.busy = false;
+                    w.S.progress = null;
+                    for (const result of [
+                        null,
+                        {
+                            created: 3,
+                            deduplicated: 0,
+                            failed: 0,
+                            chunkErrors: [],
+                            rowErrors: [],
+                            warnings: ["3 row(s) had a date but no time."],
+                        },
+                        {
+                            created: 1,
+                            deduplicated: 2,
+                            failed: 1,
+                            chunkErrors: ["Rows 2–3: rig"],
+                            rowErrors: [{ line: 3, message: "bad <x>" }],
+                            warnings: [],
+                        },
+                    ]) {
+                        w.S.result = result;
+                        const ok = w.impDoneOk(result);
+                        expect(w.doneStep()).toBe(
+                            w.importDoneStep({
+                                ...w.doneStepData(),
+                                diagHtml: ok ? "" : w.diagnosticsBlock(),
+                            }),
+                        );
+                        expect(w.doneStep().includes('class="diag"')).toBe(!ok);
+                    }
+                }
+            }
+        }
+    });
+
+    test("an id prefix renames every id and every reference to one, and nothing else", () => {
+        w.setLocale("en");
+        load(FILES.odd!, null);
+        w.S.errors = ["e"];
+        w.setAPI({ canCallTools: false });
+        const PRE = "ex-imp-7";
+        const screens: [string, (p?: string) => string][] = [
+            [
+                "file",
+                (p) =>
+                    w.importFileStep({
+                        noTools: true,
+                        supportEmail: "",
+                        tzConfigured: false,
+                        errors: ["e"],
+                        step: "file",
+                        idPrefix: p,
+                    }),
+            ],
+            [
+                "map",
+                (p) => w.importMapStep({ ...w.mapStepData(), idPrefix: p }),
+            ],
+            [
+                "preview",
+                (p) => {
+                    w.buildRows();
+                    w.S.step = "preview";
+                    return w.importPreviewStep({
+                        ...w.previewStepData(),
+                        diagHtml: "",
+                        idPrefix: p,
+                    });
+                },
+            ],
+            [
+                "done",
+                (p) =>
+                    w.importDoneStep({
+                        result: {
+                            created: 1,
+                            deduplicated: 0,
+                            failed: 0,
+                            chunkErrors: [],
+                            rowErrors: [],
+                            warnings: [],
+                        },
+                        skipped: 0,
+                        step: "done",
+                        diagHtml: "",
+                        idPrefix: p,
+                    }),
+            ],
+        ];
+        for (const [step, render] of screens) {
+            const plain = render();
+            const prefixed = render(PRE);
+            const ids = [...prefixed.matchAll(/\sid="([^"]+)"/g)].map(
+                (m) => m[1]!,
+            );
+            expect(ids.length).toBeGreaterThan(0);
+            for (const id of ids) {
+                expect(`${step}: ${id}`).toStartWith(`${step}: ${PRE}-`);
+            }
+            // Every label and description points at an id on the same screen.
+            for (const m of prefixed.matchAll(
+                /\s(?:for|aria-describedby)="([^"]+)"/g,
+            )) {
+                expect(`${step} -> ${m[1]}: ${ids.includes(m[1]!)}`).toBe(
+                    `${step} -> ${m[1]}: true`,
+                );
+            }
+            // Strip the prefix back off and it is the chat card, byte for byte.
+            expect(
+                prefixed.replace(
+                    new RegExp(`\\s(id|for|aria-describedby)="${PRE}-`, "g"),
+                    (m) => m.replace(`${PRE}-`, ""),
+                ),
+            ).toBe(plain);
+        }
+        // The preview with no tools is the one screen with aria-describedby.
+        expect(screens[2]![1](PRE)).toContain(
+            `aria-describedby="${PRE}-no-tools-why"`,
+        );
+    });
+
+    test("the template writes no step markup of its own any more", async () => {
+        const template = await Bun.file(
+            `${SRC}/templates/import-meals.html`,
+        ).text();
+        const script = template.slice(template.indexOf("<script>"));
+        expect(script).toContain("/*@include shared/import-card.js@*/");
+        for (const markup of [
+            '<div class="stat-row">',
+            '<div class="map-grid">',
+            'id="doImport"',
+            'id="restart"',
+            "function formatFieldsHtml(",
+        ]) {
+            expect(`${markup}: ${script.includes(markup)}`).toBe(
+                `${markup}: false`,
+            );
+        }
+    });
+});

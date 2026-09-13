@@ -214,10 +214,16 @@ export const INDEX_NL: IndexDoc = {
         photoPackageAlt:
             "Foto: de barcode op een blikje Coca-Cola, nummer 5449000000996",
         threadLabel: "Gesprek",
-        importerAlt:
-            "De importer in de chat bij de eerste stap: kies je geëxporteerde CSV-bestand uit MyFitnessPal, Cronometer, Lose It! of MacroFactor",
+        importerAlt: {
+            file: "De importer in de chat, stap 1 van 4: kies je geëxporteerde CSV-bestand uit MyFitnessPal, Cronometer, Lose It! of MacroFactor",
+            map: "Stap 2 van 4: de kolommen van het bestand zijn automatisch gekoppeld; deze export heeft geen namen van voedingsmiddelen",
+            preview:
+                "Stap 3 van 4: een voorbeeld van 603 maaltijden, 322.343 kcal, voordat er iets wordt opgeslagen",
+            done: "Stap 4 van 4: 603 maaltijden geïmporteerd",
+        },
         importerCaption:
-            "Voorbeeld van de importer zoals die in je chat verschijnt",
+            "De schermen van de importer op volgorde; in je chat is het één kaart die zichzelf bijwerkt",
+        downloadExpires: "Verloopt over 60 minuten",
         slides: [
             {
                 id: "log-meal",
@@ -230,35 +236,44 @@ export const INDEX_NL: IndexDoc = {
                     log_water:
                         "Telt de 500 ml om 07:00 mee in het water van vandaag",
                     get_current_time:
-                        "Zoekt datum en tijd op, zodat “rond 7 uur vanochtend” klopt",
+                        "Zoekt de datum van vandaag op, zodat “rond 7 uur” op 07:00 valt",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "Een kom havermout met bessen en een kop koffie als ontbijt",
+                        text: "havermout met blauwe bessen en een bak koffie als ontbijt",
                     },
                     {
                         from: "ai",
-                        text: "Ontbijt gelogd: ongeveer 320 kcal, 11 g eiwit, 6 g vezels. De koffie voegde 95 mg cafeïne toe.",
+                        text: "Hoe groot was de kom, en was de havermout met melk of met water? Zat er iets in de koffie?",
                     },
                     {
                         from: "user",
-                        text: "En 500 ml water rond 7 uur vanochtend, na het hardlopen",
+                        text: "gewone kom, met melk. koffie zwart",
+                    },
+                    {
+                        from: "ai",
+                        text: "Ontbijt gelogd: ongeveer 320 kcal, 11 g eiwit en 6 g vezels. Met de koffie zit je op 95 mg van je cafeïnelimiet van 400 mg.",
+                    },
+                    {
+                        from: "user",
+                        text: "o ja, en rond 7 uur heb ik zo'n halve liter water gedronken, voor het hardlopen",
                     },
                     {
                         from: "ai",
                         text: "500 ml water toegevoegd om 07:00 vanochtend.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 1,
-                cardMeals: ["Havermout met bessen (1 kom) en koffie (1 kop)"],
+                cards: [{ kind: "meal-logged", after: 3 }],
+                cardMeals: [
+                    "Havermout met melk en blauwe bessen (1 kom) en zwarte koffie (1 kop)",
+                ],
             },
             {
                 id: "photo-meal",
                 title: "Fotografeer je bord",
                 description:
-                    "Een foto start een vraaggesprek, geen gok. Eerst: zelfgemaakt of restaurant? Dan worden je eerdere logs bekeken, volgt per bericht één vraag over porties en verborgen olie of saus, en wordt pas gelogd als je de samenvatting goedkeurt.",
+                    "Een foto start een vraaggesprek, geen gok. Zelfgemaakt of restaurant, hoe je het gerecht eerder logde, dan één vraag per bericht over porties en extra's. Er wordt pas gelogd als je de samenvatting goedkeurt.",
                 toolNotes: {
                     log_meal:
                         "Logt pas als alle vragen beantwoord zijn en je ja zegt",
@@ -266,34 +281,39 @@ export const INDEX_NL: IndexDoc = {
                         "Vindt hoe je borsjtsj eerder logde, om te vragen welke",
                 },
                 messages: [
-                    { from: "user", photo: "meal", text: "Lunch" },
-                    {
-                        from: "ai",
-                        text: "Borsjtsj met zure room en een snee roggebrood. Ziet er zelfgemaakt uit, toch?",
-                    },
-                    { from: "user", text: "Ja, het recept van mijn moeder" },
-                    {
-                        from: "ai",
-                        text: "Je hebt borsjtsj al op twee manieren gelogd: met rundvlees (~320 kcal per kom) en vegetarisch (~180). Welke is dit?",
-                    },
                     {
                         from: "user",
-                        text: "Met rundvlees. Ik heb er twee eetlepels zure room bij gedaan",
+                        photo: "meal",
+                        text: "borsjtsj van mama als lunch",
                     },
                     {
                         from: "ai",
-                        text: "Helder. Ervan uitgaande dat je de kom leeg hebt gegeten: borsjtsj met rundvlees, 2 el zure room en een snee roggebrood, ongeveer 470 kcal, 24 g eiwit. Loggen als lunch?",
+                        text: "Ziet er goed uit. Je hebt borsjtsj 6 keer gelogd: 5 keer met rundvlees (ongeveer 320 kcal per kom, laatst op 2 sep) en één keer zonder vlees (ongeveer 180). Welke is dit?",
                     },
-                    { from: "user", text: "Ja" },
+                    { from: "user", text: "rundvlees" },
+                    {
+                        from: "ai",
+                        text: "Helder, met rundvlees. Nog twee dingen: de zure room en hoeveel je hebt gegeten. Hoeveel lepels zure room gingen erin, ongeveer?",
+                    },
+                    { from: "user", text: "2 eetlepels, misschien iets meer" },
+                    {
+                        from: "ai",
+                        text: "Ik reken met 2 flinke eetlepels. Heb je de kom helemaal leeggegeten?",
+                    },
+                    { from: "user", text: "helemaal, het brood ook" },
+                    {
+                        from: "ai",
+                        text: "Dus: borsjtsj met rundvlees (1 kom) met 2 flinke el zure room, plus een snee roggebrood op de foto. Ongeveer 470 kcal en 24 g eiwit. Loggen als lunch?",
+                    },
+                    { from: "user", text: "ja" },
                     {
                         from: "ai",
                         text: "Lunch gelogd: 470 kcal · 24 g eiwit · 43 g koolhydraten · 22 g vet · 7 g vezels · 10 g suiker.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 7,
+                cards: [{ kind: "meal-logged", after: 9 }],
                 cardMeals: [
-                    "Borsjtsj met rundvlees (1 kom) met zure room (2 el) en roggebrood (1 snee)",
+                    "Borsjtsj met rundvlees (1 kom, leeg) met zure room (2 el) en roggebrood (1 snee)",
                 ],
             },
             {
@@ -311,20 +331,19 @@ export const INDEX_NL: IndexDoc = {
                     {
                         from: "user",
                         photo: "package",
-                        text: "Had ik bij de lunch",
+                        text: "had ik bij de lunch. hoe erg is het eigenlijk?",
                     },
                     {
                         from: "ai",
-                        text: "Dat is een Coca-Cola van 330 ml: 139 kcal en 35 g suiker, via Open Food Facts. Heb je het hele blikje gedronken?",
+                        text: "Dat is een blikje Coca-Cola van 330 ml: 139 kcal en 35 g suiker, volgens Open Food Facts. Heb je het hele blikje op?",
                     },
-                    { from: "user", text: "Helemaal" },
+                    { from: "user", text: "hele blikje" },
                     {
                         from: "ai",
-                        text: "Gelogd bij de lunch: 139 kcal en 35 g suiker. Open Food Facts heeft geen cafeïnewaarde, dus ik heb die van Coca-Cola zelf gebruikt: ongeveer 32 mg per blikje.",
+                        text: "Gelogd bij de lunch: 139 kcal, 35 g suiker en 33 mg cafeïne volgens Coca-Cola zelf, want Open Food Facts vermeldt geen cafeïne. En hoe erg: die suiker is in zijn eentje al meer dan de helft van je daglimiet van 60 g, en Open Food Facts geeft het Nutri-Score E en NOVA 4, ultrabewerkt.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 3,
+                cards: [{ kind: "meal-logged", after: 3 }],
                 cardMeals: ["Coca-Cola (blikje van 330 ml)"],
             },
             {
@@ -341,28 +360,27 @@ export const INDEX_NL: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "Stel mijn doelen in: 2.000 kcal, 160 g eiwit en een cafeïnelimiet. Wat is verstandig?",
+                        text: "wil een beetje afvallen. zet me op 2000 kcal en 160 g eiwit. en wat is een verstandige cafeïnegrens? ik leef zo'n beetje op koffie",
                     },
                     {
                         from: "ai",
-                        text: "Een gangbare richtlijn is de bovengrens van EFSA en FDA voor gezonde volwassenen: 400 mg per dag, ongeveer vier koppen filterkoffie. Zal ik die nemen?",
+                        text: "EFSA en de FDA leggen de bovengrens voor gezonde volwassenen op 400 mg per dag, ongeveer vier koppen filterkoffie; bij zwangerschap adviseert de EFSA 200 mg. Zal ik 400 als je limiet instellen?",
                     },
-                    { from: "user", text: "Ja, 400" },
+                    { from: "user", text: "ja, 400" },
                     {
                         from: "ai",
-                        text: "Doelen bijgewerkt: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder 400 mg.",
+                        text: "Klaar: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder 400 mg. De rest blijft zoals het was: 220 g koolhydraten, 70 g vet, 30 g vezels, 2,5 L water en je suikerlimiet van 60 g.",
                     },
                     {
                         from: "user",
-                        text: "Past er vanavond nog een toetje in?",
+                        text: "kan er vanavond nog een toetje in?",
                     },
                     {
                         from: "ai",
-                        text: "Je zit op 1.540 kcal en 104 g eiwit: nog 460 kcal en 56 g eiwit te gaan tot je doelen. Dus ja, een toetje van zo'n 200 kcal past, zolang de rest vooral eiwit is.",
+                        text: "Ja. Je zit op 1.540 kcal en 104 g eiwit, dus nog 460 kcal en 56 g eiwit te gaan. Suiker is krapper: 40 van je limiet van 60 g, dus Griekse yoghurt met bessen past beter dan taart, en die helpt ook nog met je eiwit.",
                     },
                 ],
-                widget: "goal-progress",
-                widgetAfter: 5,
+                cards: [{ kind: "goal-progress", after: 5 }],
                 cardMeals: [
                     "Griekse yoghurt met granola en bessen (1 kom)",
                     "Kipwrap met salade (1 wrap)",
@@ -382,21 +400,25 @@ export const INDEX_NL: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "Hoe zijn de afgelopen twee weken gegaan?",
+                        text: "hoe gingen de afgelopen twee weken? voelt alsof het alle kanten op ging",
                     },
                     {
                         from: "ai",
-                        text: "Je zat de afgelopen 14 dagen gemiddeld op 1.830 kcal per dag (13 daarvan gelogd), 170 onder je doel. Eiwit was je stabielste macro.",
+                        text: "Stabieler dan het voelt. Je zat gemiddeld op 1.830 kcal per dag, 170 onder je 2.000, maar daarin telt de ene dag van de 14 die je niet logde als nul. Op de 13 gelogde dagen was het ongeveer 1.970, met 9 dagen binnen 10% van je doel. En je logt nu 10 dagen op rij.",
+                    },
+                    { from: "user", text: "en suiker?" },
+                    {
+                        from: "ai",
+                        text: "Die moet je in de gaten houden. Gemiddeld 52 g, en op 4 van de 13 dagen zat je boven je limiet van 60 g.",
                     },
                 ],
-                widget: "trends",
-                widgetAfter: 1,
+                cards: [{ kind: "trends", after: 1 }],
             },
             {
                 id: "weight-trend",
                 title: "Volg je gewicht",
                 description:
-                    "Log een weging in kg of lb en zie de trend achter de dagelijkse schommelingen: een afgevlakt gemiddelde, de verandering over de maand en de afstand tot je streefgewicht. Een onmogelijke meting, zoals gram als kilo, wordt vóór opslaan geweigerd.",
+                    "Log een weging in kg of lb en zie de trend achter de dagelijkse schommelingen: een afgevlakt gemiddelde, de verandering over de maand en de afstand tot je streefgewicht. Een onmogelijke meting, zoals een vergeten komma, wordt vóór opslaan tegengehouden.",
                 toolNotes: {
                     log_weight:
                         "Slaat 78,4 kg op en weigert een fysiek onmogelijke meting",
@@ -404,17 +426,21 @@ export const INDEX_NL: IndexDoc = {
                         "Middelt 30 dagen voortschrijdend, met de afstand tot je doel",
                 },
                 messages: [
+                    { from: "user", text: "net gewogen, 784" },
+                    {
+                        from: "ai",
+                        text: "784 kg kan een lichaam niet wegen, dus ik heb het niet opgeslagen. Bedoelde je 78,4?",
+                    },
                     {
                         from: "user",
-                        text: "Net gewogen: 78,4 kg. Hoe gaat de trend?",
+                        text: "haha ja, komma vergeten. hoe gaat mijn trend?",
                     },
                     {
                         from: "ai",
-                        text: "78,4 kg gelogd. Je bent de afgelopen 30 dagen 1,8 kg afgevallen, met een 7-daags gemiddelde van 78,7 kg. Nog 3,4 kg tot je streefgewicht van 75 kg.",
+                        text: "78,4 kg opgeslagen. Sinds 14 aug ben je 1,8 kg afgevallen, ongeveer 0,4 kg per week, en je 7-daags gemiddelde is 78,7 kg. Nog 3,4 kg tot je streefgewicht van 75 kg.",
                     },
                 ],
-                widget: "weight-trends",
-                widgetAfter: 1,
+                cards: [{ kind: "weight-trends", after: 3 }],
             },
             {
                 id: "meal-patterns",
@@ -423,21 +449,29 @@ export const INDEX_NL: IndexDoc = {
                     "Vraag wanneer je meer eet en het vergelijkt je eigen logs: doordeweeks met het weekend, dagen met en zonder ontbijt, grote lunches, vroeg met laat avondeten. Het markeert ook ongewone dagen en meldt patronen, geen oorzaken.",
                 toolNotes: {
                     get_meal_patterns:
-                        "Vergelijkt doordeweeks, weekend en tijden van avondeten over 30 dagen",
+                        "Vergelijkt ontbijt, etenstijd en weekends over 30 dagen",
                 },
                 messages: [
-                    { from: "user", text: "Eet ik meer in het weekend?" },
+                    {
+                        from: "user",
+                        text: "eet ik meer op dagen dat ik mijn ontbijt oversla? voelt wel zo",
+                    },
                     {
                         from: "ai",
-                        text: "Niet echt. De afgelopen 30 dagen zit je doordeweeks gemiddeld op 1.986 kcal en in het weekend op 1.977.",
+                        text: "Een beetje, ja. Je logde 28 van de afgelopen 30 dagen en sloeg op 6 daarvan je ontbijt over. Die dagen zaten gemiddeld op 2.215 kcal, tegenover 1.940 op de 22 dagen met ontbijt, en op zo'n 35 g minder eiwit.",
                     },
                     {
                         from: "user",
-                        text: "Is er iets dat wel verschil maakt?",
+                        text: "en laat avondeten? op sportdagen eet ik pas om 9 uur",
                     },
                     {
                         from: "ai",
-                        text: "Het tijdstip van je avondeten. Op dagen met avondeten om 20:00 of later zit je gemiddeld op 2.150 kcal, tegenover 1.915 als je eerder eet.",
+                        text: "Die vallen ook op: de 9 dagen met avondeten om 20:00 of later zaten gemiddeld op 2.165 kcal, tegenover 1.920 op de andere 19. Het zijn allebei patronen in je logs, geen bewijs dat een van beide de oorzaak is.",
+                    },
+                    { from: "user", text: "en in het weekend?" },
+                    {
+                        from: "ai",
+                        text: "Nauwelijks verschil: in het weekend gemiddeld 2.010 kcal, doordeweeks 1.993.",
                     },
                 ],
             },
@@ -453,27 +487,37 @@ export const INDEX_NL: IndexDoc = {
                         "Berekent de alcohol in de pint uit hoeveelheid en sterkte",
                 },
                 messages: [
-                    { from: "user", text: "Ik wil ook bijhouden wat ik drink" },
                     {
-                        from: "ai",
-                        text: "Prima. Moet het tellen in Amerikaanse standaardglazen of Britse eenheden?",
+                        from: "user",
+                        text: "kun je ook mijn drankjes bijhouden? ik wil wat minderen",
                     },
-                    { from: "user", text: "Britse eenheden" },
                     {
                         from: "ai",
-                        text: "Alcoholregistratie staat aan, in gram met Britse eenheden erbij. Het werkt vanaf je volgende bericht, een nieuwe chat is niet nodig.",
+                        text: "Zeker. Zal ik alcohol tonen in Amerikaanse standaardglazen of in Britse eenheden?",
                     },
                     {
                         from: "user",
-                        text: "Had een pint pils van 4% bij het avondeten",
+                        text: "Britse eenheden, ik woon in Manchester",
                     },
+                    {
+                        from: "ai",
+                        text: "Alcoholregistratie staat aan, in gram met Britse eenheden erbij.",
+                    },
+                    {
+                        from: "user",
+                        text: "had een pint pils bij het avondeten",
+                    },
+                    {
+                        from: "ai",
+                        text: "Hoe sterk was die? Pils zit meestal op 4 tot 5%, en dat staat op de tap of het blikje.",
+                    },
+                    { from: "user", text: "4% denk ik" },
                     {
                         from: "ai",
                         text: "Gelogd bij het avondeten: een pint van 568 ml met 4% is 17,9 g alcohol, 2,3 Britse eenheden, ongeveer 180 kcal.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 5,
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: ["Pils, 4% (1 pint, 568 ml)"],
             },
             {
@@ -487,25 +531,50 @@ export const INDEX_NL: IndexDoc = {
                     get_profile:
                         "Merkt op dat er nog geen tijdzone is ingesteld",
                     set_timezone:
-                        "Stelt America/Chicago in, zodat tijden op de juiste dag vallen",
+                        "Stelt America/Chicago in, zodat maaltijden in lokale tijd staan",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "Kun je mijn MyFitnessPal-geschiedenis overzetten?",
+                        text: "ik stap over van MyFitnessPal. kun je mijn eetdagboek overzetten? ik heb de export al",
                     },
                     {
                         from: "ai",
-                        text: "Zeker. Eerst: je tijdzone is niet ingesteld, dus geïmporteerde tijden zouden als UTC worden gelezen. Waar woon je?",
+                        text: "Ja. Eerst één ding: je tijdzone is niet ingesteld, dus geïmporteerde maaltijden zouden op UTC-tijd komen te staan in plaats van je lokale tijd. Waar woon je?",
                     },
                     { from: "user", text: "Chicago" },
                     {
                         from: "ai",
-                        text: "Tijdzone ingesteld op America/Chicago. Kies nu je exportbestand in de importer hieronder. Het wordt in je browser gelezen en er wordt niets opgeslagen tot je het voorbeeld bevestigt.",
+                        text: "Ingesteld op America/Chicago. Kies nu in de importer hieronder de Nutrition-Summary-CSV uit je MyFitnessPal-export. Die wordt gewoon in je browser gelezen, en er wordt niets opgeslagen tot je het voorbeeld bevestigt.",
+                    },
+                    {
+                        from: "user",
+                        text: "de kolommen zijn gekoppeld, maar bij naam voedingsmiddel staat „niet in dit bestand”?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dat is normaal bij MyFitnessPal: de export heeft één rij per maaltijd per dag, met de totalen maar zonder namen van voedingsmiddelen. Elke maaltijd krijgt in plaats daarvan de naam van zijn maaltijdsoort, met calorieën en macro's intact.",
+                    },
+                    {
+                        from: "user",
+                        text: "603 maaltijden. er staat dat ze op het middaguur worden gelogd?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Klopt, de export heeft datums maar geen tijden. Met het middaguur staat elke maaltijd in Chicago op de juiste dag; je ziet alleen niet wanneer je echt hebt gegeten.",
+                    },
+                    { from: "user", text: "klaar! is alles erin gekomen?" },
+                    {
+                        from: "ai",
+                        text: "Alles: 603 maaltijden geïmporteerd en geen enkele mislukt.",
                     },
                 ],
-                widget: "import-meals",
-                widgetAfter: 3,
+                cards: [
+                    { kind: "import-meals", after: 3, step: "file" },
+                    { kind: "import-meals", after: 3, step: "map" },
+                    { kind: "import-meals", after: 5, step: "preview" },
+                    { kind: "import-meals", after: 7, step: "done" },
+                ],
             },
             {
                 id: "export-data",
@@ -519,16 +588,28 @@ export const INDEX_NL: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "Maak een back-up van al mijn gegevens",
+                        text: "mijn diëtist wil mijn eetdagboek zien. kun je het eruit halen als spreadsheet?",
                     },
                     {
                         from: "ai",
-                        text: "Klaar: één ZIP met 1.204 maaltijden, 318 waterregistraties, 64 wegingen, je doelen en je profielinstellingen. Hier is de downloadlink. Die werkt 60 minuten.",
+                        text: "Alsjeblieft: één ZIP met 1.204 maaltijden, 318 waterregistraties en 64 wegingen, plus je doelen en instellingen. Je eetdagboek is meals.csv daarin, en die opent in Excel of Google Sheets.",
+                        download: "export-zip",
                     },
-                    { from: "user", text: "Kan ik daar later mee herstellen?" },
+                    {
+                        from: "user",
+                        text: "kan ik haar niet gewoon de link sturen?",
+                    },
                     {
                         from: "ai",
-                        text: "Je maaltijden wel. meals.csv importeer je zo weer terug, en elke maaltijd die je nog hebt wordt herkend aan zijn id en overgeslagen, dus niets komt dubbel. Water, gewicht, doelen en instellingen zijn alleen te exporteren, dus bewaar de ZIP.",
+                        text: "Download hem liever en stuur haar het bestand. De link werkt na 60 minuten niet meer, en iedereen die hem heeft kan je hele export openen, gewicht en instellingen inbegrepen, niet alleen je maaltijden.",
+                    },
+                    {
+                        from: "user",
+                        text: "goed om te weten. kan ik er later ook mee herstellen als dat nodig is?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Je maaltijden wel. meals.csv importeer je zo weer terug, en elke maaltijd die je nog hebt wordt herkend aan zijn id en overgeslagen, dus niets komt dubbel. Water, gewicht, doelen en instellingen zitten alleen voor je eigen administratie in de ZIP; die kun je niet terug importeren.",
                     },
                 ],
             },

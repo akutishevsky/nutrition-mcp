@@ -46,6 +46,8 @@ import {
 } from "./site-partials.js";
 import {
     INDEX,
+    type ExampleCardRef,
+    type ExampleDownload,
     type ExampleMessage,
     type ExampleSlide,
     type ExampleSlideId,
@@ -54,13 +56,16 @@ import {
     type IndexDoc,
 } from "../src/copy/index.js";
 import {
+    IMPORT_STEPS,
     renderGoalProgressCard,
-    renderImportFileStep,
+    renderImportStep,
     renderMealLoggedCard,
     renderSummaryCard,
     renderTrendsCard,
     renderWeightTrendsCard,
     type GoalProgressPayload,
+    type ImportFile,
+    type ImportStep,
     type MealProgressPayload,
     type StartImportPayload,
     type SummaryPayload,
@@ -73,6 +78,7 @@ import {
     DEMO_TRENDS,
     demoExampleMealLogged,
     demoGoalProgressPayload,
+    demoImportFile,
     demoStartImportPayload,
     demoSummaryPayload,
     demoWeightTrendsPayload,
@@ -1802,13 +1808,21 @@ export type CardKind =
     | "weight-trends"
     | "import-meals";
 
-/** The card an example slide shows, with the payload it is drawn from. */
+/** A card an example slide shows, with the payload it is drawn from. The
+ *  importer's screens also carry which screen and the file it has read
+ *  (every screen after the first is that file, parsed and imported by the
+ *  widget's own code — src/widget-static.ts). */
 export type ExampleCard =
     | { kind: "trends"; payload: TrendsPayload }
     | { kind: "meal-logged"; payload: MealProgressPayload }
     | { kind: "goal-progress"; payload: GoalProgressPayload }
     | { kind: "weight-trends"; payload: WeightTrendsPayload }
-    | { kind: "import-meals"; payload: StartImportPayload };
+    | {
+          kind: "import-meals";
+          payload: StartImportPayload;
+          step: ImportStep;
+          file: ImportFile;
+      };
 
 /** The tool whose outputSchema each example card's payload stands in for. */
 export const EXAMPLE_CARD_TOOL: Record<ExampleCard["kind"], DemoTool> = {
@@ -1832,24 +1846,46 @@ const CARD_MEALS: Record<ExampleCard["kind"], number> = {
  *  the page holds seven strips besides the hero's, so each card takes its slide's id. */
 export const exampleIdPrefix = (id: ExampleSlideId): string => `ex-${id}`;
 
-/** The card behind a slide, for `locale`, or null on a slide without one.
- *  Figures are src/copy/widget-demo.ts's; the meal descriptions are the
- *  slide's own `cardMeals`, in the page's language. */
-export function exampleCardPayload(
+/** The id prefix of one example card. An importer screen adds its step:
+ *  every screen has an `imp-title` heading, and import-history shows four. */
+export const exampleCardIdPrefix = (
+    id: ExampleSlideId,
+    card: ExampleCard,
+): string =>
+    card.kind === "import-meals"
+        ? `${exampleIdPrefix(id)}-${card.step}`
+        : exampleIdPrefix(id);
+
+/** The cards behind a slide, for `locale`, in `slide.cards` order — empty on
+ *  a slide without one. Figures are src/copy/widget-demo.ts's; the meal
+ *  descriptions are the slide's own `cardMeals`, in the page's language. At
+ *  most one card on a slide lists meals, so `cardMeals` is that card's. */
+export function exampleCardPayloads(
     slide: ExampleSlide,
     locale: SiteLocale,
-): ExampleCard | null {
-    if (!slide.widget) return null;
+): ExampleCard[] {
+    const refs = slide.cards ?? [];
     const meals = slide.cardMeals ?? [];
+    const want = refs.reduce((n, r) => n + CARD_MEALS[r.kind], 0);
     if (
-        meals.length !== CARD_MEALS[slide.widget] ||
+        refs.filter((r) => CARD_MEALS[r.kind] > 0).length > 1 ||
+        meals.length !== want ||
         meals.some((m) => typeof m !== "string" || !m.trim())
     ) {
         throw new Error(
-            `${locale}: examples slide "${slide.id}" needs exactly ${CARD_MEALS[slide.widget]} non-empty cardMeals for its ${slide.widget} card, got ${meals.length}.`,
+            `${locale}: examples slide "${slide.id}" needs exactly ${want} non-empty cardMeals for its cards (${refs.map((r) => r.kind).join(", ") || "none"}), got ${meals.length}.`,
         );
     }
-    switch (slide.widget) {
+    return refs.map((ref) => exampleCardFor(slide, ref, meals, locale));
+}
+
+function exampleCardFor(
+    slide: ExampleSlide,
+    ref: ExampleCardRef,
+    meals: string[],
+    locale: SiteLocale,
+): ExampleCard {
+    switch (ref.kind) {
         case "trends":
             return { kind: "trends", payload: trendsCardPayload(locale) };
         case "meal-logged":
@@ -1876,9 +1912,15 @@ export function exampleCardPayload(
                 payload: demoWeightTrendsPayload(locale),
             };
         case "import-meals":
+            if (!ref.step || !IMPORT_STEPS.includes(ref.step))
+                throw new Error(
+                    `${locale}: examples slide "${slide.id}" has an import-meals card with no known step (${String(ref.step)}).`,
+                );
             return {
                 kind: "import-meals",
                 payload: demoStartImportPayload(locale),
+                step: ref.step,
+                file: demoImportFile(),
             };
     }
 }
@@ -1890,7 +1932,7 @@ export async function renderExampleCard(
     slideId: ExampleSlideId,
     locale: SiteLocale,
 ): Promise<string> {
-    const idPrefix = exampleIdPrefix(slideId);
+    const idPrefix = exampleCardIdPrefix(slideId, card);
     switch (card.kind) {
         case "trends":
             return renderTrendsCard(
@@ -1912,38 +1954,48 @@ export async function renderExampleCard(
                 card.payload.default_range,
             );
         case "import-meals":
-            return renderImportFileStep(card.payload, locale);
+            return renderImportStep(card.step, card.payload, locale, {
+                file: card.file,
+                idPrefix,
+            });
     }
 }
 
 /** An example card wrapped for the page.
  *
- *  Seven are live (widgetCardBlock, bound by /widget-card.js). The importer is
- *  a STILL PICTURE of its first step: its real flow parses a file in the
+ *  Seven are live (widgetCardBlock, bound by /widget-card.js). The importer's
+ *  four screens are STILL PICTURES: its real flow parses a file in the
  *  browser and calls bulk_import_meals, neither of which means anything on
- *  this page. So it ships no payload, its controls are `inert`, and the
- *  wrapper is one `role="img"` named by `examples.importerAlt`. The
- *  `data-widget` value still matters: the importer's scoped CSS hangs off
- *  `:where([data-widget="import-meals"])` (scripts/gen-widget-card.ts). The
- *  `.page` class is the importer template's own root class. */
+ *  this page. So each ships no payload, its controls are `inert`, and the
+ *  wrapper is one `role="img"` named by that screen's `examples.importerAlt`.
+ *  In chat the importer is ONE card repainting in place; here each screen
+ *  sits where the conversation reached it, which is what the caption under
+ *  the first screen says. The `data-widget` value still matters: the
+ *  importer's scoped CSS hangs off `:where([data-widget="import-meals"])`
+ *  (scripts/gen-widget-card.ts). The `.page` class is the importer template's
+ *  own root class. */
 function exampleCardBlock(
     card: ExampleCard,
     markup: string,
     doc: IndexDoc,
     locale: SiteLocale,
     indent: string,
+    firstPicture: boolean,
 ): string {
     if (card.kind !== "import-meals")
         return widgetCardBlock(card.kind, markup, card.payload, locale, indent);
-    // The caption is what tells a MOUSE or TOUCH user it is a picture: the
-    // dashed drop zone still looks like a button, and role="img" + inert only
-    // reach a keyboard and a screen reader. It repeats what the image's name
-    // already says, so it is hidden from assistive tech.
-    return `${indent}<div class="nm-widget-card" data-widget="import-meals" role="img" aria-label="${attr(doc.examples.importerAlt)}">
+    // The caption is what tells a MOUSE or TOUCH user these are pictures: the
+    // dashed drop zone and the buttons still look clickable, and role="img" +
+    // inert only reach a keyboard and a screen reader. It repeats what the
+    // images' names already say, so it is hidden from assistive tech — and
+    // said once, under the first screen, not four times.
+    const caption = firstPicture
+        ? `\n${indent}<p class="nm-ex-still" aria-hidden="true"><i class="fa-solid fa-eye"></i> ${esc(doc.examples.importerCaption)}</p>`
+        : "";
+    return `${indent}<div class="nm-widget-card" data-widget="import-meals" data-import-step="${card.step}" role="img" aria-label="${attr(doc.examples.importerAlt[card.step])}">
 ${indent}    <div class="wrap page" inert>${withSettingsNote(markup, locale)}
 ${indent}    </div>
-${indent}</div>
-${indent}<p class="nm-ex-still" aria-hidden="true"><i class="fa-solid fa-eye"></i> ${esc(doc.examples.importerCaption)}</p>`;
+${indent}</div>${caption}`;
 }
 
 /** Every card of one locale's page, rendered and wrapped. */
@@ -1952,8 +2004,9 @@ export interface LandingCards {
      *  state the thread ends on and the one rendered into the conversation;
      *  any earlier ones are parked outside it for the replay to bring in. */
     hero: string[];
-    /** One block per example slide that shows a card, keyed by slide id. */
-    examples: Partial<Record<ExampleSlideId, string>>;
+    /** Each example slide's card blocks, in `slide.cards` order, keyed by
+     *  slide id. */
+    examples: Partial<Record<ExampleSlideId, string[]>>;
 }
 
 async function renderLandingCards(
@@ -1969,10 +2022,9 @@ async function renderLandingCards(
             "no hero exchange is marked `widget: true`, so the landing page would ship a chat with no summary card",
         );
     }
-    const exampleCards = doc.examples.slides.flatMap((s) => {
-        const card = exampleCardPayload(s, locale);
-        return card ? [{ slide: s, card }] : [];
-    });
+    const exampleCards = doc.examples.slides.flatMap((s) =>
+        exampleCardPayloads(s, locale).map((card) => ({ slide: s, card })),
+    );
     // Against the LIVE outputSchemas, before a single card is drawn — the
     // same guard scripts/widget-harness.ts runs over its fixtures, and for
     // the same reason: a payload the tool would never send renders a card
@@ -1984,12 +2036,19 @@ async function renderLandingCards(
         await validateDemoPayload(EXAMPLE_CARD_TOOL[card.kind], card.payload);
     const examples: LandingCards["examples"] = {};
     for (const { slide, card } of exampleCards) {
-        examples[slide.id] = exampleCardBlock(
-            card,
-            await renderExampleCard(card, slide.id, locale),
-            doc,
-            locale,
-            " ".repeat(36),
+        const blocks = (examples[slide.id] ??= []);
+        blocks.push(
+            exampleCardBlock(
+                card,
+                await renderExampleCard(card, slide.id, locale),
+                doc,
+                locale,
+                " ".repeat(36),
+                card.kind === "import-meals" &&
+                    !(slide.cards ?? [])
+                        .slice(0, blocks.length)
+                        .some((r) => r.kind === "import-meals"),
+            ),
         );
     }
     const hero: string[] = [];
@@ -2327,18 +2386,29 @@ export function exampleStructure(slides: readonly ExampleSlide[]): string[] {
     return slides.map((s) =>
         [
             s?.id,
-            // The card, the reply it follows and how many meals it lists:
-            // all three are structure, and the last is the one count a
-            // translation could get wrong while translating the meals.
-            s?.widget
-                ? `${s.widget}@${s.widgetAfter ?? "?"}`
-                : s?.widgetAfter != null
-                  ? `-@${s.widgetAfter}`
-                  : "-",
+            // The cards, the reply each follows, the importer's screens and
+            // how many meals they list: all structure, and the last is the
+            // one count a translation could get wrong while translating the
+            // meals. A locale still on the old single `widget` shape shows
+            // up here as a slide with no cards.
+            `cards:${
+                Array.isArray(s?.cards) && s.cards.length
+                    ? s.cards
+                          .map(
+                              (c) =>
+                                  `${c?.kind}${c?.step ? `/${c.step}` : ""}@${c?.after ?? "?"}`,
+                          )
+                          .join(",")
+                    : "-"
+            }`,
             `meals:${Array.isArray(s?.cardMeals) ? s.cardMeals.length : 0}`,
             ...(Array.isArray(s?.messages)
                 ? s.messages.map((m) =>
-                      m.from === "user" && m.photo ? `user+${m.photo}` : m.from,
+                      m.from === "user" && m.photo
+                          ? `user+${m.photo}`
+                          : m.from === "ai" && m.download
+                            ? `ai+${m.download}`
+                            : m.from,
                   )
                 : ["(no messages)"]),
         ].join(" "),
@@ -2364,7 +2434,7 @@ function assertExamplesMirrorEnglish(doc: IndexDoc, locale: SiteLocale): void {
     if (diff >= 0 || got.length !== want.length) {
         const i = diff >= 0 ? diff : want.length;
         throw new Error(
-            `${locale}: examples.slides must mirror English's structure (ids, widget, message from/photo sequence). ` +
+            `${locale}: examples.slides must mirror English's structure (ids, cards, cardMeals count, message from/photo/download sequence). ` +
                 `Slide ${i + 1}: expected "${want[i] ?? "(none)"}", got "${got[i] ?? "(none)"}".`,
         );
     }
@@ -2379,21 +2449,34 @@ function assertExamplesMirrorEnglish(doc: IndexDoc, locale: SiteLocale): void {
     );
     for (const key of [
         "threadLabel",
-        "importerAlt",
         "importerCaption",
+        "downloadExpires",
     ] as const)
         if (!doc.examples[key]?.trim())
             throw new Error(`${locale}: examples.${key} is empty.`);
-    slides.forEach((s) => {
-        // A card follows the reply of the turn whose tool call returned it.
-        if (
-            s.widget &&
-            (!Number.isInteger(s.widgetAfter) ||
-                s.messages[s.widgetAfter!]?.from !== "ai")
-        )
+    for (const step of IMPORT_STEPS)
+        if (!doc.examples.importerAlt?.[step]?.trim())
             throw new Error(
-                `${locale}: examples slide "${s.id}" widgetAfter must be the index of the ai reply its ${s.widget} card follows, got ${s.widgetAfter}.`,
+                `${locale}: examples.importerAlt.${step} is empty.`,
             );
+    slides.forEach((s) => {
+        (s.cards ?? []).forEach((c, k) => {
+            // A card follows the reply of the turn whose tool call returned
+            // it (or, for an importer screen, the reply before the click that
+            // reached it) — always an ai reply, never before an earlier card.
+            if (
+                !Number.isInteger(c.after) ||
+                s.messages[c.after]?.from !== "ai" ||
+                (k > 0 && c.after < s.cards![k - 1]!.after)
+            )
+                throw new Error(
+                    `${locale}: examples slide "${s.id}" card ${k + 1} (${c.kind}) must follow an ai reply, in thread order; got after ${c.after}.`,
+                );
+            if ((c.kind === "import-meals") !== Boolean(c.step))
+                throw new Error(
+                    `${locale}: examples slide "${s.id}" card ${k + 1}: an importer card names its step, and no other card does.`,
+                );
+        });
         if (!s.description?.trim())
             throw new Error(
                 `${locale}: examples slide "${s.id}" has no description.`,
@@ -2440,6 +2523,36 @@ function mealPhotoSvg(): string {
 </svg>`;
 }
 
+/** The files an ai reply can hand over, by ExampleDownload. Both parts are
+ *  the real ones: export_all_data always writes
+ *  `<user id>/nutrition-mcp-export.zip` (exportArchivePath, src/supabase.ts)
+ *  into the `exports` bucket (EXPORT_BUCKET, src/export.ts), and
+ *  src/landing-script.test.ts reads both back from there. */
+export const EXAMPLE_DOWNLOADS: Record<
+    ExampleDownload,
+    { bucket: string; fileName: string }
+> = {
+    "export-zip": { bucket: "exports", fileName: "nutrition-mcp-export.zip" },
+};
+
+/** The download link under an ai reply: what a chat shows for the signed link
+ *  export_all_data returns — the link, with the file's name standing out in
+ *  it, and how long it lasts.
+ *
+ *  AN EXAMPLE OF THE LINK, NOT A WORKING ONE. The real URL is a per-user
+ *  signed Supabase link that is dead an hour after it is minted, so there is
+ *  nothing true to point at, and a link to the FAQ would be a control
+ *  labelled as a download that opens a paragraph. So the link is drawn in its
+ *  real shape — `…/exports/…/nutrition-mcp-export.zip?token=…` — with every
+ *  per-user part (host and project, user id, token) elided to "…": no href,
+ *  no role, no tab stop, a default cursor, nothing that resolves if copied.
+ *  The elided parts are hidden from a screen reader, which hears the reply
+ *  and then "nutrition-mcp-export.zip, Expires in 60 minutes". */
+function downloadChip(e: IndexDoc["examples"], d: ExampleDownload): string {
+    const f = EXAMPLE_DOWNLOADS[d];
+    return `<span class="nm-ex-file"><span class="nm-ex-file-ic" aria-hidden="true"><i class="fa-solid fa-file-zipper"></i></span><span class="nm-ex-file-body"><span class="nm-ex-file-link"><span aria-hidden="true">…/${esc(f.bucket)}/…/</span><span class="nm-ex-file-name">${esc(f.fileName)}</span><span aria-hidden="true">?token=…</span></span><span class="nm-ex-file-exp"><i class="fa-regular fa-clock" aria-hidden="true"></i> ${esc(e.downloadExpires)}</span></span></span>`;
+}
+
 /** One bubble of an example conversation. A user photo turn is the picture
  *  (role="img", named by the translated alt) with its optional caption under
  *  it: the meal drawing, or the package's barcode label — the same label the
@@ -2450,7 +2563,7 @@ function renderExampleMessage(
     pad: string,
 ): string {
     if (m.from === "ai")
-        return `${pad}<div class="nm-ex-a">${esc(m.text)}</div>`;
+        return `${pad}<div class="nm-ex-a">${esc(m.text)}${m.download ? downloadChip(e, m.download) : ""}</div>`;
     if (!m.photo) return `${pad}<div class="nm-ex-q">${esc(m.text)}</div>`;
     const snap =
         m.photo === "meal"
@@ -2543,21 +2656,24 @@ function renderExamples(
                       .map((t) => row(t, "nm-ex-chip", ""))
                       .join("")}\n                                    </ul>`
                 : "";
-            // The real card the conversation's tool call returned, right
-            // after the reply of that turn (widgetAfter) — not always the
-            // last bubble: log-meal's card follows its first reply, and the
-            // water it logs next returns none. The live cards work: drawers,
-            // tile taps and the trends / weight 7 / 14 / 30 toggles.
-            const card = cards.examples[s.id];
-            if (Boolean(s.widget) !== Boolean(card))
+            // The real cards the conversation's tool calls returned, each
+            // right after the reply it follows (ExampleCardRef.after) — not
+            // always the last bubble: log-meal's card follows the breakfast
+            // reply, and the water it logs next returns none. The live cards
+            // work: drawers, tile taps and the trends / weight 7 / 14 / 30
+            // toggles.
+            const refs = s.cards ?? [];
+            const blocks = cards.examples[s.id] ?? [];
+            if (refs.length !== blocks.length)
                 throw new Error(
-                    `${locale}: examples slide "${s.id}" ${s.widget ? `wants a ${s.widget} card that was not rendered` : "was rendered a card it does not name"}.`,
+                    `${locale}: examples slide "${s.id}" names ${refs.length} card(s) but ${blocks.length} were rendered.`,
                 );
             const messages = s.messages
-                .map(
-                    (m, k) =>
-                        renderExampleMessage(e, m, " ".repeat(36)) +
-                        (card && k === s.widgetAfter ? `\n${card}` : ""),
+                .map((m, k) =>
+                    [
+                        renderExampleMessage(e, m, " ".repeat(36)),
+                        ...blocks.filter((_, c) => refs[c]!.after === k),
+                    ].join("\n"),
                 )
                 .join("\n");
             return `                        <div class="nm-ex-slide" id="ex-slide-${i + 1}" role="tabpanel" aria-roledescription="${attr(e.slideRole)}" aria-label="${attr(position(i))}" data-ex-id="${attr(s.id)}" data-ex-slide>

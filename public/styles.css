@@ -2438,6 +2438,12 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     background: var(--bg2);
     border: 1px solid var(--line);
     border-radius: 24px;
+    /* THE REPLY COLUMN: the widest an assistant reply may run, and exactly
+       the width of a card in the thread, so a card lines up with the
+       replies around it on both edges instead of running past them. One
+       token for both, redefined per breakpoint (on this rule, not on
+       .nm-ex-thread, which keeps a single rule), so they cannot drift. */
+    --ex-reply-w: 90%;
 }
 /* THE WINDOW HAS A FIXED FOOTPRINT AND THE CONVERSATION SCROLLS INSIDE IT.
    Eight of the ten threads carry a real widget card (seven live, plus the
@@ -2610,7 +2616,7 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
    reply colour would vanish into it. */
 .nm-ex-a {
     align-self: flex-start;
-    max-width: 90%;
+    max-width: var(--ex-reply-w);
     padding: 9px 14px;
     background: var(--panel);
     border: 1px solid var(--line);
@@ -2619,6 +2625,105 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     font-size: 14.5px;
     line-height: 1.4;
     overflow-wrap: anywhere;
+}
+/* The file an assistant reply hands over (export_all_data's ZIP): an
+   attachment row under the reply's words, the way a chat shows a link to a
+   file — the link in its real shape with the per-user parts elided, and how
+   long it lasts. An example of the link, not a link (downloadChip in
+   gen-index.ts), so it gets no hover, no pointer and no focus ring. It is
+   underlined in --acc so it reads as a link at a glance; the tint is on the
+   icon tile only. */
+.nm-ex-file {
+    display: flex;
+    align-items: center;
+    column-gap: 10px;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 8px;
+    padding: 7px 12px 7px 7px;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    cursor: default;
+}
+.nm-ex-file-ic {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--sug) 18%, transparent);
+    color: var(--ink);
+    font-size: 14px;
+}
+.nm-ex-file-body {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+}
+.nm-ex-file-link {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--acc);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
+}
+.nm-ex-file-name {
+    font-weight: 600;
+}
+.nm-ex-file-exp {
+    font-size: 12.5px;
+    color: var(--ink2);
+    white-space: nowrap;
+}
+.nm-ex-file-exp i {
+    margin-right: 2px;
+}
+/* THE IMPORTER'S SCREENS ARE CROPPED PICTURES. Their markup is the widget's,
+   byte for byte (src/widget-card.test.ts, src/widget-static-cards.test.ts),
+   so the crop is here, scoped to the example thread, and never reaches chat.
+   - The settings note is the card foot's in chat, where the importer is one
+     card. Four screens of one card say it once, under the last.
+   - Map: the first five fields (date, food name, meal, calories, protein)
+     show what matching looks like; the other fifteen identical pickers made
+     the screen three thread windows tall. Each field is two grid children
+     (its label pair and its select), hence n + 11.
+   - Preview: a scroller on an inert picture is one nobody can scroll, so the
+     table shows its first rows, faded out, with no scrollbar; the line and
+     food-name columns go (the food name is the same placeholder on every
+     row, and the reply beside it explains why), which leaves the figures
+     room; and "Showing 30 of 603 rows" goes with the crop it no longer
+     describes. The mask reads only alpha, so the token's hue is irrelevant. */
+.nm-ex-thread [data-import-step]:not([data-import-step="done"]) .wnote {
+    display: none;
+}
+.nm-ex-thread [data-import-step="map"] .map-grid > :nth-child(n + 11) {
+    display: none;
+}
+.nm-ex-thread [data-import-step="preview"] .tscroll {
+    overflow: hidden;
+    max-height: 176px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(180deg, var(--ink) 55%, transparent);
+    mask-image: linear-gradient(180deg, var(--ink) 55%, transparent);
+}
+.nm-ex-thread [data-import-step="preview"] .tbl :is(th, td):first-child,
+.nm-ex-thread [data-import-step="preview"] .tbl .wide,
+.nm-ex-thread [data-import-step="preview"] .tmore {
+    display: none;
+}
+/* On a phone-width card (306px at 390) even eight columns overflow: the date
+   goes too (the notice above the table already says every row lands at
+   midday) and the cells tighten, so every figure column stays in view. */
+@container nmdawn (max-width: 440px) {
+    .nm-ex-thread [data-import-step="preview"] .tbl :is(th, td):nth-child(2) {
+        display: none;
+    }
+    .nm-ex-thread [data-import-step="preview"] .tbl :is(th, td) {
+        padding-inline: 4px;
+    }
 }
 /* A photo the user sent: the picture in a dark frame, the caption under it,
    the way a chat app shows a photo message. The frame is --paper-ink, not
@@ -2721,6 +2826,16 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     border: 1px solid var(--line);
     border-radius: 20px;
     overflow: hidden;
+}
+/* …and it sits in the reply column: the replies' left edge and exactly
+   their widest width (--ex-reply-w, on .nm-ex-chat), never the thread's
+   full width. An explicit width, because the page-wide rule in gen-index.ts's
+   WIDGET_CARD_HEAD stretches every card (body.landing .nm-widget-card, 0,2,1);
+   this selector is (0,3,0), so it wins at every breakpoint. The card is its
+   own size container (widget-card.css), so its width queries follow this. */
+.nm-ex-chat .nm-ex-thread > .nm-widget-card {
+    align-self: flex-start;
+    width: var(--ex-reply-w);
 }
 /* The importer's picture. Its template's root is a padded `.wrap.page` with
    the step card inside, so `.wrap > .card` never flattens it and it read as
@@ -2938,7 +3053,8 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     }
     /* The bubbles get the window's width back: at 86% of one column's chat
        a reply wrapped a line more, on every slide, and the longest slide
-       sets everyone's height. */
+       sets everyone's height. Replies and cards move together through
+       --ex-reply-w. */
     /* The window's floor on one column, where the left column sits above it
        rather than beside it: 560px keeps the slide at today's height at
        820px wide, with the conversation scrolling inside. */
@@ -2946,13 +3062,13 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
         min-height: 560px;
         padding: 8px 10px 10px;
         border-radius: 20px;
+        --ex-reply-w: 94%;
     }
     .nm-ex-q {
         max-width: 90%;
         padding: 8px 12px;
     }
     .nm-ex-a {
-        max-width: 94%;
         padding: 8px 12px;
     }
     .nm-ex-snap-meal {
@@ -3067,7 +3183,14 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     .nm-ex-chat {
         min-height: 626px;
         padding: 8px;
+        --ex-reply-w: 100%;
     }
+    /* A phone's reply column is the whole thread, as phone chat apps lay
+       replies out. At 94% a 390px screen's card crossed the card's own
+       narrowest width query (~289px of content) and shrank its figures and
+       tile padding; at 100% it keeps the layout it always had. User bubbles
+       stay at 90%, so the two sides still read apart. (--ex-reply-w is
+       set on .nm-ex-chat just above.) */
     .nm-ex-chat-head {
         padding: 0 4px 8px;
     }

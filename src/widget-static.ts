@@ -324,7 +324,12 @@ const TEMPLATE_EXPORTS: Record<string, readonly string[]> = {
         "weightTrendsMeta",
         "WEIGHT_RANGES",
     ],
-    "import-meals": ["importFileStep"],
+    "import-meals": [
+        "importFileStep",
+        "importMapStep",
+        "importPreviewStep",
+        "importDoneStep",
+    ],
 };
 
 /** WHERE EACH CARD'S CHART GRADIENT IDS START.
@@ -449,7 +454,13 @@ interface ImportSandbox extends BaseSandbox {
         tzConfigured: boolean;
         errors: string[];
         step: string;
+        idPrefix?: string;
     }): string;
+    /** Each takes the template's own `*StepData()` object plus `diagHtml` and
+     *  `idPrefix` — see shared/import-card.js for the fields. */
+    importMapStep(o: object): string;
+    importPreviewStep(o: object): string;
+    importDoneStep(o: object): string;
 }
 
 // One compiled sandbox per (template, locale).
@@ -682,29 +693,416 @@ export async function renderWeightTrendsCard(
     return sb.weightTrendsCard(payload, range, { still: false });
 }
 
+// ---- The importer's screens ----------------------------------------------
+//
+// In chat, start_meal_import's widget is ONE card that repaints in place:
+// choose the file, map its columns, preview, import complete. The site shows
+// those screens as still pictures, each rendered through the same emitter the
+// widget calls (shared/import-card.js).
+//
+// Every screen after the first needs a FILE READ BY THE IMPORTER — parsed,
+// auto-mapped, sniffed, built into rows, chunked, and for the last screen
+// actually imported. None of that lives in a partial the sandbox can run: it
+// stands on src/csv.ts and src/chunk.ts, which only the ASSEMBLED widget has
+// (`@inlinets`). So the data is derived by running the assembled widget's own
+// script once per file — its parseCsv / autoMap / guessSourceApp / buildRows,
+// its mapStepData / previewStepData / doneStepData, and its real runImport
+// loop, whose bulk_import_meals calls go to src/import.ts's runImport over an
+// in-memory store — and the MARKUP is then drawn from that data by the
+// per-locale sandbox. The data is locale-independent (numbers, the file's own
+// text, and the server's English warnings), so one run serves every locale.
+//
+// That makes each picture this widget's own reading of the file, down to the
+// batch count and the server's warning sentences, with no figure typed twice;
+// src/widget-static-cards.test.ts compares each screen with what the assembled
+// widget's own mapStep / previewStep / doneStep print for the same file.
+
+/** A CSV file for the importer's later screens: its name and its text. */
+export interface ImportFile {
+    fileName: string;
+    csv: string;
+}
+
+/** The importer's four screens, in order. */
+export type ImportStep = "file" | "map" | "preview" | "done";
+export const IMPORT_STEPS: readonly ImportStep[] = [
+    "file",
+    "map",
+    "preview",
+    "done",
+];
+
+/** Options for an importer screen. `idPrefix` namespaces the screen's ids and
+ *  every reference to them — required in practice as soon as a page holds a
+ *  second screen, since every screen has an `imp-title` heading. */
+export interface ImportStepOptions {
+    idPrefix?: string;
+}
+
+/** What importing a file came to, for a caller that quotes it (a reply beside
+ *  the picture, a test). Every field is read off the run, never restated. */
+export interface ImportFlowSummary {
+    fileName: string;
+    /** Data rows the parser read. */
+    fileRows: number;
+    columns: number;
+    /** Rows the preview offers to import. */
+    rows: number;
+    /** Rows dropped before sending (totals, blanks, unreadable dates). */
+    skipped: number;
+    /** The preview's kcal total, unrounded. */
+    kcal: number;
+    batches: number;
+    /** bulk_import_meals calls the widget made (the dry run included). */
+    toolCalls: number;
+    created: number;
+    deduplicated: number;
+    failed: number;
+    /** The server's warnings, as the done screen prints them (English). */
+    warnings: string[];
+    /** What the widget told the model when it finished (updateModelContext). */
+    modelContext: string;
+    /** The source app the map screen guessed. */
+    sourceApp: string;
+}
+
+interface ImportFlow {
+    summary: ImportFlowSummary;
+    map: object;
+    preview: object;
+    done: object;
+}
+
+/** The assembled widget's own step logic, as one fresh instance: a module-level
+ *  `S` holds one file's state, so every flow gets its own. The bootstrap line
+ *  (`initWidget({…})`, which reaches for the host) is cut off, and `document` /
+ *  `window` are handed in as parameters so nothing global is touched — the
+ *  same technique public/widgets/card-partials.test.ts uses. */
+interface ImportWidget {
+    S: Record<string, unknown> & {
+        table: { headers: string[]; rows: string[][] } | null;
+        result: {
+            created: number;
+            deduplicated: number;
+            failed: number;
+            chunkErrors: string[];
+            warnings: string[];
+        } | null;
+        rows: { calories?: number }[];
+    };
+    setCFG(c: object): void;
+    setAPI(a: object): void;
+    parseCsv(bytes: Uint8Array): ImportWidget["S"]["table"];
+    autoMap(): void;
+    guessSourceApp(): void;
+    resniffDateFormat(): void;
+    resniffEnergyUnit(): void;
+    buildRows(): void;
+    runImport(): Promise<void>;
+    mapStepData(): Record<string, unknown>;
+    previewStepData(): Record<string, unknown> & {
+        badDates: number;
+        chunks: number;
+    };
+    doneStepData(): Record<string, unknown>;
+}
+
+async function importWidgetInstance(): Promise<ImportWidget> {
+    const { getWidgetHtml } = await import("./widgets.js");
+    const html = await getWidgetHtml("import-meals");
+    const script = html.slice(
+        html.lastIndexOf("<script>") + "<script>".length,
+        html.lastIndexOf("</script>"),
+    );
+    const boot = script.indexOf("initWidget({");
+    if (boot === -1) throw new Error("import-meals: bootstrap not found");
+    const document = {
+        getElementById: () => null,
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        activeElement: null,
+        addEventListener() {},
+        hasFocus: () => false,
+    };
+    return new Function(
+        "document",
+        "window",
+        `${script.slice(0, boot)}
+         return {
+             S,
+             setCFG: (c) => { CFG = Object.assign({}, CFG, c); },
+             setAPI: (a) => { API = a; },
+             parseCsv, autoMap, guessSourceApp, resniffDateFormat,
+             resniffEnergyUnit, buildRows, runImport,
+             mapStepData, previewStepData, doneStepData,
+         };`,
+    )(document, {}) as ImportWidget;
+}
+
+const importFlows = new Map<string, Promise<ImportFlow>>();
+
+/** Pick `file` in the importer opened with `payload`, confirm the mapping it
+ *  guessed, confirm the preview, and import — once per (file, payload). */
+function importFlow(
+    payload: StartImportPayload,
+    file: ImportFile,
+): Promise<ImportFlow> {
+    const key = JSON.stringify([
+        payload.tz,
+        payload.tz_configured,
+        payload.today,
+        payload.max_rows_per_call,
+        payload.import_tool_name,
+        payload.drink_unit,
+        file.fileName,
+        file.csv,
+    ]);
+    const hit = importFlows.get(key);
+    if (hit) return hit;
+
+    const built = (async (): Promise<ImportFlow> => {
+        const w = await importWidgetInstance();
+        const { runImport, serializeImportResult } =
+            await import("./import.js");
+        type Deps = Parameters<typeof runImport>[1];
+
+        // The meals the run writes, keyed by idempotency key, exactly as the
+        // server's insert dedupes them.
+        const store = new Map<string, Awaited<ReturnType<Deps["insert"]>>>();
+        let seq = 0;
+        let toolCalls = 0;
+        const context: string[] = [];
+        const deps: Deps = {
+            userId: "00000000-0000-4000-8000-000000000000",
+            tz: payload.tz,
+            tzConfigured: payload.tz_configured,
+            // Midday UTC on the conversation's day: every row is in the past.
+            nowMs: Date.parse(`${payload.today}T12:00:00Z`),
+            insert: async (input) => {
+                const k = input.idempotency_key ?? "";
+                const had = store.get(k);
+                if (had) return { meal: had.meal, deduplicated: true };
+                const meal = {
+                    id: `00000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`,
+                    ...input,
+                } as unknown as Awaited<ReturnType<Deps["insert"]>>["meal"];
+                const res = { meal, deduplicated: false };
+                store.set(k, res);
+                return res;
+            },
+            existingKeys: async (keys) =>
+                new Set(keys.filter((k) => store.has(k))),
+            existingMealIds: async () => new Set(),
+        };
+
+        w.setCFG(payload);
+        // A host that can call tools, as the file screen assumes: so the
+        // preview's Import button is live and no "cannot run here" notice shows.
+        w.setAPI({
+            canCallTools: true,
+            hostContext: {},
+            updateModelContext: (text: string) => context.push(text),
+            callTool: async (name: string, args: unknown) => {
+                if (name !== payload.import_tool_name) {
+                    throw new Error(`import-meals called ${name}`);
+                }
+                toolCalls++;
+                // runImport reuses and mutates one args object between the dry
+                // run and the real call, so hand the server a copy.
+                const result = await runImport(
+                    JSON.parse(JSON.stringify(args)),
+                    deps,
+                );
+                return { structuredContent: serializeImportResult(result) };
+            },
+        });
+
+        // Step 1 -> 2: the file is picked (loadFile, minus the File object).
+        w.S.fileName = file.fileName;
+        w.S.table = w.parseCsv(new TextEncoder().encode(file.csv));
+        const table = w.S.table;
+        if (!table || !table.rows.length) {
+            throw new Error(`${file.fileName}: the importer reads no rows`);
+        }
+        w.autoMap();
+        w.guessSourceApp();
+        w.resniffDateFormat();
+        w.resniffEnergyUnit();
+        w.S.step = "map";
+        const map = w.mapStepData();
+
+        // Step 2 -> 3: Preview import.
+        w.buildRows();
+        w.S.step = "preview";
+        w.S.result = null;
+        const preview = w.previewStepData();
+        // The diagnostics notice names the maintainer's contact, which never
+        // goes on the site — so a file that would need it is refused here
+        // rather than drawn without it.
+        if (preview.badDates > 0) {
+            throw new Error(
+                `${file.fileName}: ${preview.badDates} row(s) have unreadable dates — the preview would show the support diagnostics`,
+            );
+        }
+
+        // Step 3 -> 4: Import.
+        await w.runImport();
+        // Re-read through the type: TypeScript narrowed S.result to null at the
+        // assignment above and cannot see runImport() filling it in.
+        const r = w.S.result as ImportWidget["S"]["result"];
+        if (w.S.step !== "done" || w.S.aborted || !r) {
+            throw new Error(`${file.fileName}: the import did not finish`);
+        }
+        if (r.failed !== 0 || r.chunkErrors.length) {
+            throw new Error(
+                `${file.fileName}: the import did not go cleanly (${r.failed} failed, ${r.chunkErrors.join("; ")}) — the done screen would show the support diagnostics`,
+            );
+        }
+        const done = w.doneStepData();
+
+        return {
+            summary: {
+                fileName: file.fileName,
+                fileRows: table.rows.length,
+                columns: table.headers.length,
+                rows: w.S.rows.length,
+                skipped: w.S.skipped as number,
+                kcal: w.S.rows.reduce((a, row) => a + (row.calories ?? 0), 0),
+                batches: preview.chunks,
+                toolCalls,
+                created: r.created,
+                deduplicated: r.deduplicated,
+                failed: r.failed,
+                warnings: [...r.warnings],
+                modelContext: context.at(-1) ?? "",
+                sourceApp: w.S.sourceApp as string,
+            },
+            map,
+            preview,
+            done,
+        };
+    })();
+    importFlows.set(key, built);
+    return built;
+}
+
+/** What importing `file` through the importer opened with `payload` comes to:
+ *  the counts the preview and done screens print, and the line the widget
+ *  hands the model. */
+export async function importFlowSummary(
+    payload: StartImportPayload,
+    file: ImportFile,
+): Promise<ImportFlowSummary> {
+    return { ...(await importFlow(payload, file)).summary };
+}
+
+/** Wrapped in `<div class="imp">`, the container import-meals' render() writes
+ *  every step into and the one its own CSS lays the card out under
+ *  (`.imp > .card`). Its `role="status"` sibling is left out: a picture has
+ *  nothing to announce. */
+const impWrap = (card: string): string => `<div class="imp">${card}</div>`;
+
 /** start_meal_import's FIRST STEP, as the widget draws it before a file is
  *  chosen — for a still picture of the importer, not a working one.
  *
- *  Wrapped in `<div class="imp">`, the container import-meals' render() writes
- *  every step into and the one its own CSS lays the card out under
- *  (`.imp > .card`). Its `role="status"` sibling is left out: a picture has
- *  nothing to announce. The host is taken to be one that can call tools (so no
- *  "cannot run here" warning) and there is no pre-flight error; the timezone
- *  notice follows the payload's `tz_configured`, exactly as in chat. The file
- *  input is real markup — making it inert is the page's job. */
+ *  The host is taken to be one that can call tools (so no "cannot run here"
+ *  warning) and there is no pre-flight error; the timezone notice follows the
+ *  payload's `tz_configured`, exactly as in chat. The file input is real
+ *  markup — making it inert is the page's job. */
 export async function renderImportFileStep(
     payload: StartImportPayload,
     locale: SiteLocale,
+    opts: ImportStepOptions = {},
 ): Promise<string> {
     const sb = (await sandboxFor("import-meals", locale)) as ImportSandbox;
     sb.setLocale(locale);
-    return `<div class="imp">${sb.importFileStep({
-        noTools: false,
-        supportEmail: null,
-        tzConfigured: payload.tz_configured,
-        errors: [],
-        step: "file",
-    })}</div>`;
+    return impWrap(
+        sb.importFileStep({
+            noTools: false,
+            supportEmail: null,
+            tzConfigured: payload.tz_configured,
+            errors: [],
+            step: "file",
+            idPrefix: opts.idPrefix,
+        }),
+    );
+}
+
+/** The importer's SECOND screen, "Map columns", once `file` is picked: the
+ *  columns as the widget auto-mapped them, its date-format and energy-unit
+ *  guesses with their worked examples, and the source app it guessed. */
+export async function renderImportMapStep(
+    payload: StartImportPayload,
+    file: ImportFile,
+    locale: SiteLocale,
+    opts: ImportStepOptions = {},
+): Promise<string> {
+    const flow = await importFlow(payload, file);
+    const sb = (await sandboxFor("import-meals", locale)) as ImportSandbox;
+    sb.setLocale(locale);
+    return impWrap(sb.importMapStep({ ...flow.map, idPrefix: opts.idPrefix }));
+}
+
+/** The importer's THIRD screen, "Preview", before Import is pressed: the
+ *  counts, the conversions applied, the first 30 rows and the Import button. */
+export async function renderImportPreviewStep(
+    payload: StartImportPayload,
+    file: ImportFile,
+    locale: SiteLocale,
+    opts: ImportStepOptions = {},
+): Promise<string> {
+    const flow = await importFlow(payload, file);
+    const sb = (await sandboxFor("import-meals", locale)) as ImportSandbox;
+    sb.setLocale(locale);
+    return impWrap(
+        sb.importPreviewStep({
+            ...flow.preview,
+            diagHtml: "",
+            idPrefix: opts.idPrefix,
+        }),
+    );
+}
+
+/** The importer's LAST screen, "Import complete", after the real run: what was
+ *  imported, and the server's own warnings verbatim (English in every locale,
+ *  as in chat — they are bulk_import_meals' text, not widget copy). */
+export async function renderImportDoneStep(
+    payload: StartImportPayload,
+    file: ImportFile,
+    locale: SiteLocale,
+    opts: ImportStepOptions = {},
+): Promise<string> {
+    const flow = await importFlow(payload, file);
+    const sb = (await sandboxFor("import-meals", locale)) as ImportSandbox;
+    sb.setLocale(locale);
+    return impWrap(
+        sb.importDoneStep({
+            ...flow.done,
+            diagHtml: "",
+            idPrefix: opts.idPrefix,
+        }),
+    );
+}
+
+/** Any one of the importer's screens. `file` is required for every step after
+ *  "file". */
+export async function renderImportStep(
+    step: ImportStep,
+    payload: StartImportPayload,
+    locale: SiteLocale,
+    opts: ImportStepOptions & { file?: ImportFile } = {},
+): Promise<string> {
+    if (step === "file") return renderImportFileStep(payload, locale, opts);
+    if (!opts.file) {
+        throw new Error(`renderImportStep: the ${step} screen needs a file`);
+    }
+    if (step === "map")
+        return renderImportMapStep(payload, opts.file, locale, opts);
+    if (step === "preview")
+        return renderImportPreviewStep(payload, opts.file, locale, opts);
+    if (step === "done")
+        return renderImportDoneStep(payload, opts.file, locale, opts);
+    throw new Error(`renderImportStep: unknown step ${String(step)}`);
 }
 
 /** The MACROS table, resolved in `locale` — the strip's own list of metrics,

@@ -11,8 +11,11 @@
 // would send — with the figures the conversation beside it quotes.
 import { test, expect, describe } from "bun:test";
 import {
+    IMPORT_STEPS,
+    importFlowSummary,
     renderGoalProgressCard,
     renderImportFileStep,
+    renderImportStep,
     renderMealLoggedCard,
     renderWeightTrendsCard,
     scriptPartialsOf,
@@ -23,10 +26,13 @@ import {
     DEMO_EXAMPLE_DATES,
     DEMO_EXAMPLE_MEALS,
     DEMO_GOALS,
+    DEMO_IMPORT_FIRST_DAY,
+    DEMO_IMPORT_LAST_DAY,
     DEMO_SUMMARY_DATE,
     DEMO_TRENDS_END_DATE,
     demoExampleMealLogged,
     demoGoalProgressPayload,
+    demoImportFile,
     demoMealLoggedPayload,
     demoStartImportPayload,
     demoWeightTrendsPayload,
@@ -35,11 +41,15 @@ import {
 } from "./copy/widget-demo.js";
 import { SITE_LOCALES, type SiteLocale } from "./routes.js";
 
+/** The MyFitnessPal export the import conversation picks. */
+const IMPORT_FILE = demoImportFile();
+
 // The meal descriptions are the page's copy; English stand-ins here.
 const MEAL_TEXT: Record<DemoExampleMealSlide, string> = {
-    "log-meal": "Oatmeal with berries (1 bowl) and coffee (1 cup)",
+    "log-meal":
+        "Oatmeal with milk and blueberries (1 bowl) and black coffee (1 cup)",
     "photo-meal":
-        "Beef borscht (1 bowl) with sour cream (2 tbsp) and rye bread (1 slice)",
+        "Beef borscht (1 bowl, finished) with sour cream (2 tbsp) and rye bread (1 slice)",
     "scan-barcode": "Coca-Cola (330 ml can)",
     "track-drinks": "Lager, 4% (1 pint, 568 ml)",
 };
@@ -81,13 +91,22 @@ async function pageCards(locale: SiteLocale) {
             30,
         ),
     });
-    cards.push({
-        name: "import-history",
-        html: await renderImportFileStep(
-            demoStartImportPayload(locale),
-            locale,
-        ),
-    });
+    // The importer's four screens, as the import conversation shows them one
+    // after another in one thread — so each under its own prefix.
+    for (const step of IMPORT_STEPS) {
+        cards.push({
+            name: `import-history-${step}`,
+            html: await renderImportStep(
+                step,
+                demoStartImportPayload(locale),
+                locale,
+                {
+                    file: IMPORT_FILE,
+                    idPrefix: `ex-import-history-${step}`,
+                },
+            ),
+        });
+    }
     return cards;
 }
 
@@ -301,7 +320,7 @@ describe("what the English cards print", async () => {
         expect(cards["photo-meal"]).toContain("+470 kcal");
         expect(cards["photo-meal"]).not.toContain("Caffeine");
         expect(cards["scan-barcode"]).toContain("+139 kcal");
-        expect(cards["scan-barcode"]).toContain("Caffeine 32 /400 mg");
+        expect(cards["scan-barcode"]).toContain("Caffeine 33 /400 mg");
         expect(cards["track-drinks"]).toContain("+180 kcal");
         expect(cards["track-drinks"]).toContain("2.3 UK units");
         for (const slide of ["log-meal", "photo-meal", "scan-barcode"]) {
@@ -339,6 +358,241 @@ describe("what the English cards print", async () => {
             "en",
         );
         expect(unset).toContain("notice-warn");
+    });
+});
+
+describe("the importer's screens", () => {
+    test("the demo export is shaped like a current MyFitnessPal file", () => {
+        const { fileName, csv } = IMPORT_FILE;
+        expect(demoImportFile()).toEqual(IMPORT_FILE);
+        expect(fileName).toBe("Nutrition-Summary-2025-03-24-to-2025-09-21.csv");
+        expect(DEMO_IMPORT_FIRST_DAY).toBe("2025-03-24");
+        // Ends the day before the conversation, which is the importer's today.
+        expect(DEMO_IMPORT_LAST_DAY).toBe("2025-09-21");
+        expect(demoStartImportPayload("en").today).toBe(
+            DEMO_EXAMPLE_DATES["import-history"],
+        );
+        // No BOM, CRLF, twenty columns with no Time and no food name, no
+        // totals row at the end.
+        expect(csv.charCodeAt(0)).toBe("D".charCodeAt(0));
+        const lines = csv.split("\r\n");
+        expect(lines.at(-1)).toBe("");
+        expect(csv.replace(/\r\n/g, "")).not.toContain("\n");
+        const header = lines[0]!.split(",");
+        expect(header).toHaveLength(20);
+        expect(header.slice(0, 3)).toEqual(["Date", "Meal", "Calories"]);
+        expect(header).not.toContain("Time");
+        const rows = lines.slice(1, -1).map((l) => l.split(","));
+        expect(rows).toHaveLength(603);
+        expect(rows.every((r) => r.length === 20)).toBe(true);
+        expect(rows.some((r) => /total/i.test(r[0]!))).toBe(false);
+        expect(new Set(rows.map((r) => r[0])).size).toBe(163);
+        expect(rows[0]!.slice(0, 3)).toEqual([
+            "2025-03-24",
+            "Breakfast",
+            "367.0",
+        ]);
+        expect(rows.at(-1)![0]).toBe(DEMO_IMPORT_LAST_DAY);
+    });
+
+    test("the importer's own run over it: every figure the conversation quotes", async () => {
+        expect(
+            await importFlowSummary(demoStartImportPayload("en"), IMPORT_FILE),
+        ).toEqual({
+            fileName: IMPORT_FILE.fileName,
+            fileRows: 603,
+            columns: 20,
+            rows: 603,
+            skipped: 0,
+            kcal: 322343,
+            batches: 13,
+            // The first batch is dry-run first, then written.
+            toolCalls: 14,
+            created: 603,
+            deduplicated: 0,
+            failed: 0,
+            warnings: [
+                "603 row(s) had no food name in the source; a placeholder description was used.",
+                "603 row(s) had a date but no time; they were logged at local noon.",
+            ],
+            modelContext:
+                "Bulk meal import finished: 603 meals imported, 0 already logged, 0 failed. Source: Nutrition-Summary-2025-03-24-to-2025-09-21.csv.",
+            sourceApp: "myfitnesspal",
+        });
+    });
+
+    test("the English screens print what the conversation says", async () => {
+        const payload = demoStartImportPayload("en");
+        const screen = async (step: (typeof IMPORT_STEPS)[number]) => {
+            const html = await renderImportStep(step, payload, "en", {
+                file: IMPORT_FILE,
+            });
+            expect(
+                html.startsWith('<div class="imp"><section class="card'),
+            ).toBe(true);
+            return html;
+        };
+
+        const map = await screen("map");
+        expect(text(map)).toContain(
+            "Map columns Step 2 of 4 603 rows 20 columns utf-8, delimiter ,",
+        );
+        // No BOM and no totals row, so the parser has nothing to warn about.
+        expect(map).not.toContain('class="notice');
+        expect(map).toContain(
+            'data-field="description" aria-label="Food name"><option value="-1" selected>(not in this file)</option>',
+        );
+        expect(map).toContain('value="myfitnesspal"');
+        expect(text(map)).toContain("2025-03-24 → 2025-03-24");
+        expect(text(map)).toContain("367 kcal → 367 kcal (no conversion)");
+
+        const preview = await screen("preview");
+        const p = text(preview);
+        expect(p).toContain(
+            "603 meals to import 322,343 kcal total 13 batches Dates read as Year-Month-Day; energy read as kcal.",
+        );
+        expect(p).not.toContain("skipped");
+        expect(p).toContain(
+            "603 rows have a date but no time — they will be logged at midday.",
+        );
+        expect(p).toContain("(no name — will be labelled by meal)");
+        expect(p).toContain("Showing 30 of 603 rows");
+        expect(preview).toContain(">Import 603 meals</button>");
+        expect(preview).not.toContain("disabled");
+        expect(preview).not.toContain('class="diag"');
+
+        const done = await screen("done");
+        expect(text(done)).toBe(
+            "Import complete Step 4 of 4 603 meals imported. " +
+                "603 row(s) had no food name in the source; a placeholder description was used. " +
+                "603 row(s) had a date but no time; they were logged at local noon. " +
+                "Import another file",
+        );
+        expect(done).toContain("notice-ok");
+    });
+
+    // The site's pictures against the widget itself: the assembled
+    // import-meals script, run over the same file with its bulk_import_meals
+    // calls going to the real src/import.ts, printing its own mapStep /
+    // previewStep / doneStep in each locale. Independent of the path
+    // src/widget-static.ts takes to the same data, so a drift in either shows.
+    test("every screen is what the widget itself prints for that file, in every locale", async () => {
+        const { getWidgetHtml } = await import("./widgets.js");
+        const { runImport, serializeImportResult } =
+            await import("./import.js");
+        const html = await getWidgetHtml("import-meals");
+        const script = html.slice(
+            html.lastIndexOf("<script>") + "<script>".length,
+            html.lastIndexOf("</script>"),
+        );
+        const w = new Function(
+            "document",
+            "window",
+            `${script.slice(0, script.indexOf("initWidget({"))}
+             return {
+                 S, setLocale, parseCsv, autoMap, guessSourceApp,
+                 resniffDateFormat, resniffEnergyUnit, buildRows, runImport,
+                 mapStep, previewStep, doneStep,
+                 setCFG: (c) => { CFG = Object.assign({}, CFG, c); },
+                 setAPI: (a) => { API = a; },
+             };`,
+        )(
+            {
+                getElementById: () => null,
+                activeElement: null,
+                hasFocus: () => false,
+            },
+            {},
+        ) as Record<string, any>;
+        const payload = demoStartImportPayload("en");
+        const keys = new Set<string>();
+        w.setCFG(payload);
+        w.setAPI({
+            canCallTools: true,
+            hostContext: {},
+            updateModelContext() {},
+            callTool: async (_name: string, args: unknown) => {
+                const result = await runImport(
+                    JSON.parse(JSON.stringify(args)),
+                    {
+                        userId: "u",
+                        tz: payload.tz,
+                        tzConfigured: payload.tz_configured,
+                        nowMs: Date.parse(`${payload.today}T12:00:00Z`),
+                        insert: async (input) => {
+                            const k = input.idempotency_key ?? "";
+                            const deduplicated = keys.has(k);
+                            keys.add(k);
+                            return { meal: input as never, deduplicated };
+                        },
+                        existingKeys: async (ks) =>
+                            new Set(ks.filter((k) => keys.has(k))),
+                        existingMealIds: async () => new Set(),
+                    },
+                );
+                return { structuredContent: serializeImportResult(result) };
+            },
+        });
+        const widget: Record<string, Record<string, string>> = {
+            map: {},
+            preview: {},
+            done: {},
+        };
+        const each = (step: string, fn: () => string) => {
+            for (const locale of SITE_LOCALES) {
+                w.setLocale(locale);
+                widget[step]![locale] = fn();
+            }
+        };
+        w.S.fileName = IMPORT_FILE.fileName;
+        w.S.table = w.parseCsv(new TextEncoder().encode(IMPORT_FILE.csv));
+        w.autoMap();
+        w.guessSourceApp();
+        w.resniffDateFormat();
+        w.resniffEnergyUnit();
+        w.S.step = "map";
+        each("map", () => w.mapStep());
+        w.buildRows();
+        w.S.step = "preview";
+        w.S.result = null;
+        each("preview", () => w.previewStep());
+        w.setLocale("en");
+        await w.runImport();
+        expect(w.S.step).toBe("done");
+        each("done", () => w.doneStep());
+
+        for (const locale of SITE_LOCALES) {
+            for (const step of ["map", "preview", "done"] as const) {
+                const site = await renderImportStep(
+                    step,
+                    demoStartImportPayload(locale),
+                    locale,
+                    { file: IMPORT_FILE },
+                );
+                expect(
+                    site === `<div class="imp">${widget[step]![locale]}</div>`,
+                    `${locale} ${step}: the site's picture is not what the widget prints`,
+                ).toBe(true);
+            }
+        }
+    });
+
+    test("a later screen without a file is refused", async () => {
+        await expect(
+            renderImportStep("map", demoStartImportPayload("en"), "en"),
+        ).rejects.toThrow(/needs a file/);
+    });
+
+    test("a file that would put the support diagnostics on the page is refused", async () => {
+        const bad = {
+            fileName: "bad.csv",
+            csv: "Date,Food,Calories\r\n31/31/2026,Toast,100\r\n2026-07-18,Tea,5\r\n",
+        };
+        await expect(
+            renderImportStep("preview", demoStartImportPayload("en"), "en", {
+                file: bad,
+            }),
+        ).rejects.toThrow(/unreadable dates/);
     });
 });
 

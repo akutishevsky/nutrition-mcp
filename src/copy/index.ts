@@ -157,13 +157,40 @@ export type ExamplePhoto = "meal" | "package";
 export type ExampleMessage =
     | { from: "user"; text: string; photo?: undefined }
     | { from: "user"; photo: ExamplePhoto; text?: string }
-    | { from: "ai"; text: string };
+    | { from: "ai"; text: string; download?: ExampleDownload };
+
+/** A file an ai reply hands over, drawn by the generator as a download chip
+ * under the reply's words: a zip icon, the file's real name and
+ * `examples.downloadExpires`. Structural — copy it verbatim. `export-zip` is
+ * export_all_data's archive, whose signed link lasts 60 minutes. The chip is
+ * a picture of that link, never a working one: no href, nothing to click. */
+export type ExampleDownload = "export-zip";
+
+/** The importer's four screens, in order (IMPORT_STEPS in
+ * src/widget-static.ts). */
+export type ExampleImportStep = "file" | "map" | "preview" | "done";
+
+/** One real widget card in an example conversation. Every field is
+ * structural: copy it verbatim. */
+export interface ExampleCardRef {
+    /** Which in-chat widget. Only a tool that declares a widget in src/mcp.ts
+     * gets one (log_meal and update_meal: meal-logged; get_goal_progress,
+     * get_trends, get_weight_trends; start_meal_import: import-meals). */
+    kind: ExampleWidget;
+    /** The index into `messages` of the ai reply the card follows: the reply
+     * of the turn whose tool call returned it, or — for an importer screen
+     * the user reached by clicking inside the widget — the reply before that
+     * click. Cards sharing one `after` are shown in array order. */
+    after: number;
+    /** Which importer screen; set exactly when `kind` is `import-meals`. */
+    step?: ExampleImportStep;
+}
 
 /** One slide of the examples carousel: the left column (tinted icon, `title`
  * as the slide's <h3>, `description`, then the list of MCP tools the
  * conversation calls, each chip followed by its `toolNotes` line) and the right
  * column (a chat window holding `messages` and, on eight slides, the real
- * widget card its tool call returns, after message `widgetAfter`). The icon, tint and tool names are EX_META's in
+ * widget cards its tool calls return, each after its message — `cards`). The icon, tint and tool names are EX_META's in
  * scripts/gen-index.ts, keyed by `id` — structural, never translated, and
  * written once for all nine locales rather than once per locale. */
 export interface ExampleSlide {
@@ -195,21 +222,16 @@ export interface ExampleSlide {
     toolNotes: Record<string, string>;
     /** The conversation, user and ai alternating as a chat would. */
     messages: ExampleMessage[];
-    /** Structural: copy verbatim. Which real in-chat widget the tool call
-     * behind this conversation returns, if any — only a tool that declares a
-     * widget in src/mcp.ts gets one (log_meal and update_meal: meal-logged;
-     * get_goal_progress, get_trends, get_weight_trends; start_meal_import:
-     * import-meals). The card carries no copy from this file except
-     * `cardMeals`: every word on it is WIDGET_STRINGS', and its figures are
-     * src/copy/widget-demo.ts's. */
-    widget?: ExampleWidget;
-    /** Structural: copy verbatim. The index into `messages` of the ai reply
-     * the card follows — the reply of the turn whose tool call returned it,
-     * which is not always the last one (log-meal's card follows its first
-     * reply; the water it logs next returns no widget). That reply quotes
-     * the card's figures wherever it states them (src/widget-card.test.ts).
-     * Set exactly when `widget` is. */
-    widgetAfter?: number;
+    /** Structural: copy verbatim, array and every field. The real in-chat
+     * widget cards this conversation's tool calls return, if any, each after
+     * the ai reply it follows (log-meal's card follows the breakfast reply,
+     * and the water logged after it returns none; import-history shows the
+     * importer's four screens along the conversation). The cards carry no
+     * copy from this file except `cardMeals`: every word on them is
+     * WIDGET_STRINGS', and their figures are src/copy/widget-demo.ts's. The
+     * replies quote the cards' figures wherever they state them
+     * (src/widget-card.test.ts). Absent on a slide with no card. */
+    cards?: ExampleCardRef[];
     /** The meals the card lists, as they would be STORED by log_meal — the
      * description, not the sentence the user typed, with household measures
      * in brackets ("Oatmeal with berries (1 bowl) and coffee (1 cup)").
@@ -364,18 +386,24 @@ export interface IndexDoc {
          * scrolls inside a fixed-height window), so it needs a name; the
          * slide around it already says which example it is. */
         threadLabel: string;
-        /** Accessible name of the importer card on the import-history slide,
-         * which is a still picture of the importer's first step (its
-         * controls do nothing on this page). Say what it shows, e.g. "The
-         * in-chat importer, at its first step: choose your export file". */
-        importerAlt: string;
-        /** The visible caption under that picture, telling a pointer or touch
-         * user it is a preview rather than a control (its drop zone still looks
-         * like a button). Hidden from assistive tech, which gets importerAlt.
-         * e.g. "Preview of the importer as it opens in your chat". */
+        /** Accessible names of the importer screens on the import-history
+         * slide, one per screen. Each is a still picture (its controls do
+         * nothing on this page), so say what that screen shows, e.g. "Step 2
+         * of 4: the file's columns matched automatically". Keep the figures
+         * (603, 322,343) in the page's own number format. */
+        importerAlt: Record<ExampleImportStep, string>;
+        /** The visible caption under the first importer screen, telling a
+         * pointer or touch user these are pictures rather than controls (the
+         * drop zone and buttons still look clickable), and that in chat they
+         * are one card updating in place. Hidden from assistive tech, which
+         * gets importerAlt. */
         importerCaption: string;
-        /** 10 slides, in English's order (see ExampleSlide.id); eight carry a
-         * real in-chat widget card (ExampleSlide.widget). */
+        /** The note on an ai reply's download chip (ExampleMessage.download),
+         * beside a clock icon, e.g. "Expires in 60 minutes". Keep the 60 as
+         * digits: it is export_all_data's real link lifetime. */
+        downloadExpires: string;
+        /** 10 slides, in English's order (see ExampleSlide.id); eight carry
+         * real in-chat widget cards (ExampleSlide.cards). */
         slides: ExampleSlide[];
     };
 
@@ -698,9 +726,16 @@ export const INDEX_EN: IndexDoc = {
         photoPackageAlt:
             "Photo: the barcode on a can of Coca-Cola, number 5449000000996",
         threadLabel: "Conversation",
-        importerAlt:
-            "The in-chat importer at its first step: choose your export CSV file, from MyFitnessPal, Cronometer, Lose It! or MacroFactor",
-        importerCaption: "Preview of the importer as it opens in your chat",
+        importerAlt: {
+            file: "The in-chat importer, step 1 of 4: choose your export CSV file, from MyFitnessPal, Cronometer, Lose It! or MacroFactor",
+            map: "Step 2 of 4: the file's columns matched automatically; this export has no food names",
+            preview:
+                "Step 3 of 4: a preview of 603 meals, 322,343 kcal, before anything is saved",
+            done: "Step 4 of 4: 603 meals imported",
+        },
+        importerCaption:
+            "The importer's screens in order; in your chat it is one card that updates in place",
+        downloadExpires: "Expires in 60 minutes",
         slides: [
             {
                 id: "log-meal",
@@ -713,35 +748,44 @@ export const INDEX_EN: IndexDoc = {
                     log_water:
                         "Records the 500 ml at 07:00 toward today's water total",
                     get_current_time:
-                        "Finds today's date and clock so “7 this morning” lands right",
+                        "Works out today's date so “around 7” lands at 07:00",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "A bowl of oatmeal with berries and a cup of coffee for breakfast",
+                        text: "oatmeal with blueberries and a coffee for breakfast",
                     },
                     {
                         from: "ai",
-                        text: "Logged breakfast: about 320 kcal, 11 g protein, 6 g fiber. The coffee added 95 mg of caffeine.",
+                        text: "How big was the bowl, and was the oatmeal made with milk or water? Anything in the coffee?",
                     },
                     {
                         from: "user",
-                        text: "And 500 ml of water around 7 this morning, after my run",
+                        text: "normal bowl, made with milk. coffee was black",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged breakfast: about 320 kcal, 11 g protein and 6 g fiber. The coffee puts you at 95 mg of your 400 mg caffeine limit.",
+                    },
+                    {
+                        from: "user",
+                        text: "oh and i drank like half a liter of water around 7, before my run",
                     },
                     {
                         from: "ai",
                         text: "Added 500 ml of water at 07:00 this morning.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 1,
-                cardMeals: ["Oatmeal with berries (1 bowl) and coffee (1 cup)"],
+                cards: [{ kind: "meal-logged", after: 3 }],
+                cardMeals: [
+                    "Oatmeal with milk and blueberries (1 bowl) and black coffee (1 cup)",
+                ],
             },
             {
                 id: "photo-meal",
                 title: "Snap your plate",
                 description:
-                    "A photo starts an interview, not a guess. It settles homemade or restaurant first, checks your past logs, then asks one question per message about portions and hidden oil or sauce, and logs once you approve the summary.",
+                    "A photo starts an interview, not a guess. It settles homemade or restaurant, checks how you've logged the dish before, asks one question at a time about portions and extras, and logs only once you approve the summary.",
                 toolNotes: {
                     log_meal:
                         "Logs the meal only once every question is settled and you say yes",
@@ -749,34 +793,39 @@ export const INDEX_EN: IndexDoc = {
                         "Finds the ways you've logged borscht before, so it can ask which",
                 },
                 messages: [
-                    { from: "user", photo: "meal", text: "Lunch" },
-                    {
-                        from: "ai",
-                        text: "Borscht with sour cream and a slice of rye bread. Looks homemade, right?",
-                    },
-                    { from: "user", text: "Yes, my mum's recipe" },
-                    {
-                        from: "ai",
-                        text: "You've logged borscht two ways before: with beef (~320 kcal a bowl) and meatless (~180). Which is this one?",
-                    },
                     {
                         from: "user",
-                        text: "With beef. I added two tablespoons of sour cream",
+                        photo: "meal",
+                        text: "mum's borscht for lunch",
                     },
                     {
                         from: "ai",
-                        text: "Got it. Assuming you finished the bowl: beef borscht with 2 tbsp sour cream and a slice of rye bread, about 470 kcal, 24 g protein. Log it as lunch?",
+                        text: "Looks great. You've logged borscht 6 times: 5 with beef (about 320 kcal a bowl, last on 2 Sep) and once meatless (about 180). Which is this one?",
                     },
-                    { from: "user", text: "Yes" },
+                    { from: "user", text: "beef" },
+                    {
+                        from: "ai",
+                        text: "Got it, beef. Two things left: the sour cream and how much you ate. About how many spoonfuls of sour cream went in?",
+                    },
+                    { from: "user", text: "2 tablespoons, maybe a bit more" },
+                    {
+                        from: "ai",
+                        text: "I'll count 2 generous tablespoons. Did you finish the bowl?",
+                    },
+                    { from: "user", text: "all of it, bread too" },
+                    {
+                        from: "ai",
+                        text: "So: beef borscht (1 bowl) with 2 generous tbsp sour cream, plus one slice of rye bread going by the photo. About 470 kcal and 24 g protein. Log it as lunch?",
+                    },
+                    { from: "user", text: "yes" },
                     {
                         from: "ai",
                         text: "Logged lunch: 470 kcal · 24 g protein · 43 g carbs · 22 g fat · 7 g fiber · 10 g sugar.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 7,
+                cards: [{ kind: "meal-logged", after: 9 }],
                 cardMeals: [
-                    "Beef borscht (1 bowl) with sour cream (2 tbsp) and rye bread (1 slice)",
+                    "Beef borscht (1 bowl, finished) with sour cream (2 tbsp) and rye bread (1 slice)",
                 ],
             },
             {
@@ -794,20 +843,19 @@ export const INDEX_EN: IndexDoc = {
                     {
                         from: "user",
                         photo: "package",
-                        text: "Had this with lunch",
+                        text: "had this with lunch. how bad is it really?",
                     },
                     {
                         from: "ai",
-                        text: "That's a 330 ml Coca-Cola: 139 kcal and 35 g sugar, from Open Food Facts. Did you have the whole can?",
+                        text: "That's a 330 ml can of Coca-Cola: 139 kcal and 35 g of sugar, per Open Food Facts. Did you have the whole can?",
                     },
-                    { from: "user", text: "All of it" },
+                    { from: "user", text: "whole can" },
                     {
                         from: "ai",
-                        text: "Logged with lunch: 139 kcal and 35 g sugar. Open Food Facts has no caffeine figure, so I used Coca-Cola's own: about 32 mg a can.",
+                        text: "Logged with lunch: 139 kcal, 35 g sugar, and 33 mg caffeine from Coca-Cola's own figure, since Open Food Facts doesn't list caffeine. As for how bad: that sugar is over half your 60 g daily limit on its own, and Open Food Facts rates it Nutri-Score E and NOVA 4, ultra-processed.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 3,
+                cards: [{ kind: "meal-logged", after: 3 }],
                 cardMeals: ["Coca-Cola (330 ml can)"],
             },
             {
@@ -824,28 +872,27 @@ export const INDEX_EN: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "Set my goals: 2,000 kcal, 160 g protein, and a caffeine limit. What's a sensible one?",
+                        text: "trying to lean out a bit. set me at 2000 cals and 160g protein. also what's a sane caffeine cap? i basically live on coffee",
                     },
                     {
                         from: "ai",
-                        text: "A common reference is the EFSA and FDA ceiling for healthy adults: 400 mg a day, about four cups of brewed coffee. Use that?",
+                        text: "EFSA and the FDA put the ceiling for healthy adults at 400 mg a day, roughly four cups of brewed coffee; EFSA advises 200 mg in pregnancy. Want 400 as your limit?",
                     },
-                    { from: "user", text: "Yes, 400" },
+                    { from: "user", text: "yeah 400" },
                     {
                         from: "ai",
-                        text: "Goals updated: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg.",
+                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 30 g fiber, 2.5 L water and your 60 g sugar limit.",
                     },
                     {
                         from: "user",
-                        text: "Can I still fit a dessert tonight?",
+                        text: "can i still squeeze in dessert tonight?",
                     },
                     {
                         from: "ai",
-                        text: "You're at 1,540 kcal and 104 g protein: 460 kcal and 56 g of protein still to go before your targets. So yes, a dessert of about 200 kcal fits, as long as most of the rest is protein.",
+                        text: "Yes. You're at 1,540 kcal and 104 g protein, so 460 kcal and 56 g protein to go. Sugar is the tighter one: 40 of your 60 g limit, so Greek yogurt with berries fits better than cake, and it helps with the protein too.",
                     },
                 ],
-                widget: "goal-progress",
-                widgetAfter: 5,
+                cards: [{ kind: "goal-progress", after: 5 }],
                 cardMeals: [
                     "Greek yogurt with granola and berries (1 bowl)",
                     "Chicken wrap with salad (1 wrap)",
@@ -863,20 +910,27 @@ export const INDEX_EN: IndexDoc = {
                         "Averages your last 7, 14 and 30 days and opens the trends card",
                 },
                 messages: [
-                    { from: "user", text: "How have the last two weeks gone?" },
+                    {
+                        from: "user",
+                        text: "how did the last two weeks go? feels like i've been all over the place",
+                    },
                     {
                         from: "ai",
-                        text: "You averaged 1,830 kcal a day over the last 14 days (13 of them logged), 170 under your target. Protein was your steadiest macro.",
+                        text: "Steadier than it feels. You averaged 1,830 kcal a day, 170 under your 2,000, but that counts the one day of the 14 you didn't log as zero. On the 13 days you logged it was about 1,970, with 9 days within 10% of target. And you're on a 10-day logging streak.",
+                    },
+                    { from: "user", text: "what about sugar?" },
+                    {
+                        from: "ai",
+                        text: "That's the one to watch. It averaged 52 g and went over your 60 g limit on 4 of the 13 days.",
                     },
                 ],
-                widget: "trends",
-                widgetAfter: 1,
+                cards: [{ kind: "trends", after: 1 }],
             },
             {
                 id: "weight-trend",
                 title: "Track your weight",
                 description:
-                    "Log a weigh-in in kg or lb and see the trend under the day-to-day noise: a smoothed average, the change over the month and the gap to your target. An impossible reading, like grams typed as kilograms, is caught before it's saved.",
+                    "Log a weigh-in in kg or lb and see the trend under the day-to-day noise: a smoothed average, the change over the month and the gap to your target. An impossible reading, like a missed decimal point, is caught before it's saved.",
                 toolNotes: {
                     log_weight:
                         "Saves 78.4 kg and turns away a physically impossible reading",
@@ -884,17 +938,21 @@ export const INDEX_EN: IndexDoc = {
                         "Smooths 30 days into moving averages and the gap to target",
                 },
                 messages: [
+                    { from: "user", text: "just weighed in, 784" },
+                    {
+                        from: "ai",
+                        text: "784 kg is outside what a body can weigh, so I haven't saved it. Did you mean 78.4?",
+                    },
                     {
                         from: "user",
-                        text: "Just weighed in at 78.4 kg. How's it trending?",
+                        text: "lol yes, missed the dot. how am i trending?",
                     },
                     {
                         from: "ai",
-                        text: "Logged 78.4 kg. You're down 1.8 kg over the last 30 days, with a 7-day average of 78.7 kg. 3.4 kg to go to your 75 kg target.",
+                        text: "Saved 78.4 kg. You're down 1.8 kg since 14 Aug, about 0.4 kg a week, and your 7-day average is 78.7 kg. 3.4 kg to go to your 75 kg target.",
                     },
                 ],
-                widget: "weight-trends",
-                widgetAfter: 1,
+                cards: [{ kind: "weight-trends", after: 3 }],
             },
             {
                 id: "meal-patterns",
@@ -903,21 +961,29 @@ export const INDEX_EN: IndexDoc = {
                     "Ask when you eat more and it compares your own logs: weekdays with weekends, days with and without breakfast, big lunches, early dinners with late ones. It flags unusual days too, and reports patterns, not causes.",
                 toolNotes: {
                     get_meal_patterns:
-                        "Compares weekdays, weekends and dinner times over 30 days",
+                        "Compares breakfast, dinner-time and weekend days over 30 days",
                 },
                 messages: [
-                    { from: "user", text: "Do I eat more on weekends?" },
+                    {
+                        from: "user",
+                        text: "do i eat more on days i skip breakfast? feels like it",
+                    },
                     {
                         from: "ai",
-                        text: "Not really. Over the last 30 days your weekdays average 1,986 kcal and your weekends 1,977.",
+                        text: "A little, yes. You logged 28 of the last 30 days and skipped breakfast on 6. Those days averaged 2,215 kcal, against 1,940 on the 22 days with breakfast, and about 35 g less protein.",
                     },
                     {
                         from: "user",
-                        text: "Is there anything that makes a difference?",
+                        text: "what about late dinners? on gym days i don't eat till 9",
                     },
                     {
                         from: "ai",
-                        text: "Dinner time does. Days with dinner at 8 pm or later average 2,150 kcal, against 1,915 when dinner is earlier.",
+                        text: "Those stand out too: the 9 days with dinner at 8 pm or later averaged 2,165 kcal, against 1,920 on the other 19. Both are patterns in your log, not proof either one causes it.",
+                    },
+                    { from: "user", text: "and weekends?" },
+                    {
+                        from: "ai",
+                        text: "Barely different: weekends average 2,010 kcal and weekdays 1,993.",
                     },
                 ],
             },
@@ -935,28 +1001,29 @@ export const INDEX_EN: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "I'd like to track my drinking as well",
+                        text: "can you count my drinks too? trying to cut back a bit",
                     },
                     {
                         from: "ai",
-                        text: "Sure. Should it count US standard drinks or UK units?",
+                        text: "Sure. Should I show alcohol as US standard drinks or UK units?",
                     },
-                    { from: "user", text: "UK units" },
+                    { from: "user", text: "uk units, i'm in manchester" },
                     {
                         from: "ai",
-                        text: "Alcohol tracking is on, in grams alongside UK units. It works from your next message, no new chat needed.",
+                        text: "Alcohol tracking is on, in grams alongside UK units.",
                     },
+                    { from: "user", text: "had a pint of lager with dinner" },
                     {
-                        from: "user",
-                        text: "Had a pint of 4% lager with dinner",
+                        from: "ai",
+                        text: "What strength was it? Lagers usually run 4 to 5%, and the tap or can will say.",
                     },
+                    { from: "user", text: "4% i think" },
                     {
                         from: "ai",
                         text: "Logged with dinner: a 568 ml pint at 4% is 17.9 g of alcohol, 2.3 UK units, about 180 kcal.",
                     },
                 ],
-                widget: "meal-logged",
-                widgetAfter: 5,
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: ["Lager, 4% (1 pint, 568 ml)"],
             },
             {
@@ -969,25 +1036,50 @@ export const INDEX_EN: IndexDoc = {
                         "Opens the in-chat importer for your export file",
                     get_profile: "Spots that no timezone is set yet",
                     set_timezone:
-                        "Sets America/Chicago so imported times land on the right day",
+                        "Sets America/Chicago so meals land in local time",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "Can you bring over my MyFitnessPal history?",
+                        text: "switching over from myfitnesspal. can you bring my food log across? i've got the export",
                     },
                     {
                         from: "ai",
-                        text: "Sure. First, your timezone isn't set, so imported times would be read as UTC. Where are you based?",
+                        text: "Yes. One thing first: your timezone isn't set, so imported meals would be placed on UTC time instead of your local time. Where are you based?",
                     },
-                    { from: "user", text: "Chicago" },
+                    { from: "user", text: "chicago" },
                     {
                         from: "ai",
-                        text: "Timezone set to America/Chicago. Now pick your export file in the importer below. It's read in your browser, and nothing is saved until you confirm the preview.",
+                        text: "Set to America/Chicago. Now pick the Nutrition-Summary CSV from your MyFitnessPal export in the importer below. It's read right in your browser, and nothing is saved until you confirm the preview.",
+                    },
+                    {
+                        from: "user",
+                        text: "it matched the columns but food name says not in this file?",
+                    },
+                    {
+                        from: "ai",
+                        text: "That's normal for MyFitnessPal: its export has one row per meal per day, with the totals but no food names. Each meal gets labelled by its meal type instead, with its calories and macros intact.",
+                    },
+                    {
+                        from: "user",
+                        text: "603 meals. it says they'll go in at midday?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Right, the export has dates but no meal times. Midday keeps every meal on the right day in Chicago; you just won't see when you actually ate.",
+                    },
+                    { from: "user", text: "done! did everything make it?" },
+                    {
+                        from: "ai",
+                        text: "All of it: 603 meals imported and none failed.",
                     },
                 ],
-                widget: "import-meals",
-                widgetAfter: 3,
+                cards: [
+                    { kind: "import-meals", after: 3, step: "file" },
+                    { kind: "import-meals", after: 3, step: "map" },
+                    { kind: "import-meals", after: 5, step: "preview" },
+                    { kind: "import-meals", after: 7, step: "done" },
+                ],
             },
             {
                 id: "export-data",
@@ -999,15 +1091,27 @@ export const INDEX_EN: IndexDoc = {
                         "Zips six files and returns a private link that lasts 60 minutes",
                 },
                 messages: [
-                    { from: "user", text: "Back up all my data" },
                     {
-                        from: "ai",
-                        text: "Done: one ZIP with 1,204 meals, 318 water entries, 64 weigh-ins, your goals and your profile settings. Here's the download link. It works for 60 minutes.",
+                        from: "user",
+                        text: "my dietitian wants to see my food log. can you get it out as a spreadsheet?",
                     },
-                    { from: "user", text: "Can I restore from it later?" },
                     {
                         from: "ai",
-                        text: "Your meals, yes. meals.csv imports straight back in, and any meal you still have is matched by its id and skipped, so nothing doubles. Water, weight, goals and settings are export-only, so keep the ZIP.",
+                        text: "Here you go: one ZIP with 1,204 meals, 318 water entries and 64 weigh-ins, plus your goals and settings. Your food log is meals.csv inside, which opens in Excel or Google Sheets.",
+                        download: "export-zip",
+                    },
+                    { from: "user", text: "can i just send her the link?" },
+                    {
+                        from: "ai",
+                        text: "Better to download it and send her the file. The link stops working after 60 minutes, and anyone who has it can open your whole export, weight and settings included, not just meals.",
+                    },
+                    {
+                        from: "user",
+                        text: "good to know. could i restore from it later if i needed to?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Your meals, yes. meals.csv imports straight back in, and any meal you still have is matched by its id and skipped, so nothing doubles. Water, weight, goals and settings are in the ZIP for your records only; they can't be imported back.",
                     },
                 ],
             },

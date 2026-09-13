@@ -7,6 +7,7 @@ import {
 } from "./routes.js";
 import { INDEX } from "./copy/index.js";
 import {
+    EXAMPLE_DOWNLOADS,
     EX_META,
     LANDING_SCRIPT,
     exampleStructure,
@@ -749,11 +750,13 @@ test("every locale's example slides mirror English's structure", async () => {
         );
         const bubbles = [
             ...track.matchAll(
-                /<div class="nm-ex-(q nm-ex-q-photo|q|a)">\s*(?:<div class="nm-ex-snap (nm-ex-snap-meal|nm-barcode)")?/g,
+                /<div class="nm-ex-(q nm-ex-q-photo|q|a)">(?:\s*<div class="nm-ex-snap (nm-ex-snap-meal|nm-barcode)"|[^<]*(<span class="nm-ex-file">))?/g,
             ),
         ].map((m) =>
             m[1] === "a"
-                ? "ai"
+                ? m[3]
+                    ? "ai+export-zip"
+                    : "ai"
                 : m[2]
                   ? `user+${m[2] === "nm-barcode" ? "package" : "meal"}`
                   : "user",
@@ -764,7 +767,9 @@ test("every locale's example slides mirror English's structure", async () => {
                     s.messages.map((m) =>
                         m.from === "user" && m.photo
                             ? `user+${m.photo}`
-                            : m.from,
+                            : m.from === "ai" && m.download
+                              ? `ai+${m.download}`
+                              : m.from,
                     ),
                 )
                 .join(" ")}`,
@@ -779,6 +784,131 @@ test("every locale's example slides mirror English's structure", async () => {
             `${path}: ${html.includes(`<span class="nm-ex-of"> / ${String(slides.length).padStart(2, "0")}</span>`)}`,
         ).toBe(`${path}: true`);
     }
+});
+
+// The export reply hands over a file the way a chat shows a signed link: the
+// archive's real name and how long the link lasts. It is a PICTURE of that
+// link — the real one is per-user and dead within the hour — so it must never
+// become a control or print a URL someone could copy.
+test("the download chip names the real archive, its 60 minutes, and is not a link", async () => {
+    // The name is the one export_all_data writes (exportArchivePath).
+    const supabase = await Bun.file("./src/supabase.ts").text();
+    for (const { fileName } of Object.values(EXAMPLE_DOWNLOADS))
+        expect(supabase).toContain(`/${fileName}\``);
+    // …in the bucket src/export.ts uploads it to.
+    for (const { bucket } of Object.values(EXAMPLE_DOWNLOADS))
+        expect(await Bun.file("./src/export.ts").text()).toContain(
+            `const EXPORT_BUCKET = "${bucket}";`,
+        );
+    // …and the lifetime is the one src/export.ts signs it for.
+    const exportTs = await Bun.file("./src/export.ts").text();
+    expect(exportTs).toMatch(/EXPORT_TTL_SECONDS = 60 \* 60\b/);
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        const e = INDEX[locale]!.examples;
+        expect(
+            `${locale} downloadExpires: ${/\b60\b/.test(e.downloadExpires ?? "")}`,
+        ).toBe(`${locale} downloadExpires: true`);
+        const withDownload = e.slides.flatMap((s) =>
+            s.messages.flatMap((m) =>
+                m.from === "ai" && m.download ? [`${s.id}:${m.download}`] : [],
+            ),
+        );
+        expect(withDownload).toEqual(["export-data:export-zip"]);
+    }
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { locale, path, html } of pages) {
+        const chips = [
+            ...html.matchAll(
+                /<span class="nm-ex-file">([\s\S]*?)<\/span><\/span><\/span>/g,
+            ),
+        ];
+        expect(`${path}: ${chips.length} download chip(s)`).toBe(
+            `${path}: 1 download chip(s)`,
+        );
+        const chip = chips[0]![0];
+        expect(chip).toContain(
+            `<span class="nm-ex-file-name">${EXAMPLE_DOWNLOADS["export-zip"].fileName}</span>`,
+        );
+        expect(stripTags(chip)).toContain(
+            text(INDEX[locale]!.examples.downloadExpires),
+        );
+        expect(chip).not.toMatch(
+            /<a\b|<button|href=|tabindex|role=|https?:|\/\//,
+        );
+        // An example of the link, in its real shape, with every per-user part
+        // elided: no host or project ref, no user id, no token.
+        const { bucket, fileName } = EXAMPLE_DOWNLOADS["export-zip"];
+        expect(stripTags(chip)).toContain(`…/${bucket}/…/${fileName}?token=…`);
+        expect(stripTags(chip)).not.toMatch(
+            /supabase|[0-9a-f]{8}-[0-9a-f]{4}|[A-Za-z0-9_.-]{32,}/i,
+        );
+        // Inside the export slide's reply bubble.
+        const slide = html.slice(html.indexOf('data-ex-id="export-data"'));
+        expect(slide.indexOf(chip)).toBeGreaterThan(-1);
+        expect(
+            slide
+                .slice(0, slide.indexOf(chip))
+                .lastIndexOf('<div class="nm-ex-a">'),
+        ).toBeGreaterThan(
+            slide.slice(0, slide.indexOf(chip)).lastIndexOf("</div>"),
+        );
+    }
+});
+
+// A card in a thread lines up with the assistant replies around it: same left
+// edge, and exactly the widest a reply may run — never the thread's full
+// width, which put every card past the bubbles beside it. Both widths read
+// ONE token, redefined per breakpoint on .nm-ex-chat, so this pins that
+// nothing sets either width any other way. (Measured in a browser at 1440,
+// 820, 390 and 360 when it was introduced.)
+test("example cards and assistant replies share one width token", async () => {
+    // Comments out first: they sit between rules and carry no braces, so a
+    // selector read as "everything since the last brace" would include them.
+    const css = (await Bun.file("./public/styles.css").text()).replace(
+        /\/\*[\s\S]*?\*\//g,
+        "",
+    );
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+        sel: m[1]!.trim(),
+        body: m[2]!,
+    }));
+    const decl = (body: string, prop: string) =>
+        new RegExp(`(?:^|[;\\s])${prop}\\s*:\\s*([^;]+);`)
+            .exec(body)?.[1]
+            ?.trim();
+    // Every rule that sizes a reply bubble sizes it by the token.
+    const replyWidths = rules
+        .filter(
+            (r) =>
+                /(^|,\s*)\.nm-ex-a\s*$/.test(r.sel) ||
+                /\.nm-ex-a(\s*,|$)/.test(r.sel),
+        )
+        .map((r) => decl(r.body, "max-width"))
+        .filter(Boolean);
+    expect(replyWidths).toEqual(["var(--ex-reply-w)"]);
+    // The card in a thread takes that token as its width.
+    const card = rules.find(
+        (r) => r.sel === ".nm-ex-chat .nm-ex-thread > .nm-widget-card",
+    );
+    expect(card, "the thread card width rule").toBeTruthy();
+    expect(decl(card!.body, "width")).toBe("var(--ex-reply-w)");
+    expect(decl(card!.body, "align-self")).toBe("flex-start");
+    // No other rule gives a thread card a width or stretches it back.
+    for (const r of rules)
+        if (r.sel.includes(".nm-ex-thread > .nm-widget-card") && r !== card)
+            expect(
+                `${r.sel}: ${/(^|[;\s])(max-)?width\s*:|align-self/.test(r.body)}`,
+            ).toBe(`${r.sel}: false`);
+    // The token is only ever set on .nm-ex-chat, as a percentage.
+    const sets = rules.filter((r) => /--ex-reply-w\s*:/.test(r.body));
+    expect(sets.map((r) => r.sel)).toEqual([
+        ".nm-ex-chat",
+        ".nm-ex-chat",
+        ".nm-ex-chat",
+    ]);
+    for (const r of sets)
+        expect(decl(r.body, "--ex-reply-w")).toMatch(/^\d+%$/);
 });
 
 // The examples carousel is equal-height by CSS alone: the track stretches
