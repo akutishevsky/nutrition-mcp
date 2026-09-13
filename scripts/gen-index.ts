@@ -399,20 +399,6 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     // (the first two slides, once their neighbours are inert) a tab
                     // stop of its own, with no name and the UA's ring.
                     exTrack.tabIndex = -1;
-                    // The track is as tall as the slide in view, not the tallest one:
-                    // one shared height left the two short slides mostly empty. The
-                    // change is immediate - an animated height slides the whole page
-                    // below it for a third of a second on every step.
-                    function exFit() {
-                        if (exActive < 0) return;
-                        var cs = getComputedStyle(exTrack);
-                        var h =
-                            exSlides[exActive].offsetHeight +
-                            parseFloat(cs.paddingTop) +
-                            parseFloat(cs.paddingBottom);
-                        if (exTrack.style.height !== h + "px")
-                            exTrack.style.height = h + "px";
-                    }
                     // A tab row too wide for its box scrolls, and fades whichever edge
                     // has more tabs past it (.is-fade-start / .is-fade-end). Derived
                     // from the scroll position every time, like the active slide, so a
@@ -472,7 +458,6 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             exActive >= 0 &&
                             exSlides[exActive].contains(document.activeElement);
                         exActive = i;
-                        exFit();
                         exSlides.forEach(function (slide, k) {
                             // Off-screen slides leave the tab order and the
                             // accessibility tree - the trends card's buttons would
@@ -497,9 +482,10 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                                 ? exSlides[i].getAttribute("aria-label") || ""
                                 : "";
                     }
-                    // Changing slides from deep inside a long one (the bar stuck
-                    // under the header) lands at the top of the new slide rather
-                    // than somewhere in its middle, or past the end of a short one.
+                    // Changing slides from deep inside one (the bar stuck under the
+                    // header) lands at the top of the new slide, where its
+                    // conversation starts, rather than wherever the old one was
+                    // scrolled to - on a phone that is often its empty middle.
                     var exBar = document.querySelector("[data-ex-bar]");
                     function exBarOffset() {
                         if (!exBar) return 0;
@@ -589,25 +575,6 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         },
                         { passive: true },
                     );
-                    // A slide changes height on its own - a width change re-wraps it,
-                    // and the trends card's drawer and range toggle grow and shrink it -
-                    // so the track follows every slide, not only a change of slide.
-                    // Setting the track's height never resizes a slide (they are
-                    // start-aligned), so this cannot feed itself.
-                    if (typeof ResizeObserver === "function") {
-                        var exFitQueued = false;
-                        var exSizes = new ResizeObserver(function () {
-                            if (exFitQueued) return;
-                            exFitQueued = true;
-                            requestAnimationFrame(function () {
-                                exFitQueued = false;
-                                exFit();
-                            });
-                        });
-                        exSlides.forEach(function (slide) {
-                            exSizes.observe(slide);
-                        });
-                    }
                     // A width change moves every slide's offset; put the active one
                     // back where it was instead of wherever the old offset now lands.
                     var exResizeQueued = false;
@@ -2236,12 +2203,15 @@ const pad2 = (n: number): string => String(n).padStart(2, "0");
  *
  *  A header row (title + sub), one bar holding the tabs, the counter and
  *  prev / next, then a horizontal scroll-snap track of full-width slides.
- *  The controls sit ABOVE the track because the track is as tall as the
- *  active slide, and anything below it would move under the pointer. The
- *  track is the whole no-script experience — it swipes, scrolls and snaps on
- *  its own, and the bar stays hidden until script can make it work — and
- *  LANDING_SCRIPT keeps the tabs, the counter, `inert` and a polite
- *  announcement in step with wherever the track is.
+ *  Every slide is the height of the tallest (the track's align-items:
+ *  stretch in public/styles.css, not script), so a change of slide never
+ *  moves the page, and each chat window ends in a wordless, aria-hidden
+ *  composer that makes a short conversation's spare room look like a chat
+ *  window rather than a gap. The track is the whole no-script experience —
+ *  it swipes, scrolls and snaps on its own, and the bar stays hidden until
+ *  script can make it work — and LANDING_SCRIPT keeps the tabs, the
+ *  counter, `inert` and a polite announcement in step with wherever the
+ *  track is.
  *
  *  THE TABS ARE AN ICON PAGER AT EVERY WIDTH. Ten labelled pills cannot fit
  *  one row at any width the page has, and a labelled row that scrolls hides
@@ -2300,12 +2270,7 @@ function renderExamples(
             // the browser, exactly as the in-chat one does, and a tile moves
             // the focus panel and the chart to that metric.
             const widget = s.widget === "trends" ? `\n${cards.trends}` : "";
-            // A card or a long conversation makes the chat far taller than
-            // the left column, which then reads from the top beside it
-            // instead of floating mid-panel.
-            const tall =
-                widget || s.messages.length > 2 ? " nm-ex-slide-tall" : "";
-            return `                        <div class="nm-ex-slide${tall}" id="ex-slide-${i + 1}" role="tabpanel" aria-roledescription="${attr(e.slideRole)}" aria-label="${attr(position(i))}" data-ex-id="${attr(s.id)}" data-ex-slide>
+            return `                        <div class="nm-ex-slide" id="ex-slide-${i + 1}" role="tabpanel" aria-roledescription="${attr(e.slideRole)}" aria-label="${attr(position(i))}" data-ex-id="${attr(s.id)}" data-ex-slide>
                             <div class="nm-ex-info ${meta.tint}">
                                 <span class="nm-ex-glow" aria-hidden="true"></span>
                                 <span class="nm-ex-icon" aria-hidden="true"><i class="fa-solid ${meta.icon}"></i></span>
@@ -2323,6 +2288,7 @@ function renderExamples(
                                 <div class="nm-ex-thread">
 ${messages}${widget}
                                 </div>
+                                <div class="nm-ex-compose" aria-hidden="true"><i class="fa-solid fa-plus"></i><span class="nm-ex-compose-caret"></span><span class="nm-ex-compose-send"><i class="fa-solid fa-arrow-up"></i></span></div>
                             </div>
                         </div>`;
         })

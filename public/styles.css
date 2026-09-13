@@ -2086,12 +2086,15 @@ body.menu-open {
    A header row (title left, sub right), then one bar holding the tabs and the
    counter + round arrows, then a horizontal scroll-snap track of full-width
    slides. It swipes, scrolls and snaps with no script at all; LANDING_SCRIPT
-   keeps the tabs, the counter, `inert`, the track height and the
-   announcement in step with where the track is.
+   keeps the tabs, the counter, `inert` and the announcement in step with
+   where the track is.
 
-   EVERY CONTROL IS ABOVE THE TRACK, because the track is as tall as the
-   ACTIVE slide (the script sets its height): a tab or an arrow below it
-   would move under the pointer on every change.
+   EVERY SLIDE IS THE SAME HEIGHT, the tallest one's at this width and in
+   this language, so changing slide never moves anything below the carousel.
+   That is CSS (the track's align-items: stretch), not script: it follows a
+   re-wrap and a locale on its own, and holds without script. The tallest
+   slides pay for it (a wide chat column, a compact thread); the short ones
+   fill the room on purpose (see .nm-ex-chat).
 
    No .nm-c-* tint may sit on .nm-ex-slide or anything else above the trends
    card: --c inherits into the widget's focus panel, which reads it bare
@@ -2154,9 +2157,11 @@ html:not(.js) .nm-ex-bar {
 .nm-ex-tabs .nm-ex-tab:focus-visible {
     border-radius: 999px;
 }
-/* Slides keep their own heights (align-items: start); the script sets the
-   track to the active one's, and overflow-y: hidden clips the taller ones
-   waiting off to the side. Without script the track is its tallest slide.
+/* Every slide stretches to the tallest in the row (align-items: stretch), so
+   the track has one height per width and locale. A slide still grows when
+   something inside it does (the trends card's drawer or range toggle), and
+   the others grow with it: that change is the visitor's own, inside the
+   slide, never a change of slide.
 
    Room for the slide's shadow, which the track's overflow would otherwise
    clip: padding out, the same margin back in, so the slides still line up
@@ -2170,16 +2175,11 @@ html:not(.js) .nm-ex-bar {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: 100%;
-    align-items: start;
+    align-items: stretch;
     gap: 28px;
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
-    /* Its height jumps on every change of slide. Left to anchor on a bubble
-       in here, Chrome corrected the page's scroll for that jump while the
-       script was scrolling back to the carousel's top, and landed a
-       --head-h short, the bar still stuck over the slide. */
-    overflow-anchor: none;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     padding: 8px var(--ex-bleed) 36px;
@@ -2197,15 +2197,19 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     display: block;
     height: 8px;
 }
+/* The chat takes two thirds of the slide: the wider its bubbles, the fewer
+   lines they wrap to, and the longest conversation sets every slide's
+   height. The chat column stretches to that height; the left column stays
+   top-aligned (see .nm-ex-info). */
 .nm-ex-slide {
     position: relative;
     isolation: isolate;
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 40px;
-    align-items: center;
-    padding: 30px 30px 30px 36px;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: 36px;
+    align-items: stretch;
+    padding: 20px 20px 20px 34px;
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 32px;
@@ -2215,8 +2219,12 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     scroll-snap-stop: always;
 }
 /* The left column: a compact head — the icon beside the tool the
-   conversation calls and the title — over the description. */
+   conversation calls and the title — over the description. Top-aligned on
+   every slide, level with the chat window's head, so it sits in the same
+   place whichever slide is showing. */
 .nm-ex-info {
+    align-self: start;
+    padding-top: 10px;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
@@ -2226,13 +2234,6 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
         "more more";
     column-gap: 18px;
     justify-items: start;
-}
-/* Beside a card or a long conversation the chat is several times the
-   column's height; the column reads from the top, next to the
-   conversation's opening lines. */
-.nm-ex-slide-tall .nm-ex-info {
-    align-self: start;
-    padding-top: 14px;
 }
 /* Positioned against the slide (the column itself is not positioned) and
    stacked under its content by the slide's own stacking context. */
@@ -2324,15 +2325,21 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     border: 1px solid var(--line);
     border-radius: 999px;
 }
-/* Sized to its thread, and centred against the left column rather than
-   stretched to it: a stretched window was mostly empty above two bubbles.
+/* As tall as the slide, which is as tall as the longest slide, and read from
+   the top: the thread starts under the head the way a conversation does,
+   and a composer sits at the foot, where every chat app keeps it, so the
+   room between them on a short slide is just a window with a short
+   conversation in it. Anchoring the thread to the bottom instead was tried
+   and rejected: on one column it put a two-bubble slide's conversation
+   ~560px under the head, below the fold of a phone, and on desktop it cut
+   the bubbles loose from the column beside them.
    The border is what keeps it a window in dark theme, where --bg2 and
    --panel sit a shade apart. */
 .nm-ex-chat {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    padding: 14px 16px 16px;
+    padding: 8px 12px 10px;
     background: var(--bg2);
     border: 1px solid var(--line);
     border-radius: 24px;
@@ -2342,19 +2349,56 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--line);
     font-size: 12.5px;
     font-weight: 600;
     color: var(--ink3);
 }
-/* Compact: a conversation runs to eight bubbles, and the slide is as tall
-   as its chat. */
+/* Compact: a conversation runs to eight bubbles, and the longest one sets
+   every slide's height. It grows to fill the window, which is what holds
+   the composer at the foot. */
 .nm-ex-thread {
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding-top: 12px;
+    gap: 6px;
+    padding-top: 10px;
+}
+/* The composer: decoration, hidden from assistive tech, and wordless (a
+   placeholder would be copy to translate for a field nobody can type in):
+   an add button, a caret and a send button in a pill. It never rises with
+   the bubbles; a real composer stays put while messages arrive. Slim,
+   because every slide carries it, the tallest included. */
+.nm-ex-compose {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 32px;
+    margin-top: 6px;
+    padding: 0 4px 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel);
+    font-size: 13px;
+    color: var(--ink3);
+}
+.nm-ex-compose-caret {
+    width: 2px;
+    height: 16px;
+    border-radius: 1px;
+    background: var(--line2);
+}
+.nm-ex-compose-send {
+    margin-left: auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    background: var(--bg2);
 }
 .nm-ex-q {
     align-self: flex-end;
@@ -2401,6 +2445,12 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     max-width: 100%;
     border-radius: 12px;
     overflow: hidden;
+}
+/* The meal photo is the tallest bubble of the longest conversation, so it
+   is a thumbnail's size rather than a photo's; the barcode label keeps the
+   width its 160px of bars need. */
+.nm-ex-snap-meal {
+    width: 160px;
 }
 .nm-ex-snap svg {
     display: block;
@@ -2627,19 +2677,19 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     white-space: nowrap;
 }
 /* One column: the head shrinks, the description runs full width under it,
-   and the chat window follows. */
+   and the chat window follows, taking whatever height the slide has left
+   (the 1fr row) so its composer still sits at the slide's foot. */
 @media (max-width: 860px) {
     .nm-ex-slide {
         grid-template-columns: minmax(0, 1fr);
-        gap: 20px;
-        padding: 22px;
+        grid-template-rows: auto 1fr;
+        gap: 16px;
+        padding: 20px;
         border-radius: 26px;
     }
     .nm-ex-info {
-        column-gap: 14px;
-    }
-    .nm-ex-slide-tall .nm-ex-info {
         padding-top: 0;
+        column-gap: 14px;
     }
     .nm-ex-icon {
         width: 48px;
@@ -2656,13 +2706,27 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
         font-size: 24px;
     }
     .nm-ex-desc {
-        margin-top: 14px;
+        margin-top: 12px;
         max-width: none;
         font-size: 15.5px;
     }
+    /* The bubbles get the window's width back: at 86% of one column's chat
+       a reply wrapped a line more, on every slide, and the longest slide
+       sets everyone's height. */
     .nm-ex-chat {
-        padding: 14px;
+        padding: 8px 10px 10px;
         border-radius: 20px;
+    }
+    .nm-ex-q {
+        max-width: 90%;
+        padding: 8px 12px;
+    }
+    .nm-ex-a {
+        max-width: 94%;
+        padding: 8px 12px;
+    }
+    .nm-ex-snap-meal {
+        width: 140px;
     }
     .nm-ex-glow {
         left: -200px;
@@ -2725,10 +2789,26 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     }
     .nm-ex-slide {
         padding: 16px;
-        gap: 16px;
+        gap: 14px;
+    }
+    .nm-ex-desc {
+        margin-top: 10px;
+        font-size: 14.5px;
     }
     .nm-ex-chat {
-        padding: 12px 10px 10px;
+        padding: 8px;
+    }
+    .nm-ex-chat-head {
+        padding: 0 4px 8px;
+    }
+    .nm-ex-q-photo {
+        padding: 6px 6px 7px;
+    }
+    .nm-ex-snap-meal {
+        width: 128px;
+    }
+    .nm-ex-compose {
+        margin-top: 8px;
     }
     .nm-ex-tabs {
         gap: 4px;

@@ -346,6 +346,9 @@ test("every id / attribute hook the script queries exists on every landing page"
         ['querySelector("[data-ex-count]")', "<span data-ex-count>"],
         ['querySelector("[data-ex-live]")', "data-ex-live>"],
         ["[data-ex-dir]", 'data-ex-dir="prev"'],
+        // The sticky bar: without it the scroll-back to the new slide's top
+        // on a phone silently does nothing.
+        ['querySelector("[data-ex-bar]")', "data-ex-bar>"],
         ["[data-post-title]", "data-post-title"],
         ["[data-post-preview]", "data-post-preview"],
         ["[data-post-date]", "data-post-date"],
@@ -672,5 +675,58 @@ test("every locale's example slides mirror English's structure", async () => {
         expect(
             `${path}: ${html.includes(`<span class="nm-ex-of"> / ${String(slides.length).padStart(2, "0")}</span>`)}`,
         ).toBe(`${path}: true`);
+    }
+});
+
+// The examples carousel is equal-height by CSS alone: the track stretches
+// every slide to the tallest one (public/styles.css), so changing slide never
+// moves anything below it, with or without script. The script used to set the
+// track to the ACTIVE slide's height on every change, and that is exactly the
+// jump this replaced: a script that sizes the track again, or a track that
+// stops stretching, brings it back without failing anything else. Every chat
+// window also ends in the composer that makes a short slide's spare room read
+// as a chat window rather than a gap.
+test("the examples track is equal-height by CSS, and the script never sizes it", async () => {
+    // Only the carousel's part of the script: the hero, the map and the
+    // stats may size or observe things of their own.
+    const start = LANDING_SCRIPT.indexOf('querySelector("[data-ex-track]")');
+    const end = LANDING_SCRIPT.indexOf("// ---------- live stats");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const carousel = LANDING_SCRIPT.slice(start, end);
+    const sizes =
+        /style\.(min|max)?[hH]eight|setProperty\(\s*["'](min-|max-)?height|cssText/;
+    expect(`sizes something: ${sizes.test(carousel)}`).toBe(
+        "sizes something: false",
+    );
+    expect(`observes a size: ${carousel.includes("ResizeObserver")}`).toBe(
+        "observes a size: false",
+    );
+    const css = await Bun.file("./public/styles.css").text();
+    const track = /\n\.nm-ex-track \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(track).toContain("align-items: stretch;");
+    // No other rule, media query included, may undo that: a track that
+    // aligns its slides any other way, or a slide that aligns itself.
+    for (const [, rule] of css.matchAll(
+        /\n\s*[^{}\n]*\.nm-ex-(?:track|slide)\s*\{([^}]*)\}/g,
+    )) {
+        expect(rule).not.toMatch(/align-self|align-items:(?!\s*stretch)/);
+    }
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { path, html } of pages) {
+        expect(
+            `${path}: styled track ${/<div class="nm-ex-track"[^>]*\sstyle=/.test(html)}`,
+        ).toBe(`${path}: styled track false`);
+        const slides = (
+            html.match(/<div class="nm-ex-slide"[^>]*data-ex-slide>/g) ?? []
+        ).length;
+        const composers = (
+            html.match(/<div class="nm-ex-compose" aria-hidden="true">/g) ?? []
+        ).length;
+        expect(slides).toBeGreaterThan(0);
+        expect(`${path}: ${composers} composers`).toBe(
+            `${path}: ${slides} composers`,
+        );
     }
 });
