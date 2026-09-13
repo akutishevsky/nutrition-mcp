@@ -123,11 +123,16 @@
                the same reason at chat-card widths. This rule stays because THIS
                caption clips past that breakpoint too — it is the drawer's whole
                payload, where a metric's is a summary of the meals listed under
-               it. */
+               it.
+
+               `order: 1`, as in chip.css: the caption precedes the ✕ in the
+               markup, so without it a full-width caption pushed the ✕ onto a
+               third line of its own at every width. */
             .dhead.whead {
                 flex-wrap: wrap;
             }
             .whead .dcap {
+                order: 1;
                 flex-basis: 100%;
                 white-space: normal;
                 overflow: visible;

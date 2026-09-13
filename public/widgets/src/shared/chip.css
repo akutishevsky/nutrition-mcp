@@ -1848,12 +1848,20 @@ button.focus:active {
    nowhere else on the card at all. The head has nothing else on that line, so
    the caption wraps whole rather than dropping its run. `.dname` and the ✕ stay
    on line one, so the 24x24 target and the region's aria-labelledby target are
-   untouched. Above 420px the head is wide enough and the single line stands. */
+   untouched. Above 420px the head is wide enough and the single line stands.
+
+   `order: 1` is what keeps the ✕ on line one. The caption comes BEFORE the ✕
+   in the markup, so a full-width caption alone pushed the ✕ onto a third line
+   of its own, a 24px row of empty space between the caption and the list.
+   Only the visual order changes: the ✕ is the head's one focusable element, so
+   the focus order is the same, and a screen reader still hears the name, the
+   caption, then the button. */
 @media (max-width: 419.98px) {
     .dhead {
         flex-wrap: wrap;
     }
     .dhead .dcap {
+        order: 1;
         flex-basis: 100%;
         white-space: normal;
         overflow: visible;
