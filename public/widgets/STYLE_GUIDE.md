@@ -35,24 +35,28 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/` and one
   template per widget in `templates/`.
 
-    | partial           | contents                                                                                                                                                                                                                                                                                            |
-    | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-    | `tokens.css`      | the four theme blocks — every colour, radius, font stack, easing, and the per-theme glow strength `--glow-a` (§1)                                                                                                                                                                                   |
-    | `base.css`        | reset, type scale, `.wrap`, `.card`, `.glow`, the header line (`.chead > .cmeta.crow` included), the card foot `.foot` and the settings note `.wnote`, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2)                                                                        |
-    | `chip.css`        | every interaction primitive: the tile grids (`.rail`, and `.r-macro` / `.r-limit` / `.r-water` on a tiered strip), `.chip` and its progress wash, the focus panel (`.focus`, `.fring`, `.fmain`, `.fmeta`, `.fspark`, `.focus.solo`), `.more` / `.more.mextra`, `.drawer`, `.fhint`, `.seg` (§3–§7) |
-    | `chart.css`       | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.cday`, `.cpt`, `.chalo`, `.cdot`, `.cfoot` (§8)                                                                                                                                                              |
-    | `form.css`        | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                                                                                                                                                                                   |
-    | `table.css`       | the preview table and its status pills (§12)                                                                                                                                                                                                                                                        |
-    | `icon.js`         | the `ICONS` and `GLYPHS` path tables + `icon(name, size)` / `glyph(name, size)` (§9)                                                                                                                                                                                                                |
-    | `svg.js`          | chart geometry, pure string math — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chDayLines` / `chDot` / `chDotMarkup` / `chMarksMarkup` / `chY`, and the calendar x axis `calendarSlots` / `hairlineSlot` (§8)                                                                              |
-    | `fmt.js`          | the two primitives everything else assumes are in scope: `fmt(n, decimals)` (grouped in the resolved locale) and `esc(s)`. It is a partial because five templates were each declaring their own pair and `macros.js` calls both unguarded                                                           |
-    | `macros.js`       | the macro strip: `MACROS`, `macroBits`, `macroPanel` (with its `opts.extra` slot), `macroToggle`, `focusApply`, `macroSnapshot` / `macroRestore`, and the per-strip ctx stash `macroStash` / `macroCtx` (§10)                                                                                       |
-    | `spark.js`        | the focus panel's sparkline: `seriesValue`, `chartableKeys`, `sparkMarkup`, `sparkReset`, `sparkPaint` (§4) — included by the template itself, after `macros.js`                                                                                                                                    |
-    | `summary-card.js` | the whole `get_nutrition_summary` card as a string — `summaryCard(data, opts)`, plus `loggedDaysCaption` and `summaryCharted`. Composed here rather than in the template because **two** callers build it from one payload: the widget, and the public site's landing page at build time            |
-    | `trends-card.js`  | the whole `get_trends` card the same way — `RANGES`, `avgOf`, `trendsSlice`, `trendsMeta`, `trendsView(data, range, opts)`, `trendsCard(view, opts)`, `metricLabelFor` / `chartLabelFor`. The range slicing and averaging live here too, so the toggle re-derives rather than re-requests           |
-    | `date.js`         | calendar days: `utcDay` / `DAY_MS`, `shortDate`, `isToday`, `ymd` (rejects an impossible day), `dayLabel`, `rangeLabel` (Intl first) / `rangeLabelPlain` (the hand-written fallback), `dayHeader`, `daysLoggedCaption`, `shiftDay`                                                                  |
-    | `i18n.js`         | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                                                                                                                                                                                |
-    | `bridge.js`       | the whole iframe↔host handshake — `initWidget(config)` — plus two top-level helpers, `tryRender(fn)` and `keepFocus(root, write, opts)`                                                                                                                                                             |
+    | partial                 | contents                                                                                                                                                                                                                                                                                            |
+    | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `tokens.css`            | the four theme blocks — every colour, radius, font stack, easing, and the per-theme glow strength `--glow-a` (§1)                                                                                                                                                                                   |
+    | `base.css`              | reset, type scale, `.wrap`, `.card`, `.glow`, the header line (`.chead > .cmeta.crow` included), the card foot `.foot` and the settings note `.wnote`, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2)                                                                        |
+    | `chip.css`              | every interaction primitive: the tile grids (`.rail`, and `.r-macro` / `.r-limit` / `.r-water` on a tiered strip), `.chip` and its progress wash, the focus panel (`.focus`, `.fring`, `.fmain`, `.fmeta`, `.fspark`, `.focus.solo`), `.more` / `.more.mextra`, `.drawer`, `.fhint`, `.seg` (§3–§7) |
+    | `chart.css`             | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.cday`, `.cpt`, `.chalo`, `.cdot`, `.cfoot` (§8)                                                                                                                                                              |
+    | `form.css`              | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                                                                                                                                                                                   |
+    | `table.css`             | the preview table and its status pills (§12)                                                                                                                                                                                                                                                        |
+    | `icon.js`               | the `ICONS` and `GLYPHS` path tables + `icon(name, size)` / `glyph(name, size)` (§9)                                                                                                                                                                                                                |
+    | `svg.js`                | chart geometry, pure string math — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chDayLines` / `chDot` / `chDotMarkup` / `chMarksMarkup` / `chY`, and the calendar x axis `calendarSlots` / `hairlineSlot` (§8)                                                                              |
+    | `fmt.js`                | the two primitives everything else assumes are in scope: `fmt(n, decimals)` (grouped in the resolved locale) and `esc(s)`. It is a partial because five templates were each declaring their own pair and `macros.js` calls both unguarded                                                           |
+    | `macros.js`             | the macro strip: `MACROS`, `macroBits`, `macroPanel` (with its `opts.extra` slot), `macroToggle`, `focusApply`, `macroSnapshot` / `macroRestore`, and the per-strip ctx stash `macroStash` / `macroCtx` (§10)                                                                                       |
+    | `spark.js`              | the focus panel's sparkline: `seriesValue`, `chartableKeys`, `sparkMarkup`, `sparkReset`, `sparkPaint` (§4) — included by the template itself, after `macros.js`                                                                                                                                    |
+    | `summary-card.js`       | the whole `get_nutrition_summary` card as a string — `summaryCard(data, opts)`, plus `loggedDaysCaption` and `summaryCharted`. Composed here rather than in the template because **two** callers build it from one payload: the widget, and the public site's landing page at build time            |
+    | `trends-card.js`        | the whole `get_trends` card the same way — `RANGES`, `avgOf`, `trendsSlice`, `trendsMeta`, `trendsView(data, range, opts)`, `trendsCard(view, opts)`, `metricLabelFor` / `chartLabelFor`. The range slicing and averaging live here too, so the toggle re-derives rather than re-requests           |
+    | `meal-logged-card.js`   | the `log_meal` / `update_meal` card — `mealLoggedCard(data, opts)`: the header naming the meal just logged and the strip under it                                                                                                                                                                   |
+    | `goal-progress-card.js` | the `get_goal_progress` card — `goalProgressCard(data, opts)`, and `goalProgressShowsStrip`; the weight row's `glyph("scale", …)` calls stay in the template's site-card region                                                                                                                     |
+    | `weight-trends-card.js` | the `get_weight_trends` card — `WEIGHT_RANGES`, `weightTrendsMeta`, `weightTrendsBody`, `weightTrendsCard`, and the range/target helpers they compose (`wtWindow`, `panelHtml`, `chartHtml`, `wtSegHtml`)                                                                                           |
+    | `import-card.js`        | the import widget's card shell and first step — `impCardOpen` / `impCardHead` / `impCardClose`, `impNotice`, `importFileStep`                                                                                                                                                                       |
+    | `date.js`               | calendar days: `utcDay` / `DAY_MS`, `shortDate`, `isToday`, `ymd` (rejects an impossible day), `dayLabel`, `rangeLabel` (Intl first) / `rangeLabelPlain` (the hand-written fallback), `dayHeader`, `daysLoggedCaption`, `shiftDay`                                                                  |
+    | `i18n.js`               | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                                                                                                                                                                                |
+    | `bridge.js`             | the whole iframe↔host handshake — `initWidget(config)` — plus two top-level helpers, `tryRender(fn)` and `keepFocus(root, write, opts)`                                                                                                                                                             |
 
 - **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
@@ -69,23 +73,28 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
 - **Include order is load-bearing:** `/*@i18n@*/` → `i18n.js` → `date.js` →
   `icon.js` → `svg.js` (charting widgets) → `bridge.js` → `fmt.js` → the
   template's own code (`render`) → `macros.js` → `spark.js` (widgets with a
-  sparkline) → `summary-card.js` / `trends-card.js` (the widget whose card it
-  is) → `initWidget({…})`. **A template that includes `macros.js` must include
+  sparkline) → the widget's own card partial (`summary-card.js`, `trends-card.js`,
+  `meal-logged-card.js`, `goal-progress-card.js`, `weight-trends-card.js`,
+  `import-card.js`) → `initWidget({…})`. **A template that includes `macros.js` must include
   `fmt.js` ahead of it**: `macros.js` calls `fmt` and `esc` unguarded on every
   path, and while those two lived in each template as a private copy they were
   five copies to keep in step. `macros.js` likewise needs `icon` and `T` in
   scope and calls `shortDate` unguarded, and `svg.js`'s calendar axis reads
   `utcDay` / `DAY_MS`, so every template that includes either includes
-  `date.js` ahead of it. The two card partials come after everything they call
+  `date.js` ahead of it. The card partials come after everything they call
   (`macroPanel`, `sparkReset` / `sparkInline`, `chartableKeys`, `rangeLabel`,
   `calendarSlots`) — though, as everywhere here, only the first CALL has to.
   `spark.js` is included by the template, **never** from inside another
   partial: a nested include would put its text inside `macros.js`'s and break
   the verbatim-partial check. Nothing declares imports, because there is no
   module system inside the assembled file.
-- **A card partial writes no DOM and reads no globals but the ambient `T` and
-  the water unit.** `summaryCard` and `trendsView` / `trendsCard` return
-  strings; the caller resolves the locale (`setLocale`) and the unit
+- **Card partials hold each widget's render as pure string emitters**, so the
+  in-chat template and the landing page's build-time card
+  (`src/widget-static.ts`) share one implementation; a template keeps its
+  state, DOM writes and host wiring. **A card partial writes no DOM and reads
+  no globals but the ambient `T` and the water unit.** `summaryCard`,
+  `trendsView` / `trendsCard`, `mealLoggedCard`, `goalProgressCard`,
+  `weightTrendsCard` and `importFileStep` return strings; the caller resolves the locale (`setLocale`) and the unit
   (`setWaterUnit`) first, exactly as `render()` always did. That is what lets
   the public site run them with no document at all — `src/widget-static.ts`
   evaluates these same partials in a `new Function` sandbox and
