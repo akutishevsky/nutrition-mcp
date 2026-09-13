@@ -251,7 +251,7 @@ test("every width @media became a @container, and the colour/motion ones did not
         "(max-width: 479px)",
         "(min-width: 480px) and (max-width: 619px)",
         "(max-width: 401px)",
-        "(max-width: 479px)",
+        "(max-width: 289px)",
         "(max-width: 419.98px)",
     ]);
     expect([
@@ -279,7 +279,6 @@ test("the @supports tail pins the narrow layout for pre-container engines", () =
     expect(RESULT.narrowFallbackQueries).toEqual([
         "(max-width: 479px)",
         "(max-width: 401px)",
-        "(max-width: 479px)",
         "(max-width: 419.98px)",
     ]);
     // No min-width block is replayed: at NARROW_FALLBACK_PX they are all false.

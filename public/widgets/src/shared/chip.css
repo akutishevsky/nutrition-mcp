@@ -135,10 +135,10 @@
    tappable metrics cannot be tapped. Every level keeps the species language it
    had; only its scale changes. */
 
-/* THE GLYPH IS A COLUMN OF THE TILE, so it can centre across both rows exactly
-   as the chevron does — a mark at the top-left and a control centred at the
-   right read as two different systems on one tile. Three columns: the glyph,
-   the label-and-figure stack, the chevron.
+/* THE GLYPH IS A COLUMN OF THE TILE, so it can centre across both rows — a
+   mark tucked at the top-left read as a different system from the tile it
+   labels. Three columns: the glyph, the label-and-figure stack, and the
+   chevron, which sits on the label's row with the figure running under it.
 
    IT IS CENTRED AT EVERY WIDTH, and the COLUMN COUNT pays for it rather than
    the alignment. An earlier cut kept the glyph on the label's row below 560px,
@@ -176,11 +176,11 @@
     grid-column: 2;
 }
 .strip.tiered .chip > .v {
-    grid-column: 2;
+    grid-column: 2 / -1;
 }
 .strip.tiered .chip > .chev {
     grid-column: 3;
-    grid-row: 1 / -1;
+    grid-row: 1;
     align-self: center;
 }
 
@@ -323,23 +323,23 @@
 
 /* --- level 2's tile: the figure gets the whole width --- */
 
-/* THE CHEVRON STAYS CENTRED, on every tile at every level — the base rule in
-   §3 (`grid-column: 2; grid-row: 1 / -1; align-self: center`), untouched. It
-   was briefly pinned to the label's row here to buy the figure the chevron's
-   column back, and that was the wrong side of the trade: the chevron is one
-   affordance, and a control sitting top-right on three tiles and mid-right on
-   the four under them reads as two different kinds of tile for a reason that is
-   really just column arithmetic. The width it costs is bought below instead —
-   out of the inset, the column gap and one point of the figure. */
+/* THE CHEVRON SITS ON THE LABEL'S ROW, on every tile at every level and on the
+   focus panel — the base rule in §3 (`grid-row: 1; align-self: center`), with
+   the figure spanning the full width underneath. It was once pinned to the
+   label's row on this tier ALONE, and that was rightly undone: a control
+   top-right on three tiles and mid-right on the four under them reads as two
+   kinds of tile for a reason that is really just column arithmetic. Moving it
+   everywhere keeps it one affordance in one place, and hands every figure the
+   chevron's column back — which is what lets a macro's goal sit beside its
+   figure on a phone instead of on a third line. */
 /* 8px of side padding, against the tile's usual 9-10: at three columns every
    pixel of the inset comes straight off the figure's box. (Below 380 the
    narrow macro tile takes it to 6px — see there.) */
-/* SYMMETRIC VERTICAL PADDING on both tiers, and that is the chevron's doing.
-   It spans both grid rows and centres in that area, so an extra pixel at the
-   bottom of the tile — which the flat rail carries as an optical correction
-   under a figure with no descenders — puts the chevron half a pixel above the
-   tile's own centre. Half a pixel is a whole device pixel at 2x, on the one
-   element whose job is to look aligned. */
+/* SYMMETRIC VERTICAL PADDING on both tiers. It began as the chevron's doing,
+   when the chevron spanned both rows and an extra bottom pixel put it half a
+   pixel above the tile's centre; the chevron now centres on the label's row,
+   but the glyph still spans both rows and centres the same way, so the
+   symmetry stays for the mark. */
 /* 7px between columns, not 4: the glyph is 20px of solid colour and the label
    sat right up against it. That gap is the whole distance between a mark and
    the reading it belongs to, and it reads as crowding well before it reads as
@@ -356,19 +356,18 @@
     width: 11px;
     height: 11px;
 }
-/* 16px, AND THE SAME 16px AT EVERY WIDTH. The width it needs is found by
-   WRAPPING, not by shrinking: the figure's own digits are the part that may
-   never be cut, and the "/goal unit" after them goes onto a line of its own
-   when the pair does not fit (see the figure's wrap, below). So the column only
-   has to hold the wider of the two runs — "2,205" is 46px at 16px and
-   "/2,200 g" 42px at 10px — rather than the ~90px of both on one line.
+/* 16px, AND 16px ON EVERY CARD 290px OR WIDER. The width it needs is found
+   first by WRAPPING, not by shrinking: the figure's own digits are the part that
+   may never be cut, and the "/goal unit" after them goes onto a line of its own
+   when the pair does not fit (see the figure's wrap, below).
 
-   The alternative was a breakpoint stepping 18px down to 15.5px on narrow
-   cards. It bought two points of size on wide ones and cost the level its
-   identity on phones, which is where this widget mostly lives: at 15.5 against
-   the limits' 12.5 the two levels were a hair apart, and the ladder that does
-   the work here is 24 / 16 / 12.5. One size also means one thing to reason
-   about when a translation gets long. */
+   The one step down is below 290 (see "the narrowest macro tile", further
+   down), and it exists because the goal is no longer stacked there by default:
+   a three-digit figure and its goal need 65.2px at 16px and a 256px card gives
+   the figure 59.3. It is ONE step, on the narrowest cards only, rather than the
+   old 18-to-15.5 breakpoint that was rejected for costing the level its identity
+   on every phone — at 14 against the limits' 12.5 the levels sit closer, but
+   only where the alternative is a macro tile three lines tall. */
 .r-macro .chip .v {
     font-size: 16px;
     letter-spacing: -0.03em;
@@ -413,9 +412,9 @@
    with the content centred their labels sat lower than the wrapped tile's, a
    stagger across one row of identical things. The second track takes the slack
    instead, so every label in a row sits on one line and every figure starts on
-   the next; the glyph and chevron span both tracks and stay centred on the
-   tile, which is where the rest of this file wants them. A tile that is not
-   stretched lays out exactly as it did. */
+   the next; the glyph spans both tracks and stays centred on the tile, and
+   the chevron rides the label's track, so it stays level with the labels
+   across the row. A tile that is not stretched lays out exactly as it did. */
 .strip.tiered .r-macro .chip,
 .strip.tiered .r-limit .chip {
     grid-template-rows: auto 1fr;
@@ -454,30 +453,58 @@
     .strip.tiered .r-macro .chip > .gi {
         display: none;
     }
-    .strip.tiered .r-macro .chip > .ktop,
-    .strip.tiered .r-macro .chip > .v {
+    .strip.tiered .r-macro .chip > .ktop {
         grid-column: 1;
+    }
+    .strip.tiered .r-macro .chip > .v {
+        grid-column: 1 / -1;
     }
     .strip.tiered .r-macro .chip > .chev {
         grid-column: 2;
     }
 }
-/* AND BELOW 480 THE GOAL ALWAYS STACKS, rather than only when it must. Across
-   that whole range the text column is 52-86px, where "62/70 g" fits on a line
-   and "145/160 g" does not — so leaving it to the wrap printed the three tiles
-   of one object in two different shapes (measured at 420: protein and carbs
-   stacked, fat on one line). From 480 the column is ~85px with the glyph back,
-   which holds any three-digit figure and its goal on one line, and the wrap
-   above is only the fallback for a figure nobody should be eating.
+/* --- the narrowest macro tile --- */
 
-   `:not(.bare)` is the no-goal case (macros.js, chipValue): that `.u` holds
-   nothing but the unit, so there is no goal to stack and pushing it down left
-   a lone "g" on a line of its own under the figure. */
-@media (max-width: 479px) {
-    .strip.tiered .r-macro .chip > .v .u:not(.bare) {
-        flex-basis: 100%;
+/* BELOW 290 THE FIGURE STEPS DOWN TO 14px, AND THE TILE GIVES IT THE REST.
+   Shrinking the figure alone barely helps, because half the line is the goal:
+   "385/400 g" is 65.2px at 16px and still 60.0 at 13px, since "/400 g" is
+   already at the type scale's 10px floor and does not shrink with it. At a
+   256px card the figure's box is 59.3px, so no figure size fits on its own.
+   What fits is the size plus the tile's own spacing: 4px side insets instead
+   of 6, and 3px between the three tiles instead of 6, which together hand the
+   figure 4.6px back.
+
+   Measured with "385/400 g", the realistic worst three-digit pair: 5.8% slack
+   at 256px, rising with the card. The breakpoint is 290 and not the 276 where
+   16px stops fitting on SF Pro, because 16px at 280 cleared by only 3.2% — a
+   fit Segoe UI Variable's or Roboto's wider tabular advances can overrun, and
+   the whole point of the tile is one shape per row. The goal stays at 10px: it
+   is the type scale's floor, and it is the half of the figure that states a
+   breach. A four-digit figure still wraps its goal, as it does at every width. */
+@media (max-width: 289px) {
+    .strip.tiered .rail.r-macro {
+        column-gap: 3px;
+    }
+    .strip.tiered .r-macro .chip {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+    .strip.tiered .r-macro .chip > .v {
+        font-size: 14px;
     }
 }
+/* THE GOAL SITS BESIDE ITS FIGURE at every width, and a macro tile is two
+   lines: the label, then "125/160 g". Below 480 the goal used to be forced onto
+   a third line of its own, because the chevron spanned both rows and took its
+   column out of the figure's; that stack is what made the macro rail the
+   tallest thing on a phone card (64px against 52). With the chevron on the
+   label's row the figure gets the whole tile, and measured at 300, 360, 400 and
+   440px in all nine locales a realistic figure and its goal fit on one line
+   ("245/250 g", "385/400 g"). The wrap above is still the fallback, so a
+   four-digit figure drops its goal to a line of its own rather than being cut.
+   What that fallback can print is a row of mixed shapes (a stacked 2,205 beside
+   a one-line 58), which is what the forced stack existed to prevent; the
+   top-aligned tracks below keep the labels level when it does. */
 
 /* --- water: a bar, not a tile --- */
 
@@ -733,12 +760,13 @@
         tileIn 0.4s var(--ease-out) both,
         washIn 0.9s var(--ease-out) both;
     animation-delay: calc(var(--i, 0) * 35ms), calc(var(--i, 0) * 35ms + 140ms);
-    /* TWO COLUMNS: the label row and the figure stack in column one, the
-       chevron takes column two and spans both rows, so it centres on the tile
-       rather than sitting on the label's line. Kept in flow rather than
-       absolutely positioned — in flow the grid reserves its width, and an
-       absolute chevron would need padding to fake that back, costing the label
-       the same room at four columns where there is least of it. */
+    /* TWO COLUMNS ON THE LABEL'S ROW, ONE ON THE FIGURE'S: the label in
+       column one with the chevron beside it in column two, and the figure
+       spanning both underneath, so the chevron's width comes out of the label
+       line rather than the figure's. Kept in flow rather than absolutely
+       positioned — in flow the grid reserves its width, and an absolute
+       chevron would need padding to fake that back, costing the label the same
+       room at four columns where there is least of it. */
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-rows: auto auto;
@@ -847,13 +875,17 @@
     color: var(--ink2);
 }
 
-.chip > .ktop,
-.chip > .v {
+.chip > .ktop {
     grid-column: 1;
+    grid-row: 1;
+}
+.chip > .v {
+    grid-column: 1 / -1;
+    grid-row: 2;
 }
 .chip > .chev {
     grid-column: 2;
-    grid-row: 1 / -1;
+    grid-row: 1;
     align-self: center;
     margin-left: 0;
 }
@@ -1526,14 +1558,18 @@ button.focus:active {
 }
 /* Pinned to the corner, not carried in the flex row. As a flex item it rode
    with whatever wrapped last — on a narrow card that is the sparkline, so the
-   affordance ended up beside a chart on line two. In the corner it is where
-   every tile's chevron is, at every width. */
-/* Centred on the panel, at a tile's own 9px inset. The rotate below has to
-   carry the centring translate with it, or opening the panel drops the chevron
-   half its height. */
+   affordance ended up beside a chart on line two.
+   ON THE FIGURE'S LINE, at a tile's own 9px inset — the same place every
+   tile's chevron sits, which is its first line (see `.chip > .chev`). 22px is
+   the panel's 10px top padding plus half the figure's 24px line: `.fmain` is
+   always the tallest item on the panel's first flex line (its two 13px meta
+   lines hold their height even when a metric has no delta), so it starts at the
+   padding and the figure is its first line at every width, sparkline wrapped
+   or not. The rotate below has to carry the centring translate with it, or
+   opening the panel drops the chevron half its height. */
 .focus > .chev {
     position: absolute;
-    top: 50%;
+    top: 22px;
     right: 9px;
     transform: translateY(-50%);
 }

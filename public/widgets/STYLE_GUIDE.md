@@ -620,12 +620,17 @@ and a wrap that came and went with the metric would change the card's height on
 a tap. The flat rail keeps the one-row `.fmeta`.
 
 The levels are made of **size, proximity and shape**, and the ladder that does the
-work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
+work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's. It bends in
+one place: below 290px the macro figure steps to **14px**, with 4px tile insets
+and a 3px gap between the three tiles, so "385/400 g" stays on one line on the
+narrowest hosts (a 256px card gives that figure 59.3px, and the pair needs 65.2
+at 16px). Shrinking alone would not do it — the "/400 g" half is already at the
+10px floor, so 16→13px only buys 5.2px — and the goal never goes below that floor.
 
 - **Size is chosen by the narrowest column, not the widest.** Three columns inside
-  a 320px card are 95px; take out the border, the insets, the centred chevron and
+  a 320px card are 95px; take out the border, the insets, the chevron and
   its gap and the figure gets ~61, while `"148/160 g"` needs 65. Three macros, a
-  figure printed against its goal, and a chevron centred on the tile do not all
+  figure printed against its goal, and a chevron beside it on one row do not all
   fit at that width. `@media (max-width: 379px)` gives a little of all three —
   6px insets, a 3px gap to the chevron, a 4px gutter between tiles, a 15px figure
   — rather than all of one, which is what keeps any single one of them from
@@ -683,18 +688,19 @@ work is **24 / 16 / 12.5** — the hero's figure, a macro's, a limit's.
   quieting level 3 by taking its pill away would tell a user that four tappable
   metrics cannot be tapped. Every level keeps the species language it had; only
   its scale changes.
-- **The chevron stays vertically centred**, on every tile at every level — §3's
-  base rule (`grid-column: 2; grid-row: 1 / -1; align-self: center`), untouched.
-  It was briefly pinned to the label's row here to hand the figure the chevron's
-  column back, and that was the wrong side of the trade: it is one affordance,
-  and a control sitting top-right on three tiles and mid-right on the four under
-  them reads as two kinds of tile for a reason that is really just column
-  arithmetic. The width it costs is bought out of the insets instead (above).
-  **Both tiers take symmetric vertical padding** for the same reason: the chevron
-  centres in a grid area spanning both rows, so the flat rail's extra bottom
-  pixel — an optical correction under a figure with no descenders — puts it half
-  a pixel high, which is a whole device pixel at 2x on the one element whose job
-  is to look aligned.
+- **The chevron sits on the label's row**, on every tile at every level and on
+  the focus panel — §3's base rule (`grid-row: 1; align-self: center`), with the
+  figure spanning the whole tile underneath, and `.focus > .chev` pinned to the
+  figure's line. It was once pinned to the label's row on the macro tier alone,
+  and that was rightly undone: a control top-right on three tiles and mid-right
+  on the four under them reads as two kinds of tile for a reason that is really
+  just column arithmetic. Moved everywhere, it stays one affordance in one place
+  and hands every figure the chevron's column back — which is what lets a
+  macro's goal sit beside its figure on a phone ("125/160 g") instead of on a
+  third line of its own. That third line was the macro rail's whole height
+  problem (64px against 52); the goal still wraps as a fallback, so a four-digit
+  figure is never cut. **Both tiers keep symmetric vertical padding** for the
+  glyph, which still spans both rows and centres across them.
 
 **It is a flag, and it is temporary.** All four callers pass it now —
 `nutrition-summary` (the pilot), `goal-progress`, `meal-logged` and `trends` — so
@@ -1283,8 +1289,8 @@ Three limit tiles in two columns leave one alone on the second row, and an empty
 cell beside it reads as something failing to load, so the odd one out takes the
 whole row. It costs ~50px of card height at phone width, and buys the figure its
 16px at every width. (The macro rail is exempt — `.rail:not(.r-macro)` — and
-below 380px pays with its glyph column, 6px side insets and a 4px chevron gap
-instead, keeping its 16px figure.)
+below 402px pays with its glyph column instead, keeping its 16px figure down to
+290px; below that the figure steps to 14px with 4px insets and a 3px tile gap.)
 
 **620 for the limits, and 560 is the instructive wrong answer.** Four up at
 460px is a 92px tile that left `"187/400 mg"` 20px short. 560 was the next
