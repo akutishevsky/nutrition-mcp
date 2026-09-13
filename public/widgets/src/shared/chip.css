@@ -1559,14 +1559,20 @@ button.focus:active {
 /* Pinned to the corner, not carried in the flex row. As a flex item it rode
    with whatever wrapped last — on a narrow card that is the sparkline, so the
    affordance ended up beside a chart on line two.
-   ON THE FIGURE'S LINE, at a tile's own 9px inset — the same place every
-   tile's chevron sits, which is its first line (see `.chip > .chev`). 22px is
-   the panel's 10px top padding plus half the figure's 24px line: `.fmain` is
-   always the tallest item on the panel's first flex line (its two 13px meta
-   lines hold their height even when a metric has no delta), so it starts at the
-   padding and the figure is its first line at every width, sparkline wrapped
-   or not. The rotate below has to carry the centring translate with it, or
-   opening the panel drops the chevron half its height. */
+   ON THE PANEL'S FIRST LINE, at a tile's own 9px inset — the same place every
+   tile's chevron sits (see `.chip > .chev`). 22px is the panel's 10px top
+   padding plus half the figure's 24px line. On every card the figure shares
+   that first line with the ring: `.fmain` is the tallest item on it (its two
+   13px meta lines hold their height even when a metric has no delta), so it
+   starts at the padding, sparkline wrapped or not.
+   The one exception is a card so narrow the ring cannot share a line with the
+   figure — measured at 230px, the landing page's hero card on a 320px phone —
+   where the ring wraps onto a first line of its own and the chevron sits
+   beside it, top-right, 38px above the figure. That is deliberate rather than
+   chased: it is still the corner and still the first line, which is the rule
+   every tile follows, and anchoring to the figure instead would need the
+   chevron inside `.fmain`'s markup. The rotate below has to carry the centring
+   translate with it, or opening the panel drops the chevron half its height. */
 .focus > .chev {
     position: absolute;
     top: 22px;
