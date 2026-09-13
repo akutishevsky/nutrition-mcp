@@ -206,6 +206,7 @@ export const INDEX_PL: IndexDoc = {
         carouselRole: "karuzela",
         slideRole: "slajd",
         moreToolsLabel: "Korzysta też z",
+        toolLinkLabel: "{tool} na stronie narzędzi",
         photoMealAlt:
             "Zdjęcie: miska barszczu z łyżką śmietany i koperkiem, a obok kromka żytniego chleba",
         photoPackageAlt:

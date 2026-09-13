@@ -210,6 +210,7 @@ export const INDEX_DE: IndexDoc = {
         slideRole: "Folie",
 
         moreToolsLabel: "Nutzt außerdem",
+        toolLinkLabel: "{tool} auf der Werkzeuge-Seite",
         photoMealAlt:
             "Foto: ein Teller Borschtsch mit einem Löffel Schmand und Dill, daneben eine Scheibe Roggenbrot",
         photoPackageAlt:

@@ -225,6 +225,7 @@ export const INDEX_JA: IndexDoc = {
         carouselRole: "カルーセル",
         slideRole: "スライド",
         moreToolsLabel: "あわせて使用",
+        toolLinkLabel: "{tool}（ツールページ）",
         photoMealAlt:
             "写真：サワークリームとディルをのせたボルシチと、横に添えたライ麦パン1枚",
         photoPackageAlt:

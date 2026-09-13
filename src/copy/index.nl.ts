@@ -208,6 +208,7 @@ export const INDEX_NL: IndexDoc = {
         slideRole: "dia",
 
         moreToolsLabel: "Gebruikt ook",
+        toolLinkLabel: "{tool} op de toolspagina",
         photoMealAlt:
             "Foto: een kom borsjtsj met een schepje zure room en dille, met een snee roggebrood ernaast",
         photoPackageAlt:

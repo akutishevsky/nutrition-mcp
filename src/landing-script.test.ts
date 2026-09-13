@@ -1,5 +1,10 @@
 import { test, expect } from "bun:test";
-import { HTML_LANG, SITE_LOCALES, type SiteLocale } from "./routes.js";
+import {
+    HTML_LANG,
+    SITE_LOCALES,
+    pathFor as routePath,
+    type SiteLocale,
+} from "./routes.js";
 import { INDEX } from "./copy/index.js";
 import {
     EX_META,
@@ -591,7 +596,7 @@ test("every examples tool chip names a tool src/mcp.ts registers", async () => {
     for (const { locale, path, html } of pages) {
         const chips = [
             ...html.matchAll(
-                /<span class="nm-ex-tool">[\s\S]*?<code>([^<]+)<\/code>|<code class="nm-ex-chip">([^<]+)<\/code>/g,
+                /<a class="nm-ex-tool"[^>]*>[\s\S]*?<code>([^<]+)<\/code>|<a class="nm-ex-chip"[^>]*><code>([^<]+)<\/code>/g,
             ),
         ].map((m) => m[1] ?? m[2]!);
         // In the page's slide order, not EX_META's key order: reordering
@@ -602,6 +607,65 @@ test("every examples tool chip names a tool src/mcp.ts registers", async () => {
         expect(`${path}: ${chips.join(",")}`).toBe(
             `${path}: ${want.join(",")}`,
         );
+    }
+});
+
+// Every examples tool chip is a link to that tool's card on the SAME locale's
+// tools page: the href is that locale's /tools path plus #<tool name>, the
+// card with that id exists on that locale's generated tools.html, and the
+// accessible name contains the visible tool name (WCAG 2.5.3). A hardcoded
+// "/tools" on /de would send a German visitor to the English page.
+test("every examples tool chip links to its card on this locale's tools page", async () => {
+    const pages = await landingPages();
+    // Every locale is populated: a locale whose page failed to generate must
+    // fail here, not be skipped by landingPages().
+    expect(pages.map((p) => p.locale)).toEqual([...SITE_LOCALES]);
+    for (const { locale, path, html } of pages) {
+        const label = INDEX[locale]!.examples.toolLinkLabel;
+        expect(`${locale}: ${label.includes("{tool}")}`).toBe(
+            `${locale}: true`,
+        );
+        // No chip may be left as bare text.
+        expect(
+            `${path}: ${/<span class="nm-ex-tool">|<code class="nm-ex-chip">/.test(html)}`,
+        ).toBe(`${path}: false`);
+        const toolsFile =
+            locale === "en"
+                ? "./public/tools.html"
+                : `./public/${locale}/tools.html`;
+        const toolsHtml = await Bun.file(toolsFile).text();
+        const cardIds = new Set(
+            [
+                ...toolsHtml.matchAll(
+                    /<article class="tool-card" id="([^"]+)"/g,
+                ),
+            ].map((m) => m[1]!),
+        );
+        expect(cardIds.size).toBeGreaterThan(0);
+        const links = [
+            ...html.matchAll(
+                /<a class="(nm-ex-tool|nm-ex-chip)" href="([^"]*)" aria-label="([^"]*)">(?:(?!<\/a>)[\s\S])*?<code>([^<]+)<\/code>/g,
+            ),
+        ];
+        const want = INDEX[locale]!.examples.slides.flatMap(
+            (s) => EX_META[s.id].tools,
+        );
+        expect(`${path}: ${links.map((m) => m[4]).join(",")}`).toBe(
+            `${path}: ${want.join(",")}`,
+        );
+        for (const m of links) {
+            const [, , href, aria, name] = m as unknown as string[];
+            const got = unescapeHtml(href!);
+            expect(`${path} ${name}: ${got}`).toBe(
+                `${path} ${name}: ${routePath(locale, "/tools")}#${name}`,
+            );
+            expect(`${path} ${name} card: ${cardIds.has(name!)}`).toBe(
+                `${path} ${name} card: true`,
+            );
+            expect(`${path} ${name} aria: ${unescapeHtml(aria!)}`).toBe(
+                `${path} ${name} aria: ${label.replace("{tool}", name!)}`,
+            );
+        }
     }
 });
 

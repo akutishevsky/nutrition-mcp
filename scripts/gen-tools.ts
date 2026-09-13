@@ -174,11 +174,47 @@ const TOOLS_STYLE = `        <style>
                 break-inside: avoid;
                 margin-bottom: 14px;
             }
+            /* Arriving on /tools#<tool_name> (the landing page's example
+               chips link here). The card is shown at once rather than
+               waiting on site.js's [data-reveal] fade, so the jump never
+               lands on an empty gap; it wears an accent ring, and a wider
+               halo around that ring fades out over ~2s so the eye finds
+               the card. Only box-shadow animates (paint, not layout);
+               under reduced motion the ring is static. */
+            body.tools .tool-card:target {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
             body.tools .tool-card:target > .nm-card {
                 border-color: var(--acc);
                 box-shadow:
                     0 0 0 3px color-mix(in srgb, var(--acc) 30%, transparent),
                     var(--shadow);
+                animation: nm-tools-arrive 3s ease-out;
+            }
+            /* Held at full strength for the first ~1.8s: an in-page hash
+               change smooth-scrolls for ~0.75s, and the emphasis should
+               mostly play once the card has settled, not while it moves. */
+            @keyframes nm-tools-arrive {
+                0%,
+                60% {
+                    box-shadow:
+                        0 0 0 3px color-mix(in srgb, var(--acc) 60%, transparent),
+                        0 0 0 12px color-mix(in srgb, var(--acc) 18%, transparent),
+                        var(--shadow);
+                }
+                100% {
+                    box-shadow:
+                        0 0 0 3px color-mix(in srgb, var(--acc) 30%, transparent),
+                        0 0 0 12px color-mix(in srgb, var(--acc) 0%, transparent),
+                        var(--shadow);
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                body.tools .tool-card:target > .nm-card {
+                    animation: none;
+                }
             }
             body.tools .tool-card h3 {
                 font-size: 16px;
@@ -280,6 +316,25 @@ const SCROLLSPY_SCRIPT = `        <script>
                     return document.querySelector(c.getAttribute("href"));
                 });
                 var raf = 0;
+                // The category of the card the URL's hash names, when that
+                // card is on screen; -1 otherwise.
+                function targetGroup() {
+                    var id = location.hash.slice(1);
+                    if (!id) return -1;
+                    try {
+                        id = decodeURIComponent(id);
+                    } catch (e) {}
+                    var el = document.getElementById(id);
+                    // Cards only: a category chip sets the hash too, and a
+                    // stale #water must not pin that chip while the reader
+                    // is at the foot of the page in another category.
+                    if (!el || !el.matches(".tool-card")) return -1;
+                    var group = el.closest(".tools-group");
+                    if (!group) return -1;
+                    var r = el.getBoundingClientRect();
+                    if (r.bottom <= 0 || r.top >= window.innerHeight) return -1;
+                    return groups.indexOf(group);
+                }
                 function offset() {
                     // Header pill + the sticky chip strip + breathing room.
                     var head =
@@ -301,12 +356,19 @@ const SCROLLSPY_SCRIPT = `        <script>
                         )
                             idx = i;
                     }
-                    // Snap to the last category once scrolled to the bottom.
+                    // Snap to the last category once scrolled to the bottom —
+                    // unless the page was opened on a tool card
+                    // (/tools#log_water) that is on screen: a card near the
+                    // foot can leave the page unable to scroll it any higher,
+                    // and the chip must still name the category it sits in.
                     if (
                         window.innerHeight + window.scrollY >=
                         document.documentElement.scrollHeight - 4
-                    )
+                    ) {
                         idx = groups.length - 1;
+                        var hit = targetGroup();
+                        if (hit >= 0) idx = hit;
+                    }
                     for (var j = 0; j < chips.length; j++) {
                         var on = j === idx;
                         chips[j].classList.toggle("is-active", on);
@@ -326,6 +388,50 @@ const SCROLLSPY_SCRIPT = `        <script>
                 }
                 window.addEventListener("scroll", onScroll, { passive: true });
                 window.addEventListener("resize", onScroll);
+                // The browser's jump to /tools#<tool_name> can land after this
+                // script runs (and again once fonts settle), and an in-page
+                // hash change may not scroll at all if the card is already
+                // placed; re-read the line either way.
+                window.addEventListener("hashchange", onScroll);
+                // On a first (cold-cache) visit to /tools#<tool_name> the
+                // browser jumps to the card before the stylesheets' fonts and
+                // icons have laid out; the page then reflows above the card
+                // and nothing puts it back, leaving its top under the sticky
+                // chip strip. Re-align the hash target — scrollIntoView
+                // honours scroll-margin-top — once those assets settle, but
+                // only until the reader moves the page themselves.
+                var userMoved = false;
+                function markMoved() {
+                    userMoved = true;
+                }
+                ["wheel", "touchstart", "keydown", "pointerdown"].forEach(
+                    function (t) {
+                        window.addEventListener(t, markMoved, {
+                            passive: true,
+                            once: true,
+                        });
+                    },
+                );
+                function realign() {
+                    if (!userMoved && location.hash.length > 1) {
+                        var id = location.hash.slice(1);
+                        try {
+                            id = decodeURIComponent(id);
+                        } catch (e) {}
+                        var el = document.getElementById(id);
+                        if (el && el.matches(".tool-card, .tools-group"))
+                            el.scrollIntoView({
+                                block: "start",
+                                behavior: "instant",
+                            });
+                    }
+                    onScroll();
+                }
+                window.addEventListener("load", realign);
+                if (document.fonts) {
+                    document.fonts.ready.then(realign);
+                    document.fonts.addEventListener("loadingdone", realign);
+                }
                 chips.forEach(function (c) {
                     c.addEventListener("click", function () {
                         setTimeout(update, 60);

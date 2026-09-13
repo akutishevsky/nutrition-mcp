@@ -302,6 +302,12 @@ export interface IndexDoc {
         /** Small label before a slide's secondary tool chips, e.g. "Also
          * uses" — the primary tool is the prominent chip beside the icon. */
         moreToolsLabel: string;
+        /** Accessible name of every examples tool chip, which links to that
+         * tool's card on the tools page. {tool} is the bare tool name the chip
+         * shows (log_meal), and must stay in the label verbatim so the spoken
+         * name contains the visible one (WCAG 2.5.3); put it first where the
+         * language allows. */
+        toolLinkLabel: string;
         /** Accessible names of the two photo-turn pictures, e.g. "Photo: a
          * bowl of borscht…". Read by a screen reader in place of the
          * drawing, so describe what the photo shows, not the drawing. */
@@ -625,6 +631,7 @@ export const INDEX_EN: IndexDoc = {
         carouselRole: "carousel",
         slideRole: "slide",
         moreToolsLabel: "Also uses",
+        toolLinkLabel: "{tool} on the Tools page",
         photoMealAlt:
             "Photo: a bowl of borscht with a spoonful of sour cream and dill, and a slice of rye bread beside it",
         photoPackageAlt:

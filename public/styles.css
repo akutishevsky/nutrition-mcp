@@ -2266,14 +2266,24 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     font-size: 24px;
     box-shadow: 0 16px 32px -16px var(--c, var(--acc));
 }
+/* The tool chips are links to that tool's card on /tools (gen-index.ts
+   renderExamples). Both kinds share one link treatment: a pill at rest with
+   an arrow that says "goes somewhere", and on hover or keyboard focus an
+   accent-tinted fill, an underlined name and an arrow that nudges forward.
+   Only colours and a transform change — no layout property animates. */
 .nm-ex-tool {
     grid-area: tool;
     align-self: end;
     display: inline-flex;
     align-items: center;
     gap: 7px;
+    min-height: 26px;
+    padding: 2px 10px 2px 9px;
     font-size: 12.5px;
     color: var(--ink2);
+    background: color-mix(in srgb, var(--c, var(--acc)) 8%, var(--panel));
+    border: 1px solid var(--line);
+    border-radius: 999px;
 }
 .nm-ex-tool i {
     font-size: 10px;
@@ -2318,11 +2328,68 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     color: var(--ink3);
 }
 .nm-ex-chip {
-    padding: 3px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 24px;
+    padding: 2px 9px;
+    font-family: var(--mono);
     font-size: 11.5px;
     color: var(--ink2);
     background: color-mix(in srgb, var(--c, var(--acc)) 8%, var(--panel));
     border: 1px solid var(--line);
+    border-radius: 999px;
+}
+.nm-ex-chip code {
+    font-size: inherit;
+}
+.nm-ex-tool,
+.nm-ex-chip {
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+.nm-ex-tool .nm-ex-go,
+.nm-ex-chip .nm-ex-go {
+    font-size: 9px;
+    color: var(--ink3);
+    transition:
+        transform 0.25s var(--ease-out),
+        color 0.2s ease;
+}
+.nm-ex-tool code,
+.nm-ex-chip code {
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.2s ease;
+}
+.nm-ex-tool:hover,
+.nm-ex-chip:hover,
+.nm-ex-tool:focus-visible,
+.nm-ex-chip:focus-visible {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--acc) 14%, var(--panel));
+    border-color: color-mix(in srgb, var(--acc) 50%, var(--line));
+}
+.nm-ex-tool:hover code,
+.nm-ex-chip:hover code,
+.nm-ex-tool:focus-visible code,
+.nm-ex-chip:focus-visible code {
+    text-decoration-color: color-mix(in srgb, var(--acc) 70%, transparent);
+}
+.nm-ex-tool:hover .nm-ex-go,
+.nm-ex-chip:hover .nm-ex-go,
+.nm-ex-tool:focus-visible .nm-ex-go,
+.nm-ex-chip:focus-visible .nm-ex-go {
+    color: var(--acc-text);
+    transform: translateX(2px);
+}
+/* The system ring, pill-shaped: body a:focus-visible would otherwise give
+   the pill 8px corners while it is focused. */
+.nm-ex-tool:focus-visible,
+.nm-ex-chip:focus-visible {
     border-radius: 999px;
 }
 /* As tall as the slide, which is as tall as the longest slide, and read from

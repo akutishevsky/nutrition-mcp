@@ -2248,6 +2248,11 @@ function renderExamples(
 ): string {
     assertExamplesMirrorEnglish(doc, locale);
     const e = doc.examples;
+    const toolsPath = pathFor(locale, "/tools");
+    if (!e.toolLinkLabel.includes("{tool}"))
+        throw new Error(
+            `${locale}: examples.toolLinkLabel must contain {tool}, so each chip's accessible name contains the tool name it shows.`,
+        );
     const total = e.slides.length;
     const position = (i: number): string =>
         `${e.slideLabel
@@ -2257,9 +2262,15 @@ function renderExamples(
         .map((s, i) => {
             const meta = EX_META[s.id];
             const [tool, ...moreTools] = meta.tools;
+            // Every chip is a link to that tool's card on this locale's tools
+            // page (gen-tools.ts gives each card id="<tool name>"). The
+            // visible text stays the bare tool name; the accessible name
+            // says where it goes and contains that name.
+            const toolLink = (t: string, cls: string, lead: string): string =>
+                `<a class="${cls}" href="${attr(`${toolsPath}#${t}`)}" aria-label="${attr(e.toolLinkLabel.replace("{tool}", t))}">${lead}<code>${esc(t)}</code><i class="fa-solid fa-arrow-right nm-ex-go" aria-hidden="true"></i></a>`;
             const more = moreTools.length
                 ? `\n                                <p class="nm-ex-more"><span class="nm-ex-more-l">${esc(e.moreToolsLabel)}</span>${moreTools
-                      .map((t) => `<code class="nm-ex-chip">${esc(t)}</code>`)
+                      .map((t) => toolLink(t, "nm-ex-chip", ""))
                       .join("")}</p>`
                 : "";
             const messages = s.messages
@@ -2274,7 +2285,7 @@ function renderExamples(
                             <div class="nm-ex-info ${meta.tint}">
                                 <span class="nm-ex-glow" aria-hidden="true"></span>
                                 <span class="nm-ex-icon" aria-hidden="true"><i class="fa-solid ${meta.icon}"></i></span>
-                                <span class="nm-ex-tool"><i class="fa-solid fa-plug" aria-hidden="true"></i><code>${esc(tool)}</code></span>
+                                ${toolLink(tool!, "nm-ex-tool", `<i class="fa-solid fa-plug" aria-hidden="true"></i>`)}
                                 <h3 class="nm-ex-title">${esc(s.title)}</h3>
                                 <p class="nm-ex-desc">${esc(s.description)}</p>${more}
                             </div>

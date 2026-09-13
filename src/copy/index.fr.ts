@@ -213,6 +213,7 @@ export const INDEX_FR: IndexDoc = {
         carouselRole: "carrousel",
         slideRole: "diapositive",
         moreToolsLabel: "Utilise aussi",
+        toolLinkLabel: "{tool} sur la page des outils",
         photoMealAlt:
             "Photo : un bol de bortsch avec une cuillerée de crème aigre et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:

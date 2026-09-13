@@ -217,6 +217,7 @@ export const INDEX_UK: IndexDoc = {
         carouselRole: "карусель",
         slideRole: "слайд",
         moreToolsLabel: "Також використовує",
+        toolLinkLabel: "{tool} на сторінці інструментів",
         photoMealAlt:
             "Фото: тарілка борщу з ложкою сметани й кропом, а поруч скибка житнього хліба",
         photoPackageAlt:
