@@ -847,7 +847,12 @@ drops to its own full-width line under the figure.
   every later one is `.fspark .cwrap.still` — a series switch is instant, and
   the entrance plays once per tool result. Days are calendar slots (§8); a day
   with no reading for the series is a gap (`seriesValue`), and trends draws a
-  day with nothing logged as 0, matching its "all days" average.
+  day with nothing logged as 0, matching its "all days" average. The line is
+  a monotone curve through the exact readings (`chCurve`, §8), so a day's value
+  is where the line passes, never smoothed away; past a month (90/365 days) a
+  calm rolling-mean trend is drawn over the real line, which becomes a
+  translucent texture, and the trend carries the draw-in — see "The curve, and
+  the long-range trend".
 - **`.focus.solo`** is weight-trends' stand-alone panel: no strip, no ring,
   three meta lines — the latest reading and its date, the change since the
   window's first reading, the distance to target with "· Target X". Each
@@ -1158,8 +1163,11 @@ is `translateY(1px)` on `:active`, like every other control.
 ## 8. The chart grammar (`shared/chart.css` + `shared/svg.js`)
 
 One grammar, three instances (calories, a switched nutrient series, weight): a
-2.5px line, a fading area under it **on zero-based charts only**, an optional
-dashed goal line, a single dot on the last point, and HTML labels underneath.
+2.5px line — **a monotone curve through the exact readings**, never a zig-zag of
+straight segments — a fading area under it **on zero-based charts only**, an
+optional dashed goal line, a single dot on the last point, and HTML labels
+underneath. Past a month the sparkline adds a rolling-mean **trend** over a
+thinner real line; see "The curve, and the long-range trend" below.
 
 The SVG is `viewBox="0 0 480 52"` with **`preserveAspectRatio="none"`** and a fixed
 52px CSS height, so the chart stretches horizontally and never grows vertically —
@@ -1212,8 +1220,10 @@ card height stays independent of card width. Everything else follows from that:
   **Only up to `CH_DAILY_SLOTS` (31) slots**, the same line `hairlineSlot`
   draws: past it a day is narrower than the bead (~2.4px on 90 days, ~0.6px on
   365 in a 320px card), and a year of alternate days became one solid band
-  over the goal and the dot. There the marks carry `.dense` and drop to the
-  line's own 2.5px, a texture under the goal and the dot.
+  over the goal and the dot. There the marks drop to 2px (`.dense`), a hair
+  over the long range's 1.5px real line, and are emitted as **one** path of
+  zero-length subpaths (`chMarksD`) so their translucency does not stack — a
+  texture under the trend, the goal and the dot.
 - **Goal behind the line is only the base order** (day → goal → area → line).
   The sparkline and weight-trends' target paint over the line instead: a 2.5px
   data stroke hid the dashes entirely whenever the series sat on its goal,
@@ -1261,10 +1271,93 @@ measurement, no reads off an element — so it evaluates where `document` is
 undefined and a chart can be built inside the same `innerHTML` string as everything
 else rather than in a second post-paint pass. `chPoints(vals, yMin, yMax)` maps
 values to `[x, y]` pairs (a single value is centred rather than pinned left, so one
-weigh-in renders as a dot in the middle of the box), `chPath(pts)` joins them at one
-decimal, and `chY(v, yMin, yMax)` gives the y for the goal/target line. The
+weigh-in renders as a dot in the middle of the box), `chPath(pts)` draws them as one
+curve at one decimal (`chCurve`, below), and `chY(v, yMin, yMax)` gives the y for the
+goal/target line. The
 coordinate space is the viewBox, never CSS pixels, which is exactly why nothing in
 there needs to know how wide the card is.
+
+### The curve, and the long-range trend
+
+**Every line is one primitive, `chCurve(pts)` in `svg.js`**: a Fritsch–Carlson
+monotone cubic through the exact readings, written as SVG `C` pieces. `chPath` is
+it; `chArea`'s top edge is it; `sparkMarkup` draws each run of readings with it.
+Do not add a second curve. What it guarantees, and `spark.test.ts` pins:
+
+- **Every reading is a node** of the path at its exact `(x, y)`, so marks, the
+  last-reading dot and hairlines sit on the line at every card width — a Bezier
+  stays a Bezier under `preserveAspectRatio="none"`'s affine stretch.
+- **No piece leaves the band its two readings span.** It never draws a peak,
+  trough or dip under the floor that no day had, and a piece whose two readings
+  are on the same side of the goal never crosses the goal. Each tangent is zeroed
+  at a turning point or flat stretch and clamped (`α² + β² ≤ 9`); each control
+  y is then clamped **after** the one-decimal rounding into its readings' rounded
+  band, which is what keeps the guarantee exact in the emitted text. That leaves
+  sub-visible tangent kinks on dense data — do not write a strict C1 test.
+- **A run of two is a straight `L`** (the cubic between two points is that line),
+  a flat run has flat controls, a run of one is not in the path at all (a `.cpt`
+  mark), and slopes are per interval, so uneven calendar spacing (weight's bridges)
+  is handled.
+- A softer spline (Catmull-Rom, cardinal) was measured against it: invisibly
+  rounder at 48–52px, and it overshoots between readings. Gappy fortnights, made of
+  two- and three-reading runs, look much as they did straight — that is the honest
+  cost; only averaging or bridging could smooth them, and neither belongs on a
+  7/14/30-day chart.
+
+**Past `CH_DAILY_SLOTS` (31) — the same threshold `hairlineSlot` and `.cpt.dense`
+use — the sparkline adds a trend** (`chTrend`), because there a day is under a
+pixel or two and the exact curve is a scribble. The wrapper gets `.long`; nothing
+of this exists at 7, 14 or 30 days.
+
+- **What it is:** a rolling mean over ±3 calendar days (a week, which cancels
+  the weekday/weekend cycle) up to 120 slots, ±7 beyond, curved with `chCurve`,
+  with a node every `ceil(k/2)` days plus both run ends. A missing day never
+  enters a mean.
+- **Clipped, not shrunk, at run ends** (`chRolling`): the window at slot `i` is
+  `[max(start, i − k), min(end, i + k)]` — centred inside a run, one-sided at its
+  ends. A run's last node is the mean of its last `k + 1` days, so an unfinished
+  "today" moves the trend's end by at most `1/(k + 1)` of its departure instead
+  of hooking the heaviest stroke down to it. **The last-reading dot stays on the
+  real latest value** and so sits off the trend's end on a day that departs from
+  it, which is what that day did. (A symmetric shrink, `min(k, i − start, end −
+i)`, was shipped first: it kept the window centred but made every run's ends
+  raw days, a ~15px hook into the dot on a partial day.) The cost is lag over
+  the last `k` days: a change of habit arrives there gradually.
+- **Gaps:** the trend bridges a gap of **at most k days** (`chRuns`) and breaks at a
+  longer one — an every-other-day year is one trend, a real lapse still shows. The
+  real line underneath still breaks at **every** unlogged day.
+- **Layers, decided and measured:** the **trend** (`.ctrend`) is 3px in the full
+  `--cstroke` and carries the chart — 3.37:1 worst (calories, light, against the
+  wash on the panel's tinted ground), and a 3px band keeps that at any sub-pixel
+  offset. The **day-by-day layer** — the real line at 1.5px, lone readings as one
+  2px `.cpt.dense` path — is the same `--cstroke` at `stroke-opacity: 0.6`: a
+  texture, **not held to 3:1** (light calories 1.98:1, sugar 2.56:1; dark
+  2.99 / 3.33; chosen over a quieter 0.4 so the day-by-day ups and downs stay
+  legible behind the trend). Why that is acceptable under SC 1.4.11: on a realistic noisy year
+  a full-contrast real line is a ±10px same-hue brush the trend and the goal are
+  lost in, and no single day can be read off a 0.6–2.4px slot anyway. What the
+  chart has to say is at full contrast elsewhere — level and direction (trend),
+  today (the dot, always real), the goal (its line) — and the figure, the goal
+  state and the over red are decided from real values and printed. Readings
+  within about a pixel of their mean are drawn by the trend itself. Same hue so
+  the trend never reads as a second series. Rejected: a full-contrast 1.5px line
+  under a 5.5px `--panel` halo at 60% (the halo muted 60–83% of readings anyway,
+  and `--panel` is not the panel's tinted ground, so it drew a pale casing), and
+  no knock-out at full contrast (trend drowned). Tuned on the gallery's noisy
+  specimens (±700 kcal, weekend bump), not only the smooth wobble. Paint order:
+  day → area → line → marks → trend → goal → dot; the goal's dashes cross the
+  trend, so a trend on its goal reads as ticks through it.
+- **Motion:** the trend carries the draw-in; the day texture fades in with the
+  scaffold (`opacity`, which never touches its `stroke-opacity`), since two
+  length-normalised sweeps over such different lengths would never agree on
+  where they are. `.still` stops both; reduced motion needs nothing new.
+- **Honesty that does not change:** the figure, the goal state and the over-goal
+  red are decided from real values upstream and never read this geometry; the red
+  reaches the trend through `--cstroke` like everything else.
+- **Size:** a daily 365-day sparkline is 27.2 KB of markup (8.5 KB with straight
+  segments before any of this; 30.2 KB with the halo, which duplicated the
+  trend's `d`); an every-other-day year is 7.6 KB (16.0 KB with a path per mark).
+  No landing card reaches 31 slots.
 
 **Zero-based vs data-scaled Y is the caller's decision.** Quantities that start at 0
 (calories, macros) use a zero-based axis. A metric that hovers in a narrow band
@@ -1275,12 +1368,13 @@ zero-based weight chart flattens the trend into a straight line. See
 **weight-trends' x axis is the calendar, and its line bridges unweighed days.**
 Readings are spaced by `calendarSlots`, so weekly weigh-ins no longer look
 daily. Weight is a sampled quantity, so the line joins readings across the days
-nobody stepped on the scale — the sparkline, by contrast, breaks at a day with
-no reading, because an intake nobody logged is not an intake between two
-others. Every measured reading carries its own `.cpt` mark, so a bridged
-stretch cannot pass for daily data. A range toggle never changes the card's
-height: one reading keeps the chart box with a lone dot, and no reading keeps
-the whole panel ("—", the reason, the target, day lines plus the target line).
+nobody stepped on the scale, as one smooth curve from mark to mark (`chPath`) —
+the sparkline, by contrast, breaks at a day with no reading, because an intake
+nobody logged is not an intake between two others. Every measured reading
+carries its own `.cpt` mark, so a bridged stretch cannot pass for daily data. A
+range toggle never changes the card's height: one reading keeps the chart box
+with a lone dot, and no reading keeps the whole panel ("—", the reason, the
+target, day lines plus the target line).
 
 **The header's window line is the other half of that rule**, and it holds for
 `trends` as well. The line a range owns ("22 Okt. – 20. Nov. 2025 · 30

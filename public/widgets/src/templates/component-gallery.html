@@ -893,6 +893,28 @@
                         140 * Math.sin(i * 0.37 + 1),
                 );
             }
+            // Realistic noise, still deterministic: a MINSTD generator from a
+            // fixed seed (exact in doubles, so every engine draws the same
+            // year), +/-700 kcal a day around 2,050 and +300 on two slots of
+            // every seven. Memoised, so `kcal(i)` is the same whatever order
+            // the days are asked for in.
+            function noisyKcal(seed) {
+                let s = seed;
+                const vals = [];
+                return (i) => {
+                    while (vals.length <= i) {
+                        s = (s * 48271) % 2147483647;
+                        vals.push(
+                            Math.round(
+                                2050 +
+                                    700 * ((s / 2147483647) * 2 - 1) +
+                                    (vals.length % 7 >= 5 ? 300 : 0),
+                            ),
+                        );
+                    }
+                    return vals[i];
+                };
+            }
             // Calorie-only days over a window from `start` (or dateless, for
             // the fallback axis), logged where `logged(i)` says so. `kcal(i)`
             // overrides the wobble for the on-goal / over-goal weeks.
@@ -1451,7 +1473,7 @@
                         ),
                     ],
                     [
-                        "90 days · a rule per Monday",
+                        "90 days · a rule per Monday · the trend begins",
                         sparkSpecimen(
                             calDays(W90, 90, (i) => i % 3 !== 2),
                             W90,
@@ -1470,12 +1492,62 @@
                             GOALS,
                         ),
                     ],
-                    // The two above log in runs, so they carry no lone
-                    // reading. These do on every day they log: past a month
-                    // each mark drops to line weight (`.cpt.dense`), and at
-                    // 4px they merged into a band over the goal and the dot.
+                    // THE CASE THE TREND EXISTS FOR: a daily year, where the
+                    // exact curve is a scribble at under a pixel a day. The
+                    // 1.5px real line is a 60% texture under the 3px trend.
                     [
-                        "90 days · every other day, marks at line weight",
+                        "365 days · every day logged · the trend over the real line",
+                        sparkSpecimen(
+                            calDays(W365, 365, () => true),
+                            W365,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    // THE SAME YEAR AS PEOPLE ACTUALLY EAT. The wobble above is
+                    // smooth and low, and a trend tuned on it alone looked calm
+                    // on a signal that never produces a brush: this one is
+                    // +/-700 kcal a day plus a weekend bump, the density the
+                    // long-range layer weights were measured against.
+                    [
+                        "365 days · noisy daily (±700 kcal, weekends +300) · texture under the trend",
+                        sparkSpecimen(
+                            calDays(W365, 365, () => true, noisyKcal(12345)),
+                            W365,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    // An unfinished today: 800 kcal on the last day of a noisy
+                    // quarter. The dot sits on 800; the trend's end is the mean
+                    // of its last four days, so it does not hook down into it.
+                    [
+                        "90 days · noisy, today only 800 kcal · the dot, not the trend, drops",
+                        sparkSpecimen(
+                            calDays(
+                                W90,
+                                90,
+                                () => true,
+                                ((f) => (i) => (i === 89 ? 800 : f(i)))(
+                                    noisyKcal(777),
+                                ),
+                            ),
+                            W90,
+                            SERIES_END,
+                            "calories",
+                            GOALS,
+                        ),
+                    ],
+                    // The ones above log in runs, so they carry no lone
+                    // reading. These do on every day they log: past a month
+                    // each mark drops to 2px (`.cpt.dense`), and at 4px they
+                    // merged into a band over the goal and the dot. The
+                    // one-day gaps are inside the trend's ±k, so each still
+                    // gets ONE trend across the window.
+                    [
+                        "90 days · every other day, 2px marks (one path) under one trend",
                         sparkSpecimen(
                             calDays(W90, 90, (i) => i % 2 === 0),
                             W90,
@@ -1485,7 +1557,7 @@
                         ),
                     ],
                     [
-                        "365 days · every other day, a texture under the dot",
+                        "365 days · every other day, a texture under the trend",
                         sparkSpecimen(
                             calDays(W365, 365, (i) => i % 2 === 0),
                             W365,
@@ -1877,7 +1949,7 @@
 
             ${sect(
                 "Sparkline (focus panel)",
-                "sparkMarkup on the calendar axis (calendarSlots): one slot per DAY of the range, so a day nobody logged is a gap in the line and the wash, never a closer neighbour. A day that logged only water is a gap on every food series and a reading on water. The goal's dashes are painted OVER the line, so a week exactly on goal still shows them. A reading with a gap on each side has no segment to draw, so it gets a 4px mark of its own, plainly under the 6px last-reading dot. Rules: every day up to a month, Mondays up to four, none beyond; a dateless (fallback) axis marks every 7th slot. Drawn .still — the draw-in plays once, on the live card.",
+                "sparkMarkup on the calendar axis (calendarSlots): one slot per DAY of the range, so a day nobody logged is a gap in the line and the wash, never a closer neighbour. A day that logged only water is a gap on every food series and a reading on water. Each run of readings is a monotone curve through the exact values (chCurve): it passes through every reading and never rises above or dips below the two it joins, and a run of two stays straight. The goal's dashes are painted OVER the line, so a week exactly on goal still shows them. A reading with a gap on each side has no segment to draw, so it gets a 4px mark of its own, plainly under the 6px last-reading dot. PAST A MONTH ONLY (more than 31 slots) a rolling-mean trend is drawn over the real line: ±3 days up to four months, ±7 beyond, bridging a gap of at most that many days. At a run's ends the window is clipped to the run, so the trend ends on the mean of its last k+1 days rather than hooking to one unfinished day, while the dot stays on the real last reading. The trend is 3px in the full series colour and carries the chart; the day-by-day layer under it (the 1.5px real line, lone readings as 2px marks) is the same colour at 40% — a texture, documented under 3:1 in chart.css. The noisy specimens are the ones the weights were tuned on. Rules: every day up to a month, Mondays up to four, none beyond; a dateless (fallback) axis marks every 7th slot. Drawn .still — the draw-in (the trend's, on a long range) plays once, on the live card.",
                 `<div class="ggrid">${sparks}</div>`,
             )}
 
@@ -1985,7 +2057,7 @@
 
             ${sect(
                 "Charts — trends · weight-trends grammar",
-                'The standalone .cwrap + .cfoot grammar, each in a 232px column — the width where preserveAspectRatio="none" stretches hardest, so a missing vector-effect shows as a thin vertical segment. A zero-based chart carries the area fill and a data-scaled one must not: compare the first two. The calendar weight chart bridges the days nobody weighed in and marks every reading, so six readings in a fortnight never pass for fourteen.',
+                'The standalone .cwrap + .cfoot grammar, each in a 232px column — the width where preserveAspectRatio="none" stretches hardest, so a missing vector-effect shows as a thin vertical piece. Every line is the one monotone curve (chPath → chCurve) through the exact readings, and the wash\'s top edge is that same curve. A zero-based chart carries the area fill and a data-scaled one must not: compare the first two. The calendar weight chart bridges the days nobody weighed in with one smooth curve from mark to mark, and marks every reading, so six readings in a fortnight never pass for fourteen. No trend here: these are 7- and 14-day grammars, and the long-range trend is a sparkline layer (see above).',
                 `<div class="grow">
                    ${spec(
                        "zero-based · goal line · area",

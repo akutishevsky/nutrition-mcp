@@ -118,29 +118,52 @@ function sparkMarkup(o) {
         top,
     );
 
-    // Built here rather than with chPath(), which has no way to
-    // express a gap: a run of readings is one subpath. A reading
-    // alone between two gaps is left OUT of the path. It used to be
-    // a zero-length segment the round cap painted as a dot, but that
-    // dot is only the line's own 2.5px wide — four of nine logged
-    // days on a gappy fortnight read as specks beside the 6px
-    // last-reading dot — and Chrome paints no cap on a zero-length
-    // piece of a dashed path, so through the draw-in those days were
-    // not there at all. Each one gets a mark instead (`marks`).
+    // One subpath per RUN of readings, built here rather than with
+    // chPath(), which has no way to express a gap. Each run of two or
+    // more is chCurve (svg.js): the monotone cubic through its exact
+    // readings, the one curve primitive every chart uses — a run of
+    // two stays a straight L. A reading alone between two gaps is
+    // left OUT of the path. It used to be a zero-length segment the
+    // round cap painted as a dot, but that dot is only the line's own
+    // 2.5px wide — four of nine logged days on a gappy fortnight read
+    // as specks beside the 6px last-reading dot — and Chrome paints no
+    // cap on a zero-length piece of a dashed path, so through the
+    // draw-in those days were not there at all. Each one gets a mark
+    // instead (`marks`).
     let d = "";
     let last = -1;
+    let run = [];
     const lone = [];
+    const flush = () => {
+        if (run.length > 1) d += chCurve(run);
+        else if (run.length === 1) lone.push(run[0]);
+        run = [];
+    };
     for (let i = 0; i < raw.length; i++) {
-        if (raw[i] === null) continue;
-        const joined = i > 0 && raw[i - 1] !== null;
-        if (!joined && (i + 1 >= raw.length || raw[i + 1] === null)) {
-            lone.push(pts[i]);
-        } else {
-            const xy = `${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}`;
-            d += (joined ? "L" : "M") + xy;
+        if (raw[i] === null) {
+            flush();
+            continue;
         }
+        run.push(pts[i]);
         last = i;
     }
+    flush();
+
+    // A LONG RANGE (past CH_DAILY_SLOTS) adds the rolling-mean trend
+    // over the real line (chTrend, svg.js); at 7/14/30 days it is ""
+    // and never drawn. There the trend is the line the chart is read
+    // by — full --cstroke, carrying the draw-in (chip.css) — and the
+    // day-by-day layer under it turns into a texture: the real curve
+    // at 1.5px and the lone readings as 2px marks, in the same colour
+    // at reduced opacity (`.cwrap.long`, chart.css, says why and what
+    // it measures). The real line still breaks at every gap, and the
+    // dot below still sits on the real last reading. svg.js says why
+    // the window, the gap it may bridge, and its clipped run ends.
+    const long = slots.length > CH_DAILY_SLOTS;
+    const trendD = long ? chTrend(raw, pts, 0, top) : "";
+    const trend = trendD
+        ? `<path class="ctrend" pathLength="1" d="${trendD}"/>`
+        : "";
 
     // The wash under the line, gapped exactly as `d` is: a day with
     // no reading gets no fill rather than the area bridging it.
@@ -174,12 +197,19 @@ function sparkMarkup(o) {
     // ~2.4px at 90 days in a 320px card and ~0.6px at 365, so
     // alternate days as 4px beads overlapped into a band heavier than
     // the line, buried the goal dashes and swallowed the now-dot. There
-    // the marks go back to the line's own weight (`.cpt.dense`,
-    // chart.css): a texture under the dot and the goal, not beads.
-    const marks = chMarksMarkup(
-        lone,
-        slots.length > CH_DAILY_SLOTS ? "dense" : "",
-    );
+    // the marks drop to 2px (`.cpt.dense`, chart.css), a hair over the
+    // long range's 1.5px real line: a texture under the trend, the goal
+    // and the dot, not beads. And ONE path of zero-length subpaths
+    // (chMarksD, svg.js), not a path each: the texture is translucent,
+    // and a year of separate overlapping marks would stack their
+    // opacity into a darker band wherever logging was densest. One path
+    // is stroked as one shape, so it is one tint however its caps
+    // overlap — and a fraction of the bytes.
+    const marks = long
+        ? lone.length
+            ? `<path class="cpt dense" d="${chMarksD(lone)}"/>`
+            : ""
+        : chMarksMarkup(lone);
     // One dot, on the last reading: it is the only thing that says
     // which end of the line is now.
     const dot = last >= 0 ? chDotMarkup(pts[last][0], pts[last][1]) : "";
@@ -195,7 +225,11 @@ function sparkMarkup(o) {
     // saying "2.1 L". Nor a date foot: the card header prints the
     // range.
     //
-    // PAINT ORDER: day → area → line → GOAL → marks → dot. The goal
+    // PAINT ORDER: day → area → line → GOAL → marks → dot, and on a
+    // LONG range day → area → line → marks → trend → GOAL → dot: the
+    // lone readings are part of the real layer there (2px texture),
+    // so they go under the trend with the line they belong to, and
+    // the goal still crosses everything but the dot. The goal
     // used to go under the wash and the line (day → goal → area →
     // line, the shared grammar's order), which hid it completely
     // whenever the series sat ON it: 2,200 kcal every day against
@@ -213,11 +247,11 @@ function sparkMarkup(o) {
         ? `role="img" aria-label="${esc(o.label)}"`
         : 'aria-hidden="true"';
     return `
-          <div class="cwrap ${m.color}${o.still ? " still" : ""}">
+          <div class="cwrap ${m.color}${long ? " long" : ""}${o.still ? " still" : ""}">
             <svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" ${a11y}>
               ${dayLines}${area}
-              <path class="cline" pathLength="1" d="${d}"/>
-              ${goalLine}${marks}${dot}
+              <path class="cline" pathLength="1" d="${d}"/>${long ? marks + trend : ""}
+              ${goalLine}${long ? "" : marks}${dot}
             </svg>
           </div>`;
 }

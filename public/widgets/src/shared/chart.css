@@ -1,4 +1,6 @@
-/* The one chart grammar: a 2.5px line, a fading area under it on zero-based
+/* The one chart grammar: a 2.5px line — a monotone curve through the exact
+   readings (chCurve, shared/svg.js), never a straight zig-zag and never a
+   curve that overshoots a reading — a fading area under it on zero-based
    charts, an optional dashed goal line, a single dot on the last point, and
    HTML labels underneath. Three instances share it (calories, a switched
    nutrient series, weight — the last without the area, see .carea, and with a
@@ -229,14 +231,75 @@
 .fspark .cpt {
     animation: fadeIn 0.5s var(--ease-out) 0.35s both;
 }
-/* A lone reading on a window longer than a month (sparkMarkup passes
-   `dense` past CH_DAILY_SLOTS, svg.js). There a day is narrower than the
-   bead: at 320px a slot is ~2.4px on 90 days and ~0.6px on 365, and a year of
-   alternate days drew one solid 4px band over the goal dashes that the 6px
-   dot could not be picked out of. At the line's own 2.5px the same days read
-   as the line's texture, under the goal and the dot. */
+/* A lone reading on a window longer than a month (sparkMarkup emits them as
+   ONE path past CH_DAILY_SLOTS, chMarksD in svg.js). There a day is narrower
+   than the bead: at 320px a slot is ~2.4px on 90 days and ~0.6px on 365, and
+   a year of alternate days drew one solid 4px band over the goal dashes that
+   the 6px dot could not be picked out of. At 2px, a hair over the long
+   range's 1.5px real line, they are part of that range's day texture (below). */
 .fspark .cpt.dense {
-    stroke-width: 2.5;
+    stroke-width: 2;
+}
+
+/* THE LONG-RANGE TREND (chTrend in shared/svg.js; sparkMarkup marks the
+   wrapper `.long` past CH_DAILY_SLOTS and draws none of this at 7/14/30
+   days). Two layers share the chart there, and which carries what was
+   decided and measured, not left to fall out.
+
+   THE TREND CARRIES THE CHART. `.ctrend` is the full --cstroke, so its colour
+   is the table at the top of this file, and at 3px it keeps that on rendered
+   pixels at any sub-pixel offset: a 3px band always covers two whole device
+   rows at 1x. Re-measured on the focus panel's own tinted ground (6% --c over
+   --panel) with the wash's 20% top over it, the binding case: calories 3.37:1
+   light, the worst of the series and still over 3:1. It inherits the over-goal red through --cstroke and
+   carries the draw-in (chip.css). Same hue as the day layer on purpose — a
+   second hue would read as a second series with no legend to say which.
+
+   THE DAY-BY-DAY LAYER IS A TEXTURE, NOT HELD TO 3:1. The real curve
+   (`.cwrap.long .cline`, 1.5px) and the lone readings (`.cpt.dense`, 2px) are
+   the same --cstroke at the reduced stroke-opacity below. Why SC 1.4.11 is not
+   claimed for them: at full contrast, on a realistic daily year (the
+   gallery's "noisy" specimen, +/-700 kcal and a weekend bump), the real line
+   is a +/-10px same-hue brush the trend cannot be read out of, and the goal
+   dashes are lost in it — the opposite of what a long range is for. What such
+   a chart has to say is carried at full contrast elsewhere: the level and
+   direction by the trend, today by the last-reading dot (always the real
+   latest value), the goal by its line, and the figure, the goal state and
+   the over red are decided from real values and printed as text. No single
+   day can be read off a 0.6–2.4px slot in any case. The texture says "these
+   are the days behind the average" and where logging stopped; it is not
+   required to understand the chart. Measured at 60% (colour composite, full
+   pixel coverage, against the wash's top on the panel's tinted ground / on
+   the bare tinted ground): light calories 1.98 / 2.14, sugar 2.56 / 2.85,
+   over-red 2.83 / 3.25; dark calories 2.99 / 3.90, sugar 3.33 / 4.61. A thin
+   stroke's antialiasing takes that lower still. 60% was chosen over a
+   quieter 40% (light calories 1.56) so the day-by-day ups and downs stay
+   legible behind the trend on a noisy year; 35% lost the days beside the
+   goal dashes.
+
+   Rejected, each looked at on the noisy and the smooth specimens at 400/760px
+   in both themes: the day layer at full contrast over a 5.5px --panel halo
+   (60%) under the trend — the halo muted 60–83% of the readings anyway, since
+   most days sit within 2.75px of their mean, so the 3:1 it was kept for held
+   only for outliers, and --panel is not the panel's tinted ground, so it
+   drew a pale casing; no knock-out at full contrast (the trend drowned in
+   the noise, dark theme worst). Nor does the texture need a knock-out now:
+   the translucent day layer is what lets the trend read over it. */
+.cwrap.long .cline,
+.fspark .cwrap.long .cpt.dense {
+    stroke-opacity: 0.6;
+}
+.cwrap.long .cline {
+    stroke-width: 1.5;
+}
+.ctrend {
+    fill: none;
+    stroke: var(--cstroke, var(--c, var(--cal)));
+    stroke-width: 3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    transition: stroke 0.25s var(--ease-out);
 }
 .fspark .cwrap.still .cpt {
     animation: none;

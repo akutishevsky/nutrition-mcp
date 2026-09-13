@@ -1513,6 +1513,23 @@ button.focus:active {
 .fspark .cline {
     animation: drawIn 0.9s var(--ease-out) backwards;
 }
+/* ON A LONG RANGE THE TREND DRAWS IN, not the real line (`.cwrap.long`, past
+   CH_DAILY_SLOTS; see `.ctrend` in chart.css). Two sweeps at once would not
+   agree on where they are: pathLength="1" normalises by LENGTH, and a daily
+   year's scribble is mostly vertical wiggle, so its dash front would trail
+   the trend's by a varying amount. The trend is the line a long range is
+   read by, so it sweeps, and the translucent day texture (the 1.5px real
+   line; its lone-reading marks fade with `.cpt`, chart.css) fades in with the
+   scaffold. Nothing is made visible BY either animation: `backwards` / `both`
+   leave the final state whole, and the `.still` list below stops both. The
+   fade animates `opacity`, the texture's translucency is `stroke-opacity`, so
+   the one never overwrites the other. */
+.fspark .ctrend {
+    animation: drawIn 0.9s var(--ease-out) backwards;
+}
+.fspark .cwrap.long .cline {
+    animation: fadeIn 0.5s var(--ease-out) 0.35s both;
+}
 .fspark .cday,
 .fspark .carea,
 .fspark .cgoal,
@@ -1541,6 +1558,7 @@ button.focus:active {
    every panel that holds a sparkline owes it the same once-only entrance,
    whichever code drew the chart. */
 .fspark .cwrap.still .cline,
+.fspark .cwrap.still .ctrend,
 .fspark .cwrap.still .cday,
 .fspark .cwrap.still .carea,
 .fspark .cwrap.still .cgoal,
