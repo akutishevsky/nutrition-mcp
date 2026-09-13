@@ -205,28 +205,242 @@ export const INDEX_PL: IndexDoc = {
         slideLabel: "{n} z {total}",
         carouselRole: "karuzela",
         slideRole: "slajd",
+        moreToolsLabel: "Korzysta też z",
+        photoMealAlt:
+            "Zdjęcie: miska barszczu z łyżką śmietany i koperkiem, a obok kromka żytniego chleba",
+        photoPackageAlt:
+            "Zdjęcie: kod kreskowy na puszce Coca-Coli, numer 5449000000996",
         slides: [
             {
-                title: "Zapisz posiłek",
+                id: "log-meal",
+                title: "Pisz zwykłymi słowami",
                 description:
-                    "Opisz go tak, jak opowiadasz znajomemu — bez przeszukiwania bazy produktów i suwaków porcji. Kalorie, makroskładniki i kofeina zostaną wyliczone i zapisane.",
-                userText: "Zjadłem/am owsiankę z owocami i kawę na śniadanie",
-                aiText: "Zapisałem śniadanie — około 320 kcal, 11 g białka. Kawa dodała 95 mg kofeiny.",
+                    "Powiedz, co zjadłeś/aś i wypiłeś/aś, tak jak opowiadasz znajomemu. Kalorie, makroskładniki, błonnik i kofeina zostaną wyliczone, a godziny ustalone za Ciebie.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Miska owsianki z owocami i filiżanka kawy na śniadanie",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano śniadanie: około 320 kcal, 11 g białka, 6 g błonnika. Kawa dodała 95 mg kofeiny.",
+                    },
+                    {
+                        from: "user",
+                        text: "I 500 ml wody koło 7 rano, po bieganiu",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dodano 500 ml wody o 07:00 dziś rano.",
+                    },
+                ],
             },
             {
+                id: "photo-meal",
+                title: "Zrób zdjęcie talerza",
+                description:
+                    "Wyślij zdjęcie, a AI ustali, skąd jest posiłek, sprawdzi Twoje wcześniejsze wpisy i zada po jednym krótkim pytaniu. Nigdy nie zapisuje na podstawie samego zdjęcia.",
+                messages: [
+                    { from: "user", photo: "meal", text: "Obiad" },
+                    {
+                        from: "ai",
+                        text: "Barszcz ze śmietaną i kromka żytniego chleba. Wygląda na domowy, prawda?",
+                    },
+                    { from: "user", text: "Tak, z przepisu mojej mamy" },
+                    {
+                        from: "ai",
+                        text: "Barszcz zapisywałeś/aś już na dwa sposoby: z wołowiną (~320 kcal za miskę) i bez mięsa (~180). Który to?",
+                    },
+                    {
+                        from: "user",
+                        text: "Z wołowiną. Dodałem/am dwie łyżki śmietany",
+                    },
+                    {
+                        from: "ai",
+                        text: "Jasne. Czyli zjedzona cała miska barszczu z wołowiną i 2 łyżkami śmietany, do tego kromka żytniego chleba: około 470 kcal, 24 g białka. Zapisać jako obiad?",
+                    },
+                    { from: "user", text: "Tak" },
+                    {
+                        from: "ai",
+                        text: "Zapisano obiad: 470 kcal · 24 g białka · 43 g węglowodanów · 22 g tłuszczu · 7 g błonnika · 10 g cukru.",
+                    },
+                ],
+            },
+            {
+                id: "scan-barcode",
                 title: "Zeskanuj kod kreskowy",
                 description:
-                    "Wyślij zdjęcie kodu kreskowego albo wpisz jego cyfry. Dane produktu pochodzą z Open Food Facts i są przeliczane na porcję, którą faktycznie spożyłeś/aś.",
-                userText: "Zeskanuj ten kod kreskowy: 5449000000996",
-                aiText: "To Coca-Cola 330 ml — 139 kcal, 35 g cukru, dane z Open Food Facts. Ile wypiłeś/aś?",
+                    "Zrób zdjęcie opakowania. Dane produktu pochodzą z Open Food Facts, są przeliczane na to, co faktycznie spożyłeś/aś, a braki w danych zostają uzupełnione.",
+                messages: [
+                    {
+                        from: "user",
+                        photo: "package",
+                        text: "To było do obiadu",
+                    },
+                    {
+                        from: "ai",
+                        text: "To Coca-Cola 330 ml: 139 kcal i 35 g cukru, dane z Open Food Facts. Wypiłeś/aś całą puszkę?",
+                    },
+                    { from: "user", text: "Całą" },
+                    {
+                        from: "ai",
+                        text: "Zapisano do obiadu: 139 kcal, 35 g cukru, 0 g błonnika. Open Food Facts nie podaje kofeiny, więc przyjęto wartość od samej Coca-Coli: około 32 mg na puszkę.",
+                    },
+                ],
             },
             {
+                id: "goals-progress",
+                title: "Ustaw cele, sprawdzaj postęp",
+                description:
+                    "Ustaw dzienne cele i limity jednym zdaniem, a potem zapytaj, jak wygląda dzisiejszy dzień i ile jeszcze zostało.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Ustaw moje cele: 2000 kcal, 160 g białka i limit kofeiny. Jaki limit będzie rozsądny?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Częstym punktem odniesienia jest górna granica EFSA i FDA dla zdrowych dorosłych: 400 mg dziennie, czyli mniej więcej cztery filiżanki parzonej kawy. Przyjąć tę wartość?",
+                    },
+                    { from: "user", text: "Tak, 400" },
+                    {
+                        from: "ai",
+                        text: "Cele zaktualizowane: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg.",
+                    },
+                    {
+                        from: "user",
+                        text: "Zmieszczę jeszcze wieczorem deser?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dziś masz już 1540 kcal i 104 g białka: do celów brakuje jeszcze 460 kcal i 56 g białka. Więc tak, deser o wartości około 200 kcal się zmieści, o ile reszta to głównie białko.",
+                    },
+                ],
+            },
+            {
+                id: "review-week",
                 title: "Przejrzyj tydzień",
                 description:
                     "Zapytaj, jak minął tydzień, a widżet trendów otworzy się prosto w czacie. Przełączaj między 7, 14 i 30 dniami albo dotknij składnika, żeby zobaczyć jego wykres.",
-                userText: "Jak wyglądał ostatni tydzień?",
-                aiText: "Średnio 1830 kcal dziennie przez ostatnie 14 dni, z czego 13 z wpisami — 170 poniżej celu. Białko było Twoim najstabilniejszym makroskładnikiem.",
+                messages: [
+                    { from: "user", text: "Jak wyglądał ostatni tydzień?" },
+                    {
+                        from: "ai",
+                        text: "Średnio 1830 kcal dziennie przez ostatnie 14 dni, z czego 13 z wpisami — 170 poniżej celu. Białko było Twoim najstabilniejszym makroskładnikiem.",
+                    },
+                ],
                 widget: "trends",
+            },
+            {
+                id: "weight-trend",
+                title: "Śledź swoją wagę",
+                description:
+                    "Zapisz pomiar wagi w kg albo lb i zobacz prawdziwy trend: zmianę w ciągu miesiąca, wygładzoną średnią i to, ile zostało do wagi docelowej.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Właśnie się zważyłem/am: 78,4 kg. Jaki jest trend?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano 78,4 kg. W ciągu ostatnich 30 dni ubyło Ci 1,8 kg, a średnia z 7 dni to 78,7 kg. Do celu 75 kg zostało 3,4 kg.",
+                    },
+                ],
+            },
+            {
+                id: "meal-patterns",
+                title: "Odkryj swoje nawyki",
+                description:
+                    "Zapytaj, od czego zależy, ile jesz. AI porówna dni robocze z weekendami, dni ze śniadaniem i bez niego oraz wczesne kolacje z późnymi.",
+                messages: [
+                    { from: "user", text: "Czy w weekendy jem więcej?" },
+                    {
+                        from: "ai",
+                        text: "Raczej nie. W ciągu ostatnich 30 dni średnia w dni robocze to 1986 kcal, a w weekendy 1977.",
+                    },
+                    {
+                        from: "user",
+                        text: "A czy coś w ogóle robi różnicę?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Pora kolacji. W dni z kolacją o 20:00 lub później średnia wynosi 2150 kcal, a przy wcześniejszej kolacji 1915.",
+                    },
+                ],
+            },
+            {
+                id: "track-drinks",
+                title: "Śledź też alkohol",
+                description:
+                    "Śledzenie alkoholu włączasz tylko, jeśli chcesz. Wybierz standardowe drinki amerykańskie albo jednostki brytyjskie, a każdy napój zostanie zapisany w gramach alkoholu według objętości i mocy.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Chcę też śledzić, ile piję alkoholu",
+                    },
+                    {
+                        from: "ai",
+                        text: "Jasne. Liczyć w standardowych drinkach amerykańskich czy w jednostkach brytyjskich?",
+                    },
+                    { from: "user", text: "W jednostkach brytyjskich" },
+                    {
+                        from: "ai",
+                        text: "Śledzenie alkoholu włączone, w gramach i jednostkach brytyjskich. Działa od następnej wiadomości, bez zakładania nowego czatu.",
+                    },
+                    {
+                        from: "user",
+                        text: "Do kolacji wypiłem/am pintę lagera 4%",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano do kolacji: pinta 568 ml o mocy 4% to 18 g alkoholu, 2,3 jednostki brytyjskiej, około 180 kcal.",
+                    },
+                ],
+            },
+            {
+                id: "import-history",
+                title: "Przenieś swoją historię",
+                description:
+                    "Przechodzisz z MyFitnessPal, Cronometer, Lose It! albo MacroFactor? Eksport jest odczytywany w przeglądarce i nic nie zostanie zapisane, dopóki nie potwierdzisz.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Możesz przenieść moją historię z MyFitnessPal?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Jasne. Najpierw: nie masz ustawionej strefy czasowej, więc zaimportowane godziny zostałyby odczytane jako UTC. Gdzie mieszkasz?",
+                    },
+                    { from: "user", text: "W Chicago" },
+                    {
+                        from: "ai",
+                        text: "Strefa czasowa ustawiona na America/Chicago. Teraz wybierz plik eksportu w importerze. Jest odczytywany w Twojej przeglądarce i nic nie zostanie zapisane, dopóki nie potwierdzisz podglądu.",
+                    },
+                ],
+            },
+            {
+                id: "export-data",
+                title: "Zabierz swoje dane",
+                description:
+                    "Jedna prośba i dostajesz ZIP ze wszystkimi posiłkami, wpisami wody, pomiarami wagi, celami i ustawieniami, a plik z posiłkami da się od razu zaimportować z powrotem.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Zrób kopię zapasową wszystkich moich danych",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gotowe: jeden ZIP z 1204 posiłkami, 318 wpisami wody, 64 pomiarami wagi, Twoimi celami i ustawieniami profilu. Oto link do pobrania. Działa przez 60 minut.",
+                    },
+                    {
+                        from: "user",
+                        text: "Czy później mogę z niego wszystko przywrócić?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Posiłki tak. meals.csv importuje się prosto z powrotem, a każdy posiłek, który nadal masz, zostaje rozpoznany po id i pominięty, więc nic się nie dubluje. Woda, waga, cele i ustawienia są tylko do eksportu, więc zachowaj ZIP.",
+                    },
+                ],
             },
         ],
     },

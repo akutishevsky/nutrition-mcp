@@ -10,8 +10,10 @@
 // left in English since they are literal button/menu labels in Claude's
 // and ChatGPT's own interfaces, which this pass could not verify are
 // localized into Italian; translating them risked giving incorrect
-// instructions. Thousands separators follow Italian convention (2.000),
-// matching what the page's own figures and the widget cards render.
+// instructions. Thousands separators follow CLDR's Italian convention —
+// none in a four-digit figure ("2000", "1830"), a dot from five digits on
+// ("12.040") — matching what the page's own figures and the widget cards
+// render.
 // Terminology kept consistent with
 // src/copy/chrome.it.ts and src/copy/tools.it.ts: protein → proteine,
 // carbs → carboidrati, fat → grassi, fiber → fibre, sugar → zuccheri,
@@ -82,7 +84,7 @@ export const INDEX_IT: IndexDoc = {
                 {
                     userText:
                         "Una grande insalata di pollo alla griglia a pranzo",
-                    aiText: "Registrato — circa 540 kcal, 46 g di proteine. Sei a metà delle 2.000 di oggi.",
+                    aiText: "Registrato — circa 540 kcal, 46 g di proteine. Sei a metà delle 2000 di oggi.",
                     add: {
                         kcal: 540,
                         pro: 46,
@@ -188,7 +190,7 @@ export const INDEX_IT: IndexDoc = {
             {
                 title: "Imposta i tuoi obiettivi",
                 body: "Calorie, macro e acqua giornalieri, più un peso obiettivo facoltativo.",
-                say: "Imposta il mio obiettivo giornaliero a 2.000 calorie e 150 g di proteine",
+                say: "Imposta il mio obiettivo giornaliero a 2000 calorie e 150 g di proteine",
             },
             {
                 title: "Scegli la lingua dei widget",
@@ -214,29 +216,245 @@ export const INDEX_IT: IndexDoc = {
         slideLabel: "{n} di {total}",
         carouselRole: "carosello",
         slideRole: "slide",
+        moreToolsLabel: "Usa anche",
+        photoMealAlt:
+            "Foto: una scodella di borscht con un cucchiaio di panna acida e aneto, e accanto una fetta di pane di segale",
+        photoPackageAlt:
+            "Foto: il codice a barre su una lattina di Coca-Cola, numero 5449000000996",
         slides: [
             {
-                title: "Registra un pasto",
+                id: "log-meal",
+                title: "Registra a parole tue",
                 description:
-                    "Descrivilo come lo racconteresti a un amico — niente database di alimenti da consultare, niente cursori per le porzioni. Calorie, macro e caffeina vengono calcolate e registrate.",
-                userText:
-                    "Ho mangiato porridge con frutti di bosco e un caffè a colazione",
-                aiText: "Colazione registrata — circa 320 kcal, 11 g di proteine. Il caffè ha aggiunto 95 mg di caffeina.",
+                    "Dì cosa hai mangiato e bevuto come lo racconteresti a un amico. Calorie, macro, fibre e caffeina vengono calcolate, e agli orari ci pensa lui.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Una tazza di porridge con frutti di bosco e un caffè a colazione",
+                    },
+                    {
+                        from: "ai",
+                        text: "Colazione registrata — circa 320 kcal, 11 g di proteine, 6 g di fibre. Il caffè ha aggiunto 95 mg di caffeina.",
+                    },
+                    {
+                        from: "user",
+                        text: "E 500 ml d'acqua verso le 7 stamattina, dopo la corsa",
+                    },
+                    {
+                        from: "ai",
+                        text: "Aggiunti 500 ml d'acqua alle 07:00 di stamattina.",
+                    },
+                ],
             },
             {
+                id: "photo-meal",
+                title: "Fotografa il piatto",
+                description:
+                    "Invia una foto: capisce da dove viene il pasto, controlla le tue registrazioni passate, poi fa una breve domanda alla volta. Non registra mai basandosi solo sull'immagine.",
+                messages: [
+                    { from: "user", photo: "meal", text: "Pranzo" },
+                    {
+                        from: "ai",
+                        text: "Borscht con panna acida e una fetta di pane di segale. Sembra fatto in casa, giusto?",
+                    },
+                    { from: "user", text: "Sì, la ricetta di mia mamma" },
+                    {
+                        from: "ai",
+                        text: "Hai già registrato il borscht in due versioni: con manzo (~320 kcal a scodella) e senza carne (~180). Qual è questo?",
+                    },
+                    {
+                        from: "user",
+                        text: "Con manzo. Ho aggiunto due cucchiai di panna acida",
+                    },
+                    {
+                        from: "ai",
+                        text: "Capito. Quindi hai finito una scodella intera di borscht con manzo e 2 cucchiai di panna acida, più la fetta di pane di segale: circa 470 kcal, 24 g di proteine. Lo registro come pranzo?",
+                    },
+                    { from: "user", text: "Sì" },
+                    {
+                        from: "ai",
+                        text: "Pranzo registrato: 470 kcal · 24 g di proteine · 43 g di carboidrati · 22 g di grassi · 7 g di fibre · 10 g di zuccheri.",
+                    },
+                ],
+            },
+            {
+                id: "scan-barcode",
                 title: "Scansiona un codice a barre",
                 description:
-                    "Invia una foto del codice a barre o digitane le cifre. Il prodotto arriva da Open Food Facts, ricalcolato sulla quantità che hai davvero consumato.",
-                userText: "Scansiona questo codice a barre: 5449000000996",
-                aiText: "È una Coca-Cola da 330 ml — 139 kcal, 35 g di zuccheri, da Open Food Facts. Quanta ne hai bevuta?",
+                    "Fotografa la confezione. Il prodotto arriva da Open Food Facts, ricalcolato su quanto ne hai davvero consumato, e gli eventuali dati mancanti vengono completati.",
+                messages: [
+                    {
+                        from: "user",
+                        photo: "package",
+                        text: "Ho preso questo a pranzo",
+                    },
+                    {
+                        from: "ai",
+                        text: "È una Coca-Cola da 330 ml — 139 kcal e 35 g di zuccheri, da Open Food Facts. L'hai bevuta tutta?",
+                    },
+                    { from: "user", text: "Tutta" },
+                    {
+                        from: "ai",
+                        text: "Registrata con il pranzo: 139 kcal, 35 g di zuccheri, 0 g di fibre. Open Food Facts non ha il dato sulla caffeina, quindi ho usato quello di Coca-Cola: circa 32 mg a lattina.",
+                    },
+                ],
             },
             {
+                id: "goals-progress",
+                title: "Obiettivi e progressi",
+                description:
+                    "Imposta target e limiti giornalieri con una frase, poi chiedi a che punto è la giornata e quanto manca.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Imposta i miei obiettivi: 2000 kcal, 160 g di proteine e un limite di caffeina. Quale sarebbe ragionevole?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Un riferimento comune è la soglia di EFSA e FDA per gli adulti sani: 400 mg al giorno, circa quattro tazze di caffè filtrato. Uso quella?",
+                    },
+                    { from: "user", text: "Sì, 400" },
+                    {
+                        from: "ai",
+                        text: "Obiettivi aggiornati: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg.",
+                    },
+                    {
+                        from: "user",
+                        text: "Ci sta ancora un dolce stasera?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Oggi sei a 1540 kcal e 104 g di proteine: mancano ancora 460 kcal e 56 g di proteine per arrivare ai tuoi target. Quindi sì, un dolce da circa 200 kcal ci sta, purché il resto sia soprattutto proteine.",
+                    },
+                ],
+            },
+            {
+                id: "review-week",
                 title: "Rivedi la settimana",
                 description:
                     "Chiedi com'è andata la settimana e il widget degli andamenti si apre direttamente in chat. Passa tra 7, 14 e 30 giorni, oppure tocca un nutriente per vederne il grafico.",
-                userText: "Com'è andata la settimana scorsa?",
-                aiText: "Hai fatto una media di 1830 kcal al giorno negli ultimi 14 giorni, 13 dei quali registrati — 170 sotto il tuo obiettivo. Le proteine sono state il tuo macro più costante.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Com'è andata la settimana scorsa?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Hai fatto una media di 1830 kcal al giorno negli ultimi 14 giorni, 13 dei quali registrati — 170 sotto il tuo obiettivo. Le proteine sono state il tuo macro più costante.",
+                    },
+                ],
                 widget: "trends",
+            },
+            {
+                id: "weight-trend",
+                title: "Traccia il tuo peso",
+                description:
+                    "Registra una pesata in kg o lb e vedi l'andamento reale: la variazione del mese, una media livellata e quanto manca al tuo obiettivo.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Ho appena controllato la bilancia: 78,4 kg. Com'è l'andamento?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrati 78,4 kg. Hai perso 1,8 kg negli ultimi 30 giorni, con una media a 7 giorni di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
+                    },
+                ],
+            },
+            {
+                id: "meal-patterns",
+                title: "Scopri le tue abitudini",
+                description:
+                    "Chiedi cosa influenza quanto mangi. Confronta giorni feriali e weekend, giorni con e senza colazione, cene presto e cene tardi.",
+                messages: [
+                    { from: "user", text: "Mangio di più nel weekend?" },
+                    {
+                        from: "ai",
+                        text: "Non proprio. Negli ultimi 30 giorni la media dei giorni feriali è di 1986 kcal e quella del weekend di 1977.",
+                    },
+                    {
+                        from: "user",
+                        text: "C'è qualcosa che fa la differenza?",
+                    },
+                    {
+                        from: "ai",
+                        text: "L'orario della cena sì. I giorni in cui ceni alle 20 o più tardi hanno una media di 2150 kcal, contro 1915 quando ceni prima.",
+                    },
+                ],
+            },
+            {
+                id: "track-drinks",
+                title: "Anche i drink",
+                description:
+                    "Il tracciamento dell'alcol si attiva solo su richiesta. Scegli drink standard USA o unità britanniche, e ogni bevanda viene registrata in grammi di alcol in base a quantità e gradazione.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Vorrei tracciare anche quanto bevo",
+                    },
+                    {
+                        from: "ai",
+                        text: "Certo. Conto in drink standard USA o in unità britanniche?",
+                    },
+                    { from: "user", text: "Unità britanniche" },
+                    {
+                        from: "ai",
+                        text: "Tracciamento dell'alcol attivo, in grammi accanto alle unità britanniche. Funziona dal tuo prossimo messaggio, senza bisogno di una nuova chat.",
+                    },
+                    {
+                        from: "user",
+                        text: "Ho bevuto una pinta di lager al 4% a cena",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrata con la cena: una pinta da 568 ml al 4% contiene 18 g di alcol, 2,3 unità britanniche, circa 180 kcal.",
+                    },
+                ],
+            },
+            {
+                id: "import-history",
+                title: "Porta il tuo storico",
+                description:
+                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? La tua esportazione viene letta nel browser e nulla viene salvato finché non confermi.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Puoi importare il mio storico di MyFitnessPal?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Certo. Prima però: il tuo fuso orario non è impostato, quindi gli orari importati verrebbero letti come UTC. Dove ti trovi?",
+                    },
+                    { from: "user", text: "Chicago" },
+                    {
+                        from: "ai",
+                        text: "Fuso orario impostato su America/Chicago. Ora scegli il file esportato nell'importatore. Viene letto nel tuo browser e nulla viene salvato finché non confermi l'anteprima.",
+                    },
+                ],
+            },
+            {
+                id: "export-data",
+                title: "Porta via i tuoi dati",
+                description:
+                    "Con una sola richiesta ottieni uno ZIP con ogni pasto, registrazione d'acqua, pesata, obiettivo e impostazione, e il file dei pasti si può reimportare direttamente.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Fai un backup di tutti i miei dati",
+                    },
+                    {
+                        from: "ai",
+                        text: "Fatto: uno ZIP con 1204 pasti, 318 registrazioni d'acqua, 64 pesate, i tuoi obiettivi e le impostazioni del profilo. Ecco il link per il download. Funziona per 60 minuti.",
+                    },
+                    {
+                        from: "user",
+                        text: "Potrò ripristinarli più avanti?",
+                    },
+                    {
+                        from: "ai",
+                        text: "I pasti sì. meals.csv si reimporta direttamente, e ogni pasto che hai ancora viene riconosciuto dal suo id e saltato, quindi niente viene duplicato. Acqua, peso, obiettivi e impostazioni si possono solo esportare, quindi conserva lo ZIP.",
+                    },
+                ],
             },
         ],
     },

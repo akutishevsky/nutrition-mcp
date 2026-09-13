@@ -127,27 +127,60 @@ export interface HeroExchange {
     };
 }
 
-/** One slide of the examples carousel: the left column (tinted icon, step
- * label, `title` as the slide's <h3>, `description`, the MCP tool chip) and
- * the right column (a chat window holding `userText`, `aiText` and, on the
- * trends slide, the real card). The icon, tint and tool name are the
- * generator's (EX_ICONS / EX_TINTS / EX_TOOLS in scripts/gen-index.ts) —
- * structural, never translated. */
+/** Which example a slide is. A key, not copy: it names the slide's icon,
+ * tint and tool chips in EX_META (scripts/gen-index.ts), and every locale
+ * lists the same ids in the same order as English (src/landing-script.test.ts
+ * pins it, and the generator refuses to build a page that does not). */
+export type ExampleSlideId =
+    | "log-meal"
+    | "photo-meal"
+    | "scan-barcode"
+    | "goals-progress"
+    | "review-week"
+    | "weight-trend"
+    | "meal-patterns"
+    | "track-drinks"
+    | "import-history"
+    | "export-data";
+
+/** The picture a user sends in a photo turn, drawn inline by the generator
+ * (no image file). `meal` is a plate snapshot, `package` the barcode label. */
+export type ExamplePhoto = "meal" | "package";
+
+/** One bubble of an example conversation, in the order it is shown.
+ *
+ * `from` and `photo` are STRUCTURE — a translation copies them verbatim, so
+ * every locale has the same sequence of user / ai / photo turns. `text` is
+ * the only translated field. A photo turn is always the user's; its `text`
+ * is the optional caption sent with the picture ("Lunch"), and the picture's
+ * accessible name comes from `examples.photoMealAlt` / `photoPackageAlt`. */
+export type ExampleMessage =
+    | { from: "user"; text: string; photo?: undefined }
+    | { from: "user"; photo: ExamplePhoto; text?: string }
+    | { from: "ai"; text: string };
+
+/** One slide of the examples carousel: the left column (tinted icon, the MCP
+ * tool chips, `title` as the slide's <h3>, `description`) and the right
+ * column (a chat window holding `messages` and, on the trends slide, the real
+ * card). The icon, tint and tool names are EX_META's in
+ * scripts/gen-index.ts, keyed by `id` — structural, never translated, and
+ * written once for all nine locales rather than once per locale. */
 export interface ExampleSlide {
-    /** Short, e.g. "Log a meal". Also the slide's tab label, so keep it to a
-     * few words: the tab row scrolls sideways on a phone but should not
-     * have to on a desktop. */
+    /** Structural: copy verbatim. */
+    id: ExampleSlideId;
+    /** Short, e.g. "Log in plain words". Also the selected tab's label, so
+     * keep it to a few words. */
     title: string;
-    /** One or two plain sentences under the title (~36ch per line, ~140
+    /** One or two plain sentences under the title (~36ch per line, ~160
      * characters in total) saying what the conversation shows. */
     description: string;
-    userText: string;
-    aiText: string;
-    /** Which real in-chat widget this slide shows under the reply, if any.
-     * A discriminator, not content: the card is the real get_trends card,
-     * rendered from src/copy/widget-demo.ts's series and translated by
-     * WIDGET_STRINGS. It used to be seven hand-written strings per locale
-     * drawing an approximation of one. */
+    /** The conversation, user and ai alternating as a chat would. */
+    messages: ExampleMessage[];
+    /** Which real in-chat widget this slide shows under its last message, if
+     * any. A discriminator, not content: the card is the real get_trends
+     * card, rendered from src/copy/widget-demo.ts's series and translated by
+     * WIDGET_STRINGS. Its slide's last ai message quotes that card's
+     * figures (src/widget-card.test.ts). */
     widget?: "trends";
 }
 
@@ -266,7 +299,16 @@ export interface IndexDoc {
          * "slide"); they are spoken, never shown. */
         carouselRole: string;
         slideRole: string;
-        /** 3 slides; the third carries the real trends card. */
+        /** Small label before a slide's secondary tool chips, e.g. "Also
+         * uses" — the primary tool is the prominent chip beside the icon. */
+        moreToolsLabel: string;
+        /** Accessible names of the two photo-turn pictures, e.g. "Photo: a
+         * bowl of borscht…". Read by a screen reader in place of the
+         * drawing, so describe what the photo shows, not the drawing. */
+        photoMealAlt: string;
+        photoPackageAlt: string;
+        /** 10 slides, in English's order (see ExampleSlide.id); the
+         * `review-week` one carries the real trends card. */
         slides: ExampleSlide[];
     };
 
@@ -582,29 +624,236 @@ export const INDEX_EN: IndexDoc = {
         slideLabel: "{n} of {total}",
         carouselRole: "carousel",
         slideRole: "slide",
+        moreToolsLabel: "Also uses",
+        photoMealAlt:
+            "Photo: a bowl of borscht with a spoonful of sour cream and dill, and a slice of rye bread beside it",
+        photoPackageAlt:
+            "Photo: the barcode on a can of Coca-Cola, number 5449000000996",
         slides: [
             {
-                title: "Log a meal",
+                id: "log-meal",
+                title: "Log in plain words",
                 description:
-                    "Describe it the way you'd tell a friend — no food database to search, no portion sliders. Calories, macros and caffeine are worked out and logged.",
-                userText:
-                    "I had oatmeal with berries and a coffee for breakfast",
-                aiText: "Logged breakfast — about 320 kcal, 11 g protein. Coffee added 95 mg of caffeine.",
+                    "Say what you ate and drank the way you'd tell a friend. Calories, macros, fiber and caffeine are worked out, and times are resolved for you.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "A bowl of oatmeal with berries and a cup of coffee for breakfast",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged breakfast: about 320 kcal, 11 g protein, 6 g fiber. The coffee added 95 mg of caffeine.",
+                    },
+                    {
+                        from: "user",
+                        text: "And 500 ml of water around 7 this morning, after my run",
+                    },
+                    {
+                        from: "ai",
+                        text: "Added 500 ml of water at 07:00 this morning.",
+                    },
+                ],
             },
             {
+                id: "photo-meal",
+                title: "Snap your plate",
+                description:
+                    "Send a photo and it settles where the meal is from, checks your past logs, then asks one short question at a time. It never logs from the picture alone.",
+                messages: [
+                    { from: "user", photo: "meal", text: "Lunch" },
+                    {
+                        from: "ai",
+                        text: "Borscht with sour cream and a slice of rye bread. Looks homemade, right?",
+                    },
+                    { from: "user", text: "Yes, my mum's recipe" },
+                    {
+                        from: "ai",
+                        text: "You've logged borscht two ways before: with beef (~320 kcal a bowl) and meatless (~180). Which is this one?",
+                    },
+                    {
+                        from: "user",
+                        text: "With beef. I added two tablespoons of sour cream",
+                    },
+                    {
+                        from: "ai",
+                        text: "Got it. So you finished a full bowl of beef borscht with 2 tbsp sour cream, and the slice of rye bread: about 470 kcal, 24 g protein. Log it as lunch?",
+                    },
+                    { from: "user", text: "Yes" },
+                    {
+                        from: "ai",
+                        text: "Logged lunch: 470 kcal · 24 g protein · 43 g carbs · 22 g fat · 7 g fiber · 10 g sugar.",
+                    },
+                ],
+            },
+            {
+                id: "scan-barcode",
                 title: "Scan a barcode",
                 description:
-                    "Send a photo of the barcode or type its digits. The product comes from Open Food Facts, scaled to however much you actually had.",
-                userText: "Scan this barcode: 5449000000996",
-                aiText: "That's a 330 ml Coca-Cola — 139 kcal, 35 g sugar, from Open Food Facts. How much did you have?",
+                    "Photograph the package. The product comes from Open Food Facts, scaled to what you actually had, and any gaps in its data are filled in.",
+                messages: [
+                    {
+                        from: "user",
+                        photo: "package",
+                        text: "Had this with lunch",
+                    },
+                    {
+                        from: "ai",
+                        text: "That's a 330 ml Coca-Cola: 139 kcal and 35 g sugar, from Open Food Facts. Did you have the whole can?",
+                    },
+                    { from: "user", text: "All of it" },
+                    {
+                        from: "ai",
+                        text: "Logged with lunch: 139 kcal, 35 g sugar, 0 g fiber. Open Food Facts has no caffeine figure, so I used Coca-Cola's own: about 32 mg a can.",
+                    },
+                ],
             },
             {
+                id: "goals-progress",
+                title: "Set goals, check in",
+                description:
+                    "Set daily targets and limits in a sentence, then ask where today stands and how much is left to go.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Set my goals: 2,000 kcal, 160 g protein, and a caffeine limit. What's a sensible one?",
+                    },
+                    {
+                        from: "ai",
+                        text: "A common reference is the EFSA and FDA ceiling for healthy adults: 400 mg a day, about four cups of brewed coffee. Use that?",
+                    },
+                    { from: "user", text: "Yes, 400" },
+                    {
+                        from: "ai",
+                        text: "Goals updated: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg.",
+                    },
+                    {
+                        from: "user",
+                        text: "Can I still fit a dessert tonight?",
+                    },
+                    {
+                        from: "ai",
+                        text: "You're at 1,540 kcal and 104 g protein today: 460 kcal and 56 g of protein still to go before your targets. So yes, a dessert of about 200 kcal fits, as long as most of the rest is protein.",
+                    },
+                ],
+            },
+            {
+                id: "review-week",
                 title: "Review the week",
                 description:
                     "Ask how the week went and the trends widget opens right in the chat. Switch between 7, 14 and 30 days, or tap a nutrient to chart it.",
-                userText: "How did last week look?",
-                aiText: "You averaged 1,830 kcal a day across 13 of the last 14 days — 170 under your target. Protein was your steadiest macro.",
+                messages: [
+                    { from: "user", text: "How did last week look?" },
+                    {
+                        from: "ai",
+                        text: "You averaged 1,830 kcal a day across 13 of the last 14 days — 170 under your target. Protein was your steadiest macro.",
+                    },
+                ],
                 widget: "trends",
+            },
+            {
+                id: "weight-trend",
+                title: "Track your weight",
+                description:
+                    "Log a weigh-in in kg or lb and see the real trend: change over the month, a smoothed average and the distance to your target.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Just weighed in at 78.4 kg. How's it trending?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged 78.4 kg. You're down 1.8 kg over the last 30 days, with a 7-day average of 78.7 kg. 3.4 kg to go to your 75 kg target.",
+                    },
+                ],
+            },
+            {
+                id: "meal-patterns",
+                title: "Spot your patterns",
+                description:
+                    "Ask what drives your intake. It compares weekdays with weekends, days with and without breakfast, and early dinners with late ones.",
+                messages: [
+                    { from: "user", text: "Do I eat more on weekends?" },
+                    {
+                        from: "ai",
+                        text: "Not really. Over the last 30 days your weekdays average 1,986 kcal and your weekends 1,977.",
+                    },
+                    {
+                        from: "user",
+                        text: "Is there anything that makes a difference?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dinner time does. Days with dinner at 8 pm or later average 2,150 kcal, against 1,915 when dinner is earlier.",
+                    },
+                ],
+            },
+            {
+                id: "track-drinks",
+                title: "Track drinks too",
+                description:
+                    "Alcohol tracking is opt-in. Choose US standard drinks or UK units, and every drink is logged as grams of alcohol from its size and strength.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "I'd like to track my drinking as well",
+                    },
+                    {
+                        from: "ai",
+                        text: "Sure. Should it count US standard drinks or UK units?",
+                    },
+                    { from: "user", text: "UK units" },
+                    {
+                        from: "ai",
+                        text: "Alcohol tracking is on, in grams alongside UK units. It works from your next message, no new chat needed.",
+                    },
+                    {
+                        from: "user",
+                        text: "Had a pint of 4% lager with dinner",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged with dinner: a 568 ml pint at 4% is 18 g of alcohol, 2.3 UK units, about 180 kcal.",
+                    },
+                ],
+            },
+            {
+                id: "import-history",
+                title: "Bring your history",
+                description:
+                    "Moving from MyFitnessPal, Cronometer, Lose It! or MacroFactor? Your export is read in the browser, and nothing is saved until you confirm.",
+                messages: [
+                    {
+                        from: "user",
+                        text: "Can you bring over my MyFitnessPal history?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Sure. First, your timezone isn't set, so imported times would be read as UTC. Where are you based?",
+                    },
+                    { from: "user", text: "Chicago" },
+                    {
+                        from: "ai",
+                        text: "Timezone set to America/Chicago. Now pick your export file in the importer. It's read in your browser, and nothing is saved until you confirm the preview.",
+                    },
+                ],
+            },
+            {
+                id: "export-data",
+                title: "Take your data",
+                description:
+                    "One request gives you a ZIP of every meal, water entry, weigh-in, goal and setting, and the meals file can be imported straight back.",
+                messages: [
+                    { from: "user", text: "Back up all my data" },
+                    {
+                        from: "ai",
+                        text: "Done: one ZIP with 1,204 meals, 318 water entries, 64 weigh-ins, your goals and your profile settings. Here's the download link. It works for 60 minutes.",
+                    },
+                    { from: "user", text: "Can I restore from it later?" },
+                    {
+                        from: "ai",
+                        text: "Your meals, yes. meals.csv imports straight back in, and any meal you still have is matched by its id and skipped, so nothing doubles. Water, weight, goals and settings are export-only, so keep the ZIP.",
+                    },
+                ],
             },
         ],
     },

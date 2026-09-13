@@ -51,7 +51,7 @@ import {
 // Colour role per category (the .nm-c-* classes set --c, which .nm-tile
 // reads). Structural like CATEGORY_META's icons, so it lives beside the
 // generator's other presentation-only constants rather than in the copy
-// file — same as ONB_TINTS / EX_TINTS in gen-index.ts. Neighbouring
+// file — same as ONB_TINTS / EX_META in gen-index.ts. Neighbouring
 // categories are kept on distinct hues so the chip row and the panel
 // heads read as seven different things.
 const CATEGORY_TINTS: Record<CategoryId, string> = {

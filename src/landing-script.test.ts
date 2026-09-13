@@ -1,7 +1,12 @@
 import { test, expect } from "bun:test";
 import { HTML_LANG, SITE_LOCALES, type SiteLocale } from "./routes.js";
 import { INDEX } from "./copy/index.js";
-import { LANDING_SCRIPT } from "../scripts/gen-index.js";
+import {
+    EX_META,
+    LANDING_SCRIPT,
+    exampleStructure,
+} from "../scripts/gen-index.js";
+import { attr } from "../scripts/site-partials.js";
 import { collectOutputSchemas, droppedKeys } from "./widget-schemas.js";
 
 // The landing page's inline JS lives as one string constant (LANDING_SCRIPT
@@ -558,10 +563,11 @@ test("#patreon-updates renders hidden on every landing page", async () => {
     }
 });
 
-// Each example slide prints the MCP tool its conversation calls (EX_TOOLS in
-// scripts/gen-index.ts). Those names are hand-kept, like the tool count, so a
-// rename in src/mcp.ts would leave a stale chip on nine landing pages without
-// this.
+// Each example slide prints the MCP tools its conversation calls (EX_META in
+// scripts/gen-index.ts, keyed by slide id): the primary one as .nm-ex-tool
+// beside the icon, the rest as .nm-ex-chip. Those names are hand-kept, like
+// the tool count, so a rename in src/mcp.ts would leave a stale chip on nine
+// landing pages without this.
 test("every examples tool chip names a tool src/mcp.ts registers", async () => {
     const source = await Bun.file(
         new URL("./mcp.ts", import.meta.url).pathname,
@@ -571,19 +577,100 @@ test("every examples tool chip names a tool src/mcp.ts registers", async () => {
             (m) => m[1]!,
         ),
     );
+    const all = Object.values(EX_META).flatMap((m) => m.tools);
+    expect(all.length).toBeGreaterThan(0);
+    for (const name of all)
+        expect(`EX_META ${name}: ${registered.has(name)}`).toBe(
+            `EX_META ${name}: true`,
+        );
     const pages = await landingPages();
     expect(pages.length).toBeGreaterThan(0);
-    for (const { path, html } of pages) {
+    for (const { locale, path, html } of pages) {
         const chips = [
             ...html.matchAll(
-                /<span class="nm-ex-tool">[\s\S]*?<code>([^<]+)<\/code>/g,
+                /<span class="nm-ex-tool">[\s\S]*?<code>([^<]+)<\/code>|<code class="nm-ex-chip">([^<]+)<\/code>/g,
             ),
-        ].map((m) => m[1]!);
-        expect(`${path}: ${chips.length}`).toBe(`${path}: 3`);
-        for (const name of chips) {
-            expect(`${path} ${name}: ${registered.has(name)}`).toBe(
-                `${path} ${name}: true`,
-            );
-        }
+        ].map((m) => m[1] ?? m[2]!);
+        // In the page's slide order, not EX_META's key order: reordering
+        // the slides is a legitimate change that leaves every chip right.
+        const want = INDEX[locale]!.examples.slides.flatMap(
+            (s) => EX_META[s.id].tools,
+        );
+        expect(`${path}: ${chips.join(",")}`).toBe(
+            `${path}: ${want.join(",")}`,
+        );
+    }
+});
+
+// The examples are STRUCTURE plus words, and only the words translate. Every
+// locale lists English's slide ids in English's order, with the same widget
+// and the same from / photo sequence of messages — so the conversation, its
+// photo turns and its card are the same on every page — and every page
+// renders each slide with that id's icon, tint and tools. A translation that
+// reorders, drops or adds a bubble fails here (and the generator refuses to
+// build it), instead of shipping a different conversation in one language.
+test("every locale's example slides mirror English's structure", async () => {
+    const en = exampleStructure(INDEX.en!.examples.slides);
+    expect(en.length).toBe(Object.keys(EX_META).length);
+    // Length alone passes a duplicated id standing in for a dropped one.
+    expect(new Set(INDEX.en!.examples.slides.map((s) => s.id)).size).toBe(
+        Object.keys(EX_META).length,
+    );
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        expect(exampleStructure(INDEX[locale]!.examples.slides)).toEqual(en);
+    }
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { locale, path, html } of pages) {
+        const slides = INDEX[locale]!.examples.slides;
+        const rendered = [
+            ...html.matchAll(
+                /data-ex-id="([^"]+)" data-ex-slide>\s*<div class="nm-ex-info (nm-c-[a-z]+)">[\s\S]*?<i class="fa-solid ([a-z0-9-]+)">/g,
+            ),
+        ].map((m) => `${m[1]} ${m[2]} ${m[3]}`);
+        expect(`${path}: ${rendered.join(" | ")}`).toBe(
+            `${path}: ${slides
+                .map(
+                    (s) =>
+                        `${s.id} ${EX_META[s.id].tint} ${EX_META[s.id].icon}`,
+                )
+                .join(" | ")}`,
+        );
+        // One bubble per message, in order, with the photo turns drawn.
+        const track = html.slice(
+            html.indexOf("data-ex-track>"),
+            html.indexOf("data-ex-live>"),
+        );
+        const bubbles = [
+            ...track.matchAll(
+                /<div class="nm-ex-(q nm-ex-q-photo|q|a)">\s*(?:<div class="nm-ex-snap (nm-ex-snap-meal|nm-barcode)")?/g,
+            ),
+        ].map((m) =>
+            m[1] === "a"
+                ? "ai"
+                : m[2]
+                  ? `user+${m[2] === "nm-barcode" ? "package" : "meal"}`
+                  : "user",
+        );
+        expect(`${path}: ${bubbles.join(" ")}`).toBe(
+            `${path}: ${slides
+                .flatMap((s) =>
+                    s.messages.map((m) =>
+                        m.from === "user" && m.photo
+                            ? `user+${m.photo}`
+                            : m.from,
+                    ),
+                )
+                .join(" ")}`,
+        );
+        // Every photo is named, in the page's language.
+        const e = INDEX[locale]!.examples;
+        for (const alt of [e.photoMealAlt, e.photoPackageAlt])
+            expect(
+                `${path}: ${html.includes(`role="img" aria-label="${attr(alt)}"`)}`,
+            ).toBe(`${path}: true`);
+        expect(
+            `${path}: ${html.includes(`<span class="nm-ex-of"> / ${String(slides.length).padStart(2, "0")}</span>`)}`,
+        ).toBe(`${path}: true`);
     }
 });

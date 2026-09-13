@@ -391,7 +391,9 @@ test("the trends slide's reply quotes the figures its card prints", async () => 
         const quote = (what: string, figure: string | undefined) => {
             expect(figure, `${locale}: the card prints ${what}`).toBeTruthy();
             expect(
-                slide!.aiText,
+                // The reply beside the card is the slide's LAST ai message:
+                // the card follows it.
+                slide!.messages.findLast((m) => m.from === "ai")?.text,
                 `${locale}: the reply does not quote the card's ${what} "${figure}" — ` +
                     `the card and the prose beside it have drifted apart`,
             ).toContain(figure!);

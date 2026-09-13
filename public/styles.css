@@ -102,6 +102,12 @@ body {
        .error-banner link from 4.00 to 4.82. Dark (#ff6b52) already cleared
        4.5:1 and is untouched. Matches tokens.css. */
     --over: #bb3a22;
+    /* How much of a series colour a small glyph on its own 16% tint keeps,
+       the rest going to --ink. Light: 65%, because the bare token on that
+       tint measured 1.83:1 (--cal) to 2.36:1 (--wat), under the 3:1 a
+       non-text icon needs; at 65% the weakest (--cal) is 3.7:1. Dark: the
+       bare token already clears 4:1, so 100%. */
+    --tint-glyph: 65%;
 
     /* Not in the design's token line but hardcoded in its markup; lifted
        here so no colour literal lives outside this block. --paper is the
@@ -166,6 +172,7 @@ body {
         --cta-bg: #161a22;
         --cta-ink: #f2f3f6;
         --over: #ff6b52;
+        --tint-glyph: 100%;
         color-scheme: dark;
     }
 }
@@ -202,6 +209,7 @@ body[data-theme="dark"] {
     --cta-bg: #161a22;
     --cta-ink: #f2f3f6;
     --over: #ff6b52;
+    --tint-glyph: 100%;
     color-scheme: dark;
 }
 
@@ -2167,6 +2175,11 @@ html:not(.js) .nm-ex-bar {
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
+    /* Its height jumps on every change of slide. Left to anchor on a bubble
+       in here, Chrome corrected the page's scroll for that jump while the
+       script was scrolling back to the carousel's top, and landed a
+       --head-h short, the bar still stuck over the slide. */
+    overflow-anchor: none;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     padding: 8px var(--ex-bleed) 36px;
@@ -2209,13 +2222,15 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     grid-template-areas:
         "icon tool"
         "icon title"
-        "desc desc";
+        "desc desc"
+        "more more";
     column-gap: 18px;
     justify-items: start;
 }
-/* Beside a card the chat is several times the column's height; the column
-   reads from the top, next to the conversation's opening lines. */
-.nm-ex-slide-card .nm-ex-info {
+/* Beside a card or a long conversation the chat is several times the
+   column's height; the column reads from the top, next to the
+   conversation's opening lines. */
+.nm-ex-slide-tall .nm-ex-info {
     align-self: start;
     padding-top: 14px;
 }
@@ -2284,6 +2299,31 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     color: var(--ink2);
     text-wrap: pretty;
 }
+/* The other tools the conversation calls: smaller than the primary chip
+   beside the icon, and wrapping as a row of their own. */
+.nm-ex-more {
+    grid-area: more;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 16px 0 0;
+}
+.nm-ex-more-l {
+    margin-right: 2px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--ink3);
+}
+.nm-ex-chip {
+    padding: 3px 9px;
+    font-size: 11.5px;
+    color: var(--ink2);
+    background: color-mix(in srgb, var(--c, var(--acc)) 8%, var(--panel));
+    border: 1px solid var(--line);
+    border-radius: 999px;
+}
 /* Sized to its thread, and centred against the left column rather than
    stretched to it: a stretched window was mostly empty above two bubbles.
    The border is what keeps it a window in dark theme, where --bg2 and
@@ -2308,20 +2348,23 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     font-weight: 600;
     color: var(--ink3);
 }
+/* Compact: a conversation runs to eight bubbles, and the slide is as tall
+   as its chat. */
 .nm-ex-thread {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     padding-top: 12px;
 }
 .nm-ex-q {
     align-self: flex-end;
-    max-width: 88%;
-    padding: 12px 16px;
+    max-width: 86%;
+    padding: 9px 14px;
     background: var(--ink);
     color: var(--bg);
-    border-radius: 20px 20px 6px 20px;
-    font-size: 15px;
+    border-radius: 18px 18px 6px 18px;
+    font-size: 14.5px;
+    line-height: 1.4;
     font-weight: 500;
     overflow-wrap: anywhere;
 }
@@ -2329,14 +2372,103 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
    reply colour would vanish into it. */
 .nm-ex-a {
     align-self: flex-start;
-    max-width: 92%;
-    padding: 12px 16px;
+    max-width: 90%;
+    padding: 9px 14px;
     background: var(--panel);
     border: 1px solid var(--line);
     color: var(--ink);
-    border-radius: 20px 20px 20px 6px;
-    font-size: 15px;
+    border-radius: 18px 18px 18px 6px;
+    font-size: 14.5px;
+    line-height: 1.4;
     overflow-wrap: anywhere;
+}
+/* A photo the user sent: the picture in a dark frame, the caption under it,
+   the way a chat app shows a photo message. The frame is --paper-ink, not
+   the user bubble's --ink: --ink turns near-white in dark theme, where the
+   barcode's white label measured 1.11:1 against it and lost its edge. The
+   picture is drawn (SVG), never an image file; the barcode label is --paper
+   and stays white in both themes, while the meal's fills mix the nutrient
+   tokens, so they follow the theme's palette like everything else. */
+.nm-ex-q-photo {
+    display: grid;
+    gap: 6px;
+    padding: 7px 7px 8px;
+    background: var(--paper-ink);
+    color: var(--paper);
+}
+.nm-ex-snap {
+    width: 196px;
+    max-width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+}
+.nm-ex-snap svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+/* The package label reuses the hero's barcode card (.nm-barcode). */
+.nm-ex-snap.nm-barcode {
+    padding: 14px 12px 8px;
+}
+.nm-ex-snap.nm-barcode svg {
+    width: 160px;
+    height: 52px;
+}
+.nm-ex-cap {
+    padding: 0 7px;
+    font-size: 14.5px;
+}
+.nm-ex-meal-table {
+    fill: color-mix(in srgb, var(--caf) 34%, var(--paper));
+}
+.nm-ex-meal-grain {
+    fill: none;
+    stroke: color-mix(in srgb, var(--caf) 52%, var(--paper));
+    stroke-width: 1.4;
+}
+.nm-ex-meal-cloth {
+    fill: color-mix(in srgb, var(--wat) 14%, var(--paper));
+}
+.nm-ex-meal-spoon {
+    fill: color-mix(in srgb, var(--paper-ink) 26%, var(--paper));
+}
+.nm-ex-meal-shade {
+    fill: var(--paper-ink);
+    opacity: 0.16;
+}
+.nm-ex-meal-bowl {
+    fill: var(--paper);
+}
+.nm-ex-meal-rim {
+    fill: color-mix(in srgb, var(--paper-ink) 9%, var(--paper));
+}
+.nm-ex-meal-soup {
+    fill: color-mix(in srgb, var(--over) 62%, var(--fat));
+}
+.nm-ex-meal-beet {
+    fill: color-mix(in srgb, var(--over) 64%, var(--paper-ink));
+}
+.nm-ex-meal-veg {
+    fill: color-mix(in srgb, var(--cal) 78%, var(--over));
+}
+.nm-ex-meal-cream {
+    fill: var(--paper);
+}
+.nm-ex-meal-dill {
+    fill: none;
+    stroke: color-mix(in srgb, var(--car) 62%, var(--paper-ink));
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+.nm-ex-meal-crust {
+    fill: color-mix(in srgb, var(--caf) 62%, var(--paper-ink));
+}
+.nm-ex-meal-crumb {
+    fill: color-mix(in srgb, var(--caf) 48%, var(--paper));
+}
+.nm-ex-meal-seed {
+    fill: color-mix(in srgb, var(--caf) 55%, var(--paper-ink));
 }
 /* The card keeps its --panel ground inside `.wrap > .card` but loses its
    edge, which on the --bg2 window would read as a square cut-out. This is
@@ -2349,20 +2481,49 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
 /* Replayed by the script for a button- or tab-initiated change only (a
    swipe drags the bubbles in already visible). Never the resting state:
    without script, or under reduced motion, nothing here applies. */
-.nm-ex-slide.is-entering .nm-ex-q {
-    animation: nm-rise 0.45s 0.12s both;
+.nm-ex-slide.is-entering .nm-ex-thread > * {
+    animation: nm-rise 0.45s 0.1s both;
 }
-.nm-ex-slide.is-entering .nm-ex-a {
-    animation: nm-rise 0.45s 0.26s both;
+/* A short stagger per bubble, in thread order, the card last. Written out
+   rather than an inline --i per bubble: the thread's longest conversation is
+   eight bubbles, and anything past the tenth simply rises with the tenth. */
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(2) {
+    animation-delay: 0.18s;
 }
-.nm-ex-slide.is-entering .nm-ex-thread > .nm-widget-card {
-    animation: nm-rise 0.5s 0.4s both;
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(3) {
+    animation-delay: 0.26s;
+}
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(4) {
+    animation-delay: 0.34s;
+}
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(5) {
+    animation-delay: 0.42s;
+}
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(6) {
+    animation-delay: 0.5s;
+}
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(7) {
+    animation-delay: 0.58s;
+}
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(8) {
+    animation-delay: 0.66s;
+}
+.nm-ex-slide.is-entering .nm-ex-thread > :nth-child(n + 9) {
+    animation-delay: 0.74s;
 }
 /* The tab row: whatever width the nav leaves, scrolling sideways when that
    is not enough (the script keeps the selected tab in view). Padding and the
    matching negative margin keep a focus ring clear of the scroll box's
-   clip, as .nm-chips-scroll does. */
+   clip, as .nm-chips-scroll does.
+
+   The edge that has more tabs past it fades, so the row reads as one that
+   scrolls rather than as a tab cut off mid-icon; the script sets
+   .is-fade-start / .is-fade-end from the scroll position, and a row that
+   fits sets neither. A mask reads only alpha, so the token's hue is
+   irrelevant here. */
 .nm-ex-tabs {
+    --ex-fade-s: 0px;
+    --ex-fade-e: 0px;
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
@@ -2371,6 +2532,26 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     padding: 6px;
     overflow-x: auto;
     scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(
+        90deg,
+        transparent,
+        var(--ink) var(--ex-fade-s),
+        var(--ink) calc(100% - var(--ex-fade-e)),
+        transparent
+    );
+    mask-image: linear-gradient(
+        90deg,
+        transparent,
+        var(--ink) var(--ex-fade-s),
+        var(--ink) calc(100% - var(--ex-fade-e)),
+        transparent
+    );
+}
+.nm-ex-tabs.is-fade-start {
+    --ex-fade-s: 48px;
+}
+.nm-ex-tabs.is-fade-end {
+    --ex-fade-e: 48px;
 }
 .nm-ex-tabs::-webkit-scrollbar {
     display: none;
@@ -2413,7 +2594,13 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     place-items: center;
     font-size: 11px;
     background: color-mix(in srgb, var(--c, var(--acc)) 16%, var(--panel));
-    color: var(--c, var(--acc));
+    /* Nine of the ten tabs are only this glyph, so it is what tells them
+       apart: darkened toward --ink in light theme (--tint-glyph). */
+    color: color-mix(
+        in srgb,
+        var(--c, var(--acc)) var(--tint-glyph),
+        var(--ink)
+    );
     transition:
         background 0.2s,
         color 0.2s;
@@ -2421,6 +2608,23 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
 .nm-ex-tab[aria-selected="true"] .nm-ex-dot {
     background: var(--c, var(--acc));
     color: var(--paper);
+}
+/* An icon pager at every width: ten labelled pills fit no bar this page
+   has, so only the selected tab keeps its label and the others are their
+   icon — a round 46px target whose accessible name is still the title
+   (visually hidden, never removed). */
+.nm-ex-tab[aria-selected="false"] {
+    position: relative;
+    gap: 0;
+    padding: 0 7px;
+}
+.nm-ex-tab[aria-selected="false"] .nm-ex-tab-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 /* One column: the head shrinks, the description runs full width under it,
    and the chat window follows. */
@@ -2434,7 +2638,7 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     .nm-ex-info {
         column-gap: 14px;
     }
-    .nm-ex-slide-card .nm-ex-info {
+    .nm-ex-slide-tall .nm-ex-info {
         padding-top: 0;
     }
     .nm-ex-icon {
@@ -2464,25 +2668,51 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
         left: -200px;
         top: -240px;
     }
-    /* The tabs may not fit: fade their trailing edge so the row reads as
-       one that scrolls rather than a label cut off mid-word, and pad the
-       end by the fade's width so the last tab can scroll clear of it. A
-       mask reads only alpha, so the token's hue is irrelevant here. */
-    /* No negative right margin here: the fade ends at the box's own edge,
-       the bar's gap away from the counter, instead of 6px past it. */
+    .nm-ex-desc + .nm-ex-more {
+        margin-top: 12px;
+    }
+    /* No negative right margin here: a fade ends at the box's own edge,
+       the bar's gap away from the counter, instead of 6px past it — and a
+       gap wide enough that the fading last tab finishes clear of "03". */
     .nm-ex-tabs {
         margin-right: 0;
-        padding-right: 44px;
-        -webkit-mask-image: linear-gradient(
-            90deg,
-            var(--ink) calc(100% - 48px),
-            transparent
-        );
-        mask-image: linear-gradient(
-            90deg,
-            var(--ink) calc(100% - 48px),
-            transparent
-        );
+    }
+    /* One column makes a conversation slide taller than the screen, and
+       the only controls sit above it (on a phone the tabs are the only
+       ones), so the bar sticks under the header for as long as the
+       carousel is on screen. It rests invisible — the same size and place
+       as before, the padding and border taken back by the margins — and
+       gains its glass pill only once it is actually stuck (.is-stuck, set
+       by the script), when it floats over a slide.
+
+       The carousel is a flow root so the bar's negative top margin stays
+       the bar's: collapsed through the carousel's edge it moved both boxes
+       together, and the script, which reads "stuck" as the bar sitting
+       lower than the carousel's top plus that margin, saw a bar at rest as
+       stuck by 7px and dressed it as a pill. */
+    .nm-ex-carousel {
+        display: flow-root;
+    }
+    .nm-ex-bar {
+        position: sticky;
+        top: calc(var(--head-h) - 6px);
+        z-index: 2;
+        gap: 20px;
+        margin: -7px -8px 7px;
+        padding: 6px 8px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        transition:
+            background 0.2s,
+            border-color 0.2s,
+            box-shadow 0.2s;
+    }
+    .nm-ex-bar.is-stuck {
+        background: color-mix(in srgb, var(--bg) 82%, transparent);
+        border-color: var(--line);
+        box-shadow: var(--shadow-snug);
+        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
     }
 }
 /* A phone: the tabs take the whole bar and the slide gives its card every
@@ -2500,30 +2730,19 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     .nm-ex-chat {
         padding: 12px 10px 10px;
     }
+    .nm-ex-tabs {
+        gap: 4px;
+    }
     .nm-ex-tab {
-        position: relative;
-        height: 42px;
+        height: 44px;
         font-size: 14px;
     }
-    /* Three labelled pills do not fit a phone's width, so only the selected
-       tab keeps its label; the others become their icon, a pager whose
-       accessible name is still the title (visually hidden, never removed). */
     .nm-ex-tab[aria-selected="false"] {
-        gap: 0;
         padding: 0 6px;
     }
-    .nm-ex-tab[aria-selected="false"] .nm-ex-tab-name {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-    }
-    .nm-ex-tabs {
-        padding-right: 6px;
-        -webkit-mask-image: none;
-        mask-image: none;
+    .nm-ex-q,
+    .nm-ex-a {
+        font-size: 14px;
     }
 }
 

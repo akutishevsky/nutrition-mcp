@@ -46,6 +46,9 @@ import {
 } from "./site-partials.js";
 import {
     INDEX,
+    type ExampleMessage,
+    type ExampleSlide,
+    type ExampleSlideId,
     type FaqEntry,
     type HeroExchange,
     type IndexDoc,
@@ -354,8 +357,9 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                 // counter, which slides are inert, and the announcement. The active
                 // slide is derived from the scroll position rather than stored, so a
                 // swipe, a tab and a button all land in the same state.
-                // No copy here: the announcement is the slide's own aria-label and
-                // <h3>, both written by the generator in the page's language.
+                // No copy here: the announcement is the slide's own aria-label
+                // ("3 of 10: Scan a barcode"), written by the generator in the
+                // page's language.
                 var exTrack = document.querySelector("[data-ex-track]");
                 var exSlides = exTrack
                     ? [].slice.call(exTrack.querySelectorAll("[data-ex-slide]"))
@@ -409,17 +413,50 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         if (exTrack.style.height !== h + "px")
                             exTrack.style.height = h + "px";
                     }
-                    // A tab row too wide for its box scrolls; keep the selected tab
-                    // inside it, clear of the trailing fade. Scrolls the row only -
-                    // scrollIntoView would move the page as well.
+                    // A tab row too wide for its box scrolls, and fades whichever edge
+                    // has more tabs past it (.is-fade-start / .is-fade-end). Derived
+                    // from the scroll position every time, like the active slide, so a
+                    // drag, a reveal and a resize all land in the same state.
+                    var exRow = exTabs.length ? exTabs[0].parentNode : null;
+                    function exFade() {
+                        if (!exRow) return;
+                        var max = exRow.scrollWidth - exRow.clientWidth;
+                        var x = exRow.scrollLeft;
+                        exRow.classList.toggle("is-fade-start", max > 1 && x > 1);
+                        exRow.classList.toggle("is-fade-end", max > 1 && x < max - 1);
+                    }
+                    if (exRow) {
+                        var exFadeQueued = false;
+                        exRow.addEventListener(
+                            "scroll",
+                            function () {
+                                if (exFadeQueued) return;
+                                exFadeQueued = true;
+                                requestAnimationFrame(function () {
+                                    exFadeQueued = false;
+                                    exFade();
+                                });
+                            },
+                            { passive: true },
+                        );
+                        // The labels are in a web font; the row is wider once it loads.
+                        if (document.fonts && document.fonts.ready)
+                            document.fonts.ready.then(function () {
+                                if (exActive >= 0) exRevealTab(exTabs[exActive]);
+                            });
+                    }
+                    // Keep the selected tab inside the row, clear of both fades (48px,
+                    // the fade's width). Scrolls the row only - scrollIntoView would
+                    // move the page as well.
                     function exRevealTab(tab) {
+                        exFade();
                         var row = tab && tab.parentNode;
                         if (!row || row.scrollWidth <= row.clientWidth + 1) return;
                         var rb = row.getBoundingClientRect();
                         var tb = tab.getBoundingClientRect();
                         var d = 0;
-                        if (tb.left < rb.left + 8) d = tb.left - rb.left - 8;
-                        else if (tb.right > rb.right - 40) d = tb.right - rb.right + 40;
+                        if (tb.left < rb.left + 48) d = tb.left - rb.left - 48;
+                        else if (tb.right > rb.right - 48) d = tb.right - rb.right + 48;
                         if (d)
                             row.scrollTo({
                                 left: row.scrollLeft + d,
@@ -451,13 +488,47 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         if (held && exTabs[i]) exTabs[i].focus({ preventScroll: true });
                         exRevealTab(exTabs[i]);
                         if (exCount) exCount.textContent = (i < 9 ? "0" : "") + (i + 1);
-                        if (announce && exLive) {
-                            var title = exSlides[i].querySelector("h3");
-                            exLive.textContent =
-                                (exSlides[i].getAttribute("aria-label") || "") +
-                                ": " +
-                                (title ? title.textContent.trim() : "");
-                        }
+                        // Only the arrows announce: a tab moved to or clicked is
+                        // already read out by its role ("Scan a barcode, selected"),
+                        // and a swipe clears the region so it never goes on naming
+                        // the slide before.
+                        if (exLive)
+                            exLive.textContent = announce
+                                ? exSlides[i].getAttribute("aria-label") || ""
+                                : "";
+                    }
+                    // Changing slides from deep inside a long one (the bar stuck
+                    // under the header) lands at the top of the new slide rather
+                    // than somewhere in its middle, or past the end of a short one.
+                    var exBar = document.querySelector("[data-ex-bar]");
+                    function exBarOffset() {
+                        if (!exBar) return 0;
+                        var cs = getComputedStyle(exBar);
+                        if (cs.position !== "sticky") return 0;
+                        // Where the bar would be if it were not stuck.
+                        var rest =
+                            exBar.parentNode.getBoundingClientRect().top +
+                            parseFloat(cs.marginTop);
+                        return exBar.getBoundingClientRect().top - rest;
+                    }
+                    function exStick() {
+                        if (exBar) exBar.classList.toggle("is-stuck", exBarOffset() > 0.5);
+                    }
+                    if (exBar) {
+                        var exStickQueued = false;
+                        window.addEventListener(
+                            "scroll",
+                            function () {
+                                if (exStickQueued) return;
+                                exStickQueued = true;
+                                requestAnimationFrame(function () {
+                                    exStickQueued = false;
+                                    exStick();
+                                });
+                            },
+                            { passive: true },
+                        );
+                        exStick();
                     }
                     // The bubbles rise in again - but only for a change the visitor
                     // asked for with a button or a tab. A swipe drags the slide in
@@ -473,11 +544,17 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         void slide.offsetWidth;
                         slide.classList.add("is-entering");
                     }
-                    function exGoTo(i) {
+                    function exGoTo(i, announce) {
                         var n = exSlides.length;
                         i = ((i % n) + n) % n;
                         if (i !== exActive) exEnter(exSlides[i]);
-                        exSetActive(i, true);
+                        exSetActive(i, announce);
+                        var stuck = exBarOffset();
+                        if (stuck > 0.5)
+                            window.scrollBy({
+                                top: -stuck,
+                                behavior: exStill() ? "auto" : "smooth",
+                            });
                         clearTimeout(exPendingTimer);
                         exPending = exNearest() === i ? null : i;
                         // A scroll the visitor interrupts never arrives; stop waiting.
@@ -543,19 +620,20 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             exPending = null;
                             exTrack.scrollTo({ left: exLeft(exActive), behavior: "auto" });
                             exRevealTab(exTabs[exActive]);
+                            exStick();
                         });
                     });
                     document.querySelectorAll("[data-ex-dir]").forEach(function (btn) {
                         btn.addEventListener("click", function () {
                             var step = btn.getAttribute("data-ex-dir") === "prev" ? -1 : 1;
-                            exGoTo((exPending !== null ? exPending : exActive) + step);
+                            exGoTo((exPending !== null ? exPending : exActive) + step, true);
                         });
                     });
                     // The tab row is one tab stop (roving tabindex); the arrows move
                     // along it, Home and End jump to its ends, and moving is choosing.
                     exTabs.forEach(function (tab, i) {
                         tab.addEventListener("click", function () {
-                            exGoTo(i);
+                            exGoTo(i, false);
                         });
                         tab.addEventListener("keydown", function (e) {
                             var n = exTabs.length;
@@ -567,7 +645,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             if (to === null) return;
                             e.preventDefault();
                             exTabs[to].focus();
-                            exGoTo(to);
+                            exGoTo(to, false);
                         });
                     });
                     exSync();
@@ -1349,7 +1427,7 @@ function barcodeSvg(): string {
 // ---------------------------------------------- the real widget cards
 //
 // The two cards on this page — the get_nutrition_summary card in the hero
-// chat and the get_trends card on the third examples slide — are not
+// chat and the get_trends card on the review-week examples slide — are not
 // approximations of the in-chat widgets. They ARE the in-chat widgets,
 // rendered at BUILD TIME: src/widget-static.ts evaluates the very shared
 // partials the iframe runs (shared/macros.js, shared/spark.js,
@@ -1985,12 +2063,172 @@ ${cards}
             </section>`;
 }
 
-const EX_ICONS = ["fa-utensils", "fa-barcode", "fa-chart-area"];
-const EX_TINTS = ["nm-c-cal", "nm-c-car", "nm-c-pro"];
-/** The MCP tool each example conversation calls, printed as the slide's
- *  tool chip. Identifiers, not copy — never translated — and each one is a
- *  name src/mcp.ts registers; rename a tool there and it moves here too. */
-const EX_TOOLS = ["log_meal", "lookup_barcode", "get_trends"];
+/** What each example slide shows beside its words: the icon and tint of its
+ *  left column and its tab, and the MCP tools its conversation calls — the
+ *  first printed as the prominent chip beside the icon, the rest as the small
+ *  "also uses" chips under the description.
+ *
+ *  STRUCTURE, NOT COPY, and written ONCE for all nine locales: keyed by
+ *  ExampleSlide.id, so a translation cannot give a slide another slide's icon
+ *  by reordering, and has nothing here to translate. These used to be three
+ *  arrays matched to the slides by index. Every tool must be a name
+ *  src/mcp.ts registers (src/landing-script.test.ts), so a rename there moves
+ *  here too. `Record<ExampleSlideId, …>` means a new id without an entry is a
+ *  type error. */
+type ExampleMeta = {
+    icon: string;
+    tint: string;
+    tools: [string, ...string[]];
+};
+export const EX_META: Record<ExampleSlideId, ExampleMeta> = {
+    "log-meal": {
+        icon: "fa-comment-dots",
+        tint: "nm-c-cal",
+        tools: ["log_meal", "log_water", "get_current_time"],
+    },
+    "photo-meal": {
+        icon: "fa-camera",
+        tint: "nm-c-fat",
+        tools: ["log_meal", "search_meals"],
+    },
+    "scan-barcode": {
+        icon: "fa-barcode",
+        tint: "nm-c-car",
+        tools: ["lookup_barcode", "log_meal"],
+    },
+    "goals-progress": {
+        icon: "fa-bullseye",
+        tint: "nm-c-acc",
+        tools: ["set_nutrition_goals", "get_goal_progress"],
+    },
+    "review-week": {
+        icon: "fa-chart-area",
+        tint: "nm-c-pro",
+        tools: ["get_trends"],
+    },
+    "weight-trend": {
+        icon: "fa-weight-scale",
+        tint: "nm-c-wat",
+        tools: ["log_weight", "get_weight_trends"],
+    },
+    "meal-patterns": {
+        icon: "fa-magnifying-glass-chart",
+        tint: "nm-c-fib",
+        tools: ["get_meal_patterns"],
+    },
+    "track-drinks": {
+        icon: "fa-beer-mug-empty",
+        tint: "nm-c-oil",
+        tools: ["set_alcohol_tracking", "log_meal"],
+    },
+    "import-history": {
+        icon: "fa-file-import",
+        tint: "nm-c-caf",
+        tools: ["start_meal_import", "get_profile", "set_timezone"],
+    },
+    "export-data": {
+        icon: "fa-box-archive",
+        tint: "nm-c-sug",
+        tools: ["export_all_data"],
+    },
+};
+
+/** A slide's structure as one comparable line per slide: its id, its widget
+ *  and the from / photo sequence of its messages. Everything a translation
+ *  must copy and nothing it translates. */
+export function exampleStructure(slides: readonly ExampleSlide[]): string[] {
+    return slides.map((s) =>
+        [
+            s?.id,
+            s?.widget ?? "-",
+            ...(Array.isArray(s?.messages)
+                ? s.messages.map((m) =>
+                      m.from === "user" && m.photo ? `user+${m.photo}` : m.from,
+                  )
+                : ["(no messages)"]),
+        ].join(" "),
+    );
+}
+
+/** A locale whose slides do not mirror English's structure would render a
+ *  different conversation, a missing card or, when a slide still has the old
+ *  userText / aiText shape, crash half-way through the page. Refuse it by
+ *  name instead. Also refuses an empty bubble: every typed message needs its
+ *  words, and only a photo turn may go without a caption. */
+function assertExamplesMirrorEnglish(doc: IndexDoc, locale: SiteLocale): void {
+    const en = INDEX.en!.examples.slides;
+    const slides = Array.isArray(doc.examples.slides)
+        ? doc.examples.slides
+        : [];
+    const want = exampleStructure(en);
+    const got = exampleStructure(slides);
+    const diff = want.findIndex((line, i) => got[i] !== line);
+    if (diff >= 0 || got.length !== want.length) {
+        const i = diff >= 0 ? diff : want.length;
+        throw new Error(
+            `${locale}: examples.slides must mirror English's structure (ids, widget, message from/photo sequence). ` +
+                `Slide ${i + 1}: expected "${want[i] ?? "(none)"}", got "${got[i] ?? "(none)"}".`,
+        );
+    }
+    slides.forEach((s) =>
+        s.messages.forEach((m, k) => {
+            const photo = m.from === "user" && m.photo;
+            if (!photo && !m.text?.trim())
+                throw new Error(
+                    `${locale}: examples slide "${s.id}" message ${k + 1} has no text.`,
+                );
+        }),
+    );
+}
+
+/** The meal a user photographs on the photo-meal slide: a bowl of borscht
+ *  with sour cream and dill, a slice of rye bread, a spoon on a napkin, on a
+ *  wooden table, seen from above. Drawn, not an image file — the page makes
+ *  no request for it — and every fill is a token mix in styles.css
+ *  (.nm-ex-meal-*), so there is no colour literal here. Those mixes use the
+ *  nutrient tokens, so the drawing follows the theme's palette (unlike the
+ *  barcode label, which is --paper in both); the photo bubble's frame is
+ *  --paper-ink in both themes. aria-hidden, because the bubble around it is
+ *  role="img" with the translated examples.photoMealAlt as its name. */
+function mealPhotoSvg(): string {
+    return `<svg viewBox="0 0 220 140" aria-hidden="true">
+<rect class="nm-ex-meal-table" width="220" height="140"></rect>
+<path class="nm-ex-meal-grain" d="M0 16c52-5 120 7 220-2M0 50c64-6 132 8 220 0M0 96c44-5 150 9 220-1M0 128c70-4 128 6 220-2"></path>
+<rect class="nm-ex-meal-cloth" x="150" y="-18" width="84" height="74" rx="5" transform="rotate(14 192 19)"></rect>
+<g class="nm-ex-meal-spoon" transform="rotate(-24 186 26)"><ellipse cx="170" cy="26" rx="10" ry="7"></ellipse><rect x="178" y="24" width="42" height="4" rx="2"></rect></g>
+<circle class="nm-ex-meal-shade" cx="85" cy="78" r="57"></circle>
+<circle class="nm-ex-meal-bowl" cx="80" cy="72" r="57"></circle>
+<circle class="nm-ex-meal-rim" cx="80" cy="72" r="48"></circle>
+<circle class="nm-ex-meal-soup" cx="80" cy="72" r="44"></circle>
+<g class="nm-ex-meal-beet"><rect x="52" y="52" width="16" height="4" rx="2" transform="rotate(-30 60 54)"></rect><rect x="96" y="92" width="18" height="4" rx="2" transform="rotate(20 105 94)"></rect><rect x="56" y="92" width="14" height="4" rx="2" transform="rotate(40 63 94)"></rect><rect x="100" y="48" width="15" height="4" rx="2" transform="rotate(60 107 50)"></rect><rect x="44" y="72" width="12" height="4" rx="2" transform="rotate(-70 50 74)"></rect></g>
+<g class="nm-ex-meal-veg"><rect x="108" y="70" width="10" height="5" rx="2" transform="rotate(15 113 72)"></rect><rect x="70" y="100" width="9" height="5" rx="2" transform="rotate(-20 74 102)"></rect><rect x="62" y="42" width="8" height="5" rx="2"></rect></g>
+<path class="nm-ex-meal-cream" d="M66 64c4-10 20-12 27-4 9 0 13 9 8 16-3 8-16 11-25 8-10 0-15-11-10-20z"></path>
+<path class="nm-ex-meal-dill" d="M74 66l7 3m-3-6l2 7m9 2l6-5m-3 7l5 2m-17 6l5-5m-1 6l4-3"></path>
+<g transform="rotate(-16 176 102)"><path class="nm-ex-meal-crust" d="M144 84c0-16 12-22 22-22h20c10 0 22 6 22 22v36c0 4-3 6-6 6h-52c-3 0-6-2-6-6z"></path><path class="nm-ex-meal-crumb" d="M150 86c0-12 9-17 17-17h18c8 0 17 5 17 17v32c0 2-1 3-3 3h-46c-2 0-3-1-3-3z"></path><g class="nm-ex-meal-seed"><ellipse cx="162" cy="88" rx="2.2" ry="1.2"></ellipse><ellipse cx="184" cy="96" rx="2.2" ry="1.2" transform="rotate(40 184 96)"></ellipse><ellipse cx="170" cy="110" rx="2.2" ry="1.2" transform="rotate(-30 170 110)"></ellipse><ellipse cx="192" cy="112" rx="2.2" ry="1.2"></ellipse><ellipse cx="176" cy="80" rx="2.2" ry="1.2" transform="rotate(70 176 80)"></ellipse></g></g>
+</svg>`;
+}
+
+/** One bubble of an example conversation. A user photo turn is the picture
+ *  (role="img", named by the translated alt) with its optional caption under
+ *  it: the meal drawing, or the package's barcode label — the same label the
+ *  hero's barcode card draws. */
+function renderExampleMessage(
+    e: IndexDoc["examples"],
+    m: ExampleMessage,
+    pad: string,
+): string {
+    if (m.from === "ai")
+        return `${pad}<div class="nm-ex-a">${esc(m.text)}</div>`;
+    if (!m.photo) return `${pad}<div class="nm-ex-q">${esc(m.text)}</div>`;
+    const snap =
+        m.photo === "meal"
+            ? `<div class="nm-ex-snap nm-ex-snap-meal" role="img" aria-label="${attr(e.photoMealAlt)}">${mealPhotoSvg()}</div>`
+            : `<div class="nm-ex-snap nm-barcode" role="img" aria-label="${attr(e.photoPackageAlt)}">${barcodeSvg()}<span class="nm-barcode-digits">${BARCODE_DIGITS}</span></div>`;
+    const cap = m.text ? `<span class="nm-ex-cap">${esc(m.text)}</span>` : "";
+    return `${pad}<div class="nm-ex-q nm-ex-q-photo">
+${pad}    ${snap}${cap ? `\n${pad}    ${cap}` : ""}
+${pad}</div>`;
+}
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
@@ -2005,13 +2243,27 @@ const pad2 = (n: number): string => String(n).padStart(2, "0");
  *  LANDING_SCRIPT keeps the tabs, the counter, `inert` and a polite
  *  announcement in step with wherever the track is.
  *
- *  Each slide's left column is a compact head (the icon beside the tool the
- *  conversation calls and the title) over the description; the right column
- *  is the chat window. The slide's position ("1 of 3") is its aria-label
- *  only — the bar's counter is the one visible position.
+ *  THE TABS ARE AN ICON PAGER AT EVERY WIDTH. Ten labelled pills cannot fit
+ *  one row at any width the page has, and a labelled row that scrolls hides
+ *  most of the choices; ten 46px icons plus the selected tab's label fit a
+ *  desktop bar whole, and on narrower bars the row scrolls with a fade on
+ *  whichever edge has more tabs past it, the script keeping the selected tab
+ *  clear of the fades. An icon tab's accessible name is still its title,
+ *  visually hidden and never removed.
  *
- *  THE TINT IS NEVER ON THE SLIDE. The third slide holds the real trends
- *  card, and `--c` inherits into the widget's focus panel (see
+ *  Each slide's left column is a compact head (the icon beside the primary
+ *  tool the conversation calls and the title) over the description and the
+ *  secondary tools; the right column is the chat window, every message a
+ *  bubble in order. The slide's aria-label is its position and its title
+ *  ("1 of 10: Log in plain words"), so a screen reader entering the panel
+ *  hears what it is about — the bar's counter is the one visible position.
+ *
+ *  At one column (≤860px) the bar is sticky under the header, since a
+ *  conversation slide is then taller than the screen and the bar holds the
+ *  only controls; the script dresses it as a pill only while it is stuck.
+ *
+ *  THE TINT IS NEVER ON THE SLIDE. The review-week slide holds the real
+ *  trends card, and `--c` inherits into the widget's focus panel (see
  *  assertCardsAreUntinted), so the `.nm-c-*` role sits on the left column —
  *  which the glow and the icon live inside — and on the tab, and nowhere
  *  above a card.
@@ -2019,35 +2271,47 @@ const pad2 = (n: number): string => String(n).padStart(2, "0");
  *  Nothing in the markup is `inert`: a visitor without script can still
  *  reach, read and use every slide. The script makes the off-screen slides
  *  inert once it is there to bring them back. */
-function renderExamples(doc: IndexDoc, cards: LandingCards): string {
+function renderExamples(
+    doc: IndexDoc,
+    locale: SiteLocale,
+    cards: LandingCards,
+): string {
+    assertExamplesMirrorEnglish(doc, locale);
     const e = doc.examples;
     const total = e.slides.length;
     const position = (i: number): string =>
-        e.slideLabel
+        `${e.slideLabel
             .replace("{n}", String(i + 1))
-            .replace("{total}", String(total));
+            .replace("{total}", String(total))}: ${e.slides[i]!.title}`;
     const slides = e.slides
         .map((s, i) => {
-            const tint = EX_TINTS[i] ?? "nm-c-acc";
-            const icon = EX_ICONS[i] ?? "fa-circle";
-            const tool = EX_TOOLS[i];
-            const toolChip = tool
-                ? `\n                                <span class="nm-ex-tool"><i class="fa-solid fa-plug" aria-hidden="true"></i><code>${esc(tool)}</code></span>`
+            const meta = EX_META[s.id];
+            const [tool, ...moreTools] = meta.tools;
+            const more = moreTools.length
+                ? `\n                                <p class="nm-ex-more"><span class="nm-ex-more-l">${esc(e.moreToolsLabel)}</span>${moreTools
+                      .map((t) => `<code class="nm-ex-chip">${esc(t)}</code>`)
+                      .join("")}</p>`
                 : "";
+            const messages = s.messages
+                .map((m) => renderExampleMessage(e, m, " ".repeat(36)))
+                .join("\n");
             // The real get_trends card, and it is live: its 7 / 14 / 30
             // toggle re-slices and re-averages the same 30-day payload in
             // the browser, exactly as the in-chat one does, and a tile moves
             // the focus panel and the chart to that metric.
             const widget = s.widget === "trends" ? `\n${cards.trends}` : "";
-            // A card makes the chat far taller than the left column, which
-            // then reads from the top beside it instead of floating mid-panel.
-            const tall = widget ? " nm-ex-slide-card" : "";
-            return `                        <div class="nm-ex-slide${tall}" id="ex-slide-${i + 1}" role="tabpanel" aria-roledescription="${attr(e.slideRole)}" aria-label="${attr(position(i))}" data-ex-slide>
-                            <div class="nm-ex-info ${tint}">
+            // A card or a long conversation makes the chat far taller than
+            // the left column, which then reads from the top beside it
+            // instead of floating mid-panel.
+            const tall =
+                widget || s.messages.length > 2 ? " nm-ex-slide-tall" : "";
+            return `                        <div class="nm-ex-slide${tall}" id="ex-slide-${i + 1}" role="tabpanel" aria-roledescription="${attr(e.slideRole)}" aria-label="${attr(position(i))}" data-ex-id="${attr(s.id)}" data-ex-slide>
+                            <div class="nm-ex-info ${meta.tint}">
                                 <span class="nm-ex-glow" aria-hidden="true"></span>
-                                <span class="nm-ex-icon" aria-hidden="true"><i class="fa-solid ${icon}"></i></span>${toolChip}
+                                <span class="nm-ex-icon" aria-hidden="true"><i class="fa-solid ${meta.icon}"></i></span>
+                                <span class="nm-ex-tool"><i class="fa-solid fa-plug" aria-hidden="true"></i><code>${esc(tool)}</code></span>
                                 <h3 class="nm-ex-title">${esc(s.title)}</h3>
-                                <p class="nm-ex-desc">${esc(s.description)}</p>
+                                <p class="nm-ex-desc">${esc(s.description)}</p>${more}
                             </div>
                             <div class="nm-ex-chat">
                                 <div class="nm-ex-chat-head">
@@ -2057,23 +2321,20 @@ function renderExamples(doc: IndexDoc, cards: LandingCards): string {
                                     </span>
                                 </div>
                                 <div class="nm-ex-thread">
-                                    <div class="nm-ex-q">${esc(s.userText)}</div>
-                                    <div class="nm-ex-a">${esc(s.aiText)}</div>${widget}
+${messages}${widget}
                                 </div>
                             </div>
                         </div>`;
         })
         .join("\n");
     const tabs = e.slides
-        .map(
-            (
-                s,
-                i,
-            ) => `                    <button type="button" class="nm-ex-tab ${EX_TINTS[i] ?? "nm-c-acc"}" id="ex-tab-${i + 1}" role="tab" aria-selected="${i === 0}" aria-controls="ex-slide-${i + 1}" tabindex="${i === 0 ? 0 : -1}" data-ex-tab>
-                        <span class="nm-ex-dot" aria-hidden="true"><i class="fa-solid ${EX_ICONS[i] ?? "fa-circle"}"></i></span>
+        .map((s, i) => {
+            const meta = EX_META[s.id];
+            return `                    <button type="button" class="nm-ex-tab ${meta.tint}" id="ex-tab-${i + 1}" role="tab" aria-selected="${i === 0}" aria-controls="ex-slide-${i + 1}" tabindex="${i === 0 ? 0 : -1}" data-ex-tab>
+                        <span class="nm-ex-dot" aria-hidden="true"><i class="fa-solid ${meta.icon}"></i></span>
                         <span class="nm-ex-tab-name">${esc(s.title)}</span>
-                    </button>`,
-        )
+                    </button>`;
+        })
         .join("\n");
     return `            <section class="nm-section" id="examples" aria-labelledby="examples-title" data-reveal>
                 <div class="nm-head-row nm-ex-head">
@@ -2081,7 +2342,7 @@ function renderExamples(doc: IndexDoc, cards: LandingCards): string {
                     <p class="nm-sub">${esc(e.sub)}</p>
                 </div>
                 <div class="nm-ex-carousel" role="region" aria-roledescription="${attr(e.carouselRole)}" aria-label="${attr(e.carouselLabel)}">
-                    <div class="nm-ex-bar">
+                    <div class="nm-ex-bar" data-ex-bar>
                         <div class="nm-ex-tabs" role="tablist" aria-label="${attr(e.pickerLabel)}">
 ${tabs}
                         </div>
@@ -2496,7 +2757,7 @@ ${renderConnect(doc, locale)}
 
 ${renderOnboarding(doc, locale)}
 
-${renderExamples(doc, cards)}
+${renderExamples(doc, locale, cards)}
 
 ${renderLive(doc)}
 
