@@ -202,23 +202,30 @@ export const INDEX_NL: IndexDoc = {
         prevLabel: "Vorige",
         nextLabel: "Volgende",
         pickerLabel: "Kies een voorbeeld",
+        carouselLabel: "Voorbeeldgesprekken",
+        slideLabel: "{n} van {total}",
+        carouselRole: "carrousel",
+        slideRole: "dia",
         slides: [
             {
                 title: "Log een maaltijd",
-                sub: "Gewone woorden, geen database",
+                description:
+                    "Vertel het zoals je het aan een vriend zou vertellen — geen voedingsdatabase doorzoeken, geen schuifjes voor porties. Calorieën, macro's en cafeïne worden berekend en gelogd.",
                 userText:
                     "Ik had havermout met bessen en een koffie als ontbijt",
                 aiText: "Ontbijt gelogd — ongeveer 320 kcal, 11 g eiwit. De koffie voegde 95 mg cafeïne toe.",
             },
             {
                 title: "Scan een barcode",
-                sub: "Open Food Facts, geschaald naar jouw portie",
+                description:
+                    "Stuur een foto van de barcode of typ de cijfers over. Het product komt uit Open Food Facts, omgerekend naar hoeveel je er echt van had.",
                 userText: "Scan deze barcode: 5449000000996",
                 aiText: "Dat is een Coca-Cola van 330 ml — 139 kcal, 35 g suiker, via Open Food Facts. Hoeveel heb je ervan gehad?",
             },
             {
                 title: "Bekijk de week",
-                sub: "Trendswidget, gewoon in de chat",
+                description:
+                    "Vraag hoe je week ging en de trendswidget opent gewoon in de chat. Wissel tussen 7, 14 en 30 dagen, of tik op een voedingsstof om die in een grafiek te zien.",
                 userText: "Hoe zag vorige week eruit?",
                 aiText: "Je zat de afgelopen 14 dagen gemiddeld op 1.830 kcal per dag, waarvan 13 gelogd — 170 onder je doel. Eiwit was je stabielste macro.",
                 widget: "trends",

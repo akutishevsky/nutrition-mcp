@@ -220,22 +220,29 @@ export const INDEX_JA: IndexDoc = {
         prevLabel: "前へ",
         nextLabel: "次へ",
         pickerLabel: "例を選択",
+        carouselLabel: "会話の例",
+        slideLabel: "{total}件中{n}件目",
+        carouselRole: "カルーセル",
+        slideRole: "スライド",
         slides: [
             {
                 title: "食事を記録",
-                sub: "普通の言葉で、データベース検索なし",
+                description:
+                    "友だちに話すように伝えるだけで、食品データベースの検索も分量スライダーの操作も必要ありません。カロリー、主要栄養素、カフェインを計算して記録します。",
                 userText: "朝食にベリー入りオートミールとコーヒーを食べました",
                 aiText: "朝食を記録しました — 約320 kcal、タンパク質11 g。コーヒーでカフェイン95 mgが加わりました。",
             },
             {
                 title: "バーコードをスキャン",
-                sub: "Open Food Factsのデータを、食べた量に合わせて",
+                description:
+                    "バーコードの写真を送るか、数字を入力するだけ。Open Food Factsの商品データを、実際に食べた量に合わせて換算します。",
                 userText: "このバーコードをスキャンして: 5449000000996",
                 aiText: "コカ・コーラ330 mlですね — 139 kcal、糖類35 g（Open Food Factsより）。どのくらい飲みましたか?",
             },
             {
                 title: "1週間を振り返る",
-                sub: "トレンドウィジェットを、チャットの中で",
+                description:
+                    "1週間の様子を聞くと、チャットの中でトレンドウィジェットが開きます。7日・14日・30日を切り替えたり、栄養素をタップしてグラフで確認したりできます。",
                 userText: "先週はどうだった?",
                 aiText: "直近14日間（うち13日を記録）の平均は1日1,830 kcalで、目標より170少ない結果でした。タンパク質が最も安定した栄養素です。",
                 widget: "trends",

@@ -210,23 +210,30 @@ export const INDEX_IT: IndexDoc = {
         prevLabel: "Precedente",
         nextLabel: "Successivo",
         pickerLabel: "Scegli un esempio",
+        carouselLabel: "Conversazioni di esempio",
+        slideLabel: "{n} di {total}",
+        carouselRole: "carosello",
+        slideRole: "slide",
         slides: [
             {
                 title: "Registra un pasto",
-                sub: "Parole semplici, nessun database",
+                description:
+                    "Descrivilo come lo racconteresti a un amico — niente database di alimenti da consultare, niente cursori per le porzioni. Calorie, macro e caffeina vengono calcolate e registrate.",
                 userText:
                     "Ho mangiato porridge con frutti di bosco e un caffè a colazione",
                 aiText: "Colazione registrata — circa 320 kcal, 11 g di proteine. Il caffè ha aggiunto 95 mg di caffeina.",
             },
             {
                 title: "Scansiona un codice a barre",
-                sub: "Open Food Facts, in proporzione alla tua porzione",
+                description:
+                    "Invia una foto del codice a barre o digitane le cifre. Il prodotto arriva da Open Food Facts, ricalcolato sulla quantità che hai davvero consumato.",
                 userText: "Scansiona questo codice a barre: 5449000000996",
                 aiText: "È una Coca-Cola da 330 ml — 139 kcal, 35 g di zuccheri, da Open Food Facts. Quanta ne hai bevuta?",
             },
             {
                 title: "Rivedi la settimana",
-                sub: "Widget degli andamenti, direttamente in chat",
+                description:
+                    "Chiedi com'è andata la settimana e il widget degli andamenti si apre direttamente in chat. Passa tra 7, 14 e 30 giorni, oppure tocca un nutriente per vederne il grafico.",
                 userText: "Com'è andata la settimana scorsa?",
                 aiText: "Hai fatto una media di 1830 kcal al giorno negli ultimi 14 giorni, 13 dei quali registrati — 170 sotto il tuo obiettivo. Le proteine sono state il tuo macro più costante.",
                 widget: "trends",

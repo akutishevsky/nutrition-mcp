@@ -173,11 +173,14 @@ function syncCardMeta(root, html) {
  *
  *  DEFERRED AND REPEATED, which bridge.js's copy does not have to be. In chat
  *  the widget IS the document and is laid out the instant it renders. Here the
- *  trends card ships inside the examples picker's inactive `.nm-ex-panel`,
- *  which is `display:none` until LANDING_SCRIPT stamps `is-active` on it — so
- *  a measurement at bind time reads 0 for every candidate, and the floor
- *  written from it is `min-height: 0px`: indistinguishable from never having
- *  run, and permanent, because the inline 0 survives the panel being shown.
+ *  card is on a responsive page and may have no box when it is bound: it
+ *  shipped for a while inside the old examples picker's inactive panel, which
+ *  was `display:none` until LANDING_SCRIPT showed it — so a measurement at
+ *  bind time read 0 for every candidate, and the floor written from it was
+ *  `min-height: 0px`: indistinguishable from never having run, and permanent,
+ *  because the inline 0 survived the panel being shown. (The carousel that
+ *  replaced it lays every slide out, off to the side of its track, but a
+ *  future wrapper that hides one is two lines away.)
  *  And WHICH label is tallest depends on the width: at 360px the 14- and
  *  30-day labels wrap to two rows where the 7-day one does not (the card moved
  *  470 → 455 → 470 px across a toggle), while at >=1280px nothing wraps and

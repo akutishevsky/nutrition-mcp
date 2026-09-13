@@ -208,23 +208,30 @@ export const INDEX_FR: IndexDoc = {
         prevLabel: "Précédent",
         nextLabel: "Suivant",
         pickerLabel: "Choisis un exemple",
+        carouselLabel: "Exemples de conversations",
+        slideLabel: "{n} sur {total}",
+        carouselRole: "carrousel",
+        slideRole: "diapositive",
         slides: [
             {
                 title: "Enregistrer un repas",
-                sub: "Des mots simples, pas de base de données",
+                description:
+                    "Décris-le comme tu le raconterais à un ami — pas de base d'aliments à fouiller, pas de curseurs de portion. Calories, macros et caféine sont calculées et enregistrées pour toi.",
                 userText:
                     "J'ai pris du porridge aux fruits rouges et un café au petit-déjeuner",
                 aiText: "Petit-déjeuner enregistré — environ 320 kcal, 11 g de protéines. Le café ajoute 95 mg de caféine.",
             },
             {
                 title: "Scanner un code-barres",
-                sub: "Open Food Facts, ajusté à ta portion",
+                description:
+                    "Envoie une photo du code-barres ou tape ses chiffres. Le produit vient d'Open Food Facts, ajusté à la quantité que tu as vraiment prise.",
                 userText: "Scanne ce code-barres : 5449000000996",
                 aiText: "C'est un Coca-Cola de 330 ml — 139 kcal, 35 g de sucre, d'après Open Food Facts. Tu en as pris combien ?",
             },
             {
                 title: "Faire le bilan de la semaine",
-                sub: "Le widget Tendances, directement dans le chat",
+                description:
+                    "Demande comment s'est passée ta semaine et le widget Tendances s'ouvre directement dans le chat. Passe de 7 à 14 ou 30 jours, ou touche un nutriment pour afficher sa courbe.",
                 userText: "Ça a donné quoi, la semaine dernière ?",
                 aiText: "Tu as tourné à 1 830 kcal par jour en moyenne sur les 14 derniers jours, dont 13 enregistrés — 170 sous ton objectif. Les protéines ont été ta macro la plus régulière.",
                 widget: "trends",

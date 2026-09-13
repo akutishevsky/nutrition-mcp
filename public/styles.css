@@ -85,6 +85,11 @@ body {
     --shadow:
         0 1px 2px rgba(16, 19, 24, 0.04),
         0 30px 70px -30px rgba(16, 19, 24, 0.25);
+    /* --shadow drawn tighter, for a surface inside a scroll box whose clip
+       leaves ~16px beside it and ~32px below (the examples slides). */
+    --shadow-snug:
+        0 1px 2px rgba(16, 19, 24, 0.04),
+        0 16px 36px -20px rgba(16, 19, 24, 0.28);
     --cta-bg: #101318;
     --cta-ink: #f7f7f9;
     /* "Past a limit" — a figure or a warning, never a surface (the
@@ -156,6 +161,8 @@ body {
         --oil: #f0c04a;
         --shadow:
             0 1px 2px rgba(0, 0, 0, 0.4), 0 30px 70px -30px rgba(0, 0, 0, 0.8);
+        --shadow-snug:
+            0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 36px -20px rgba(0, 0, 0, 0.75);
         --cta-bg: #161a22;
         --cta-ink: #f2f3f6;
         --over: #ff6b52;
@@ -190,6 +197,8 @@ body[data-theme="dark"] {
     --oil: #f0c04a;
     --shadow:
         0 1px 2px rgba(0, 0, 0, 0.4), 0 30px 70px -30px rgba(0, 0, 0, 0.8);
+    --shadow-snug:
+        0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 36px -20px rgba(0, 0, 0, 0.75);
     --cta-bg: #161a22;
     --cta-ink: #f2f3f6;
     --over: #ff6b52;
@@ -1128,9 +1137,6 @@ body.menu-open {
     gap: clamp(32px, 5vw, 72px);
     align-items: start;
 }
-.nm-split-center {
-    align-items: center;
-}
 /* Icon tile: a rounded square tinted by --c (see colour roles). */
 .nm-tile {
     flex: none;
@@ -1543,6 +1549,25 @@ body.menu-open {
     align-items: center;
     gap: 8px;
     flex: none;
+}
+/* Round icon button: the hero chat's pause toggle and, enlarged, the
+   examples carousel's arrows (.nm-ex-arrow). */
+.nm-round {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 11px;
+    display: grid;
+    place-items: center;
+    transition: background 0.2s;
+}
+.nm-round:hover {
+    background: var(--bg2);
 }
 .nm-chat-pause {
     width: 26px;
@@ -2049,112 +2074,245 @@ body.menu-open {
     font-weight: 500;
 }
 
-/* ---------- examples ---------- */
-#examples .nm-h2 {
-    margin-bottom: 16px;
+/* ---------- examples: the carousel ----------
+   A header row (title left, sub right), then one bar holding the tabs and the
+   counter + round arrows, then a horizontal scroll-snap track of full-width
+   slides. It swipes, scrolls and snaps with no script at all; LANDING_SCRIPT
+   keeps the tabs, the counter, `inert`, the track height and the
+   announcement in step with where the track is.
+
+   EVERY CONTROL IS ABOVE THE TRACK, because the track is as tall as the
+   ACTIVE slide (the script sets its height): a tab or an arrow below it
+   would move under the pointer on every change.
+
+   No .nm-c-* tint may sit on .nm-ex-slide or anything else above the trends
+   card: --c inherits into the widget's focus panel, which reads it bare
+   (assertCardsAreUntinted in scripts/gen-index.ts). The tint lives on
+   .nm-ex-info — the glow and the icon are inside it — and on each
+   .nm-ex-tab. */
+.nm-ex-head {
+    margin-bottom: 22px;
 }
-.nm-ex-sub {
-    margin-bottom: 28px;
-    max-width: 42ch;
-}
-.nm-ex-picks {
-    position: relative;
-    display: grid;
-    gap: 8px;
-}
-.nm-ex-pick {
+.nm-ex-bar {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border: 1px solid transparent;
-    border-radius: 18px;
-    cursor: pointer;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+/* Without script the tabs and arrows would do nothing. Hidden rather than
+   removed, so the bar's height is already reserved when script arrives and
+   nothing below it jumps. */
+html:not(.js) .nm-ex-bar {
+    visibility: hidden;
+}
+.nm-ex-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+}
+.nm-ex-count {
+    padding-right: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
     color: var(--ink);
-    transition:
-        background 0.2s,
-        border-color 0.2s;
 }
-.nm-ex-pick:hover {
-    background: var(--bg2);
+.nm-ex-of {
+    color: var(--ink3);
 }
-.tab-input:checked + .nm-ex-pick {
+.nm-ex-arrow {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
     background: var(--panel);
     border-color: var(--line2);
+    transition:
+        background 0.2s,
+        color 0.2s,
+        border-color 0.2s;
 }
-.tab-input:focus-visible + .nm-ex-pick {
-    outline: 2px solid var(--acc);
-    outline-offset: 2px;
+.nm-ex-arrow:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
 }
-.nm-ex-ic {
-    flex: none;
-    width: 34px;
-    height: 34px;
+/* Pill-shaped rings. Scoped through the parent because the tabs carry
+   tabindex, and body [tabindex]:focus-visible (0,2,1) outranks a bare
+   .nm-ex-tab:focus-visible (0,2,0) with its 8px corners. */
+.nm-ex-nav .nm-ex-arrow:focus-visible,
+.nm-ex-tabs .nm-ex-tab:focus-visible {
+    border-radius: 999px;
+}
+/* Slides keep their own heights (align-items: start); the script sets the
+   track to the active one's, and overflow-y: hidden clips the taller ones
+   waiting off to the side. Without script the track is its tallest slide.
+
+   Room for the slide's shadow, which the track's overflow would otherwise
+   clip: padding out, the same margin back in, so the slides still line up
+   with the header. Capped at the gutter so a phone's track never reaches
+   past the viewport edge. Neighbours stay out of view because the gap is
+   wider than that padding. The slide's shadow (--shadow-snug) is sized to
+   fit inside it: 16px to the sides, 32px below, nothing above. */
+.nm-ex-track {
+    --ex-bleed: min(20px, var(--gutter));
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 100%;
+    align-items: start;
+    gap: 28px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding: 8px var(--ex-bleed) 36px;
+    margin: -8px calc(-1 * var(--ex-bleed)) -36px;
+}
+.nm-ex-track::-webkit-scrollbar {
+    display: none;
+}
+/* Without script there are no arrows or tabs, so a pointer with no
+   sideways wheel needs the scrollbar to reach slides 2 and 3. */
+html:not(.js) .nm-ex-track {
+    scrollbar-width: thin;
+}
+html:not(.js) .nm-ex-track::-webkit-scrollbar {
+    display: block;
+    height: 8px;
+}
+.nm-ex-slide {
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 40px;
+    align-items: center;
+    padding: 30px 30px 30px 36px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 32px;
+    box-shadow: var(--shadow-snug);
+    overflow: hidden;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+}
+/* The left column: a compact head — the icon beside the tool the
+   conversation calls and the title — over the description. */
+.nm-ex-info {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "icon tool"
+        "icon title"
+        "desc desc";
+    column-gap: 18px;
+    justify-items: start;
+}
+/* Beside a card the chat is several times the column's height; the column
+   reads from the top, next to the conversation's opening lines. */
+.nm-ex-slide-card .nm-ex-info {
+    align-self: start;
+    padding-top: 14px;
+}
+/* Positioned against the slide (the column itself is not positioned) and
+   stacked under its content by the slide's own stacking context. */
+.nm-ex-glow {
+    position: absolute;
+    z-index: -1;
+    left: -140px;
+    top: -160px;
+    width: 480px;
+    height: 480px;
     border-radius: 50%;
+    background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--c, var(--acc)) 24%, transparent),
+        transparent
+    );
+    pointer-events: none;
+    animation: nm-drift 16s ease-in-out infinite;
+}
+.nm-ex-icon {
+    grid-area: icon;
+    align-self: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
     background: var(--c, var(--acc));
     color: var(--paper);
     display: grid;
     place-items: center;
-    font-size: 13px;
+    font-size: 24px;
+    box-shadow: 0 16px 32px -16px var(--c, var(--acc));
 }
-.nm-ex-pick b {
-    display: block;
-    font-size: 15px;
-}
-.nm-ex-pick small {
-    font-size: 13px;
+.nm-ex-tool {
+    grid-area: tool;
+    align-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
     color: var(--ink2);
 }
-.nm-ex-card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 28px;
-    padding: 22px;
-    box-shadow: var(--shadow);
+.nm-ex-tool i {
+    font-size: 10px;
+    color: var(--ink3);
+}
+.nm-ex-tool code {
+    font-size: 12.5px;
+}
+.nm-ex-title {
+    grid-area: title;
+    align-self: start;
+    margin: 4px 0 0;
+    font-weight: 800;
+    font-size: clamp(26px, 2.6vw, 34px);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+}
+.nm-ex-desc {
+    grid-area: desc;
+    margin: 18px 0 0;
+    max-width: 38ch;
+    font-size: 17px;
+    color: var(--ink2);
+    text-wrap: pretty;
+}
+/* Sized to its thread, and centred against the left column rather than
+   stretched to it: a stretched window was mostly empty above two bubbles.
+   The border is what keeps it a window in dark theme, where --bg2 and
+   --panel sit a shade apart. */
+.nm-ex-chat {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    min-height: 380px;
-    min-width: 0;
+    padding: 14px 16px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 24px;
 }
-.nm-ex-head {
+.nm-ex-chat-head {
+    flex: none;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
     font-weight: 600;
     color: var(--ink3);
 }
-.nm-ex-nav {
+.nm-ex-thread {
     display: flex;
-    gap: 6px;
-    flex: none;
-}
-.nm-round {
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    border-radius: 50%;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--ink);
-    cursor: pointer;
-    font-size: 11px;
-    display: grid;
-    place-items: center;
-    transition: background 0.2s;
-}
-.nm-round:hover {
-    background: var(--bg2);
-}
-.nm-ex-panel {
-    display: none;
     flex-direction: column;
-    gap: 12px;
-}
-.nm-ex-panel.is-active {
-    display: flex;
+    gap: 10px;
+    padding-top: 12px;
 }
 .nm-ex-q {
     align-self: flex-end;
@@ -2165,17 +2323,208 @@ body.menu-open {
     border-radius: 20px 20px 6px 20px;
     font-size: 15px;
     font-weight: 500;
-    animation: nm-rise 0.35s both;
+    overflow-wrap: anywhere;
 }
+/* On --panel, not --bg2: the chat window already IS --bg2, and the hero's
+   reply colour would vanish into it. */
 .nm-ex-a {
     align-self: flex-start;
     max-width: 92%;
     padding: 12px 16px;
-    background: var(--bg2);
+    background: var(--panel);
+    border: 1px solid var(--line);
     color: var(--ink);
     border-radius: 20px 20px 20px 6px;
     font-size: 15px;
-    animation: nm-rise 0.35s 0.1s both;
+    overflow-wrap: anywhere;
+}
+/* The card keeps its --panel ground inside `.wrap > .card` but loses its
+   edge, which on the --bg2 window would read as a square cut-out. This is
+   the frame a chat host would draw around it. */
+.nm-ex-thread > .nm-widget-card {
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    overflow: hidden;
+}
+/* Replayed by the script for a button- or tab-initiated change only (a
+   swipe drags the bubbles in already visible). Never the resting state:
+   without script, or under reduced motion, nothing here applies. */
+.nm-ex-slide.is-entering .nm-ex-q {
+    animation: nm-rise 0.45s 0.12s both;
+}
+.nm-ex-slide.is-entering .nm-ex-a {
+    animation: nm-rise 0.45s 0.26s both;
+}
+.nm-ex-slide.is-entering .nm-ex-thread > .nm-widget-card {
+    animation: nm-rise 0.5s 0.4s both;
+}
+/* The tab row: whatever width the nav leaves, scrolling sideways when that
+   is not enough (the script keeps the selected tab in view). Padding and the
+   matching negative margin keep a focus ring clear of the scroll box's
+   clip, as .nm-chips-scroll does. */
+.nm-ex-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    gap: 8px;
+    margin: -6px;
+    padding: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.nm-ex-tabs::-webkit-scrollbar {
+    display: none;
+}
+.nm-ex-tab {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 46px;
+    padding: 0 18px 0 7px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink2);
+    font-weight: 700;
+    font-size: 15px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        border-color 0.2s,
+        color 0.2s;
+}
+.nm-ex-tab:hover {
+    background: var(--bg2);
+    color: var(--ink);
+}
+.nm-ex-tab[aria-selected="true"] {
+    background: var(--panel);
+    border-color: var(--line2);
+    color: var(--ink);
+}
+.nm-ex-dot {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    background: color-mix(in srgb, var(--c, var(--acc)) 16%, var(--panel));
+    color: var(--c, var(--acc));
+    transition:
+        background 0.2s,
+        color 0.2s;
+}
+.nm-ex-tab[aria-selected="true"] .nm-ex-dot {
+    background: var(--c, var(--acc));
+    color: var(--paper);
+}
+/* One column: the head shrinks, the description runs full width under it,
+   and the chat window follows. */
+@media (max-width: 860px) {
+    .nm-ex-slide {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+        padding: 22px;
+        border-radius: 26px;
+    }
+    .nm-ex-info {
+        column-gap: 14px;
+    }
+    .nm-ex-slide-card .nm-ex-info {
+        padding-top: 0;
+    }
+    .nm-ex-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 15px;
+        font-size: 19px;
+    }
+    .nm-ex-tool,
+    .nm-ex-tool code {
+        font-size: 12px;
+    }
+    .nm-ex-title {
+        margin-top: 2px;
+        font-size: 24px;
+    }
+    .nm-ex-desc {
+        margin-top: 14px;
+        max-width: none;
+        font-size: 15.5px;
+    }
+    .nm-ex-chat {
+        padding: 14px;
+        border-radius: 20px;
+    }
+    .nm-ex-glow {
+        left: -200px;
+        top: -240px;
+    }
+    /* The tabs may not fit: fade their trailing edge so the row reads as
+       one that scrolls rather than a label cut off mid-word, and pad the
+       end by the fade's width so the last tab can scroll clear of it. A
+       mask reads only alpha, so the token's hue is irrelevant here. */
+    /* No negative right margin here: the fade ends at the box's own edge,
+       the bar's gap away from the counter, instead of 6px past it. */
+    .nm-ex-tabs {
+        margin-right: 0;
+        padding-right: 44px;
+        -webkit-mask-image: linear-gradient(
+            90deg,
+            var(--ink) calc(100% - 48px),
+            transparent
+        );
+        mask-image: linear-gradient(
+            90deg,
+            var(--ink) calc(100% - 48px),
+            transparent
+        );
+    }
+}
+/* A phone: the tabs take the whole bar and the slide gives its card every
+   pixel. The counter and arrows go: beside them the tab row had ~210px for
+   ~290px of tabs and slid under the counter. On a touch screen the track
+   swipes and the tabs are the pager — the expanded one is the position. */
+@media (max-width: 560px) {
+    .nm-ex-nav {
+        display: none;
+    }
+    .nm-ex-slide {
+        padding: 16px;
+        gap: 16px;
+    }
+    .nm-ex-chat {
+        padding: 12px 10px 10px;
+    }
+    .nm-ex-tab {
+        position: relative;
+        height: 42px;
+        font-size: 14px;
+    }
+    /* Three labelled pills do not fit a phone's width, so only the selected
+       tab keeps its label; the others become their icon, a pager whose
+       accessible name is still the title (visually hidden, never removed). */
+    .nm-ex-tab[aria-selected="false"] {
+        gap: 0;
+        padding: 0 6px;
+    }
+    .nm-ex-tab[aria-selected="false"] .nm-ex-tab-name {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .nm-ex-tabs {
+        padding-right: 6px;
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
 }
 
 /* ---------- live ---------- */

@@ -64,7 +64,7 @@ import {
 } from "../src/copy/widget-demo.js";
 import { WIDGET_STRINGS } from "../src/copy/widgets.js";
 
-// The landing page's own JS: the hero chat replay, the examples picker, the
+// The landing page's own JS: the hero chat replay, the examples carousel, the
 // live-stats poller (count-ups, deltas, unit toggle, countdown, world map),
 // the GitHub star count and the Patreon posts. Not prose — page behaviour.
 // It holds no copy of its own: everything it shows it reads back out of the
@@ -347,38 +347,230 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         .catch(function () {});
                 }
 
-                // ---------- examples: picker + prev/next ----------
-                // The picker is three radios (the highlight is CSS); the preview panels
-                // sit in the other grid column, out of reach of a sibling selector, so
-                // switching the active panel is the one thing left to script.
-                var exRadios = [].slice.call(document.querySelectorAll('input[name="ex"]'));
-                var exPanels = [].slice.call(document.querySelectorAll(".nm-ex-panel"));
-                if (exRadios.length && exPanels.length) {
-                    function showExample(i) {
-                        exPanels.forEach(function (p, k) {
-                            p.classList.toggle("is-active", k === i);
+                // ---------- examples: the carousel ----------
+                // The slides are a horizontal scroll-snap track, so without script
+                // they already swipe, scroll and snap. What is left to script is
+                // everything that has to agree with WHERE THE TRACK IS: the tabs, the
+                // counter, which slides are inert, and the announcement. The active
+                // slide is derived from the scroll position rather than stored, so a
+                // swipe, a tab and a button all land in the same state.
+                // No copy here: the announcement is the slide's own aria-label and
+                // <h3>, both written by the generator in the page's language.
+                var exTrack = document.querySelector("[data-ex-track]");
+                var exSlides = exTrack
+                    ? [].slice.call(exTrack.querySelectorAll("[data-ex-slide]"))
+                    : [];
+                var exTabs = [].slice.call(document.querySelectorAll("[data-ex-tab]"));
+                if (exTrack && exSlides.length) {
+                    var exCount = document.querySelector("[data-ex-count]");
+                    var exLive = document.querySelector("[data-ex-live]");
+                    var exActive = -1;
+                    // Set while a button- or tab-initiated scroll is under way: the
+                    // slides a smooth scroll passes on its way are not choices, and
+                    // letting them through flickers the tabs and the counter.
+                    var exPending = null;
+                    var exPendingTimer = 0;
+                    // Relative to the first slide rather than to the track, so the
+                    // track's inline padding (room for the slide's shadow) cancels out.
+                    function exLeft(i) {
+                        return exSlides[i].offsetLeft - exSlides[0].offsetLeft;
+                    }
+                    function exNearest() {
+                        var x = exTrack.scrollLeft;
+                        var best = 0;
+                        for (var i = 1; i < exSlides.length; i++) {
+                            if (Math.abs(exLeft(i) - x) < Math.abs(exLeft(best) - x))
+                                best = i;
+                        }
+                        return best;
+                    }
+                    // Read at the moment of use, not once at load: the OS setting can
+                    // change while the page is open.
+                    function exStill() {
+                        return window.matchMedia("(prefers-reduced-motion: reduce)")
+                            .matches;
+                    }
+                    // The tabs and the arrows are the keyboard's way along the track.
+                    // Left alone, Chrome makes a scroller with nothing focusable in it
+                    // (the first two slides, once their neighbours are inert) a tab
+                    // stop of its own, with no name and the UA's ring.
+                    exTrack.tabIndex = -1;
+                    // The track is as tall as the slide in view, not the tallest one:
+                    // one shared height left the two short slides mostly empty. The
+                    // change is immediate - an animated height slides the whole page
+                    // below it for a third of a second on every step.
+                    function exFit() {
+                        if (exActive < 0) return;
+                        var cs = getComputedStyle(exTrack);
+                        var h =
+                            exSlides[exActive].offsetHeight +
+                            parseFloat(cs.paddingTop) +
+                            parseFloat(cs.paddingBottom);
+                        if (exTrack.style.height !== h + "px")
+                            exTrack.style.height = h + "px";
+                    }
+                    // A tab row too wide for its box scrolls; keep the selected tab
+                    // inside it, clear of the trailing fade. Scrolls the row only -
+                    // scrollIntoView would move the page as well.
+                    function exRevealTab(tab) {
+                        var row = tab && tab.parentNode;
+                        if (!row || row.scrollWidth <= row.clientWidth + 1) return;
+                        var rb = row.getBoundingClientRect();
+                        var tb = tab.getBoundingClientRect();
+                        var d = 0;
+                        if (tb.left < rb.left + 8) d = tb.left - rb.left - 8;
+                        else if (tb.right > rb.right - 40) d = tb.right - rb.right + 40;
+                        if (d)
+                            row.scrollTo({
+                                left: row.scrollLeft + d,
+                                behavior: exStill() ? "auto" : "smooth",
+                            });
+                    }
+                    function exSetActive(i, announce) {
+                        if (i === exActive) return;
+                        // A swipe can take away the slide that holds focus (the trends
+                        // card's toggle, say). Inert would drop it on <body>; hand it
+                        // to the incoming slide's tab instead.
+                        var held =
+                            exActive >= 0 &&
+                            exSlides[exActive].contains(document.activeElement);
+                        exActive = i;
+                        exFit();
+                        exSlides.forEach(function (slide, k) {
+                            // Off-screen slides leave the tab order and the
+                            // accessibility tree - the trends card's buttons would
+                            // otherwise be tab stops nobody can see.
+                            if (k === i) slide.removeAttribute("inert");
+                            else slide.setAttribute("inert", "");
+                        });
+                        exTabs.forEach(function (tab, k) {
+                            var on = k === i;
+                            tab.setAttribute("aria-selected", String(on));
+                            tab.tabIndex = on ? 0 : -1;
+                        });
+                        if (held && exTabs[i]) exTabs[i].focus({ preventScroll: true });
+                        exRevealTab(exTabs[i]);
+                        if (exCount) exCount.textContent = (i < 9 ? "0" : "") + (i + 1);
+                        if (announce && exLive) {
+                            var title = exSlides[i].querySelector("h3");
+                            exLive.textContent =
+                                (exSlides[i].getAttribute("aria-label") || "") +
+                                ": " +
+                                (title ? title.textContent.trim() : "");
+                        }
+                    }
+                    // The bubbles rise in again - but only for a change the visitor
+                    // asked for with a button or a tab. A swipe drags the slide in
+                    // with its bubbles already in view, and replaying them there
+                    // would blank what the visitor is looking at.
+                    function exEnter(slide) {
+                        if (exStill()) return;
+                        exSlides.forEach(function (s) {
+                            s.classList.remove("is-entering");
+                        });
+                        // Reading a layout property between the two class changes is
+                        // what lets the same slide replay its animation.
+                        void slide.offsetWidth;
+                        slide.classList.add("is-entering");
+                    }
+                    function exGoTo(i) {
+                        var n = exSlides.length;
+                        i = ((i % n) + n) % n;
+                        if (i !== exActive) exEnter(exSlides[i]);
+                        exSetActive(i, true);
+                        clearTimeout(exPendingTimer);
+                        exPending = exNearest() === i ? null : i;
+                        // A scroll the visitor interrupts never arrives; stop waiting.
+                        exPendingTimer = setTimeout(function () {
+                            exPending = null;
+                            exSync();
+                        }, 1200);
+                        exTrack.scrollTo({
+                            left: exLeft(i),
+                            behavior: exStill() ? "auto" : "smooth",
                         });
                     }
-                    function currentExample() {
-                        for (var i = 0; i < exRadios.length; i++)
-                            if (exRadios[i].checked) return i;
-                        return 0;
+                    function exSync() {
+                        var i = exNearest();
+                        if (exPending !== null) {
+                            if (i !== exPending) return;
+                            exPending = null;
+                            clearTimeout(exPendingTimer);
+                        }
+                        exSetActive(i, false);
                     }
-                    exRadios.forEach(function (r, i) {
-                        r.addEventListener("change", function () {
-                            if (r.checked) showExample(i);
+                    var exScrollQueued = false;
+                    exTrack.addEventListener(
+                        "scroll",
+                        function () {
+                            if (exScrollQueued) return;
+                            exScrollQueued = true;
+                            requestAnimationFrame(function () {
+                                exScrollQueued = false;
+                                exSync();
+                            });
+                        },
+                        { passive: true },
+                    );
+                    // A slide changes height on its own - a width change re-wraps it,
+                    // and the trends card's drawer and range toggle grow and shrink it -
+                    // so the track follows every slide, not only a change of slide.
+                    // Setting the track's height never resizes a slide (they are
+                    // start-aligned), so this cannot feed itself.
+                    if (typeof ResizeObserver === "function") {
+                        var exFitQueued = false;
+                        var exSizes = new ResizeObserver(function () {
+                            if (exFitQueued) return;
+                            exFitQueued = true;
+                            requestAnimationFrame(function () {
+                                exFitQueued = false;
+                                exFit();
+                            });
+                        });
+                        exSlides.forEach(function (slide) {
+                            exSizes.observe(slide);
+                        });
+                    }
+                    // A width change moves every slide's offset; put the active one
+                    // back where it was instead of wherever the old offset now lands.
+                    var exResizeQueued = false;
+                    window.addEventListener("resize", function () {
+                        if (exResizeQueued) return;
+                        exResizeQueued = true;
+                        requestAnimationFrame(function () {
+                            exResizeQueued = false;
+                            if (exActive < 0) return;
+                            exPending = null;
+                            exTrack.scrollTo({ left: exLeft(exActive), behavior: "auto" });
+                            exRevealTab(exTabs[exActive]);
                         });
                     });
                     document.querySelectorAll("[data-ex-dir]").forEach(function (btn) {
                         btn.addEventListener("click", function () {
                             var step = btn.getAttribute("data-ex-dir") === "prev" ? -1 : 1;
-                            var n = exRadios.length;
-                            var next = (currentExample() + step + n) % n;
-                            exRadios[next].checked = true;
-                            showExample(next);
+                            exGoTo((exPending !== null ? exPending : exActive) + step);
                         });
                     });
-                    showExample(currentExample());
+                    // The tab row is one tab stop (roving tabindex); the arrows move
+                    // along it, Home and End jump to its ends, and moving is choosing.
+                    exTabs.forEach(function (tab, i) {
+                        tab.addEventListener("click", function () {
+                            exGoTo(i);
+                        });
+                        tab.addEventListener("keydown", function (e) {
+                            var n = exTabs.length;
+                            var to = null;
+                            if (e.key === "ArrowRight") to = (i + 1) % n;
+                            else if (e.key === "ArrowLeft") to = (i - 1 + n) % n;
+                            else if (e.key === "Home") to = 0;
+                            else if (e.key === "End") to = n - 1;
+                            if (to === null) return;
+                            e.preventDefault();
+                            exTabs[to].focus();
+                            exGoTo(to);
+                        });
+                    });
+                    exSync();
                 }
 
                 // ---------- live stats: units ----------
@@ -1795,54 +1987,114 @@ ${cards}
 
 const EX_ICONS = ["fa-utensils", "fa-barcode", "fa-chart-area"];
 const EX_TINTS = ["nm-c-cal", "nm-c-car", "nm-c-pro"];
+/** The MCP tool each example conversation calls, printed as the slide's
+ *  tool chip. Identifiers, not copy — never translated — and each one is a
+ *  name src/mcp.ts registers; rename a tool there and it moves here too. */
+const EX_TOOLS = ["log_meal", "lookup_barcode", "get_trends"];
 
+const pad2 = (n: number): string => String(n).padStart(2, "0");
+
+/** The examples carousel.
+ *
+ *  A header row (title + sub), one bar holding the tabs, the counter and
+ *  prev / next, then a horizontal scroll-snap track of full-width slides.
+ *  The controls sit ABOVE the track because the track is as tall as the
+ *  active slide, and anything below it would move under the pointer. The
+ *  track is the whole no-script experience — it swipes, scrolls and snaps on
+ *  its own, and the bar stays hidden until script can make it work — and
+ *  LANDING_SCRIPT keeps the tabs, the counter, `inert` and a polite
+ *  announcement in step with wherever the track is.
+ *
+ *  Each slide's left column is a compact head (the icon beside the tool the
+ *  conversation calls and the title) over the description; the right column
+ *  is the chat window. The slide's position ("1 of 3") is its aria-label
+ *  only — the bar's counter is the one visible position.
+ *
+ *  THE TINT IS NEVER ON THE SLIDE. The third slide holds the real trends
+ *  card, and `--c` inherits into the widget's focus panel (see
+ *  assertCardsAreUntinted), so the `.nm-c-*` role sits on the left column —
+ *  which the glow and the icon live inside — and on the tab, and nowhere
+ *  above a card.
+ *
+ *  Nothing in the markup is `inert`: a visitor without script can still
+ *  reach, read and use every slide. The script makes the off-screen slides
+ *  inert once it is there to bring them back. */
 function renderExamples(doc: IndexDoc, cards: LandingCards): string {
     const e = doc.examples;
-    const picks = e.slides
-        .map(
-            (
-                s,
-                i,
-            ) => `                        <input type="radio" name="ex" id="ex-${i + 1}" class="tab-input"${i === 0 ? " checked" : ""} />
-                        <label class="nm-ex-pick" for="ex-${i + 1}">
-                            <span class="nm-ex-ic ${EX_TINTS[i] ?? "nm-c-acc"}" aria-hidden="true"><i class="fa-solid ${EX_ICONS[i] ?? "fa-circle"}"></i></span>
-                            <span><b>${esc(s.title)}</b><small>${esc(s.sub)}</small></span>
-                        </label>`,
-        )
-        .join("\n");
-    const panels = e.slides
+    const total = e.slides.length;
+    const position = (i: number): string =>
+        e.slideLabel
+            .replace("{n}", String(i + 1))
+            .replace("{total}", String(total));
+    const slides = e.slides
         .map((s, i) => {
+            const tint = EX_TINTS[i] ?? "nm-c-acc";
+            const icon = EX_ICONS[i] ?? "fa-circle";
+            const tool = EX_TOOLS[i];
+            const toolChip = tool
+                ? `\n                                <span class="nm-ex-tool"><i class="fa-solid fa-plug" aria-hidden="true"></i><code>${esc(tool)}</code></span>`
+                : "";
             // The real get_trends card, and it is live: its 7 / 14 / 30
             // toggle re-slices and re-averages the same 30-day payload in
             // the browser, exactly as the in-chat one does, and a tile moves
             // the focus panel and the chart to that metric.
             const widget = s.widget === "trends" ? `\n${cards.trends}` : "";
-            return `                        <div class="nm-ex-panel${i === 0 ? " is-active" : ""}" data-ex="${i}">
-                            <div class="nm-ex-q">${esc(s.userText)}</div>
-                            <div class="nm-ex-a">${esc(s.aiText)}</div>${widget}
+            // A card makes the chat far taller than the left column, which
+            // then reads from the top beside it instead of floating mid-panel.
+            const tall = widget ? " nm-ex-slide-card" : "";
+            return `                        <div class="nm-ex-slide${tall}" id="ex-slide-${i + 1}" role="tabpanel" aria-roledescription="${attr(e.slideRole)}" aria-label="${attr(position(i))}" data-ex-slide>
+                            <div class="nm-ex-info ${tint}">
+                                <span class="nm-ex-glow" aria-hidden="true"></span>
+                                <span class="nm-ex-icon" aria-hidden="true"><i class="fa-solid ${icon}"></i></span>${toolChip}
+                                <h3 class="nm-ex-title">${esc(s.title)}</h3>
+                                <p class="nm-ex-desc">${esc(s.description)}</p>
+                            </div>
+                            <div class="nm-ex-chat">
+                                <div class="nm-ex-chat-head">
+                                    <span class="nm-chat-who">
+                                        <span class="nm-avatar" aria-hidden="true">🍏</span>
+                                        ${esc(e.status)}
+                                    </span>
+                                </div>
+                                <div class="nm-ex-thread">
+                                    <div class="nm-ex-q">${esc(s.userText)}</div>
+                                    <div class="nm-ex-a">${esc(s.aiText)}</div>${widget}
+                                </div>
+                            </div>
                         </div>`;
         })
         .join("\n");
-    return `            <section class="nm-section nm-split nm-split-center" id="examples" aria-labelledby="examples-title" data-reveal>
-                <div>
-                    <h2 class="nm-h2" id="examples-title">${esc(e.title)}</h2>
-                    <p class="nm-sub nm-ex-sub">${esc(e.sub)}</p>
-                    <div class="nm-ex-picks" role="radiogroup" aria-label="${attr(e.pickerLabel)}">
-${picks}
-                    </div>
+    const tabs = e.slides
+        .map(
+            (
+                s,
+                i,
+            ) => `                    <button type="button" class="nm-ex-tab ${EX_TINTS[i] ?? "nm-c-acc"}" id="ex-tab-${i + 1}" role="tab" aria-selected="${i === 0}" aria-controls="ex-slide-${i + 1}" tabindex="${i === 0 ? 0 : -1}" data-ex-tab>
+                        <span class="nm-ex-dot" aria-hidden="true"><i class="fa-solid ${EX_ICONS[i] ?? "fa-circle"}"></i></span>
+                        <span class="nm-ex-tab-name">${esc(s.title)}</span>
+                    </button>`,
+        )
+        .join("\n");
+    return `            <section class="nm-section" id="examples" aria-labelledby="examples-title" data-reveal>
+                <div class="nm-head-row nm-ex-head">
+                    <h2 class="nm-h2 nm-h2-narrow" id="examples-title">${esc(e.title)}</h2>
+                    <p class="nm-sub">${esc(e.sub)}</p>
                 </div>
-                <div class="nm-ex-card" aria-live="polite">
-                    <div class="nm-ex-head">
-                        <span class="nm-chat-who">
-                            <span class="nm-avatar" aria-hidden="true">🍏</span>
-                            ${esc(e.status)}
-                        </span>
-                        <span class="nm-ex-nav">
-                            <button type="button" class="nm-round" data-ex-dir="prev" aria-label="${attr(e.prevLabel)}"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
-                            <button type="button" class="nm-round" data-ex-dir="next" aria-label="${attr(e.nextLabel)}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
-                        </span>
+                <div class="nm-ex-carousel" role="region" aria-roledescription="${attr(e.carouselRole)}" aria-label="${attr(e.carouselLabel)}">
+                    <div class="nm-ex-bar">
+                        <div class="nm-ex-tabs" role="tablist" aria-label="${attr(e.pickerLabel)}">
+${tabs}
+                        </div>
+                        <div class="nm-ex-nav">
+                            <span class="nm-ex-count" aria-hidden="true"><span data-ex-count>01</span><span class="nm-ex-of"> / ${pad2(total)}</span></span>
+                            <button type="button" class="nm-round nm-ex-arrow" data-ex-dir="prev" aria-controls="ex-track" aria-label="${attr(e.prevLabel)}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
+                            <button type="button" class="nm-round nm-ex-arrow" data-ex-dir="next" aria-controls="ex-track" aria-label="${attr(e.nextLabel)}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                        </div>
                     </div>
-${panels}
+                    <div class="nm-ex-track" id="ex-track" data-ex-track>
+${slides}
+                    </div>
+                    <p class="vh" aria-live="polite" aria-atomic="true" data-ex-live></p>
                 </div>
             </section>`;
 }

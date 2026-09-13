@@ -201,22 +201,29 @@ export const INDEX_PL: IndexDoc = {
         prevLabel: "Poprzedni",
         nextLabel: "Następny",
         pickerLabel: "Wybierz przykład",
+        carouselLabel: "Przykładowe rozmowy",
+        slideLabel: "{n} z {total}",
+        carouselRole: "karuzela",
+        slideRole: "slajd",
         slides: [
             {
                 title: "Zapisz posiłek",
-                sub: "Zwykłe słowa, żadnej bazy danych",
+                description:
+                    "Opisz go tak, jak opowiadasz znajomemu — bez przeszukiwania bazy produktów i suwaków porcji. Kalorie, makroskładniki i kofeina zostaną wyliczone i zapisane.",
                 userText: "Zjadłem/am owsiankę z owocami i kawę na śniadanie",
                 aiText: "Zapisałem śniadanie — około 320 kcal, 11 g białka. Kawa dodała 95 mg kofeiny.",
             },
             {
                 title: "Zeskanuj kod kreskowy",
-                sub: "Open Food Facts, przeliczone na Twoją porcję",
+                description:
+                    "Wyślij zdjęcie kodu kreskowego albo wpisz jego cyfry. Dane produktu pochodzą z Open Food Facts i są przeliczane na porcję, którą faktycznie spożyłeś/aś.",
                 userText: "Zeskanuj ten kod kreskowy: 5449000000996",
                 aiText: "To Coca-Cola 330 ml — 139 kcal, 35 g cukru, dane z Open Food Facts. Ile wypiłeś/aś?",
             },
             {
                 title: "Przejrzyj tydzień",
-                sub: "Widżet trendów, prosto w czacie",
+                description:
+                    "Zapytaj, jak minął tydzień, a widżet trendów otworzy się prosto w czacie. Przełączaj między 7, 14 i 30 dniami albo dotknij składnika, żeby zobaczyć jego wykres.",
                 userText: "Jak wyglądał ostatni tydzień?",
                 aiText: "Średnio 1830 kcal dziennie przez ostatnie 14 dni, z czego 13 z wpisami — 170 poniżej celu. Białko było Twoim najstabilniejszym makroskładnikiem.",
                 widget: "trends",

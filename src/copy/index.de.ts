@@ -204,23 +204,30 @@ export const INDEX_DE: IndexDoc = {
         prevLabel: "Zurück",
         nextLabel: "Weiter",
         pickerLabel: "Beispiel wählen",
+        carouselLabel: "Beispielgespräche",
+        slideLabel: "{n} von {total}",
+        carouselRole: "Karussell",
+        slideRole: "Folie",
         slides: [
             {
                 title: "Mahlzeit erfassen",
-                sub: "Normale Worte, keine Datenbank",
+                description:
+                    "Beschreib sie so, wie du es einem Freund erzählen würdest — keine Lebensmitteldatenbank, keine Portionsregler. Kalorien, Makros und Koffein werden berechnet und erfasst.",
                 userText:
                     "Ich hatte Haferflocken mit Beeren und einen Kaffee zum Frühstück",
                 aiText: "Frühstück erfasst — etwa 320 kcal, 11 g Protein. Der Kaffee bringt 95 mg Koffein mit.",
             },
             {
                 title: "Barcode scannen",
-                sub: "Open Food Facts, auf deine Portion skaliert",
+                description:
+                    "Schick ein Foto des Barcodes oder tipp die Ziffern ein. Das Produkt kommt von Open Food Facts, umgerechnet auf die Menge, die du tatsächlich hattest.",
                 userText: "Scanne diesen Barcode: 5449000000996",
                 aiText: "Das ist eine 330-ml-Coca-Cola — 139 kcal, 35 g Zucker, laut Open Food Facts. Wie viel hattest du davon?",
             },
             {
                 title: "Die Woche durchsehen",
-                sub: "Trends-Widget, direkt im Chat",
+                description:
+                    "Frag, wie die Woche lief, und das Trends-Widget öffnet sich direkt im Chat. Wechsle zwischen 7, 14 und 30 Tagen oder tippe auf einen Nährstoff, um seinen Verlauf zu sehen.",
                 userText: "Wie sah letzte Woche aus?",
                 aiText: "Du lagst über die letzten 14 Tage im Schnitt bei 1.830 kcal am Tag, an 13 davon mit Einträgen — 170 unter deinem Ziel. Protein war dein konstantester Makro.",
                 widget: "trends",

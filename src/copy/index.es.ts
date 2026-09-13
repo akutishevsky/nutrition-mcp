@@ -203,22 +203,29 @@ export const INDEX_ES: IndexDoc = {
         prevLabel: "Anterior",
         nextLabel: "Siguiente",
         pickerLabel: "Elige un ejemplo",
+        carouselLabel: "Conversaciones de ejemplo",
+        slideLabel: "{n} de {total}",
+        carouselRole: "carrusel",
+        slideRole: "diapositiva",
         slides: [
             {
                 title: "Registra una comida",
-                sub: "Palabras normales, sin base de datos",
+                description:
+                    "Cuéntalo como se lo contarías a un amigo: sin buscar en bases de datos de alimentos ni ajustar porciones. Las calorías, los macros y la cafeína se calculan y registran solos.",
                 userText: "Desayuné avena con frutos rojos y un café",
                 aiText: "Desayuno registrado: unas 320 kcal y 11 g de proteína. El café suma 95 mg de cafeína.",
             },
             {
                 title: "Escanea un código de barras",
-                sub: "Open Food Facts, ajustado a tu porción",
+                description:
+                    "Envía una foto del código de barras o escribe sus dígitos. El producto sale de Open Food Facts, ajustado a la cantidad que realmente consumiste.",
                 userText: "Escanea este código de barras: 5449000000996",
                 aiText: "Es una Coca-Cola de 330 ml: 139 kcal y 35 g de azúcar, según Open Food Facts. ¿Cuánto tomaste?",
             },
             {
                 title: "Revisa la semana",
-                sub: "Widget de tendencias, directamente en el chat",
+                description:
+                    "Pregunta qué tal fue la semana y el widget de tendencias se abre directamente en el chat. Cambia entre 7, 14 y 30 días, o toca un nutriente para verlo en la gráfica.",
                 userText: "¿Cómo fue la semana pasada?",
                 aiText: "Promediaste 1830 kcal al día en los últimos 14 días, con 13 registrados: 170 por debajo de tu objetivo. La proteína fue tu macro más estable.",
                 widget: "trends",

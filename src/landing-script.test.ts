@@ -330,6 +330,16 @@ test("every id / attribute hook the script queries exists on every landing page"
         ['querySelector(".nm-tz-tip")', 'class="nm-tz-tip"'],
         ['querySelectorAll("[data-unit]")', 'data-unit="kg"'],
         ['querySelectorAll("[data-gh-stars]")', "<span data-gh-stars>"],
+        // The examples carousel. The track is what the active slide is
+        // derived from; the off-screen slides get inert; the tabs and the
+        // counter mirror them; the live region is the only thing that
+        // announces a change. Missing, the buttons scroll nothing and the
+        // tabs never move — while the track still swipes, so it looks fine.
+        ['querySelector("[data-ex-track]")', "data-ex-track>"],
+        ['querySelectorAll("[data-ex-slide]")', "data-ex-slide>"],
+        ['querySelectorAll("[data-ex-tab]")', "data-ex-tab>"],
+        ['querySelector("[data-ex-count]")', "<span data-ex-count>"],
+        ['querySelector("[data-ex-live]")', "data-ex-live>"],
         ["[data-ex-dir]", 'data-ex-dir="prev"'],
         ["[data-post-title]", "data-post-title"],
         ["[data-post-preview]", "data-post-preview"],
@@ -545,5 +555,35 @@ test("#patreon-updates renders hidden on every landing page", async () => {
             /<div class="patreon-updates" id="patreon-updates"( hidden)?>/,
         );
         expect(`${path}: ${m?.[1]}`).toBe(`${path}:  hidden`);
+    }
+});
+
+// Each example slide prints the MCP tool its conversation calls (EX_TOOLS in
+// scripts/gen-index.ts). Those names are hand-kept, like the tool count, so a
+// rename in src/mcp.ts would leave a stale chip on nine landing pages without
+// this.
+test("every examples tool chip names a tool src/mcp.ts registers", async () => {
+    const source = await Bun.file(
+        new URL("./mcp.ts", import.meta.url).pathname,
+    ).text();
+    const registered = new Set(
+        [...source.matchAll(/registerTool\(\s*"([a-z0-9_]+)"/g)].map(
+            (m) => m[1]!,
+        ),
+    );
+    const pages = await landingPages();
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { path, html } of pages) {
+        const chips = [
+            ...html.matchAll(
+                /<span class="nm-ex-tool">[\s\S]*?<code>([^<]+)<\/code>/g,
+            ),
+        ].map((m) => m[1]!);
+        expect(`${path}: ${chips.length}`).toBe(`${path}: 3`);
+        for (const name of chips) {
+            expect(`${path} ${name}: ${registered.has(name)}`).toBe(
+                `${path} ${name}: true`,
+            );
+        }
     }
 });

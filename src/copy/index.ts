@@ -6,7 +6,7 @@
 //
 // This is the 6a "Dawn" landing page: the hero with its auto-playing chat,
 // How it works, Connect (the tabbed install card), the first-five-minutes
-// onboarding rail, the Examples picker, the Live stats board with the
+// onboarding rail, the Examples carousel, the Live stats board with the
 // timezone map, Support (Patreon), Contact, the filterable FAQ and the
 // closing CTA band. Every string a visitor reads in those sections comes
 // from here; the generator holds icons, hrefs, SVG and layout only. The
@@ -127,9 +127,20 @@ export interface HeroExchange {
     };
 }
 
+/** One slide of the examples carousel: the left column (tinted icon, step
+ * label, `title` as the slide's <h3>, `description`, the MCP tool chip) and
+ * the right column (a chat window holding `userText`, `aiText` and, on the
+ * trends slide, the real card). The icon, tint and tool name are the
+ * generator's (EX_ICONS / EX_TINTS / EX_TOOLS in scripts/gen-index.ts) —
+ * structural, never translated. */
 export interface ExampleSlide {
+    /** Short, e.g. "Log a meal". Also the slide's tab label, so keep it to a
+     * few words: the tab row scrolls sideways on a phone but should not
+     * have to on a desktop. */
     title: string;
-    sub: string;
+    /** One or two plain sentences under the title (~36ch per line, ~140
+     * characters in total) saying what the conversation shows. */
+    description: string;
     userText: string;
     aiText: string;
     /** Which real in-chat widget this slide shows under the reply, if any.
@@ -232,14 +243,29 @@ export interface IndexDoc {
     examples: {
         title: string;
         sub: string;
-        /** Preview-card header, e.g. "Nutrition · connected". */
+        /** Each slide's chat-window header, e.g. "Nutrition · connected". */
         status: string;
-        /** aria-labels of the round prev/next buttons. */
+        /** aria-labels of the round prev/next buttons in the bar above the
+         * slides. */
         prevLabel: string;
         nextLabel: string;
-        /** aria-label of the picker's radio group, e.g. "Choose an
+        /** aria-label of the tab row above the slides, e.g. "Choose an
          * example". */
         pickerLabel: string;
+        /** aria-label of the carousel region, e.g. "Example
+         * conversations". */
+        carouselLabel: string;
+        /** Each slide's aria-label, e.g. "{n} of {total}" — the generator
+         * substitutes both. Spoken, not shown (the bar's "01 / 03" counter
+         * is the visible position). A screen reader hears it as "1 of 3,
+         * slide", so it must read as a position, not a title. */
+        slideLabel: string;
+        /** The aria-roledescription values of the carousel region and of each
+         * slide — what a screen reader says in place of "region" / "tab
+         * panel". Lower-case common nouns in the page's language ("carousel",
+         * "slide"); they are spoken, never shown. */
+        carouselRole: string;
+        slideRole: string;
         /** 3 slides; the third carries the real trends card. */
         slides: ExampleSlide[];
     };
@@ -552,23 +578,30 @@ export const INDEX_EN: IndexDoc = {
         prevLabel: "Previous",
         nextLabel: "Next",
         pickerLabel: "Choose an example",
+        carouselLabel: "Example conversations",
+        slideLabel: "{n} of {total}",
+        carouselRole: "carousel",
+        slideRole: "slide",
         slides: [
             {
                 title: "Log a meal",
-                sub: "Plain words, no database",
+                description:
+                    "Describe it the way you'd tell a friend — no food database to search, no portion sliders. Calories, macros and caffeine are worked out and logged.",
                 userText:
                     "I had oatmeal with berries and a coffee for breakfast",
                 aiText: "Logged breakfast — about 320 kcal, 11 g protein. Coffee added 95 mg of caffeine.",
             },
             {
                 title: "Scan a barcode",
-                sub: "Open Food Facts, scaled to your portion",
+                description:
+                    "Send a photo of the barcode or type its digits. The product comes from Open Food Facts, scaled to however much you actually had.",
                 userText: "Scan this barcode: 5449000000996",
                 aiText: "That's a 330 ml Coca-Cola — 139 kcal, 35 g sugar, from Open Food Facts. How much did you have?",
             },
             {
                 title: "Review the week",
-                sub: "Trends widget, right in the chat",
+                description:
+                    "Ask how the week went and the trends widget opens right in the chat. Switch between 7, 14 and 30 days, or tap a nutrient to chart it.",
                 userText: "How did last week look?",
                 aiText: "You averaged 1,830 kcal a day across 13 of the last 14 days — 170 under your target. Protein was your steadiest macro.",
                 widget: "trends",
