@@ -242,7 +242,7 @@ test("base.css's html/body reset lands on the card, font stack included", () => 
 
 /* ------------------------------------------------- 5. container conversion */
 
-test("every width @media became a @container, and the colour/motion ones did not", () => {
+test("every width @media became a @container, and the colour/motion/forced-colors ones did not", () => {
     expect(CSS).not.toMatch(/@media[^{]*width/i);
 
     // The five card-width thresholds chip.css measures against.
@@ -258,16 +258,18 @@ test("every width @media became a @container, and the colour/motion ones did not
         ...CSS.matchAll(new RegExp(`@container ${CONTAINER_NAME} `, "g")),
     ]).toHaveLength(RESULT.containerQueries.length);
 
-    // …and the three non-width conditions stay real media queries: a
-    // container query cannot ask about the user's colour scheme or motion
-    // preference.
+    // …and the non-width conditions stay real media queries: a container
+    // query can only ask about a box's size, not the user's colour scheme,
+    // motion preference or forced-colors palette. The forced-colors one is
+    // chip.css's `.seg` opt-out, which keeps the pressed segment filled.
     expect(new Set(RESULT.mediaQueries)).toEqual(
         new Set([
             "(prefers-color-scheme: dark)",
             "(prefers-reduced-motion: reduce)",
+            "(forced-colors: active)",
         ]),
     );
-    expect(RESULT.mediaQueries).toHaveLength(5);
+    expect(RESULT.mediaQueries).toHaveLength(6);
 });
 
 test("the @supports tail pins the narrow layout for pre-container engines", () => {

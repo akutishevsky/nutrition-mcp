@@ -211,8 +211,8 @@ consumers are notice icons, which are graphics needing 3:1, so nothing lost by i
 | token                                                   | role                                                                                                                                       |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--bg`                                                  | the page ground behind the card                                                                                                            |
-| `--bg2`                                                 | every **recessed** surface: `.more`, `.drawer`, `.seg` track, `.chip.static`, `.tbl thead`, the `.more` bar                                |
-| `--panel`                                               | every **raised** surface: `.card`, `.chip`, `.input`/`.select`/`.btn`, the `.seg` thumb, the `.chalo` chart halo                           |
+| `--bg2`                                                 | every **recessed** surface: `.more`, `.drawer`, `.chip.static`, `.tbl thead`, the `.more` bar                                              |
+| `--panel`                                               | every **raised** surface: `.card`, `.chip`, `.input`/`.select`/`.btn`, the `.chalo` chart halo                                             |
 | `--ink` / `--ink2` / `--ink3`                           | primary text / secondary (`.csub`, `.chip .k`, `.more`) / captions and eyebrows (`.cmeta`, `.dcap`, `.cfoot`, `.hint`, `.wnote`)           |
 | `--line` / `--line2`                                    | **structural** hairlines (card border, `.sec`, dividers, table rules) / one step darker: the static water bar's track outline              |
 | `--edge` / `--edge2`                                    | **control** boundaries — anything you can press — at 3:1 and its ~4:1 hover step. See below: `--line` is not strong enough to be one       |
@@ -221,7 +221,7 @@ consumers are notice icons, which are graphics needing 3:1, so nothing lost by i
 | `--track`                                               | the unfilled part of anything that fills: the focus ring's unfilled `.frt`, `.steps`/`.bar`, `.pill-dim`                                   |
 | `--cal --pro --car --fat --wat --fib --sug --caf --alc` | the data series, reached only through a `.c-*` role class (§2)                                                                             |
 | `--over` / `--warn`                                     | **signals, never series** — past a ceiling, and "worth a look". Neither gets a `.c-*` class                                                |
-| `--shadow` / `--seg-shadow`                             | the card's elevation / the segmented-control thumb's                                                                                       |
+| `--shadow` / `--seg-shadow`                             | the card's elevation / unused by the widgets (kept to mirror styles.css; `.seg` has no thumb)                                              |
 | `--glow-a`                                              | the card glow's opacity — 0.13 light, 0.10 dark, because the blob sits under the header's `.cmeta`                                         |
 | `--ease-out`                                            | one easing curve for every transition and keyframe in the system                                                                           |
 | `--r-card` / `--r-in` / `--r-pill`                      | 20px card, 14px inner block, 999px pill                                                                                                    |
@@ -1033,10 +1033,55 @@ attribute, **never** by the animation, so a cancelled one can never hide content
 
 ## 7. The segmented control (`.seg`)
 
-The 7/14/30-day toggles in trends and weight-trends. Dawn's universal thumb formula
-— `--bg2` track, `--panel` thumb, `--seg-shadow` — verbatim. It replaces the
-accent-filled active pill the widgets used to have, which was the one place they
-contradicted the site's own control.
+The 7/14/30-day toggles in trends and weight-trends. It is the site header's own
+switch, `public/styles.css` `.nm-theme`: a hairline track with the selected segment
+filled solid in ink. It used to be Dawn's `.nm-seg` thumb formula (`--bg2` track,
+`--panel` thumb, `--seg-shadow`), and on a `--panel` card that thumb was the card's
+own colour: 1.05:1 against its track in dark, 1.16:1 in light, with a shadow too
+faint to show on the dark ground. It was also the only borderless shape in a header
+of bordered pills.
+
+- **The track**: 2px padding, a 4px gap, 1px `--edge` (not the site's `--line`: the
+  group holds pressable things, and `--edge` is the tiles' control token),
+  `--r-pill`, transparent ground. The hairline is **not** a 3:1 boundary where it
+  actually sits: 2.99:1 on `--panel`, but 2.50–2.73:1 on the glow behind the header.
+  It does not have to be, since the ink fill identifies the selection and text
+  buttons need no outline. If it ever has to carry meaning, switch to `--edge2`
+  (≥3.39:1 on the glow). The track stays 30px either way.
+- **Segments**: 24px tall, `min-width: 32px`, `0 9px` padding, `--r-pill`, 12px/700
+  `--ink2` numerals (6.13:1 light / 7.39:1 dark on `--panel`; ≥5.2:1 / ≥6.1:1 on the
+  glow-tinted ground they really sit on). 24 + 2 + 2 + 1 + 1 is the old 30px
+  track, so the header stays 54.7px. **24px is exactly SC 2.5.8's floor**: do not trim
+  the height or the padding.
+- **Selected**: `background: var(--ink)`, `color: var(--panel)`. The fill is 18.61:1
+  light / 15.71:1 dark against the card, and the numerals on it the same. It is
+  deliberately **ink, not `--c`**: the window names no series, and on trends a tile tap
+  moves the panel to another metric, so a `--c`-tinted control would sit amber beside a
+  violet chart.
+- **Hover** (`:not([aria-pressed="true"])` only) is `--ink` numerals on an 8% `--ink`
+  disc. The scope is load-bearing: unscoped it would grey the fill, and a touch host
+  leaves `:hover` on the segment just tapped, which is the selected one. A stuck disc
+  on a segment whose tap did not select is 15.77:1 / 12.73:1 away from the fill, so it
+  never passes for a selection. **Press** is `translateY(1px)`, like every tile.
+- **Focus** is the system's 2px `--acc` ring at a **1px** offset, the one departure from
+  the 2px offset elsewhere. At 2px, with segments 2px apart, the ring on a resting
+  segment lay across the neighbouring ink pill (`--acc` on `--ink` is 1.57:1 in dark).
+  With the 4px gap and 1px offset it ends 1px short of the neighbour and sits on card
+  ground on a selected and a resting segment alike (5.01:1 light / 10.0:1 dark on
+  `--panel`; ≥4.2:1 / ≥8.3:1 on the glow-tinted ground it really sits on), and
+  vertically covers only the padding and the hairline. The control sits on the card's
+  `.glow`, so raising `--glow-a` or giving the card a greener `--c` narrows the ring
+  and numeral margins. Re-measure on real pixels, not on `--panel`.
+- **Forced colors** drop the fill, which is the whole selected state, so the pressed
+  segment opts out (`forced-color-adjust: none`) and paints `SelectedItem` /
+  `SelectedItemText`, the system pair for a selected control (`Highlight` /
+  `HighlightText` is declared first, as the fallback for an engine without them). That
+  pair guarantees text on the fill, **not** the fill against Canvas: Chrome's light
+  palette measured 1.49:1, a pale lozenge told apart only by hue. So the pressed
+  segment also takes a `2px solid CanvasText` border, the one pair every palette
+  guarantees, and `padding: 0 7px` to give back those 2px a side, so its height and
+  width match its neighbours. The opt-out also exempts the outline from forcing, so
+  every segment's `:focus-visible` names `outline-color: CanvasText` there.
 
 ```html
 <div class="seg" role="group" aria-label="Trend window">
@@ -1642,7 +1687,8 @@ var(--edge2)`; `.drop` takes `--edge` for both and keeps `--acc` on hover.
   element in this widget that could overflow 320px.
 
 `:focus-visible` is styled once for every control, and it is **the same treatment
-`chip.css` draws** — `outline: 2px solid var(--acc); outline-offset: 2px` — not a
+`chip.css` draws** on its tiles and panel — `outline: 2px solid var(--acc); outline-offset: 2px`
+(`.seg` alone narrows the offset to 1px, §7) — not a
 local variant. It used to be `outline: none` plus a 3px 35%-alpha accent shadow, on
 the theory that only a box-shadow follows a 999px radius; composited, that ring
 measured ~1.6:1 against its ground, far under the 3:1 SC 2.4.11 asks of a focus
@@ -1728,7 +1774,8 @@ unnamed generic wearing the UA's `outline: auto 1px`. Two halves, and both are
 needed:
 
 - `table.css` gives `.tscroll:focus-visible` the same `outline: 2px solid var(--acc);
-outline-offset: 2px` every other focusable surface in the design draws (SPEC §7).
+outline-offset: 2px` the design's other focusable surfaces draw (SPEC §7; `.seg`
+  is the one 1px exception, §7).
   The offset ring lands _outside_ the scroller, where nothing clips it; drawn inside,
   it would scroll away with the rows.
 - The **template** supplies `role="region"` + `aria-label` + `tabindex="0"`, because
@@ -1800,8 +1847,10 @@ These are the rules that break something real when ignored.
    dot, a fill, a hairline or a tint and keep the text in `--ink`/`--ink2`. The
    drawer's `.dv` (1.47–4.26:1) and `.cmeta.kcal` (2.06:1) were both blockers.
 10. **Every interactive element uses the same focus ring**
-    (`outline: 2px solid var(--acc); outline-offset: 2px`). A translucent
-    box-shadow substitute measured ~1.6:1 and is not an indicator.
+    (`outline: 2px solid var(--acc); outline-offset: 2px`). The one exception is
+    `.seg button`, at a 1px offset, so the ring clears a neighbouring ink segment
+    (§7); colour and width are unchanged there. A translucent box-shadow
+    substitute measured ~1.6:1 and is not an indicator.
 11. **A disclosure hands focus both ways.** Opening moves focus into the region
     (`focus({ preventScroll: true })`); closing returns it to the control that
     opened it, **before** the region's contents — and the ✕ holding focus — are

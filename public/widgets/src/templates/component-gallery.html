@@ -993,7 +993,7 @@
                 const seg = [7, 14, 30]
                     .map(
                         (d) =>
-                            `<button type="button" tabindex="-1" aria-pressed="${d === active}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: d }))}">${d}</button>`,
+                            `<button type="button" tabindex="-1" data-range="${d}" aria-pressed="${d === active}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: d }))}">${d}</button>`,
                     )
                     .join("");
                 return `<div class="seg" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>`;
@@ -1914,7 +1914,8 @@
 
             ${sect(
                 "Segmented control",
-                "Dawn's thumb formula: --bg2 track, --panel thumb, --seg-shadow. The window line (.cmeta.crow) comes BEFORE the control in the DOM, so a screen reader hears which window the figures cover before the control that changes it, and order puts it back under the title as the header's second row.",
+                // Token names sit in nowrap spans: "--edge" otherwise breaks after its first hyphen at 320px.
+                'The site header\'s own switch (.nm-theme): a 1px <span style="white-space:nowrap">--edge</span> hairline track and the selected segment filled solid with <span style="white-space:nowrap">--ink</span>, numerals in <span style="white-space:nowrap">--panel</span>. It names no series, so it stays ink whatever <span style="white-space:nowrap">--c</span> the card or the focus panel carries. The focus ring keeps the system\'s 2px <span style="white-space:nowrap">--acc</span> at a 1px offset in a 4px gap, so it never lands on the neighbouring ink pill. Under forced colors the selection adds a 2px CanvasText border, the one pair every palette guarantees. The window line (.cmeta.crow) comes BEFORE the control in the DOM, so a screen reader hears which window the figures cover before the control that changes it, and order puts it back under the title as the header\'s second row.',
                 `<div class="card">
                    <header class="chead"><h3 class="ctitle">${esc(T.trends.title)}</h3><span class="cmeta crow">${esc(`${rangeLabel(SUMMARY.start_date, SUMMARY.end_date)} · ${daysLoggedCaption(SUMMARY.logged_days, SUMMARY.days_in_range)}`)}</span>${segControl(14)}</header>
                  </div>`,

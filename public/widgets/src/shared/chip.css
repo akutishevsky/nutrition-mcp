@@ -1107,8 +1107,8 @@
        on the card with no colour excursion from the surface it sits on, while
        the eight secondary tiles were each a filled block — so the eye went
        figure, rail, panel, and the panel never read as a level. 6% is a step
-       below the tiles' own hover (8%) and well under the 18% AA ceiling
-       measured for --ink2 on a series tint. */
+       below the panel's own resting hover (11%, below) and well under the 18%
+       AA ceiling measured for --ink2 on a series tint. */
     background: color-mix(in srgb, var(--c) 6%, var(--panel));
     color: var(--ink2);
     font: inherit;
@@ -2021,21 +2021,63 @@ button.focus:active {
 
 /* ---- segmented control --------------------------------------------------- */
 
-/* Dawn's universal thumb formula — --bg2 track, --panel thumb, --seg-shadow —
-   verbatim. It replaces the accent-filled active pill the widgets used to have,
-   which was the one place they contradicted the site's own control. */
+/* THE SITE'S OWN SWITCH, NOT A THUMB IN A WELL. This used to be Dawn's
+   `.nm-seg` formula: a --bg2 track and a --panel thumb lifted by --seg-shadow.
+   On a --panel card that thumb is the colour of the card around the control,
+   and in dark it measured 1.05:1 against its track (1.16:1 light) while the
+   shadow fell on a ground too dark to show it — so "which window am I in" came
+   down to a numeral. It was also the only borderless, recessed shape in a
+   header where every other control is a bordered pill.
+
+   So it borrows public/styles.css `.nm-theme`'s shape, the switch in the
+   site's own header: a hairline track and an ink-filled selection. What
+   differs, to fit a card:
+     - the track is --edge, not the site's --line: the group holds things you
+       can press, and --edge is the tiles' control token, so the control and
+       the rail under it read as one family. It is NOT the control's 3:1
+       boundary — 2.99:1 on --panel drops to 2.50:1 on the glow — and does
+       not need to be: the ink fill identifies the selection, and text
+       buttons need no outline. --edge2 (≥3.39:1 on the glow) is the swap if
+       the hairline ever has to carry meaning;
+     - numerals on the fill print in --panel, not the site's --bg, because the
+       card surface is what shows through around the segment;
+     - 24px pills with a 9px side padding, not 30px circles, and 2px track
+       padding, not 3px, so the track is the header's old 30px;
+     - a 4px gap, not 2px (see :focus-visible);
+     - a resting segment gets an 8% --ink disc on hover and every segment the
+       tile press, where the site changes only the numeral's colour.
+
+   The ink fill is the loudest thing in the header ON PURPOSE, and that is not
+   the case `.chip` argues against. A tile that inverted out-shouted the 24px
+   figure and said nothing about WHICH nutrient it was. This control names no
+   series — on trends a tile tap moves the panel to another metric while the
+   window stays the same, so a --c-tinted control would sit amber beside a
+   violet chart — and its only job is "this one, not those". At 24px tall and
+   three digits wide it still ranks below the ctitle and the focus figure.
+   Measured: fill against the card 18.61:1 light / 15.71:1 dark, numerals on
+   the fill the same. Resting --ink2 numerals are 6.13 / 7.39 on --panel but
+   ≥5.2 / ≥6.1 on the pixels actually behind them, because the control sits
+   on the card's .glow; raising --glow-a or a greener --c narrows that (and
+   the ring's, below), so re-measure on real pixels, not on --panel. */
 .seg {
     display: flex;
     flex: none;
-    gap: 2px;
+    /* 4px, not the site's 2px: the gap is where a neighbour's focus ring
+       lands. See :focus-visible below. */
+    gap: 4px;
     margin-left: auto;
     padding: 2px;
-    background: var(--bg2);
+    border: 1px solid var(--edge);
     border-radius: var(--r-pill);
+    background: transparent;
 }
+/* 24px tall: 24 + 2px padding + 1px border is the old 30px track, so the
+   header's first row and every card's measured height stay where they were.
+   24 is exactly SC 2.5.8's floor, so do not trim the height, and width never
+   goes under 32 (min-width). */
 .seg button {
-    height: 26px;
-    min-width: 34px;
+    height: 24px;
+    min-width: 32px;
     padding: 0 9px;
     border: 0;
     border-radius: var(--r-pill);
@@ -2044,35 +2086,88 @@ button.focus:active {
     font: inherit;
     font-size: 12px;
     font-weight: 700;
+    line-height: 1;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
     -webkit-appearance: none;
     appearance: none;
     -webkit-tap-highlight-color: transparent;
-    /* The press is on the list at a shorter duration: at the ground's 0.2s a
-       nudge that lasts as long as the tap reads as lag, not as a press. */
+    /* Colour and ground on the card's 0.18s curve; the press runs shorter,
+       because a nudge that lasts as long as the tap reads as lag. No layout
+       property is on this list: the bridge measures on a ResizeObserver. */
     transition:
-        background-color 0.2s var(--ease-out),
-        box-shadow 0.2s var(--ease-out),
-        color 0.2s var(--ease-out),
+        background-color 0.18s var(--ease-out),
+        color 0.18s var(--ease-out),
         transform 0.1s var(--ease-out);
 }
-.seg button:hover {
+/* HOVER DECORATES ONLY A RESTING SEGMENT, for the reason `button.focus:hover`
+   spells out: unscoped it would grey the ink fill under the pointer, and a
+   touch host leaves :hover stuck on the segment just tapped — which is the
+   selected one, so the :not() is what keeps a tap from leaving a mark. Do not
+   drop it. Where a tap does not select (a failed render reverts the range),
+   the stuck 8% disc is 15.77:1 light / 12.73:1 dark away from the fill, so it
+   can never pass for a selection. */
+.seg button:not([aria-pressed="true"]):hover {
     color: var(--ink);
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
-/* The press every other control here has (`.chip`, `button.focus`, `.more`):
-   a segment was the one button that gave no sign of being pushed. */
+/* The press every other control here has (`.chip`, `button.focus`, `.more`). */
 .seg button:active {
     transform: translateY(1px);
 }
 .seg button[aria-pressed="true"] {
-    background: var(--panel);
-    color: var(--ink);
-    box-shadow: var(--seg-shadow);
+    background: var(--ink);
+    color: var(--panel);
 }
+/* THE SYSTEM'S RING, ONE PIXEL CLOSER. At the usual 2px offset the ring
+   reaches 4px past the box, and with segments 2px apart it lay across the
+   neighbouring ink pill — in dark, --acc on --ink is 1.57:1, so on an
+   unselected segment beside the selection the ring half-vanished into it. The
+   gap is 4px and the offset 1px, so the ring ends 1px short of the neighbour
+   and always sits on card ground: --acc against --panel is 5.01:1 light /
+   10.0:1 dark, and ≥4.2 / ≥8.3 on the glow-tinted pixels actually there, on
+   a selected and a resting segment alike. Vertically it covers
+   exactly the padding and the hairline, never past the group, so nothing
+   outside the control is painted. Colour and width are the system's. */
 .seg button:focus-visible {
     outline: 2px solid var(--acc);
-    outline-offset: 2px;
+    outline-offset: 1px;
+}
+/* FORCED COLORS drop author backgrounds, and the ink fill is the entire
+   selected state, so the pressed segment would be identical to its
+   neighbours. It opts out and paints the system's pair for a SELECTED
+   CONTROL: SelectedItem/SelectedItemText, not Highlight, which is the
+   text-selection pair. Highlight is declared first only as the fallback for
+   an engine that does not know SelectedItem and drops that declaration.
+   The opt-out also exempts the OUTLINE from forcing, so a focused pressed
+   segment would keep the author's --acc while every other ring took the
+   user's palette. The ring sits outside the fill, on Canvas, so every
+   segment's ring is named CanvasText here, which is what the engine forces
+   an author outline to anyway.
+   THE PAIR IS NOT ENOUGH ON ITS OWN. SelectedItem/SelectedItemText promises
+   text-on-fill contrast, not fill-against-Canvas: in Chrome's light palette
+   (and Firefox's "override colors: always", which takes the same values)
+   the fill is rgb(179,215,255) on white, 1.49:1, so the selection was a pale
+   lozenge told apart by hue alone. The 2px border is CanvasText, the one pair
+   every palette guarantees against Canvas, so the selected segment is
+   outlined in greyscale too. Not the outline (the focus ring owns it) and
+   not a box-shadow (forcing strips it on every element that has not opted
+   out). The side padding gives back the border's 2px a side, so with
+   border-box sizing the segment keeps its 24px height AND its width, and a
+   toggle never shifts its neighbours. */
+@media (forced-colors: active) {
+    .seg button[aria-pressed="true"] {
+        forced-color-adjust: none;
+        background: Highlight;
+        color: HighlightText;
+        background: SelectedItem;
+        color: SelectedItemText;
+        border: 2px solid CanvasText;
+        padding: 0 7px;
+    }
+    .seg button:focus-visible {
+        outline-color: CanvasText;
+    }
 }
 
 /* base.css kills every animation under reduced motion; the drawer is named
