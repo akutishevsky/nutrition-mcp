@@ -32,7 +32,7 @@ var ICONS = {
    TWO LAYERS PER DRAWING, painted the object's own colours. Each entry is a
    base `a` — the silhouette — and a detail `b` painted after it, which sits
    inside the base in every drawing: inner flame, bone and glaze, crumb, pit,
-   highlight, cube faces, wine, coffee, vein, dial. The colours are tokens
+   highlight, cube faces, wine, crema, vein, dial. The colours are tokens
    (tokens.css, --gl-<name>-a/-b), applied by class in base.css, never written
    here. They used to be one path filled with the metric's series token, which
    painted the fat tile's avocado pink and the protein tile's drumstick
@@ -47,7 +47,7 @@ var ICONS = {
    part of a light detail; on a dark one it is a dark keyline. What it buys is
    that the drawing still separates when both layers are painted one colour —
    a monochrome use such as a single-ink fill: the pit, the dial, the bone,
-   the crumb, the cube faces, the wine and the coffee all survive, where an
+   the crumb, the cube faces, the wine and the crema all survive, where an
    uncut detail would merge into a plain egg, slab or hexagon. (Chrome's
    forced-colours mode is not that case: it keeps an SVG's authored fills.)
 
@@ -153,7 +153,8 @@ var GLYPHS = {
         },
         b: { d: "M5.55 4.9H10.45V5.4A2.45 2.45 0 0 1 5.55 5.4z" },
     },
-    // coffee cut out below the rim; the handle is a C that never enters the body
+    // a pale crema cut out below the rim, so the top reads light against the
+    // brown mug; the handle is a C that never enters the body
     cup: {
         a: {
             d: "M1.4 3.2H11.4V9.2A3.6 3.6 0 0 1 7.8 12.8H5A3.6 3.6 0 0 1 1.4 9.2zM11 4.8A2.6 2.6 0 1 1 11 9.8L11 8.34A1.25 1.25 0 1 0 11 6.26zM3.95 6.95L8.85 6.95A1.45 1.45 0 0 0 8.85 4.05L3.95 4.05A1.45 1.45 0 0 0 3.95 6.95z",

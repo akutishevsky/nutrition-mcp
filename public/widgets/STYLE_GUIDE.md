@@ -1344,7 +1344,7 @@ over-limit red), and `.gi` no longer reads `--c` at all.
 | `droplet`   | water    | blue drop                      | a highlight band               | owns the teardrop      |
 | `cube`      | sugar    | tan hexagon (the shade face)   | cream top and left faces       | the only hexagon       |
 | `glass`     | alcohol  | a neutral glass, stem and foot | the wine                       | stem and foot          |
-| `cup`       | caffeine | latte mug with a C handle      | the coffee below the rim       | a handle               |
+| `cup`       | caffeine | latte mug with a C handle      | a pale crema below the rim     | a handle               |
 | `leaf`      | fiber    | green blade and stem           | the vein, gutter on one side   | a stem past the blade  |
 | `scale`     | weight   | a neutral slab and its needle  | the dial around the needle     | a dial in a slab       |
 

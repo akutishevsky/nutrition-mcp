@@ -165,7 +165,7 @@
     /* GLYPH LAYERS (shared/icon.js; base.css `.gi-*` maps them). Every
        nutrient glyph is two paths, a base `.ga` (the silhouette) and a detail
        `.gb` (inner flame, bone and glaze, crumb, pit, highlight, faces, wine,
-       coffee, vein, dial), cut out of the base with a 0.6-unit gutter, and
+       crema, vein, dial), cut out of the base with a 0.6-unit gutter, and
        every detail sits inside its base. Each is painted the colour its
        OBJECT is — a green avocado, a roast drumstick — and never the
        metric's series token, which is an identity: painting a fat tile's
@@ -258,7 +258,7 @@
     --gl-glass-a: var(--edge2);
     --gl-glass-b: #9f1239;
     --gl-cup-a: #a8764c;
-    --gl-cup-b: #4a2a12;
+    --gl-cup-b: #f7ead6;
     --gl-leaf-a: #2a8f3d;
     --gl-leaf-b: #c7f0cf;
     --gl-scale-a: var(--edge2);
@@ -312,7 +312,7 @@
         --gl-glass-a: var(--ink2);
         --gl-glass-b: #e0456f;
         --gl-cup-a: #d9b48c;
-        --gl-cup-b: #6a3f1d;
+        --gl-cup-b: #fbf1e3;
         --gl-leaf-a: #5cc26e;
         --gl-leaf-b: #1d5a2b;
         --gl-scale-a: var(--ink2);
@@ -361,7 +361,7 @@
     --gl-glass-a: var(--edge2);
     --gl-glass-b: #9f1239;
     --gl-cup-a: #a8764c;
-    --gl-cup-b: #4a2a12;
+    --gl-cup-b: #f7ead6;
     --gl-leaf-a: #2a8f3d;
     --gl-leaf-b: #c7f0cf;
     --gl-scale-a: var(--edge2);
@@ -406,7 +406,7 @@
     --gl-glass-a: var(--ink2);
     --gl-glass-b: #e0456f;
     --gl-cup-a: #d9b48c;
-    --gl-cup-b: #6a3f1d;
+    --gl-cup-b: #fbf1e3;
     --gl-leaf-a: #5cc26e;
     --gl-leaf-b: #1d5a2b;
     --gl-scale-a: var(--ink2);
