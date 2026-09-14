@@ -35,12 +35,12 @@
 
      GLOBALS. The `*` box-sizing block and the `*` reduced-motion block are
      dropped: they are unscopable by definition and the site already ships
-     both. NOTE FOR public/styles.css: the widget's reduced-motion block also
-     carries `animation-delay: 0s !important`, which the site's does not. Every
-     entrance here is staggered with `animation-delay` plus
-     `animation-fill-mode: both`, which holds a tile at its `from` — invisible
-     — until the delay elapses; killing the duration alone leaves the last tile
-     blank for a third of a second on a machine that asked for no motion.
+     both. The site's reduced-motion block must carry the widget's
+     `animation-delay: 0s !important` too, and does: every entrance here is
+     staggered with `animation-delay` plus `animation-fill-mode: both`, which
+     holds a tile at its `from` — invisible — until the delay elapses, so
+     killing the duration alone would leave the last tile blank for a third of
+     a second on a machine that asked for no motion.
 
      PRE-CONTAINER ENGINES. `@container` is unknown to a pre-2023 engine, which
      drops the whole block — so the min-width blocks vanish (fine) and the
