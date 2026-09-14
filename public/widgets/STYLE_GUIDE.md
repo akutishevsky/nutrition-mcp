@@ -19,7 +19,8 @@ levels (the macros, the limits behind a hairline, water as a full-width bar),
 and the one drawer all of them open into, closed by a foot holding the tap hint
 and the bridge's settings note. A tile carries its metric's glyph, name and
 figure printed against its goal, over a progress wash that fills the tile
-itself; the goal, the distance to it and the meals behind it are one tap away.
+itself; the goal, the distance to it and the meals behind it are one tap away,
+and the same tap moves the focus panel to that metric on every strip (§4).
 Two widgets are shaped differently: weight-trends is a stand-alone
 `.focus.solo` panel over a calendar-axis chart, and import-meals is a page of
 one card per step.
@@ -35,28 +36,28 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/` and one
   template per widget in `templates/`.
 
-    | partial                 | contents                                                                                                                                                                                                                                                                                            |
-    | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-    | `tokens.css`            | the four theme blocks — every colour, radius, font stack, easing, and the per-theme glow strength `--glow-a` (§1)                                                                                                                                                                                   |
-    | `base.css`              | reset, type scale, `.wrap`, `.card`, `.glow`, the header line (`.chead > .cmeta.crow` included), the card foot `.foot` and the settings note `.wnote`, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2)                                                                        |
-    | `chip.css`              | every interaction primitive: the tile grids (`.rail`, and `.r-macro` / `.r-limit` / `.r-water` on a tiered strip), `.chip` and its progress wash, the focus panel (`.focus`, `.fring`, `.fmain`, `.fmeta`, `.fspark`, `.focus.solo`), `.more` / `.more.mextra`, `.drawer`, `.fhint`, `.seg` (§3–§7) |
-    | `chart.css`             | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.cday`, `.cpt`, `.chalo`, `.cdot`, `.cfoot` (§8)                                                                                                                                                              |
-    | `form.css`              | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                                                                                                                                                                                   |
-    | `table.css`             | the preview table and its status pills (§12)                                                                                                                                                                                                                                                        |
-    | `icon.js`               | the `ICONS` and `GLYPHS` path tables + `icon(name, size)` / `glyph(name, size)` (§9)                                                                                                                                                                                                                |
-    | `svg.js`                | chart geometry, pure string math — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chDayLines` / `chDot` / `chDotMarkup` / `chMarksMarkup` / `chY`, and the calendar x axis `calendarSlots` / `hairlineSlot` (§8)                                                                              |
-    | `fmt.js`                | the two primitives everything else assumes are in scope: `fmt(n, decimals)` (grouped in the resolved locale) and `esc(s)`. It is a partial because five templates were each declaring their own pair and `macros.js` calls both unguarded                                                           |
-    | `macros.js`             | the macro strip: `MACROS`, `macroBits`, `macroPanel` (with its `opts.extra` slot), `macroToggle`, `focusApply`, `macroSnapshot` / `macroRestore`, and the per-strip ctx stash `macroStash` / `macroCtx` (§10)                                                                                       |
-    | `spark.js`              | the focus panel's sparkline: `seriesValue`, `chartableKeys`, `sparkMarkup`, `sparkReset`, `sparkPaint` (§4) — included by the template itself, after `macros.js`                                                                                                                                    |
-    | `summary-card.js`       | the whole `get_nutrition_summary` card as a string — `summaryCard(data, opts)`, plus `loggedDaysCaption` and `summaryCharted`. Composed here rather than in the template because **two** callers build it from one payload: the widget, and the public site's landing page at build time            |
-    | `trends-card.js`        | the whole `get_trends` card the same way — `RANGES`, `avgOf`, `trendsSlice`, `trendsMeta`, `trendsView(data, range, opts)`, `trendsCard(view, opts)`, `metricLabelFor` / `chartLabelFor`. The range slicing and averaging live here too, so the toggle re-derives rather than re-requests           |
-    | `meal-logged-card.js`   | the `log_meal` / `update_meal` card — `mealLoggedCard(data, opts)`: the header naming the meal just logged and the strip under it                                                                                                                                                                   |
-    | `goal-progress-card.js` | the `get_goal_progress` card — `goalProgressCard(data, opts)`, and `goalProgressShowsStrip`; the weight row's `glyph("scale", …)` calls stay in the template's site-card region                                                                                                                     |
-    | `weight-trends-card.js` | the `get_weight_trends` card — `WEIGHT_RANGES`, `weightTrendsMeta`, `weightTrendsBody`, `weightTrendsCard`, and the range/target helpers they compose (`wtWindow`, `panelHtml`, `chartHtml`, `wtSegHtml`)                                                                                           |
-    | `import-card.js`        | the import widget's card shell and first step — `impCardOpen` / `impCardHead` / `impCardClose`, `impNotice`, `importFileStep`                                                                                                                                                                       |
-    | `date.js`               | calendar days: `utcDay` / `DAY_MS`, `shortDate`, `isToday`, `ymd` (rejects an impossible day), `dayLabel`, `rangeLabel` (Intl first) / `rangeLabelPlain` (the hand-written fallback), `dayHeader`, `daysLoggedCaption`, `shiftDay`                                                                  |
-    | `i18n.js`               | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                                                                                                                                                                                |
-    | `bridge.js`             | the whole iframe↔host handshake — `initWidget(config)` — plus two top-level helpers, `tryRender(fn)` and `keepFocus(root, write, opts)`                                                                                                                                                             |
+    | partial                 | contents                                                                                                                                                                                                                                                                                                                                       |
+    | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `tokens.css`            | the four theme blocks — every colour, radius, font stack, easing, and the per-theme glow strength `--glow-a` (§1)                                                                                                                                                                                                                              |
+    | `base.css`              | reset, type scale, `.wrap`, `.card`, `.glow`, the header line (`.chead > .cmeta.crow` included), the card foot `.foot` and the settings note `.wnote`, `.sec`, `.empty`, the `.c-*` role classes, `.ic`, reduced motion (§2)                                                                                                                   |
+    | `chip.css`              | every interaction primitive: the tile grids (`.rail`, and `.r-macro` / `.r-limit` / `.r-water` on a tiered strip), `.chip` and its progress wash, the focus panel (`.focus`, `.fring`, `.fmain`, `.fmeta`, `.fspark`, `.focus.solo`), `.more` / `.more.mextra`, `.drawer`, `.fhint`, `.seg` (§3–§7)                                            |
+    | `chart.css`             | the one chart grammar: `.cwrap`, `.cline`, `.carea`/`.cstop-a`/`.cstop-b`, `.cgoal`, `.cday`, `.cpt`, `.chalo`, `.cdot`, `.cfoot` (§8)                                                                                                                                                                                                         |
+    | `form.css`              | fields, pill inputs and buttons, the drop zone, notices, the progress rails (§11)                                                                                                                                                                                                                                                              |
+    | `table.css`             | the preview table and its status pills (§12)                                                                                                                                                                                                                                                                                                   |
+    | `icon.js`               | the `ICONS` and `GLYPHS` path tables + `icon(name, size)` / `glyph(name, size)` (§9)                                                                                                                                                                                                                                                           |
+    | `svg.js`                | chart geometry, pure string math — `chPoints` / `chPath` / `chArea` / `chAreaMarkup` / `chDayLines` / `chDot` / `chDotMarkup` / `chMarksMarkup` / `chY`, and the calendar x axis `calendarSlots` / `hairlineSlot` (§8)                                                                                                                         |
+    | `fmt.js`                | the two primitives everything else assumes are in scope: `fmt(n, decimals)` (grouped in the resolved locale) and `esc(s)`. It is a partial because five templates were each declaring their own pair and `macros.js` calls both unguarded                                                                                                      |
+    | `macros.js`             | the macro strip: `MACROS`, `macroBits`, `macroPanel` (with its `opts.extra` slot), `macroToggle`, `focusApply`, `focusFollow`, `macroReturn`, `macroSnapshot` / `macroRestore`, and the per-strip ctx stash `macroStash` / `macroCtx` (§10)                                                                                                    |
+    | `spark.js`              | the focus panel's sparkline: `seriesValue`, `chartableKeys`, `sparkMarkup`, `sparkReset`, `sparkPaint` (§4) — included by the template itself, after `macros.js`                                                                                                                                                                               |
+    | `summary-card.js`       | the whole `get_nutrition_summary` card as a string — `summaryCard(data, opts)`, plus `loggedDaysCaption` and `summaryCharted`. Composed here rather than in the template because **two** callers build it from one payload: the widget, and the public site's landing page at build time                                                       |
+    | `trends-card.js`        | the whole `get_trends` card the same way — `RANGES`, `avgOf`, `trendsSlice`, `trendsMeta`, `trendsView(data, range, opts)`, `trendsCard(view, opts)`, the whole-empty `trendsIsEmpty` / `trendsEmptyCard`, `metricLabelFor` / `chartLabelFor`. The range slicing and averaging live here too, so the toggle re-derives rather than re-requests |
+    | `meal-logged-card.js`   | the `log_meal` / `update_meal` card — `mealLoggedCard(data, opts)`: the header naming the meal just logged and the strip under it                                                                                                                                                                                                              |
+    | `goal-progress-card.js` | the `get_goal_progress` card — `goalProgressCard(data, opts)`, and `goalProgressShowsStrip`; the weight row's `glyph("scale", …)` calls stay in the template's site-card region                                                                                                                                                                |
+    | `weight-trends-card.js` | the `get_weight_trends` card — `WEIGHT_RANGES`, `weightTrendsMeta`, `weightTrendsBody`, `weightTrendsCard`, and the range/target helpers they compose (`wtWindow`, `panelHtml`, `chartHtml`, `wtSegHtml`)                                                                                                                                      |
+    | `import-card.js`        | the import widget's card shell and first step — `impCardOpen` / `impCardHead` / `impCardClose`, `impNotice`, `importFileStep`                                                                                                                                                                                                                  |
+    | `date.js`               | calendar days: `utcDay` / `DAY_MS`, `shortDate`, `isToday`, `ymd` (rejects an impossible day), `dayLabel`, `rangeLabel` (Intl first) / `rangeLabelPlain` (the hand-written fallback), `dayHeader`, `daysLoggedCaption`, `shiftDay`                                                                                                             |
+    | `i18n.js`               | `pickLocale` / `setLocale` / `setLocaleFrom` / `tpl` / `plural`, and the ambient `T`                                                                                                                                                                                                                                                           |
+    | `bridge.js`             | the whole iframe↔host handshake — `initWidget(config)` — plus two top-level helpers, `tryRender(fn)` and `keepFocus(root, write, opts)`                                                                                                                                                                                                        |
 
 - **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
@@ -93,7 +94,7 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
   (`src/widget-static.ts`) share one implementation; a template keeps its
   state, DOM writes and host wiring. **A card partial writes no DOM and reads
   no globals but the ambient `T` and the water unit.** `summaryCard`,
-  `trendsView` / `trendsCard`, `mealLoggedCard`, `goalProgressCard`,
+  `trendsView` / `trendsCard` / `trendsEmptyCard`, `mealLoggedCard`, `goalProgressCard`,
   `weightTrendsCard` and `importFileStep` return strings; the caller resolves the locale (`setLocale`) and the unit
   (`setWaterUnit`) first, exactly as `render()` always did. That is what lets
   the public site run them with no document at all — `src/widget-static.ts`
@@ -136,14 +137,15 @@ file is assembled from partials at server startup (`src/widgets.ts`, warmed by
   `i18n.js + icon.js + date.js + fmt.js + macros.js` the way the assembler
   splices them into a page. If you change a caption string, expect to change it there too.
   The other suites under `public/widgets/` pin one partial or widget each the
-  same way: `date`, `spark`, `bridge`, `form-css`, `summary-caption`,
-  `meal-logged`, `trends`, `import-card`, `import-run` and `gallery`.
+  same way: `date`, `spark`, `bridge`, `form-css`, `glyphs`, `summary-caption`,
+  `meal-logged`, `goal-progress`, `trends`, `card-partials`, `import-card`,
+  `import-run`, `import-time` and `gallery`.
 - **`shared/` is no longer only the widgets'.** `public/widget-card.css` and
   `public/widget-card.js` are generated from these same partials for the public
-  site (`scripts/gen-widget-card.ts`), and the landing page's two cards are
+  site (`scripts/gen-widget-card.ts`), and the landing page's cards are
   rendered from them at build time. A change here is therefore a change to
   nutrition-mcp.com as well as to chat, and it is not finished until
-  `bun run scripts/gen-widget-card.ts && bun run scripts/gen-index.ts` has been
+  `bun run gen:widgets && bun run scripts/gen-index.ts` has been
   run — `src/widget-card.test.ts` fails until it has. See CLAUDE.md's
   "Custom UI Widgets" section.
 
@@ -750,7 +752,7 @@ source:
 
 | species                                                         | what it is                                                                                                                                                                                                                                                                                    |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **disclosure** — `<button>` + `aria-expanded` + `aria-controls` | **opens the drawer.** Carries the `.chev` chevron, which rotates 180° when open                                                                                                                                                                                                               |
+| **disclosure** — `<button>` + `aria-expanded` + `aria-controls` | **opens the drawer**, and moves the focus panel to its metric (§4). Carries the `.chev` chevron, which rotates 180° when open                                                                                                                                                                 |
 | **toggle** — `<button>` + `aria-pressed`, **no chevron**        | **selects a chart series and nothing else** (trends' whole rail, where it also moves the focus panel to that metric). A different species, not a variant                                                                                                                                      |
 | `.chip[aria-expanded="true"]` / `[aria-pressed="true"]`         | **selected** — a tint in the tile's own `--c` plus an inset ring. Both attributes are styled together, so selection looks identical whichever species it is                                                                                                                                   |
 | `.chip.over`                                                    | **past a ceiling.** Reassigns `--c` to `--over`, so the wash, the hairline and the ring all turn from one line. The glyph keeps its natural colours. The non-colour half is the FIGURE, which prints against its limit ("58.2/45 g"), plus the caption's wording                              |
@@ -782,10 +784,21 @@ tile prints its figure against its goal, so "58.2/45 g" states the breach in
 digits and survives greyscale on its own. Do not reintroduce the glyph.
 
 **The tap hint is not a chip any more.** It was `.chip.ghost`, a dashed pill at
-the end of the rail; it is now `.fhint` in the card foot ("Tap a metric for the
-meals behind it", with the `point` icon), emitted only when some tile actually
-has meals behind it, and hidden by `macroToggle` while a drawer is open — the
-instruction has been followed and the answer is on screen.
+the end of the rail; it is now `.fhint` in the card foot, with the `point`
+icon, in two wordings that each promise only what the tap does:
+
+- **Meals** — bare `data-macro-hint`, `T.macros.tapHint` ("Tap a metric for the
+  meals behind it"), emitted when some tile actually has meals behind it, and
+  hidden by `macroToggle` while a drawer is open.
+- **Chart** — `data-macro-hint="chart"`, `T.macros.tapHintChart` ("Tap a metric
+  to chart it"), emitted when no tile discloses but some shown tile is on the
+  chart — trends' whole rail, which used to be tappable with nothing on the card
+  saying so — and hidden while a series is pressed.
+
+Where both would apply (nutrition-summary's water beside tiles with meals) the
+meals line wins: one line of foot is the budget. The `opts.extra` row counts for
+neither. Either way the hint goes once it has been followed and the answer is on
+screen, and comes back on release.
 
 ### The progress wash — the tile is the bar
 
@@ -823,8 +836,10 @@ drops to its own full-width line under the figure.
   **`<span class="focus">` otherwise**: trends' always is (calories neither
   discloses nor charts there), and so is nutrition-summary's on a day whose
   every meal is 0 kcal. A span keeps the soft `--line` border, takes 9px instead
-  of 26px on the right (it never carries a chevron) and gets no hover: bordered
-  at the control step means pressable.
+  of 26px on the right (it carries no disclosure chevron) and gets no hover:
+  bordered at the control step means pressable. `span.focus.fret` gives the
+  26px back in the one state where a span does carry something in that corner,
+  its return ✕ (below).
 - **The ring (`.fring`)** is the fraction of the goal: `r = 17`,
   `2πr = 106.81`, `stroke-dashoffset = 106.81 × (1 − fraction)` on `.fra` over
   the `--track` `.frt`. There is no centre text: the figure sits beside it at
@@ -834,13 +849,48 @@ drops to its own full-width line under the figure.
   tiered one — the label (`.flabel`, which ellipsises) and the delta (`.fdelta`,
   `.over` / `.mute`). Fixed rather than a wrap, so a tile tap that repaints the
   panel with another metric's words never changes the card's height.
-- **The panel follows the selection.** `focusApply(fx, m, ctx, selected)`
-  repaints figure, ring, colour and label for the tile that is open or pressed
-  (nutrition-summary, trends); closing it hands the panel back to calories.
-  `opts.metricLabel(m)` relabels a selected metric — trends' "Protein · 14-day
-  avg · all days" / "Fiber · 14-day avg · days recorded" — so the denominator
-  stays on screen while a tile is selected. It changes the visible text only,
-  not the accessible name, so it is only safe where the panel is a `<span>`.
+- **The panel follows the selection, on every strip.**
+  `focusApply(fx, m, ctx, selected)` repaints figure, ring, colour and label
+  for the tile that is open or pressed; any release — a second tap, Escape, the
+  drawer's ✕, the panel's own return — hands the panel back to calories. Where
+  the caller passed `onSeries` (nutrition-summary, trends) that goes through
+  it, so the sparkline re-strokes too. Otherwise `macroToggle` calls the
+  strip's default, `focusFollow(panel, ctx, m, selected)`: the same repaint
+  minus the sparkline, so meal-logged, goal-progress, site/boot.js's bound day
+  cards and the gallery's live card get it with no wiring. It used to be
+  `onSeries` or nothing, and the same tap on the same strip answered two ways
+  depending on the card. It holds on the flat rollback strip too: a rollback
+  that changed what a tap does would not be a layout rollback. The weight
+  extra (§5) is no metric and puts nothing in the panel, but opening it over a
+  held tile returns the panel to calories, and only then.
+- **A panel showing another metric is the way back.** A `<button>` panel
+  becomes the return control itself: `data-macro` comes off,
+  `data-macro-return` goes on, the chevron becomes a ✕ and its name is
+  `T.macros.showingMetric`. A `<span>` panel cannot be one, so `focusInner`'s
+  `back` emits an inner `<button type="button" class="chev fret"
+data-macro-return>` with the same name, and `focusApply` adds `.fret` to the
+  panel. That ✕ is a 24px round target (SC 2.5.8) centred where `.chev` sits,
+  with the UA button chrome reset, a hover tint on `background-color` only and
+  the system's 2px `--acc` ring. It is never emitted inside a button panel,
+  where a nested control is invalid. It is also the one return control the
+  release destroys, so when focus is on it (`focusOnInnerReturn`),
+  `macroReturn` and Escape (`macroReleaseToggle`) first hand focus to the tile
+  that held the selection (invariant 11), and `macroRestore` falls back to it
+  rather than to a span that cannot take focus.
+- **`opts.metricLabel(m)` relabels a selected metric**, so the denominator
+  stays on screen once a tile has moved the panel: trends' "Protein · 14-day
+  avg · all days" / "Fiber · 14-day avg · days recorded", and a multi-day
+  nutrition-summary's "Protein · daily avg · logged days" / "Fiber · daily avg
+  · days recorded" (the limits average over the days that recorded them; a
+  total or a single day passes none, because there the bare name is the truth).
+  It relabels the panel's `.flabel` **and the panel's own accessible names**:
+  `focusApply`'s mirror `showingMetric` name on a `<button>` panel
+  (nutrition-summary) and the `<span>` panel's ✕ (trends). Both are built by
+  `tileLabel(m, b, ctx, true)`, whose `panel` flag makes `tileName` read
+  `ctx.metricLabel(m)`, so the visible "Protein · daily avg · logged days" is
+  contained in "Showing Protein · daily avg · logged days 148/160 g, …" (WCAG
+  2.5.3). Tile names never pass the flag and keep `macroLabel`, since a tile
+  prints only its metric name.
 - **`.fspark` is the sparkline, painted by `shared/spark.js`** (nutrition-summary,
   trends): `sparkReset(calendarSlots(days, start, end), goals)` once per
   render, then `sparkPaint(fx, key, selected, opts)`. The first paint draws in;
@@ -859,7 +909,14 @@ drops to its own full-width line under the figure.
   two-part line is `.fdelta.fline`: the figure in its own element, the prose in
   `.fsince` / `.fgive`, which alone ellipsise, so a figure is never cut. The
   prose span carries its own leading space (`gap: 0`, `white-space: pre`), so no
-  newlines or indentation inside it.
+  newlines or indentation inside it. The label dates the latest reading with
+  `shortDate`, as goal-progress' panel does. The year, when there is one, is
+  the header's (`rangeLabel`), since `.flabel` is the line that ellipsises.
+  The whole-empty card's header prints `wtMetaText` over the default window
+  ("5–11 Jul · 0 weigh-ins"), the same line a range with no readings prints, so
+  two empty cards never describe one window two ways. The gallery's specimens
+  are drawn by this card's own `weightTrendsBody` (it includes
+  `shared/weight-trends-card.js`). They used to be a hand copy, and it drifted.
 
 **Over-goal convention, everywhere:** the breached element reassigns `--c` to
 `--over`, so everything keyed on it — wash, ring, sparkline stroke,
@@ -910,7 +967,9 @@ band, and the foot sitting between them instead of ending the card. Through
 `macroPanel`'s `opts.extra = { key, row: (i) => string, detail: (() => string)
 | null }` the weight row is one more `[data-macro-extra]` control, spliced in
 after water: `macroToggle`'s exclusive loop, the shared `#macro-drawer`, its ✕,
-Escape and the focus hand-back all treat it exactly like a tile.
+Escape and the focus hand-back all treat it exactly like a tile. The one
+difference is that it is no metric, so it moves nothing into the focus panel.
+Opening it over a held tile returns the panel to calories (§4).
 
 - **The key must not be a `MACROS` key** — every lookup resolves a control by
   `dataset.macro || dataset.macroExtra`, one namespace — so `macroPanel` throws
@@ -921,6 +980,12 @@ Escape and the focus hand-back all treat it exactly like a tile.
   `.dname#macro-drawer-name` (it names the region) and a `[data-macro-close]` ✕.
   Without a reading there is no button: `detail: null`, and the row is a line of
   text (`.wempty`).
+- **Its verdict is decided on whole tenths**, the precision its figures print
+  at (`weightTenths` in goal-progress.html's site-card region, which
+  `weightFig` also rounds through). 75.04 against a 74.96 target prints "75.0 →
+  75.0 kg" and reads at target, where a raw `|cur − tgt| < 0.05` said "0.1 kg to
+  lose". It is the same rule as weight-trends' `r1` and `macroBits`' whole
+  display steps: a state is decided on the printed figure.
 - On the tiered strip it takes the tiles' language, not the bar's: `--panel`
   ground, `--edge` border, the open state's `--c` tint and inset ring, 10px
   from the water bar above and from the foot below, the drawer 8px under it.
@@ -1155,7 +1220,11 @@ re-render. trends and weight-trends rewrite only the header's window text and
 the body on a toggle, so the pressed button itself is never destroyed;
 `keepFocus` (bridge.js) covers a rewrite that does replace it, keyed by
 `data-range`. A toggle that throws goes through `tryRender` and reverts: the
-range, the pressed button and the body stay as they were. For a range/filter
+range, the pressed button and the body stay as they were. A re-delivered tool
+result keeps the picked range only while its `end_date` and `default_range`
+both match the last result's. A change to either is a different question, so
+the payload's default is adopted. trends and weight-trends key on the same two
+fields. For a range/filter
 toggle, **prefer sending a superset of data and slicing client-side** over
 re-calling the tool — instant, and it needs no host tool-call support. A press
 is `translateY(1px)` on `:active`, like every other control.
@@ -1833,10 +1902,14 @@ might be absent rather than zero.
     through `Number()`, so a round 2 L would print "2" beside a "2.5 L" goal.
 
 - `calLabel` names the period the panel's figure covers, and in two widgets it names
-  the **denominator**: `nutrition-summary` says "Daily avg · logged days", `trends`
-  says "14-day avg · all days". Same macros, different number (issue #70) — that
-  label is the only place the difference is stated on screen. trends keeps it
-  there while a tile is selected, through `opts.metricLabel` (§4).
+  the **denominator**: `nutrition-summary` says "Daily avg · logged days" over
+  several logged days, `trends` says "14-day avg · all days". Same macros,
+  different number (issue #70) — that label is the only place the difference is
+  stated on screen, so trends and a multi-day nutrition-summary keep it there
+  while a tile is selected, through `opts.metricLabel` (§4). A summary range
+  with one logged day says "Total". A genuine single-day summary says "Calories
+  today" / "Calories · 20 Nov", the words meal-logged and goal-progress use for
+  the same figure (#114), rather than a third wording for one number.
 
 ### A chip is a control when it opens meals, selects a series, or both
 
@@ -1852,7 +1925,8 @@ it passes `opts.chartKeys` and `opts.onSeries`, which turn each chip into the
 chart's **series selector**. Same rail, different job, no branch in `macros.js`.
 The coupling is an explicit ctx field rather than an ambient global specifically so
 a test can hand in a spy and so a template that forgets it gets a strip that
-discloses meals and nothing else, not a silent no-op. trends recomputes
+discloses meals and moves its panel (`focusFollow`, §4) but draws nothing, not a
+silent no-op. trends recomputes
 `chartKeys` for every range, so a metric with nothing to draw in the window is a
 plain tile, and a selected metric survives a range change only while it is
 still chartable.
@@ -1876,7 +1950,7 @@ chip opens nothing, and pointing at an absent id is worse than saying nothing.
 Everything the strip writes comes out of `T.macros` (`src/copy/widgets.ts` plus one
 `widgets.<locale>.ts` per locale): `labels` (the metric names), the wording leaves
 (`noGoalSet` / `atLimit` / `floorUnder` / `ceilingUnder` / `over` / `limitPrefix`),
-`tapHint`, `closeBreakdown`, `alsoChart`.
+`tapHint` / `tapHintChart`, `showingMetric`, `closeBreakdown`, `alsoChart`.
 
 **`macros.mealTypes` is the newest of them** — `{ breakfast, lunch, dinner, snack }`,
 plain strings with no plural forms, because a meal type never carries a count. It
@@ -1893,10 +1967,12 @@ confirmation.
 
 ### Pinned hooks
 
-`data-macro`, `data-macro-extra`, `data-macro-panel`, `data-macro-hint`,
-`data-macro-close`, `data-widget-foot`, the drawer id `macro-drawer`, and the `data-macro=… aria-expanded=… aria-label=…` attribute
+`data-macro`, `data-macro-extra`, `data-macro-panel`, `data-macro-hint` (bare,
+or `="chart"`), `data-macro-return`, `data-macro-close`, `data-widget-foot`, the
+drawer id `macro-drawer`, and the `data-macro=… aria-expanded=… aria-label=…` attribute
 order on a chip are all asserted by `macros.test.ts`. Selection is **exclusive**:
-tapping another chip, or the drawer's ✕, closes whatever was open.
+tapping another chip, the drawer's ✕ or the panel's return closes whatever was
+open.
 
 ### A re-render keeps what the user had open — `macroSnapshot` / `macroRestore`
 
@@ -2145,8 +2221,10 @@ These are the rules that break something real when ignored.
     (`focus({ preventScroll: true })`); closing returns it to the control that
     opened it, **before** the region's contents — and the ✕ holding focus — are
     destroyed. Otherwise focus lands on `<body>` and a keyboard user is back at
-    the top of the tab ring. Do not reach for `aria-live` instead: a region
-    written to while `display: none` never announces.
+    the top of the tab ring. The same holds for any control its own activation
+    destroys: a `<span>` focus panel's return ✕ hands focus to the tile that
+    held the selection first (§4). Do not reach for `aria-live` instead: a
+    region written to while `display: none` never announces.
 12. **`aria-expanded` means something expands.** A control that only changes a
     graphic is `aria-pressed`, and it must not wear a disclosure chevron either.
 
