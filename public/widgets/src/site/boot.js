@@ -430,6 +430,10 @@ function bindTrendsCard(root, data) {
         // as it was rather than a toggle claiming 30 over 7 days of data.
         let next = null;
         try {
+            // This card's locale and water unit first, as bindWeightTrendsCard
+            // does: trendsView prints every figure and label through them, and
+            // another card may have asserted its own since this one bound.
+            useCard(data);
             next = trendsView(data, n, opts);
         } catch (err) {
             try {
