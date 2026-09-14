@@ -145,3 +145,24 @@ test.each(["uk", "pl"] as const)(
         ]);
     },
 );
+
+// goal-progress' weight row and weight-trends' focus panel print the distance
+// to the same target weight, from two namespaces. German drifted: goal-progress
+// kept "{amount} bis zum Ziel (abnehmen)" after weight-trends shortened it to
+// "noch {amount} abnehmen", so one account named one distance two ways.
+test.each(Object.keys(WIDGET_STRINGS))(
+    "%s words the distance to target the same on both weight cards",
+    (locale) => {
+        const t = WIDGET_STRINGS[locale as keyof typeof WIDGET_STRINGS]!;
+        const pick = (o: {
+            atTarget: string;
+            toLose: string;
+            toGain: string;
+        }) => ({
+            atTarget: o.atTarget,
+            toLose: o.toLose,
+            toGain: o.toGain,
+        });
+        expect(pick(t.goalProgress)).toEqual(pick(t.weightTrends));
+    },
+);

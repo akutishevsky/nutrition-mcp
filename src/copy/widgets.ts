@@ -268,6 +268,10 @@ export interface WidgetStrings {
         weightNoneWithTarget: string;
         /** Template. Placeholder: {reading} (pre-formatted "78.4 kg (9 Jul)"). */
         weightNoGoal: string;
+        /** atTarget / toLose / toGain are the same three phrases as
+         * weightTrends', letter for letter in every locale
+         * (src/widgets.test.ts pins it): both cards print the distance to the
+         * same target weight, and German once said it two different ways. */
         atTarget: string;
         /** Template. Placeholder: {amount} (pre-formatted with its unit). */
         toLose: string;

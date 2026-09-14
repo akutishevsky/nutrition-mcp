@@ -96,8 +96,9 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         weightNoGoal:
             "Gewicht {reading} — kein Ziel festgelegt. Leg eins mit set_nutrition_goals fest, um hier den Fortschritt zu sehen.",
         atTarget: "am Ziel",
-        toLose: "{amount} bis zum Ziel (abnehmen)",
-        toGain: "{amount} bis zum Ziel (zunehmen)",
+        // Same short forms as weightTrends below — see the note there.
+        toLose: "noch {amount} abnehmen",
+        toGain: "noch {amount} zunehmen",
         lastLogged: "zuletzt protokolliert am {date}",
         weightAria: "Gewicht {current}, Ziel {target}, {state}{metaSuffix}",
         loading: "Zielfortschritt wird geladen…",
@@ -138,11 +139,14 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         weighIns: { one: "{n} Wiegung", other: "{n} Wiegungen" },
         atTarget: "am Ziel",
         // Short forms, like every other locale's ("{amount} af te vallen",
-        // "{amount} do zrzucenia"). "{amount} bis zum Ziel (abnehmen)" both
-        // restated "Ziel" and added a parenthetical, and this line ends in
-        // " · Ziel 75,0 kg" whose figure is the only part allowed to give
-        // (`.fgive`) — so at 280px German, and German alone, printed the gloss
-        // in full and cut the target weight mid-figure ("75,").
+        // "{amount} do zrzucenia"), and shared letter for letter with
+        // goalProgress above (src/widgets.test.ts pins the pair). The old
+        // "{amount} bis zum Ziel (abnehmen)" both restated "Ziel" and added a
+        // parenthetical, and this line ends in " · Ziel 75,0 kg" whose figure
+        // is the only part allowed to give (`.fgive`) — so at 280px German,
+        // and German alone, printed the gloss in full and cut the target
+        // weight mid-figure ("75,"). goal-progress kept that long form after
+        // this card dropped it, so the two cards named one distance two ways.
         toLose: "noch {amount} abnehmen",
         toGain: "noch {amount} zunehmen",
         target: "Ziel {value}",
