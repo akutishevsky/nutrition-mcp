@@ -1079,6 +1079,12 @@ body.menu-open .menu-btn .nav-badge {
 body.menu-open {
     overflow: hidden;
 }
+/* The sheet (z-index 35) covers the viewport, so while it is open the
+   header rises above it: its close button and its logo stay visible and
+   clickable. The sheet's top padding already clears the bar. */
+body.menu-open .nm-header {
+    z-index: 40;
+}
 @media (min-width: 1120px) {
     .site-menu {
         display: none;

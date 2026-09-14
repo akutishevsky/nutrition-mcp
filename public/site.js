@@ -177,17 +177,31 @@
             return;
         }
         if (e.key !== "Tab") return;
-        // Focus trap: the toggle button (in the header) plus the sheet's
-        // own links form the loop.
-        var items = [menuBtn].concat(menuItems());
+        // Focus trap: every header control on screen (the header sits above
+        // the sheet, so its logo, language switcher, theme group and toggle
+        // all stay clickable) plus the sheet's own links form the loop, in
+        // DOM order. Rendered controls only: the Connect pill is hidden on
+        // phones and the language links while their <details> is shut
+        // (those still report client rects, and focus() on them silently
+        // fails, which pinned Tab on the switcher). Stepped explicitly
+        // rather than left to the browser, so the loop never leaves for the
+        // inert page.
+        var headItems = head
+            ? Array.prototype.filter.call(
+                  head.querySelectorAll(FOCUSABLE + ", summary"),
+                  function (el) {
+                      var shut = el.closest("details:not([open])");
+                      if (shut && el.tagName !== "SUMMARY") return false;
+                      return el.getClientRects().length > 0;
+                  },
+              )
+            : [menuBtn];
+        var items = headItems.concat(menuItems());
         var i = items.indexOf(doc.activeElement);
-        if (e.shiftKey && (i <= 0 || i === -1)) {
-            e.preventDefault();
-            items[items.length - 1].focus();
-        } else if (!e.shiftKey && i === items.length - 1) {
-            e.preventDefault();
-            items[0].focus();
-        }
+        e.preventDefault();
+        if (i === -1) i = e.shiftKey ? 0 : items.length - 1;
+        var n = items.length;
+        items[(i + (e.shiftKey ? n - 1 : 1)) % n].focus();
     }
     if (menuBtn && menu) {
         menu.hidden = true;
