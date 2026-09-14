@@ -1645,8 +1645,10 @@ body.menu-open .nm-header {
     display: none;
 }
 /* The thread scrolls, so it is a tab stop and draws the system's ring —
-   inset, because the list clips its own painting (contain: paint). */
-.nm-chat-list:focus-visible {
+   inset, because the list clips its own painting (contain: paint). Scoped
+   through its parent, as the carousel's tabs and arrows are, to beat the
+   site's generic `body [tabindex]:focus-visible` (0,2,1). */
+.nm-chat .nm-chat-list:focus-visible {
     outline: 2px solid var(--acc);
     outline-offset: -2px;
     border-radius: 12px;

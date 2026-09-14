@@ -1121,3 +1121,12 @@ test("site.js spies the header CTA and reads its data-spy-also ids", async () =>
     expect(siteJs).toContain("a.head-cta[href*='#']");
     expect(siteJs).toContain('getAttribute("data-spy-also")');
 });
+// The hero thread's inset focus ring is scoped through its parent, so the
+// site's generic `body [tabindex]:focus-visible` (0,2,1) cannot outrank it.
+test("the hero thread's own inset focus ring wins over the site's", async () => {
+    const css = (await Bun.file("./public/styles.css").text()).replace(
+        /\s+/g,
+        " ",
+    );
+    expect(css).toContain(".nm-chat .nm-chat-list:focus-visible {");
+});
