@@ -132,6 +132,11 @@ export interface WidgetStrings {
         caloriesOn: string;
         /** Hint line under an interactive strip. */
         tapHint: string;
+        /** The chart-only twin of tapHint, shown on a strip whose tiles
+         * re-target the chart but disclose no meals (trends, whose payload
+         * has no meal rows). tapHint there promised a meal breakdown the tap
+         * never opens. */
+        tapHintChart: string;
         /** Appended sentence in an interactive tile's aria-label, e.g.
          * "Protein 120 g, of 160 g · 40 g left. Show the meals that
          * contributed." */
@@ -623,6 +628,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         caloriesToday: "Calories today",
         caloriesOn: "Calories · {date}",
         tapHint: "Tap a metric for the meals behind it",
+        tapHintChart: "Tap a metric to chart it",
         showMealsContributed: "Show the meals that contributed.",
         alsoChart: "Also shows this nutrient on the chart.",
         showOnChart: "Show this on the chart.",

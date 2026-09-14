@@ -2709,6 +2709,53 @@ test("a span panel showing another metric carries a ✕ of its own that returns 
     expect(bx.hasAttribute("data-macro-return")).toBe(true);
 });
 
+// trends' rail is tappable — every tile moves the panel and its chart — and
+// the foot said nothing, because the only hint promised meals. A chart-only
+// strip now says what a tap does; the meals line keeps precedence.
+test("a chart-only strip hints that a tap charts a metric; meals wording wins", () => {
+    const { tapHint, tapHintChart } = WIDGET_STRINGS_EN.macros;
+    for (const tiers of [false, true]) {
+        const chartOnly = macrosApi.macroPanel(VALS, GOALS, undefined, [], {
+            tiers,
+            chartKeys: ["protein_g", "water_ml"],
+        } as never);
+        expect(chartOnly).toContain(
+            '<span class="fhint" data-macro-hint="chart">',
+        );
+        expect(chartOnly).toContain(tapHintChart);
+        expect(chartOnly).not.toContain(tapHint);
+
+        const both = macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+            tiers,
+            chartKeys: ["protein_g", "water_ml"],
+        } as never);
+        expect(both).toContain('<span class="fhint" data-macro-hint>');
+        expect(both).not.toContain('data-macro-hint="chart"');
+        expect(both).not.toContain(tapHintChart);
+    }
+    // A chart key for a tile the strip does not show promises nothing.
+    const untracked = macrosApi.macroPanel(
+        { ...VALS, caffeine_mg: null },
+        GOALS,
+        undefined,
+        [],
+        { chartKeys: ["caffeine_mg"] } as never,
+    );
+    expect(untracked).not.toContain("data-macro-hint");
+});
+
+test("the chart hint goes while a series is pressed and returns on release", () => {
+    const d = buildStrip(["water_ml"]);
+    d.hint.setAttribute("data-macro-hint", "chart");
+    domApi.macroToggle(d.water);
+    expect(d.hint.hidden).toBe(true);
+    domApi.macroToggle(d.water);
+    expect(d.hint.hidden).toBe(false);
+    domApi.macroToggle(d.water);
+    expect(pressEscape(d.water)).toBe(true);
+    expect(d.hint.hidden).toBe(false);
+});
+
 test("Escape from inside the weight drawer closes it and returns focus to the row", () => {
     const d = buildExtraStrip();
     domApi.macroToggle(d.weight);

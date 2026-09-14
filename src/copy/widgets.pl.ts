@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         caloriesToday: "Kalorie dzisiaj",
         caloriesOn: "Kalorie · {date}",
         tapHint: "Dotknij wskaźnik, aby zobaczyć posiłki",
+        tapHintChart: "Dotknij wskaźnika, aby zobaczyć go na wykresie",
         showMealsContributed: "Pokaż posiłki, które się na to złożyły.",
         alsoChart: "Pokazuje też ten składnik na wykresie.",
         showOnChart: "Pokaż na wykresie.",

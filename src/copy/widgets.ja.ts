@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         caloriesToday: "本日のカロリー",
         caloriesOn: "{date}のカロリー",
         tapHint: "数値をタップすると内訳の食事が表示されます",
+        tapHintChart: "数値をタップするとグラフに表示されます",
         showMealsContributed: "内訳となった食事を表示します。",
         alsoChart: "この栄養素をグラフにも表示します。",
         showOnChart: "グラフに表示します。",

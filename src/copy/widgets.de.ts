@@ -35,6 +35,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         caloriesToday: "Kalorien heute",
         caloriesOn: "Kalorien · {date}",
         tapHint: "Für die zugehörigen Mahlzeiten auf einen Wert tippen",
+        tapHintChart: "Für das Diagramm auf einen Wert tippen",
         showMealsContributed:
             "Zeigt die Mahlzeiten, die dazu beigetragen haben.",
         alsoChart: "Zeigt diesen Nährstoff außerdem im Diagramm an.",

@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         caloriesToday: "Calories aujourd'hui",
         caloriesOn: "Calories · {date}",
         tapHint: "Touchez une valeur pour voir les repas correspondants",
+        tapHintChart: "Touchez une valeur pour l’afficher sur le graphique",
         showMealsContributed: "Afficher les repas qui y ont contribué.",
         alsoChart: "Affiche aussi ce nutriment sur le graphique.",
         showOnChart: "L’afficher sur le graphique.",

@@ -1449,12 +1449,20 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // with no detail is a line of text, and a strip of text needs no handler.
     const extraOpens = !!(ctx.extra && ctx.extra.detail);
     const interactive = all.some(tap) || extraOpens;
-    // The hint promises MEALS, so it is gated on disclosure alone: a rail whose
-    // chips only re-stroke a chart (trends) would be advertising something that
-    // is not there. The extra does not count: a weight row is not "the meals
+    // TWO HINTS, and each promises only what is there. The meals wording is
+    // gated on disclosure: a rail whose chips only re-stroke a chart would be
+    // advertising a breakdown that does not exist. The chart wording
+    // (T.macros.tapHintChart, `data-macro-hint="chart"`) is emitted when no
+    // tile discloses but some tile is on the chart — trends' whole rail, which
+    // used to be tappable with nothing on the card saying so. Where both are
+    // true (nutrition-summary's Water beside tiles with meals) the meals line
+    // wins: it is the bigger feature, and one line of foot is the budget.
+    //
+    // The extra does not count for either: a weight row is not "the meals
     // behind a metric", and on a meal-less day the hint would promise meals the
     // card does not have.
     const discloses = all.some((m) => macroHasDetail(m, ctx));
+    const charts = all.some((m) => macroOnChart(m, ctx));
 
     // What a tap does, said once — in the card's FOOT, not as a chip in the
     // rail. As a dashed full-width pill it was a third species of tile sitting
@@ -1466,11 +1474,14 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // Hover and a cursor are the whole affordance on a pointer device and
     // NEITHER exists on a phone, which is where this widget mostly lives —
     // without a line saying so, the breakdown is a feature nobody discovers.
-    // macroToggle hides it once a drawer is open: by then the answer is on
-    // screen and the instruction is a row of noise above it.
+    // macroToggle hides it once the answer is on screen — a drawer open for the
+    // meals line, a series pressed for the chart line — since by then the
+    // instruction is a row of noise above it.
     const hint = discloses
         ? `<span class="fhint" data-macro-hint>${icon("point", 12)}${esc(T.macros.tapHint)}</span>`
-        : "";
+        : charts
+          ? `<span class="fhint" data-macro-hint="chart">${icon("point", 12)}${esc(T.macros.tapHintChart)}</span>`
+          : "";
     // The foot is emitted whether or not there is a hint, because it is also
     // the slot bridge.js appends its settings note into (`[data-widget-foot]`).
     // A widget with no strip at all — weight-trends, import-meals — has no
@@ -1922,8 +1933,14 @@ function macroToggle(cell) {
     // The extra's detail counts as an answer too: an open drawer is an open
     // drawer, and the line telling the user to tap for one is noise above it.
     // It returns on close by this same line.
+    //
+    // The CHART hint (`data-macro-hint="chart"`, see macroPanel) is only ever
+    // on a strip where nothing discloses, and its answer is the pressed series
+    // itself — so it goes while one is pressed (`open`) and returns on release.
     const hint = panel.querySelector("[data-macro-hint]");
-    if (hint) hint.hidden = disclosed;
+    if (hint) {
+        hint.hidden = hint.dataset.macroHint === "chart" ? open : disclosed;
+    }
 
     // THE PANEL FOLLOWS. A metric tap hands the focus panel that metric when
     // it opens and calories when it is released: through the caller's

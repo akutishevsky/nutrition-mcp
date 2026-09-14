@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         caloriesToday: "Калорії сьогодні",
         caloriesOn: "Калорії · {date}",
         tapHint: "Торкніться показника, щоб побачити страви",
+        tapHintChart: "Торкніться показника, щоб побачити його на графіку",
         showMealsContributed: "Показати страви, що це склали.",
         alsoChart: "Також показує цей нутрієнт на графіку.",
         showOnChart: "Показати на графіку.",

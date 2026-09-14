@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         caloriesToday: "Calorieën vandaag",
         caloriesOn: "Calorieën · {date}",
         tapHint: "Tik op een waarde voor de bijbehorende maaltijden",
+        tapHintChart: "Tik op een waarde om die in de grafiek te tonen",
         showMealsContributed: "Toon de maaltijden die hieraan bijdroegen.",
         alsoChart: "Toont deze voedingsstof ook in de grafiek.",
         showOnChart: "Toon dit in de grafiek.",
