@@ -598,6 +598,67 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                                 behavior: exStill() ? "auto" : "smooth",
                             });
                     }
+                    // A SLIDE IS SEEN once it is the active slide AND its chat
+                    // window is in view: slide 1 is never inert yet starts
+                    // below the fold, and the others sit off to the side. Its
+                    // widget cards hold their entrance until then (styles.css,
+                    // .nm-ex-slide:not([data-seen])), so it plays in front of
+                    // the reader, as a card's does in chat.
+                    var exInView = exSlides.map(function () {
+                        return false;
+                    });
+                    function exMarkSeen() {
+                        var s = exSlides[exActive];
+                        if (!s || !exInView[exActive] || s.hasAttribute("data-seen"))
+                            return;
+                        s.setAttribute("data-seen", "");
+                        // A SWIPE drags the slide in with its card already painted
+                        // at rest, and giving the animations back would start every
+                        // entrance from its first frame under the reader's eyes -
+                        // the ring emptying, the tiles fading out and back. So a
+                        // card that is already on screen skips to the end of its
+                        // entrances in this same task, before anything paints
+                        // (getAnimations flushes style, so they exist by then).
+                        // A button or tab change is covered by is-entering, and a
+                        // card still below the fold keeps its entrance. Only
+                        // finite animations can be finished.
+                        if (s.classList.contains("is-entering") || !s.getAnimations) return;
+                        var tr = exTrack.getBoundingClientRect();
+                        s.querySelectorAll(".nm-widget-card").forEach(function (c) {
+                            var r = c.getBoundingClientRect();
+                            var onScreen =
+                                r.right > Math.max(tr.left, 0) &&
+                                r.left < Math.min(tr.right, window.innerWidth) &&
+                                r.bottom > 0 &&
+                                r.top < window.innerHeight;
+                            if (!onScreen) return;
+                            c.getAnimations({ subtree: true }).forEach(function (a) {
+                                var t = a.effect && a.effect.getComputedTiming();
+                                if (t && t.endTime !== Infinity) a.finish();
+                            });
+                        });
+                    }
+                    if (typeof IntersectionObserver === "function") {
+                        var exSeen = new IntersectionObserver(
+                            function (entries) {
+                                entries.forEach(function (e) {
+                                    var k = exSlides.indexOf(
+                                        e.target.closest("[data-ex-slide]"),
+                                    );
+                                    if (k >= 0) exInView[k] = e.isIntersecting;
+                                });
+                                exMarkSeen();
+                            },
+                            { threshold: 0.3 },
+                        );
+                        exSlides.forEach(function (s) {
+                            exSeen.observe(s.querySelector(".nm-ex-chat") || s);
+                        });
+                    } else {
+                        exSlides.forEach(function (s) {
+                            s.setAttribute("data-seen", "");
+                        });
+                    }
                     function exSetActive(i, announce) {
                         if (i === exActive) return;
                         // A swipe can take away the slide that holds focus (the trends
@@ -607,6 +668,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             exActive >= 0 &&
                             exSlides[exActive].contains(document.activeElement);
                         exActive = i;
+                        exMarkSeen();
                         // The conversation scrolls inside its window, so a slide
                         // coming in reads from its first message, whatever the
                         // visitor left it scrolled to last time.

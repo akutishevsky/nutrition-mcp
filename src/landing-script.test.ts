@@ -1121,6 +1121,37 @@ test("site.js spies the header CTA and reads its data-spy-also ids", async () =>
     expect(siteJs).toContain("a.head-cta[href*='#']");
     expect(siteJs).toContain('getAttribute("data-spy-also")');
 });
+
+// A SLIDE'S CARDS ENTER WHEN THE SLIDE IS FIRST SEEN. In chat a card draws in
+// as it renders; the slides render with the page, off-screen, and their
+// entrances ran out unseen. The script marks a slide data-seen once it is
+// active and in view, and until then styles.css holds its cards at rest. A
+// slide swiped in with its card already painted skips to the end of that
+// card's entrances instead of restarting them under the reader.
+test("example cards hold their entrance until their slide is seen", async () => {
+    const css = (await Bun.file("./public/styles.css").text()).replace(
+        /\s+/g,
+        " ",
+    );
+    expect(css).toContain(
+        "html.js .nm-ex-slide:not([data-seen]) .nm-widget-card *, html.js .nm-ex-slide:not([data-seen]) .nm-widget-card *::before,",
+    );
+    expect(css).toContain("animation-name: none !important;");
+    const start = LANDING_SCRIPT.indexOf("function exMarkSeen(");
+    expect(start).toBeGreaterThan(-1);
+    const seen = LANDING_SCRIPT.slice(
+        start,
+        LANDING_SCRIPT.indexOf("if (typeof IntersectionObserver", start),
+    );
+    expect(seen).toContain('s.setAttribute("data-seen", "")');
+    expect(seen).toContain('s.classList.contains("is-entering")');
+    expect(seen).toContain("getAnimations({ subtree: true })");
+    expect(seen).toContain("t.endTime !== Infinity");
+    expect(LANDING_SCRIPT).toContain(
+        "exActive = i;\n                        exMarkSeen();",
+    );
+});
+
 // The importer's pictures other than the last drop their whole foot, not just
 // the settings note, or its hairline and padding frame nothing.
 test("the importer's non-done pictures drop their whole foot", async () => {

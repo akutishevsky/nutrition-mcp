@@ -2777,6 +2777,19 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
 .nm-ex-file-exp i {
     margin-right: 2px;
 }
+/* A SLIDE'S CARDS ENTER WHEN THE SLIDE IS FIRST SEEN. In chat a card draws
+   in — tiles, washes, ring, chart — as it renders, in front of the reader.
+   The slides render with the page, off to the side and below the fold, so
+   their entrances used to run out at load where nobody saw them. With
+   script, a slide's cards are held at rest (no animation at all, never a
+   paused `from` frame, which would be invisible) until LANDING_SCRIPT marks
+   the slide [data-seen] — active and in view — and giving the names back
+   starts every entrance fresh. Without script nothing is held. */
+html.js .nm-ex-slide:not([data-seen]) .nm-widget-card *,
+html.js .nm-ex-slide:not([data-seen]) .nm-widget-card *::before,
+html.js .nm-ex-slide:not([data-seen]) .nm-widget-card *::after {
+    animation-name: none !important;
+}
 /* THE IMPORTER'S SCREENS ARE CROPPED PICTURES. Their markup is the widget's,
    byte for byte (src/widget-card.test.ts, src/widget-static-cards.test.ts),
    so the crop is here, scoped to the example thread, and never reaches chat.
