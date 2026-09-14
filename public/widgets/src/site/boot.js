@@ -37,10 +37,12 @@
    live here, and both are handled per card rather than left to luck:
 
      * SPARK (shared/spark.js) is one chart axis per document, so every paint
-       is preceded by `armSpark(thisCard's slots, goals)`. `SPARK.painted` is
-       forced true after the reset because the build-time render already WAS
-       the first paint — the entrance is owed once, and it was spent in the
-       HTML the visitor is looking at.
+       is preceded by a reset to this card's slots and goals. On bind and on a
+       series tap that is `armSpark`, which forces `SPARK.painted` true: the
+       build-time render already WAS the first paint, and a series tap is
+       still in chat too. A trends range change writes a brand-new body, and
+       chat draws that chart in (trends.html paintChart), so that path resets
+       with plain `sparkReset` and the entrance is owed again.
 
      * the drawer's id (macroDrawerId, shared/macros.js) is per-strip but
        caller-supplied, and this file is not the caller that supplied it. It
@@ -62,7 +64,8 @@
    Nothing here writes to the page until a visitor touches a card. */
 
 /** The chart axis for the card about to paint. `painted` is forced on: the
- *  build-time render already spent the once-only entrance. */
+ *  build-time render already spent the once-only entrance. A trends range
+ *  change, which owes it again, calls sparkReset instead. */
 function armSpark(slots, goals) {
     sparkReset(slots, goals);
     SPARK.painted = true;
@@ -394,10 +397,16 @@ function bindTrendsCard(root, data) {
         range = Number(pressed.dataset.range);
     }
     let view = null;
+    // Set while a range change re-presses a held series through its tile:
+    // that paint is the new window's first, and owes the entrance.
+    let owed = false;
     const opts = {
         onSeries: function (key, opened) {
             useCard(data);
-            armSpark(view.slots, view.goals);
+            if (owed) {
+                owed = false;
+                sparkReset(view.slots, view.goals);
+            } else armSpark(view.slots, view.goals);
             sparkPaint(
                 bodyOf().querySelector(".focus"),
                 opened ? key : "calories",
@@ -461,15 +470,20 @@ function bindTrendsCard(root, data) {
         applyDrawerIds(body, ids);
         stashCard(body.querySelector("[data-macro-panel]"), ids);
         if (!next.slots) return;
-        armSpark(next.slots, next.goals);
+        // A new body is a new chart, and chat draws it in (trends.html
+        // paintChart resets without forcing `painted`): the entrance is owed.
+        sparkReset(next.slots, next.goals);
         const tile = heldKey
             ? body.querySelector('[data-macro="' + heldKey + '"]:not(.focus)')
             : null;
         // Through the tile, so its pressed state, the panel and the line all
         // move by the path a tap takes — only if that metric is still a
         // control in this window (chartableKeys differs per range).
-        if (tile) macroToggle(tile);
-        else {
+        if (tile) {
+            owed = true;
+            macroToggle(tile);
+            owed = false;
+        } else {
             sparkPaint(body.querySelector(".focus"), "calories", false, {
                 label: next.label,
             });

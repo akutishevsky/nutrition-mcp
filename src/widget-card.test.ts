@@ -857,3 +857,23 @@ test("a key the tool does not send is caught in the trends payload too", async (
         validateDemoPayloads(heroSummaryPayload("en"), stale),
     ).rejects.toThrow(/range_days/);
 });
+
+// A trends range change writes a new chart, and chat draws it in
+// (trends.html's paintChart resets the axis without forcing `painted`). The
+// landing runtime used to force it, so its toggle redrew the line still.
+test("a landing trends range change owes the chart its entrance, as chat does", async () => {
+    const boot = await Bun.file("./public/widgets/src/site/boot.js").text();
+    const trends = boot.slice(
+        boot.indexOf("function bindTrendsCard"),
+        boot.indexOf("function bindMealLoggedCard"),
+    );
+    expect(trends).toContain("sparkReset(next.slots, next.goals);");
+    expect(trends).not.toContain("armSpark(next.slots, next.goals)");
+    // A held series re-pressed through its tile paints the new window first.
+    expect(trends).toContain("sparkReset(view.slots, view.goals);");
+    const chat = await Bun.file(
+        "./public/widgets/src/templates/trends.html",
+    ).text();
+    expect(chat).toContain("sparkReset(view.slots, STATE.data.goals);");
+});
+
