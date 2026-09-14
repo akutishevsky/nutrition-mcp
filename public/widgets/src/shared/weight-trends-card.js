@@ -18,8 +18,10 @@
    already declares `RANGES` — so the toggle's windows are WEIGHT_RANGES, and
    the two window helpers carry a `wt` prefix.
 
-   INCLUDE ORDER. After shared/date.js (utcDay, shiftDay, shortDate, dayHeader,
-   rangeLabel), shared/svg.js (the chart geometry) and shared/fmt.js (esc).
+   INCLUDE ORDER. After shared/i18n.js (T, tpl, plural, unitLabel),
+   shared/date.js (utcDay, shiftDay, shortDate, rangeLabel), shared/svg.js (the
+   chart geometry) and shared/fmt.js (esc). The dev gallery includes it too, and
+   builds its `.focus.solo` specimens from panelHtml rather than a copy of it.
 
    There is NO chip rail, NO drawer and NO ring, and that is the point: this
    widget has a single series, a rail of one chip would be ceremony, and a

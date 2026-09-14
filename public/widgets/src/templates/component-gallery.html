@@ -254,6 +254,14 @@
                figure it prints must be grouped in WIDGET_LOCALE exactly as the
                shipping card groups it. */
             /*@include shared/fmt.js@*/
+
+            /* weight-trends' card emitter, for the `.focus.solo` specimens
+               (soloSpec, below). After i18n.js, date.js, svg.js and fmt.js —
+               everything it calls. Its top-level names (WEIGHT_RANGES, the
+               wt* helpers, panelHtml, chartHtml, w1, r1, signed…) collide with
+               nothing here, which the public site's bundle already relies on
+               with macros.js and spark.js in the same scope. */
+            /*@include shared/weight-trends-card.js@*/
             // ---- fixtures --------------------------------------------------
             // Deliberately mixed: protein under its floor, carbs past one (a
             // floor passed is not a breach, so no --over), sugar / alcohol /
@@ -1130,73 +1138,37 @@
             }
 
             // ---- weight-trends' stand-alone panel ---------------------------
-            // Hand-written, like `.more` and `.seg` above: `.focus.solo` has no
-            // emitter — weight-trends writes this markup itself — so without a
-            // specimen the whole three-line grammar it ships (`.fdelta.fline`,
-            // `.fsince`, `.fgive`) could not be reviewed in dark mode, at a
-            // phone width or in a long locale. Which is exactly what those
-            // classes are for: a translated tail once printed across the
-            // panel's border, and the ellipsis that fixed it only fires on a
-            // narrow card in de/uk/ja.
+            // Without a specimen the three-line grammar weight-trends ships
+            // (`.fdelta.fline`, `.fsince`, `.fgive`) could not be reviewed in
+            // dark mode, at a phone width or in a long locale. Which is exactly
+            // what those classes are for: a translated tail once printed across
+            // the panel's border, and the ellipsis that fixed it only fires on
+            // a narrow card in de/uk/ja.
             //
-            // The two-part line is split AT THE PLACEHOLDER, as weight-trends
-            // splits it (figureLine): the figure is its own element and stays
-            // whole, the prose either side goes in the class that may give.
-            // Split, not assumed to start with the figure — ja writes
-            // "{date}から{change}".
-            function soloLine(template, key, figure, vars, give) {
-                const cls = give ? "fgive" : "fsince";
-                const parts = String(template).split(`{${key}}`);
-                if (parts.length !== 2) {
-                    return `<b class="fdelta fline"><span class="${cls}">${esc(tpl(template, Object.assign({}, vars, { [key]: figure })))}</span></b>`;
-                }
-                const prose = (s) =>
-                    s ? `<span class="${cls}">${esc(tpl(s, vars))}</span>` : "";
-                return `<b class="fdelta fline">${prose(parts[0])}<span>${esc(figure)}</span>${prose(parts[1])}</b>`;
+            // BUILT BY THE REAL EMITTER, weightTrendsBody (panelHtml, in
+            // shared/weight-trends-card.js), over a weight-trends payload made
+            // of WEIGH_INS. This used to be a hand copy of that markup — five
+            // functions of its own — and it drifted from the panel it claimed
+            // to show: its label still printed dayHeader after the card's
+            // figure, gap and chart wrapper had moved on. A specimen that can
+            // disagree with the card is a review of the wrong thing.
+            //
+            // `readings` is a WEIGH_INS-shaped list; the window always ends on
+            // the live card's last day, and `range` is the toggle position the
+            // panel is drawn on. Drawn `.still`, like every chart here.
+            function soloPayload(readings) {
+                return {
+                    end_date: SUMMARY.end_date,
+                    unit: "kg",
+                    target: WEIGHT_TARGET,
+                    days: readings.map(([md, weight]) => ({
+                        date: thisYear(md),
+                        weight,
+                    })),
+                };
             }
-            // A line with no figure in it (needTwo, rangeEmpty, noTarget):
-            // muted, and still guarded, since a long translation is what has to
-            // give here.
-            function soloQuiet(text) {
-                return `<b class="fdelta fline mute"><span class="fsince">${esc(text)}</span></b>`;
-            }
-            // The figure slot. The em dash is a placeholder holding the box
-            // open in the state with no reading, so it is decorative and marked
-            // as such — the panel is a <span>, so its children are announced.
-            function soloFigure(v) {
-                return v == null
-                    ? '<span class="v" aria-hidden="true">—</span>'
-                    : `<span class="v">${esc(macroDecimal(v, 1))}<span class="u bare"> ${esc(unitLabel("kg"))}</span></span>`;
-            }
-            // Line 3: the gap to target, then the target itself in `.fgive` —
-            // the reference, and the part that ellipsises first. With no
-            // reading the target stands alone, so there is no separator either.
-            function soloTargetLine(latest) {
-                const kg = unitLabel("kg");
-                const target = esc(
-                    tpl(T.weightTrends.target, {
-                        value: `${macroDecimal(WEIGHT_TARGET, 1)} ${kg}`,
-                    }),
-                );
-                if (latest == null) {
-                    return `<b class="fdelta fline"><span class="fgive">${target}</span></b>`;
-                }
-                const gap = Math.round((latest - WEIGHT_TARGET) * 10) / 10;
-                const gapText =
-                    gap === 0
-                        ? T.weightTrends.atTarget
-                        : tpl(
-                              gap > 0
-                                  ? T.weightTrends.toLose
-                                  : T.weightTrends.toGain,
-                              {
-                                  amount: `${macroDecimal(Math.abs(gap), 1)} ${kg}`,
-                              },
-                          );
-                return `<b class="fdelta fline"><span>${esc(gapText)}</span><span class="fgive"> · ${target}</span></b>`;
-            }
-            function soloPanel(figure, label, line2, line3, chart) {
-                return `<span class="focus c-acc solo"><span class="fmain">${figure}<span class="fmeta"><span class="flabel">${esc(label)}</span>${line2}${line3}</span></span><span class="fspark">${chart}</span></span>`;
+            function soloSpec(readings, range, cls) {
+                return `<div class="card${cls ? " " + cls : ""} c-acc">${weightTrendsBody(soloPayload(readings), range, true)}</div>`;
             }
 
             let __widgetApi = null;
@@ -1874,75 +1846,32 @@
 
             ${sect(
                 "Focus panel — solo (weight-trends)",
-                "The stand-alone panel: no strip, no ring, no chevron, and THREE meta lines in every state, so a range toggle never changes the card's height. Each two-part line keeps its figure whole and lets only the prose give — `.fsince` on line 2, `.fgive` on line 3 — which is the ellipsis that stops a long translation printing across the panel's border. It has no emitter, so this markup is hand-written from weight-trends'. Shown full width and again at 232px: the narrow cell is where the ellipsis actually fires, and it only fires in a long locale, so review it with ?locale=de or uk.",
+                "The stand-alone panel: no strip, no ring, no chevron, and THREE meta lines in every state, so a range toggle never changes the card's height. Each two-part line keeps its figure whole and lets only the prose give — `.fsince` on line 2, `.fgive` on line 3 — which is the ellipsis that stops a long translation printing across the panel's border. Drawn by weight-trends' own emitter (weightTrendsBody), so what is reviewed here is the markup the card ships. Shown full width and again at 232px: the narrow cell is where the ellipsis actually fires, and it only fires in a long locale, so review it with ?locale=de or uk.",
                 `<div class="gstack">
                    ${wide(
-                       "latest reading · change since · gap and target",
-                       `<div class="card c-acc">${soloPanel(
-                           soloFigure(WEIGH_INS[WEIGH_INS.length - 1][1]),
-                           `${T.weightTrends.latest} · ${dayHeader(thisYear(WEIGH_INS[WEIGH_INS.length - 1][0]))}`,
-                           soloLine(
-                               T.weightTrends.sinceDate,
-                               "change",
-                               `−${macroDecimal(WEIGH_INS[0][1] - WEIGH_INS[WEIGH_INS.length - 1][1], 1)} ${unitLabel("kg")}`,
-                               { date: shortDate(thisYear(WEIGH_INS[0][0])) },
-                           ),
-                           soloTargetLine(WEIGH_INS[WEIGH_INS.length - 1][1]),
-                           bridgedWeightChart(
-                               SUMMARY.start_date,
-                               SUMMARY.end_date,
-                           ),
-                       )}</div>`,
+                       "latest reading · change since · gap and target (14 days)",
+                       soloSpec(WEIGH_INS, 14),
                    )}
                    ${wide(
                        "one reading · nothing to compare it with",
-                       `<div class="card c-acc">${soloPanel(
-                           soloFigure(WEIGH_INS[WEIGH_INS.length - 1][1]),
-                           `${T.weightTrends.latest} · ${dayHeader(thisYear(WEIGH_INS[WEIGH_INS.length - 1][0]))}`,
-                           soloQuiet(T.weightTrends.needTwo),
-                           soloTargetLine(WEIGH_INS[WEIGH_INS.length - 1][1]),
-                           bridgedWeightChart(
-                               SUMMARY.start_date,
-                               SUMMARY.end_date,
-                               [WEIGH_INS[WEIGH_INS.length - 1]],
-                           ),
-                       )}</div>`,
+                       soloSpec([WEIGH_INS[WEIGH_INS.length - 1]], 14),
                    )}
                    ${wide(
-                       "no reading in the range · the shell is kept",
-                       `<div class="card c-acc">${soloPanel(
-                           soloFigure(null),
-                           T.weightTrends.latest,
-                           soloQuiet(
-                               tpl(T.weightTrends.rangeEmpty, { range: 7 }),
+                       "no reading in the range · the shell is kept (7 days, readings only before it)",
+                       soloSpec(
+                           WEIGH_INS.filter(
+                               ([md]) =>
+                                   thisYear(md) <
+                                   shiftDay(SUMMARY.end_date, -6),
                            ),
-                           soloTargetLine(null),
-                           bridgedWeightChart(
-                               SUMMARY.start_date,
-                               SUMMARY.end_date,
-                               [],
-                           ),
-                       )}</div>`,
+                           7,
+                       ),
                    )}
                  </div>
                  <div class="grow" style="margin-top:12px">
                    ${spec(
                        "232px · where .fsince and .fgive ellipsise",
-                       `<div class="card gnarrow c-acc">${soloPanel(
-                           soloFigure(WEIGH_INS[WEIGH_INS.length - 1][1]),
-                           `${T.weightTrends.latest} · ${dayHeader(thisYear(WEIGH_INS[WEIGH_INS.length - 1][0]))}`,
-                           soloLine(
-                               T.weightTrends.sinceDate,
-                               "change",
-                               `−${macroDecimal(WEIGH_INS[0][1] - WEIGH_INS[WEIGH_INS.length - 1][1], 1)} ${unitLabel("kg")}`,
-                               { date: shortDate(thisYear(WEIGH_INS[0][0])) },
-                           ),
-                           soloTargetLine(WEIGH_INS[WEIGH_INS.length - 1][1]),
-                           bridgedWeightChart(
-                               SUMMARY.start_date,
-                               SUMMARY.end_date,
-                           ),
-                       )}</div>`,
+                       soloSpec(WEIGH_INS, 14, "gnarrow"),
                    )}
                  </div>`,
             )}
