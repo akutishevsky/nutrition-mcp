@@ -30,13 +30,14 @@
 // Numbers that are not copy: the hero chat's per-exchange nutrient deltas
 // (`HeroExchange.add`) and clock strings. The deltas are the same in every
 // locale, so a locale file copies them verbatim; they are read at BUILD
-// time, where scripts/gen-index.ts turns each cumulative state of the
-// thread into a real get_nutrition_summary payload and renders the real
-// card from it. The clock rides on the markup as data-clock and drives the
+// time, where scripts/gen-index.ts turns the thread as it stood at each
+// exchange that names a `card` into that tool's real payload (log_meal's,
+// get_nutrition_summary's, get_weight_trends') and renders the real card
+// from it. The clock rides on the markup as data-clock and drives the
 // replay script.
 //
 // THE CARDS THEMSELVES CARRY NO COPY FROM THIS FILE. Every word on the
-// hero's summary card and the examples' trends card — the title, the
+// hero's cards and the examples' cards — the title, the
 // metric names, the units, the averaging label, the date range, the days
 // logged caption, the tap hint, the settings note — comes from
 // WIDGET_STRINGS (src/copy/widgets.ts), the same dictionary the in-chat
@@ -86,17 +87,26 @@ export interface FaqEntry {
     category: FaqCategory;
 }
 
-/** One exchange in the hero's auto-playing chat. Exactly one of userText /
- * barcode is set. */
+/** The widget card a hero exchange's tool call returns, shown right after its
+ * reply: log_meal's meal-logged card, get_nutrition_summary's day, or
+ * get_weight_trends' chart. */
+export type HeroCardKind =
+    "meal-logged" | "nutrition-summary" | "weight-trends";
+
+/** One exchange in the hero's chat: what the user sends, the AI's reply, and
+ * the card that reply comes with, if any. */
 export interface HeroExchange {
-    /** What the user typed. Omitted when `barcode` is true. */
-    userText?: string;
-    /** The exchange opens with the barcode "photo" card instead of a typed
-     * message. */
-    barcode?: true;
+    /** What the user typed — or, on a `photo` exchange, the caption sent
+     * with the picture. */
+    userText: string;
+    /** Structural: copy verbatim. The exchange opens with a photo (the
+     * breakfast, drawn inline and named by `hero.chat.photoAlt`) instead of
+     * a typed message. */
+    photo?: true;
     aiText: string;
-    /** Nutrient deltas this exchange adds to the summary widget. Numbers,
-     * never copy — identical in every locale. */
+    /** Nutrient deltas this exchange logs. Numbers, never copy — identical in
+     * every locale. They sit on the exchange whose tool call wrote them: the
+     * "yes" that confirms a meal, not the photo that opened the interview. */
     add: Partial<{
         kcal: number;
         pro: number;
@@ -108,17 +118,20 @@ export interface HeroExchange {
         fib: number;
     }>;
     /** Clock shown in the chat header while this exchange plays, e.g.
-     * "08:04". */
+     * "08:40". */
     clock: string;
-    /** Show the summary widget after this exchange's reply. */
-    widget?: true;
-    /** The meal this exchange logged, as the card's drawer shows it.
+    /** Structural: copy verbatim. The card this exchange's tool call returns,
+     * brought in after its reply. Its figures come from the thread's own
+     * `add` deltas (the weight chart's from src/copy/widget-demo.ts), and the
+     * reply quotes the ones it states — src/widget-card.test.ts pins both. */
+    card?: HeroCardKind;
+    /** The meal this exchange logged, as the cards' drawers show it.
      *
      * Set it on an exchange whose `add` is food; leave it off for one that
-     * is not (the water exchange, the closing question), or the drawer
-     * grows a row reading zero under every metric. `description` is the
+     * is not (the questions, the closing ones), or the drawer grows a row
+     * reading zero under every metric. `description` is the
      * meal as it would be STORED — not the sentence the user typed, though
-     * they are usually close — and is the only string on either card that
+     * they are usually close — and is the only string on the hero's cards that
      * this file supplies; `type` is the server's own enum, not copy, and
      * is never translated (mealTypeLabel in shared/macros.js does that). */
     meal?: {
@@ -280,8 +293,10 @@ export interface IndexDoc {
         chat: {
             /** Chat header, e.g. "Nutrition · connected". */
             status: string;
-            /** Caption under the barcode card, e.g. "📷 Photo". */
-            photoCaption: string;
+            /** Accessible name of the breakfast photo the first exchange
+             * sends, e.g. "Photo: a smoothie bowl …". Keep it to what the
+             * drawing shows: the reply has to ask what it cannot. */
+            photoAlt: string;
             /** Accessible name of the pause/play toggle in the chat header
              * (WCAG 2.2.2 — the replay auto-starts and runs longer than
              * 5 s). One constant name; aria-pressed carries the state. */
@@ -290,7 +305,10 @@ export interface IndexDoc {
              * button's slot once the thread has played through; it starts
              * the thread again from the first exchange. */
             replayLabel: string;
-            /** Exactly 5, in the design's order; the replay plays them once. */
+            /** The conversation, in order; the replay plays it once. Every
+             * locale has the same exchanges with the same structure — `photo`,
+             * `card`, `add`, `clock` and `meal.type` are copied verbatim, and
+             * only the words translate. */
             exchanges: HeroExchange[];
         };
     };
@@ -551,69 +569,108 @@ export const INDEX_EN: IndexDoc = {
         moreExamples: "More examples",
         chat: {
             status: "Nutrition · connected",
-            photoCaption: "📷 Photo",
+            photoAlt:
+                "Photo: a smoothie bowl topped with banana, berries and granola, with an americano beside it",
             pauseLabel: "Pause the demo",
             replayLabel: "Replay the demo",
             exchanges: [
+                // A photo opens an interview, one question per message, and
+                // nothing is logged until the summary gets a yes — the photo
+                // flow src/mcp.ts's instructions require.
+                {
+                    photo: true,
+                    userText: "breakfast + americano",
+                    aiText: "A smoothie bowl, homemade by the look of it. You've had it two ways: with granola and honey, or just fruit. Which is this?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "granola and honey, a full spoon",
+                    aiText: "Got it. And the americano: black, or with milk?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "a splash of oat milk",
+                    aiText: "So: the bowl with a handful of granola and 1 tbsp honey, and an americano with a splash of oat milk. About 480 kcal and 21 g protein. Log it as breakfast?",
+                    add: {},
+                    clock: "08:41",
+                },
+                // 150 g Greek yogurt, a banana, 100 g berries, 30 g granola,
+                // 1 tbsp honey (17 g sugar on its own), a double-shot
+                // americano (150 mg) and 30 ml oat milk.
+                {
+                    userText: "yes",
+                    aiText: "Logged breakfast: 480 kcal, 21 g protein and 150 mg caffeine. It carries 51 g of sugar, 17 g of it from the honey.",
+                    add: {
+                        kcal: 480,
+                        pro: 21,
+                        car: 85,
+                        fat: 9,
+                        fib: 9,
+                        sugar: 51,
+                        caf: 150,
+                    },
+                    clock: "08:41",
+                    meal: {
+                        description:
+                            "Smoothie bowl (Greek yogurt, banana, berries) with granola (1 handful) and honey (1 tbsp); americano with a splash of oat milk",
+                        type: "breakfast",
+                    },
+                    card: "meal-logged",
+                },
                 {
                     userText:
-                        "Oatmeal with berries and a flat white for breakfast",
-                    aiText: "Logged — about 380 kcal, 14 g protein. The flat white adds 130 mg of caffeine.",
+                        "leftover stir fry from last night, same portion. and a 500 ml bottle of water",
+                    aiText: "Logged lunch, same as last night: 620 kcal and 54 g protein, plus 500 ml of water.",
                     add: {
-                        kcal: 380,
-                        pro: 14,
+                        kcal: 620,
+                        pro: 54,
                         car: 56,
-                        fat: 11,
-                        sugar: 12,
-                        fib: 8,
-                        caf: 130,
+                        fat: 19,
+                        fib: 5,
+                        sugar: 8,
+                        water: 500,
                     },
-                    clock: "08:04",
+                    clock: "12:55",
                     meal: {
-                        description: "Oatmeal with berries and a flat white",
-                        type: "breakfast",
+                        description:
+                            "Chicken stir fry with rice (1 plate, leftovers from last night)",
+                        type: "lunch",
                     },
                 },
                 {
-                    barcode: true,
-                    aiText: "That's a 330 ml Coca-Cola — 139 kcal, 35 g sugar, from Open Food Facts. Logged as a snack.",
-                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
-                    clock: "11:30",
+                    userText: "stole 6 of my kid's fries. don't judge",
+                    aiText: "No judgment. About 90 kcal, logged as a snack.",
+                    add: {
+                        kcal: 90,
+                        pro: 1,
+                        car: 12,
+                        fat: 5,
+                        fib: 1,
+                        sugar: 0,
+                    },
+                    clock: "16:40",
                     meal: {
-                        description: "Coca-Cola, 330 ml",
+                        description: "French fries (6 fries)",
                         type: "snack",
                     },
                 },
                 {
-                    userText: "Half a litre of water",
-                    aiText: "Done. 500 ml so far today.",
-                    add: { water: 500 },
-                    clock: "12:10",
-                },
-                {
-                    userText: "Big grilled chicken salad for lunch",
-                    aiText: "Logged — about 540 kcal, 46 g protein. You're halfway to today's 2,000.",
-                    add: {
-                        kcal: 540,
-                        pro: 46,
-                        car: 22,
-                        fat: 28,
-                        sugar: 6,
-                        fib: 7,
-                    },
-                    clock: "13:22",
-                    meal: {
-                        description: "Grilled chicken salad",
-                        type: "lunch",
-                    },
-                    widget: true,
-                },
-                {
-                    userText: "How am I doing today?",
-                    aiText: "Here's today so far — protein is on track, sugar is close to the limit.",
+                    userText: "what's left for dinner?",
+                    aiText: "810 kcal, and 84 g of protein still to find. Keep it savory: sugar's already at 59 of your 60 g.",
                     add: {},
-                    clock: "13:23",
-                    widget: true,
+                    clock: "19:20",
+                    card: "nutrition-summary",
+                },
+                // The weight card's own figures (src/copy/widget-demo.ts):
+                // 80.2 kg on 11 Feb, 78.8 kg on the hero's day, 25 days apart.
+                {
+                    userText: "and how's my weight doing?",
+                    aiText: "Down 1.4 kg since 11 Feb, about 0.4 kg a week. 3.8 kg to go to your 75 kg target.",
+                    add: {},
+                    clock: "19:21",
+                    card: "weight-trends",
                 },
             ],
         },
@@ -790,47 +847,38 @@ export const INDEX_EN: IndexDoc = {
                 id: "photo-meal",
                 title: "Snap your plate",
                 description:
-                    "A photo starts an interview, not a guess. It settles homemade or restaurant, checks how you've logged the dish before, asks one question at a time about portions and extras, and logs only once you approve the summary.",
+                    "A photo starts an interview, not a guess. It settles homemade or restaurant, reads the restaurant's menu for what the photo can't show, asks how much you ate, and logs only once you approve the summary.",
                 toolNotes: {
                     log_meal:
-                        "Logs the meal only once every question is settled and you say yes",
+                        "Logs it with the restaurant's name, once you say yes",
                     search_meals:
-                        "Finds the ways you've logged borscht before, so it can ask which",
+                        "Checks whether you've logged a meal there before",
                 },
                 messages: [
-                    {
-                        from: "user",
-                        photo: "meal",
-                        text: "mum's borscht for lunch",
-                    },
+                    { from: "user", photo: "meal", text: "lunch" },
                     {
                         from: "ai",
-                        text: "Looks great. You've logged borscht 6 times: 5 with beef (about 320 kcal a bowl, last on 2 Sep) and once meatless (about 180). Which is this one?",
+                        text: "Looks like borscht with sour cream and rye bread, with restaurant plating rather than home. Which place was it, and where?",
                     },
-                    { from: "user", text: "beef" },
+                    { from: "user", text: "Tsybulya, on Podil in Kyiv" },
                     {
                         from: "ai",
-                        text: "Got it, beef. Two things left: the sour cream and how much you ate. About how many spoonfuls of sour cream went in?",
-                    },
-                    { from: "user", text: "2 tablespoons, maybe a bit more" },
-                    {
-                        from: "ai",
-                        text: "I'll count 2 generous tablespoons. Did you finish the bowl?",
+                        text: "Found their menu: the borscht is cooked on beef broth with salo (pork fat), which a photo can't show. No calories are listed, so this will be an estimate. Did you finish it?",
                     },
                     { from: "user", text: "all of it, bread too" },
                     {
                         from: "ai",
-                        text: "So: beef borscht (1 bowl) with 2 generous tbsp sour cream, plus one slice of rye bread going by the photo. About 470 kcal and 24 g protein. Log it as lunch?",
+                        text: "So: beef borscht with sour cream and a slice of rye bread at Tsybulya, Podil, Kyiv, all finished. About 520 kcal and 24 g protein. Log it as lunch?",
                     },
                     { from: "user", text: "yes" },
                     {
                         from: "ai",
-                        text: "Logged lunch: 470 kcal · 24 g protein · 43 g carbs · 22 g fat · 7 g fiber · 10 g sugar.",
+                        text: "Logged lunch: 520 kcal · 24 g protein · 43 g carbs · 27 g fat · 7 g fiber · 10 g sugar. Estimated from their menu, not published figures.",
                     },
                 ],
-                cards: [{ kind: "meal-logged", after: 9 }],
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: [
-                    "Beef borscht (1 bowl, finished) with sour cream (2 tbsp) and rye bread (1 slice)",
+                    "Beef borscht (1 bowl, finished) with sour cream and rye bread (1 slice) at Tsybulya, Podil, Kyiv",
                 ],
             },
             {
@@ -954,7 +1002,7 @@ export const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Saved 78.4 kg. You're down 1.8 kg since 14 Aug, about 0.4 kg a week, and your 7-day average is 78.7 kg. 3.4 kg to go to your 75 kg target.",
+                        text: "Saved 78.4 kg. You're down 1.8 kg since 11 Feb, about 0.4 kg a week, and your 7-day average is 78.7 kg. 3.4 kg to go to your 75 kg target.",
                     },
                 ],
                 cards: [{ kind: "weight-trends", after: 3 }],

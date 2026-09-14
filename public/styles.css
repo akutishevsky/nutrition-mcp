@@ -111,7 +111,7 @@ body {
 
     /* Not in the design's token line but hardcoded in its markup; lifted
        here so no colour literal lives outside this block. --paper is the
-       barcode "photo" — a white label stays white in dark mode too, which
+       photos' paper — a white label or plate stays white in dark mode too, which
        is the point of it reading as a photo. --seg-shadow lifts the
        selected pill in every segmented control and --tip-shadow the map
        tooltip; the design uses both literals unchanged in dark mode, so
@@ -1639,6 +1639,13 @@ body.menu-open .nm-header {
 .nm-chat-list::-webkit-scrollbar {
     display: none;
 }
+/* The thread scrolls, so it is a tab stop and draws the system's ring —
+   inset, because the list clips its own painting (contain: paint). */
+.nm-chat-list:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: -2px;
+    border-radius: 12px;
+}
 .nm-msg {
     flex: none;
     max-width: 80%;
@@ -1671,12 +1678,73 @@ body.menu-open .nm-header {
     vertical-align: -2px;
     animation: nm-blink 1s steps(1) infinite;
 }
-.nm-msg-barcode {
-    align-self: flex-end;
-    padding: 10px;
-    background: var(--ink);
-    border-radius: 20px 20px 6px 20px;
+/* A photo the user sent in the hero chat: the picture in a dark frame with
+   the caption under it, the way a chat app shows a photo message. The frame
+   is --paper-ink, like the examples' photo bubble (.nm-ex-q-photo) and for
+   the same reason: the user bubble's --ink turns near-white in dark theme.
+   The replay pushes it whole, never types it. */
+.nm-msg-photo {
+    display: grid;
+    gap: 6px;
+    padding: 7px 7px 9px;
+    background: var(--paper-ink);
+    color: var(--paper);
 }
+.nm-msg-snap {
+    width: 180px;
+    max-width: 100%;
+    border-radius: 13px;
+    overflow: hidden;
+}
+.nm-msg-snap svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.nm-msg-cap {
+    padding: 0 8px;
+}
+/* The breakfast in that photo. The table, bowl and spoon are the borscht
+   drawing's own .nm-ex-meal-* fills; these are what only this one has, every
+   one a token mix, so the drawing follows the theme's palette. */
+.nm-snap-smoothie {
+    fill: color-mix(
+        in srgb,
+        color-mix(in srgb, var(--fat) 45%, var(--pro)) 58%,
+        var(--paper)
+    );
+}
+.nm-snap-granola {
+    fill: color-mix(in srgb, var(--caf) 55%, var(--paper));
+}
+.nm-snap-granola-dark {
+    fill: color-mix(in srgb, var(--caf) 72%, var(--paper-ink));
+}
+.nm-snap-banana {
+    fill: color-mix(in srgb, var(--cal) 20%, var(--paper));
+}
+.nm-snap-seed {
+    fill: color-mix(in srgb, var(--cal) 45%, var(--paper));
+}
+.nm-snap-blueberry {
+    fill: color-mix(in srgb, var(--pro) 62%, var(--paper-ink));
+}
+.nm-snap-raspberry {
+    fill: color-mix(in srgb, var(--fat) 78%, var(--paper-ink));
+}
+.nm-snap-honey {
+    fill: none;
+    stroke: color-mix(in srgb, var(--cal) 72%, var(--caf));
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+.nm-snap-coffee {
+    fill: color-mix(in srgb, var(--caf) 48%, var(--paper-ink));
+}
+.nm-snap-crema {
+    fill: color-mix(in srgb, var(--caf) 55%, var(--paper));
+}
+/* The package label on the scan-barcode slide's photo (.nm-ex-snap). */
 .nm-barcode {
     background: var(--paper);
     border-radius: 12px;
@@ -1699,12 +1767,6 @@ body.menu-open .nm-header {
     font-size: 11px;
     letter-spacing: 0.14em;
     color: var(--paper-ink);
-}
-.nm-barcode-cap {
-    color: var(--bg);
-    font-size: 12px;
-    opacity: 0.75;
-    margin: 8px 4px 0;
 }
 .nm-typing {
     flex: none;
@@ -2783,7 +2845,7 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     width: 100%;
     height: auto;
 }
-/* The package label reuses the hero's barcode card (.nm-barcode). */
+/* The package label is the .nm-barcode card. */
 .nm-ex-snap.nm-barcode {
     padding: 14px 12px 8px;
 }

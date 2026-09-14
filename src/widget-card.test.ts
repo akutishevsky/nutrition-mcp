@@ -2,13 +2,13 @@ import { test, expect } from "bun:test";
 import { SITE_LOCALES, type SiteLocale } from "./routes.js";
 import { INDEX } from "./copy/index.js";
 import { WIDGET_STRINGS } from "./copy/widgets.js";
-import { validateDemoPayloads } from "./copy/widget-demo.js";
+import { DEMO_HERO_DATE, validateDemoPayloads } from "./copy/widget-demo.js";
 import { readSrc, resolveIncludes } from "./widgets.js";
 import {
-    renderSummaryCard,
     renderTrendsCard,
     scriptPartialsOf,
     siteRegionsOf,
+    type SummaryPayload,
     type TrendsPayload,
 } from "./widget-static.js";
 import {
@@ -23,8 +23,9 @@ import {
     EX_META,
     LANDING_TRENDS_RANGE,
     exampleCardPayloads,
-    heroCardStates,
+    heroCards,
     renderExampleCard,
+    renderHeroCard,
     sumExchanges,
     trendsCardPayload,
 } from "../scripts/gen-index.js";
@@ -34,11 +35,11 @@ import {
     validateDemoPayload,
 } from "./copy/widget-demo.js";
 import { importFlowSummary } from "./widget-static.js";
-import type { ExampleSlideId } from "./copy/index.js";
+import type { ExampleSlideId, HeroCardKind } from "./copy/index.js";
 
 // THE DRIFT GUARD for the landing page's in-chat widget cards.
 //
-// The page ships the REAL widget cards (the hero's summary card and the
+// The page ships the REAL widget cards (the hero chat's three and the
 // examples carousel's eight), drawn
 // at build time by the widget's own emitters (src/widget-static.ts), plus a
 // mechanically-scoped copy of the widget CSS and a bundle of the same JS
@@ -107,26 +108,53 @@ function asShipped(card: string, locale: SiteLocale): string {
 
 // ------------------------------------------------------------ the cards
 
-test("every locale's hero card on disk is the card the emitters render now", async () => {
+/** The hero's summary card payload — the page's one get_nutrition_summary
+ *  payload. */
+function heroSummaryPayload(locale: SiteLocale): SummaryPayload {
+    const card = heroCards(INDEX[locale]!, locale).find(
+        (c) => c.kind === "nutrition-summary",
+    );
+    if (!card || card.kind !== "nutrition-summary")
+        throw new Error(`${locale}: the hero has no summary card`);
+    return card.payload;
+}
+
+// Every hero card, in every locale, inside the hero's thread, in order, each
+// right after the reply it follows (HeroExchange.card).
+test("every locale's hero cards on disk are the cards the emitters render now", async () => {
     const pages = await landingPages();
     expect(pages.length).toBeGreaterThan(0);
     for (const { locale, path, html } of pages) {
-        const states = heroCardStates(INDEX[locale]!, locale);
-        expect(`${path}: ${states.length} hero state(s)`).not.toBe(
-            `${path}: 0 hero state(s)`,
+        const cards = heroCards(INDEX[locale]!, locale);
+        expect(`${path}: ${cards.length} hero card(s)`).not.toBe(
+            `${path}: 0 hero card(s)`,
         );
-        for (const [n, s] of states.entries()) {
-            const card = asShipped(
-                await renderSummaryCard(s.payload, locale),
+        const thread = html.indexOf("data-chat-list>");
+        const threadEnd = html.indexOf('<a class="nm-more"', thread);
+        expect(thread).toBeGreaterThan(-1);
+        expect(threadEnd).toBeGreaterThan(thread);
+        let from = thread;
+        for (const card of cards) {
+            const shipped = asShipped(
+                await renderHeroCard(card, locale),
                 locale,
             );
+            const at = html.indexOf(shipped, from);
+            const what = `${path}: hero ${card.kind} card (after exchange ${card.index})`;
             expect(
-                html.includes(card),
-                `${path}: hero card ${n + 1}/${states.length} (exchanges ${s.indices.join(
-                    " ",
-                )}) is not the one the widget emitters render now — ` +
+                at >= 0 && at < threadEnd,
+                `${what} is not the one the widget emitters render now, or is out of order or outside the thread — ` +
                     `re-run bun run scripts/gen-index.ts`,
             ).toBe(true);
+            const replies = [
+                ...html
+                    .slice(thread, at)
+                    .matchAll(/<div class="nm-msg nm-msg-ai">/g),
+            ].length;
+            expect(`${what}: after ${replies} replies`).toBe(
+                `${what}: after ${card.index + 1} replies`,
+            );
+            from = at + shipped.length;
         }
     }
 });
@@ -147,7 +175,7 @@ test("every locale's example cards on disk are the cards the emitters render now
             ),
         ).toEqual([
             "log-meal:meal-logged@3",
-            "photo-meal:meal-logged@9",
+            "photo-meal:meal-logged@7",
             "scan-barcode:meal-logged@3",
             "goals-progress:goal-progress@5",
             "review-week:trends@1",
@@ -240,7 +268,7 @@ test("each card is wrapped the way the runtime and the scoped CSS expect", async
         const alts = INDEX[locale]!.examples.importerAlt;
         const imps = [
             ...html.matchAll(
-                /<div class="nm-widget-card" data-widget="import-meals" data-import-step="([a-z]+)" role="img" aria-label="([^"]+)">\s*<div class="wrap page" inert>/g,
+                /<div class="nm-widget-card" data-widget="import-meals" data-import-step="([a-z]+)" data-nosnippet role="img" aria-label="([^"]+)">\s*<div class="wrap page" inert>/g,
             ),
         ];
         expect(
@@ -289,7 +317,7 @@ const QUOTED_FIGURES: Partial<
     >
 > = {
     "log-meal": [{ card: 0, figures: [320, 11, 6, 95] }],
-    "photo-meal": [{ card: 0, figures: [470, 24, 43, 22, 7, 10] }],
+    "photo-meal": [{ card: 0, figures: [520, 24, 43, 27, 7, 10] }],
     "scan-barcode": [{ card: 0, figures: [139, 35, 33] }],
     "goals-progress": [{ card: 0, figures: [1540, 104, 460, 56, 40] }],
     "weight-trend": [{ card: 0, figures: [78.4, 1.8, 3.4] }],
@@ -357,6 +385,40 @@ test("each example card's reply quotes the figures its card prints", async () =>
                         `${at}: message ${idx} "${reply?.text}" does not quote the card's ${spelled.join(" / ")}`,
                     ).toBe(true);
                 }
+            }
+        }
+    }
+});
+
+// The hero's replies quote their cards the same way: every figure a reply
+// states that its card prints, in that card's own spelling for the locale.
+// The reply's other figures — the honey's 17 g, the weekly 0.4 kg — are not
+// on the card, and are left out.
+const HERO_QUOTED: Record<HeroCardKind, number[]> = {
+    "meal-logged": [480, 21, 150, 51],
+    "nutrition-summary": [810, 84, 59, 60],
+    "weight-trends": [1.4, 3.8],
+};
+
+test("each hero card's reply quotes the figures its card prints", async () => {
+    for (const locale of Object.keys(INDEX) as SiteLocale[]) {
+        const doc = INDEX[locale]!;
+        for (const card of heroCards(doc, locale)) {
+            const tokens = figureTokens(await renderHeroCard(card, locale));
+            const reply = doc.hero.chat.exchanges[card.index]!.aiText;
+            const at = `${locale} hero ${card.kind}`;
+            for (const n of HERO_QUOTED[card.kind]) {
+                const spelled = [
+                    ...new Set(tokens.filter((t) => spells(t, n))),
+                ];
+                expect(
+                    spelled.length,
+                    `${at}: the card does not print ${n}`,
+                ).toBeGreaterThan(0);
+                expect(
+                    spelled.some((t) => reply.includes(t)),
+                    `${at}: "${reply}" does not quote the card's ${spelled.join(" / ")}`,
+                ).toBe(true);
             }
         }
     }
@@ -616,56 +678,44 @@ test("each locale's strings file carries that locale's current dictionary", asyn
 
 // ------------------------------------------------- the cards vs. the copy
 
-// The hero card is the thread's running total, so the card the replay brings
-// in after exchange N must be exactly what exchanges 0..N logged. Pinned
-// against sumExchanges — the generator's own summing function — rather than
-// against the final state alone, which is all the page's markup shows.
-test("each hero card state is the thread summed up to its own exchange", () => {
+// Each hero card is the thread as it stood when that exchange's tool call
+// returned, so the card the replay brings in after exchange N must be exactly
+// what exchanges 0..N logged. Pinned against sumExchanges — the generator's
+// own summing function — rather than against the page's markup alone.
+test("each hero card is the thread summed up to its own exchange", () => {
     const locales = Object.keys(INDEX) as SiteLocale[];
     expect(locales).toContain("en");
     for (const locale of locales) {
         const doc = INDEX[locale]!;
         const exchanges = doc.hero.chat.exchanges;
-        const states = heroCardStates(doc, locale);
-        expect(
-            states.length,
-            `${locale}: at least one card state`,
-        ).toBeGreaterThan(0);
-        // Every widget-flagged exchange is served by exactly one state.
-        const flagged = exchanges.flatMap((ex, i) => (ex.widget ? [i] : []));
-        expect(states.flatMap((s) => s.indices)).toEqual(flagged);
-        for (const s of states) {
-            // A state's OWN exchange is its first index; the later ones share
-            // it only because they logged nothing new.
-            const at = s.indices[0]!;
-            const want = sumExchanges(exchanges, at);
-            const avg = s.payload.averages;
-            expect(`${locale}@${at} kcal: ${avg.calories}`).toBe(
-                `${locale}@${at} kcal: ${want.kcal}`,
-            );
-            expect(`${locale}@${at} protein: ${avg.protein_g}`).toBe(
-                `${locale}@${at} protein: ${want.pro}`,
-            );
-            expect(`${locale}@${at} carbs: ${avg.carbs_g}`).toBe(
-                `${locale}@${at} carbs: ${want.car}`,
-            );
-            expect(`${locale}@${at} fat: ${avg.fat_g}`).toBe(
-                `${locale}@${at} fat: ${want.fat}`,
-            );
-            expect(`${locale}@${at} sugar: ${avg.sugar_g}`).toBe(
-                `${locale}@${at} sugar: ${want.sugar}`,
-            );
-            expect(`${locale}@${at} caffeine: ${avg.caffeine_mg}`).toBe(
-                `${locale}@${at} caffeine: ${want.caf}`,
-            );
-            expect(`${locale}@${at} water: ${avg.water_ml}`).toBe(
-                `${locale}@${at} water: ${want.water}`,
-            );
-            for (const i of s.indices.slice(1)) {
+        const cards = heroCards(doc, locale);
+        expect(cards.map((c) => `${c.index}:${c.kind}`)).toEqual(
+            exchanges.flatMap((ex, i) => (ex.card ? [`${i}:${ex.card}`] : [])),
+        );
+        for (const card of cards) {
+            const at = `${locale}@${card.index} ${card.kind}`;
+            const w = sumExchanges(exchanges, card.index);
+            const want = `${w.kcal} ${w.pro} ${w.car} ${w.fat} ${w.fib} ${w.sugar} ${w.caf} ${w.water}`;
+            if (card.kind === "nutrition-summary") {
+                const a = card.payload.averages;
                 expect(
-                    JSON.stringify(sumExchanges(exchanges, i)),
-                    `${locale}: exchange ${i} shares a card with ${at} but logged something`,
-                ).toBe(JSON.stringify(want));
+                    `${at}: ${a.calories} ${a.protein_g} ${a.carbs_g} ${a.fat_g} ${a.fiber_g} ${a.sugar_g} ${a.caffeine_mg} ${a.water_ml}`,
+                ).toBe(`${at}: ${want}`);
+            } else if (card.kind === "meal-logged") {
+                const t = card.payload.totals;
+                expect(
+                    `${at}: ${t.calories} ${t.protein_g} ${t.carbs_g} ${t.fat_g} ${t.fiber_g} ${t.sugar_g} ${t.caffeine_mg} ${t.water_ml}`,
+                ).toBe(`${at}: ${want}`);
+                // The meal it announces is the one THIS exchange confirmed.
+                expect(card.payload.logged_meal.description).toBe(
+                    exchanges[card.index]!.meal!.description,
+                );
+            } else {
+                // The weigh-ins up to the hero's day, and none after it.
+                expect(card.payload.end_date).toBe(DEMO_HERO_DATE);
+                expect(
+                    card.payload.days.every((d) => d.date <= DEMO_HERO_DATE),
+                ).toBe(true);
             }
         }
     }
@@ -779,8 +829,8 @@ test("the trends slide's reply quotes the figures its card prints", async () => 
 
 // WHAT IS EMITTED IS WHAT IS VALIDATED.
 //
-// scripts/gen-index.ts validates each hero state against the live
-// get_nutrition_summary schema, exactly as it renders it — but the trends
+// scripts/gen-index.ts validates each hero card against its tool's live
+// schema, exactly as it renders it — but the trends
 // payload it renders is `{...DEMO_TRENDS, locale, default_range}`, a spread,
 // and the canonical object is not it. `z.object()` STRIPS unknown keys rather
 // than rejecting them, at every depth, so a field added or renamed in that
@@ -788,8 +838,10 @@ test("the trends slide's reply quotes the figures its card prints", async () => 
 // object the page actually embeds is parsed here, in every locale.
 test("every locale's embedded trends payload matches the live tool schema", async () => {
     for (const locale of Object.keys(INDEX) as SiteLocale[]) {
-        const hero = heroCardStates(INDEX[locale]!, locale)[0]!;
-        await validateDemoPayloads(hero.payload, trendsCardPayload(locale));
+        await validateDemoPayloads(
+            heroSummaryPayload(locale),
+            trendsCardPayload(locale),
+        );
     }
 });
 
@@ -797,12 +849,11 @@ test("a key the tool does not send is caught in the trends payload too", async (
     // The guard above is only worth its runtime if the payload handed to it
     // is the one checked — a defaulted parameter that went unused would look
     // identical. This is the failure the harness fixtures actually had.
-    const hero = heroCardStates(INDEX.en!, "en")[0]!;
     const stale = {
         ...trendsCardPayload("en"),
         range_days: LANDING_TRENDS_RANGE,
     } as unknown as TrendsPayload;
-    await expect(validateDemoPayloads(hero.payload, stale)).rejects.toThrow(
-        /range_days/,
-    );
+    await expect(
+        validateDemoPayloads(heroSummaryPayload("en"), stale),
+    ).rejects.toThrow(/range_days/);
 });

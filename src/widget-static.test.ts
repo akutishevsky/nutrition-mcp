@@ -26,7 +26,7 @@ import {
 } from "./widget-static.js";
 import {
     DEMO_GOALS,
-    DEMO_SUMMARY_DATE,
+    DEMO_HERO_DATE,
     DEMO_TRENDS,
     DEMO_TRENDS_RANGE,
     demoSummaryPayload,
@@ -38,10 +38,12 @@ import { SITE_LOCALES, type SiteLocale } from "./routes.js";
 
 // ---- The payloads under test ---------------------------------------------
 
-// The hero chat's four food exchanges. English-only and defined HERE rather
-// than in src/copy/widget-demo.ts, which holds no reader-visible strings: a
-// meal description is the user's own text and the landing page translates it,
-// so the payload builder takes the rows as an argument (see DemoMealInput).
+// A stand-in day of four meals — the summary card's renderer is under test
+// here, not the hero's copy (src/widget-card.test.ts pins that). English-only
+// and defined HERE rather than in src/copy/widget-demo.ts, which holds no
+// reader-visible strings: a meal description is the user's own text and the
+// landing page translates it, so the payload builder takes the rows as an
+// argument (see DemoMealInput).
 const HERO_MEALS: DemoMealInput[] = [
     {
         description: "Oatmeal with berries",
@@ -118,14 +120,14 @@ const THREE_DAY_SUMMARY: SummaryPayload = (() => {
     });
     return {
         ...base,
-        start_date: "2025-09-06",
-        end_date: DEMO_SUMMARY_DATE,
+        start_date: "2026-03-06",
+        end_date: DEMO_HERO_DATE,
         logged_days: 3,
         days_in_range: 3,
         days: [
-            day("2025-09-06", 1880),
-            day("2025-09-07", 1910),
-            day(DEMO_SUMMARY_DATE, 1059),
+            day("2026-03-06", 1880),
+            day("2026-03-07", 1910),
+            day(DEMO_HERO_DATE, 1059),
         ],
     };
 })();
@@ -275,18 +277,21 @@ describe("demo payloads", () => {
 
     test("the dates are fixed, not build-date-relative", () => {
         // A date derived from today would churn nine generated pages on every
-        // run. A PAST year additionally pins the label: rangeNeedsYear prints
-        // the year for any range outside the current one, so these render the
-        // same bytes for ever.
-        const thisYear = new Date().getFullYear();
+        // run. The timeline is anchored on the day the project started (see
+        // the top of src/copy/widget-demo.ts); whether a card prints the year
+        // depends on the year it is generated in, by design, so no test here
+        // pins it.
+        expect(DEMO_HERO_DATE).toBe("2026-03-08");
         for (const iso of [
-            DEMO_SUMMARY_DATE,
+            DEMO_HERO_DATE,
             DEMO_TRENDS.end_date,
             DEMO_TRENDS.days[0]!.date,
         ]) {
             expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-            expect(Number(iso.slice(0, 4))).toBeLessThan(thisYear);
         }
+        // The trends window ends the day before the hero's day.
+        expect(DEMO_TRENDS.end_date).toBe("2026-03-07");
+        expect(DEMO_TRENDS.days[0]!.date).toBe("2026-02-06");
     });
 });
 

@@ -35,70 +35,101 @@ export const INDEX_ES: IndexDoc = {
         moreExamples: "Más ejemplos",
         chat: {
             status: "Nutrition · conectado",
-            photoCaption: "📷 Foto",
+            photoAlt:
+                "Foto: un smoothie bowl con plátano, frutos rojos y granola por encima, y un americano al lado",
             pauseLabel: "Pausar la demo",
             replayLabel: "Repetir la demo",
             exchanges: [
                 {
-                    userText:
-                        "Avena con frutos rojos y un flat white para desayunar",
-                    aiText: "Registrado: unas 380 kcal y 14 g de proteína. El flat white suma 130 mg de cafeína.",
+                    photo: true,
+                    userText: "desayuno + americano",
+                    aiText: "Un smoothie bowl, casero por lo que parece. Lo has tomado de dos maneras: con granola y miel, o solo con fruta. ¿Cuál es este?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "granola y miel, una cucharada bien llena",
+                    aiText: "Entendido. ¿Y el americano: solo o con leche?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "un chorrito de leche de avena",
+                    aiText: "Entonces: el bowl con un puñado de granola y 1 cda. de miel, y un americano con un chorrito de leche de avena. Unas 480 kcal y 21 g de proteína. ¿Lo registro como desayuno?",
+                    add: {},
+                    clock: "08:41",
+                },
+                {
+                    userText: "sí",
+                    aiText: "Desayuno registrado: 480 kcal, 21 g de proteína y 150 mg de cafeína. Lleva 51 g de azúcar, 17 g de ellos de la miel.",
                     add: {
-                        kcal: 380,
-                        pro: 14,
-                        car: 56,
-                        fat: 11,
-                        sugar: 12,
-                        fib: 8,
-                        caf: 130,
+                        kcal: 480,
+                        pro: 21,
+                        car: 85,
+                        fat: 9,
+                        fib: 9,
+                        sugar: 51,
+                        caf: 150,
                     },
-                    clock: "08:04",
+                    clock: "08:41",
                     meal: {
-                        description: "Avena con frutos rojos y un flat white",
+                        description:
+                            "Smoothie bowl (yogur griego, plátano, frutos rojos) con granola (1 puñado) y miel (1 cda.); americano con un chorrito de leche de avena",
                         type: "breakfast",
+                    },
+                    card: "meal-logged",
+                },
+                {
+                    userText:
+                        "lo que sobró del salteado de anoche, la misma ración. y una botella de agua de 500 ml",
+                    aiText: "Almuerzo registrado, igual que anoche: 620 kcal y 54 g de proteína, más 500 ml de agua.",
+                    add: {
+                        kcal: 620,
+                        pro: 54,
+                        car: 56,
+                        fat: 19,
+                        fib: 5,
+                        sugar: 8,
+                        water: 500,
+                    },
+                    clock: "12:55",
+                    meal: {
+                        description:
+                            "Salteado de pollo con arroz (1 plato, sobras de anoche)",
+                        type: "lunch",
                     },
                 },
                 {
-                    barcode: true,
-                    aiText: "Es una Coca-Cola de 330 ml: 139 kcal y 35 g de azúcar, según Open Food Facts. Registrada como snack.",
-                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
-                    clock: "11:30",
+                    userText:
+                        "le he robado 6 patatas fritas a mi hijo. no me juzgues",
+                    aiText: "Nadie te juzga. Unas 90 kcal, registradas como tentempié.",
+                    add: {
+                        kcal: 90,
+                        pro: 1,
+                        car: 12,
+                        fat: 5,
+                        fib: 1,
+                        sugar: 0,
+                    },
+                    clock: "16:40",
                     meal: {
-                        description: "Coca-Cola, 330 ml",
+                        description: "Patatas fritas (6 patatas)",
                         type: "snack",
                     },
                 },
                 {
-                    userText: "Medio litro de agua",
-                    aiText: "Hecho. Llevas 500 ml hoy.",
-                    add: { water: 500 },
-                    clock: "12:10",
-                },
-                {
-                    userText:
-                        "Una ensalada grande de pollo a la parrilla para comer",
-                    aiText: "Registrado: unas 540 kcal y 46 g de proteína. Vas por la mitad de las 2000 de hoy.",
-                    add: {
-                        kcal: 540,
-                        pro: 46,
-                        car: 22,
-                        fat: 28,
-                        sugar: 6,
-                        fib: 7,
-                    },
-                    clock: "13:22",
-                    meal: {
-                        description: "Ensalada grande de pollo a la parrilla",
-                        type: "lunch",
-                    },
-                    widget: true,
-                },
-                {
-                    userText: "¿Cómo voy hoy?",
-                    aiText: "Así va el día hasta ahora: la proteína va bien encaminada y el azúcar está cerca del límite.",
+                    userText: "¿qué me queda para la cena?",
+                    aiText: "810 kcal, y todavía te faltan 84 g de proteína. Mejor algo salado: el azúcar ya va por 59 de tus 60 g.",
                     add: {},
-                    clock: "13:23",
-                    widget: true,
+                    clock: "19:20",
+                    card: "nutrition-summary",
+                },
+                {
+                    userText: "¿y qué tal va mi peso?",
+                    aiText: "Has bajado 1,4 kg desde el 11 feb, unos 0,4 kg por semana. Te faltan 3,8 kg para tu objetivo de 75 kg.",
+                    add: {},
+                    clock: "19:21",
+                    card: "weight-trends",
                 },
             ],
         },
@@ -275,47 +306,38 @@ export const INDEX_ES: IndexDoc = {
                 id: "photo-meal",
                 title: "Fotografía tu plato",
                 description:
-                    "Una foto inicia una entrevista, no una conjetura. Aclara si es casero o de restaurante, mira cómo has registrado ese plato antes, pregunta de una en una por raciones y extras, y solo registra cuando apruebas el resumen.",
+                    "Una foto inicia una entrevista, no una conjetura. Aclara si es casero o de restaurante, consulta la carta del local para lo que la foto no muestra, pregunta cuánto comiste y solo registra cuando apruebas el resumen.",
                 toolNotes: {
                     log_meal:
-                        "Registra la comida solo cuando todo está claro y dices que sí",
+                        "Lo registra con el nombre del restaurante cuando dices que sí",
                     search_meals:
-                        "Busca tus borsch registrados antes para preguntar cuál",
+                        "Comprueba si ya has registrado alguna comida allí",
                 },
                 messages: [
-                    {
-                        from: "user",
-                        photo: "meal",
-                        text: "el borsch de mi madre, de almuerzo",
-                    },
+                    { from: "user", photo: "meal", text: "almuerzo" },
                     {
                         from: "ai",
-                        text: "Tiene muy buena pinta. Has registrado borsch 6 veces: 5 con ternera (unas 320 kcal el plato, la última el 2 sept) y una sin carne (unas 180). ¿Cuál es este?",
+                        text: "Parece borsch con crema agria y pan de centeno, con una presentación más de restaurante que de casa. ¿Qué sitio era y dónde?",
                     },
-                    { from: "user", text: "con ternera" },
+                    { from: "user", text: "Tsybulya, en Podil, Kiev" },
                     {
                         from: "ai",
-                        text: "Vale, con ternera. Quedan dos cosas: la crema agria y cuánto comiste. ¿Cuántas cucharadas de crema agria le pusiste, más o menos?",
+                        text: "He encontrado su carta: el borsch se hace con caldo de ternera y salo (tocino de cerdo), algo que una foto no puede mostrar. No indica calorías, así que será una estimación. ¿Te lo terminaste?",
                     },
-                    { from: "user", text: "2 cucharadas, quizá un poco más" },
+                    { from: "user", text: "todo, y el pan también" },
                     {
                         from: "ai",
-                        text: "Cuento 2 cucharadas generosas. ¿Te terminaste el plato?",
-                    },
-                    { from: "user", text: "entero, y el pan también" },
-                    {
-                        from: "ai",
-                        text: "Entonces: borsch con ternera (1 plato) con 2 cdas. generosas de crema agria, y una rebanada de pan de centeno por lo que se ve en la foto. Unas 470 kcal y 24 g de proteína. ¿Lo registro como almuerzo?",
+                        text: "Entonces: borsch de ternera con crema agria y una rebanada de pan de centeno en Tsybulya, Podil, Kiev, sin dejar nada. Unas 520 kcal y 24 g de proteína. ¿Lo registro como almuerzo?",
                     },
                     { from: "user", text: "sí" },
                     {
                         from: "ai",
-                        text: "Almuerzo registrado: 470 kcal · 24 g de proteína · 43 g de carbohidratos · 22 g de grasa · 7 g de fibra · 10 g de azúcar.",
+                        text: "Almuerzo registrado: 520 kcal · 24 g de proteína · 43 g de carbohidratos · 27 g de grasa · 7 g de fibra · 10 g de azúcar. Estimado a partir de su carta, no de cifras publicadas.",
                     },
                 ],
-                cards: [{ kind: "meal-logged", after: 9 }],
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: [
-                    "Borsch con ternera (1 plato, entero) con crema agria (2 cdas.) y pan de centeno (1 rebanada)",
+                    "Borsch de ternera con crema agria (1 plato, entero) y pan de centeno (1 rebanada) en Tsybulya, Podil, Kiev",
                 ],
             },
             {
@@ -439,7 +461,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Guardados 78,4 kg. Has bajado 1,8 kg desde el 14 ago, unos 0,4 kg por semana, y tu media de 7 días es de 78,7 kg. Te faltan 3,4 kg para tu objetivo de 75 kg.",
+                        text: "Guardados 78,4 kg. Has bajado 1,8 kg desde el 11 feb, unos 0,4 kg por semana, y tu media de 7 días es de 78,7 kg. Te faltan 3,4 kg para tu objetivo de 75 kg.",
                     },
                 ],
                 cards: [{ kind: "weight-trends", after: 3 }],

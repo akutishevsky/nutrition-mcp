@@ -445,7 +445,7 @@ interface WeightTrendsSandbox extends BaseSandbox {
     weightTrendsCard(
         data: WeightTrendsPayload,
         range: number,
-        opts: { still?: boolean },
+        opts: { still?: boolean; idPrefix?: string },
     ): string;
     weightTrendsBody(
         data: WeightTrendsPayload,
@@ -684,9 +684,10 @@ export async function renderGoalProgressCard(
  *  `range`, as a string.
  *
  *  `range` must be one of WEIGHT_RANGES and is the window that reads as
- *  pressed. The card carries fixed ids (`#wt-meta`, `#wt-body`), so a page
- *  holds one of these. Rendered as a FIRST paint (not `.still`), so the chart
- *  draws in once, as the other two chart cards' do. */
+ *  pressed. The card's two ids (`#wt-meta`, `#wt-body`) take `opts.idPrefix`,
+ *  and a second card on a page needs its own `opts.chartIdBase` too. Rendered
+ *  as a FIRST paint (not `.still`), so the chart draws in once, as the other
+ *  two chart cards' do. */
 export async function renderWeightTrendsCard(
     payload: WeightTrendsPayload,
     locale: SiteLocale,
@@ -704,7 +705,10 @@ export async function renderWeightTrendsCard(
             `renderWeightTrendsCard: range ${range} is not one of ${sb.WEIGHT_RANGES.join("/")}`,
         );
     }
-    return sb.weightTrendsCard(payload, range, { still: false });
+    return sb.weightTrendsCard(payload, range, {
+        still: false,
+        idPrefix: opts.idPrefix,
+    });
 }
 
 // ---- The importer's screens ----------------------------------------------

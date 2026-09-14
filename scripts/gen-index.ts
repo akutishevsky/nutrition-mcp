@@ -52,6 +52,7 @@ import {
     type ExampleSlide,
     type ExampleSlideId,
     type FaqEntry,
+    type HeroCardKind,
     type HeroExchange,
     type IndexDoc,
 } from "../src/copy/index.js";
@@ -75,10 +76,12 @@ import {
 import {
     DEMO_EXAMPLE_MEALS,
     DEMO_GOAL_PROGRESS_MEALS,
+    DEMO_HERO_DATE,
     DEMO_TRENDS,
     demoExampleMealLogged,
     demoGoalProgressPayload,
     demoImportFile,
+    demoMealLoggedPayload,
     demoStartImportPayload,
     demoSummaryPayload,
     demoWeightTrendsPayload,
@@ -168,22 +171,41 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     });
                 });
 
-                // ---------- hero chat: replay the static thread ----------
-                // The generator renders the whole conversation in full, so the page
-                // reads without script and for crawlers. Here it is taken apart into
-                // exchanges (a user or barcode bubble carrying data-clock, then
-                // its AI reply) and
-                // played through once: type the user line, show the typing
-                // dots, reveal the reply, bring in the card for what has been logged
-                // so far. Every bubble on screen is a clone of one the generator
-                // wrote - the script holds no copy of its own, and it computes no
-                // figure of its own either: the cards are REAL get_nutrition_summary
-                // cards, rendered at build time by the widget's own emitters, one per
-                // cumulative state of the thread.
+                // ---------- hero chat: play the static thread ----------
+                // The generator renders the whole conversation in full - every
+                // bubble, and every card right after the reply it came with - so
+                // the page reads without script and for crawlers. Here it is taken
+                // apart into exchanges (a user bubble carrying data-clock, typed or
+                // a photo, then its AI reply) and played through once: type the
+                // user line, show the typing dots, reveal the reply, bring in its
+                // card. Every bubble on screen is a clone of one the generator
+                // wrote and every card is one it rendered, with the widget's own
+                // emitters, from the thread's own figures - the script holds no
+                // copy and computes no figure of its own.
                 var chatList = document.querySelector("[data-chat-list]");
                 var chatClock = document.querySelector("[data-chat-clock]");
                 var chatPause = document.querySelector("[data-chat-pause]");
                 var chatReplay = document.querySelector("[data-chat-replay]");
+                // What the hero is for, measured: the demo starting, finishing
+                // and being replayed, and the two calls to action beside it.
+                // Through the page's analytics when it has any - a self-hosted
+                // copy has the snippet stripped (scripts/depersonalize.ts), and
+                // every call is then a no-op. Event names only, never copy.
+                function heroTrack(name, params) {
+                    if (typeof window.gtag === "function")
+                        window.gtag("event", name, params || {});
+                }
+                document
+                    .querySelectorAll(".nm-hero-actions a")
+                    .forEach(function (a) {
+                        a.addEventListener("click", function () {
+                            heroTrack("hero_cta_click", {
+                                cta: a.classList.contains("nm-btn-primary")
+                                    ? "connect"
+                                    : "github",
+                            });
+                        });
+                    });
                 // WCAG 2.2.2: the replay auto-starts and runs longer than 5 s, so
                 // the reader gets a pause. It freezes the run where it stands - mid
                 // word if that is where it was - and play resumes from there. The
@@ -234,26 +256,21 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     document
                         .querySelectorAll("[data-hero-card]")
                         .forEach(function (el) {
-                            el.getAttribute("data-hero-card")
-                                .split(" ")
-                                .forEach(function (i) {
-                                    heroCards[i] = el;
-                                });
+                            heroCards[el.getAttribute("data-hero-card")] = el;
                         });
                     var exchanges = [];
                     [].slice.call(chatList.children).forEach(function (node) {
-                        if (node.matches(".nm-msg-user, .nm-msg-barcode")) {
+                        if (node.matches(".nm-msg-user")) {
                             exchanges.push({
                                 user: node,
                                 ai: null,
                                 clock: node.getAttribute("data-clock") || "",
-                                barcode: node.classList.contains("nm-msg-barcode"),
+                                photo: node.classList.contains("nm-msg-photo"),
                             });
                         } else if (node.matches(".nm-msg-ai") && exchanges.length) {
                             exchanges[exchanges.length - 1].ai = node;
                         }
                     });
-                    var CHAT_MAX = 12;
                     // Keeping the thread pinned to its bottom means reading
                     // scrollHeight, and reading it forces the browser to lay the
                     // thread out then and there. Doing that per typed character —
@@ -271,13 +288,37 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             chatList.scrollTop = chatList.scrollHeight;
                         });
                     }
+                    // Nothing is trimmed from the top: a run is eight exchanges
+                    // and three cards and then stands, and the reader scrolls
+                    // back through all of it.
                     function push(el) {
                         var typing = chatList.querySelector(".nm-typing");
                         if (typing) typing.remove();
                         chatList.appendChild(el);
-                        while (chatList.children.length > CHAT_MAX)
-                            chatList.removeChild(chatList.firstChild);
                         pinToBottom();
+                    }
+                    // A CARD IS SHOWN FROM ITS TOP. It is nearly as tall as the
+                    // thread's window - the summary card is about 425 px of a
+                    // 483 px list - so pinning the thread to its bottom scrolled
+                    // the card's own header out of view as it landed, and on a
+                    // phone its title and ring with it. The whole card shows when
+                    // it fits, its top when it does not; the reply above it has
+                    // had its own beat by then (see play()). Queued after any
+                    // pinToBottom frame, so it is the scroll that holds.
+                    function showCard(card) {
+                        var typing = chatList.querySelector(".nm-typing");
+                        if (typing) typing.remove();
+                        chatList.appendChild(card);
+                        requestAnimationFrame(function () {
+                            var top =
+                                card.getBoundingClientRect().top -
+                                chatList.getBoundingClientRect().top +
+                                chatList.scrollTop;
+                            chatList.scrollTop = Math.min(
+                                top + card.offsetHeight - chatList.clientHeight,
+                                top - 12,
+                            );
+                        });
                     }
                     function typingBubble() {
                         var d = document.createElement("div");
@@ -336,7 +377,12 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         }
                         caret.remove();
                     }
+                    var heroRuns = 0;
                     async function play() {
+                        // Whether this run is a replay, said on the completion
+                        // event: the start event fires once per page view, so
+                        // unmarked completions would outnumber it.
+                        var replayRun = heroRuns++ > 0;
                         // Synchronous, before the first await: the replay button is
                         // gone before a second press could reach it.
                         showReplay(false);
@@ -347,7 +393,8 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             var ex = exchanges[i];
                             if (chatClock) chatClock.textContent = ex.clock;
                             await wait(500);
-                            if (ex.barcode) {
+                            await whenPlaying();
+                            if (ex.photo) {
                                 push(ex.user.cloneNode(true));
                                 await wait(900);
                             } else {
@@ -359,41 +406,77 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             await wait(900);
                             await whenPlaying();
                             if (ex.ai) push(ex.ai.cloneNode(true));
-                            if (heroCards[i]) {
-                                await wait(500);
+                            var card = heroCards[i];
+                            if (card) {
+                                // The reply first, on its own and long enough to
+                                // read: the card lands over it, and the reply is
+                                // what says which of the card's figures matter.
+                                await wait(1600);
                                 await whenPlaying();
-                                push(heroCards[i]);
+                                showCard(card);
                             }
                             // The beat after the LAST reply is not waited out: that
                             // is where the run ends, and the reader takes over.
                             if (i < exchanges.length - 1)
-                                await wait(heroCards[i] ? 3600 : 2600);
+                                await wait(card ? 3600 : 2600);
                         }
                         // Synchronous after the last push, so pause cannot be
                         // pressed between the thread finishing and replay showing.
                         showReplay(true);
+                        heroTrack("hero_demo_complete", { replay: replayRun });
                     }
                     if (chatReplay && exchanges.length) {
                         chatReplay.addEventListener("click", function () {
+                            heroTrack("hero_demo_replay");
                             play();
                         });
                     }
-                    // START AFTER THE DEFERRED SCRIPTS HAVE RUN. The first
-                    // thing a run does is empty the thread, and the hero
-                    // cards live in it — so starting during parsing would
-                    // clear them away before /widget-card.js ever saw them,
-                    // and every tile on the hero card would then resolve to
-                    // the other card's data (macroCtx's last-stash fallback,
-                    // shared/macros.js). Deferred scripts run while
+                    // START WHEN THE CHAT IS SEEN. On a phone the chat sits under
+                    // the hero's text - 667 px down an 844 px screen - so a run that
+                    // began on load had played its photo, the opening and the
+                    // point, before anyone scrolled to it. Half the window in view
+                    // starts it; without IntersectionObserver it starts at once.
+                    // Until then the thread is the whole static conversation.
+                    //
+                    // AND NEVER BEFORE THE DEFERRED SCRIPTS HAVE RUN. The first
+                    // thing a run does is empty the thread, and the hero cards
+                    // live in it - so starting during parsing would clear them
+                    // away before /widget-card.js bound them, and their taps would
+                    // resolve to another card's data (macroCtx's last-stash
+                    // fallback, shared/macros.js). Deferred scripts run while
                     // readyState is already "interactive", so waiting for
                     // DOMContentLoaded is exactly waiting for them.
+                    function startWhenSeen() {
+                        var begin = function () {
+                            heroTrack("hero_demo_start");
+                            play();
+                        };
+                        if (typeof IntersectionObserver !== "function") {
+                            begin();
+                            return;
+                        }
+                        var seen = new IntersectionObserver(
+                            function (entries) {
+                                for (var k = 0; k < entries.length; k++) {
+                                    if (!entries[k].isIntersecting) continue;
+                                    seen.disconnect();
+                                    begin();
+                                    return;
+                                }
+                            },
+                            { threshold: 0.5 },
+                        );
+                        seen.observe(chatList.closest(".nm-chat") || chatList);
+                    }
                     if (exchanges.length) {
                         if (document.readyState === "loading") {
-                            document.addEventListener("DOMContentLoaded", play, {
-                                once: true,
-                            });
+                            document.addEventListener(
+                                "DOMContentLoaded",
+                                startWhenSeen,
+                                { once: true },
+                            );
                         } else {
-                            play();
+                            startWhenSeen();
                         }
                     }
                 }
@@ -1502,8 +1585,8 @@ function faqJsonLdText(entry: FaqEntry): string {
 
 // -------------------------------------------------------------------- hero
 
-// The barcode "photo" in the hero chat: the design's bar pattern, drawn
-// once here as <rect>s. Odd entries are gaps.
+// The barcode on the scan-barcode slide's package photo: the design's bar
+// pattern, drawn once here as <rect>s. Odd entries are gaps.
 const BARCODE_BARS = [
     3, 1, 1, 2, 1, 3, 1, 1, 2, 2, 1, 1, 3, 1, 2, 1, 1, 1, 3, 2, 1, 1, 2, 1, 1,
     3, 1, 2, 1, 1, 2, 3, 1, 1, 1, 2, 1, 3, 1, 1, 2, 1, 1, 2, 3, 1, 1,
@@ -1524,10 +1607,46 @@ function barcodeSvg(): string {
     return `<svg viewBox="0 0 120 40" aria-hidden="true">${rects.join("")}</svg>`;
 }
 
+/** The breakfast the hero chat opens with, photographed from above: a
+ *  smoothie bowl — banana, blueberries and raspberries, a band of granola and
+ *  a drizzle of honey — beside an americano on its saucer, and a spoon.
+ *  Drawn, not an image file, like the photo-meal slide's borscht
+ *  (mealPhotoSvg): the table, grain, shade, bowl, rim and spoon are that
+ *  drawing's own classes (.nm-ex-meal-*), and what only this one has is
+ *  .nm-snap-*, every fill a token mix in styles.css. aria-hidden, because
+ *  the bubble around it is role="img", named by the translated
+ *  hero.chat.photoAlt — which names nothing the drawing does not show, since
+ *  the conversation is about what a photo cannot. */
+function smoothieBowlSvg(): string {
+    return `<svg viewBox="0 0 220 140" aria-hidden="true">
+<rect class="nm-ex-meal-table" width="220" height="140"></rect>
+<path class="nm-ex-meal-grain" d="M0 20c60-6 120 8 220-1M0 58c52-5 140 7 220 0M0 102c70-6 128 8 220-2M0 132c48-4 150 6 220-1"></path>
+<g class="nm-ex-meal-spoon" transform="rotate(-18 184 112)"><ellipse cx="164" cy="112" rx="10" ry="7"></ellipse><rect x="172" y="110" width="44" height="4" rx="2"></rect></g>
+<circle class="nm-ex-meal-shade" cx="180" cy="46" r="28"></circle>
+<rect class="nm-ex-meal-rim" x="192" y="37" width="15" height="9" rx="4.5"></rect>
+<circle class="nm-ex-meal-bowl" cx="176" cy="42" r="28"></circle>
+<circle class="nm-ex-meal-rim" cx="176" cy="42" r="19"></circle>
+<circle class="nm-snap-coffee" cx="176" cy="42" r="15"></circle>
+<ellipse class="nm-snap-crema" cx="171" cy="37" rx="5" ry="3"></ellipse>
+<circle class="nm-ex-meal-shade" cx="89" cy="74" r="55"></circle>
+<circle class="nm-ex-meal-bowl" cx="84" cy="68" r="55"></circle>
+<circle class="nm-ex-meal-rim" cx="84" cy="68" r="46"></circle>
+<circle class="nm-snap-smoothie" cx="84" cy="68" r="42"></circle>
+<g class="nm-snap-granola"><circle cx="58" cy="40" r="3.6"></circle><circle cx="52" cy="50" r="4.2"></circle><circle cx="48" cy="62" r="4.5"></circle><circle cx="49" cy="75" r="4.2"></circle><circle cx="54" cy="87" r="4.5"></circle><circle cx="61" cy="97" r="4"></circle><circle cx="62" cy="56" r="3.2"></circle><circle cx="57" cy="69" r="3.4"></circle><circle cx="60" cy="81" r="3.2"></circle><circle cx="67" cy="90" r="3"></circle></g>
+<g class="nm-snap-granola-dark"><circle cx="55" cy="58" r="1.8"></circle><circle cx="51" cy="71" r="1.6"></circle><circle cx="58" cy="93" r="1.8"></circle><circle cx="63" cy="46" r="1.6"></circle><circle cx="64" cy="76" r="1.5"></circle></g>
+<g class="nm-snap-banana"><circle cx="86" cy="44" r="8"></circle><circle cx="100" cy="54" r="8"></circle><circle cx="110" cy="68" r="8"></circle></g>
+<g class="nm-snap-seed"><circle cx="86" cy="44" r="2.4"></circle><circle cx="100" cy="54" r="2.4"></circle><circle cx="110" cy="68" r="2.4"></circle></g>
+<g class="nm-snap-blueberry"><circle cx="80" cy="84" r="4.6"></circle><circle cx="91" cy="93" r="4.6"></circle><circle cx="105" cy="87" r="4.6"></circle><circle cx="82" cy="62" r="4.2"></circle></g>
+<g class="nm-snap-raspberry"><circle cx="96" cy="74" r="5"></circle><circle cx="74" cy="98" r="4.6"></circle></g>
+<path class="nm-snap-honey" d="M70 36c6 8 14 2 18 10s12 6 16 14 10 10 12 18"></path>
+</svg>`;
+}
+
 // ---------------------------------------------- the real widget cards
 //
-// The cards on this page — the get_nutrition_summary card in the hero chat
-// and the eight on the examples slides (see renderExampleCard) — are not
+// The cards on this page — the three in the hero chat (log_meal's,
+// get_nutrition_summary's and get_weight_trends') and the eight on the
+// examples slides (see renderExampleCard) — are not
 // approximations of the in-chat widgets. They ARE the in-chat widgets,
 // rendered at BUILD TIME: src/widget-static.ts evaluates the very shared
 // partials the iframe runs (shared/macros.js, shared/spark.js,
@@ -1588,9 +1707,9 @@ export function sumExchanges(
 }
 
 /** The meals the thread has logged through exchange `upto`, in order —
- *  what the card's drawer opens onto. An exchange with no `meal` logged no
- *  food (the water one, the closing question), and a meal row for it would
- *  sit in every metric's breakdown reading zero. */
+ *  what a card's drawer opens onto. An exchange with no `meal` logged no
+ *  food (the interview's questions, the closing ones), and a meal row for it
+ *  would sit in every metric's breakdown reading zero. */
 function mealsThrough(
     exchanges: HeroExchange[],
     upto: number,
@@ -1607,57 +1726,120 @@ function mealsThrough(
     return out;
 }
 
-/** One state of the hero's summary card. */
-export interface HeroCardState {
-    /** The exchange indices this one card is brought in after. More than
-     *  one when consecutive widget exchanges log nothing between them —
-     *  the thread's closing "How am I doing today?" adds no food, so it
-     *  shows the card the meal before it produced rather than a second,
-     *  byte-identical copy of it. */
-    indices: number[];
-    payload: SummaryPayload;
+/** One card of the hero thread: the exchange whose reply it follows, and the
+ *  payload its tool would have returned at that point in the day. */
+export type HeroCard =
+    | { index: number; kind: "meal-logged"; payload: MealProgressPayload }
+    | { index: number; kind: "nutrition-summary"; payload: SummaryPayload }
+    | { index: number; kind: "weight-trends"; payload: WeightTrendsPayload };
+
+/** The tool each hero card stands in for, whose live outputSchema its payload
+ *  is validated against. */
+export const HERO_CARD_TOOL: Record<HeroCardKind, DemoTool> = {
+    "meal-logged": "log_meal",
+    "nutrition-summary": "get_nutrition_summary",
+    "weight-trends": "get_weight_trends",
+};
+
+/** Each hero card's id prefix. Ids are document-global, and the examples hold
+ *  strips and a weight chart of the same kinds. */
+export const HERO_ID_PREFIX: Record<HeroCardKind, string> = {
+    "meal-logged": "hero-meal",
+    "nutrition-summary": "hero-day",
+    "weight-trends": "hero-weight",
+};
+
+/** Where the hero weight card's chart gradient ids begin: the examples'
+ *  weight card holds CHART_ID_BASE["weight-trends"] (src/widget-static.ts). */
+const HERO_WEIGHT_CHART_ID_BASE = 300;
+
+/** Every card the hero thread shows, in thread order, each drawn from the
+ *  thread as it stood when that exchange's tool call returned:
+ *    - meal-logged (log_meal): the logged meal, and the day's meals and
+ *      water so far behind it — buildMealProgress' shape;
+ *    - nutrition-summary (get_nutrition_summary): every delta so far, and the
+ *      meals behind them for the drawer;
+ *    - weight-trends (get_weight_trends): the demo account's weigh-ins over
+ *      the 30 days up to the hero's day.
+ *  The payloads are the tools' real shapes (src/copy/widget-demo.ts maps the
+ *  thread's own `add` deltas onto the tools' keys and supplies the demo
+ *  account's goals), so each card computes every figure, every `.over`
+ *  state, the ring's offset and each tile's wash the way the tool's does.
+ *
+ *  THE PAYLOAD'S LOCALE IS THE PAGE'S. The widget runtime resolves which
+ *  dictionary to repaint in from that field (setLocaleFrom in
+ *  shared/i18n.js, via boot.js's useCard), so a payload that said "en" on
+ *  /de would leave a German card correct until the first tap and English
+ *  afterwards. In chat the same field carries the user's own profile locale;
+ *  here the page's language IS the user's. */
+export function heroCards(doc: IndexDoc, locale: SiteLocale): HeroCard[] {
+    const exchanges = doc.hero.chat.exchanges;
+    const cards: HeroCard[] = [];
+    exchanges.forEach((ex, index) => {
+        if (ex.card === "meal-logged") {
+            const dayMeals = mealsThrough(exchanges, index);
+            const logged = dayMeals[dayMeals.length - 1];
+            if (!ex.meal || !logged) {
+                throw new Error(
+                    `${locale}: hero exchange ${index} shows a meal-logged card but logs no meal`,
+                );
+            }
+            cards.push({
+                index,
+                kind: ex.card,
+                payload: demoMealLoggedPayload({
+                    date: DEMO_HERO_DATE,
+                    logged,
+                    dayMeals,
+                    waterMl: sumExchanges(exchanges, index).water,
+                    locale,
+                }),
+            });
+        } else if (ex.card === "nutrition-summary") {
+            cards.push({
+                index,
+                kind: ex.card,
+                payload: {
+                    ...demoSummaryPayload(
+                        sumExchanges(exchanges, index),
+                        mealsThrough(exchanges, index),
+                    ),
+                    locale,
+                },
+            });
+        } else if (ex.card === "weight-trends") {
+            cards.push({
+                index,
+                kind: ex.card,
+                payload: demoWeightTrendsPayload(locale, DEMO_HERO_DATE),
+            });
+        }
+    });
+    return cards;
 }
 
-/** Every distinct summary card the hero thread passes through, in order.
- *
- *  The payload is the real get_nutrition_summary shape (src/copy/widget-demo.ts
- *  maps the thread's own `add` deltas onto the tool's keys and supplies the
- *  demo account's goals), so the card computes every figure, every delta
- *  word, every `.over` state, the ring's offset and each tile's wash the
- *  same way the tool's does. */
-export function heroCardStates(
-    doc: IndexDoc,
+/** A hero card's markup, exactly as the emitters return it (before the
+ *  settings note). src/widget-card.test.ts renders through this too. */
+export async function renderHeroCard(
+    card: HeroCard,
     locale: SiteLocale,
-): HeroCardState[] {
-    const exchanges = doc.hero.chat.exchanges;
-    const states: HeroCardState[] = [];
-    let lastKey = "";
-    exchanges.forEach((ex, i) => {
-        if (!ex.widget) return;
-        const payload: SummaryPayload = {
-            ...demoSummaryPayload(
-                sumExchanges(exchanges, i),
-                mealsThrough(exchanges, i),
-            ),
-            // THE PAYLOAD'S LOCALE IS THE PAGE'S. The widget runtime resolves
-            // which dictionary to repaint in from this field
-            // (setLocaleFrom in shared/i18n.js, via boot.js's useCard), so a
-            // payload that said "en" on /de would leave the German card
-            // correct until the first tap and English afterwards. In chat the
-            // same field carries the user's own profile locale; here the
-            // page's language IS the user's.
-            locale,
-        };
-        const key = JSON.stringify(payload);
-        const prev = states[states.length - 1];
-        if (prev && key === lastKey) {
-            prev.indices.push(i);
-            return;
-        }
-        lastKey = key;
-        states.push({ indices: [i], payload });
-    });
-    return states;
+): Promise<string> {
+    const idPrefix = HERO_ID_PREFIX[card.kind];
+    switch (card.kind) {
+        case "meal-logged":
+            return renderMealLoggedCard(card.payload, locale, { idPrefix });
+        case "nutrition-summary":
+            return renderSummaryCard(card.payload, locale, { idPrefix });
+        case "weight-trends":
+            // Its own default window: get_weight_trends called with no
+            // `days`, as the conversation does.
+            return renderWeightTrendsCard(
+                card.payload,
+                locale,
+                card.payload.default_range,
+                { idPrefix, chartIdBase: HERO_WEIGHT_CHART_ID_BASE },
+            );
+    }
 }
 
 /** Which window the trends card opens on.
@@ -1733,7 +1915,10 @@ function payloadJson(payload: unknown): string {
  *
  *    The payload `<script>` is what makes the card live: /widget-card.js
  *    re-runs the same emitter on the same payload to rebuild the ctx its
- *    handlers resolve through. */
+ *    handlers resolve through.
+ *
+ *    `data-nosnippet`: Google indexes the card but will not quote it in a
+ *    result, so a snippet never reads "59/60 g · 810 kcal left". */
 function widgetCardBlock(
     kind: Exclude<CardKind, "import-meals">,
     card: string,
@@ -1742,33 +1927,11 @@ function widgetCardBlock(
     indent: string,
     attrs = "",
 ): string {
-    return `${indent}<div class="nm-widget-card" data-widget="${kind}"${attrs}>
+    return `${indent}<div class="nm-widget-card" data-widget="${kind}" data-nosnippet${attrs}>
 ${indent}    <div class="wrap">${withSettingsNote(card, locale)}
 ${indent}    </div>
 ${indent}    <script type="application/json" data-widget-payload="${kind}">${payloadJson(payload)}</script>
 ${indent}</div>`;
-}
-
-/** The hero states the thread passes through BEFORE the one it ends on,
- *  parked outside the conversation for the replay to bring in.
- *
- *  Real elements in the document from the start, not `<template>` content:
- *  /widget-card.js binds each card once, on load, to the element its
- *  handlers resolve their data through (macroStash, shared/macros.js). A
- *  card cloned into the thread afterwards would be a card whose taps
- *  resolve to whichever card stashed last, so the replay MOVES these
- *  instead — see the hero chat block in LANDING_SCRIPT.
- *
- *  Empty with the thread as it stands: its two widget exchanges produce one
- *  state, because the closing "How am I doing today?" logs nothing and the
- *  card it shows is the one the meal before it produced. */
-function parkedHeroCards(cards: LandingCards): string {
-    const parked = cards.hero.slice(0, -1);
-    if (!parked.length) return "";
-    return `                        <div class="nm-hero-cards" hidden>
-${parked.join("\n")}
-                        </div>
-`;
 }
 
 /** The scoped widget stylesheet, plus the one thing about these cards that
@@ -2064,7 +2227,7 @@ function exampleCardBlock(
     const caption = firstPicture
         ? `\n${indent}<p class="nm-ex-still" aria-hidden="true"><i class="fa-solid fa-eye"></i> ${esc(doc.examples.importerCaption)}</p>`
         : "";
-    return `${indent}<div class="nm-widget-card" data-widget="import-meals" data-import-step="${card.step}" role="img" aria-label="${attr(doc.examples.importerAlt[card.step])}">
+    return `${indent}<div class="nm-widget-card" data-widget="import-meals" data-import-step="${card.step}" data-nosnippet role="img" aria-label="${attr(doc.examples.importerAlt[card.step])}">
 ${indent}    <div class="wrap page" inert>${withSettingsNote(markup, locale)}
 ${indent}    </div>
 ${indent}</div>${caption}`;
@@ -2072,10 +2235,12 @@ ${indent}</div>${caption}`;
 
 /** Every card of one locale's page, rendered and wrapped. */
 export interface LandingCards {
-    /** One block per distinct hero state, in thread order. The last is the
-     *  state the thread ends on and the one rendered into the conversation;
-     *  any earlier ones are parked outside it for the replay to bring in. */
-    hero: string[];
+    /** Each hero card's block and the exchange whose reply it follows, in
+     *  thread order. Every one is rendered into the conversation right after
+     *  that reply — the static thread is the whole conversation — and the
+     *  replay MOVES it back in at that point (a clone's taps would resolve to
+     *  whichever card stashed last; see the hero chat block in LANDING_SCRIPT). */
+    hero: { index: number; block: string }[];
     /** Each example slide's card blocks, in `slide.cards` order, keyed by
      *  slide id. */
     examples: Partial<Record<ExampleSlideId, string[]>>;
@@ -2088,10 +2253,10 @@ async function renderLandingCards(
     // First, so a locale still missing a slide's card fields fails by name
     // rather than half-way through a payload.
     assertExamplesMirrorEnglish(doc, locale);
-    const states = heroCardStates(doc, locale);
-    if (!states.length) {
+    const heroCardList = heroCards(doc, locale);
+    if (!heroCardList.length) {
         throw new Error(
-            "no hero exchange is marked `widget: true`, so the landing page would ship a chat with no summary card",
+            "no hero exchange names a `card`, so the landing page would ship a chat with no widget in it",
         );
     }
     const exampleCards = doc.examples.slides.flatMap((s) =>
@@ -2102,8 +2267,8 @@ async function renderLandingCards(
     // the same reason: a payload the tool would never send renders a card
     // that quietly falls back. It also catches the failure Zod does not
     // raise, a key `z.object()` strips rather than rejects.
-    for (const s of states)
-        await validateDemoPayload("get_nutrition_summary", s.payload);
+    for (const c of heroCardList)
+        await validateDemoPayload(HERO_CARD_TOOL[c.kind], c.payload);
     for (const { card } of exampleCards)
         await validateDemoPayload(EXAMPLE_CARD_TOOL[card.kind], card.payload);
     const examples: LandingCards["examples"] = {};
@@ -2123,50 +2288,54 @@ async function renderLandingCards(
             ),
         );
     }
-    const hero: string[] = [];
-    for (const s of states) {
-        hero.push(
-            widgetCardBlock(
-                "nutrition-summary",
-                await renderSummaryCard(s.payload, locale),
-                s.payload,
+    const hero: LandingCards["hero"] = [];
+    for (const c of heroCardList) {
+        hero.push({
+            index: c.index,
+            block: widgetCardBlock(
+                c.kind,
+                await renderHeroCard(c, locale),
+                c.payload,
                 locale,
                 " ".repeat(28),
-                // Which exchanges this card is brought in after; the replay
-                // reads it to know which state belongs where. Space-separated
-                // because one card can serve two exchanges (HeroCardState).
-                ` data-hero-card="${attr(s.indices.join(" "))}"`,
+                // Which exchange's reply this card follows; the replay reads
+                // it to bring the card back in at that point.
+                ` data-hero-card="${c.index}"`,
             ),
-        );
+        });
     }
     return { hero, examples };
 }
 
-/** One exchange of the hero thread, statically.
+/** One exchange of the hero thread, statically: the user's bubble — typed
+ *  text, or a photo with its caption — then the AI's reply.
  *
- *  The bubble carries ONE attribute, the clock the replay puts in the chat
- *  header while it plays. It used to carry two more, and both are gone
- *  because nothing reads them any more: the nutrient deltas are consumed at
- *  BUILD time (heroCardStates turns them into the card's payload), and which
- *  exchange the card follows is on the card, as `data-hero-card`. An
- *  attribute nothing reads is a contract that looks live and is not — and
- *  both of those facts are now on the page in the one place they can be
- *  checked against what they claim: the card itself. */
+ *  The user bubble carries ONE attribute, the clock the replay puts in the
+ *  chat header while it plays. The nutrient deltas are consumed at BUILD time
+ *  (heroCards turns them into the cards' payloads), and which exchange a card
+ *  follows is on the card, as `data-hero-card`. A photo bubble keeps
+ *  `.nm-msg-user`, so the replay finds every exchange by one class, and adds
+ *  `.nm-msg-photo`, so it pushes the bubble whole instead of typing it. */
 function renderExchange(doc: IndexDoc, ex: HeroExchange): string {
     const data = ` data-clock="${attr(ex.clock)}"`;
-    const user = ex.barcode
-        ? `                            <div class="nm-msg nm-msg-barcode"${data}>
-                                <div class="nm-barcode">
-                                    ${barcodeSvg()}
-                                    <span class="nm-barcode-digits">${BARCODE_DIGITS}</span>
-                                </div>
-                                <div class="nm-barcode-cap">${esc(doc.hero.chat.photoCaption)}</div>
+    const user = ex.photo
+        ? `                            <div class="nm-msg nm-msg-user nm-msg-photo"${data}>
+                                <div class="nm-msg-snap" role="img" aria-label="${attr(doc.hero.chat.photoAlt)}">${smoothieBowlSvg()}</div>
+                                <span class="nm-msg-cap">${esc(ex.userText)}</span>
                             </div>`
-        : `                            <div class="nm-msg nm-msg-user"${data}>${esc(ex.userText ?? "")}</div>`;
+        : `                            <div class="nm-msg nm-msg-user"${data}>${esc(ex.userText)}</div>`;
     return `${user}
                             <div class="nm-msg nm-msg-ai">${esc(ex.aiText)}</div>`;
 }
 
+/** The hero: headline, lead, the two calls to action, and the chat.
+ *
+ *  The thread scrolls, so it is a tab stop: a named, focusable region (named
+ *  by examples.threadLabel, as the examples' threads are) that a keyboard
+ *  scrolls. It is also `data-nosnippet`, like every widget card: Google indexes it
+ *  but will not quote it in a result, so a snippet comes from the headline,
+ *  the lead or the meta description rather than from "stole 6 of my kid's
+ *  fries". */
 function renderHero(
     doc: IndexDoc,
     locale: SiteLocale,
@@ -2215,12 +2384,18 @@ function renderHero(
                                     </button>
                                 </span>
                             </div>
-                            <div class="nm-chat-list" data-chat-list>
-${exchanges.map((ex) => renderExchange(doc, ex)).join("\n")}
-${cards.hero[cards.hero.length - 1]}
+                            <div class="nm-chat-list" role="region" aria-label="${attr(doc.examples.threadLabel)}" tabindex="0" data-nosnippet data-chat-list>
+${exchanges
+    .map((ex, i) =>
+        [
+            renderExchange(doc, ex),
+            ...cards.hero.filter((c) => c.index === i).map((c) => c.block),
+        ].join("\n"),
+    )
+    .join("\n")}
                             </div>
                         </div>
-${parkedHeroCards(cards)}                    </div>
+                    </div>
                     <a class="nm-more" href="${hashPath(locale, "examples")}"
                         >${esc(hero.moreExamples)}
                         <i class="fa-solid fa-arrow-down" aria-hidden="true"></i
@@ -2631,8 +2806,7 @@ function downloadChip(e: IndexDoc["examples"], d: ExampleDownload): string {
 
 /** One bubble of an example conversation. A user photo turn is the picture
  *  (role="img", named by the translated alt) with its optional caption under
- *  it: the meal drawing, or the package's barcode label — the same label the
- *  hero's barcode card draws. */
+ *  it: the meal drawing, or the package's barcode label. */
 function renderExampleMessage(
     e: IndexDoc["examples"],
     m: ExampleMessage,

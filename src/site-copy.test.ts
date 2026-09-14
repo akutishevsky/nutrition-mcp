@@ -82,9 +82,9 @@ test("the hero lead enumerates the tracked set, caffeine included", () => {
     ]) {
         expect(t, `hero lead omits ${nutrient}`).toContain(nutrient);
     }
-    // The summary card in the hero chat carries a caffeine tile too — the
-    // static render is what a crawler and a no-JS visitor see, and it is the
-    // real get_nutrition_summary card, so the word on that tile comes from
+    // The hero chat's cards carry a caffeine tile too — the
+    // static render is what a crawler and a no-JS visitor see, and they are the
+    // real widget cards, so the word on that tile comes from
     // WIDGET_STRINGS rather than from this file's copy. Pinned against the
     // dictionary, with its unit, so a locale renaming the metric or the tile
     // vanishing (a caffeine-free demo payload suppresses it — a limit with
@@ -101,26 +101,20 @@ test("the hero lead enumerates the tracked set, caffeine included", () => {
     expect(normalize(meta ?? "")).toContain("caffeine");
 });
 
-// The barcode exchange is deliberately excluded from that claim: Open Food
-// Facts' caffeine path is out of scope, so lookup_barcode still leaves
-// caffeine null and the hero's barcode reply must keep saying so by
-// omission — its deltas add no caffeine to the widget, in any locale (the
-// deltas are the same numbers on every page, see HeroExchange.add).
-test("the hero's barcode exchange does not claim caffeine", () => {
+// That caffeine is the breakfast americano's, and it is logged where the
+// meal is: on the exchange whose "yes" wrote it, in every locale (the deltas
+// are the same numbers on every page, see HeroExchange.add). No other hero
+// exchange claims any.
+test("the hero's caffeine is the confirmed breakfast's, and only that", () => {
     const locales = Object.keys(INDEX) as SiteLocale[];
     expect(locales).toContain("en");
     for (const locale of locales) {
-        const barcode = INDEX[locale]!.hero.chat.exchanges.filter(
-            (ex) => ex.barcode,
+        const withCaffeine = INDEX[locale]!.hero.chat.exchanges.filter(
+            (ex) => ex.add.caf != null,
         );
-        expect(barcode.length, `${locale}: one barcode exchange`).toBe(1);
-        expect(
-            barcode[0]!.add.caf,
-            `${locale}: the barcode reply must not add caffeine`,
-        ).toBeUndefined();
-        expect(normalize(barcode[0]!.aiText).toLowerCase()).not.toContain(
-            "caffeine",
-        );
+        expect(withCaffeine.length, `${locale}: one caffeine exchange`).toBe(1);
+        expect(withCaffeine[0]!.card).toBe("meal-logged");
+        expect(withCaffeine[0]!.meal?.type).toBe("breakfast");
     }
 });
 

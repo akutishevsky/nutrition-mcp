@@ -526,8 +526,10 @@ function svgLabel(scope) {
  *  the chart are shared/weight-trends-card.js's; what is written out here is
  *  only where they land. */
 function bindWeightTrendsCard(root, data) {
-    const meta = root.querySelector("#wt-meta");
-    const body = root.querySelector("#wt-body");
+    // By the END of the id: a card rendered with an idPrefix (the landing
+    // page's hero holds a second weight card) carries "<prefix>-wt-meta".
+    const meta = root.querySelector('[id$="wt-meta"]');
+    const body = root.querySelector('[id$="wt-body"]');
     useCard(data);
     // The whole-empty card has no toggle and nothing to switch, but its header
     // still names the window ("5–11 Jul · 0 weigh-ins"), so — as on the

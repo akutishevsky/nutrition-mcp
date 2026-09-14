@@ -25,9 +25,9 @@ import { collectOutputSchemas, droppedKeys } from "./widget-schemas.js";
 // pages, so any language it named in its own source would be wrong on eight
 // of them. Instead it READS everything it shows out of the markup the
 // generator produced: <html lang> (drives every number, date and clock), the
-// static hero thread (each user bubble's data-add / data-clock, cloned and
-// replayed), the translated word on the food-logs delta tag
-// (data-delta-unit), the countdown / since-open spans inside #facts-live,
+// static hero thread (each user bubble's data-clock and each card's
+// data-hero-card, brought back in order), the translated word on the
+// food-logs delta tag (data-delta-unit), the countdown / since-open spans inside #facts-live,
 // and the <template> a Patreon post card is built from. Those are contracts
 // between generator and script: drop an attribute, rename an id, and the
 // script silently degrades — the chat stops replaying, a card shows "—"
@@ -103,22 +103,21 @@ test("every landing page stamps its own <html lang>", async () => {
     }
 });
 
-// The hero chat replays the STATIC thread: the script takes the generator's
-// bubbles apart into exchanges (a user or barcode bubble followed by its AI
-// reply), reads each one's clock off data-clock, and clones the bubbles back
-// in one at a time. So the static markup is the whole contract — it is also
-// what a no-JS visitor and every crawler read. Pinned per locale against the
-// source data: one user bubble per exchange, in order, carrying the clock the
-// copy declares.
+// The hero chat plays the STATIC thread: the script takes the generator's
+// bubbles apart into exchanges (a user bubble — typed, or a photo with its
+// caption — followed by its AI reply), reads each one's clock off
+// data-clock, and brings the bubbles back in one at a time. So the static
+// markup is the whole contract — it is also what a no-JS visitor and every
+// crawler read. Pinned per locale against the source data: one user bubble
+// per exchange, in order, carrying the clock the copy declares, and the photo
+// named by the page's own translated alt.
 //
-// Two attributes the bubbles used to carry are gone, because nothing reads
-// them any more and an attribute nothing reads is a contract that only looks
-// live. The nutrient deltas are build-time input now — scripts/gen-index.ts
-// sums them per exchange into a real get_nutrition_summary payload — and
-// which exchange the card follows is on the card, as data-hero-card. Both
-// are pinned below against IndexDoc, on the element that carries them.
+// The nutrient deltas are build-time input — scripts/gen-index.ts turns them
+// into each card's real payload — and which exchange a card follows is on
+// the card, as data-hero-card. Both are pinned below against IndexDoc, on the
+// element that carries them.
 const BUBBLE_RE =
-    /<div class="nm-msg (nm-msg-user|nm-msg-barcode)" data-clock="([^"]*)">([\s\S]*?)(?=\n\s*<div class="nm-msg nm-msg-ai">)/g;
+    /<div class="nm-msg nm-msg-user( nm-msg-photo)?" data-clock="([^"]*)">([\s\S]*?)(?=\n\s*<div class="nm-msg nm-msg-ai">)/g;
 
 test("the hero chat bubbles carry data-clock for the replay", async () => {
     for (const { locale, path, html } of await landingPages()) {
@@ -131,17 +130,20 @@ test("the hero chat bubbles carry data-clock for the replay", async () => {
         );
         expect(bubbles.length).toBeGreaterThan(0);
         bubbles.forEach((m, i) => {
-            const [, kind, clock, body] = m;
+            const [, photo, clock, body] = m;
             const ex = exchanges[i]!;
-            expect(`${path} #${i}: ${kind}`).toBe(
-                `${path} #${i}: ${ex.barcode ? "nm-msg-barcode" : "nm-msg-user"}`,
+            expect(`${path} #${i}: ${photo ? "photo" : "typed"}`).toBe(
+                `${path} #${i}: ${ex.photo ? "photo" : "typed"}`,
             );
             expect(`${path} #${i}: ${clock}`).toBe(
                 `${path} #${i}: ${ex.clock}`,
             );
-            if (!ex.barcode)
-                expect(`${path} #${i}: ${stripTags(body!)}`).toBe(
-                    `${path} #${i}: ${text(ex.userText ?? "")}`,
+            expect(`${path} #${i}: ${stripTags(body!)}`).toBe(
+                `${path} #${i}: ${text(ex.userText)}`,
+            );
+            if (ex.photo)
+                expect(body).toContain(
+                    `role="img" aria-label="${attr(doc!.hero.chat.photoAlt)}"`,
                 );
         });
         // Every AI reply is on the page, in the copy's own words.
@@ -188,42 +190,77 @@ test("the hero chat plays once and has a translated replay button", async () => 
     }
 });
 
-// WHICH EXCHANGES THE CARD FOLLOWS. This is what `HeroExchange.widget`
-// declares and what the replay resolves a card by: `data-hero-card` lists the
-// exchange indices one card is brought in after, space-separated, because a
-// widget exchange that logged nothing new shares the card before it rather
-// than emitting a byte-identical second copy. Every flagged exchange must be
-// covered exactly once, or the replay reaches an exchange that says a card is
-// due and has none to show.
-test("every widget exchange has a hero card, and no exchange has two", async () => {
+// WHICH EXCHANGE EACH CARD FOLLOWS. This is what `HeroExchange.card` declares
+// and what the replay resolves a card by: `data-hero-card` names the exchange
+// whose reply the card is brought in after. Every exchange that names a card
+// must have exactly one, or the replay reaches an exchange that says a card
+// is due and has none to show.
+test("every hero exchange that names a card has exactly one", async () => {
     for (const { locale, path, html } of await landingPages()) {
         const exchanges = INDEX[locale]!.hero.chat.exchanges;
-        const flagged = exchanges.flatMap((ex, i) => (ex.widget ? [i] : []));
+        const flagged = exchanges.flatMap((ex, i) =>
+            ex.card ? [`${i}:${ex.card}`] : [],
+        );
         expect(
             flagged.length,
-            `${locale}: the copy flags a widget`,
+            `${locale}: the copy names a card`,
         ).toBeGreaterThan(0);
-        const served = [...html.matchAll(/\sdata-hero-card="([^"]*)"/g)]
-            .flatMap((m) => m[1]!.split(" "))
-            .map(Number)
-            .sort((a, b) => a - b);
-        expect(`${path}: hero cards after ${served.join(",")}`).toBe(
-            `${path}: hero cards after ${flagged.join(",")}`,
+        const served = [
+            ...html.matchAll(
+                /<div class="nm-widget-card" data-widget="([a-z-]+)" data-nosnippet data-hero-card="(\d+)">/g,
+            ),
+        ].map((m) => `${m[2]}:${m[1]}`);
+        expect(`${path}: hero cards ${served.join(",")}`).toBe(
+            `${path}: hero cards ${flagged.join(",")}`,
         );
+    }
+});
+
+// WHEN AND HOW IT PLAYS, and whether anyone watched. The run starts when the
+// chat is half in view — on a phone it sits a screen down, under the hero's
+// text, and a run that began on load had played its photo before anyone got
+// there. Every card is shown from its top instead of pinned by its bottom,
+// nothing is trimmed from a thread that now stands, and the demo reports its
+// start, finish and replays — and the hero's two calls to action — to the
+// page's analytics, when the page has any. The thread and every widget card
+// are data-nosnippet, so a search result never quotes a tile or the banter.
+test("the hero chat starts in view, shows cards from the top, and reports what happened", async () => {
+    const start = LANDING_SCRIPT.indexOf("// ---------- hero chat");
+    const end = LANDING_SCRIPT.indexOf("// ---------- live GitHub star count");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const hero = LANDING_SCRIPT.slice(start, end);
+    for (const hook of [
+        "new IntersectionObserver(",
+        "{ threshold: 0.5 }",
+        "function showCard(",
+        'heroTrack("hero_demo_start")',
+        'heroTrack("hero_demo_complete", {',
+        'heroTrack("hero_demo_replay")',
+        '"hero_cta_click"',
+        'typeof window.gtag === "function"',
+    ])
+        expect(hero).toContain(hook);
+    expect(hero).not.toContain("CHAT_MAX");
+    for (const { locale, path, html } of await landingPages()) {
+        // A scrollable box is a tab stop: named, focusable — and unquoted.
+        expect(html, path).toContain(
+            `<div class="nm-chat-list" role="region" aria-label="${attr(INDEX[locale]!.examples.threadLabel)}" tabindex="0" data-nosnippet data-chat-list>`,
+        );
+        const wrappers = html.match(/<div class="nm-widget-card"[^>]*>/g) ?? [];
+        expect(wrappers.length).toBeGreaterThan(0);
+        for (const w of wrappers) expect(w, path).toContain(" data-nosnippet");
     }
 });
 
 // WHERE THE THREAD'S NUTRIENTS ACTUALLY LAND.
 //
-// This used to read three painted <span data-w> figures, a data-goal per bar
-// and a `--deg` on the ring out of a hand-built mock, which meant it pinned
-// the mock's arithmetic and nothing else. The mock is gone: the hero card is
-// the real get_nutrition_summary card, rendered by the widget's own emitters
-// from a real payload, so what is worth pinning is that the payload the page
-// ships is (a) a payload the TOOL could have sent, and (b) the thread's own
-// deltas summed. Both are checked against the live outputSchema and against
-// IndexDoc, not against anything this file restates — and the card's own
-// bytes are pinned verbatim in src/widget-card.test.ts.
+// The hero's cards are the real widget cards, rendered by the widget's own
+// emitters from real payloads, so what is worth pinning is that each payload
+// the page ships is (a) a payload its TOOL could have sent, and (b) the
+// thread's own deltas summed. Both are checked against the live outputSchemas
+// and against IndexDoc, not against anything this file restates — and the
+// cards' own bytes are pinned verbatim in src/widget-card.test.ts.
 const heroPayloadOf = (html: string): unknown =>
     JSON.parse(
         html.match(
@@ -231,27 +268,47 @@ const heroPayloadOf = (html: string): unknown =>
         )?.[1] ?? "null",
     );
 
-test("the hero card ships a payload the tool's own schema accepts", async () => {
-    const schema = collectOutputSchemas().get("get_nutrition_summary");
-    expect(schema, "get_nutrition_summary has an outputSchema").toBeTruthy();
+/** The hero, from its heading to the "More examples" link under the chat. */
+function heroOf(html: string): string {
+    const at = html.indexOf('id="hero-title"');
+    return html.slice(at, html.indexOf('<a class="nm-more"', at));
+}
+
+const HERO_TOOL: Record<string, string> = {
+    "meal-logged": "log_meal",
+    "nutrition-summary": "get_nutrition_summary",
+    "weight-trends": "get_weight_trends",
+};
+
+test("every hero card ships a payload its tool's own schema accepts", async () => {
+    const schemas = collectOutputSchemas();
     for (const { locale, path, html } of await landingPages()) {
-        const payload = heroPayloadOf(html);
-        expect(`${path}: has a payload`).toBe(
-            `${path}: ${payload ? "has a payload" : "no payload"}`,
+        const shipped = [
+            ...heroOf(html).matchAll(
+                /<script type="application\/json" data-widget-payload="([a-z-]+)">([\s\S]*?)<\/script>/g,
+            ),
+        ];
+        expect(`${path}: ${shipped.map((m) => m[1]).join(",")}`).toBe(
+            `${path}: ${INDEX[locale]!.hero.chat.exchanges.flatMap((ex) => (ex.card ? [ex.card] : [])).join(",")}`,
         );
-        // parse() throws on a missing or mistyped field; droppedKeys names the
-        // ones z.object() silently STRIPS, which is how a renamed key reaches
-        // the page and never reaches the widget.
-        const parsed = schema!.parse(payload);
-        expect(
-            `${path}: dropped ${[...droppedKeys(payload, parsed)].join(",")}`,
-        ).toBe(`${path}: dropped `);
-        // The runtime resolves which dictionary to repaint in from this field
-        // (boot.js -> setLocaleFrom). "en" on /de leaves a German card correct
-        // until the first tap and English afterwards, with nothing failing.
-        expect(
-            `${path}: payload locale ${(payload as { locale: string }).locale}`,
-        ).toBe(`${path}: payload locale ${locale}`);
+        for (const [, kind, json] of shipped) {
+            const payload = JSON.parse(json!) as { locale: string };
+            const schema = schemas.get(HERO_TOOL[kind!]!);
+            expect(schema, `${kind} has an outputSchema`).toBeTruthy();
+            // parse() throws on a missing or mistyped field; droppedKeys names
+            // the ones z.object() silently STRIPS, which is how a renamed key
+            // reaches the page and never reaches the widget.
+            const parsed = schema!.parse(payload);
+            expect(
+                `${path} ${kind}: dropped ${[...droppedKeys(payload, parsed)].join(",")}`,
+            ).toBe(`${path} ${kind}: dropped `);
+            // The runtime resolves which dictionary to repaint in from this
+            // field (boot.js -> setLocaleFrom). "en" on /de leaves a German
+            // card correct until the first tap and English afterwards.
+            expect(`${path} ${kind}: payload locale ${payload.locale}`).toBe(
+                `${path} ${kind}: payload locale ${locale}`,
+            );
+        }
     }
 });
 
@@ -368,7 +425,11 @@ test("every id / attribute hook the script queries exists on every landing page"
         // The replay button. Missing, the thread plays once and there is
         // no way to see it again short of reloading the page.
         ['querySelector("[data-chat-replay]")', "data-chat-replay hidden>"],
-        // The hero's summary cards, one per cumulative state of the thread.
+        // What the replay waits to see before it starts, and the calls to
+        // action whose clicks it reports.
+        ['closest(".nm-chat")', '<div class="nm-chat">'],
+        ['querySelectorAll(".nm-hero-actions a")', 'class="nm-hero-actions"'],
+        // The hero's three cards, one per exchange that names a `card`.
         // Missing, the thread replays without ever showing a card — and it
         // is the card the whole hero exists to demonstrate.
         ['querySelectorAll("[data-hero-card]")', "data-hero-card="],

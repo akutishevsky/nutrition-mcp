@@ -451,6 +451,11 @@ function weightTrendsCard(data, range, opts) {
     }
     const win = wtWindow(data, all, range);
     const body = wtBodyHtml(data, win, range, o.still);
+    // `opts.idPrefix` namespaces the card's two ids ("<prefix>-wt-meta"):
+    // ids are document-global, and the landing page holds two of these
+    // cards. In chat there is one card and no prefix, so the ids the
+    // template reaches for stay `wt-meta` / `wt-body`.
+    const idp = o.idPrefix ? o.idPrefix + "-" : "";
     // The window line comes BEFORE the seg in the DOM, so a screen
     // reader hears which days the figures cover before the control
     // that changes them; `.chead > .cmeta.crow` (base.css) puts it
@@ -460,10 +465,10 @@ function weightTrendsCard(data, range, opts) {
             <div class="glow"></div>
             <header class="chead">
               <h1 class="ctitle">${esc(T.weightTrends.title)}</h1>
-              <span class="cmeta crow" id="wt-meta">${esc(wtMetaText(win))}</span>
+              <span class="cmeta crow" id="${idp}wt-meta">${esc(wtMetaText(win))}</span>
               <div class="seg" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${wtSegHtml(range)}</div>
             </header>
-            <div id="wt-body">${body}</div>
+            <div id="${idp}wt-body">${body}</div>
             <div class="foot" data-widget-foot></div>
           </div>`;
 }

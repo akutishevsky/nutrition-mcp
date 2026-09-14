@@ -1,5 +1,5 @@
 // The demo payloads the landing page's widget cards are rendered from: the
-// hero's summary card and the examples carousel's eight.
+// hero chat's three cards and the examples carousel's eight.
 //
 // LOCALE-INDEPENDENT, on purpose and by construction: this file holds numbers,
 // payload keys and fixed calendar dates, and not one string a visitor reads.
@@ -22,13 +22,18 @@
 //
 // FIXED DATES, NEVER BUILD-DATE-RELATIVE. A date derived from `new Date()`
 // would rewrite all nine index.html files on every generator run and make
-// cross-locale tests depend on what day they are run. The dates below are in a
-// PAST calendar year deliberately: rangeNeedsYear (shared/date.js) prints the
-// year whenever a range is not in the current one, so a past year renders the
-// same bytes for ever, whereas a current-year date would silently grow a year
-// on the next 1 January and churn the output then. They are safe to bump when
-// they start to read as stale — bump them, re-run scripts/gen-index.ts, and
-// update src/widget-static.test.ts's date expectations together.
+// cross-locale tests depend on what day they are run. The demo account's whole
+// history is anchored on DEMO_HERO_DATE, 8 March 2026 — the day this project
+// started — and every other date here keeps its distance from it. They used to
+// sit in a past year so the cards printed the same bytes for ever, and every
+// card on the page then read "… 2025" a year on, which is the first thing a
+// visitor checking whether a project is alive looks at. A current-year date
+// prints no year (rangeNeedsYear, shared/date.js); from 1 January 2027 the
+// pages generated after it print "2026". They are generated at deploy and
+// gitignored, and no test pins the year, so that is the whole cost. To move
+// the timeline, shift EVERY date in this file by the same number of days,
+// re-run scripts/gen-index.ts, and update the dates the copy quotes (the hero's
+// and the weight slide's "since 11 Feb") in all nine locales.
 //
 // EVERYTHING HERE IS CHECKED AGAINST THE LIVE TOOL SCHEMAS by
 // validateDemoPayloads() below. The harness fixtures drifted exactly this way
@@ -52,18 +57,19 @@ import type {
 
 // ---- Dates ----------------------------------------------------------------
 
-/** The hero chat's "today": the single day its summary card covers. One day
- *  later than the trends window ends, so the two cards on the page tell one
- *  coherent story — last week in review, today still in progress — instead of
- *  disagreeing about what the same date's totals were. */
-export const DEMO_SUMMARY_DATE = "2025-09-08";
+/** The hero chat's day — 8 March 2026, the day this project started — and the
+ *  date on all three of its cards. One day later than the trends window ends,
+ *  so the cards on the page tell one coherent story — the weeks before in
+ *  review, this day in progress — instead of disagreeing about what the same
+ *  date's totals were. */
+export const DEMO_HERO_DATE = "2026-03-08";
 
 /** The last day of the trends series — the window ENDS here whichever toggle
  *  position the card opens on, and the 30 days behind it run back to
- *  2025-08-09. The landing page opens the card on 14 (LANDING_TRENDS_RANGE in
+ *  2026-02-06. The landing page opens the card on 14 (LANDING_TRENDS_RANGE in
  *  scripts/gen-index.ts, which is the number the page's own prose quotes), so
- *  what a visitor first sees is 2025-08-25 … 2025-09-07. */
-export const DEMO_TRENDS_END_DATE = "2025-09-07";
+ *  what a visitor first sees is 2026-02-22 … 2026-03-07. */
+export const DEMO_TRENDS_END_DATE = "2026-03-07";
 
 /** This payload's own `default_range` — the window a CLIENT would open on if
  *  it were handed this object untouched. One of shared/trends-card.js's
@@ -78,7 +84,7 @@ export const DEMO_TRENDS_RANGE = 7;
 
 // ---- The demo account -----------------------------------------------------
 
-/** THE demo account's daily goals — one set, shared by both cards, because
+/** THE demo account's daily goals — one set, shared by every card, because
  *  one account has one set of goals and two cards on one page saying otherwise
  *  is the kind of detail a reader notices.
  *
@@ -89,14 +95,9 @@ export const DEMO_TRENDS_RANGE = 7;
  *  eight translations. Format `DEMO_GOALS.calories` per locale rather than
  *  writing the digits out in copy.
  *
- *  `fiber_g` is 30 g, the figure most guidelines land on, and it is the one
- *  goal whose two cards currently disagree: the trends series records fiber on
- *  every logged day, but the hero thread's exchanges carry no `fib` in their
- *  `add` maps yet (see DemoAdd), so the hero card's fiber tile reads "none
- *  logged" until they do. That is an honest state — a missing value is not a
- *  zero — but it is not the state this demo wants; adding `fib` to the hero
- *  exchanges in all nine IndexDoc files is what finishes it, and nothing else
- *  here has to change when they do.
+ *  `fiber_g` is 30 g, the figure most guidelines land on. Every hero exchange
+ *  that logs food and every logged trends day carries a fiber figure, so no
+ *  card on the page reads "none logged" for it.
  *
  *  `alcohol_g` is null because alcohol tracking is off for this account, which
  *  is also what `drink_unit: null` says on both payloads. */
@@ -131,15 +132,8 @@ const DEMO_PAYLOAD_LOCALE = "en";
 // ---- The hero chat's nutrient deltas --------------------------------------
 
 /** The hero chat's own delta shape (`HeroExchange.add` in src/copy/index.ts):
- *  short keys, every one optional, an exchange supplying only what it logged.
- *
- *  `fib` is the one key the hero exchanges do not supply yet. It is declared
- *  and wired through demoSummaryPayload anyway, so lighting fiber up on the
- *  hero card is a pure copy edit — a `fib` beside each exchange's `sugar`, in
- *  src/copy/index.ts and its eight translations (plus `fib` in gen-index.ts's
- *  `Totals`, which sums these keys by name). Until then the card's fiber tile
- *  reads "none logged" against DEMO_GOALS' 30 g, which is what the payload
- *  honestly says. */
+ *  short keys, every one optional, an exchange supplying only what it logged
+ *  (gen-index.ts's `Totals` sums them by name). */
 export interface DemoAdd {
     kcal?: number;
     pro?: number;
@@ -155,7 +149,7 @@ export interface DemoAdd {
     alc?: number;
 }
 
-/** One meal behind the hero chat's summary card: the caller's LOCALIZED
+/** One meal behind a hero chat card: the caller's LOCALIZED
  *  description and meal type, plus that exchange's own `add` deltas.
  *
  *  `meal_type` must be one of the server's enum values — "breakfast", "lunch",
@@ -184,8 +178,8 @@ const recorded = (n: number | undefined): number | null =>
 
 const num = (n: number | undefined): number => n ?? 0;
 
-/** The get_nutrition_summary payload behind the hero chat's card: a SINGLE
- *  day, because the chat's last question is "How am I doing today?".
+/** The get_nutrition_summary payload behind the hero chat's summary card: a
+ *  SINGLE day, because the chat asks what is left of it for dinner.
  *
  *  Note that a one-day window draws no sparkline — summaryCharted needs two
  *  logged days before a line means anything — so this card is the ring, the
@@ -194,14 +188,14 @@ const num = (n: number | undefined): number => n ?? 0;
  *
  *  `totals` is the hero thread's accumulated deltas (every exchange's `add`
  *  summed, water included); `meals` is the food exchanges, in order. The two
- *  overlap deliberately: `totals` is what the landing script replays as the
- *  thread plays out, and the meals are what the drawer opens onto. */
+ *  overlap deliberately: `totals` is what the tiles state, and the meals are
+ *  what the drawer opens onto. */
 export function demoSummaryPayload(
     totals: DemoAdd,
     meals: DemoMealInput[],
 ): SummaryPayload {
     const day = {
-        date: DEMO_SUMMARY_DATE,
+        date: DEMO_HERO_DATE,
         calories: num(totals.kcal),
         protein_g: num(totals.pro),
         carbs_g: num(totals.car),
@@ -216,8 +210,8 @@ export function demoSummaryPayload(
         meal_count: meals.length,
     };
     return {
-        start_date: DEMO_SUMMARY_DATE,
-        end_date: DEMO_SUMMARY_DATE,
+        start_date: DEMO_HERO_DATE,
+        end_date: DEMO_HERO_DATE,
         logged_days: 1,
         days_in_range: 1,
         drink_unit: DEMO_DRINK_UNIT,
@@ -248,7 +242,7 @@ export function demoSummaryPayload(
         meals: meals.map((m): WidgetMealRow => ({
             description: m.description,
             meal_type: m.meal_type,
-            date: DEMO_SUMMARY_DATE,
+            date: DEMO_HERO_DATE,
             calories: num(m.add.kcal),
             protein_g: num(m.add.pro),
             carbs_g: num(m.add.car),
@@ -300,40 +294,40 @@ type DemoTrendsRow = readonly [
 ];
 
 const DEMO_TRENDS_ROWS: readonly DemoTrendsRow[] = [
-    ["2025-08-09", 2210, 166, 232, 74, 31.4, 63, 150, 2400],
-    ["2025-08-10", 1980, 152, 206, 68, 28.5, 51, 170, 2200],
-    ["2025-08-11", 1740, 134, 178, 61, 22.9, 40, 120, 1900],
-    ["2025-08-12", 2060, 158, 218, 70, 29.6, 57, 190, 2500],
-    ["2025-08-13", 1890, 145, 196, 65, 26.2, 46, 130, 2100],
-    ["2025-08-14", 2320, 174, 248, 79, 33.8, 71, 210, 2700],
-    ["2025-08-15", 1810, 140, 186, 62, 24.1, 44, 110, 2000],
+    ["2026-02-06", 2210, 166, 232, 74, 31.4, 63, 150, 2400],
+    ["2026-02-07", 1980, 152, 206, 68, 28.5, 51, 170, 2200],
+    ["2026-02-08", 1740, 134, 178, 61, 22.9, 40, 120, 1900],
+    ["2026-02-09", 2060, 158, 218, 70, 29.6, 57, 190, 2500],
+    ["2026-02-10", 1890, 145, 196, 65, 26.2, 46, 130, 2100],
+    ["2026-02-11", 2320, 174, 248, 79, 33.8, 71, 210, 2700],
+    ["2026-02-12", 1810, 140, 186, 62, 24.1, 44, 110, 2000],
     // Not logged.
-    ["2025-08-16", 0, 0, 0, 0, 0, 0, 0, 0],
-    ["2025-08-17", 2150, 163, 224, 72, 30.4, 60, 180, 2350],
-    ["2025-08-18", 1920, 149, 200, 66, 27.2, 48, 160, 2150],
-    ["2025-08-19", 2040, 156, 212, 69, 29.3, 54, 140, 2450],
-    ["2025-08-20", 1680, 130, 174, 58, 22.0, 39, 100, 1850],
-    ["2025-08-21", 2270, 171, 240, 76, 32.6, 68, 200, 2600],
-    ["2025-08-22", 1960, 151, 204, 67, 27.8, 50, 155, 2250],
-    ["2025-08-23", 2110, 160, 220, 71, 30.6, 59, 175, 2400],
-    ["2025-08-24", 1770, 136, 180, 60, 23.6, 41, 125, 1950],
+    ["2026-02-13", 0, 0, 0, 0, 0, 0, 0, 0],
+    ["2026-02-14", 2150, 163, 224, 72, 30.4, 60, 180, 2350],
+    ["2026-02-15", 1920, 149, 200, 66, 27.2, 48, 160, 2150],
+    ["2026-02-16", 2040, 156, 212, 69, 29.3, 54, 140, 2450],
+    ["2026-02-17", 1680, 130, 174, 58, 22.0, 39, 100, 1850],
+    ["2026-02-18", 2270, 171, 240, 76, 32.6, 68, 200, 2600],
+    ["2026-02-19", 1960, 151, 204, 67, 27.8, 50, 155, 2250],
+    ["2026-02-20", 2110, 160, 220, 71, 30.6, 59, 175, 2400],
+    ["2026-02-21", 1770, 136, 180, 60, 23.6, 41, 125, 1950],
     // The 14-day window the landing page opens on starts here.
-    ["2025-08-25", 2030, 155, 210, 69, 28.2, 53, 165, 2300],
-    ["2025-08-26", 1850, 143, 192, 63, 25.4, 45, 135, 2050],
-    ["2025-08-27", 2190, 165, 230, 73, 30.7, 62, 185, 2550],
+    ["2026-02-22", 2030, 155, 210, 69, 28.2, 53, 165, 2300],
+    ["2026-02-23", 1850, 143, 192, 63, 25.4, 45, 135, 2050],
+    ["2026-02-24", 2190, 165, 230, 73, 30.7, 62, 185, 2550],
     // Not logged.
-    ["2025-08-28", 0, 0, 0, 0, 0, 0, 0, 0],
-    ["2025-08-29", 1900, 147, 198, 66, 26.1, 47, 145, 2100],
-    ["2025-08-30", 2240, 168, 236, 75, 33.0, 65, 195, 2650],
-    ["2025-08-31", 1830, 141, 188, 62, 24.6, 43, 115, 2000],
+    ["2026-02-25", 0, 0, 0, 0, 0, 0, 0, 0],
+    ["2026-02-26", 1900, 147, 198, 66, 26.1, 47, 145, 2100],
+    ["2026-02-27", 2240, 168, 236, 75, 33.0, 65, 195, 2650],
+    ["2026-02-28", 1830, 141, 188, 62, 24.6, 43, 115, 2000],
     // The 7-day window starts here.
-    ["2025-09-01", 2080, 158, 214, 72, 29.8, 58, 180, 2300],
-    ["2025-09-02", 1890, 146, 198, 64, 26.0, 44, 150, 2100],
-    ["2025-09-03", 2140, 162, 226, 71, 31.1, 61, 210, 2600],
-    ["2025-09-04", 1760, 138, 182, 60, 24.6, 38, 120, 1800],
-    ["2025-09-05", 2210, 170, 236, 74, 33.5, 66, 190, 2500],
-    ["2025-09-06", 1650, 128, 172, 56, 23.1, 42, 140, 1900],
-    ["2025-09-07", 1850, 148, 172, 79, 27.9, 55, 130, 2200],
+    ["2026-03-01", 2080, 158, 214, 72, 29.8, 58, 180, 2300],
+    ["2026-03-02", 1890, 146, 198, 64, 26.0, 44, 150, 2100],
+    ["2026-03-03", 2140, 162, 226, 71, 31.1, 61, 210, 2600],
+    ["2026-03-04", 1760, 138, 182, 60, 24.6, 38, 120, 1800],
+    ["2026-03-05", 2210, 170, 236, 74, 33.5, 66, 190, 2500],
+    ["2026-03-06", 1650, 128, 172, 56, 23.1, 42, 140, 1900],
+    ["2026-03-07", 1850, 148, 172, 79, 27.9, 55, 130, 2200],
 ];
 
 function demoTrendsDay(row: DemoTrendsRow): WidgetTrendsDay {
@@ -397,21 +391,21 @@ export const DEMO_TRENDS: TrendsPayload = {
  *  for it, and these conversations do not share a day's meals — a breakfast-only
  *  card and a lunch-only card on one date would be two different accounts of
  *  that date. So every slide that shows a dated card gets a date of its own,
- *  none of them inside the trends window (2025-08-09 … DEMO_TRENDS_END_DATE) or
- *  on the hero's DEMO_SUMMARY_DATE, and all in a PAST year for the reason given
- *  at the top of this file.
+ *  none of them inside the trends window (2026-02-06 … DEMO_TRENDS_END_DATE) or
+ *  on the hero's DEMO_HERO_DATE, and all a few days after it (see the note at
+ *  the top of this file).
  *
  *  The ORDER matters in one place: the goal-progress card reports the latest
  *  weigh-in overall, which is the one the weight-trend conversation logged, so
  *  that day comes first. */
 export const DEMO_EXAMPLE_DATES = {
-    "weight-trend": "2025-09-12",
-    "goals-progress": "2025-09-13",
-    "log-meal": "2025-09-15",
-    "photo-meal": "2025-09-16",
-    "scan-barcode": "2025-09-17",
-    "track-drinks": "2025-09-19",
-    "import-history": "2025-09-22",
+    "weight-trend": "2026-03-12",
+    "goals-progress": "2026-03-13",
+    "log-meal": "2026-03-15",
+    "photo-meal": "2026-03-16",
+    "scan-barcode": "2026-03-17",
+    "track-drinks": "2026-03-19",
+    "import-history": "2026-03-22",
 } as const;
 
 /** Tenths, as the server rounds every gram figure it sends. */
@@ -544,11 +538,13 @@ export const DEMO_EXAMPLE_MEALS = {
         },
         drinkUnit: null,
     },
-    // Beef borscht with sour cream and rye bread. No caffeine figure, so no
-    // caffeine tile.
+    // A restaurant's beef borscht with sour cream and rye bread, finished. The
+    // menu's salo (pork fat) is what the photo cannot show, and a restaurant
+    // kitchen runs richer than a home one: 24×4 + 43×4 + 27×9 = 511 kcal. No
+    // caffeine figure, so no caffeine tile.
     "photo-meal": {
         meal_type: "lunch",
-        add: { kcal: 470, pro: 24, car: 43, fat: 22, fib: 7, sugar: 10 },
+        add: { kcal: 520, pro: 24, car: 43, fat: 27, fib: 7, sugar: 10 },
         drinkUnit: null,
     },
     // A 330 ml can of Coca-Cola (barcode 5449000000996): 139 kcal and 35 g
@@ -686,12 +682,17 @@ export function demoGoalProgressPayload(
     };
 }
 
-/** The weigh-ins behind the weight-trends card: [days before the end date,
- *  kg]. Twelve in the 30-day window, chosen so the card and the reply quote
- *  the same things — the first reading in the window is 80.2 (so "−1.8 kg"),
- *  the last is today's 78.4 (so "3.4 kg to lose" against 75), and the four in
- *  the trailing seven days average exactly 78.7 (the reply's 7-day average,
- *  which computeWeightTrend takes over the readings in those days). */
+/** The weigh-ins behind both weight-trends cards: [days before the weight
+ *  conversation's weigh-in, kg]. Twelve in its 30-day window, chosen so each
+ *  card and the reply beside it quote the same things:
+ *    - the weight slide (the window ending on that weigh-in): the first
+ *      reading is 80.2 (so "−1.8 kg"), the last 78.4 (so "3.4 kg to lose"
+ *      against 75), and the four in the trailing seven days average exactly
+ *      78.7 (the reply's 7-day average, which computeWeightTrend takes over
+ *      the readings in those days);
+ *    - the hero (the window ending DEMO_HERO_DATE, four days earlier): the ten
+ *      readings up to that day, 80.2 on 11 Feb to 78.8 — "−1.4 kg" over 25
+ *      days, about 0.4 kg a week, and "3.8 kg to lose". */
 const DEMO_WEIGHT_READINGS: readonly (readonly [
     daysBack: number,
     kg: number,
@@ -716,21 +717,25 @@ function shiftIso(iso: string, delta: number): string {
     return new Date(t).toISOString().slice(0, 10);
 }
 
-/** The get_weight_trends payload behind the weight conversation: the tool
- *  called with no arguments, so the default 30-day window ending on the day of
- *  the weigh-in the conversation logged. */
-export function demoWeightTrendsPayload(locale: string): WeightTrendsPayload {
-    const end = DEMO_WEIGHT.logged_on;
+/** A get_weight_trends payload: the tool called with no arguments, so the
+ *  default 30-day window ending `endDate` — by default the day of the weigh-in
+ *  the weight conversation logged, or the hero's day. Only the readings inside
+ *  that window are sent, as the tool sends them. */
+export function demoWeightTrendsPayload(
+    locale: string,
+    endDate: string = DEMO_WEIGHT.logged_on,
+): WeightTrendsPayload {
+    const from = shiftIso(endDate, -29);
     return {
-        end_date: end,
+        end_date: endDate,
         unit: DEMO_WEIGHT.unit,
         target: DEMO_WEIGHT.target,
         default_range: 30,
         locale,
         days: DEMO_WEIGHT_READINGS.map(([back, kg]) => ({
-            date: shiftIso(end, -back),
+            date: shiftIso(DEMO_WEIGHT.logged_on, -back),
             weight: kg,
-        })),
+        })).filter((d) => d.date >= from && d.date <= endDate),
     };
 }
 
@@ -767,7 +772,7 @@ export interface DemoImportFile {
 
 /** The export's first and last logged days: six months, ending the day before
  *  the conversation's own date. */
-export const DEMO_IMPORT_FIRST_DAY = "2025-03-24";
+export const DEMO_IMPORT_FIRST_DAY = "2025-09-21";
 export const DEMO_IMPORT_LAST_DAY = shiftIso(
     DEMO_EXAMPLE_DATES["import-history"],
     -1,

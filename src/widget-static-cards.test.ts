@@ -28,7 +28,7 @@ import {
     DEMO_GOALS,
     DEMO_IMPORT_FIRST_DAY,
     DEMO_IMPORT_LAST_DAY,
-    DEMO_SUMMARY_DATE,
+    DEMO_HERO_DATE,
     DEMO_TRENDS_END_DATE,
     demoExampleMealLogged,
     demoGoalProgressPayload,
@@ -49,7 +49,7 @@ const MEAL_TEXT: Record<DemoExampleMealSlide, string> = {
     "log-meal":
         "Oatmeal with milk and blueberries (1 bowl) and black coffee (1 cup)",
     "photo-meal":
-        "Beef borscht (1 bowl, finished) with sour cream (2 tbsp) and rye bread (1 slice)",
+        "Beef borscht (1 bowl, finished) with sour cream and rye bread (1 slice) at Tsybulya, Podil, Kyiv",
     "scan-barcode": "Coca-Cola (330 ml can)",
     "track-drinks": "Lager, 4% (1 pint, 568 ml)",
 };
@@ -270,7 +270,7 @@ describe("the demo payloads", () => {
         };
         expect(() =>
             demoMealLoggedPayload({
-                date: "2025-09-15",
+                date: "2026-03-15",
                 logged,
                 dayMeals: [{ ...logged }],
                 locale: "en",
@@ -282,7 +282,7 @@ describe("the demo payloads", () => {
         const dates = Object.values(DEMO_EXAMPLE_DATES);
         expect(new Set(dates).size).toBe(dates.length);
         for (const d of dates) {
-            expect(d).not.toBe(DEMO_SUMMARY_DATE);
+            expect(d).not.toBe(DEMO_HERO_DATE);
             // The trends series covers the 30 days up to its end date.
             expect(d > DEMO_TRENDS_END_DATE).toBe(true);
         }
@@ -307,6 +307,18 @@ describe("the demo payloads", () => {
         const avg = week.reduce((t, d) => t + d.weight, 0) / week.length;
         expect(Math.round(avg * 10) / 10).toBe(78.7);
     });
+
+    test("the hero's weight card is the same weigh-ins, up to the hero's day", () => {
+        const p = demoWeightTrendsPayload("en", DEMO_HERO_DATE);
+        expect(p.end_date).toBe(DEMO_HERO_DATE);
+        // "Down 1.4 kg since 11 Feb … 3.8 kg to go": 80.2 → 78.8.
+        expect(p.days).toHaveLength(10);
+        expect(p.days[0]).toEqual({ date: "2026-02-11", weight: 80.2 });
+        expect(p.days.at(-1)).toEqual({ date: DEMO_HERO_DATE, weight: 78.8 });
+        // One account: every reading is the weight slide's reading that day.
+        const slide = demoWeightTrendsPayload("en");
+        for (const d of p.days) expect(slide.days).toContainEqual(d);
+    });
 });
 
 describe("what the English cards print", async () => {
@@ -317,7 +329,7 @@ describe("what the English cards print", async () => {
     test("each meal card announces its own meal and calories", () => {
         expect(cards["log-meal"]).toContain("+320 kcal");
         expect(cards["log-meal"]).toContain("Caffeine 95 /400 mg");
-        expect(cards["photo-meal"]).toContain("+470 kcal");
+        expect(cards["photo-meal"]).toContain("+520 kcal");
         expect(cards["photo-meal"]).not.toContain("Caffeine");
         expect(cards["scan-barcode"]).toContain("+139 kcal");
         expect(cards["scan-barcode"]).toContain("Caffeine 33 /400 mg");
@@ -340,6 +352,23 @@ describe("what the English cards print", async () => {
         expect(cards["weight-trend"]).toContain("−1.8 kg");
         expect(cards["weight-trend"]).toContain("3.4 kg to lose");
         expect(cards["weight-trend"]).toContain("12 weigh-ins");
+    });
+
+    test("the hero's weight card prints what its reply quotes, under its own ids", async () => {
+        const html = await renderWeightTrendsCard(
+            demoWeightTrendsPayload("en", DEMO_HERO_DATE),
+            "en",
+            30,
+            { idPrefix: "hero-weight", chartIdBase: 300 },
+        );
+        const t = text(html);
+        expect(t).toContain("78.8 kg");
+        expect(t).toContain("−1.4 kg");
+        expect(t).toContain("3.8 kg to lose");
+        expect(t).toContain("10 weigh-ins");
+        expect(html).toContain('id="hero-weight-wt-meta"');
+        expect(html).toContain('id="hero-weight-wt-body"');
+        expect(html).not.toContain('id="wt-meta"');
     });
 
     test("the importer is its first step, with no timezone warning", async () => {
@@ -365,10 +394,10 @@ describe("the importer's screens", () => {
     test("the demo export is shaped like a current MyFitnessPal file", () => {
         const { fileName, csv } = IMPORT_FILE;
         expect(demoImportFile()).toEqual(IMPORT_FILE);
-        expect(fileName).toBe("Nutrition-Summary-2025-03-24-to-2025-09-21.csv");
-        expect(DEMO_IMPORT_FIRST_DAY).toBe("2025-03-24");
+        expect(fileName).toBe("Nutrition-Summary-2025-09-21-to-2026-03-21.csv");
+        expect(DEMO_IMPORT_FIRST_DAY).toBe("2025-09-21");
         // Ends the day before the conversation, which is the importer's today.
-        expect(DEMO_IMPORT_LAST_DAY).toBe("2025-09-21");
+        expect(DEMO_IMPORT_LAST_DAY).toBe("2026-03-21");
         expect(demoStartImportPayload("en").today).toBe(
             DEMO_EXAMPLE_DATES["import-history"],
         );
@@ -388,7 +417,7 @@ describe("the importer's screens", () => {
         expect(rows.some((r) => /total/i.test(r[0]!))).toBe(false);
         expect(new Set(rows.map((r) => r[0])).size).toBe(163);
         expect(rows[0]!.slice(0, 3)).toEqual([
-            "2025-03-24",
+            "2025-09-21",
             "Breakfast",
             "367.0",
         ]);
@@ -416,7 +445,7 @@ describe("the importer's screens", () => {
                 "603 row(s) had a date but no time; they were logged at local noon.",
             ],
             modelContext:
-                "Bulk meal import finished: 603 meals imported, 0 already logged, 0 failed. Source: Nutrition-Summary-2025-03-24-to-2025-09-21.csv.",
+                "Bulk meal import finished: 603 meals imported, 0 already logged, 0 failed. Source: Nutrition-Summary-2025-09-21-to-2026-03-21.csv.",
             sourceApp: "myfitnesspal",
         });
     });
@@ -443,7 +472,7 @@ describe("the importer's screens", () => {
             'data-field="description" aria-label="Food name"><option value="-1" selected>(not in this file)</option>',
         );
         expect(map).toContain('value="myfitnesspal"');
-        expect(text(map)).toContain("2025-03-24 → 2025-03-24");
+        expect(text(map)).toContain("2025-09-21 → 2025-09-21");
         expect(text(map)).toContain("367 kcal → 367 kcal (no conversion)");
 
         const preview = await screen("preview");

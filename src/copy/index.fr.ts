@@ -39,70 +39,100 @@ export const INDEX_FR: IndexDoc = {
         moreExamples: "Plus d'exemples",
         chat: {
             status: "Nutrition · connecté",
-            photoCaption: "📷 Photo",
+            photoAlt:
+                "Photo : un smoothie bowl garni de banane, de fruits rouges et de granola, avec un americano à côté",
             pauseLabel: "Mettre la démo en pause",
             replayLabel: "Rejouer la démo",
             exchanges: [
                 {
-                    userText:
-                        "Du porridge aux fruits rouges et un flat white au petit-déjeuner",
-                    aiText: "Enregistré — environ 380 kcal, 14 g de protéines. Le flat white ajoute 130 mg de caféine.",
+                    photo: true,
+                    userText: "petit-déj + americano",
+                    aiText: "Un smoothie bowl, fait maison on dirait. Tu l'as déjà pris de deux façons : avec granola et miel, ou juste aux fruits. C'est lequel ?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "granola et miel, une bonne cuillère",
+                    aiText: "Noté. Et l'americano : noir, ou avec du lait ?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "un nuage de lait d'avoine",
+                    aiText: "Donc : le bowl avec une poignée de granola et 1 c. à soupe de miel, et un americano avec un nuage de lait d'avoine. Environ 480 kcal et 21 g de protéines. Je l'enregistre en petit-déjeuner ?",
+                    add: {},
+                    clock: "08:41",
+                },
+                {
+                    userText: "oui",
+                    aiText: "Petit-déjeuner enregistré : 480 kcal, 21 g de protéines et 150 mg de caféine. Il contient 51 g de sucres, dont 17 g viennent du miel.",
                     add: {
-                        kcal: 380,
-                        pro: 14,
-                        car: 56,
-                        fat: 11,
-                        sugar: 12,
-                        fib: 8,
-                        caf: 130,
+                        kcal: 480,
+                        pro: 21,
+                        car: 85,
+                        fat: 9,
+                        fib: 9,
+                        sugar: 51,
+                        caf: 150,
                     },
-                    clock: "08:04",
+                    clock: "08:41",
                     meal: {
                         description:
-                            "Porridge aux fruits rouges et un flat white",
+                            "Smoothie bowl (yaourt grec, banane, fruits rouges) avec granola (1 poignée) et miel (1 c. à soupe) ; americano avec un nuage de lait d'avoine",
                         type: "breakfast",
+                    },
+                    card: "meal-logged",
+                },
+                {
+                    userText:
+                        "le reste du wok d'hier soir, même portion. et une bouteille d'eau de 500 ml",
+                    aiText: "Déjeuner enregistré, comme hier soir : 620 kcal et 54 g de protéines, plus 500 ml d'eau.",
+                    add: {
+                        kcal: 620,
+                        pro: 54,
+                        car: 56,
+                        fat: 19,
+                        fib: 5,
+                        sugar: 8,
+                        water: 500,
+                    },
+                    clock: "12:55",
+                    meal: {
+                        description:
+                            "Wok de poulet au riz (1 assiette, restes d'hier soir)",
+                        type: "lunch",
                     },
                 },
                 {
-                    barcode: true,
-                    aiText: "C'est un Coca-Cola de 330 ml — 139 kcal, 35 g de sucre, d'après Open Food Facts. Enregistré en collation.",
-                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
-                    clock: "11:30",
+                    userText: "j'ai piqué 6 frites à mon gamin. me juge pas",
+                    aiText: "Aucun jugement. Environ 90 kcal, enregistrées en collation.",
+                    add: {
+                        kcal: 90,
+                        pro: 1,
+                        car: 12,
+                        fat: 5,
+                        fib: 1,
+                        sugar: 0,
+                    },
+                    clock: "16:40",
                     meal: {
-                        description: "Coca-Cola, 330 ml",
+                        description: "Frites (6 frites)",
                         type: "snack",
                     },
                 },
                 {
-                    userText: "Un demi-litre d'eau",
-                    aiText: "C'est fait. 500 ml pour l'instant aujourd'hui.",
-                    add: { water: 500 },
-                    clock: "12:10",
-                },
-                {
-                    userText: "Une grande salade de poulet grillé au déjeuner",
-                    aiText: "Enregistré — environ 540 kcal, 46 g de protéines. Tu es à mi-chemin des 2 000 du jour.",
-                    add: {
-                        kcal: 540,
-                        pro: 46,
-                        car: 22,
-                        fat: 28,
-                        sugar: 6,
-                        fib: 7,
-                    },
-                    clock: "13:22",
-                    meal: {
-                        description: "Grande salade de poulet grillé",
-                        type: "lunch",
-                    },
-                    widget: true,
-                },
-                {
-                    userText: "Où j'en suis aujourd'hui ?",
-                    aiText: "Voici ta journée jusqu'ici — les protéines sont dans les clous, le sucre approche de la limite.",
+                    userText: "il me reste quoi pour le dîner ?",
+                    aiText: "810 kcal, et encore 84 g de protéines à trouver. Mise plutôt sur le salé : les sucres sont déjà à 59 sur tes 60 g.",
                     add: {},
-                    clock: "13:23",
-                    widget: true,
+                    clock: "19:20",
+                    card: "nutrition-summary",
+                },
+                {
+                    userText: "et mon poids, ça donne quoi ?",
+                    aiText: "1,4 kg de moins depuis le 11 février, environ 0,4 kg par semaine. Encore 3,8 kg avant ton objectif de 75 kg.",
+                    add: {},
+                    clock: "19:21",
+                    card: "weight-trends",
                 },
             ],
         },
@@ -216,7 +246,7 @@ export const INDEX_FR: IndexDoc = {
         moreToolsLabel: "Utilise aussi",
         toolLinkLabel: "{tool} sur la page des outils",
         photoMealAlt:
-            "Photo : un bol de bortsch avec une cuillerée de crème aigre et de l'aneth, et une tranche de pain de seigle à côté",
+            "Photo : un bol de bortsch avec une cuillerée de crème fraîche et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:
             "Photo : le code-barres d'une canette de Coca-Cola, numéro 5449000000996",
         threadLabel: "Conversation",
@@ -276,50 +306,38 @@ export const INDEX_FR: IndexDoc = {
                 id: "photo-meal",
                 title: "Photographier son assiette",
                 description:
-                    "Une photo ouvre un échange, pas une devinette. Il établit si c'est fait maison ou au restaurant, regarde comment tu as déjà enregistré ce plat, pose une question à la fois sur les portions et les extras, et n'enregistre qu'une fois le résumé validé.",
+                    "Une photo ouvre un échange, pas une devinette. Il établit si c'est fait maison ou au restaurant, consulte la carte du restaurant pour ce que la photo ne montre pas, demande combien tu en as mangé, et n'enregistre qu'une fois le résumé validé.",
                 toolNotes: {
                     log_meal:
-                        "N'enregistre qu'une fois tout réglé et ton oui donné",
+                        "L'enregistre avec le nom du restaurant, dès que tu dis oui",
                     search_meals:
-                        "Retrouve tes bortschs passés pour te demander lequel",
+                        "Vérifie si tu as déjà enregistré un repas à cet endroit",
                 },
                 messages: [
-                    {
-                        from: "user",
-                        photo: "meal",
-                        text: "le bortsch de maman pour le déj",
-                    },
+                    { from: "user", photo: "meal", text: "déj" },
                     {
                         from: "ai",
-                        text: "Ça a l'air bon. Tu as enregistré du bortsch 6 fois : 5 au bœuf (environ 320 kcal le bol, la dernière fois le 2 septembre) et une fois sans viande (environ 180). C'est lequel ?",
+                        text: "On dirait un bortsch avec crème fraîche et pain de seigle, dressé comme au restaurant plutôt qu'à la maison. C'était quel restaurant, et où ?",
                     },
-                    { from: "user", text: "au bœuf" },
+                    { from: "user", text: "Tsybulya, à Podil, à Kyiv" },
                     {
                         from: "ai",
-                        text: "OK, au bœuf. Il reste deux choses : la crème aigre et la quantité. Tu as mis à peu près combien de cuillerées de crème aigre ?",
-                    },
-                    {
-                        from: "user",
-                        text: "2 cuillères à soupe, peut-être un peu plus",
-                    },
-                    {
-                        from: "ai",
-                        text: "Je compte 2 cuillères à soupe bien pleines. Tu as fini le bol ?",
+                        text: "J'ai trouvé leur carte : le bortsch est préparé avec un bouillon de bœuf et du salo (lard de porc), ce qu'une photo ne peut pas montrer. Aucune calorie n'y est indiquée, ce sera donc une estimation. Tu l'as fini ?",
                     },
                     { from: "user", text: "tout, le pain aussi" },
                     {
                         from: "ai",
-                        text: "Donc : bortsch au bœuf (1 bol) avec 2 c. à soupe bombées de crème aigre, plus une tranche de pain de seigle d'après la photo. Environ 470 kcal et 24 g de protéines. Je l'enregistre en déjeuner ?",
+                        text: "Donc : bortsch au bœuf avec crème fraîche et une tranche de pain de seigle chez Tsybulya, Podil, Kyiv, entièrement fini. Environ 520 kcal et 24 g de protéines. Je l'enregistre en déjeuner ?",
                     },
                     { from: "user", text: "oui" },
                     {
                         from: "ai",
-                        text: "Déjeuner enregistré : 470 kcal · 24 g de protéines · 43 g de glucides · 22 g de lipides · 7 g de fibres · 10 g de sucres.",
+                        text: "Déjeuner enregistré : 520 kcal · 24 g de protéines · 43 g de glucides · 27 g de lipides · 7 g de fibres · 10 g de sucres. Estimé d'après leur carte, pas à partir de valeurs publiées.",
                     },
                 ],
-                cards: [{ kind: "meal-logged", after: 9 }],
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: [
-                    "Bortsch au bœuf (1 bol, fini) avec crème aigre (2 c. à soupe) et pain de seigle (1 tranche)",
+                    "Bortsch au bœuf avec crème fraîche (1 bol, fini) et pain de seigle (1 tranche) chez Tsybulya, Podil, Kyiv",
                 ],
             },
             {
@@ -443,7 +461,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "78,4 kg enregistrés. Tu as perdu 1,8 kg depuis le 14 août, environ 0,4 kg par semaine, et ta moyenne sur 7 jours est de 78,7 kg. Encore 3,4 kg avant ton objectif de 75 kg.",
+                        text: "78,4 kg enregistrés. Tu as perdu 1,8 kg depuis le 11 février, environ 0,4 kg par semaine, et ta moyenne sur 7 jours est de 78,7 kg. Encore 3,4 kg avant ton objectif de 75 kg.",
                     },
                 ],
                 cards: [{ kind: "weight-trends", after: 3 }],

@@ -34,71 +34,101 @@ export const INDEX_DE: IndexDoc = {
         moreExamples: "Mehr Beispiele",
         chat: {
             status: "Nutrition · verbunden",
-            photoCaption: "📷 Foto",
+            photoAlt:
+                "Foto: eine Smoothie-Bowl mit Banane, Beeren und Granola, daneben ein Americano",
             pauseLabel: "Demo anhalten",
             replayLabel: "Demo wiederholen",
             exchanges: [
                 {
-                    userText:
-                        "Haferflocken mit Beeren und ein Flat White zum Frühstück",
-                    aiText: "Erfasst — etwa 380 kcal, 14 g Protein. Der Flat White bringt 130 mg Koffein mit.",
+                    photo: true,
+                    userText: "Frühstück + Americano",
+                    aiText: "Eine Smoothie-Bowl, so wie es aussieht selbst gemacht. Du hattest sie bisher in zwei Varianten: mit Granola und Honig oder nur mit Obst. Welche ist es diesmal?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "Granola und Honig, ein voller Löffel",
+                    aiText: "Alles klar. Und der Americano: schwarz oder mit Milch?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "ein Schuss Hafermilch",
+                    aiText: "Also: die Bowl mit einer Handvoll Granola und 1 EL Honig, dazu ein Americano mit einem Schuss Hafermilch. Etwa 480 kcal und 21 g Protein. Als Frühstück erfassen?",
+                    add: {},
+                    clock: "08:41",
+                },
+                {
+                    userText: "ja",
+                    aiText: "Frühstück erfasst: 480 kcal, 21 g Protein und 150 mg Koffein. Drin stecken 51 g Zucker, 17 g davon aus dem Honig.",
                     add: {
-                        kcal: 380,
-                        pro: 14,
-                        car: 56,
-                        fat: 11,
-                        sugar: 12,
-                        fib: 8,
-                        caf: 130,
+                        kcal: 480,
+                        pro: 21,
+                        car: 85,
+                        fat: 9,
+                        fib: 9,
+                        sugar: 51,
+                        caf: 150,
                     },
-                    clock: "08:04",
+                    clock: "08:41",
                     meal: {
                         description:
-                            "Haferflocken mit Beeren und ein Flat White",
+                            "Smoothie-Bowl (griechischer Joghurt, Banane, Beeren) mit Granola (1 Handvoll) und Honig (1 EL); Americano mit einem Schuss Hafermilch",
                         type: "breakfast",
+                    },
+                    card: "meal-logged",
+                },
+                {
+                    userText:
+                        "Reste von der Wokpfanne von gestern Abend, gleiche Portion. und ne 500-ml-Flasche Wasser",
+                    aiText: "Mittagessen erfasst, wie gestern Abend: 620 kcal und 54 g Protein, dazu 500 ml Wasser.",
+                    add: {
+                        kcal: 620,
+                        pro: 54,
+                        car: 56,
+                        fat: 19,
+                        fib: 5,
+                        sugar: 8,
+                        water: 500,
+                    },
+                    clock: "12:55",
+                    meal: {
+                        description:
+                            "Hähnchen-Wokpfanne mit Reis (1 Teller, Reste von gestern Abend)",
+                        type: "lunch",
                     },
                 },
                 {
-                    barcode: true,
-                    aiText: "Das ist eine 330-ml-Coca-Cola — 139 kcal, 35 g Zucker, laut Open Food Facts. Als Snack erfasst.",
-                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
-                    clock: "11:30",
+                    userText:
+                        "hab meinem Kind 6 Pommes geklaut. nicht urteilen",
+                    aiText: "Ich sag nix. Etwa 90 kcal, als Snack erfasst.",
+                    add: {
+                        kcal: 90,
+                        pro: 1,
+                        car: 12,
+                        fat: 5,
+                        fib: 1,
+                        sugar: 0,
+                    },
+                    clock: "16:40",
                     meal: {
-                        description: "Coca-Cola, 330 ml",
+                        description: "Pommes frites (6 Stück)",
                         type: "snack",
                     },
                 },
                 {
-                    userText: "Einen halben Liter Wasser",
-                    aiText: "Erledigt. Heute bisher 500 ml.",
-                    add: { water: 500 },
-                    clock: "12:10",
-                },
-                {
-                    userText:
-                        "Großer Salat mit gegrilltem Hähnchen zum Mittagessen",
-                    aiText: "Erfasst — etwa 540 kcal, 46 g Protein. Du bist bei der Hälfte deiner 2.000 für heute.",
-                    add: {
-                        kcal: 540,
-                        pro: 46,
-                        car: 22,
-                        fat: 28,
-                        sugar: 6,
-                        fib: 7,
-                    },
-                    clock: "13:22",
-                    meal: {
-                        description: "Großer Salat mit gegrilltem Hähnchen",
-                        type: "lunch",
-                    },
-                    widget: true,
-                },
-                {
-                    userText: "Wie stehe ich heute da?",
-                    aiText: "Hier ist dein Tag bisher — Protein liegt im Plan, Zucker ist nah am Limit.",
+                    userText: "was geht noch zum Abendessen?",
+                    aiText: "810 kcal, und 84 g Protein fehlen noch. Lieber was Herzhaftes: Beim Zucker bist du schon bei 59 von deinen 60 g.",
                     add: {},
-                    clock: "13:23",
-                    widget: true,
+                    clock: "19:20",
+                    card: "nutrition-summary",
+                },
+                {
+                    userText: "und wie läuft's mit meinem Gewicht?",
+                    aiText: "Seit dem 11. Feb. hast du 1,4 kg abgenommen, etwa 0,4 kg pro Woche. Noch 3,8 kg bis zu deinem Zielgewicht von 75 kg.",
+                    add: {},
+                    clock: "19:21",
+                    card: "weight-trends",
                 },
             ],
         },
@@ -276,50 +306,38 @@ export const INDEX_DE: IndexDoc = {
                 id: "photo-meal",
                 title: "Foto vom Teller",
                 description:
-                    "Ein Foto startet ein Gespräch statt einer Schätzung: selbst gekocht oder Restaurant, wie du das Gericht bisher erfasst hast, dann eine Frage pro Nachricht zu Portion und Extras. Erfasst wird erst, wenn du die Zusammenfassung bestätigst.",
+                    "Ein Foto startet ein Gespräch statt einer Schätzung. Es klärt, ob selbst gekocht oder Restaurant, liest die Speisekarte des Restaurants für das, was das Foto nicht zeigt, fragt, wie viel du gegessen hast, und erfasst erst nach deinem Ja.",
                 toolNotes: {
                     log_meal:
-                        "Erfasst erst, wenn alle Fragen geklärt sind und du Ja sagst",
+                        "Erfasst es mit dem Namen des Restaurants, sobald du Ja sagst",
                     search_meals:
-                        "Findet deine bisherigen Borschtsch-Einträge für die Rückfrage",
+                        "Prüft, ob du dort schon einmal eine Mahlzeit erfasst hast",
                 },
                 messages: [
-                    {
-                        from: "user",
-                        photo: "meal",
-                        text: "Mamas Borschtsch zum Mittagessen",
-                    },
+                    { from: "user", photo: "meal", text: "Mittagessen" },
                     {
                         from: "ai",
-                        text: "Sieht super aus. Du hast Borschtsch schon 6-mal erfasst: 5-mal mit Rindfleisch (etwa 320 kcal pro Teller, zuletzt am 2. Sept.) und einmal ohne Fleisch (etwa 180). Welcher ist es diesmal?",
+                        text: "Sieht nach Borschtsch mit Schmand und Roggenbrot aus, so angerichtet eher im Restaurant als zu Hause. Welches Lokal war das, und wo?",
                     },
-                    { from: "user", text: "mit Rind" },
+                    { from: "user", text: "Tsybulya, in Podil in Kyjiw" },
                     {
                         from: "ai",
-                        text: "Alles klar, mit Rindfleisch. Zwei Dinge fehlen noch: der Schmand und wie viel du gegessen hast. Wie viele Löffel Schmand kamen ungefähr rein?",
+                        text: "Ich habe ihre Speisekarte gefunden: Der Borschtsch wird auf Rinderbrühe mit Salo (gesalzenem Schweinespeck) gekocht, und das zeigt kein Foto. Kalorien stehen nicht dabei, es wird also eine Schätzung. Hast du aufgegessen?",
                     },
-                    {
-                        from: "user",
-                        text: "2 Esslöffel, vielleicht bisschen mehr",
-                    },
+                    { from: "user", text: "alles, das Brot auch" },
                     {
                         from: "ai",
-                        text: "Ich rechne mit 2 gut gehäuften Esslöffeln. Hast du den Teller leer gegessen?",
-                    },
-                    { from: "user", text: "komplett, das Brot auch" },
-                    {
-                        from: "ai",
-                        text: "Also: Borschtsch mit Rindfleisch (1 Teller) mit 2 gehäuften EL Schmand, dazu laut Foto eine Scheibe Roggenbrot. Etwa 470 kcal und 24 g Protein. Als Mittagessen erfassen?",
+                        text: "Also: Borschtsch mit Rindfleisch und Schmand, dazu eine Scheibe Roggenbrot, im Tsybulya, Podil, Kyjiw, alles aufgegessen. Etwa 520 kcal und 24 g Protein. Als Mittagessen erfassen?",
                     },
                     { from: "user", text: "ja" },
                     {
                         from: "ai",
-                        text: "Mittagessen erfasst: 470 kcal · 24 g Protein · 43 g Kohlenhydrate · 22 g Fett · 7 g Ballaststoffe · 10 g Zucker.",
+                        text: "Mittagessen erfasst: 520 kcal · 24 g Protein · 43 g Kohlenhydrate · 27 g Fett · 7 g Ballaststoffe · 10 g Zucker. Geschätzt anhand der Speisekarte, keine veröffentlichten Werte.",
                     },
                 ],
-                cards: [{ kind: "meal-logged", after: 9 }],
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: [
-                    "Borschtsch mit Rindfleisch (1 Teller, aufgegessen) mit Schmand (2 EL) und Roggenbrot (1 Scheibe)",
+                    "Borschtsch mit Rindfleisch und Schmand (1 Teller, aufgegessen), dazu Roggenbrot (1 Scheibe), im Tsybulya, Podil, Kyjiw",
                 ],
             },
             {
@@ -443,7 +461,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "78,4 kg gespeichert. Seit dem 14. Aug. hast du 1,8 kg abgenommen, etwa 0,4 kg pro Woche, und dein 7-Tage-Schnitt liegt bei 78,7 kg. Noch 3,4 kg bis zu deinem Zielgewicht von 75 kg.",
+                        text: "78,4 kg gespeichert. Seit dem 11. Feb. hast du 1,8 kg abgenommen, etwa 0,4 kg pro Woche, und dein 7-Tage-Schnitt liegt bei 78,7 kg. Noch 3,4 kg bis zu deinem Zielgewicht von 75 kg.",
                     },
                 ],
                 cards: [{ kind: "weight-trends", after: 3 }],

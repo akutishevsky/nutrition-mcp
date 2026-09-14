@@ -42,71 +42,101 @@ export const INDEX_IT: IndexDoc = {
         moreExamples: "Altri esempi",
         chat: {
             status: "Nutrition · connesso",
-            photoCaption: "📷 Foto",
+            photoAlt:
+                "Foto: una smoothie bowl con banana, frutti di bosco e granola sopra, e accanto un americano",
             pauseLabel: "Metti in pausa la demo",
             replayLabel: "Riproduci di nuovo la demo",
             exchanges: [
                 {
-                    userText:
-                        "Porridge con frutti di bosco e un flat white a colazione",
-                    aiText: "Registrato — circa 380 kcal, 14 g di proteine. Il flat white aggiunge 130 mg di caffeina.",
+                    photo: true,
+                    userText: "colazione + americano",
+                    aiText: "Una smoothie bowl, fatta in casa a quanto pare. L'hai già presa in due modi: con granola e miele, o solo con la frutta. Qual è questa?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "granola e miele, un cucchiaio bello pieno",
+                    aiText: "Ok. E l'americano: senza niente o con del latte?",
+                    add: {},
+                    clock: "08:40",
+                },
+                {
+                    userText: "un goccio di latte d'avena",
+                    aiText: "Quindi: la bowl con una manciata di granola e 1 cucchiaio di miele, e un americano con un goccio di latte d'avena. Circa 480 kcal e 21 g di proteine. La registro come colazione?",
+                    add: {},
+                    clock: "08:41",
+                },
+                {
+                    userText: "sì",
+                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 150 mg di caffeina. Contiene 51 g di zuccheri, 17 g dei quali dal miele.",
                     add: {
-                        kcal: 380,
-                        pro: 14,
-                        car: 56,
-                        fat: 11,
-                        sugar: 12,
-                        fib: 8,
-                        caf: 130,
+                        kcal: 480,
+                        pro: 21,
+                        car: 85,
+                        fat: 9,
+                        fib: 9,
+                        sugar: 51,
+                        caf: 150,
                     },
-                    clock: "08:04",
+                    clock: "08:41",
                     meal: {
                         description:
-                            "Porridge con frutti di bosco e un flat white",
+                            "Smoothie bowl (yogurt greco, banana, frutti di bosco) con granola (1 manciata) e miele (1 cucchiaio); americano con un goccio di latte d'avena",
                         type: "breakfast",
+                    },
+                    card: "meal-logged",
+                },
+                {
+                    userText:
+                        "gli avanzi del pollo saltato di ieri sera, stessa porzione. e una bottiglietta d'acqua da 500 ml",
+                    aiText: "Pranzo registrato, come ieri sera: 620 kcal e 54 g di proteine, più 500 ml d'acqua.",
+                    add: {
+                        kcal: 620,
+                        pro: 54,
+                        car: 56,
+                        fat: 19,
+                        fib: 5,
+                        sugar: 8,
+                        water: 500,
+                    },
+                    clock: "12:55",
+                    meal: {
+                        description:
+                            "Pollo saltato in padella con riso (1 piatto, avanzi di ieri sera)",
+                        type: "lunch",
                     },
                 },
                 {
-                    barcode: true,
-                    aiText: "È una Coca-Cola da 330 ml — 139 kcal, 35 g di zuccheri, da Open Food Facts. Registrata come spuntino.",
-                    add: { kcal: 139, car: 35, sugar: 35, fib: 0 },
-                    clock: "11:30",
+                    userText:
+                        "ho rubato 6 patatine fritte a mio figlio. non giudicarmi",
+                    aiText: "Nessun giudizio. Circa 90 kcal, registrate come spuntino.",
+                    add: {
+                        kcal: 90,
+                        pro: 1,
+                        car: 12,
+                        fat: 5,
+                        fib: 1,
+                        sugar: 0,
+                    },
+                    clock: "16:40",
                     meal: {
-                        description: "Coca-Cola, 330 ml",
+                        description: "Patatine fritte (6 patatine)",
                         type: "snack",
                     },
                 },
                 {
-                    userText: "Mezzo litro d'acqua",
-                    aiText: "Fatto. 500 ml finora oggi.",
-                    add: { water: 500 },
-                    clock: "12:10",
-                },
-                {
-                    userText:
-                        "Una grande insalata di pollo alla griglia a pranzo",
-                    aiText: "Registrato — circa 540 kcal, 46 g di proteine. Sei a metà delle 2000 di oggi.",
-                    add: {
-                        kcal: 540,
-                        pro: 46,
-                        car: 22,
-                        fat: 28,
-                        sugar: 6,
-                        fib: 7,
-                    },
-                    clock: "13:22",
-                    meal: {
-                        description: "Insalata grande di pollo alla griglia",
-                        type: "lunch",
-                    },
-                    widget: true,
-                },
-                {
-                    userText: "Come sto andando oggi?",
-                    aiText: "Ecco la giornata finora — le proteine sono in linea, gli zuccheri sono vicini al limite.",
+                    userText: "cosa mi resta per cena?",
+                    aiText: "810 kcal, e ti mancano ancora 84 g di proteine. Meglio qualcosa di salato: gli zuccheri sono già a 59 dei tuoi 60 g.",
                     add: {},
-                    clock: "13:23",
-                    widget: true,
+                    clock: "19:20",
+                    card: "nutrition-summary",
+                },
+                {
+                    userText: "e il peso come va?",
+                    aiText: "Hai perso 1,4 kg dall'11 feb, circa 0,4 kg a settimana. Mancano 3,8 kg al tuo obiettivo di 75 kg.",
+                    add: {},
+                    clock: "19:21",
+                    card: "weight-trends",
                 },
             ],
         },
@@ -283,47 +313,38 @@ export const INDEX_IT: IndexDoc = {
                 id: "photo-meal",
                 title: "Fotografa il piatto",
                 description:
-                    "Una foto apre un'intervista, non un'ipotesi. Chiarisce se è fatto in casa o al ristorante, controlla come hai registrato il piatto in passato, fa una domanda alla volta su porzioni ed extra e registra solo quando approvi il riepilogo.",
+                    "Una foto apre un'intervista, non un'ipotesi. Chiarisce se è fatto in casa o al ristorante, legge il menu del locale per ciò che la foto non mostra, chiede quanto ne hai mangiato e registra solo quando approvi il riepilogo.",
                 toolNotes: {
                     log_meal:
-                        "Registra il pasto solo a domande chiuse e dopo il tuo sì",
+                        "Lo registra col nome del ristorante, dopo il tuo sì",
                     search_meals:
-                        "Trova i borscht già registrati per chiederti quale",
+                        "Controlla se hai già registrato un pasto in quel locale",
                 },
                 messages: [
-                    {
-                        from: "user",
-                        photo: "meal",
-                        text: "il borscht della mamma a pranzo",
-                    },
+                    { from: "user", photo: "meal", text: "pranzo" },
                     {
                         from: "ai",
-                        text: "Ha un bell'aspetto. Hai registrato il borscht 6 volte: 5 con manzo (circa 320 kcal a scodella, l'ultima il 2 set) e una senza carne (circa 180). Qual è questo?",
+                        text: "Sembra un borscht con panna acida e pane di segale, impiattato più da ristorante che da casa. Che locale era, e dove?",
                     },
-                    { from: "user", text: "con manzo" },
+                    { from: "user", text: "Tsybulya, a Podil, Kiev" },
                     {
                         from: "ai",
-                        text: "Perfetto, con manzo. Restano due cose: la panna acida e quanto ne hai mangiato. Più o meno quanti cucchiai di panna acida ci hai messo?",
+                        text: "Ho trovato il loro menu: il borscht è fatto con brodo di manzo e salo (lardo di maiale), cosa che una foto non può mostrare. Le calorie non sono indicate, quindi sarà una stima. L'hai finito?",
                     },
-                    { from: "user", text: "2 cucchiai, forse un po' di più" },
+                    { from: "user", text: "tutto, anche il pane" },
                     {
                         from: "ai",
-                        text: "Conto 2 cucchiai abbondanti. Hai finito la scodella?",
-                    },
-                    { from: "user", text: "tutta, anche il pane" },
-                    {
-                        from: "ai",
-                        text: "Quindi: borscht con manzo (1 scodella) con 2 cucchiai abbondanti di panna acida, più una fetta di pane di segale, a giudicare dalla foto. Circa 470 kcal e 24 g di proteine. Lo registro come pranzo?",
+                        text: "Quindi: borscht di manzo con panna acida e una fetta di pane di segale da Tsybulya, Podil, Kiev, finito tutto. Circa 520 kcal e 24 g di proteine. Lo registro come pranzo?",
                     },
                     { from: "user", text: "sì" },
                     {
                         from: "ai",
-                        text: "Pranzo registrato: 470 kcal · 24 g di proteine · 43 g di carboidrati · 22 g di grassi · 7 g di fibre · 10 g di zuccheri.",
+                        text: "Pranzo registrato: 520 kcal · 24 g di proteine · 43 g di carboidrati · 27 g di grassi · 7 g di fibre · 10 g di zuccheri. Stima basata sul loro menu, non su valori pubblicati.",
                     },
                 ],
-                cards: [{ kind: "meal-logged", after: 9 }],
+                cards: [{ kind: "meal-logged", after: 7 }],
                 cardMeals: [
-                    "Borscht con manzo (1 scodella, finita) con panna acida (2 cucchiai) e pane di segale (1 fetta)",
+                    "Borscht di manzo con panna acida (1 scodella, finita) e pane di segale (1 fetta) da Tsybulya, Podil, Kiev",
                 ],
             },
             {
@@ -444,7 +465,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Salvati 78,4 kg. Hai perso 1,8 kg dal 14 ago, circa 0,4 kg a settimana, e la tua media a 7 giorni è di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
+                        text: "Salvati 78,4 kg. Hai perso 1,8 kg dall'11 feb, circa 0,4 kg a settimana, e la tua media a 7 giorni è di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
                     },
                 ],
                 cards: [{ kind: "weight-trends", after: 3 }],
