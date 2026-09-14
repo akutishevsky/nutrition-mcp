@@ -3478,6 +3478,9 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
        and at the largest level the dots themselves, were cut in half. The
        card's padding is the room they overflow into. */
     overflow: visible;
+    /* The dots' click listener sits on the svg, so a mobile tap flashed the
+       UA's tap highlight over the whole map - it read as the map taking focus. */
+    -webkit-tap-highlight-color: transparent;
 }
 .nm-land {
     fill: var(--ink3);

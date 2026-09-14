@@ -945,7 +945,9 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     ? tip.getAttribute("data-share-pattern") || ""
                     : "";
                 var tipOn = null;
-                var tipShownAt = 0;
+                // The dot a click last opened the tip on - a second click there
+                // closes it. Anything else that hides the tip forgets it.
+                var tipPressed = null;
                 var fmtPct = null;
                 try {
                     fmtPct = new Intl.NumberFormat(NUM_LOCALE, { style: "percent" });
@@ -970,7 +972,6 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                 function showTip(core) {
                     if (!tip) return;
                     if (tipOn && tipOn !== core) tipOn.classList.remove("is-on");
-                    tipShownAt = Date.now();
                     tipOn = core;
                     core.classList.add("is-on");
                     if (tipName)
@@ -1013,6 +1014,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     if (!tip) return;
                     if (tipOn) tipOn.classList.remove("is-on");
                     tipOn = null;
+                    tipPressed = null;
                     tip.hidden = true;
                 }
                 // Expect this to render sparsely for a while: the 2026-08-15
@@ -1129,26 +1131,44 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     svg.addEventListener("mouseout", function (e) {
                         if (e.target.closest(".nm-tz")) hideTip();
                     });
-                    svg.addEventListener("focusin", function (e) {
+                    // Focus is listened for on the wrapper, never the svg: Blink and
+                    // WebKit make any SVG element with a focus listener focusable, so
+                    // the whole map became a Tab stop and a click on its empty sea
+                    // focused it and drew the UA's ring around the card. focusin and
+                    // focusout bubble, so the dots still reach the wrapper.
+                    var mapBox = svg.parentNode;
+                    mapBox.addEventListener("focusin", function (e) {
                         var core = e.target.closest(".nm-tz");
                         if (core) showTip(core);
                     });
-                    svg.addEventListener("focusout", function (e) {
+                    mapBox.addEventListener("focusout", function (e) {
                         if (e.target.closest(".nm-tz")) hideTip();
                     });
-                    // A tap arrives as mouseover, focusin, click in one gesture - the
-                    // first two show the tip, so the click only counts as "tap again
-                    // to dismiss" when the tip has been up for longer than a gesture.
+                    // A click must not focus the dot. tabindex is there for the
+                    // keyboard, but a clicked dot stayed focused, so the next key
+                    // press (an arrow or Space to scroll) matched :focus-visible and
+                    // drew the ring on a dot nobody had tabbed to. Cancelling
+                    // mousedown keeps focus off it - a tap's compatibility mousedown
+                    // included - and a dot the keyboard had focused lets go, or its
+                    // ring would stay on one dot while the tip showed another.
+                    svg.addEventListener("mousedown", function (e) {
+                        if (!e.target.closest(".nm-tz")) return;
+                        e.preventDefault();
+                        var had = document.activeElement;
+                        if (had && had.closest && had.closest(".nm-tz")) had.blur();
+                    });
+                    // With no focus in the gesture a tap is mouseover then click, and
+                    // a second tap on the same dot is a click alone - so the click
+                    // toggles against the dot it last opened rather than a timer.
                     svg.addEventListener("click", function (e) {
                         var core = e.target.closest(".nm-tz");
                         if (!core) return;
-                        if (
-                            tipOn === core &&
-                            !tip.hidden &&
-                            Date.now() - tipShownAt > 300
-                        )
+                        if (tipPressed === core && tipOn === core && !tip.hidden)
                             hideTip();
-                        else showTip(core);
+                        else {
+                            showTip(core);
+                            tipPressed = core;
+                        }
                     });
                     document.addEventListener("keydown", function (e) {
                         if (e.key === "Escape") hideTip();
