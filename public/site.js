@@ -262,6 +262,56 @@
         });
     }
 
+    /* ---------- logo on its own page: back to the top ---------- */
+    // The header and footer logos link home. On the home page itself that
+    // link would reload it — restarting the landing page's "since you
+    // opened this page" counter and zeroing every live delta — so a plain
+    // click there scrolls to the top instead, drops any #hash, and closes
+    // the sheet if it is open. Modified and non-primary clicks (new tab,
+    // new window) keep the browser's behaviour, and without script the
+    // link still navigates. Compared on pathname only, so the logo on any
+    // other page (and on /authorize) still goes home.
+    doc.addEventListener("click", function (e) {
+        if (
+            e.defaultPrevented ||
+            e.button !== 0 ||
+            e.metaKey ||
+            e.ctrlKey ||
+            e.shiftKey ||
+            e.altKey
+        )
+            return;
+        var a =
+            e.target.closest &&
+            e.target.closest("a.nm-brand, a.nm-footer-logo");
+        if (!a || !a.href) return;
+        if (new URL(a.href, location.href).pathname !== location.pathname)
+            return;
+        e.preventDefault();
+        if (menuBtn && menuBtn.getAttribute("aria-expanded") === "true") {
+            // closeMenu(false) gives focus back to nothing, and the sheet
+            // is hidden 260ms later: focus left inside it would fall to
+            // <body>. Land it on the logo that was clicked instead.
+            var inSheet = menu.contains(doc.activeElement);
+            closeMenu(false);
+            if (inSheet || doc.activeElement === body)
+                a.focus({ preventScroll: true });
+        }
+        // Explicit, because <html> has scroll-behavior: smooth and "auto"
+        // would inherit it.
+        window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: reduceMotion.matches ? "instant" : "smooth",
+        });
+        if (location.hash)
+            history.replaceState(
+                history.state,
+                "",
+                location.pathname + location.search,
+            );
+    });
+
     /* ---------- scroll reveals ---------- */
     var reveals = doc.querySelectorAll("[data-reveal]");
     if (reveals.length) {
