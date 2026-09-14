@@ -1484,9 +1484,12 @@ function macroPanel(vals, goal, wording, meals, opts) {
           : "";
     // The foot is emitted whether or not there is a hint, because it is also
     // the slot bridge.js appends its settings note into (`[data-widget-foot]`).
-    // A widget with no strip at all — weight-trends, import-meals — has no
-    // slot, and the bridge falls back to appending at the root; base.css styles
-    // the note for both homes.
+    // The widgets with no strip emit a foot slot of their own — weight-trends
+    // on both its cards (shared/weight-trends-card.js), import-meals on every
+    // step (impCardClose, shared/import-card.js) — so the bridge's fallback of
+    // appending at the root is now only for a render with no foot at all (the
+    // gallery, which strips every slot so the note ends the page); base.css
+    // styles the note for both homes.
     const foot = `<div class="foot" data-widget-foot>${hint}</div>`;
 
     const chipFor = (m, i, fold) =>

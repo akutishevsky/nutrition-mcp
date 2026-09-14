@@ -233,8 +233,11 @@ function initWidget(config) {
             footEl = document.createElement("div");
             // Styled by base.css, not inline: it has two homes and they look
             // different. Inside a widget's own `.foot` it is the second line of
-            // that foot; standing alone under a widget with no strip
-            // (weight-trends, import-meals) it has to draw its own hairline.
+            // that foot — every shipping card declares one now, the strip-less
+            // weight-trends (both its cards) and import-meals (every step,
+            // impCardClose) included. Standing alone at the root, which is only
+            // a render with no foot slot (the gallery strips its slots; a bare
+            // empty-state block), it has to draw its own hairline.
             footEl.className = "wnote";
         }
         // Re-read every time: T is only resolved once a template's render()
