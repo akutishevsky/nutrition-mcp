@@ -58,12 +58,18 @@ export interface ChromeCopy {
 
     /**
      * The six pill links in the header bar, in this order: how, examples,
-     * liveStats, tools, donate, faq. They are SHORT — the bar is a 58px
-     * pill and the six have to fit beside the brand and the controls at
-     * 1120px in every locale ("How", "Examples", "Live", "Tools", "Donate",
-     * "FAQ" in English); the sheet menu repeats them with a <small> hint
-     * from menu.* beside each. The Connect item in the sheet's foot uses
-     * menu.connectInMinute and the header's uses connectCta.
+     * liveStats, tools, donate, faq ("How it works", "Examples", "Live
+     * statistics", "Tools", "Donate", "FAQ" in English). All six must fit
+     * on one row of the 58px pill bar beside the brand and the controls
+     * at 1120px, in every locale and with the live badge showing; the
+     * sheet menu repeats them with a <small> hint from menu.* beside each.
+     * Measured at 1120px, French has the least room (~45px between the
+     * brand and the first pill), then Ukrainian (~59px), which already
+     * gives up the live word: "Статистика наживо" overflows the bar, so
+     * the pill reads "Статистика" and "Донат" while the footer keeps
+     * "Статистика наживо". Re-measure there before lengthening a label.
+     * The Connect item in the sheet's foot uses menu.connectInMinute and
+     * the header's uses connectCta.
      */
     nav: {
         how: string;
@@ -71,8 +77,8 @@ export interface ChromeCopy {
         examples: string;
         liveStats: string;
         /**
-         * Screen-reader-only text inside the "Live stats" notification
-         * badge, read straight after the digits: "Live stats 3 new food
+         * Screen-reader-only text inside the "Live statistics" notification
+         * badge, read straight after the digits: "Live statistics 3 new food
          * logs since you opened". The badge itself shows the number and
          * nothing else, so this is the only thing naming what it counts.
          *
@@ -246,10 +252,10 @@ export const CHROME_EN: ChromeCopy = {
     brandHomeAriaLabel: "Nutrition MCP home",
 
     nav: {
-        how: "How",
+        how: "How it works",
         tools: "Tools",
         examples: "Examples",
-        liveStats: "Live",
+        liveStats: "Live statistics",
         liveStatsBadgeLabel: {
             one: "new food log since you opened",
             other: "new food logs since you opened",
@@ -303,7 +309,7 @@ export const CHROME_EN: ChromeCopy = {
             connect: "Connect",
             onboarding: "First five minutes",
             examples: "Examples",
-            live: "Live stats",
+            live: "Live statistics",
             tools: "All 36 nutrition tools",
             alternatives: "Alternatives to MyFitnessPal & co.",
             contact: "Contact",

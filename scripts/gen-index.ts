@@ -907,12 +907,13 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         paintUnit(key);
                         if (base) showDelta(key, v - base[key]);
                     });
-                    // The "Live" nav badge counts food logs alone, and it is on the nav
-                    // of every page - so public/site.js owns it site-wide rather than
-                    // this script, which only ships on the landing page. Handing over
-                    // the figures already fetched here keeps this page on one poll
-                    // instead of two, and passing our own page-load baseline alongside
-                    // them keeps the badge showing exactly what the delta tag on the
+                    // The "Live statistics" nav badge counts food logs alone, and it
+                    // is on the nav of every page - so public/site.js owns it
+                    // site-wide rather than this script, which only ships on the
+                    // landing page. Handing over the figures already fetched here
+                    // keeps this page on one poll instead of two, and passing our
+                    // own page-load baseline alongside them keeps the badge
+                    // showing exactly what the delta tag on the
                     // food-logs card shows.
                     document.dispatchEvent(
                         new CustomEvent("live-stats", {

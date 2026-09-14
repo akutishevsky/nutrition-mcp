@@ -5,15 +5,15 @@ export const CHROME_NL: ChromeCopy = {
     brandHomeAriaLabel: "Nutrition MCP startpagina",
 
     nav: {
-        how: "Hoe",
+        how: "Hoe het werkt",
         tools: "Tools",
         examples: "Voorbeelden",
-        liveStats: "Live",
+        liveStats: "Live-statistieken",
         liveStatsBadgeLabel: {
             one: "nieuwe voedingslog sinds je de pagina opende",
             other: "nieuwe voedingslogs sinds je de pagina opende",
         },
-        donate: "Doneer",
+        donate: "Doneren",
         faq: "FAQ",
     },
 
@@ -62,7 +62,7 @@ export const CHROME_NL: ChromeCopy = {
             connect: "Verbind",
             onboarding: "Eerste vijf minuten",
             examples: "Voorbeelden",
-            live: "Live statistieken",
+            live: "Live-statistieken",
             tools: "Alle 36 voedingstools",
             alternatives: "Alternatieven voor MyFitnessPal & co.",
             contact: "Contact",

@@ -520,7 +520,7 @@ test("every landing page carries the generator's current LANDING_SCRIPT", async 
 });
 
 // ---------------------------------------------------------------------
-// The "Live" nav badge is driven from public/site.js, which every page
+// The "Live statistics" nav badge is driven from public/site.js, which every page
 // loads — not from here, which ships on the landing page alone. This script
 // keeps its own 5s poll (its figures are on screen and animate) and hands the
 // result over through a "live-stats" event, so the landing page still makes

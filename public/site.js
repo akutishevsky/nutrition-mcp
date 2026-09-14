@@ -373,7 +373,7 @@
     }
 
     /* ---------- live-stats nav badge ---------- */
-    // An app-icon-style count on the "Live stats" nav item, so someone
+    // An app-icon-style count on the "Live statistics" nav item, so someone
     // reading the site can see that other people are logging meals while
     // they read. The markup ships [hidden] in the nav of EVERY page
     // (liveBadge() in scripts/site-partials.ts), which is why the driver

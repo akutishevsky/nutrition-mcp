@@ -8,7 +8,7 @@ export const CHROME_ES: ChromeCopy = {
         how: "Cómo funciona",
         tools: "Herramientas",
         examples: "Ejemplos",
-        liveStats: "En vivo",
+        liveStats: "Estadísticas en vivo",
         liveStatsBadgeLabel: {
             one: "nuevo registro de comida desde que abriste la página",
             other: "nuevos registros de comida desde que abriste la página",

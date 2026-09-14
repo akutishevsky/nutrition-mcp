@@ -5,10 +5,10 @@ export const CHROME_DE: ChromeCopy = {
     brandHomeAriaLabel: "Nutrition MCP Startseite",
 
     nav: {
-        how: "So geht's",
+        how: "So funktioniert's",
         tools: "Werkzeuge",
         examples: "Beispiele",
-        liveStats: "Live",
+        liveStats: "Live-Statistiken",
         liveStatsBadgeLabel: {
             one: "neuer Mahlzeiten-Eintrag seit dem Öffnen",
             other: "neue Mahlzeiten-Einträge seit dem Öffnen",

@@ -8,7 +8,7 @@ export const CHROME_JA: ChromeCopy = {
         how: "使い方",
         tools: "ツール",
         examples: "使用例",
-        liveStats: "ライブ",
+        liveStats: "ライブ統計",
         liveStatsBadgeLabel: {
             other: "件の新しい食事ログがページを開いてから追加されました",
         },

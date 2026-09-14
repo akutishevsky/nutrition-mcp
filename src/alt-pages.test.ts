@@ -199,7 +199,7 @@ test("every generated non-English page discloses it's AI-translated; English nev
 });
 
 // ---------------------------------------------------------------------
-// The "Live stats" notification badge (liveBadge() in
+// The "Live statistics" notification badge (liveBadge() in
 // scripts/site-partials.ts). It ships in the nav of EVERY page — desktop
 // nav and mobile menu — hidden until public/site.js has a count to put in
 // it, carrying that locale's own screen-reader label. The label is the part

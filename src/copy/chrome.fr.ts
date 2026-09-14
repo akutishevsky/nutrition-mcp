@@ -5,10 +5,10 @@ export const CHROME_FR: ChromeCopy = {
     brandHomeAriaLabel: "Accueil Nutrition MCP",
 
     nav: {
-        how: "Comment",
+        how: "Comment ça marche",
         tools: "Outils",
         examples: "Exemples",
-        liveStats: "En direct",
+        liveStats: "Statistiques en direct",
         liveStatsBadgeLabel: {
             one: "nouveau repas enregistré depuis l'ouverture de la page",
             other: "nouveaux repas enregistrés depuis l'ouverture de la page",
@@ -62,7 +62,7 @@ export const CHROME_FR: ChromeCopy = {
             connect: "Connecter",
             onboarding: "Les cinq premières minutes",
             examples: "Exemples",
-            live: "Stats en direct",
+            live: "Statistiques en direct",
             tools: "Les 36 outils de nutrition",
             alternatives: "Alternatives à MyFitnessPal et cie",
             contact: "Contact",

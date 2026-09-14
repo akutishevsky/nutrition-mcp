@@ -165,12 +165,12 @@ ${ogAlternates}`;
 }
 
 /**
- * The "Live stats" notification badge — an app-icon-style count that hangs
+ * The "Live statistics" notification badge — an app-icon-style count that hangs
  * off the top-right corner of the nav item. It ships [hidden] on every page
  * and is painted by public/site.js, which every page loads: the count is the
  * number of food logs written since the visitor arrived on the SITE, so it
  * keeps counting across a click from /tools to /privacy rather than
- * restarting at zero, which is what the menu's "since you opened" hint
+ * restarting at zero, which is what the badge's "since you opened" label
  * promises. It used to be painted by the landing page's own stats poller
  * (LANDING_SCRIPT in scripts/gen-index.ts) instead, and the consequence was
  * that on /tools, /privacy and every /alternatives page the badge shipped,
@@ -216,7 +216,7 @@ export function liveBadge(c: ChromeCopy, decorative?: boolean): string {
     // The hamburger's copy carries no label, and so needs no forms either. A
     // button's aria-label IS its accessible name and swallows any text inside
     // it, so a .vh span there would never be read; the count is announced
-    // properly on the Live stats item, which is on screen exactly when the
+    // properly on the Live statistics item, which is on screen exactly when the
     // menu is open and this copy is hidden (see .menu-btn .nav-badge in
     // styles.css).
     const label = decorative

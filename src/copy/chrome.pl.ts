@@ -8,14 +8,14 @@ export const CHROME_PL: ChromeCopy = {
         how: "Jak to działa",
         tools: "Narzędzia",
         examples: "Przykłady",
-        liveStats: "Na żywo",
+        liveStats: "Statystyki na żywo",
         liveStatsBadgeLabel: {
             one: "nowy wpis jedzenia od otwarcia strony",
             few: "nowe wpisy jedzenia od otwarcia strony",
             many: "nowych wpisów jedzenia od otwarcia strony",
             other: "nowych wpisów jedzenia od otwarcia strony",
         },
-        donate: "Wsparcie",
+        donate: "Wesprzyj",
         faq: "FAQ",
     },
 
