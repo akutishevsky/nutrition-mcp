@@ -126,7 +126,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         setTimeout(resolve, ms);
                     });
                 }
-                // Resolves once the tab is visible again - the loops below sleep in a
+                // Resolves once the tab is visible again - the hero chat's run sleeps in a
                 // background tab rather than burn timers nobody is watching.
                 function whenVisible() {
                     if (!document.hidden) return Promise.resolve();
@@ -173,7 +173,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                 // reads without script and for crawlers. Here it is taken apart into
                 // exchanges (a user or barcode bubble carrying data-clock, then
                 // its AI reply) and
-                // replayed as the design's loop: type the user line, show the typing
+                // played through once: type the user line, show the typing
                 // dots, reveal the reply, bring in the card for what has been logged
                 // so far. Every bubble on screen is a clone of one the generator
                 // wrote - the script holds no copy of its own, and it computes no
@@ -183,10 +183,11 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                 var chatList = document.querySelector("[data-chat-list]");
                 var chatClock = document.querySelector("[data-chat-clock]");
                 var chatPause = document.querySelector("[data-chat-pause]");
+                var chatReplay = document.querySelector("[data-chat-replay]");
                 // WCAG 2.2.2: the replay auto-starts and runs longer than 5 s, so
-                // the reader gets a pause. It freezes the loop where it stands - mid
+                // the reader gets a pause. It freezes the run where it stands - mid
                 // word if that is where it was - and play resumes from there. The
-                // toggle mirrors whenVisible(): the loop awaits it at every step.
+                // toggle mirrors whenVisible(): the run awaits it at every step.
                 var chatPaused = false;
                 var chatResume = [];
                 function whenPlaying() {
@@ -195,22 +196,27 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         chatResume.push(resolve);
                     });
                 }
-                if (chatPause && !reduceMotion) {
-                    chatPause.addEventListener("click", function () {
-                        chatPaused = !chatPaused;
-                        chatPause.setAttribute("aria-pressed", String(chatPaused));
+                function setPaused(paused) {
+                    chatPaused = paused;
+                    if (chatPause) {
+                        chatPause.setAttribute("aria-pressed", String(paused));
                         var icon = chatPause.querySelector("i");
                         if (icon) {
-                            icon.classList.toggle("fa-pause", !chatPaused);
-                            icon.classList.toggle("fa-play", chatPaused);
+                            icon.classList.toggle("fa-pause", !paused);
+                            icon.classList.toggle("fa-play", paused);
                         }
-                        if (!chatPaused) {
-                            var waiting = chatResume;
-                            chatResume = [];
-                            waiting.forEach(function (resolve) {
-                                resolve();
-                            });
-                        }
+                    }
+                    if (!paused) {
+                        var waiting = chatResume;
+                        chatResume = [];
+                        waiting.forEach(function (resolve) {
+                            resolve();
+                        });
+                    }
+                }
+                if (chatPause && !reduceMotion) {
+                    chatPause.addEventListener("click", function () {
+                        setPaused(!chatPaused);
                     });
                 }
                 if (chatList && !reduceMotion) {
@@ -221,7 +227,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     // not that element, so its taps would resolve to whichever card
                     // stashed last, which on this page is the trends card in the
                     // examples section. Collected once, up front: appendChild moves
-                    // a card into the thread, the loop's own clear takes it back out,
+                    // a card into the thread, a run's own clear takes it back out,
                     // and a node held here survives being out of the document with
                     // its binding intact.
                     var heroCards = {};
@@ -281,6 +287,35 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             d.appendChild(document.createElement("span"));
                         return d;
                     }
+                    // PLAYED ONCE, THEN LEFT STANDING. The finished thread stays on
+                    // screen for as long as the reader needs it - it used to clear
+                    // itself and start over 2 s after the last reply, before anyone
+                    // had read it. At the end the pause button hands its slot to the
+                    // replay button, which plays the thread again from the top.
+                    //
+                    // ONE SLOT, NOT TWO BUTTONS. The two never show together, so:
+                    // the header keeps one width through the whole run (a longer
+                    // status line on a phone wrapped while both showed and
+                    // unwrapped when pause left, moving the thread under the
+                    // reader); and replay is reachable only once a run has ended,
+                    // so no press can start a second run over a live one. Both
+                    // ship [hidden] and the first run un-hides pause, which also
+                    // keeps them off the page without script and under reduced
+                    // motion, where nothing plays and a button would do nothing.
+                    function showReplay(done) {
+                        var focused = document.activeElement;
+                        if (chatPause) chatPause.hidden = done;
+                        if (chatReplay) chatReplay.hidden = !done;
+                        // Focus on the button just hidden goes to the one taking its
+                        // place, or a keyboard user lands back at the top of the page.
+                        var next = done ? chatReplay : chatPause;
+                        if (
+                            next &&
+                            focused !== next &&
+                            (focused === chatPause || focused === chatReplay)
+                        )
+                            next.focus();
+                    }
                     async function typeUser(src) {
                         var text = src.textContent.trim();
                         // Shallow clone keeps the bubble's class and data attributes
@@ -301,41 +336,50 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         }
                         caret.remove();
                     }
-                    async function replay() {
-                        for (;;) {
-                            chatList.textContent = "";
-                            for (var i = 0; i < exchanges.length; i++) {
-                                await whenVisible();
-                                await whenPlaying();
-                                var ex = exchanges[i];
-                                if (chatClock) chatClock.textContent = ex.clock;
-                                await wait(500);
-                                if (ex.barcode) {
-                                    push(ex.user.cloneNode(true));
-                                    await wait(900);
-                                } else {
-                                    await typeUser(ex.user);
-                                }
-                                await wait(350);
-                                await whenPlaying();
-                                push(typingBubble());
-                                await wait(900);
-                                await whenPlaying();
-                                if (ex.ai) push(ex.ai.cloneNode(true));
-                                if (heroCards[i]) {
-                                    await wait(500);
-                                    push(heroCards[i]);
-                                    await wait(3600);
-                                } else {
-                                    await wait(2600);
-                                }
-                            }
-                            await wait(2200);
+                    async function play() {
+                        // Synchronous, before the first await: the replay button is
+                        // gone before a second press could reach it.
+                        showReplay(false);
+                        chatList.textContent = "";
+                        for (var i = 0; i < exchanges.length; i++) {
+                            await whenVisible();
                             await whenPlaying();
+                            var ex = exchanges[i];
+                            if (chatClock) chatClock.textContent = ex.clock;
+                            await wait(500);
+                            if (ex.barcode) {
+                                push(ex.user.cloneNode(true));
+                                await wait(900);
+                            } else {
+                                await typeUser(ex.user);
+                            }
+                            await wait(350);
+                            await whenPlaying();
+                            push(typingBubble());
+                            await wait(900);
+                            await whenPlaying();
+                            if (ex.ai) push(ex.ai.cloneNode(true));
+                            if (heroCards[i]) {
+                                await wait(500);
+                                await whenPlaying();
+                                push(heroCards[i]);
+                            }
+                            // The beat after the LAST reply is not waited out: that
+                            // is where the run ends, and the reader takes over.
+                            if (i < exchanges.length - 1)
+                                await wait(heroCards[i] ? 3600 : 2600);
                         }
+                        // Synchronous after the last push, so pause cannot be
+                        // pressed between the thread finishing and replay showing.
+                        showReplay(true);
+                    }
+                    if (chatReplay && exchanges.length) {
+                        chatReplay.addEventListener("click", function () {
+                            play();
+                        });
                     }
                     // START AFTER THE DEFERRED SCRIPTS HAVE RUN. The first
-                    // thing the loop does is empty the thread, and the hero
+                    // thing a run does is empty the thread, and the hero
                     // cards live in it — so starting during parsing would
                     // clear them away before /widget-card.js ever saw them,
                     // and every tile on the hero card would then resolve to
@@ -345,11 +389,11 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                     // DOMContentLoaded is exactly waiting for them.
                     if (exchanges.length) {
                         if (document.readyState === "loading") {
-                            document.addEventListener("DOMContentLoaded", replay, {
+                            document.addEventListener("DOMContentLoaded", play, {
                                 once: true,
                             });
                         } else {
-                            replay();
+                            play();
                         }
                     }
                 }
@@ -2161,9 +2205,13 @@ function renderHero(
                                 </span>
                                 <span class="nm-chat-tools">
                                     <span class="nm-chat-clock" data-chat-clock>${esc(lastClock)}</span>
-                                    <button type="button" class="nm-round nm-chat-pause" data-chat-pause aria-pressed="false">
+                                    <button type="button" class="nm-round nm-chat-pause" data-chat-pause aria-pressed="false" hidden>
                                         <i class="fa-solid fa-pause" aria-hidden="true"></i>
                                         <span class="vh">${esc(hero.chat.pauseLabel)}</span>
+                                    </button>
+                                    <button type="button" class="nm-round nm-chat-replay" data-chat-replay hidden>
+                                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                                        <span class="vh">${esc(hero.chat.replayLabel)}</span>
                                     </button>
                                 </span>
                             </div>

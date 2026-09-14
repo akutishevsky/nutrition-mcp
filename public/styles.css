@@ -1572,17 +1572,19 @@ body.menu-open .nm-header {
     flex: none;
 }
 /* Clock + the replay's pause/play button (WCAG 2.2.2: the demo runs longer
-   than 5 s and auto-starts, so it needs a user stop). Hidden under
-   reduced motion, where the thread never replays and there is nothing to
-   pause. */
+   than 5 s and auto-starts, so it needs a user stop) + the replay button
+   that takes its slot once the thread has played through (it plays once and
+   then stands). Both ship [hidden] and the script un-hides them; also
+   hidden under reduced motion, where the thread never replays and there
+   is nothing to pause or repeat. */
 .nm-chat-tools {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     flex: none;
 }
-/* Round icon button: the hero chat's pause toggle and, enlarged, the
-   examples carousel's arrows (.nm-ex-arrow). */
+/* Round icon button: the hero chat's pause toggle and replay button and,
+   enlarged, the examples carousel's arrows (.nm-ex-arrow). */
 .nm-round {
     width: 30px;
     height: 30px;
@@ -1600,7 +1602,8 @@ body.menu-open .nm-header {
 .nm-round:hover {
     background: var(--bg2);
 }
-.nm-chat-pause {
+.nm-chat-pause,
+.nm-chat-replay {
     width: 26px;
     height: 26px;
     font-size: 10px;
@@ -1611,7 +1614,8 @@ body.menu-open .nm-header {
     border-color: var(--ink);
 }
 @media (prefers-reduced-motion: reduce) {
-    .nm-chat-pause {
+    .nm-chat-pause,
+    .nm-chat-replay {
         display: none;
     }
 }

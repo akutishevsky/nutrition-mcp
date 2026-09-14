@@ -36,6 +36,7 @@ export const INDEX_PL: IndexDoc = {
             status: "Nutrition · połączono",
             photoCaption: "📷 Zdjęcie",
             pauseLabel: "Wstrzymaj demo",
+            replayLabel: "Odtwórz demo ponownie",
             exchanges: [
                 {
                     userText: "Owsianka z owocami i flat white na śniadanie",

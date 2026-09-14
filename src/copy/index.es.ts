@@ -37,6 +37,7 @@ export const INDEX_ES: IndexDoc = {
             status: "Nutrition · conectado",
             photoCaption: "📷 Foto",
             pauseLabel: "Pausar la demo",
+            replayLabel: "Repetir la demo",
             exchanges: [
                 {
                     userText:

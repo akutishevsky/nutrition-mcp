@@ -286,7 +286,11 @@ export interface IndexDoc {
              * (WCAG 2.2.2 — the replay auto-starts and runs longer than
              * 5 s). One constant name; aria-pressed carries the state. */
             pauseLabel: string;
-            /** Exactly 5, in the design's order; the replay loops them. */
+            /** Accessible name of the replay button that takes the pause
+             * button's slot once the thread has played through; it starts
+             * the thread again from the first exchange. */
+            replayLabel: string;
+            /** Exactly 5, in the design's order; the replay plays them once. */
             exchanges: HeroExchange[];
         };
     };
@@ -549,6 +553,7 @@ export const INDEX_EN: IndexDoc = {
             status: "Nutrition · connected",
             photoCaption: "📷 Photo",
             pauseLabel: "Pause the demo",
+            replayLabel: "Replay the demo",
             exchanges: [
                 {
                     userText:

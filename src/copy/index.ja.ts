@@ -61,6 +61,7 @@ export const INDEX_JA: IndexDoc = {
             status: "Nutrition · 接続済み",
             photoCaption: "📷 写真",
             pauseLabel: "デモを一時停止",
+            replayLabel: "デモをもう一度再生",
             exchanges: [
                 {
                     userText: "朝食にベリー入りオートミールとフラットホワイト",

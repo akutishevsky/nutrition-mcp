@@ -47,6 +47,7 @@ export const INDEX_UK: IndexDoc = {
             status: "Nutrition · підключено",
             photoCaption: "📷 Фото",
             pauseLabel: "Призупинити демо",
+            replayLabel: "Повторити демо",
             exchanges: [
                 {
                     userText: "Вівсянка з ягодами і флет вайт на сніданок",

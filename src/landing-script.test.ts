@@ -154,6 +154,40 @@ test("the hero chat bubbles carry data-clock for the replay", async () => {
     }
 });
 
+// PLAYED ONCE, THEN LEFT STANDING. The replay used to clear the thread and
+// start over two seconds after the last reply, before anyone could read it.
+// It now stops on the finished thread, and a replay button takes the pause
+// button's slot in the chat header to start it again — named in the page's
+// language, like the pause toggle it replaces. An endless loop sneaking back
+// in fails here.
+test("the hero chat plays once and has a translated replay button", async () => {
+    const start = LANDING_SCRIPT.indexOf("// ---------- hero chat");
+    const end = LANDING_SCRIPT.indexOf("// ---------- live GitHub star count");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const hero = LANDING_SCRIPT.slice(start, end);
+    expect(
+        `loops: ${/for\s*\(\s*;\s*;\s*\)|while\s*\(\s*true\s*\)/.test(hero)}`,
+    ).toBe("loops: false");
+    expect(hero).toContain('querySelector("[data-chat-replay]")');
+    for (const { locale, path, html } of await landingPages()) {
+        const label = INDEX[locale]!.hero.chat.replayLabel;
+        expect(`${locale} replayLabel: ${Boolean(label?.trim())}`).toBe(
+            `${locale} replayLabel: true`,
+        );
+        const button =
+            /<button type="button" class="nm-round nm-chat-replay" data-chat-replay hidden>([\s\S]*?)<\/button>/.exec(
+                html,
+            )?.[1] ?? "";
+        expect(`${path}: ${stripTags(button)}`).toBe(`${path}: ${text(label)}`);
+        // Pause ships hidden too: the first run un-hides it, and the two
+        // share one slot, so neither shows without script.
+        expect(html).toContain(
+            '<button type="button" class="nm-round nm-chat-pause" data-chat-pause aria-pressed="false" hidden>',
+        );
+    }
+});
+
 // WHICH EXCHANGES THE CARD FOLLOWS. This is what `HeroExchange.widget`
 // declares and what the replay resolves a card by: `data-hero-card` lists the
 // exchange indices one card is brought in after, space-separated, because a
@@ -331,6 +365,9 @@ test("every id / attribute hook the script queries exists on every landing page"
         ],
         ['querySelector("[data-chat-list]")', "data-chat-list>"],
         ['querySelector("[data-chat-clock]")', "data-chat-clock>"],
+        // The replay button. Missing, the thread plays once and there is
+        // no way to see it again short of reloading the page.
+        ['querySelector("[data-chat-replay]")', "data-chat-replay hidden>"],
         // The hero's summary cards, one per cumulative state of the thread.
         // Missing, the thread replays without ever showing a card — and it
         // is the card the whole hero exists to demonstrate.
