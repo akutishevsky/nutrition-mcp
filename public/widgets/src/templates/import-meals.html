@@ -412,6 +412,9 @@
                 locale: "en",
             };
             let API = null;
+            // Whether a payload has been drawn yet — set by initWidget's render
+            // callback, read by onReady (see there).
+            let PAYLOAD_RENDERED = false;
 
             // Strict allowlist, not truthiness: only the two values the server's
             // schema can emit turn alcohol on.
@@ -1810,18 +1813,17 @@
                         return payload.structuredContent;
                     return null;
                 },
+                // setLocaleFrom (shared/i18n.js), as every template resolves
+                // it — over CFG, the merged config, rather than the raw
+                // payload: a payload that is not start_meal_import's (no
+                // import_tool_name) is not merged, and CFG then still holds
+                // the last good locale instead of dropping to the host's.
                 render: (data) => {
                     if (data && data.import_tool_name) {
                         CFG = Object.assign({}, CFG, data);
                     }
-                    setLocale(
-                        pickLocale(
-                            CFG.locale,
-                            API && API.hostContext
-                                ? API.hostContext.locale
-                                : null,
-                        ),
-                    );
+                    setLocaleFrom(CFG, API);
+                    PAYLOAD_RENDERED = true;
                     render();
                 },
                 sample: {
@@ -1836,8 +1838,23 @@
                     drink_unit: null,
                     locale: "en",
                 },
+                // Saves the api, as every template's onReady does — and
+                // repaints only a card that is ALREADY on screen. The file step
+                // reads API (the no-tools warning), so a card drawn before the
+                // handshake finished has to be drawn again now. But painting
+                // here unconditionally put the file step up over the bridge's
+                // loading line before any tool result had arrived, built from
+                // CFG's defaults (UTC, tz_configured) rather than the user's.
+                // The bridge's three paths all land right with the flag: a
+                // host sends the result after onReady (its render() reads the
+                // API already set); window.openai.toolOutput is painted
+                // synchronously before the handshake answers, and no host
+                // paints the sample before calling onReady — both set the
+                // flag first, so both get the repaint.
                 onReady: (api) => {
                     API = api;
+                    if (!PAYLOAD_RENDERED) return;
+                    setLocaleFrom(CFG, API);
                     render();
                 },
             });
