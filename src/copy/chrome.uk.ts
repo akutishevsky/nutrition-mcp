@@ -15,7 +15,7 @@ export const CHROME_UK: ChromeCopy = {
             many: "нових записів їжі з моменту відкриття сторінки",
             other: "нових записів їжі з моменту відкриття сторінки",
         },
-        donate: "Донат",
+        support: "Підтримка",
         faq: "FAQ",
     },
 
@@ -41,13 +41,10 @@ export const CHROME_UK: ChromeCopy = {
 
     menu: {
         howSmall: "3 кроки",
-        installSmall: "менш ніж за хвилину",
         toolsSmall: "36 інструментів",
-        examplesSmall: "демо наживо",
+        examplesSmall: "справжні чати",
         liveStatsSmall: "з моменту відкриття",
         alternatives: "Альтернативи",
-        alternativesSmall: "перехід з іншого застосунку",
-        support: "Підтримка",
         contact: "Контакти",
         github: "GitHub",
         privacy: "Приватність",

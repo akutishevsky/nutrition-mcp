@@ -13,7 +13,7 @@ export const CHROME_NL: ChromeCopy = {
             one: "nieuwe voedingslog sinds je de pagina opende",
             other: "nieuwe voedingslogs sinds je de pagina opende",
         },
-        donate: "Doneren",
+        support: "Steun",
         faq: "FAQ",
     },
 
@@ -39,13 +39,10 @@ export const CHROME_NL: ChromeCopy = {
 
     menu: {
         howSmall: "3 stappen",
-        installSmall: "binnen een minuut",
         toolsSmall: "36 tools",
-        examplesSmall: "live demo's",
+        examplesSmall: "echte chats",
         liveStatsSmall: "sinds je de pagina opende",
         alternatives: "Alternatieven",
-        alternativesSmall: "van app wisselen",
-        support: "Steun",
         contact: "Contact",
         github: "GitHub",
         privacy: "Privacy",

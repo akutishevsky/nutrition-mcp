@@ -1014,3 +1014,12 @@ test("every example thread is a named, focusable region", async () => {
         carousel.slice(0, carousel.indexOf("// ---------- live stats")),
     ).not.toContain("scrollIntoView");
 });
+
+// The other half of the header's spy contract (src/alt-pages.test.ts pins
+// the markup): site.js must treat the Connect CTA as a spy link and read
+// the extra section ids off data-spy-also, or the CTA silently never lights.
+test("site.js spies the header CTA and reads its data-spy-also ids", async () => {
+    const siteJs = await Bun.file("./public/site.js").text();
+    expect(siteJs).toContain("a.head-cta[href*='#']");
+    expect(siteJs).toContain('getAttribute("data-spy-also")');
+});

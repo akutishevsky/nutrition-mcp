@@ -562,3 +562,46 @@ test("every locale's Google sign-in errors are translated", () => {
         }
     }
 });
+
+// The header bar and the sheet share one contract with site.js, and
+// nothing visual catches it drifting: the pills run in the landing page's
+// section order with the cross-page Tools link last, the sheet's main list
+// mirrors the bar exactly, Alternatives leads the sheet's secondary row,
+// #support is linked once in each (it used to be twice in the sheet), and
+// the header's Connect CTA names #onboarding in data-spy-also so the
+// scroll-spy keeps it lit across both sections it covers.
+test("the header bar and sheet menu keep their order and spy contract", async () => {
+    const hrefs = (block: string) =>
+        [...block.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)].map((m) => m[1]!);
+    const between = (html: string, open: string, close: string) => {
+        const at = html.indexOf(open);
+        expect(at).not.toBe(-1);
+        return html.slice(at, html.indexOf(close, at + open.length));
+    };
+    const PILLS = ["#how", "#examples", "#live", "#support", "#faq", "/tools"];
+    for (const { path } of await existingPages()) {
+        if (!(await isGenerated(path))) continue;
+        const html = await Bun.file(path).text();
+        const bar = hrefs(between(html, '<nav class="head-nav"', "</nav>"));
+        const menu = between(html, 'id="site-menu"', '<div class="menu-foot">');
+        const sheet = hrefs(between(menu, "<nav", "</nav>"));
+        const secondary = hrefs(
+            between(menu, '<div class="menu-secondary">', "</div>"),
+        );
+        const ends = (list: string[]) =>
+            list.map((h) => PILLS.find((p) => h.endsWith(p)) ?? h).join(" ");
+        expect(`${path}: ${ends(bar)}`).toBe(`${path}: ${PILLS.join(" ")}`);
+        expect(`${path}: ${ends(sheet)}`).toBe(`${path}: ${PILLS.join(" ")}`);
+        expect(`${path}: ${secondary[0]?.endsWith("/alternatives")}`).toBe(
+            `${path}: true`,
+        );
+        expect(
+            `${path}: ${secondary.some((h) => h.endsWith("#support"))}`,
+        ).toBe(`${path}: false`);
+        const header = between(html, '<header class="nm-header"', "</header>");
+        const ctas = header.match(
+            /class="nm-cta head-cta" href="[^"]*#connect" data-spy-also="onboarding"/g,
+        );
+        expect(`${path}: ${ctas?.length ?? 0}`).toBe(`${path}: 1`);
+    }
+});

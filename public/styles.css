@@ -761,6 +761,23 @@ html.js [data-reveal="stagger"].in > :nth-child(n + 7) {
     background: var(--acc);
     color: var(--acc-ink);
 }
+/* Scroll-spy (site.js) lights the header CTA while #connect or #onboarding
+   is on the reading line. The pills say "here" by swapping to the --ink
+   fill, which this pill already wears at rest, and solid --acc is already
+   its hover, so the lit state is a third fill that neither uses: the soft
+   accent pill with --ink text (16.2:1 light, 12.9:1 dark). A fill, never
+   a ring, so it cannot be mistaken for the 2px --acc focus outline.
+   Hovered while lit it steps up to the solid --acc hover (5.0:1 light,
+   8.9:1 dark), so the pointer still gets a response. Colour only, and the
+   transition is .nm-cta's own (killed by the reduced-motion block). */
+.head-cta.active {
+    background: var(--acc-soft);
+    color: var(--ink);
+}
+.head-cta.active:hover {
+    background: var(--acc);
+    color: var(--acc-ink);
+}
 
 /* 38px circular icon button (.nm-icon-btn is the same thing under its
    catalogue name). The hamburger is one; it carries the decorative copy of

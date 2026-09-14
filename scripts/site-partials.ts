@@ -246,11 +246,20 @@ export function liveBadge(c: ChromeCopy, decorative?: boolean): string {
  * (a PAGE_ROUTES key, e.g. "/tools" — NOT a locale-prefixed href, since
  * that's computed here from the locale + suffix).
  *
- * The six pills link to the landing page's sections through hashPath()
- * ("/#how" in English, "/de#live" in German), which on the landing page
- * itself resolves to the same in-page anchors — so the same markup serves
- * every page, and site.js's scroll-spy simply finds nothing to light on a
- * page without those sections.
+ * The pills run How it works · Examples · Live statistics · Support · FAQ
+ * · Tools: the in-page anchors in the landing page's section order, then
+ * the one cross-page link. They reach the landing page's sections through
+ * hashPath() ("/#how" in English, "/de#live" in German), which on the
+ * landing page itself resolves to the same in-page anchors — so the same
+ * markup serves every page, and site.js's scroll-spy simply finds nothing
+ * to light on a page without those sections. The sheet's main list mirrors
+ * the bar exactly; Alternatives leads its secondary row instead.
+ *
+ * The header's Connect CTA is a spy link too: its href names #connect and
+ * `data-spy-also="onboarding"` adds the section that follows it, so the
+ * CTA stays lit across both instead of the bar lighting nothing there.
+ * Only the header copy carries the attribute — the sheet's foot CTA is not
+ * spied.
  */
 export function nav(
     locale: SiteLocale,
@@ -311,9 +320,9 @@ export function nav(
                     <a href="${h("how")}">${esc(n.how)}</a>
                     <a href="${h("examples")}">${esc(n.examples)}</a>
                     <a class="nav-has-badge" href="${h("live")}">${esc(n.liveStats)}${liveBadge(c)}</a>
-                    <a href="${p("/tools")}">${esc(n.tools)}</a>
-                    <a href="${h("support")}">${esc(n.donate)}</a>
+                    <a href="${h("support")}">${esc(n.support)}</a>
                     <a href="${h("faq")}">${esc(n.faq)}</a>
+                    <a href="${p("/tools")}">${esc(n.tools)}</a>
                 </nav>
 ${
     opts?.dynamicSwitcher
@@ -341,7 +350,7 @@ ${themeBtn("system", "fa-circle-half-stroke")}
 ${themeBtn("light", "fa-sun")}
 ${themeBtn("dark", "fa-moon")}
                 </div>
-                <a class="nm-cta head-cta" href="${h("connect")}">${esc(c.connectCta)}</a>
+                <a class="nm-cta head-cta" href="${h("connect")}" data-spy-also="onboarding">${esc(c.connectCta)}</a>
                 <button
                     class="icon-btn menu-btn"
                     type="button"
@@ -360,13 +369,12 @@ ${themeBtn("dark", "fa-moon")}
                 <a href="${h("how")}">${esc(n.how)} <small>${esc(c.menu.howSmall)}</small></a>
                 <a href="${h("examples")}">${esc(n.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
                 <a href="${h("live")}"><span class="menu-label nav-has-badge">${esc(n.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
-                <a href="${p("/tools")}">${esc(n.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
-                <a href="${h("support")}">${esc(n.donate)}</a>
+                <a href="${h("support")}">${esc(n.support)}</a>
                 <a href="${h("faq")}">${esc(n.faq)}</a>
-                <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
+                <a href="${p("/tools")}">${esc(n.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
             </nav>
             <div class="menu-secondary">
-                <a href="${h("support")}">${esc(c.menu.support)}</a>
+                <a href="${p("/alternatives")}">${esc(c.menu.alternatives)}</a>
                 <a href="${h("contact")}">${esc(c.menu.contact)}</a>
                 <a href="${GITHUB}" ${EXT}>${esc(c.menu.github)}</a>
                 <a href="${p("/privacy")}">${esc(c.menu.privacy)}</a>

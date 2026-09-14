@@ -13,7 +13,7 @@ export const CHROME_ES: ChromeCopy = {
             one: "nuevo registro de comida desde que abriste la página",
             other: "nuevos registros de comida desde que abriste la página",
         },
-        donate: "Donar",
+        support: "Apoyo",
         faq: "FAQ",
     },
 
@@ -39,13 +39,10 @@ export const CHROME_ES: ChromeCopy = {
 
     menu: {
         howSmall: "3 pasos",
-        installSmall: "en menos de un minuto",
         toolsSmall: "36 herramientas",
-        examplesSmall: "demos en vivo",
+        examplesSmall: "chats reales",
         liveStatsSmall: "desde que abriste la página",
         alternatives: "Alternativas",
-        alternativesSmall: "cambiar de app",
-        support: "Apoyo",
         contact: "Contacto",
         github: "GitHub",
         privacy: "Privacidad",

@@ -58,16 +58,24 @@ export interface ChromeCopy {
 
     /**
      * The six pill links in the header bar, in this order: how, examples,
-     * liveStats, tools, donate, faq ("How it works", "Examples", "Live
-     * statistics", "Tools", "Donate", "FAQ" in English). All six must fit
-     * on one row of the 58px pill bar beside the brand and the controls
-     * at 1120px, in every locale and with the live badge showing; the
-     * sheet menu repeats them with a <small> hint from menu.* beside each.
-     * Measured at 1120px, French has the least room (~45px between the
-     * brand and the first pill), then Ukrainian (~59px), which already
-     * gives up the live word: "Статистика наживо" overflows the bar, so
-     * the pill reads "Статистика" and "Донат" while the footer keeps
-     * "Статистика наживо". Re-measure there before lengthening a label.
+     * liveStats, support, faq, tools ("How it works", "Examples", "Live
+     * statistics", "Support", "FAQ", "Tools" in English) — the in-page
+     * anchors in the landing page's section order, then the one cross-page
+     * link. The sheet menu's main list repeats exactly these six, in the
+     * same order, with a <small> hint from menu.* beside some. All six must
+     * fit on one row of the 58px pill bar beside the brand and the controls
+     * at 1120px, in every locale and with the live badge showing.
+     * Measured at 1120px with the old "Donate"-word labels, French had the
+     * least room (~45px between the brand and the first pill), then
+     * Ukrainian (~59px), which already gives up the live word: "Статистика
+     * наживо" overflows the bar, so the pill reads "Статистика" while the
+     * footer keeps "Статистика наживо". With each locale's "Support" word
+     * in place, measured at 1120px (1105px usable with a classic
+     * scrollbar) with the "99+" badge showing, the brand-to-first-pill gap
+     * is Ukrainian ~24px, German ~47px, French ~51px, Spanish ~66px, then
+     * Polish, Italian, Dutch, English and Japanese with 90px or more (two
+     * measuring setups differed by ~5px; these are the lower readings).
+     * Re-measure there before lengthening a label.
      * The Connect item in the sheet's foot uses menu.connectInMinute and
      * the header's uses connectCta.
      */
@@ -100,8 +108,13 @@ export interface ChromeCopy {
          * badge and the row it links to are counting the same thing.
          */
         liveStatsBadgeLabel: PluralForms;
-        /** Links to the landing page's Support section (#support). */
-        donate: string;
+        /**
+         * Links to the landing page's Support section (#support). Called
+         * `donate` while a second "Support" row sat in the sheet's secondary
+         * list pointing at the same section; with that duplicate gone the
+         * pill takes each locale's plain "Support" word.
+         */
+        support: string;
         faq: string;
     };
 
@@ -170,20 +183,22 @@ export interface ChromeCopy {
     openMenuAriaLabel: string;
     closeMenuAriaLabel: string;
 
-    /** The mobile sheet menu — nav items repeat nav.* with a trailing
-     * <small> hint, plus items the desktop nav omits. `installSmall` is
-     * unused since the Install item went (the sheet's Connect item in its
-     * foot is connectInMinute) and is kept only so no locale has to be
-     * touched for it. */
+    /** The mobile sheet menu. Its main list mirrors the header bar's six
+     * nav.* pills exactly, in the same order, with a trailing <small> hint
+     * on How, Examples, Live statistics and Tools. Below it, the
+     * `.menu-secondary` row of small pills (Alternatives, Contact, GitHub,
+     * Privacy, Terms) carries no hints — styles.css gives that row no
+     * <small> treatment — and the Connect item in the sheet's foot is
+     * connectInMinute. */
     menu: {
         howSmall: string;
-        installSmall: string;
         toolsSmall: string;
+        /** Echoes examples.sub ("real conversations with real in-chat
+         * widgets"): the slides show the real widget cards, not a live
+         * demo. Keep it in step with that sub in each locale. */
         examplesSmall: string;
         liveStatsSmall: string;
         alternatives: string;
-        alternativesSmall: string;
-        support: string;
         contact: string;
         /** The GitHub text link in the sheet's secondary row. */
         github: string;
@@ -203,7 +218,7 @@ export interface ChromeCopy {
      * dropped rather than repaired: Privacy and Terms already repeat in the
      * bottom legal line, "Export as CSV" and "Delete account" were labels
      * on plain #faq anchors rather than the actions they read as, and
-     * Patreon (the Donate pill, the Support section, the footer's own
+     * Patreon (the Support pill, the Support section, the footer's own
      * social circle) and Contact were not data links at all. Contact moved
      * into Product; nothing else was lost.
      */
@@ -260,7 +275,7 @@ export const CHROME_EN: ChromeCopy = {
             one: "new food log since you opened",
             other: "new food logs since you opened",
         },
-        donate: "Donate",
+        support: "Support",
         faq: "FAQ",
     },
 
@@ -286,13 +301,10 @@ export const CHROME_EN: ChromeCopy = {
 
     menu: {
         howSmall: "3 steps",
-        installSmall: "under a minute",
         toolsSmall: "36 tools",
-        examplesSmall: "live demos",
+        examplesSmall: "real chats",
         liveStatsSmall: "since you opened",
         alternatives: "Alternatives",
-        alternativesSmall: "switching apps",
-        support: "Support",
         contact: "Contact",
         github: "GitHub",
         privacy: "Privacy",

@@ -15,7 +15,7 @@ export const CHROME_PL: ChromeCopy = {
             many: "nowych wpisów jedzenia od otwarcia strony",
             other: "nowych wpisów jedzenia od otwarcia strony",
         },
-        donate: "Wesprzyj",
+        support: "Wsparcie",
         faq: "FAQ",
     },
 
@@ -41,13 +41,10 @@ export const CHROME_PL: ChromeCopy = {
 
     menu: {
         howSmall: "3 kroki",
-        installSmall: "poniżej minuty",
         toolsSmall: "36 narzędzi",
-        examplesSmall: "przykłady na żywo",
+        examplesSmall: "prawdziwe rozmowy",
         liveStatsSmall: "od otwarcia strony",
         alternatives: "Alternatywy",
-        alternativesSmall: "zmiana aplikacji",
-        support: "Wsparcie",
         contact: "Kontakt",
         github: "GitHub",
         privacy: "Prywatność",

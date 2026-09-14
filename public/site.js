@@ -225,31 +225,57 @@
     }
 
     /* ---------- scroll-spy for same-page sections ---------- */
+    // The header's Connect CTA is a spy link too, and it answers for more
+    // than the one section its href names: data-spy-also lists the ids that
+    // continue it (#onboarding follows #connect), so the stretch right after
+    // #how does not read as "nowhere". Without the attribute it spies its
+    // own hash only, like a pill.
     var spyLinks = Array.prototype.filter.call(
-        doc.querySelectorAll(".head-nav a[href*='#']"),
+        doc.querySelectorAll(".head-nav a[href*='#'], a.head-cta[href*='#']"),
         function (a) {
             var url = new URL(a.href, location.href);
             return url.pathname === location.pathname && url.hash.length > 1;
         },
     );
     if (spyLinks.length && "IntersectionObserver" in window) {
+        // id -> link. Several ids may map to one link; an id claimed twice
+        // keeps its first link.
         var byId = {};
         spyLinks.forEach(function (a) {
-            byId[new URL(a.href, location.href).hash.slice(1)] = a;
+            var ids = [new URL(a.href, location.href).hash.slice(1)].concat(
+                (a.getAttribute("data-spy-also") || "").split(/[\s,]+/),
+            );
+            ids.forEach(function (id) {
+                if (id && !byId[id]) byId[id] = a;
+            });
         });
         // Track which sections cross the reading line; the active link is
-        // the first of them in document order, or none at all — a section
-        // that has scrolled away must not keep its link lit.
+        // the one owning the FIRST of them in document order, or none at
+        // all — a section that has scrolled away must not keep its link lit.
+        // Document order, not link order: the pills are not in page order
+        // (Tools and the CTA sit where they sit), and link order would let
+        // a later section's link win a frame where two sections straddle
+        // the line.
         var visible = {};
         var spy = new IntersectionObserver(
             function (entries) {
                 entries.forEach(function (en) {
-                    visible[en.target.id] = en.isIntersecting;
+                    visible[en.target.id] = en.isIntersecting
+                        ? en.target
+                        : null;
                 });
-                var found = null;
-                Object.keys(byId).forEach(function (id) {
-                    if (!found && visible[id]) found = byId[id];
+                var first = null;
+                Object.keys(visible).forEach(function (id) {
+                    var el = visible[id];
+                    if (
+                        el &&
+                        (!first ||
+                            first.compareDocumentPosition(el) &
+                                Node.DOCUMENT_POSITION_PRECEDING)
+                    )
+                        first = el;
                 });
+                var found = first ? byId[first.id] : null;
                 spyLinks.forEach(function (a) {
                     a.classList.toggle("active", a === found);
                 });

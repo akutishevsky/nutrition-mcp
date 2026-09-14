@@ -13,7 +13,7 @@ export const CHROME_IT: ChromeCopy = {
             one: "nuovo pasto registrato da quando hai aperto la pagina",
             other: "nuovi pasti registrati da quando hai aperto la pagina",
         },
-        donate: "Dona",
+        support: "Sostegno",
         faq: "FAQ",
     },
 
@@ -39,13 +39,10 @@ export const CHROME_IT: ChromeCopy = {
 
     menu: {
         howSmall: "3 passaggi",
-        installSmall: "meno di un minuto",
         toolsSmall: "36 strumenti",
-        examplesSmall: "demo live",
+        examplesSmall: "chat reali",
         liveStatsSmall: "da quando hai aperto la pagina",
         alternatives: "Alternative",
-        alternativesSmall: "cambio app",
-        support: "Supporto",
         contact: "Contatti",
         github: "GitHub",
         privacy: "Privacy",

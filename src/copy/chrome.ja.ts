@@ -12,7 +12,7 @@ export const CHROME_JA: ChromeCopy = {
         liveStatsBadgeLabel: {
             other: "件の新しい食事ログがページを開いてから追加されました",
         },
-        donate: "寄付",
+        support: "支援",
         faq: "FAQ",
     },
 
@@ -38,13 +38,10 @@ export const CHROME_JA: ChromeCopy = {
 
     menu: {
         howSmall: "3ステップ",
-        installSmall: "1分足らず",
         toolsSmall: "36個のツール",
-        examplesSmall: "ライブデモ",
+        examplesSmall: "本物の会話",
         liveStatsSmall: "開いてから",
         alternatives: "代替アプリ",
-        alternativesSmall: "アプリの乗り換え",
-        support: "サポート",
         contact: "お問い合わせ",
         github: "GitHub",
         privacy: "プライバシー",
