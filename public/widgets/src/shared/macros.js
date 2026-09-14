@@ -971,9 +971,13 @@ function focusApply(fx, m, ctx, selected) {
         fx.removeAttribute("data-macro");
         if (mirror) {
             fx.setAttribute("data-macro-return", "");
+            // The panel form of the name (see tileName): it has to contain
+            // the `.flabel` focusInner just printed, metricLabel included.
             fx.setAttribute(
                 "aria-label",
-                tpl(T.macros.showingMetric, { metric: tileLabel(m, b, ctx) }),
+                tpl(T.macros.showingMetric, {
+                    metric: tileLabel(m, b, ctx, true),
+                }),
             );
         } else {
             fx.removeAttribute("aria-label");
@@ -1262,24 +1266,26 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // pass this same default explicitly when data.date is the viewer's
         // today, and T.macros.caloriesOn (day-scoped) otherwise, so the hero
         // never claims "today" for a date it knows is not (#114);
-        // nutrition-summary.html and trends.html always pass their own more
-        // specific calLabel (day count / range-averaged wording).
+        // nutrition-summary passes the same pair for a single-day window and
+        // its own wording otherwise (logged-day average / range total), and
+        // trends always passes its range-averaged wording.
         calLabel: (opts && opts.calLabel) || T.macros.caloriesToday,
         // The focus panel's label for any metric OTHER than calories, as a
         // function of its MACROS entry. calLabel names the period calories
         // covers; without this every other metric names only itself
         // (macroLabel), which is right wherever the period is unambiguous —
         // but trends averages protein over every calendar day and fiber over
-        // the days that recorded any, and the label is the only place that
+        // the days that recorded any, and a multi-day nutrition-summary over
+        // logged days / days recorded, and the label is the only place that
         // difference can be said once a tile has moved the panel. Optional,
         // and a falsy result falls back to macroLabel, so a caller that omits
-        // it (nutrition-summary) renders byte-for-byte what it always did.
+        // it (the day cards) renders byte-for-byte what it always did.
         //
-        // It relabels `.flabel` ONLY. The accessible names (tileLabel,
-        // focusApply's showingMetric) keep macroLabel, so a caller that passes
-        // this must be one whose panel is NOT a button — a button's name has
-        // to contain its visible label (WCAG 2.5.3), and "Protein 7-day avg ·
-        // all days" is not in "Showing Protein …". Trends' panel is a <span>.
+        // It relabels the PANEL only: its `.flabel`, and the panel's own names
+        // — focusApply's mirror showingMetric on a <button> panel, the span
+        // panel's ✕ — through tileLabel's `panel` form, because a button's name
+        // has to contain its visible label (WCAG 2.5.3). Tile names keep
+        // macroLabel, since a tile prints only its metric name.
         metricLabel:
             opts && typeof opts.metricLabel === "function"
                 ? opts.metricLabel

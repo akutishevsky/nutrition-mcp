@@ -53,6 +53,8 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         avg: "śr.",
         goal: "cel",
         dailyAvgLoggedDays: "Śr./dzień · dni z wpisami",
+        metricAvgLoggedDays: "{metric} · śr./dzień · dni z wpisami",
+        metricAvgRecorded: "{metric} · śr./dzień · dni z wpisami",
         total: "Razem",
         daysLogged: {
             one: "{n} dzień z wpisem",

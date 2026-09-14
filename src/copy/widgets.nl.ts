@@ -52,6 +52,8 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         avg: "gem.",
         goal: "doel",
         dailyAvgLoggedDays: "Gem./dag · gelogde dagen",
+        metricAvgLoggedDays: "{metric} · gem./dag · gelogde dagen",
+        metricAvgRecorded: "{metric} · gem./dag · gelogde dagen",
         total: "Totaal",
         daysLogged: {
             one: "{n} dag gelogd",

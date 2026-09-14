@@ -16,8 +16,9 @@
    always did. It returns a string.
 
    INCLUDE ORDER. After shared/macros.js and shared/spark.js, whose macroPanel,
-   sparkReset, chartableKeys and sparkMarkup it calls, and after shared/date.js
-   (rangeLabel, ymd, daysLoggedCaption) and shared/svg.js (calendarSlots). Like
+   macroLabel, sparkReset, chartableKeys and sparkMarkup it calls, and after
+   shared/date.js (rangeLabel, ymd, daysLoggedCaption, isToday, shortDate),
+   shared/i18n.js (tpl) and shared/svg.js (calendarSlots). Like
    every partial here, everything it reaches for is resolved when a function
    RUNS, so only the first call has to come after all of them. */
 
@@ -105,17 +106,7 @@ function summaryCard(data, opts) {
     }
     const days = data.days.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
     const multi = days.length > 1;
-    // Name the denominator: this average divides by the days that
-    // actually have a log, while the trends widget's figures divide
-    // by every calendar day in the window. Same macros, different
-    // number — labelling both is the fix for issue #70. Keyed on
-    // LOGGED days, not on the range: a week with one logged day
-    // averages over that one day, whose figure is also, exactly,
-    // the week's total.
-    const calLabel = multi
-        ? T.nutritionSummary.dailyAvgLoggedDays
-        : T.nutritionSummary.total;
-    // The HEADER, though, is keyed on the RANGE. A seven-day window
+    // The HEADER is keyed on the RANGE. A seven-day window
     // with one logged day printed "7 JUL" alone, which reads as a
     // single-day summary and hides the six empty days — the range
     // plus "1 of 7 days logged" is what was actually asked for.
@@ -127,6 +118,45 @@ function summaryCard(data, opts) {
     const meta = ranged
         ? `${rangeLabel(hasRange ? data.start_date : days[0].date, hasRange ? data.end_date : days[days.length - 1].date)} · ${loggedDaysCaption(data)}`
         : rangeLabel(single, single);
+
+    // The panel's label names the denominator: this average divides by
+    // the days that actually have a log, while the trends widget's
+    // figures divide by every calendar day in the window. Same macros,
+    // different number — labelling both is the fix for issue #70.
+    // Keyed on LOGGED days first: a multi-day RANGE with one logged day
+    // averages over that one day, whose figure is also, exactly, the
+    // range's "Total". A genuine single-day window is neither an average
+    // nor a total of anything wider — it is that day's calories, and it
+    // says so in the words meal-logged and goal-progress use for the same
+    // figure ("Calories today" / "Calories · 20 Nov", #114), rather than a
+    // third wording for one number. shortDate, never the year, for their
+    // reason: the label ellipsises from the end and ja's caloriesOn puts
+    // the metric word last; the year, when there is one, is on the header.
+    const calLabel = multi
+        ? T.nutritionSummary.dailyAvgLoggedDays
+        : ranged
+          ? T.nutritionSummary.total
+          : isToday(single)
+            ? T.macros.caloriesToday
+            : tpl(T.macros.caloriesOn, { date: shortDate(single) });
+    // The same denominator once a tile has moved the panel to another
+    // metric ("Protein · daily avg · logged days"): without it the moved
+    // panel read the bare "Protein" and nothing on the card said any more
+    // that its figure is an average. The limits (fiber, sugar, alcohol,
+    // caffeine) average only over the days that RECORDED them, so they say
+    // "days recorded" — the same split trends-card.js' metricLabelFor
+    // makes, keyed on `role` like the rest of the strip. Only where
+    // calLabel names an average: a total or a single day has no
+    // denominator to carry, and the bare metric name is then the truth.
+    const metricLabel = multi
+        ? (m) =>
+              tpl(
+                  m.role === "limit"
+                      ? T.nutritionSummary.metricAvgRecorded
+                      : T.nutritionSummary.metricAvgLoggedDays,
+                  { metric: macroLabel(m) },
+              )
+        : undefined;
 
     const charted = summaryCharted(data);
     const slots = charted
@@ -153,6 +183,7 @@ function summaryCard(data, opts) {
         // no alcohol figure reaches the strip at all.
         drinkUnit: data.drink_unit,
         calLabel,
+        metricLabel,
         chartKeys: charted ? chartableKeys(days) : [],
         onSeries: o.onSeries,
         // This card's drawer ids. Undefined on the in-chat path, which

@@ -3108,3 +3108,62 @@ test("metricLabel is used only for non-calorie metrics", () => {
         );
     }
 });
+
+// A PANEL THAT PRINTS A RELABELLED METRIC MUST SAY IT. nutrition-summary passes
+// metricLabel on a multi-day card, so a tile tap moves its <button> panel to
+// "Protein · daily avg · logged days" — and the mirror name read "Showing
+// Protein …", which did not contain that visible label (WCAG 2.5.3). The panel's
+// own names now use the panel form; the tiles, which print only the metric
+// name, keep it.
+test("a relabelled panel's names contain its visible label; tile names do not change", () => {
+    const relabel = (m: { key: string }) =>
+        m.key === "protein_g"
+            ? "Protein · daily avg · logged days"
+            : m.key === "water_ml"
+              ? "Water · daily avg · logged days"
+              : "";
+
+    const d = buildFollowStrip();
+    (domApi.macroCtx() as { metricLabel: unknown }).metricLabel = relabel;
+    domApi.macroToggle(d.protein);
+    expect(d.fx.innerHTML).toContain(
+        '<span class="flabel">Protein · daily avg · logged days</span>',
+    );
+    expect(d.fx.getAttribute("aria-label")).toBe(
+        "Showing Protein · daily avg · logged days 148/160 g, 12 g left. Back to calories.",
+    );
+    domApi.macroToggle(d.protein);
+
+    // The span panel's ✕ names the metric the way the span prints it.
+    const cal = macroOf("calories");
+    let fx: FakeEl;
+    const onSeries = (key: string, opened: boolean) =>
+        domApi.focusApply(
+            fx,
+            opened ? macroOf(key) : cal,
+            domApi.macroCtx(),
+            opened,
+        );
+    const s = buildStrip(["water_ml"], onSeries);
+    (domApi.macroCtx() as { metricLabel: unknown }).metricLabel = relabel;
+    fx = new FakeEl("span", { class: "focus c-cal" });
+    fx.parent = s.panel;
+    s.panel.children.unshift(fx);
+    domApi.focusApply(fx, cal, domApi.macroCtx(), false);
+    domApi.macroToggle(s.water);
+    expect(fx.innerHTML).toContain(
+        'aria-label="Showing Water · daily avg · logged days 2.1/2.5 L, 0.4 L left. Back to calories."',
+    );
+
+    // Tiles are named by their own printed name, metricLabel or not.
+    const plain = tileLabels(
+        macrosApi.macroPanel(VALS, GOALS, undefined, MEALS),
+    );
+    const relabelled = tileLabels(
+        macrosApi.macroPanel(VALS, GOALS, undefined, MEALS, {
+            metricLabel: relabel,
+        } as never),
+    );
+    expect(relabelled.protein_g).toBe(plain.protein_g!);
+    expect(relabelled.protein_g).not.toContain("daily avg");
+});

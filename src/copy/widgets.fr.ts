@@ -52,6 +52,8 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         avg: "moy.",
         goal: "objectif",
         dailyAvgLoggedDays: "Moy./jour · jours saisis",
+        metricAvgLoggedDays: "{metric} · moy./jour · jours saisis",
+        metricAvgRecorded: "{metric} · moy./jour · jours saisis",
         total: "Total",
         daysLogged: {
             one: "{n} jour enregistré",

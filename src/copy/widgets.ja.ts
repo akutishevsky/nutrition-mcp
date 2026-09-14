@@ -52,6 +52,8 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         avg: "平均",
         goal: "目標",
         dailyAvgLoggedDays: "1日平均・記録日のみ",
+        metricAvgLoggedDays: "{metric}・1日平均・記録日のみ",
+        metricAvgRecorded: "{metric}・1日平均・記録日のみ",
         total: "合計",
         daysLogged: {
             one: "{n}日分を記録",

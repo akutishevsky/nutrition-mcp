@@ -57,6 +57,8 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         avg: "Ø",
         goal: "Ziel",
         dailyAvgLoggedDays: "Tagesmittel · erfasste Tage",
+        metricAvgLoggedDays: "{metric} · Tagesmittel · erfasste Tage",
+        metricAvgRecorded: "{metric} · Tagesmittel · erfasste Tage",
         total: "Gesamt",
         daysLogged: {
             one: "{n} Tag protokolliert",

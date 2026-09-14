@@ -153,11 +153,14 @@ function stashCard(panel, ids) {
    by re-running the card's own emitter — never a formatter hand-written for
    this file), and written back only where it differs from the shipped bytes.
    Six locales in nine, and every locale on an engine that agrees, therefore
-   touch no DOM at all and cannot flash. On the summary and trends cards the whole
-   of that surface is the header meta; a single-day card (meal-logged,
-   goal-progress) also dates its sub-line and its panel label
-   (DAY_CARD_TEXTS), and weight-trends names its chart with two dates. The
-   drawer is written at tap time by the visitor's engine already.
+   touch no DOM at all and cannot flash. On the trends card the whole of that
+   surface is the header meta (the populated window line and the whole-empty
+   card's alike); every strip card that can show one day — meal-logged,
+   goal-progress and a single-day nutrition-summary, whose calorie panel reads
+   "Calories · 7 Sep" like theirs — also dates its panel label and, spoken, the
+   panel's name, and meal-logged its sub-line (DAY_CARD_TEXTS); weight-trends
+   names its chart with two dates. The drawer is written at tap time by the
+   visitor's engine already.
 
    THE RESIDUAL, stated plainly: a visitor with JavaScript disabled reads the
    BUILD engine's spelling, which can differ from their browser's by a few
@@ -182,8 +185,10 @@ function syncMeta(el, text) {
  *
  *  `texts` are selectors whose TEXT carries a date, and every one of them must
  *  be a text-only element (textContent replaces children). `labels` are
- *  selectors whose `aria-label` carries one. The two single-day cards spend a
- *  date in more places than the header meta — see DAY_CARD_TEXTS. */
+ *  selectors whose `aria-label` carries one. A strip card that can show one
+ *  day spends a date in more places than the header meta — see
+ *  DAY_CARD_TEXTS. A selector that matches nothing on either side is skipped,
+ *  so one list serves cards that print only some of those slots. */
 const HEADER_META = [".chead .cmeta"];
 function syncCardMeta(root, html, texts, labels) {
     const doc = document.createElement("template");
@@ -214,12 +219,15 @@ function syncCardMeta(root, html, texts, labels) {
     }
 }
 
-/* Where a single-day card (meal-logged, goal-progress) prints a date: the
-   header meta (goal-progress' "13 Sep 2025 · 4 meals"), the header subtitle
-   (meal-logged's "15 Sep 2025 · Breakfast · …"), the calorie panel's label
-   ("Calories on 15 Sep") — and, spoken, the panel's name when it is a button
-   and the weight row's name ("…, last logged 12 Sep 2025"). All four text
-   slots are text-only elements in the emitters. */
+/* Where a strip card that can show one day (meal-logged, goal-progress, a
+   single-day nutrition-summary) prints a date: the header meta (goal-progress'
+   "13 Sep 2025 · 4 meals", nutrition-summary's "7 Sep 2025"), the header
+   subtitle (meal-logged's "15 Sep 2025 · Breakfast · …"), the calorie panel's
+   label ("Calories · 15 Sep") — and, spoken, the panel's name when it is a
+   button and the weight row's name ("…, last logged 12 Sep 2025"). All the
+   text slots are text-only elements in the emitters. On a multi-day summary
+   the panel label is "Daily avg · logged days" and compares equal, so it is
+   never written. */
 const DAY_CARD_TEXTS = [".chead .cmeta", ".chead .csub", ".focus .flabel"];
 const DAY_CARD_LABELS = [
     ".focus[aria-label]",
@@ -307,7 +315,8 @@ function reserveMeta(el, texts) {
 }
 
 /** get_nutrition_summary: one strip, one chart, no controls of its own —
- *  every tap is macros.js's, and all this owes it is the ctx and the axis. */
+ *  every tap is macros.js's, and all this owes it is the ctx, the axis and
+ *  this browser's spelling of its dates. */
 function bindSummaryCard(root, data) {
     // An empty-state card has no strip: nothing discloses, nothing charts.
     if (!root.querySelector("[data-macro-panel]")) return;
@@ -316,10 +325,11 @@ function bindSummaryCard(root, data) {
     let slots = [];
     let goals = null;
     // The MARKUP is thrown away; the call is here for the ctx it stashes, the
-    // axis it resets and the header date it recomputes. Same function, same
-    // payload as the build, so the ctx a tap resolves is the one the markup
-    // was emitted from — and the header date is this browser's spelling of
-    // exactly the string the build wrote.
+    // axis it resets and the dates it recomputes. Same function, same payload
+    // as the build, so the ctx a tap resolves is the one the markup was
+    // emitted from — and every date is this browser's spelling of exactly the
+    // string the build wrote: the header meta, and on a single-day card the
+    // calorie panel's "Calories · 7 Sep" and the panel's spoken name too.
     const html = summaryCard(data, {
         onSeries: function (key, opened) {
             useCard(data);
@@ -334,7 +344,7 @@ function bindSummaryCard(root, data) {
     slots = SPARK.slots;
     goals = SPARK.goals;
     stashCard(root.querySelector("[data-macro-panel]"), ids);
-    syncCardMeta(root, html);
+    syncCardMeta(root, html, DAY_CARD_TEXTS, DAY_CARD_LABELS);
 }
 
 /** get_trends: the same, plus the range toggle — which is trends.html's

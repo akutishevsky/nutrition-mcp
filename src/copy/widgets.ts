@@ -208,6 +208,18 @@ export interface WidgetStrings {
         goal: string;
         /** calLabel for a multi-day range. */
         dailyAvgLoggedDays: string;
+        /** The focus panel's label once a tile has moved it to that metric on a
+         * multi-day summary, so the #70 denominator stays on screen instead of
+         * the switched panel reading as a plain daily figure. Calories, the
+         * macros and water average over the logged days, like
+         * dailyAvgLoggedDays. Placeholder: {metric} (a translated macros.labels
+         * entry). */
+        metricAvgLoggedDays: string;
+        /** metricAvgLoggedDays' twin for the limits (fiber, sugar, alcohol,
+         * caffeine), which average over the days that RECORDED a value — a
+         * missing figure is "not measured", not a zero (trends.metricAvgRecorded
+         * makes the same split). Same placeholder. */
+        metricAvgRecorded: string;
         /** calLabel for a single-day range. */
         total: string;
         /** "N day(s) logged", no wider window known. Placeholder: {n}. */
@@ -631,6 +643,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         avg: "avg",
         goal: "goal",
         dailyAvgLoggedDays: "Daily avg · logged days",
+        metricAvgLoggedDays: "{metric} · daily avg · logged days",
+        metricAvgRecorded: "{metric} · daily avg · days recorded",
         total: "Total",
         daysLogged: {
             one: "{n} day logged",

@@ -53,7 +53,7 @@ async function freshSummaryWidget() {
         "document",
         "window",
         `${script.slice(0, boot)}
-         return { loggedDaysCaption, rangeLabel, summaryCard, summaryCharted, sparkMarkup, SPARK, render, SAMPLE };`,
+         return { loggedDaysCaption, rangeLabel, summaryCard, summaryCharted, sparkMarkup, SPARK, render, SAMPLE, macroCtx, MACROS, shortDate };`,
     );
     return {
         root,
@@ -69,6 +69,12 @@ async function freshSummaryWidget() {
             SPARK: { slots: unknown[]; goals: unknown };
             render: (data: unknown) => void;
             SAMPLE: Record<string, unknown>;
+            macroCtx: () => {
+                calLabel: string;
+                metricLabel: ((m: unknown) => string) | null;
+            };
+            MACROS: Array<{ key: string; role: string }>;
+            shortDate: (iso: string) => string;
         }),
     };
 }
@@ -241,4 +247,72 @@ test("idPrefix namespaces this card's drawer, and moves nothing else", () => {
     expect(summaryCard(SAMPLE)).toBe(
         a.split("hero-drawer").join("macro-drawer"),
     );
+});
+
+// ---- The calorie panel's label, and the moved panel's ----------------------
+//
+// Three windows, three honest wordings (#70, #114): an average over several
+// logged days names its denominator; a multi-day RANGE with one logged day is
+// that range's "Total"; a genuine single-day window is that day's calories, in
+// the words meal-logged and goal-progress use for the same figure. And once a
+// tile moves the panel, the denominator has to move with it, or a selected
+// panel reads the bare "Protein" under an average.
+
+const flabel = (card: string) =>
+    [...card.matchAll(/<span class="flabel">([^<]*)<\/span>/g)].map(
+        (m) => m[1],
+    )[0];
+
+function localToday() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+test("a multi-day average names its denominator, on calories and on a moved panel", () => {
+    widget.render(SAMPLE);
+    const card = summaryCard(SAMPLE);
+    expect(flabel(card)).toBe("Daily avg · logged days");
+    const ctx = widget.macroCtx();
+    const by = (key: string) => widget.MACROS.find((m) => m.key === key)!;
+    expect(ctx.metricLabel!(by("protein_g"))).toBe(
+        "Protein · daily avg · logged days",
+    );
+    expect(ctx.metricLabel!(by("water_ml"))).toBe(
+        "Water · daily avg · logged days",
+    );
+    // A limit averages over the days that RECORDED it.
+    expect(ctx.metricLabel!(by("fiber_g"))).toBe(
+        "Fiber · daily avg · days recorded",
+    );
+});
+
+test("a range with one logged day is its total, with no metric denominator", () => {
+    const days = SAMPLE.days as Array<{ date: string }>;
+    const oneLogged = {
+        ...SAMPLE,
+        days: [days[0]],
+        start_date: "2026-07-05",
+        end_date: "2026-07-11",
+        logged_days: 1,
+        days_in_range: 7,
+    };
+    const card = summaryCard(oneLogged);
+    expect(flabel(card)).toBe("Total");
+    expect(widget.macroCtx().metricLabel).toBeNull();
+});
+
+test("a single-day window labels its calories the way the day cards do", () => {
+    const days = SAMPLE.days as Array<{ date: string }>;
+    const on = (date: string) => ({
+        ...SAMPLE,
+        days: [{ ...days[0], date }],
+        start_date: date,
+        end_date: date,
+        logged_days: 1,
+        days_in_range: 1,
+    });
+    const past = summaryCard(on("2025-07-05"));
+    expect(flabel(past)).toBe(`Calories · ${widget.shortDate("2025-07-05")}`);
+    expect(widget.macroCtx().metricLabel).toBeNull();
+    expect(flabel(summaryCard(on(localToday())))).toBe("Calories today");
 });
