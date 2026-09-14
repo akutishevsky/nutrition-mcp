@@ -318,9 +318,15 @@ function reserveMeta(el, texts) {
  *  every tap is macros.js's, and all this owes it is the ctx, the axis and
  *  this browser's spelling of its dates. */
 function bindSummaryCard(root, data) {
-    // An empty-state card has no strip: nothing discloses, nothing charts.
-    if (!root.querySelector("[data-macro-panel]")) return;
     useCard(data);
+    // An empty-state card has no strip: nothing discloses, nothing charts —
+    // but its header still names the range ("5–11 Jul · 0 of 7 days
+    // logged"), in the build engine's spelling until it is synced here.
+    if (!root.querySelector("[data-macro-panel]")) {
+        syncCardMeta(root, summaryCard(data, {}));
+        return;
+    }
+    useCardOnInput(root, data);
     const ids = drawerIds(root);
     let slots = [];
     let goals = null;
@@ -352,9 +358,27 @@ function bindSummaryCard(root, data) {
  *  averaging, window line and markup are the shared functions the in-chat
  *  card uses; what is written out here is only where they land. */
 function bindTrendsCard(root, data) {
-    // An empty-state card has no strip: nothing discloses, nothing charts.
-    if (!root.querySelector("[data-macro-panel]")) return;
     useCard(data);
+    // The whole-empty card has no strip and no toggle: nothing discloses,
+    // nothing charts, nothing switches. Its header still names the window
+    // ("5–11 Jul · 0 of 7 days logged"), so that one line is synced to this
+    // browser's spelling against trendsEmptyCard — the emitter the build
+    // used. It has no pressed button, so the window is the payload's default.
+    if (!root.querySelector("[data-macro-panel]")) {
+        if (trendsIsEmpty(data)) {
+            syncCardMeta(
+                root,
+                trendsEmptyCard(
+                    data,
+                    RANGES.indexOf(data && data.default_range) >= 0
+                        ? data.default_range
+                        : 30,
+                ),
+            );
+        }
+        return;
+    }
+    useCardOnInput(root, data);
     const ids = drawerIds(root);
     const bodyOf = function () {
         return root.querySelector("#tr-body") || root;
@@ -500,9 +524,24 @@ function svgLabel(scope) {
 function bindWeightTrendsCard(root, data) {
     const meta = root.querySelector("#wt-meta");
     const body = root.querySelector("#wt-body");
-    // The empty card has no toggle and nothing to switch.
-    if (!meta || !body) return;
     useCard(data);
+    // The whole-empty card has no toggle and nothing to switch, but its header
+    // still names the window ("5–11 Jul · 0 weigh-ins"), so — as on the
+    // summary and trends empty cards — that one line is synced to this
+    // browser's spelling against the emitter the build used. No pressed
+    // button, so the window is the payload's default.
+    if (!meta || !body) {
+        syncCardMeta(
+            root,
+            weightTrendsCard(
+                data,
+                WEIGHT_RANGES.indexOf(data && data.default_range) >= 0
+                    ? data.default_range
+                    : 30,
+            ),
+        );
+        return;
+    }
     // The RENDERED range wins over the payload's default: what is pressed in
     // the HTML is what the visitor is looking at.
     const pressed = root.querySelector('[data-range][aria-pressed="true"]');

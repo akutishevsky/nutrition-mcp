@@ -280,7 +280,7 @@ describe("weight-trends renders through shared/weight-trends-card.js", async () 
         "document",
         "window",
         `${await scriptOf("weight-trends")}
-         return { render, setRange, SAMPLE, STATE, weightTrendsCard, weightTrendsBody, weightTrendsMeta, WEIGHT_RANGES };`,
+         return { render, setRange, SAMPLE, STATE, weightTrendsCard, weightTrendsBody, weightTrendsMeta, WEIGHT_RANGES, shortDate, shiftDay, esc, t: () => T };`,
     )(document, {}) as {
         render: (d: unknown) => void;
         setRange: (n: number) => void;
@@ -290,8 +290,35 @@ describe("weight-trends renders through shared/weight-trends-card.js", async () 
         weightTrendsBody: (d: unknown, r: number, still: boolean) => string;
         weightTrendsMeta: (d: unknown, r: number) => string;
         WEIGHT_RANGES: number[];
+        shortDate: (d: string) => string;
+        shiftDay: (d: string, n: number) => string;
+        esc: (s: unknown) => string;
+        t: () => Payload;
     };
     const S = w.SAMPLE;
+
+    // A whole-empty series and a range with no readings in it are two empty
+    // states of one window, so the header describes that window one way.
+    test("the whole-empty header prints the range-empty header's window line", () => {
+        w.render({ ...S, locale: "en" });
+        // One reading older than the widest window: every range is empty.
+        const before = {
+            ...S,
+            days: [{ date: w.shiftDay(S.end_date, -40), weight: 80 }],
+        };
+        for (const r of w.WEIGHT_RANGES) {
+            const html = w.weightTrendsCard({ ...S, days: [] }, r);
+            const meta = /<span class="cmeta">([^<]*)<\/span>/.exec(html);
+            const ranged = /id="wt-meta">([^<]*)</.exec(
+                w.weightTrendsCard(before, r),
+            );
+            expect(ranged?.[1]).toBeDefined();
+            expect(meta?.[1]).toBe(ranged?.[1]);
+        }
+        expect(w.weightTrendsMeta({ ...S, days: [] }, 7)).toEndWith(
+            "· 0 weigh-ins",
+        );
+    });
 
     test.each(["en", "de", "ja"])(
         "render() and every range change write the partial's output in %s",

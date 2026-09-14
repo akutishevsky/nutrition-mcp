@@ -107,7 +107,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
     },
     trends: {
         title: "トレンド",
-        empty: "この期間にはまだ食事や水分の記録がありません。",
+        empty: "この期間に記録された食事や水分はありません。",
         avgUnder: "不足",
         caloriesOverRange: "過去{range}日間の1日あたりカロリー",
         metricOverRange: "過去{range}日間の1日あたり{metric}",

@@ -309,6 +309,9 @@ export interface WidgetStrings {
      * the strip below is shared/macros.js). */
     trends: {
         title: string;
+        /** Worded exactly as nutritionSummary.empty: the two cards state the
+         * same fact about the same window, and this one alone used to add
+         * "yet". */
         empty: string;
         /** The word after a floor-metric AVERAGE that fell short of its target, e.g. "124 kcal under". Distinct from macros.floorUnder (live "still left to eat today" framing, wrong for a historical average) and macros.ceilingUnder (safety-margin-before-a-limit framing in several locales, wrong for a shortfall). */
         avgUnder: string;
@@ -703,7 +706,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
     },
     trends: {
         title: "Trends",
-        empty: "No meals or water logged in this range yet.",
+        empty: "No meals or water logged in this range.",
         avgUnder: "under",
         caloriesOverRange: "Calories per day over the last {range} days",
         metricOverRange: "{metric} per day over the last {range} days",

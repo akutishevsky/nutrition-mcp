@@ -27,7 +27,7 @@
    INCLUDE ORDER. After shared/macros.js and shared/spark.js, whose macroPanel,
    chartableKeys, sparkPaint and sparkInline it calls, and after
    shared/date.js / shared/svg.js (rangeLabel, daysLoggedCaption, ymd,
-   calendarSlots). Everything is resolved when a function RUNS, so only the
+   shiftDay, calendarSlots). Everything is resolved when a function RUNS, so only the
    first call has to come after all of them. */
 
 // The windows the toggle offers, widest last.
@@ -179,7 +179,7 @@ function trendsView(data, range, opts) {
 
     if (!logged) {
         // A range with nothing in it while a wider one has data (the
-        // whole-empty card is render()'s). The header still names
+        // whole-empty card is trendsEmptyCard's). The header still names
         // the window and says "0 of 7 days logged"; the body says to
         // widen it. The foot is emitted so the bridge's settings note
         // keeps its home at the end of the card — without one it
@@ -263,6 +263,51 @@ function trendsView(data, range, opts) {
         // path reads it.
         goals: data.goals,
     };
+}
+
+/* True when nothing was logged on any day of the payload — the one test every
+   caller branches on before choosing trendsEmptyCard over trendsView +
+   trendsCard. dayHasData (shared/macros.js) is the same per-day test
+   trendsView counts logged days with, and `!data` counts as empty: a host can
+   hand over nothing at all. */
+function trendsIsEmpty(data) {
+    const days = data && Array.isArray(data.days) ? data.days : [];
+    return !days.some(dayHasData);
+}
+
+/* The whole-empty card: nothing in all 30 days. It lives here beside
+   trendsCard, like every other widget's empty card in its own card partial,
+   so the landing page's build-time renderer and the in-chat template print
+   the same bytes for it too.
+
+   With a real end date the card still names the window it looked at — the
+   empty message alone could not say WHICH stretch was empty — plus "0 of 7
+   days logged", the count the populated header prints, and keeps the card,
+   glow and foot so it looks like this widget. There is no toggle: every range
+   of an empty series is the same empty card, so `range` only sizes the window
+   the header names. Without a usable end date there is no window to name, and
+   the bare empty block is the honest state (flattened against the host's frame
+   by base.css). */
+function trendsEmptyCard(data, range) {
+    const n = RANGES.includes(range) ? range : 30;
+    const empty = `
+              <div class="empty">
+                <div class="big">📈</div>
+                <div>${esc(T.trends.empty)}</div>
+              </div>`;
+    const end = ymd(data && data.end_date) ? data.end_date : null;
+    if (!end) return empty;
+    const meta = `${rangeLabel(shiftDay(end, -(n - 1)), end)} · ${daysLoggedCaption(0, n)}`;
+    return `
+          <div class="card c-cal">
+            <div class="glow"></div>
+            <header class="chead">
+              <h1 class="ctitle">${esc(T.trends.title)}</h1>
+              <span class="cmeta">${esc(meta)}</span>
+            </header>
+            ${empty}
+            <div class="foot" data-widget-foot></div>
+          </div>`;
 }
 
 /* The card as a string: the header — title, the window line and the range

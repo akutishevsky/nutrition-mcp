@@ -60,6 +60,11 @@ test("the template composes through the shared partial, not inline", async () =>
     const src = await Bun.file(SRC).text();
     expect(src).toContain("root.innerHTML = trendsCard(view, { range });");
     expect(src).toContain("trendsView(STATE.data, range)");
+    // The whole-empty card too: it lived inline in render() while every other
+    // widget's empty card sat in its card partial.
+    expect(src).toContain(
+        "root.innerHTML = trendsEmptyCard(data, STATE.range);",
+    );
     expect(src).toContain("/*@include shared/trends-card.js@*/");
     // …and none of what moved is left behind to drift.
     for (const gone of [
@@ -71,6 +76,8 @@ test("the template composes through the shared partial, not inline", async () =>
         "function chartLabelFor(",
         'id="tr-meta"',
         "const RANGES =",
+        "T.trends.empty",
+        '<div class="card c-cal">',
     ]) {
         expect(src).not.toContain(gone);
     }
@@ -191,13 +198,16 @@ async function freshTrendsWidget() {
         "document",
         "window",
         `${script.slice(0, boot)}
-         return { trendsView, macroCtx, setLocale, setWaterUnit };`,
+         return { trendsView, trendsIsEmpty, trendsEmptyCard, rangeLabel, macroCtx, setLocale, setWaterUnit };`,
     )(doc, {}) as {
         trendsView: (
             data: unknown,
             range: number,
             opts?: { idPrefix?: string },
         ) => { body: string };
+        trendsIsEmpty: (data: unknown) => boolean;
+        trendsEmptyCard: (data: unknown, range: number) => string;
+        rangeLabel: (start: string, end: string) => string;
         macroCtx: () => { drawerId: string; drawerNameId: string };
         setLocale: (code: string) => unknown;
         setWaterUnit: (code: string) => void;
@@ -258,4 +268,49 @@ test("trendsView hands its card's drawer ids to the strip", async () => {
     // markup nothing.
     expect(prefixed.body).toBe(plain.body);
     expect(prefixed.body).not.toContain("drawer");
+});
+
+// The whole-empty card, now composed in the partial. Its header names the
+// window AND says how much of it was logged, the count the populated header
+// prints; without a usable end date there is no window, only the bare block.
+test("trendsEmptyCard names the window with a zero count, or nothing", async () => {
+    const api = await freshTrendsWidget();
+    api.setLocale("en");
+    const zero = (date: string) => ({
+        date,
+        calories: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+        fiber_g: null,
+        sugar_g: null,
+        alcohol_g: null,
+        caffeine_mg: null,
+        water_ml: 0,
+    });
+    const data = {
+        end_date: "2025-09-07",
+        default_range: 7,
+        days: ["2025-09-06", "2025-09-07"].map(zero),
+    };
+    expect(api.trendsIsEmpty(data)).toBe(true);
+    expect(api.trendsIsEmpty(null)).toBe(true);
+    expect(
+        api.trendsIsEmpty({
+            ...data,
+            days: [{ ...zero("2025-09-07"), calories: 5 }],
+        }),
+    ).toBe(false);
+
+    const card = api.trendsEmptyCard(data, 7);
+    expect(card).toContain(
+        `<span class="cmeta">${api.rangeLabel("2025-09-01", "2025-09-07")} · 0 of 7 days logged</span>`,
+    );
+    expect(card).toContain('<div class="foot" data-widget-foot></div>');
+    expect(card).not.toContain("data-range");
+    expect(api.trendsEmptyCard(data, 30)).toContain("0 of 30 days logged");
+
+    const bare = api.trendsEmptyCard({ ...data, end_date: "nope" }, 7);
+    expect(bare).not.toContain('class="ctitle"');
+    expect(bare).toContain('class="empty"');
 });

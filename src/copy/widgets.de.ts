@@ -112,7 +112,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
     },
     trends: {
         title: "Trends",
-        empty: "In diesem Zeitraum wurden noch keine Mahlzeiten oder kein Wasser protokolliert.",
+        empty: "In diesem Zeitraum wurden keine Mahlzeiten oder kein Wasser protokolliert.",
         avgUnder: "unter",
         caloriesOverRange: "Kalorien pro Tag in den letzten {range} Tagen",
         metricOverRange: "{metric} pro Tag in den letzten {range} Tagen",

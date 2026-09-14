@@ -120,7 +120,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
     },
     trends: {
         title: "Trendy",
-        empty: "Jeszcze nie zapisano posiłków ani wody w tym okresie.",
+        empty: "Brak zapisanych posiłków lub wody w tym okresie.",
         avgUnder: "poniżej",
         caloriesOverRange: "Kalorie dziennie w ciągu ostatnich {range} dni",
         metricOverRange: "{metric} dziennie w ciągu ostatnich {range} dni",

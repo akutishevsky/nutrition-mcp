@@ -423,13 +423,18 @@ function weightTrendsCard(data, range, opts) {
         // way. No toggle: every range of an empty series is equally
         // empty. Without a date there is nothing to head a card
         // with, so the bare state stands.
+        //
+        // The line is wtMetaText over that window — "5–11 Jul ·
+        // 0 weigh-ins", the string a range with no readings prints
+        // in the same header — not the bare range: two empty cards
+        // for one window must not describe it two ways.
         if (utcDay(data.end_date) === null) return empty;
         return `
           <div class="card c-acc">
             <div class="glow"></div>
             <header class="chead">
               <h1 class="ctitle">${esc(T.weightTrends.title)}</h1>
-              <span class="cmeta">${esc(rangeLabel(shiftDay(data.end_date, -(range - 1)), data.end_date))}</span>
+              <span class="cmeta">${esc(wtMetaText(wtWindow(data, all, range)))}</span>
             </header>
             ${empty}
             <div class="foot" data-widget-foot></div>

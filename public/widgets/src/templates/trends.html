@@ -94,7 +94,7 @@
             /*@include shared/i18n.js@*/
 
             /* The header's rangeLabel and daysLoggedCaption, the empty card's
-               shiftDay, and the UTC day arithmetic (utcDay, DAY_MS) the
+               shiftDay (trendsEmptyCard), and the UTC day arithmetic (utcDay, DAY_MS) the
                sparkline's calendar axis is stepped with. */
             /*@include shared/date.js@*/
 
@@ -234,36 +234,12 @@
                 // macroRestore at the end (shared/macros.js).
                 const was = macroSnapshot(root);
 
-                const days = data && Array.isArray(data.days) ? data.days : [];
-                if (!days.some(dayHasData)) {
-                    // Nothing in all 30 days. With a real end date the card
-                    // still names the window it looked at — the empty message
-                    // alone could not say WHICH stretch was empty — and keeps
-                    // the card, glow and foot so it looks like this widget.
-                    // There is no toggle: every range of an empty series is the
-                    // same empty card. Without a usable end date there is no
-                    // window to name, and the bare empty block is the honest
-                    // state (flattened against the host's frame by base.css).
-                    const empty = `
-              <div class="empty">
-                <div class="big">📈</div>
-                <div>${esc(T.trends.empty)}</div>
-              </div>`;
-                    const end = ymd(data && data.end_date)
-                        ? data.end_date
-                        : null;
-                    root.innerHTML = end
-                        ? `
-          <div class="card c-cal">
-            <div class="glow"></div>
-            <header class="chead">
-              <h1 class="ctitle">${esc(T.trends.title)}</h1>
-              <span class="cmeta">${esc(rangeLabel(shiftDay(end, -(STATE.range - 1)), end))}</span>
-            </header>
-            ${empty}
-            <div class="foot" data-widget-foot></div>
-          </div>`
-                        : empty;
+                // Nothing in all 30 days: the whole-empty card, composed in
+                // shared/trends-card.js like every other card state, so the
+                // landing page's build-time render is the same bytes. It has
+                // no toggle, so there is nothing to restore or reserve.
+                if (trendsIsEmpty(data)) {
+                    root.innerHTML = trendsEmptyCard(data, STATE.range);
                     return;
                 }
 
@@ -364,7 +340,8 @@
             /*@include shared/spark.js@*/
 
             /* The card itself — RANGES, avgOf, the two label builders,
-               trendsSlice / trendsMeta / trendsView and trendsCard — after
+               trendsSlice / trendsMeta / trendsView, trendsCard and the
+               whole-empty trendsIsEmpty / trendsEmptyCard — after
                macros.js and spark.js, whose macroPanel, chartableKeys,
                sparkPaint and sparkInline it calls. */
             /*@include shared/trends-card.js@*/

@@ -107,7 +107,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
     },
     trends: {
         title: "Tendencias",
-        empty: "Aún no se registraron comidas ni agua en este rango.",
+        empty: "No se registraron comidas ni agua en este rango.",
         avgUnder: "por debajo",
         caloriesOverRange: "Calorías por día en los últimos {range} días",
         metricOverRange: "{metric} por día en los últimos {range} días",

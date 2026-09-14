@@ -119,7 +119,7 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
     },
     trends: {
         title: "Тренди",
-        empty: "За цей період ще немає записів про страви чи воду.",
+        empty: "За цей період немає записів про страви чи воду.",
         avgUnder: "нижче",
         caloriesOverRange: "Калорії за день за останні {range} днів",
         metricOverRange: "{metric} за день за останні {range} днів",

@@ -107,7 +107,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
     },
     trends: {
         title: "Trends",
-        empty: "Nog geen maaltijden of water gelogd in deze periode.",
+        empty: "Geen maaltijden of water gelogd in deze periode.",
         avgUnder: "onder het doel",
         caloriesOverRange: "Calorieën per dag over de afgelopen {range} dagen",
         metricOverRange: "{metric} per dag over de afgelopen {range} dagen",

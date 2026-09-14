@@ -316,3 +316,28 @@ test("a single-day window labels its calories the way the day cards do", () => {
     expect(widget.macroCtx().metricLabel).toBeNull();
     expect(flabel(summaryCard(on(localToday())))).toBe("Calories today");
 });
+
+test("an empty multi-day range keeps the logged count in its header", () => {
+    const empty = {
+        ...SAMPLE,
+        days: [],
+        start_date: "2026-07-05",
+        end_date: "2026-07-11",
+        logged_days: 0,
+        days_in_range: 7,
+    };
+    expect(summaryCard(empty)).toContain(
+        `<span class="cmeta">${rangeLabel("2026-07-05", "2026-07-11")} · 0 of 7 days logged</span>`,
+    );
+    // One day keeps the bare date; no range at all keeps the bare block.
+    const oneDay = {
+        ...empty,
+        start_date: "2026-07-05",
+        end_date: "2026-07-05",
+    };
+    expect(summaryCard(oneDay)).toContain(
+        `<span class="cmeta">${rangeLabel("2026-07-05", "2026-07-05")}</span>`,
+    );
+    const bare = summaryCard({ ...empty, start_date: null, end_date: null });
+    expect(bare).not.toContain('class="ctitle"');
+});

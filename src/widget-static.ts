@@ -310,7 +310,14 @@ const MACRO_EXPORTS = ["setWaterUnit", "MACROS", "macroLabel"] as const;
 /** Per template, the emitters that template's own card partial defines. */
 const TEMPLATE_EXPORTS: Record<string, readonly string[]> = {
     "nutrition-summary": ["summaryCard", "summaryCharted", "loggedDaysCaption"],
-    trends: ["trendsView", "trendsCard", "trendsMeta", "RANGES"],
+    trends: [
+        "trendsView",
+        "trendsCard",
+        "trendsMeta",
+        "trendsIsEmpty",
+        "trendsEmptyCard",
+        "RANGES",
+    ],
     "meal-logged": ["mealLoggedCard"],
     // weightExtra comes from goal-progress.html's site-card region.
     "goal-progress": [
@@ -413,6 +420,8 @@ interface TrendsSandbox extends MacroSandbox {
         opts: { range: number; inlineChart?: boolean },
     ): string;
     trendsMeta(data: TrendsPayload, range: number): string;
+    trendsIsEmpty(data: TrendsPayload): boolean;
+    trendsEmptyCard(data: TrendsPayload, range: number): string;
     RANGES: number[];
 }
 
@@ -617,6 +626,11 @@ export async function renderTrendsCard(
             `renderTrendsCard: range ${range} is not one of ${sb.RANGES.join("/")}`,
         );
     }
+    // Nothing logged in the whole series: the widget's own whole-empty card,
+    // not a toggle over three empty ranges — render() in trends.html makes the
+    // same choice with the same predicate. trendsView alone would build the
+    // range-empty BODY, which is a different state (a wider range has data).
+    if (sb.trendsIsEmpty(payload)) return sb.trendsEmptyCard(payload, range);
     const view = sb.trendsView(payload, range, { idPrefix: opts.idPrefix });
     return sb.trendsCard(view, { range, inlineChart: true });
 }

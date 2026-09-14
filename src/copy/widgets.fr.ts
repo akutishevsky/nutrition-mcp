@@ -107,7 +107,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
     },
     trends: {
         title: "Tendances",
-        empty: "Aucun repas ni eau enregistré sur cette période pour l'instant.",
+        empty: "Aucun repas ni eau enregistré sur cette période.",
         avgUnder: "sous l'objectif",
         caloriesOverRange: "Calories par jour sur les {range} derniers jours",
         metricOverRange: "{metric} par jour sur les {range} derniers jours",

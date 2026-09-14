@@ -86,23 +86,34 @@ function summaryCard(data, opts) {
         // empty message alone could not say WHICH week was empty,
         // and a card with no header was the only one of this
         // widget's states that did not look like this widget.
+        // A multi-day range also says how much of it was logged — "5–11 Jul
+        // · 0 of 7 days logged" — exactly as the populated header does, so
+        // the empty card is not the one state of this widget whose header
+        // drops the count. A single day keeps the bare date: "0 of 1 days"
+        // would say nothing the empty message does not. The count is 0 by
+        // definition on this branch, so it is not read off `logged_days`:
+        // daysLoggedCaption vets `days_in_range` exactly as loggedDaysCaption
+        // would, and a payload without one reads "0 days logged".
         const empty = `
               <div class="empty">
                 <div class="big">🍽️</div>
                 <div>${esc(T.nutritionSummary.empty)}</div>
               </div>`;
-        return hasRange
-            ? `
+        if (!hasRange) return empty;
+        const emptyMeta =
+            data.start_date !== data.end_date
+                ? `${rangeLabel(data.start_date, data.end_date)} · ${daysLoggedCaption(0, data.days_in_range)}`
+                : rangeLabel(data.start_date, data.end_date);
+        return `
           <div class="card c-cal">
             <div class="glow"></div>
             <header class="chead">
               <h1 class="ctitle">${esc(T.nutritionSummary.title)}</h1>
-              <span class="cmeta">${esc(rangeLabel(data.start_date, data.end_date))}</span>
+              <span class="cmeta">${esc(emptyMeta)}</span>
             </header>
             ${empty}
             <div class="foot" data-widget-foot></div>
-          </div>`
-            : empty;
+          </div>`;
     }
     const days = data.days.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
     const multi = days.length > 1;
