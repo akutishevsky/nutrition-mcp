@@ -61,10 +61,15 @@ function mealLoggedCard(data, opts) {
         // server's own default of "us". TIERED, like
         // nutrition-summary: the calorie panel, then macros /
         // limits / water each on a rail laid out to its own tile
-        // count. Disclosure-only — no chart on a single-day card,
-        // so no chartKeys/onSeries: a tile opens its meals and
-        // nothing else. meal-logged.test.ts pins the flag, since
-        // dropping it would quietly bring back the flat rail.
+        // count. No chartKeys and no onSeries — a single-day card
+        // has no series to draw — but a tile tap still moves the
+        // focus panel to that metric (figure, ring, colour, label,
+        // and the ✕ back to calories) and opens its meals: moving
+        // the panel needs no chart, so it is the strip's own
+        // default (focusFollow in shared/macros.js), not wiring
+        // here. meal-logged.test.ts pins the flag, since dropping
+        // it would quietly bring back the flat rail, and the
+        // panel following the tile.
         {
             drinkUnit: data.drink_unit,
             calLabel,

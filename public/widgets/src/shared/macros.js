@@ -951,6 +951,31 @@ function focusApply(fx, m, ctx, selected) {
     }
 }
 
+// THE PANEL FOLLOWS THE TILE BY DEFAULT — what macroToggle does for a strip
+// whose caller passed no `onSeries`. Hand this strip's own `.focus` the metric
+// (the tapped one when it opens, calories when it is released) through
+// focusApply, which is everything a series switch moves minus the sparkline.
+//
+// It used to be onSeries or nothing, and onSeries was a CHART coupling: only
+// nutrition-summary and trends passed one, so on meal-logged and goal-progress
+// a tile tap opened its meals while the panel above went on saying calories —
+// the same strip answering the same tap two ways depending on which card it
+// was on. Moving the panel needs no chart. Doing it here, as the strip's
+// default rather than as wiring in each caller, is what gives it to every
+// strip by construction: both day-card templates, site/boot.js's bound cards
+// and the gallery's live card, none of which has to remember it.
+//
+// Both layouts, the flat rollback included: the panel is emitted on either
+// path, and a rollback that also changed what a tap does would not be a
+// layout rollback. A strip with no `.focus` (none ships) is left alone. The
+// ctx is the strip's own, so a page with two live strips repaints each from
+// its own values.
+function focusFollow(panel, ctx, m, selected) {
+    const fx = panel && panel.querySelector(".focus");
+    if (!fx || !m) return;
+    focusApply(fx, m, ctx, selected);
+}
+
 // The ctx behind ONE strip, so a template can re-render the focus panel for a
 // different metric without rebuilding the strip.
 //
@@ -1754,16 +1779,30 @@ function macroToggle(cell) {
     // attribute holds that state depends on the species — a disclosure says
     // aria-expanded, a chart toggle says aria-pressed (see tapAttrs).
     const open = cell.getAttribute(tapStateAttr(cell)) !== "true";
+    // Was a METRIC holding the selection before this tap? Asked only for the
+    // extra, and read before the state loop below resets everything: when the
+    // weight row takes the floor from a tile, the panel is still mirroring that
+    // tile and has to come back to calories. Scoped to `[data-macro]`, so a
+    // strip where nothing was held — the weight row opening on a fresh card, or
+    // closing itself — repaints nothing and makes no onSeries call.
+    const heldBefore =
+        !!extra &&
+        Array.from(panel.querySelectorAll("[data-macro]")).some(
+            (c) => c.getAttribute(tapStateAttr(c)) === "true",
+        );
 
-    // KEYED, not identity-matched. A widget may render more than one control
-    // for the same metric — nutrition-summary re-points its focus panel at
-    // whatever tile is selected (focusApply), so after any tap the panel and
-    // that tile both carry `data-macro="<key>"`. Marking only `cell` left the
-    // other one reading "false" for a state it was visibly in: the a11y tree
-    // showed two identically-named buttons disagreeing, and the ✕ resolved its
-    // trigger to whichever was first in document order and found it "closed".
-    // Every other widget renders one element per key, so this is the same loop
-    // there — including trends, whose rail is aria-pressed only.
+    // KEYED, not identity-matched. The loop was written for a widget with more
+    // than one control per metric: the focus panel used to be re-pointed at
+    // the selected tile's own identity, so the panel and that tile both carried
+    // `data-macro="<key>"`, and marking only `cell` left the other reading
+    // "false" for a state it was visibly in — two identically-named buttons
+    // disagreeing, and a ✕ that resolved its trigger to whichever came first in
+    // document order. focusApply's mirror mode now takes `data-macro` OFF a
+    // panel showing another metric, so every strip renders one element per key
+    // at a time and this is simply the exclusive reset — the same loop on every
+    // card, trends' aria-pressed rail included. It stays keyed because a panel
+    // that is still the calorie control carries `data-macro="calories"` and
+    // must be reset along with the tiles.
     //
     // The extra is in the loop too, which IS the cross-close in both
     // directions: a tile opening resets the weight row, the weight row opening
@@ -1850,8 +1889,24 @@ function macroToggle(cell) {
     const hint = panel.querySelector("[data-macro-hint]");
     if (hint) hint.hidden = disclosed;
 
-    // A chart series is a MACROS metric; the extra has none to draw.
-    if (m && ctx.onSeries) ctx.onSeries(key, open);
+    // THE PANEL FOLLOWS. A metric tap hands the focus panel that metric when
+    // it opens and calories when it is released: through the caller's
+    // onSeries where there is a chart to re-stroke with it, and otherwise
+    // through the strip's own default (focusFollow) — which is what moves the
+    // panel on the day cards, where there is no chart and there used to be no
+    // call at all.
+    //
+    // The extra is not a metric and puts nothing in the panel, but it does
+    // TAKE the selection: opening over a held tile has to bring the panel back
+    // to calories, or it goes on mirroring a tile the loop above just reset.
+    const cal = MACROS.find((mm) => mm.role === "cal");
+    if (m) {
+        if (ctx.onSeries) ctx.onSeries(key, open);
+        else focusFollow(panel, ctx, open ? m : cal, open);
+    } else if (heldBefore) {
+        if (ctx.onSeries) ctx.onSeries(cal.key, false);
+        else focusFollow(panel, ctx, cal, false);
+    }
 }
 
 // Close whatever breakdown is open, THROUGH the control that opened it, so the
@@ -1919,6 +1974,7 @@ function macroReturn(fx) {
     // calories directly, as the release would have.
     const cal = MACROS.find((mm) => mm.role === "cal");
     if (ctx.onSeries) ctx.onSeries(cal.key, false);
+    else focusFollow(panel, ctx, cal, false);
 }
 
 // ---- Surviving a re-render ----------------------------------------------

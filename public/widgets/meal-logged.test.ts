@@ -50,16 +50,21 @@ async function freshMealLogged() {
         "document",
         "window",
         `${script.slice(0, boot)}
-         return { render, SAMPLE };`,
+         return { render, SAMPLE, macroCtx };`,
     );
     const api = factory(document, window) as {
         render: (data: unknown) => void;
         SAMPLE: Record<string, unknown>;
+        macroCtx: () => {
+            onSeries: unknown;
+            chartKeys: string[];
+            meals: unknown[] | null;
+        };
     };
     return { ...api, root };
 }
 
-const { render, SAMPLE, root } = await freshMealLogged();
+const { render, SAMPLE, root, macroCtx } = await freshMealLogged();
 
 const renderOf = (data: unknown) => {
     render(data);
@@ -122,4 +127,26 @@ test("a past-year meal names its year on the header line only", () => {
 test("a this-year meal prints no year anywhere", () => {
     const html = renderOf({ ...SAMPLE, date: `${THIS_YEAR}-01-02` });
     expect(html).not.toContain(String(THIS_YEAR));
+});
+
+// A TILE TAP MOVES THE PANEL HERE TOO, with no wiring on this card. The card
+// passes no onSeries — one day has no series to draw — and that is exactly the
+// case macroToggle now answers with the strip's own default (focusFollow in
+// shared/macros.js; the behaviour is driven in macros.test.ts). What this pins
+// is the premise, against the real assembled card: no chart coupling, meals
+// behind the tiles, and a calorie panel that is a <button> — so the moved
+// panel takes mirror mode (the ✕ and data-macro-return) rather than the inner
+// ✕ a <span> panel gets.
+test("the card relies on the strip's default to move its panel", () => {
+    const html = renderOf(SAMPLE);
+    const ctx = macroCtx();
+    expect(ctx.onSeries).toBeNull();
+    expect(ctx.chartKeys).toEqual([]);
+    expect(ctx.meals?.length).toBeGreaterThan(0);
+    expect(html).toMatch(
+        /<button class="focus c-cal[^"]*" type="button" data-macro="calories" aria-expanded="false"/,
+    );
+    // No series anywhere, so the foot hint promises meals, never a chart.
+    expect(html).toContain("data-macro-hint>");
+    expect(html).not.toContain('data-macro-hint="chart"');
 });

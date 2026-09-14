@@ -79,6 +79,24 @@ function useCard(data) {
     setWaterUnit(data && data.water_unit);
 }
 
+/** Re-assert this card's locale and water unit BEFORE any of shared/macros.js's
+ *  handlers acts on a tap or a key inside it. Those handlers are delegated on
+ *  `document` in the bubble phase, so a capture-phase listener on the card's
+ *  own root always runs first — including for the paths no binder hands a
+ *  callback to: a tile opening its drawer, Escape closing it, and the default
+ *  that moves a tiered strip's focus panel on a tap (shared/macros.js), which
+ *  repaints a mirrored figure through macroNum and T. Without it a tap on one
+ *  card after another card had bound (or repainted) printed its figures in
+ *  whichever card's unit was asserted last. Cheap and idempotent, so the
+ *  binders with their own onSeries keep calling useCard there too. */
+function useCardOnInput(root, data) {
+    const assert = function () {
+        useCard(data);
+    };
+    root.addEventListener("click", assert, true);
+    root.addEventListener("keydown", assert, true);
+}
+
 /** The ids the SERVER wrote, read back off the drawer so every runtime
  *  pointer agrees with the shipped HTML whatever prefix built it. */
 function drawerIds(root) {
@@ -421,13 +439,17 @@ function bindTrendsCard(root, data) {
     });
 }
 
-/** log_meal / update_meal: one strip, no chart, no controls of its own — a
- *  tile or the calorie panel opens the meals behind it in this card's drawer,
- *  and ✕ / Escape hand focus back, all macros.js's. All this owes the card is
- *  the ctx (so several of these cards on one page each open their OWN meals)
- *  and this browser's spelling of its dates. */
+/** log_meal / update_meal: one strip, no chart, and no controls this file has
+ *  to drive — a tile or the calorie panel opens the meals behind it in this
+ *  card's drawer, a tile tap also moves the focus panel to that metric (the
+ *  tiered strip's default, as on nutrition-summary), and ✕ / Escape hand it
+ *  all back, every one of them macros.js's. All this owes the card is the ctx
+ *  (so several of these cards on one page each open their OWN meals), its
+ *  locale and water unit asserted before each of those taps repaints
+ *  (useCardOnInput), and this browser's spelling of its dates. */
 function bindMealLoggedCard(root, data) {
     useCard(data);
+    useCardOnInput(root, data);
     const ids = drawerIds(root);
     // The markup is thrown away; the call is here for the ctx it stashes and
     // the dates it recomputes (see bindSummaryCard).
@@ -438,11 +460,14 @@ function bindMealLoggedCard(root, data) {
     syncCardMeta(root, html, DAY_CARD_TEXTS, DAY_CARD_LABELS);
 }
 
-/** get_goal_progress: the same, plus the weight row — one more control on the
- *  strip (`data-macro-extra="weight"`) opening the same drawer, whose body is
- *  goal-progress.html's own weightExtra (bundled from its site-card region). */
+/** get_goal_progress: the same — drawer, the focus panel following a tile tap,
+ *  the input-time locale and unit — plus the weight row: one more control on
+ *  the strip (`data-macro-extra="weight"`) opening the same drawer, whose body
+ *  is goal-progress.html's own weightExtra (bundled from its site-card
+ *  region). */
 function bindGoalProgressCard(root, data) {
     useCard(data);
+    useCardOnInput(root, data);
     const ids = drawerIds(root);
     const html = goalProgressCard(data, { weightExtra: weightExtra });
     if (goalProgressShowsStrip(data)) {

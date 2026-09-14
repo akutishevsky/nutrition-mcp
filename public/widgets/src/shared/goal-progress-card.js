@@ -107,9 +107,12 @@ function goalProgressCard(data, opts) {
         // three-up under the panel, the ceilings a size down,
         // water as the closing bar (see "the tiers" in
         // shared/chip.css). No chartKeys and no onSeries — this
-        // payload is one day, with no series to draw — so a
-        // tile opens its meals and nothing else, and the panel
-        // stays the day's calorie headline.
+        // payload is one day, with no series to draw — yet a
+        // tile tap still hands the focus panel that metric
+        // while its meals are open, and the weight row taking
+        // the floor returns the panel to calories: both are the
+        // strip's default (focusFollow / macroToggle in
+        // shared/macros.js), which needs no chart.
         tiers: true,
         // "us" | "uk" for a user who tracks alcohol, null for
         // one who does not.

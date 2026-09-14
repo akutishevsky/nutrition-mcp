@@ -2500,12 +2500,128 @@ test("weight and a tile close each other, both ways, through the one drawer", ()
     expect(d.drawer.innerHTML).toBe(WEIGHT_DETAIL);
     expect(__doc.activeElement).toBe(d.drawer);
     expect(d.hint.hidden).toBe(true);
-    expect(calls).toEqual([["protein_g", true]]);
+    // The weight row TOOK THE SELECTION from a held tile, so the panel — which
+    // was mirroring protein — is handed calories back, released. This used to
+    // be no call at all, which left the panel showing protein over a drawer
+    // full of weight while the protein tile read "collapsed". The extra itself
+    // draws nothing, so it is the calorie key, never "weight".
+    expect(calls).toEqual([
+        ["protein_g", true],
+        ["calories", false],
+    ]);
 
     // The ✕ returns focus to the control that opened THIS drawer.
     expect(domApi.macroCloseDrawer(d.panel)).toBe(true);
     expect(__doc.activeElement).toBe(d.weight);
     expect(d.weight.getAttribute("aria-expanded")).toBe("false");
+    // Closing the weight row releases no metric — nothing was held but the
+    // row itself — so there is no spurious second calorie call.
+    expect(calls).toEqual([
+        ["protein_g", true],
+        ["calories", false],
+    ]);
+});
+
+// THE PANEL FOLLOWS THE TILE WITH NO CHART. meal-logged and goal-progress pass
+// no onSeries — a single day has no series to draw — and macroToggle's only
+// panel repaint used to be `ctx.onSeries(...)`, so on those cards a tile opened
+// its meals while the panel went on reading calories. Moving the panel needs
+// no chart, so it is the strip's default now (focusFollow). Every exit — a
+// second tap, Escape, the panel itself — must bring it back.
+function buildFollowStrip(extra = false) {
+    const d = extra ? buildExtraStrip() : buildStrip([]);
+    const fx = new FakeEl("button", { class: "focus c-cal" });
+    fx.parent = d.panel;
+    d.panel.children.unshift(fx);
+    domApi.focusApply(fx, macroOf("calories"), domApi.macroCtx(), false);
+    return { ...d, fx } as typeof d & { fx: FakeEl; weight?: FakeEl };
+}
+
+test("with no onSeries the panel follows the tile, and every exit returns it", () => {
+    const d = buildFollowStrip();
+    expect(d.fx.getAttribute("data-macro")).toBe("calories");
+
+    domApi.macroToggle(d.protein);
+    expect(d.drawer.hidden).toBe(false);
+    // The panel now shows protein — its figure, colour and label — and is the
+    // single return-to-calories control, exactly as on nutrition-summary.
+    expect(d.fx.hasAttribute("data-macro-return")).toBe(true);
+    expect(d.fx.hasAttribute("data-macro")).toBe(false);
+    expect((d.fx as unknown as { className: string }).className).toBe(
+        "focus c-pro",
+    );
+    expect(d.fx.innerHTML).toContain('<span class="flabel">Protein</span>');
+    expect(d.fx.innerHTML).toContain('148<span class="u">/160 g</span>');
+    expect(d.fx.getAttribute("aria-label")).toBe(
+        "Showing Protein 148/160 g, 12 g left. Back to calories.",
+    );
+
+    // A second tap on the tile.
+    domApi.macroToggle(d.protein);
+    expect(d.fx.getAttribute("data-macro")).toBe("calories");
+    expect(d.fx.getAttribute("aria-expanded")).toBe("false");
+    expect(d.fx.hasAttribute("data-macro-return")).toBe(false);
+    expect(d.fx.innerHTML).toContain(
+        '<span class="flabel">Calories today</span>',
+    );
+
+    // Escape, from inside the drawer: focus back on the tile, panel back.
+    domApi.macroToggle(d.protein);
+    expect(pressEscape(d.drawer)).toBe(true);
+    expect(__doc.activeElement).toBe(d.protein);
+    expect(d.fx.getAttribute("data-macro")).toBe("calories");
+    expect(d.fx.hasAttribute("data-macro-return")).toBe(false);
+
+    // The panel itself, through the real click delegate. Focus stays on it.
+    domApi.macroToggle(d.protein);
+    d.fx.focus();
+    click(d.fx);
+    expect(d.drawer.hidden).toBe(true);
+    expect(d.protein.getAttribute("aria-expanded")).toBe("false");
+    expect(d.fx.getAttribute("data-macro")).toBe("calories");
+    expect(__doc.activeElement).toBe(d.fx);
+
+    // Nothing held (a strip rebuilt under the mirror): macroReturn repaints
+    // calories directly, by the default route too.
+    domApi.focusApply(d.fx, macroOf("protein_g"), domApi.macroCtx(), true);
+    expect(d.fx.hasAttribute("data-macro-return")).toBe(true);
+    domApi.macroReturn(d.fx);
+    expect(d.fx.getAttribute("data-macro")).toBe("calories");
+
+    // The calorie panel opening its own drawer stays the calorie control,
+    // now marked open.
+    domApi.macroToggle(d.fx);
+    expect(d.drawer.dataset.open).toBe("calories");
+    expect(d.fx.getAttribute("data-macro")).toBe("calories");
+    expect(d.fx.getAttribute("aria-expanded")).toBe("true");
+    domApi.macroToggle(d.fx);
+    expect(d.fx.getAttribute("aria-expanded")).toBe("false");
+});
+
+// goal-progress: the weight row taking the floor from a tile must not leave
+// the panel mirroring the tile the loop just reset — and where nothing was
+// held, it must not touch the panel at all.
+test("with no onSeries the weight row returns a following panel to calories", () => {
+    const d = buildFollowStrip(true);
+    const weight = d.weight!;
+    // Nothing held: the panel is not repainted (its children are not
+    // rebuilt, which would also re-run the ring's entrance).
+    d.fx.innerHTML = "UNTOUCHED";
+    domApi.macroToggle(weight);
+    expect(d.fx.innerHTML).toBe("UNTOUCHED");
+    domApi.macroToggle(weight);
+    expect(d.fx.innerHTML).toBe("UNTOUCHED");
+
+    domApi.macroToggle(d.protein);
+    expect(d.fx.hasAttribute("data-macro-return")).toBe(true);
+    domApi.macroToggle(weight);
+    expect(d.drawer.dataset.open).toBe("weight");
+    expect(d.fx.hasAttribute("data-macro-return")).toBe(false);
+    expect(d.fx.getAttribute("data-macro")).toBe("calories");
+    expect(d.fx.getAttribute("aria-expanded")).toBe("false");
+    expect(d.fx.innerHTML).toContain(
+        '<span class="flabel">Calories today</span>',
+    );
 });
 
 test("Escape from inside the weight drawer closes it and returns focus to the row", () => {

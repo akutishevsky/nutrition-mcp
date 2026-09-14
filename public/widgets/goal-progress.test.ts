@@ -55,9 +55,13 @@ async function freshGoalProgress() {
         "document",
         "window",
         `${script.slice(0, boot)}
-         return { weightExtra, macroPanel, macroCtx, setLocale, setWaterUnit };`,
+         return { weightExtra, macroPanel, macroCtx, setLocale, setWaterUnit, goalProgressCard };`,
     )(stubDom(), {}) as {
         weightExtra: (w: unknown) => Extra;
+        goalProgressCard: (
+            data: unknown,
+            opts: { weightExtra: (w: unknown) => Extra },
+        ) => string;
         macroPanel: (
             vals: unknown,
             goal: unknown,
@@ -191,4 +195,34 @@ test("the weight row and its drawer head wear the scale glyph", () => {
     expect(head).toContain('<div class="dhead whead c-acc">');
     expect(head).toContain('<svg class="gi gi-scale" width="18" height="18"');
     expect(head).not.toContain('class="dot"');
+});
+
+// THE PANEL FOLLOWS ON THIS CARD BY THE STRIP'S DEFAULT. The real card builds
+// its strip with no chart coupling (one day, no series), so a tile tap moving
+// the focus panel — and the weight row returning it to calories — are
+// macroToggle's defaults, driven in macros.test.ts. This pins the premise
+// against the assembled goalProgressCard rather than a hand-built strip.
+test("the card's strip has no chart coupling, so the panel follows by default", () => {
+    const html = api.goalProgressCard(
+        {
+            date: "2025-09-08",
+            totals: TOTALS,
+            goals: GOALS,
+            meals: MEALS,
+            meal_count: 1,
+            water_entries: 3,
+            weight: WEIGHT,
+        },
+        { weightExtra: api.weightExtra },
+    );
+    const ctx = api.macroCtx() as unknown as {
+        onSeries: unknown;
+        chartKeys: string[];
+        extra: { key: string } | null;
+    };
+    expect(ctx.onSeries).toBeNull();
+    expect(ctx.chartKeys).toEqual([]);
+    expect(ctx.extra?.key).toBe("weight");
+    expect(html).toContain('data-macro="calories"');
+    expect(html).not.toContain('data-macro-hint="chart"');
 });
