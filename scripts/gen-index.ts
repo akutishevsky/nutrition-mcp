@@ -767,6 +767,7 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                         unit: function () {
                             return unit;
                         },
+                        invertSign: true,
                         delta: function (diff) {
                             return { n: toWeight(diff), unit: " " + unit, dec: 1 };
                         },
@@ -861,8 +862,14 @@ export const LANDING_SCRIPT: string = String.raw`            (function () {
                             tag.hidden = true;
                             return;
                         }
+                        // The colour follows the raw diff (more is good), but a
+                        // body-weight figure is signed the way the scale reads it:
+                        // more weight lost prints "-1 kg", a regain "+1 kg".
+                        var shown = c.invertSign ? -n : n;
                         tag.textContent =
-                            (n > 0 ? "+" : "\u2212") + fmtDec(Math.abs(n), d.dec) + d.unit;
+                            (shown > 0 ? "+" : "\u2212") +
+                            fmtDec(Math.abs(n), d.dec) +
+                            d.unit;
                         tag.hidden = false;
                         if (quiet) return;
                         tag.classList.remove("pop");
