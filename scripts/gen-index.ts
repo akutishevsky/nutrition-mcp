@@ -2742,7 +2742,7 @@ type StatCard = {
     label: string;
     /** The unit the markup rests in (metric); the script repaints it. */
     unit: string;
-    dark?: boolean;
+    wide?: boolean;
     deltaUnit?: string;
 };
 
@@ -2750,7 +2750,7 @@ function renderStatCard(s: StatCard): string {
     const deltaUnit = s.deltaUnit
         ? ` data-delta-unit="${attr(s.deltaUnit)}"`
         : "";
-    return `                    <div class="nm-stat${s.dark ? " nm-stat-dark" : ""}" data-stat-card="${s.key}">
+    return `                    <div class="nm-stat${s.wide ? " nm-stat-wide" : ""}" data-stat-card="${s.key}">
                         <div class="nm-stat-top">
                             <span class="nm-tile nm-tile-md ${s.tint}" aria-hidden="true"><i class="fa-solid ${s.icon}"></i></span>
                             <span class="nm-delta" data-delta="${s.key}"${deltaUnit} hidden></span>
@@ -2771,7 +2771,7 @@ function renderLive(doc: IndexDoc): string {
             tint: "nm-c-cal",
             label: l.cards.calories,
             unit: "kcal",
-            dark: true,
+            wide: true,
         },
         {
             key: "food_logs",

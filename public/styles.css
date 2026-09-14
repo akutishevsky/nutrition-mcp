@@ -3345,13 +3345,10 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     gap: 16px;
     align-content: space-between;
 }
-.nm-stat-dark {
+/* The calories card leads the row by width alone; it wears the same panel
+   as its neighbours. */
+.nm-stat-wide {
     grid-column: span 2;
-    background: var(--cta-bg);
-    color: var(--cta-ink);
-}
-.nm-stat-dark .nm-tile {
-    background: color-mix(in srgb, var(--c, var(--acc)) 22%, transparent);
 }
 .nm-stat-top {
     display: flex;
@@ -3419,7 +3416,7 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
     .nm-stats {
         grid-template-columns: minmax(0, 1fr);
     }
-    .nm-stat-dark {
+    .nm-stat-wide {
         grid-column: auto;
     }
 }
