@@ -210,8 +210,15 @@ function panelHtml(win, target, unit, range, still) {
     const figure = last
         ? `<span class="v">${w1(last.weight)}<span class="u bare"> ${esc(unit)}</span></span>`
         : `<span class="v" aria-hidden="true">—</span>`;
+    // shortDate, not dayHeader — the same call goal-progress-card.js
+    // makes for its panel label. The header's window line already
+    // carries the year where it matters (rangeLabel), the change line
+    // two rows down dates its first reading with shortDate, and
+    // `.flabel` is the line that ellipsises: a year here was a second
+    // date format inside one panel and the first thing cut at a chat
+    // card's width.
     const label = last
-        ? `${T.weightTrends.latest} · ${dayHeader(last.date)}`
+        ? `${T.weightTrends.latest} · ${shortDate(last.date)}`
         : T.weightTrends.latest;
 
     let line2;

@@ -354,6 +354,29 @@ describe("weight-trends renders through shared/weight-trends-card.js", async () 
         );
     });
 
+    // The panel label, the change line and the header use one date grammar:
+    // the header's rangeLabel carries the year, the two panel lines do not.
+    test("the panel label dates the latest reading with shortDate, no year", () => {
+        w.render({ ...S, locale: "en" });
+        const y = THIS_YEAR - 1;
+        const data = {
+            end_date: `${y}-11-20`,
+            unit: "kg",
+            target: 75,
+            days: [
+                { date: `${y}-11-16`, weight: 80 },
+                { date: `${y}-11-20`, weight: 79.5 },
+            ],
+        };
+        const body = w.weightTrendsBody(data, 7, true);
+        const label = /<span class="flabel">([^<]*)<\/span>/.exec(body)?.[1];
+        const T = w.t().weightTrends as Record<string, string>;
+        expect(label).toBe(w.esc(`${T.latest} · ${w.shortDate(`${y}-11-20`)}`));
+        expect(label).not.toContain(String(y));
+        // The header keeps the year.
+        expect(w.weightTrendsMeta(data, 7)).toContain(String(y));
+    });
+
     test.each(["en", "de", "ja"])(
         "render() and every range change write the partial's output in %s",
         (locale) => {
