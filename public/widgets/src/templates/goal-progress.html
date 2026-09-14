@@ -283,14 +283,16 @@
                WIDGET_LOCALE. */
             /*@include shared/fmt.js@*/
 
-            /* The weight row below — weightNum, weightFig, weightExtra — is
-               the one piece of this card the public site's landing page reads
-               straight out of THIS template rather than out of a partial: the
-               block between the two marker comments is evaluated verbatim by
-               src/widget-static.ts and bundled verbatim by
-               scripts/gen-widget-card.ts, and shared/goal-progress-card.js is
-               handed weightExtra as an argument. Keep the markers around the
-               three functions, and keep anything else out from between them. */
+            /* The weight row below — weightNum, weightTenths, weightFig,
+               weightExtra — is the one piece of this card the public site's
+               landing page reads straight out of THIS template rather than out
+               of a partial: the block between the two marker comments is
+               evaluated verbatim by src/widget-static.ts and bundled verbatim
+               by scripts/gen-widget-card.ts, and shared/goal-progress-card.js
+               is handed weightExtra as an argument. Keep the markers around
+               the four functions (weightExtra calls the other three, so they
+               must travel with it), and keep anything else out from between
+               them. */
             /* site-card:start */
             // A weight reading as the payload sends it (a number, or a number a
             // host stringified), or null for "none". NaN is none too: it would
@@ -301,15 +303,28 @@
                 return Number.isFinite(x) ? x : null;
             }
 
+            // A weight in WHOLE TENTHS — the precision every weight on this
+            // row prints at. The verdict ("at target", "0.1 kg to lose") and
+            // the distance are worked out from these, never from the raw
+            // floats, so they can never disagree with the figures beside them:
+            // 75.04 against a 74.96 target prints "75.0 → 75.0" and must read
+            // at target, where a raw |cur − tgt| < 0.05 said "0.1 kg to lose".
+            // weight-trends decides its gap the same way (r1, in
+            // shared/weight-trends-card.js). Integers, so a comparison of two
+            // of them has no float residue to trip on.
+            function weightTenths(v) {
+                return Math.round(Number(v) * 10);
+            }
+
             // One weight figure. FIXED tenths through macroDecimal (macros.js),
             // not fmt(): fmt round-trips through toFixed and then Number, which
             // drops the trailing zero, so a 75 kg target printed "75" beside a
-            // "78.4" reading — two precisions in one "78.4 → 75 kg". The server
-            // already rounds both to tenths (fromGrams), so this never rounds
-            // anything away; it only stops the zero from vanishing ("75.0",
-            // "78,4 → 75,0 кг" in uk).
+            // "78.4" reading — two precisions in one "78.4 → 75 kg" ("75.0",
+            // "78,4 → 75,0 кг" in uk). Rounded through weightTenths first, so
+            // the printed figure is by construction the value the verdict was
+            // decided on — Intl's own rounding of a stray 75.05 is not.
             function weightFig(v) {
-                return macroDecimal(v, 1);
+                return macroDecimal(weightTenths(v) / 10, 1);
             }
 
             // The weight row, as macroPanel's `opts.extra` (macros.js). Four
@@ -383,10 +398,13 @@
                     });
                     body = `<div class="dempty">${esc(tpl(T.goalProgress.weightNoGoal, { reading: withUnit(cur) }))}</div>`;
                 } else {
-                    // Tenths on both sides (see weightFig), so this is the
-                    // same comparison the printed figures make.
-                    const atTarget = Math.abs(cur - tgt) < 0.05;
-                    const delta = Math.round((cur - tgt) * 10) / 10;
+                    // Whole tenths on both sides (weightTenths), so this is
+                    // the comparison the printed figures make: equal figures
+                    // are at target, and the distance is their difference.
+                    const cur10 = weightTenths(cur);
+                    const tgt10 = weightTenths(tgt);
+                    const atTarget = cur10 === tgt10;
+                    const delta = (cur10 - tgt10) / 10;
                     const state = atTarget
                         ? T.goalProgress.atTarget
                         : tpl(

@@ -135,7 +135,7 @@ describe("goal-progress renders through shared/goal-progress-card.js", async () 
         "document",
         "window",
         `${await scriptOf("goal-progress")}
-         return { render, SAMPLE, goalProgressCard, goalProgressShowsStrip, weightExtra };`,
+         return { render, SAMPLE, goalProgressCard, goalProgressShowsStrip, weightExtra, esc, t: () => T };`,
     )(document, {}) as {
         render: (d: unknown) => void;
         SAMPLE: Payload;
@@ -144,7 +144,12 @@ describe("goal-progress renders through shared/goal-progress-card.js", async () 
             o: { weightExtra?: unknown; idPrefix?: string },
         ) => string;
         goalProgressShowsStrip: (d: unknown) => boolean;
-        weightExtra: unknown;
+        weightExtra: (w: unknown) => {
+            row: (i: number, drawerId: string) => string;
+            detail: ((nameId: string) => string) | null;
+        };
+        esc: (s: unknown) => string;
+        t: () => Payload;
     };
     const S = w.SAMPLE;
     const wt = S.weight;
@@ -204,6 +209,46 @@ describe("goal-progress renders through shared/goal-progress-card.js", async () 
         );
         expect(html).toContain('id="card-b-drawer"');
         expect(html).not.toContain("macro-drawer");
+    });
+
+    // The verdict is decided on the tenths the row prints, never the raw
+    // floats: 75.04 against 74.96 prints "75.0 → 75.0", and a raw
+    // |cur − tgt| < 0.05 called that "0.1 kg to lose".
+    test("the weight row's verdict is decided on the printed tenths", () => {
+        w.render({ ...S, locale: "en" });
+        const T = w.t().goalProgress as Record<string, string>;
+        const read = (current: number, target: number) => {
+            const x = w.weightExtra({
+                current,
+                target,
+                unit: "kg",
+                logged_on: null,
+            });
+            return x.row(0, "d") + (x.detail ? x.detail("n") : "");
+        };
+        const atTarget = w.esc(`75.0 kg · ${T.atTarget}`);
+        for (const [cur, tgt] of [
+            [75.04, 75],
+            [75.04, 74.96],
+            [74.96, 75.04],
+            [75, 75],
+        ] as const) {
+            const html = read(cur, tgt);
+            expect(`${cur}/${tgt}: ${html.includes(atTarget)}`).toBe(
+                `${cur}/${tgt}: true`,
+            );
+            expect(html).not.toContain("to lose");
+            expect(html).not.toContain("to gain");
+            // Nothing to plot at target.
+            expect(html).not.toContain('class="wtrack"');
+        }
+        const lose = read(75.06, 75);
+        expect(lose).toContain(w.esc("75.1 → 75.0 kg"));
+        expect(lose).toContain(w.esc(T.toLose!.replace("{amount}", "0.1 kg")));
+        expect(lose).not.toContain(w.esc(T.atTarget));
+        const gain = read(74.94, 75);
+        expect(gain).toContain(w.esc("74.9 → 75.0 kg"));
+        expect(gain).toContain(w.esc(T.toGain!.replace("{amount}", "0.1 kg")));
     });
 
     test("the weight row must be handed in", () => {
