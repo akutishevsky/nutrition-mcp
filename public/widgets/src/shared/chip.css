@@ -1952,6 +1952,9 @@ button.focus:active {
 /* 24x24 is the floor, not a preference: WCAG 2.2 SC 2.5.8. At 22px this was
    the only sub-minimum target in the whole system (a11y audit). */
 .dx {
+    /* As every other button here does, so a host page's button reset cannot
+       reach it (the landing page's `:where(body) button` did). */
+    font: inherit;
     margin-left: auto;
     flex: none;
     width: 24px;

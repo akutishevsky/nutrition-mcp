@@ -659,3 +659,24 @@ test("the page's element defaults are a closed list, cancelled where they reach 
             `body ${el}:where(:not(${SCOPE} *)):focus-visible`,
         );
 });
+
+// Every button primitive in chip.css sets `font: inherit`, so a host page's
+// button reset cannot give it a different font than chat — the drawer's close
+// button was the one without it, and took the landing page's reset.
+test("every chip.css button primitive inherits the card's font", async () => {
+    const chip = stripComments(
+        await Bun.file("./public/widgets/src/shared/chip.css").text(),
+    );
+    for (const sel of [".chip", ".focus", ".more", ".dx"]) {
+        // A selector can have several rules (.chip's first one only sets a
+        // custom property); one of them must carry the font.
+        const bodies = [
+            ...chip.matchAll(new RegExp(`\\n\\${sel} \\{([^}]*)\\}`, "g")),
+        ].map((m) => m[1]!);
+        expect(bodies.length, `${sel} rule`).toBeGreaterThan(0);
+        expect(
+            bodies.some((b) => b.includes("font: inherit;")),
+            `${sel} sets font: inherit`,
+        ).toBe(true);
+    }
+});
