@@ -877,3 +877,20 @@ test("a landing trends range change owes the chart its entrance, as chat does", 
     expect(chat).toContain("sparkReset(view.slots, STATE.data.goals);");
 });
 
+// The importer picture's own width query measures the card on the page, where
+// its `.wrap.page` gutter is gone; in chat it measured the iframe, gutter
+// included. So its breakpoint moves in by the gutter, and the shared sheet's
+// 419.98px queries (the drawer's head, and the rest) do not.
+test("the importer picture's width queries are moved in by its gutter", async () => {
+    const { buildExtraCardCss, PAGE_GUTTER_PX } =
+        await import("../scripts/gen-widget-card.js");
+    expect(PAGE_GUTTER_PX).toBe(28);
+    const extra = await buildExtraCardCss();
+    const importer = extra.slice(extra.indexOf('[data-widget="import-meals"]'));
+    expect(importer).toContain("@container nmdawn (max-width: 391.98px)");
+    expect(importer).not.toContain("419.98px");
+    const base = await Bun.file("./public/widgets/src/shared/base.css").text();
+    expect(base.replace(/\s+/g, " ")).toMatch(
+        /\.wrap\.page \{[^}]*padding: 14px/,
+    );
+});

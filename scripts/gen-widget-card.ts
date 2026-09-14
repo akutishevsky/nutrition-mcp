@@ -81,6 +81,12 @@ export const RUNTIME_TEMPLATES = [
  *  strings per locale stay out of the bundle. */
 export const PICTURE_TEMPLATES = ["import-meals.html"] as const;
 
+/** The horizontal gutter a picture template's root `.wrap.page` has in chat
+ *  (base.css: 14px each side) and does not have on the page, where
+ *  public/styles.css zeroes it. buildExtraCardCss moves those templates' own
+ *  width queries in by it. */
+export const PAGE_GUTTER_PX = 28;
+
 /** Every template whose JS the runtime bundles, in merge order. */
 export const BUNDLED_TEMPLATES = [
     ...CARD_TEMPLATES,
@@ -294,9 +300,19 @@ export async function buildExtraCardCss(
                 at = i;
             }
         }
-        const own = regions
-            .map((r) => r.replace(CSS_INCLUDE_RE, ""))
-            .join("\n");
+        let own = regions.map((r) => r.replace(CSS_INCLUDE_RE, "")).join("\n");
+        // A picture template's own width queries measured the IFRAME in chat,
+        // which includes its `.wrap.page` gutter; on the page the gutter is
+        // zeroed (public/styles.css, `> .wrap.page { padding: 0 }`) while the
+        // query measures the card. So its breakpoints move in by the gutter,
+        // or the map and preview went narrow ~28px sooner than chat does.
+        if ((PICTURE_TEMPLATES as readonly string[]).includes(file)) {
+            own = own.replace(
+                /\(\s*(min|max)-width\s*:\s*([\d.]+)px\s*\)/g,
+                (_, f: string, px: string) =>
+                    `(${f}-width: ${+(Number(px) - PAGE_GUTTER_PX).toFixed(2)}px)`,
+            );
+        }
         const css = [
             ...(await Promise.all(extras.map((rel) => readSrc(rel)))),
             own,

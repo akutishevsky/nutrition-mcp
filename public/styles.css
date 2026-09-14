@@ -2979,7 +2979,9 @@ html.js .nm-ex-slide:not([data-seen]) .nm-widget-card *::after {
 }
 /* The importer's picture. Its template's root is a padded `.wrap.page` with
    the step card inside, so `.wrap > .card` never flattens it and it read as
-   a card inside a card. Flush and flat here, like every other example card. */
+   a card inside a card. Flush and flat here, like every other example card.
+   The gutter zeroed here is PAGE_GUTTER_PX in scripts/gen-widget-card.ts,
+   which moves the importer's own width queries in by the same amount. */
 .nm-ex-thread > .nm-widget-card[data-widget="import-meals"] > .wrap.page {
     padding: 0;
 }
