@@ -2781,7 +2781,10 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
    byte for byte (src/widget-card.test.ts, src/widget-static-cards.test.ts),
    so the crop is here, scoped to the example thread, and never reaches chat.
    - The settings note is the card foot's in chat, where the importer is one
-     card. Four screens of one card say it once, under the last.
+     card. Four screens of one card say it once, under the last, and the
+     other three drop their whole foot: hiding only the note left its hairline
+     and padding framing nothing (base.css's .foot:empty cannot match a foot
+     whose hidden note is still a child).
    - Map: the first five fields (date, food name, meal, calories, protein)
      show what matching looks like; the other fifteen identical pickers made
      the screen three thread windows tall. Each field is two grid children
@@ -2792,7 +2795,9 @@ html:not(.js) .nm-ex-track::-webkit-scrollbar {
      row, and the reply beside it explains why), which leaves the figures
      room; and "Showing 30 of 603 rows" goes with the crop it no longer
      describes. The mask reads only alpha, so the token's hue is irrelevant. */
-.nm-ex-thread [data-import-step]:not([data-import-step="done"]) .wnote {
+.nm-ex-thread
+    [data-import-step]:not([data-import-step="done"])
+    [data-widget-foot] {
     display: none;
 }
 .nm-ex-thread [data-import-step="map"] .map-grid > :nth-child(n + 11) {
