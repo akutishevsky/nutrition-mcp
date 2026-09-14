@@ -1425,6 +1425,7 @@ type FakeDoc = {
     body: FakeEl;
     getElementById(id: string): FakeEl | null;
     querySelector(sel: string): FakeEl | null;
+    querySelectorAll(sel: string): FakeEl[];
     addEventListener(type: string, fn: (e: unknown) => void): void;
 };
 let __doc: FakeDoc;
@@ -1562,6 +1563,7 @@ const domApi = await (async () => {
         getElementById: (id: string) =>
             body.querySelector(`[id="${id}"]`) as FakeEl | null,
         querySelector: (sel: string) => body.querySelector(sel),
+        querySelectorAll: (sel: string) => body.querySelectorAll(sel),
         addEventListener: (type: string, fn: (e: unknown) => void) => {
             (__listeners[type] ||= []).push(fn);
         },
@@ -2141,6 +2143,27 @@ test("Escape closes a drawer first, then releases a pressed chart toggle, else s
     expect(d.drawer.hidden).toBe(true);
     expect(__doc.activeElement).toBe(d.protein);
     expect(d.protein.getAttribute("aria-expanded")).toBe("false");
+});
+
+// ON A PAGE WITH SEVERAL STRIPS an Escape from outside all of them belongs to
+// none of them. The landing page holds eight, and the document-wide fallback
+// used to close the first card's drawer and pull focus to it, off-screen. A
+// lone strip — every widget's iframe — keeps that fallback for focus that has
+// drifted to <body> while its drawer is open.
+test("Escape from outside every strip reaches a lone strip, but none of several", () => {
+    const d = buildStrip(["water_ml", "protein_g"]);
+    domApi.macroToggle(d.protein);
+    expect(d.drawer.hidden).toBe(false);
+    __doc.activeElement = __doc.body;
+
+    const other = new FakeEl("div", { "data-macro-panel": "" });
+    __doc.body.add(other);
+    expect(pressEscape(__doc.body)).toBe(false);
+    expect(d.drawer.hidden).toBe(false);
+
+    __doc.body.children = __doc.body.children.filter((c) => c !== other);
+    expect(pressEscape(__doc.body)).toBe(true);
+    expect(d.drawer.hidden).toBe(true);
 });
 
 // THE MIRROR IS NOT A SECOND COPY OF THE TILE. focusApply used to hand the

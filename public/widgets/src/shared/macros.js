@@ -2240,17 +2240,21 @@ if (typeof document !== "undefined" && !window.__macroWired) {
         const target = e.target && e.target.closest ? e.target : null;
         // Focus may have drifted off the strip (or onto <body>) while the
         // drawer is still open. Then the ACTIVE ELEMENT's strip, which is the
-        // same strip on every widget here and the right one of the two on a
-        // page that holds more than one; only if that finds nothing does the
-        // document-wide query decide, as it always did.
+        // same strip on every widget here and the right one of several on a
+        // page that holds more than one. Only if that finds nothing, and only
+        // when the document holds a SINGLE strip — every widget's iframe —
+        // does the document-wide query decide. The landing page holds eight,
+        // and there an Escape pressed outside them all used to close the
+        // first card's drawer and pull focus to it, off-screen.
         const active =
             document.activeElement && document.activeElement.closest
                 ? document.activeElement
                 : null;
+        const strips = document.querySelectorAll("[data-macro-panel]");
         const panel =
             (target && target.closest("[data-macro-panel]")) ||
             (active && active.closest("[data-macro-panel]")) ||
-            document.querySelector("[data-macro-panel]");
+            (strips.length === 1 ? strips[0] : null);
         if (macroCloseDrawer(panel) || macroReleaseToggle(panel)) {
             e.preventDefault();
         }
