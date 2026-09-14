@@ -650,4 +650,12 @@ test("the page's element defaults are a closed list, cancelled where they reach 
     expect(SITE_CSS).toContain(
         `${SCOPE} :where(img, svg) {\n    max-width: none;\n}`,
     );
+    // The site's generic focus ring stops at the card too: every control a
+    // card holds has the widget's own :focus-visible ring, and
+    // `body [tabindex]:focus-visible` (0,2,1) was rounding a focused drawer to
+    // 8px over its --r-in. :where() keeps the site rule's own specificity.
+    for (const el of ["a", "button", "summary", "[tabindex]"])
+        expect(SITE_CSS).toContain(
+            `body ${el}:where(:not(${SCOPE} *)):focus-visible`,
+        );
 });

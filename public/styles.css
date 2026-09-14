@@ -376,10 +376,15 @@ body [hidden] {
 .nm-widget-card :where(img, svg) {
     max-width: none;
 }
-body a:focus-visible,
-body button:focus-visible,
-body summary:focus-visible,
-body [tabindex]:focus-visible {
+/* The site's focus ring, everywhere EXCEPT inside a widget card: every
+   control a card holds carries the widget's own :focus-visible ring, and
+   `body [tabindex]:focus-visible` (0,2,1) was rounding a focused drawer to
+   8px over the card's --r-in, which chat never does. :where() keeps this
+   rule's own specificity, so the per-control overrides below still win. */
+body a:where(:not(.nm-widget-card *)):focus-visible,
+body button:where(:not(.nm-widget-card *)):focus-visible,
+body summary:where(:not(.nm-widget-card *)):focus-visible,
+body [tabindex]:where(:not(.nm-widget-card *)):focus-visible {
     outline: 2px solid var(--acc);
     outline-offset: 3px;
     border-radius: 8px;
