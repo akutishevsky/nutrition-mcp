@@ -297,6 +297,40 @@ describe("weight-trends renders through shared/weight-trends-card.js", async () 
     };
     const S = w.SAMPLE;
 
+    // trends.html's rule, and CLAUDE.md's: a re-delivered result keeps the
+    // user's range unless its end_date or its default_range changed. This
+    // widget used to key on default_range alone, so a new result for a
+    // different window reopened on the range picked for the old one.
+    test("a re-delivery keeps the picked range only for the same end_date and default_range", () => {
+        const data = { ...S, locale: "en", default_range: 30 };
+        w.render(data);
+        w.setRange(7);
+        expect(w.STATE.range).toBe(7);
+
+        // The same result again, and a fresh object with the same two fields.
+        w.render(data);
+        expect(w.STATE.range).toBe(7);
+        w.render({ ...data });
+        expect(w.STATE.range).toBe(7);
+        expect(root.innerHTML).toBe(w.weightTrendsCard(data, 7));
+
+        // A different window: the tool's default again.
+        const later = { ...data, end_date: w.shiftDay(S.end_date, 7) };
+        w.render(later);
+        expect(w.STATE.range).toBe(30);
+        expect(w.STATE.picked).toBe(null);
+
+        // …and a pick on the new window survives its own re-delivery.
+        w.setRange(14);
+        w.render({ ...later });
+        expect(w.STATE.range).toBe(14);
+
+        // A different default_range: adopted.
+        w.render({ ...later, default_range: 7 });
+        expect(w.STATE.range).toBe(7);
+        expect(w.STATE.picked).toBe(null);
+    });
+
     // A whole-empty series and a range with no readings in it are two empty
     // states of one window, so the header describes that window one way.
     test("the whole-empty header prints the range-empty header's window line", () => {

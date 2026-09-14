@@ -104,14 +104,16 @@
             // ---- State + rendering ---------------------------------------------
 
             // `picked` is the range the user chose with the toggle (null until
-            // they do); `defaultRange` the payload's default_range it was chosen
-            // against. `painted` is whether the chart has drawn once since the
-            // last render(): every paint after that is `.still`, so a range
-            // switch is instant and only a new tool result replays the draw-in.
+            // they do); `endDate` and `defaultRange` the payload's end_date and
+            // default_range it was chosen against. `painted` is whether the
+            // chart has drawn once since the last render(): every paint after
+            // that is `.still`, so a range switch is instant and only a new
+            // tool result replays the draw-in.
             const STATE = {
                 data: null,
                 range: 30,
                 picked: null,
+                endDate: null,
                 defaultRange: null,
                 painted: false,
             };
@@ -125,19 +127,29 @@
                 const root = document.getElementById("root");
                 setLocaleFrom(data, __widgetApi);
                 // Keep the range the user picked across a re-delivered result
-                // with the same default_range — the tool re-running while the
-                // card is on screen must not undo their tap. A DIFFERENT
-                // default_range is the tool answering a different question, and
-                // is adopted.
+                // with the same end_date AND default_range — a host handing the
+                // same result back while the card is on screen must not undo
+                // their tap. A different end_date (a different window) or a
+                // different default_range (the model asking for another view) is
+                // the tool answering a different question, and its default is
+                // adopted — the rule trends.html keys on the same two fields.
+                // Compared as sent, not as resolved: an end_date that changed
+                // from one bad value to another is still a new result.
                 const def = WEIGHT_RANGES.includes(data && data.default_range)
                     ? data.default_range
                     : 30;
-                if (STATE.picked == null || def !== STATE.defaultRange) {
+                const endDate = data.end_date == null ? null : data.end_date;
+                if (
+                    STATE.picked == null ||
+                    def !== STATE.defaultRange ||
+                    endDate !== STATE.endDate
+                ) {
                     STATE.picked = null;
                     STATE.range = def;
                 } else {
                     STATE.range = STATE.picked;
                 }
+                STATE.endDate = endDate;
                 STATE.defaultRange = def;
                 // A new tool result is a new card, and owes the chart its
                 // entrance again.
