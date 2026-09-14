@@ -1138,12 +1138,19 @@
         border-color 0.18s var(--ease-out),
         box-shadow 0.18s var(--ease-out);
 }
-/* A span panel never carries the chevron, so the 26px right gutter `.focus`
+/* A span panel carries no disclosure chevron, so the 26px right gutter `.focus`
    holds clear for it is dead space — taken straight off the meta lines, which
-   are the part of the panel that ellipsises. 9px mirrors the left inset. */
+   are the part of the panel that ellipsises. 9px mirrors the left inset.
+   `.fret` gives the gutter back: it is the one state in which a span panel
+   DOES carry something in that corner — its return ✕, while it shows a metric
+   other than calories (focusApply in shared/macros.js). A class the emitter
+   sets rather than `:has()`, which no shared partial uses. */
 span.focus {
     padding-right: 9px;
     cursor: default;
+}
+span.focus.fret {
+    padding-right: 26px;
 }
 /* HOVER IS SCOPED OFF THE STATES, and that is the whole reason for the
    `:not()` pair. `button.focus:hover` is (0,2,1) — the type selector makes it
@@ -1612,6 +1619,48 @@ button.focus:active {
 }
 .focus[aria-expanded="true"] > .chev {
     transform: translateY(-50%) rotate(180deg);
+}
+
+/* THE ✕ OF A SPAN PANEL — a real <button> (focusInner's `back`), because the
+   panel around it is not one and so cannot be the return control itself. It
+   is the `.chev` above in every way that shows: the same 12px icon in --ink,
+   centred on the same point (22px down, 15px in from the right edge). What it
+   adds is a 24px box around that point, the minimum target size (WCAG 2.5.8),
+   which is why it sits 3px in rather than 9: 3 + 24/2 = 9 + 12/2. The UA
+   button chrome is reset the way `.focus` resets its own.
+
+   A ring of the system's own, never the UA's, as for every control here. The
+   panel's `:focus-visible` outline does not apply — the panel is a span and
+   never takes focus. Hover tints the circle only; background-color is a paint
+   property, so this animates nothing the bridge measures. */
+.focus > .fret {
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    right: 3px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    line-height: 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        transform 0.2s var(--ease-out),
+        background-color 0.18s var(--ease-out);
+}
+.focus > .fret:hover {
+    background: color-mix(in srgb, var(--c) 14%, var(--panel));
+}
+.focus > .fret:focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
 }
 
 /* Screen-reader text for a NON-button panel; inside a button the aria-label

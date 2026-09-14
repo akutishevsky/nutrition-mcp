@@ -1495,7 +1495,11 @@ class FakeEl {
     hasAttribute(k: string) {
         return k in this.attrs;
     }
+    // A <span> without tabindex cannot take focus, and focus() on it is a
+    // silent no-op in a browser — modelled, or a restore that targets a span
+    // panel would pass here while leaving focus on <body> in a real host.
     focus() {
+        if (this.tag === "span" && !this.hasAttribute("tabindex")) return;
         __doc.activeElement = this;
     }
     // Only `contains` — the one classList read the partial makes (telling the
@@ -2624,6 +2628,87 @@ test("with no onSeries the weight row returns a following panel to calories", ()
     );
 });
 
+// A <span> PANEL HAS NO MIRROR MODE — it cannot become a control — so trends'
+// panel, moved to a metric by a tile, had no way back from the panel itself.
+// It now carries an inner ✕ button; the panel stays a span with no hooks.
+test("a span panel showing another metric carries a ✕ of its own that returns it", () => {
+    const cal = macroOf("calories");
+    let fx: FakeEl;
+    // What trends' onSeries does, minus the sparkline.
+    const onSeries = (key: string, opened: boolean) =>
+        domApi.focusApply(
+            fx,
+            opened ? macroOf(key) : cal,
+            domApi.macroCtx(),
+            opened,
+        );
+    const d = buildStrip(["water_ml"], onSeries);
+    fx = new FakeEl("span", { class: "focus c-cal" });
+    fx.parent = d.panel;
+    d.panel.children.unshift(fx);
+    domApi.focusApply(fx, cal, domApi.macroCtx(), false);
+    const cls = () => (fx as unknown as { className: string }).className;
+    // Resting on calories: no ✕, no gutter class.
+    expect(fx.innerHTML).not.toContain("data-macro-return");
+    expect(cls()).toBe("focus c-cal");
+
+    domApi.macroToggle(d.water);
+    // The panel itself wears none of the hooks — it is still a span.
+    expect(fx.hasAttribute("data-macro-return")).toBe(false);
+    expect(fx.hasAttribute("data-macro")).toBe(false);
+    expect(fx.hasAttribute("aria-label")).toBe(false);
+    expect(cls()).toBe("focus c-wat fret");
+    expect(fx.innerHTML).toContain(
+        '<button type="button" class="chev fret" data-macro-return aria-label="Showing Water 2.1/2.5 L, 0.4 L left. Back to calories.">',
+    );
+    expect(fx.innerHTML.match(/<button/g)).toHaveLength(1);
+
+    // The ✕ the browser would build from that markup. Activated with focus on
+    // it, the release destroys it — so focus goes to the tile that held the
+    // selection first.
+    const xIn = () => {
+        fx.children = [];
+        const x = new FakeEl("button", {
+            class: "chev fret",
+            "data-macro-return": "",
+        });
+        fx.add(x);
+        return x;
+    };
+    let x = xIn();
+    x.focus();
+    click(x);
+    expect(d.water.getAttribute("aria-pressed")).toBe("false");
+    expect(cls()).toBe("focus c-cal");
+    expect(fx.innerHTML).not.toContain("data-macro-return");
+    expect(__doc.activeElement).toBe(d.water);
+
+    // Focus somewhere else (a pointer click in a browser that does not focus
+    // buttons): it is left where it is.
+    domApi.macroToggle(d.water);
+    x = xIn();
+    d.protein.focus();
+    click(x);
+    expect(d.water.getAttribute("aria-pressed")).toBe("false");
+    expect(__doc.activeElement).toBe(d.protein);
+
+    // Escape with focus on the ✕ releases the series through the same
+    // hand-back.
+    domApi.macroToggle(d.water);
+    x = xIn();
+    x.focus();
+    expect(pressEscape(x)).toBe(true);
+    expect(d.water.getAttribute("aria-pressed")).toBe("false");
+    expect(__doc.activeElement).toBe(d.water);
+    fx.children = [];
+
+    // Never a button inside a button: the button panel keeps its mirror mode.
+    const bx = new FakeEl("button", { class: "focus c-cal" });
+    domApi.focusApply(bx, macroOf("water_ml"), domApi.macroCtx(), true);
+    expect(bx.innerHTML).not.toContain("<button");
+    expect(bx.hasAttribute("data-macro-return")).toBe(true);
+});
+
 test("Escape from inside the weight drawer closes it and returns focus to the row", () => {
     const d = buildExtraStrip();
     domApi.macroToggle(d.weight);
@@ -2761,6 +2846,58 @@ test("a metric that lost its meals comes back closed", () => {
     expect(next.panel.querySelector(".drawer")).toBe(null);
     expect(next.panel.querySelectorAll('[aria-expanded="true"]')).toEqual([]);
     expect(__doc.activeElement).toBe(next.fx);
+});
+
+// Focus on a <span> panel's ✕ (trends) when the new payload no longer charts
+// the held metric: nothing reopens, so no ✕ comes back, and the span panel
+// cannot take focus. The restore used to target that span anyway — a no-op
+// that left focus on <body>. It must land on a real control in the strip.
+test("focus on a span panel's ✕ survives a re-render that drops its metric", () => {
+    const cal = macroOf("calories");
+    let fx: FakeEl;
+    const onSeries = (key: string, opened: boolean) =>
+        domApi.focusApply(
+            fx,
+            opened ? macroOf(key) : cal,
+            domApi.macroCtx(),
+            opened,
+        );
+    const a = mount(buildStrip(["water_ml"], onSeries));
+    fx = new FakeEl("span", { class: "focus c-cal" });
+    fx.parent = a.panel;
+    a.panel.children.unshift(fx);
+    domApi.macroToggle(a.water);
+    expect(fx.innerHTML).toContain("data-macro-return");
+    const x = new FakeEl("button", {
+        class: "chev fret",
+        "data-macro-return": "",
+    });
+    fx.children = [];
+    fx.add(x);
+    x.focus();
+
+    const { was, next } = rerender(a, () => {
+        __doc.body.children = [];
+        domApi.macroPanel(VALS, GOALS, undefined, [], { onSeries });
+        // Water is off the chart now: a static tile. Protein still charts.
+        const protein = new FakeEl("button", {
+            "data-macro": "protein_g",
+            "aria-pressed": "false",
+        });
+        const water = new FakeEl("span", { class: "chip static c-wat" });
+        const panel = new FakeEl("div", { "data-macro-panel": "" });
+        const span = new FakeEl("span", { class: "focus c-cal" });
+        panel.add(span, protein, water);
+        return { panel, protein, water, span };
+    });
+    expect(was).toMatchObject({
+        openKey: "water_ml",
+        focusInside: true,
+        focusKey: "",
+    });
+    expect(next.span.children).toEqual([]);
+    expect(__doc.activeElement).not.toBe(__doc.body);
+    expect(__doc.activeElement).toBe(next.protein);
 });
 
 // A chart-only toggle opens no drawer; what was open is whichever control is

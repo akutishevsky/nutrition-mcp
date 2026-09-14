@@ -621,23 +621,28 @@ function macroTappable(m, ctx) {
 // missing. Calories is never a rail tile (the rails are macros / limits /
 // water), so this only ever moves the panel's own name.
 //
-// `ctx.metricLabel` is deliberately NOT consulted: it relabels `.flabel` only,
-// for a panel that is a <span> (trends), and tileLabel is also the TILE
-// name-builder — reading it here would rename every tile on that card. See the
-// note on metricLabel in macroCtxOf.
-function tileName(m, ctx) {
-    return m.role === "cal" && ctx && ctx.calLabel
-        ? ctx.calLabel
-        : macroLabel(m);
+// `panel` says the name is for the FOCUS PANEL showing a non-calorie metric
+// (focusApply's mirror name, the span panel's ✕), and only then is
+// `ctx.metricLabel` consulted — the same label focusInner prints in that
+// panel's `.flabel` ("Protein · daily avg · logged days"). Without it a moved
+// nutrition-summary panel, which is a <button>, printed that label and
+// announced "Showing Protein …": the visible run was not in the name, the
+// same 2.5.3 failure as the calorie case above. Tiles never pass it — tileLabel
+// is also the TILE name-builder, and a tile prints its bare metric name, so
+// reading metricLabel there would rename every tile on the card.
+function tileName(m, ctx, panel) {
+    if (m.role === "cal" && ctx && ctx.calLabel) return ctx.calLabel;
+    const relabel = panel && ctx && ctx.metricLabel && ctx.metricLabel(m);
+    return relabel || macroLabel(m);
 }
-function tileLabel(m, b, ctx) {
+function tileLabel(m, b, ctx, panel) {
     const sep = T.macros.nameSep;
     const parts = [];
     if (m.direction === "ceiling" || !(b.target > 0) || b.missing) {
         parts.push(b.targetStr);
     }
     if (b.deltaStr) parts.push(b.deltaStr);
-    return `${tileName(m, ctx)} ${chipValueText(m, b)}${sep}${parts.join(sep)}`;
+    return `${tileName(m, ctx, panel)} ${chipValueText(m, b)}${sep}${parts.join(sep)}`;
 }
 
 // What activating THIS chip does, said once and truthfully. Three cases, one
@@ -789,7 +794,12 @@ function focusRing(m, b) {
 // focusPanel, which decides the tag from the same metric it is rendering.
 // `mirror` is focusApply's return-to-calories mode, which swaps the disclosure
 // chevron for a ✕ — the panel no longer discloses anything, it closes.
-function focusInner(m, ctx, control, mirror) {
+//
+// `back` is the same mode for a panel that is a <span>, which cannot become the
+// return control itself (see focusApply). It emits the ✕ as a real <button> of
+// its own instead — never inside a <button> panel, where a nested interactive
+// element is invalid and its clicks would land on the panel.
+function focusInner(m, ctx, control, mirror, back) {
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
     const on = control === undefined ? macroTappable(m, ctx) : !!control;
     // Calories names the PERIOD it covers ("Daily avg · logged days" — the one
@@ -807,11 +817,19 @@ function focusInner(m, ctx, control, mirror) {
     const delta = b.deltaStr
         ? `<b class="fdelta${focusOver(m, b) ? " over" : ""}">${esc(b.deltaStr)}</b>`
         : `<b class="fdelta mute">${esc(b.targetStr)}</b>`;
+    // The ✕'s name is the mirror panel's name, for the same reason: it says
+    // what the panel is showing and that activating it returns to calories.
+    // Its visible content is an icon, so there is no visible label for the
+    // name to contain (WCAG 2.5.3 does not bite), but it names the metric the
+    // way the panel beside it prints it — the panel form of tileLabel, so
+    // trends' ✕ says "Protein · 14-day avg · all days" like its `.flabel`.
     const chev = mirror
         ? `<span class="chev">${icon("x", 12)}</span>`
-        : on && macroHasDetail(m, ctx)
-          ? `<span class="chev">${icon("chev", 14)}</span>`
-          : "";
+        : back
+          ? `<button type="button" class="chev fret" data-macro-return aria-label="${esc(tpl(T.macros.showingMetric, { metric: tileLabel(m, b, ctx, true) }))}">${icon("x", 12)}</button>`
+          : on && macroHasDetail(m, ctx)
+            ? `<span class="chev">${icon("chev", 14)}</span>`
+            : "";
     // THREE PARTS, not one run of text. The meta line is one ellipsised row,
     // and an ellipsis eats what comes LAST — which was the delta, the one part
     // of the line worth reading twice. Measured at 320px: the distance left was
@@ -878,11 +896,23 @@ function focusPanel(m, ctx) {
 // (macroReturn). It carries `data-macro-return` instead of `data-macro`, so
 // macroToggle's state loop, the ✕'s opener lookup and every `[data-macro]`
 // query see exactly one control per metric again.
+//
+// A <SPAN> PANEL GETS A ✕ OF ITS OWN. Mirror mode needs the panel to be a
+// button, so on a panel that is not one — trends always (no meals), a day card
+// whose meals carry no calories — a tile tap moved the whole panel to that
+// metric and left no way back from the panel itself: the only exit was finding
+// the tile again. So a span showing any metric other than calories carries an
+// inner `data-macro-return` button (focusInner's `back`), and the `fret` class
+// on the panel buys back the chevron gutter a span otherwise gives up
+// (chip.css). The delegated click handler resolves it by the same
+// `[data-macro-return]` hook the button panel wears, and macroReturn works
+// from either.
 function focusApply(fx, m, ctx, selected) {
     if (!fx) return;
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
     const isButton = fx.tagName === "BUTTON";
     const mirror = isButton && m.role !== "cal";
+    const back = !isButton && m.role !== "cal";
     // A CONTROL ONLY IF THE PANEL IS ONE. focusPanel picks <button> vs <span>
     // once, from the CALORIE metric — so a range whose meals are all zero-calorie
     // (coffee, tea) renders a <span class="focus">. Handing that span a tappable
@@ -892,8 +922,8 @@ function focusApply(fx, m, ctx, selected) {
     // affordance for pointers and not for keyboards, wearing ARIA a generic
     // element may not carry. The tile stays the control in that case.
     const control = isButton && !mirror && macroTappable(m, ctx);
-    fx.innerHTML = focusInner(m, ctx, control, mirror);
-    fx.className = `focus ${m.color}${focusOver(m, b) ? " over" : ""}`;
+    fx.innerHTML = focusInner(m, ctx, control, mirror, back);
+    fx.className = `focus ${m.color}${focusOver(m, b) ? " over" : ""}${back ? " fret" : ""}`;
     // ITS IDENTITY, NOT JUST ITS APPEARANCE. This used to rewrite the content
     // and stop, leaving data-macro, aria-label and the expanded/pressed state
     // frozen on calories — so after tapping Protein the headline control
@@ -1943,22 +1973,49 @@ function macroCloseDrawer(panel) {
 // selection on the card with no keyboard exit but a second activation.
 // Routed through macroToggle like every other release, so the chart and the
 // mirrored focus panel unwind by the same path. Focus is not moved — a toggle
-// takes none, so whatever holds it (the chip itself, usually) still exists.
+// takes none, so whatever holds it (the chip itself, usually) still exists —
+// with ONE exception: a <span> panel's own ✕ (focusInner's `back`), which the
+// release repaints away. See focusOnInnerReturn.
 // Returns whether anything was released.
 function macroReleaseToggle(panel) {
     const held =
         panel && panel.querySelector('[data-macro][aria-pressed="true"]');
     if (!held) return false;
+    if (focusOnInnerReturn()) held.focus({ preventScroll: true });
     macroToggle(held);
     return true;
+}
+
+// Is focus on a <span> panel's inner ✕ — the return button focusApply puts
+// inside a panel that cannot be the control itself? That ✕ is the one control
+// a release DESTROYS (the repaint to calories rebuilds the panel's children),
+// and a destroyed focused element drops focus on <body>, returning a keyboard
+// user to the top of the tab ring. The caller hands focus to the tile that held
+// the selection first — the disclosure contract, applied to the one exit that
+// is not a tile. A button panel is its own return control and survives its
+// repaint, so it does not count, and focus anywhere else is left alone.
+function focusOnInnerReturn() {
+    if (typeof document === "undefined") return false;
+    const a = document.activeElement;
+    return !!(
+        a &&
+        typeof a.hasAttribute === "function" &&
+        a.hasAttribute("data-macro-return") &&
+        !a.classList.contains("focus")
+    );
 }
 
 // The focus panel in its mirror mode (see focusApply): return the card to
 // calories by releasing whichever control holds the selection, through that
 // control — the drawer closes, the tile's state resets, the hint returns and
-// onSeries repaints the panel as the calorie control, all by the path a
-// second tap on the tile takes. Focus stays on the panel: it is the same
-// element before and after, only its content and name change.
+// the panel is repainted as calories (onSeries, or the strip's default), all
+// by the path a second tap on the tile takes.
+//
+// `fx` is whatever carries `data-macro-return`: the panel itself when it is a
+// <button> — focus then stays on it, the same element before and after with
+// only its content and name changed — or the ✕ inside a <span> panel, which
+// the repaint destroys. Focus on that ✕ goes to the tile that held the
+// selection BEFORE the release (focusOnInnerReturn); nothing else is moved.
 function macroReturn(fx) {
     const panel = fx && fx.closest("[data-macro-panel]");
     const ctx = macroCtx(panel || fx);
@@ -1967,11 +2024,14 @@ function macroReturn(fx) {
         (c) => c.getAttribute(tapStateAttr(c)) === "true",
     );
     if (held) {
+        if (focusOnInnerReturn()) held.focus({ preventScroll: true });
         macroToggle(held);
         return;
     }
     // Nothing is selected (a strip rebuilt under the mirror): repaint
-    // calories directly, as the release would have.
+    // calories directly, as the release would have — by the same two routes
+    // macroToggle takes. There is no tile to hand an inner ✕'s focus to here;
+    // the case needs a strip rebuilt without macroRestore, which none is.
     const cal = MACROS.find((mm) => mm.role === "cal");
     if (ctx.onSeries) ctx.onSeries(cal.key, false);
     else focusFollow(panel, ctx, cal, false);
@@ -2090,8 +2150,31 @@ function macroRestore(root, was) {
     ) {
         return;
     }
-    const target =
-        ctlFor(was.focusKey, was.focusOnPanel) || root.querySelector(".focus");
+    // Failing a control for the metric: the panel — or, on a <span> panel,
+    // its ✕ when the restore left one there (a reopened series on trends, or
+    // a day card whose meals carry no calories; see focusApply). A button
+    // panel holds no inner ✕, so it is the panel.
+    //
+    // ONLY A CONTROL THAT CAN TAKE FOCUS. A <span> panel cannot, and span.focus()
+    // is a silent no-op — so when focus was on a span panel's ✕ (focusKey is
+    // "": the ✕ is not a MACRO_CONTROL_SEL control) and the new payload left
+    // the held metric with no control, nothing was reopened, no ✕ came back,
+    // the span was the target, and focus fell to <body>. Every control on the
+    // strip is a <button> (tiles, the weight row, a button panel), so the
+    // candidates are tried in order and the first button wins, with the strip's
+    // first control last: the top of the card, not the top of the tab ring. A
+    // strip with no control at all has nothing here to hold focus.
+    const fx = root.querySelector(".focus");
+    const back =
+        fx && fx.tagName !== "BUTTON"
+            ? fx.querySelector("[data-macro-return]")
+            : null;
+    const target = [
+        ctlFor(was.focusKey, was.focusOnPanel),
+        back,
+        fx,
+        ...Array.from(root.querySelectorAll(MACRO_CONTROL_SEL)),
+    ].find((el) => el && el.tagName === "BUTTON");
     if (target && typeof target.focus === "function") {
         target.focus({ preventScroll: true });
     }
