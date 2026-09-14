@@ -1164,6 +1164,27 @@ test("the importer's non-done pictures drop their whole foot", async () => {
     );
 });
 
+// The importer preview is a picture nobody can scroll, so every figure column
+// has to fit: its headers wrap, its narrow crop is sized for the longest
+// locale, and its type steps down on the narrowest phone cards.
+test("the importer preview picture fits its figure columns in every locale", async () => {
+    const css = (await Bun.file("./public/styles.css").text()).replace(
+        /\s+/g,
+        " ",
+    );
+    expect(css).toContain(
+        '.nm-ex-thread [data-import-step="preview"] .tbl thead th { white-space: normal;',
+    );
+    expect(css).toContain("@container nmdawn (max-width: 540px) {");
+    expect(css).not.toContain("@container nmdawn (max-width: 440px)");
+    expect(css).toContain(
+        '@container nmdawn (max-width: 300px) { .nm-ex-thread [data-import-step="preview"] .tbl { font-size: 10.5px; } }',
+    );
+    expect(css).toContain(
+        '@container nmdawn (max-width: 250px) { .nm-ex-thread [data-import-step="preview"] .tbl { font-size: 9.5px; }',
+    );
+});
+
 // The hero thread's inset focus ring is scoped through its parent, so the
 // site's generic `body [tabindex]:focus-visible` (0,2,1) cannot outrank it.
 test("the hero thread's own inset focus ring wins over the site's", async () => {

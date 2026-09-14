@@ -2828,15 +2828,41 @@ html.js .nm-ex-slide:not([data-seen]) .nm-widget-card *::after {
 .nm-ex-thread [data-import-step="preview"] .tmore {
     display: none;
 }
-/* On a phone-width card (306px at 390) even eight columns overflow: the date
-   goes too (the notice above the table already says every row lands at
-   midday) and the cells tighten, so every figure column stays in view. */
-@container nmdawn (max-width: 440px) {
+/* The picture cannot scroll, so every figure column has to fit. A column is
+   as wide as its header at least (table.css keeps cells on one line, and the
+   headers are translated, uppercase and monospaced), so the headers wrap
+   instead; and on a card narrower than 540px — sized for the longest locale
+   (Japanese, then Ukrainian), not for English at a 306px phone card — the
+   date goes too (the notice above the table already says every row lands at
+   midday) and the cells tighten. */
+.nm-ex-thread [data-import-step="preview"] .tbl thead th {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    vertical-align: bottom;
+}
+@container nmdawn (max-width: 540px) {
     .nm-ex-thread [data-import-step="preview"] .tbl :is(th, td):nth-child(2) {
         display: none;
     }
     .nm-ex-thread [data-import-step="preview"] .tbl :is(th, td) {
-        padding-inline: 4px;
+        padding-inline: 3px;
+    }
+}
+/* On the narrowest phone cards the FIGURES are what no longer fit — the same
+   16px in every locale at a 250px card — so the type steps down with the card:
+   10.5px under 300px, 9.5px and 2px cells under 250px, which fits every locale
+   down to a 220px card (narrower than a 320px phone gives). */
+@container nmdawn (max-width: 300px) {
+    .nm-ex-thread [data-import-step="preview"] .tbl {
+        font-size: 10.5px;
+    }
+}
+@container nmdawn (max-width: 250px) {
+    .nm-ex-thread [data-import-step="preview"] .tbl {
+        font-size: 9.5px;
+    }
+    .nm-ex-thread [data-import-step="preview"] .tbl :is(th, td) {
+        padding-inline: 2px;
     }
 }
 /* A photo the user sent: the picture in a dark frame, the caption under it,
