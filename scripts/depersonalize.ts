@@ -7,8 +7,9 @@
  *   bun run scripts/depersonalize.ts --dry    # report only, change nothing
  *
  * What it removes / neutralizes:
- *   - Google Analytics (gtag) and Microsoft Clarity from every public HTML
- *     page + the CSP allow-list
+ *   - Google Analytics (gtag) from every public HTML page, and Microsoft
+ *     Clarity from every one except login.html (which never carries it),
+ *     plus both services' hosts in the CSP allow-list
  *   - The Glama connector-ownership route (embeds the maintainer's email)
  *   - Patreon "Support" section and hero button
  *   - GitHub repo links (nav, footer, "Star on GitHub" CTA) and the live
@@ -19,7 +20,7 @@
  *   - The nutrition-mcp.com domain -> your-domain.com placeholder
  *     (install/MCP URL, canonical/OG tags, sitemap, robots)
  *   - The "alternative to X" comparison pages under public/alternatives/
- *     (GA, GitHub/contact links, domain)
+ *     (GA, Clarity, GitHub/contact links, domain)
  *
  * It is tuned to the current markup. If a pattern stops matching after a
  * redesign, the run reports "0 matches" for that rule so you can spot it.
@@ -30,9 +31,17 @@
  *
  * NOT auto-handled (edit by hand if you want): marketing copy/tone, the
  * brand images (public/og.png, favicon.ico, apple-touch-icon.png), the
- * page <title>/meta description wording, and the alternatives-page generator
- * scripts/gen-alternatives.ts (update its SITE constant, GA tag, and
- * GitHub/contact links before regenerating).
+ * page <title>/meta description wording, and the privacy policy and terms
+ * prose in src/copy/legal*.ts, which still say the site runs Google
+ * Analytics and Microsoft Clarity after both are stripped — rewrite them to
+ * match whatever your deployment actually loads.
+ *
+ * It also rewrites only the generated output, never the sources, so
+ * `bun run gen:all` puts everything back. Before regenerating, edit the
+ * sources: HEAD_ASSETS in scripts/site-partials.ts (the GA measurement id and
+ * CLARITY_PROJECT_ID — drop CLARITY from HEAD_ASSETS rather than blanking the
+ * id), the GitHub/contact links in its nav()/footer(), SITE in
+ * src/routes.ts, then re-run this script.
  */
 
 import { statSync } from "node:fs";
@@ -48,7 +57,7 @@ type Rule = {
 };
 
 /** Remove Google Analytics from any HTML page. */
-const ANALYTICS_RULES: Rule[] = [
+const GA_RULES: Rule[] = [
     {
         name: "GA loader <script>",
         find: /[ \t]*<script\b[\s\S]*?googletagmanager[\s\S]*?<\/script>\n/,
@@ -57,12 +66,21 @@ const ANALYTICS_RULES: Rule[] = [
         name: "GA inline config <script>",
         find: /[ \t]*<script>\s*window\.dataLayer[\s\S]*?<\/script>\n/,
     },
-    {
-        name: "Microsoft Clarity <script>",
-        find: /[ \t]*<script>\s*\(function \(c, l, a, r, i, t, y\)[\s\S]*?<\/script>\n/,
-        optional: true, // the login page deliberately carries none
-    },
 ];
+
+/**
+ * Remove Microsoft Clarity. Required rather than optional: every page but the
+ * login page carries it (HEAD_ASSETS vs BASE_HEAD_ASSETS in
+ * scripts/site-partials.ts), so the login jobs take GA_RULES alone and a 0×
+ * anywhere else really does mean the snippet's markup drifted.
+ */
+const CLARITY_RULE: Rule = {
+    name: "Microsoft Clarity <script>",
+    find: /[ \t]*<script>\s*\(function \(c, l, a, r, i, t, y\)[\s\S]*?<\/script>\n/,
+};
+
+/** Every analytics tag an ordinary public page carries. */
+const ANALYTICS_RULES: Rule[] = [...GA_RULES, CLARITY_RULE];
 
 /** Every link to the maintainer's GitHub repo (nav, footer, CTA button). */
 const GITHUB_LINKS_RULE: Rule = {
@@ -185,7 +203,7 @@ const GLAMA_RULE: Rule = {
     find: /[ \t]*\/\/ Glama connector ownership verification\.[\s\S]*?app\.get\("\/\.well-known\/glama\.json"[\s\S]*?\n\}\);\n\n/,
 };
 
-/** Tighten the Content-Security-Policy: drop GA + GitHub API hosts. */
+/** Tighten the Content-Security-Policy: drop the GA, Clarity and GitHub API hosts. */
 const CSP_RULES: Rule[] = [
     {
         name: "CSP: connect-src GA + github hosts",
@@ -212,7 +230,7 @@ const DOMAIN_RULE: Rule = {
 };
 
 // The generated "alternative to X" comparison pages carry the same personal
-// bits as the landing page (GA, GitHub links, contact mailto, the domain) but
+// bits as the landing page (GA, Clarity, GitHub links, contact mailto, the domain) but
 // none of the Patreon/Medium/Contact-section markup, so they get a focused set.
 // They do still render the shared nav() chrome, though, which links to the
 // landing page's #support/#contact anchors — those need stripping here too.
@@ -263,7 +281,7 @@ const altPageJobs = (
 // asks for GITHUB_LINKS_RULE / DOMAIN_RULE etc.
 const RULES_BY_FILENAME: Record<string, Rule[]> = {
     "login.html": [
-        ...ANALYTICS_RULES,
+        ...GA_RULES,
         NAV_SUPPORT_RULE,
         NAV_CONTACT_RULE,
         GITHUB_LINKS_RULE,
@@ -362,7 +380,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     {
         path: "public/login.html",
         rules: [
-            ...ANALYTICS_RULES,
+            ...GA_RULES,
             NAV_SUPPORT_RULE,
             NAV_CONTACT_RULE,
             GITHUB_LINKS_RULE,
@@ -424,10 +442,9 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     },
     ...altPageJobs,
     ...localeJobs,
-    // NB: the generator scripts/gen-alternatives.ts is intentionally NOT
-    // rewritten here — these HTML-tuned patterns are unreliable against its TS
-    // template literals. If you regenerate the pages, update the generator's
-    // SITE constant, GA tag, GitHub/contact links by hand (see its header).
+    // NB: no generator source is rewritten here — these HTML-tuned patterns
+    // are unreliable against TS template literals. If you regenerate the
+    // pages, update the sources by hand first (see this file's header).
     // llms.txt is markdown served at /llms.txt, so none of the HTML-tuned rules
     // above reach it — it needs its own job or a fork publishes the maintainer's
     // domain and repo to every crawler that reads it. Its GitHub reference is a
@@ -509,6 +526,7 @@ console.log(
 );
 console.log(
     "Left for you: swap in your own og.png / favicon.ico / apple-touch-icon.png, " +
-        "adjust page copy, and replace the " +
+        "adjust page copy (the privacy policy and terms still name Google Analytics " +
+        "and Microsoft Clarity), and replace the " +
         `${PLACEHOLDER_DOMAIN} placeholder with your real domain.`,
 );
