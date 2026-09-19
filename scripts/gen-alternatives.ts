@@ -12,8 +12,9 @@
  * The generated .html files are the served artifacts — don't hand-edit them.
  *
  * Self-hosting: scripts/depersonalize.ts cleans the generated .html files but
- * NOT this generator. If you regenerate, update SITE below and the GA tag,
- * GitHub links, and contact email in the shared fragments first.
+ * NOT this generator. If you regenerate, update SITE (src/routes.ts) and the
+ * GA / Clarity tags, GitHub links and contact email in the shared fragments
+ * (scripts/site-partials.ts) first.
  */
 
 import {

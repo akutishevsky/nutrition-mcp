@@ -23,7 +23,7 @@ export const PRIVACY_PL: LegalDoc = {
         "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
     ogDescription:
         "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
-    lastUpdated: "26 lipca 2026",
+    lastUpdated: "19 września 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
         {
@@ -59,7 +59,7 @@ export const PRIVACY_PL: LegalDoc = {
                     "Istnieją dwa rodzaje analityki, i żaden nie dotyka treści Twoich wpisów:",
                 ),
                 ul([
-                    "<strong>Analityka strony.</strong> Te strony wczytują Google Analytics, który daje nam zbiorcze statystyki ruchu — odsłony, źródła odwiedzin, przybliżoną geografię, typ urządzenia. Działa na każdej stronie, w tym na tej, a obecnie nie ma banera zgody ani anonimizacji IP, więc Google otrzymuje Twój adres IP w ramach standardowego pomiaru. Jeśli wolisz nie być mierzony/a, zablokuje to bloker trackerów albo ochrona typu &bdquo;do not track&rdquo; w Twojej przeglądarce.",
+                    "<strong>Analityka strony.</strong> Te strony wczytują Google Analytics, który daje nam zbiorcze statystyki ruchu — odsłony, źródła odwiedzin, przybliżoną geografię, typ urządzenia. Działa na każdej stronie, w tym na tej, a obecnie nie ma banera zgody ani anonimizacji IP, więc Google otrzymuje Twój adres IP w ramach standardowego pomiaru. Jeśli wolisz nie być mierzony/a, zablokuje to bloker trackerów albo ochrona typu &bdquo;do not track&rdquo; w Twojej przeglądarce. Każda strona poza stroną logowania wczytuje też Microsoft Clarity, który rejestruje, jak odwiedzający korzystają z witryny — kliknięcia, dotknięcia, przewijanie, ruchy myszy — w postaci nagrań sesji i map cieplnych, abyśmy widzieli, gdzie strony są niejasne. Clarity maskuje to, co wpisujesz w formularze, otrzymuje Twój adres IP i dane przeglądarki w ten sam sposób i blokują go te same blokery.",
                     "<strong>Telemetria serwera.</strong> Każde wywołanie narzędzia MCP zapisuje jeden wiersz telemetrii użycia — które narzędzie zostało uruchomione, czy się powiodło, ile trwało — powiązany z Twoim identyfikatorem konta, ale nie z tym, co zapisałeś/aś. Wykorzystujemy to, żeby znajdować wolne i uszkodzone narzędzia. Nie jest to udostępniane nikomu i jest usuwane razem ze wszystkim innym, gdy usuwasz swoje konto.",
                 ]),
                 p(
@@ -100,7 +100,7 @@ export const TERMS_PL: LegalDoc = {
         "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT. Regulamin napisany prostym językiem, obejmujący konta, dopuszczalne użycie, Twoje dane i odpowiedzialność.",
     ogDescription:
         "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT.",
-    lastUpdated: "26 lipca 2026",
+    lastUpdated: "19 września 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
         {
@@ -193,7 +193,7 @@ export const TERMS_PL: LegalDoc = {
                     "Usługa zależy od stron trzecich: Supabase — baza danych, uwierzytelnianie i przechowywanie eksportów, DigitalOcean — hosting, Open Food Facts — dane z kodów kreskowych, oraz dowolny asystent AI, z którego się łączysz.",
                 ),
                 p(
-                    "Sama strona internetowa korzysta też z Google Analytics do pomiaru ruchu, Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz GitHub API do wyświetlania liczby gwiazdek projektu. Wczytanie strony wysyła więc zapytania do tych usług, które mogą zobaczyć Twój adres IP i przeglądarkę.",
+                    "Sama strona internetowa korzysta też z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz GitHub API do wyświetlania liczby gwiazdek projektu. Wczytanie strony wysyła więc zapytania do tych usług, które mogą zobaczyć Twój adres IP i przeglądarkę.",
                 ),
                 p(
                     "Ich regulaminy i dostępność są ich własną sprawą, i nie ponosimy za nie odpowiedzialności.",
