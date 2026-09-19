@@ -7,7 +7,8 @@
  *   bun run scripts/depersonalize.ts --dry    # report only, change nothing
  *
  * What it removes / neutralizes:
- *   - Google Analytics (gtag) from every public HTML page + the CSP allow-list
+ *   - Google Analytics (gtag) and Microsoft Clarity from every public HTML
+ *     page + the CSP allow-list
  *   - The Glama connector-ownership route (embeds the maintainer's email)
  *   - Patreon "Support" section and hero button
  *   - GitHub repo links (nav, footer, "Star on GitHub" CTA) and the live
@@ -55,6 +56,11 @@ const ANALYTICS_RULES: Rule[] = [
     {
         name: "GA inline config <script>",
         find: /[ \t]*<script>\s*window\.dataLayer[\s\S]*?<\/script>\n/,
+    },
+    {
+        name: "Microsoft Clarity <script>",
+        find: /[ \t]*<script>\s*\(function \(c, l, a, r, i, t, y\)[\s\S]*?<\/script>\n/,
+        optional: true, // the login page deliberately carries none
     },
 ];
 
@@ -189,6 +195,11 @@ const CSP_RULES: Rule[] = [
     {
         name: "CSP: googletagmanager host (script-src + img-src)",
         find: / https:\/\/www\.googletagmanager\.com/g,
+        replace: "",
+    },
+    {
+        name: "CSP: Clarity hosts (script-src + connect-src + img-src)",
+        find: / https:\/\/\*\.clarity\.ms(?: https:\/\/c\.bing\.com)?/g,
         replace: "",
     },
 ];

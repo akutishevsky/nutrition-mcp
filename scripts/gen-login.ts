@@ -27,7 +27,7 @@ import {
     footer,
     generatedBanner,
     nav,
-    HEAD_ASSETS,
+    BASE_HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
 } from "./site-partials.js";
@@ -122,7 +122,7 @@ function renderDoc(doc: LoginDoc, locale: SiteLocale): string {
              is a defensive belt-and-suspenders in case a stray link to
              /authorize is ever crawled. -->
         <meta name="robots" content="noindex, nofollow" />
-${HEAD_ASSETS}
+${BASE_HEAD_ASSETS}
 ${LOGIN_STYLE}
     </head>
     <body class="auth">

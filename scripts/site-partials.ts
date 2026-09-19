@@ -62,7 +62,31 @@ export function jsonLd(obj: unknown): string {
         .join("\n")}\n        </script>`;
 }
 
-export const HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
+/**
+ * Microsoft Clarity (session replays + heatmaps), Microsoft's own install
+ * snippet with the project id filled in. Kept out of BASE_HEAD_ASSETS because
+ * the login page must not carry it: a replay of the sign-in form is exactly
+ * the recording nobody should hold, masked inputs or not. Its hosts are in
+ * the CSP in src/index.ts, and scripts/depersonalize.ts strips both.
+ */
+export const CLARITY_PROJECT_ID = "ykukhn1ofa";
+export const CLARITY = `        <script>
+            (function (c, l, a, r, i, t, y) {
+                c[a] =
+                    c[a] ||
+                    function () {
+                        (c[a].q = c[a].q || []).push(arguments);
+                    };
+                t = l.createElement(r);
+                t.async = 1;
+                t.src = "https://www.clarity.ms/tag/" + i;
+                y = l.getElementsByTagName(r)[0];
+                y.parentNode.insertBefore(t, y);
+            })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
+        </script>`;
+
+/** The `<head>` assets every page shares, the login page included. */
+export const BASE_HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link
@@ -86,6 +110,10 @@ export const HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.g
             gtag("js", new Date());
             gtag("config", "G-1K4HRB2R8X");
         </script>`;
+
+/** Every public page's `<head>` assets: the shared set plus Clarity. */
+export const HEAD_ASSETS = `${BASE_HEAD_ASSETS}
+${CLARITY}`;
 
 export const THEME_PREPAINT = `        <script>
             // Apply a saved theme override before paint to avoid a flash.
