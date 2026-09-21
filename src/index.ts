@@ -20,6 +20,7 @@ import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
 import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
 import { createTtlCache } from "./ttl-cache.js";
+import { isProduction } from "./env.js";
 
 const app = new Hono();
 
@@ -68,6 +69,14 @@ app.use("*", async (c, next) => {
         );
     }
     c.header("Referrer-Policy", "no-referrer");
+    // Staging (dev.nutrition-mcp.com) serves a byte-for-byte copy of the public
+    // site from the same generators. Left alone, that is the entire SEO surface
+    // -- 9 locales x every page -- duplicated under a second hostname competing
+    // with the real one. The header covers every response, including the
+    // generated HTML, /llms.txt and the widget resources, without any generator
+    // knowing about it; the meta tag in scripts/site-partials.ts and the
+    // /robots.txt below are the other two layers.
+    if (!isProduction()) c.header("X-Robots-Tag", "noindex, nofollow");
 });
 
 // Body limit
@@ -302,6 +311,15 @@ app.get("/apple-touch-icon.png", async (c) => {
 
 // SEO crawl files
 app.get("/robots.txt", async (c) => {
+    // public/robots.txt names the production sitemap and allows the whole site,
+    // which is wrong on staging in both halves -- so staging answers with a
+    // disallow-all rather than shipping a second committed file that would then
+    // have to be kept in step with the real one.
+    if (!isProduction()) {
+        return c.body("User-agent: *\nDisallow: /\n", 200, {
+            "Content-Type": "text/plain",
+        });
+    }
     return c.body(await Bun.file("./public/robots.txt").text(), 200, {
         "Content-Type": "text/plain",
     });

@@ -23,6 +23,7 @@ import {
     type SiteLocale,
 } from "../src/routes.js";
 import { chromeFor, type ChromeCopy } from "../src/copy/chrome.js";
+import { isProduction } from "../src/env.js";
 
 export { SITE };
 
@@ -85,20 +86,21 @@ export const CLARITY = `        <script>
             })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
         </script>`;
 
-/** The `<head>` assets every page shares, the login page included. */
-export const BASE_HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
-            rel="stylesheet"
-        />
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
-        />
-        <link rel="stylesheet" href="/styles.css" />
-        <script
+/**
+ * Staging's robots directive, emitted in place of the analytics tags on the
+ * dev.nutrition-mcp.com build. src/index.ts also sends an X-Robots-Tag header
+ * and a disallow-all /robots.txt there; this meta tag is the third layer,
+ * because the site's whole SEO surface (9 locales x every page) would otherwise
+ * be duplicated under a second hostname, and a crawler that reaches a page
+ * without going through robots.txt still sees this.
+ */
+const STAGING_ROBOTS_META = `        <meta name="robots" content="noindex, nofollow" />`;
+
+/**
+ * Google Analytics (gtag). Unlike Clarity this belongs to BASE_HEAD_ASSETS, so
+ * the login page carries it too.
+ */
+export const GOOGLE_ANALYTICS = `        <script
             async
             src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
         ></script>
@@ -111,9 +113,41 @@ export const BASE_HEAD_ASSETS = `        <link rel="preconnect" href="https://fo
             gtag("config", "G-1K4HRB2R8X");
         </script>`;
 
-/** Every public page's `<head>` assets: the shared set plus Clarity. */
-export const HEAD_ASSETS = `${BASE_HEAD_ASSETS}
-${CLARITY}`;
+/** The `<head>` assets every page shares, the login page included. */
+export const BASE_HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+        />
+        <link rel="stylesheet" href="/styles.css" />${
+            isProduction()
+                ? `\n${GOOGLE_ANALYTICS}`
+                : `\n${STAGING_ROBOTS_META}`
+        }`;
+
+/**
+ * Every public page's `<head>` assets: the shared set plus Clarity.
+ *
+ * Both trackers are production-only. Staging serves the same pages from the
+ * same generators, and a staging pageview is indistinguishable from a real one
+ * once it reaches GA or Clarity — so the tags are dropped at generation time
+ * rather than filtered after the fact. `bun run gen:all` runs inside the Docker
+ * build, so APP_ENV must be readable at BUILD time on the staging app, not just
+ * at run time.
+ *
+ * scripts/depersonalize.ts matches these snippets in the generated HTML and
+ * reports `0x` when a rule stops matching: running it over a staging build is
+ * expected to report zero for the GA and Clarity rules.
+ */
+export const HEAD_ASSETS = `${BASE_HEAD_ASSETS}${
+    isProduction() ? `\n${CLARITY}` : ""
+}`;
 
 export const THEME_PREPAINT = `        <script>
             // Apply a saved theme override before paint to avoid a flash.

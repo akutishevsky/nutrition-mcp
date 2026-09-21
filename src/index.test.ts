@@ -191,3 +191,68 @@ describe("GET /api/patreon-posts", () => {
         }
     });
 });
+
+// dev.nutrition-mcp.com runs this same image and serves a byte-for-byte copy of
+// the public site. Nothing about that is visible in normal development, so the
+// three layers that keep it out of search results are easy to drop by accident
+// -- and the failure is silent until the staging hostname starts appearing in
+// search results next to the real one.
+describe("staging is never indexable", () => {
+    afterEach(() => {
+        delete process.env.APP_ENV;
+    });
+
+    test("production sends no robots header and the real robots.txt", async () => {
+        const header = await app.request("http://x/health");
+        expect(header.headers.get("X-Robots-Tag")).toBeNull();
+
+        const robots = await app.request("http://x/robots.txt");
+        expect(await robots.text()).toContain("Allow: /");
+    });
+
+    test("staging sends noindex on every response", async () => {
+        process.env.APP_ENV = "staging";
+        const r = await app.request("http://x/health");
+        expect(r.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+    });
+
+    test("staging serves a disallow-all robots.txt", async () => {
+        process.env.APP_ENV = "staging";
+        const r = await app.request("http://x/robots.txt");
+        const body = await r.text();
+        expect(body).toContain("Disallow: /");
+        expect(body).not.toContain("Allow: /");
+    });
+
+    // The generated pages are the build-time half: APP_ENV is read when
+    // site-partials.ts is evaluated, which happens once per `bun run gen:all`
+    // inside the Docker build. A subprocess is the only way to observe that
+    // from here, since the module is already loaded with the ambient value.
+    test("a staging build drops both analytics tags from every page", () => {
+        const probe =
+            'const m = await import("./scripts/site-partials.ts");' +
+            "console.log(JSON.stringify({" +
+            '  ga: m.HEAD_ASSETS.includes("G-1K4HRB2R8X"),' +
+            '  clarity: m.HEAD_ASSETS.includes("clarity"),' +
+            '  noindex: m.HEAD_ASSETS.includes("noindex"),' +
+            "}));";
+
+        const staging = Bun.spawnSync(["bun", "-e", probe], {
+            env: { ...process.env, APP_ENV: "staging" },
+        });
+        expect(JSON.parse(staging.stdout.toString())).toEqual({
+            ga: false,
+            clarity: false,
+            noindex: true,
+        });
+
+        const production = Bun.spawnSync(["bun", "-e", probe], {
+            env: { ...process.env, APP_ENV: "production" },
+        });
+        expect(JSON.parse(production.stdout.toString())).toEqual({
+            ga: true,
+            clarity: true,
+            noindex: false,
+        });
+    });
+});
