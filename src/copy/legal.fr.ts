@@ -40,7 +40,7 @@ export const PRIVACY_FR: LegalDoc = {
         "Comment Nutrition MCP traite tes données : ce que nous stockons, comment c'est utilisé, où ça se trouve, et comment supprimer ton compte et tout ce qu'il contient à tout moment.",
     ogDescription:
         "Comment Nutrition MCP traite tes données : ce que nous stockons, comment c'est utilisé, où ça se trouve, et comment supprimer ton compte et tout ce qu'il contient à tout moment.",
-    lastUpdated: "19 septembre 2026",
+    lastUpdated: "23 septembre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
         {
@@ -56,7 +56,8 @@ export const PRIVACY_FR: LegalDoc = {
                     "<strong>Journaux de poids corporel</strong> — poids, notes et horodatages. Ce sont des données de santé, traitées exactement comme le reste de tes journaux.",
                     "<strong>Objectifs</strong> — tes cibles quotidiennes de calories, protéines, glucides, lipides, fibres, sucre, alcool, caféine et eau, ainsi que ton poids cible.",
                     "<strong>Réglages de profil</strong> — ton fuseau horaire IANA, ton unité de poids préférée, si le suivi de l'alcool est activé et dans quel verre standard il est affiché, ainsi que si les widgets dans le chat sont activés.",
-                    "<strong>Télémétrie d'utilisation des outils</strong> — pour chaque appel d'outil MCP, quel outil a été exécuté, s'il a réussi, combien de temps il a pris, une catégorie d'erreur générale en cas d'échec, l'étendue en jours de toute plage de dates demandée, et l'identifiant de session MCP. Elle est liée à ton identifiant de compte. Elle n'inclut jamais le contenu de tes journaux.",
+                    "<strong>Télémétrie d'utilisation des outils</strong> — pour chaque appel d'outil MCP, quel outil a été exécuté, s'il a réussi, combien de temps il a pris, une catégorie d'erreur générale en cas d'échec, l'étendue en jours de toute plage de dates demandée, l'identifiant de session MCP, la révision du protocole MCP avec laquelle ton application d'IA s'est connectée, et le nom et la version sous lesquels cette application se présente (par exemple &laquo; claude-ai/1.0 &raquo;), lorsqu'elle les envoie. Elle est liée à ton identifiant de compte. Elle n'inclut jamais le contenu de tes journaux.",
+                    "<strong>Journal des requêtes du serveur</strong> — pour chaque requête adressée au serveur : la méthode, le chemin, le statut et le temps de réponse, ton adresse IP privée de sa dernière partie et, pour les requêtes MCP, la révision du protocole ainsi que le nom et la version qu'indique ton application d'IA. Il est écrit dans le journal d'exécution de notre hébergeur, n'est pas lié à ton identifiant de compte et n'est conservé que brièvement : ce journal est un tampon circulaire qui écrase les lignes les plus anciennes à mesure que du nouveau trafic arrive.",
                 ]),
                 p(
                     "<strong>L'alcool est lui aussi une donnée de santé</strong>, et d'une nature plus sensible qu'un nombre de calories, donc il fonctionne différemment de tout ce qui précède. Le suivi de l'alcool est désactivé par défaut, et nous n'enregistrons de l'alcool que lorsqu'il vient de toi — une boisson que tu enregistres, ou une colonne dans un fichier que tu importes. Rien n'est déduit en ton nom. Désactiver ce réglage fait deux choses : l'importateur en masse arrête de lire la colonne alcool dans les fichiers que tu téléverses, et partout ailleurs, l'alcool cesse d'apparaître dans les repas, objectifs, progressions et widgets que tu vois. Ce n'est pas un interrupteur de suppression. L'alcool que tu as enregistré directement reste enregistré, que le réglage soit activé ou non ; tout ce qui est déjà stocké reste dans la base de données, et tout cela continue d'apparaître dans le fichier des repas de tout export que tu effectues. Pour réellement retirer un chiffre d'alcool, supprime le repas auquel il appartient, ou supprime ton compte.",
@@ -77,7 +78,7 @@ export const PRIVACY_FR: LegalDoc = {
                 ),
                 ul([
                     "<strong>Analyse du site.</strong> Ces pages chargent Google Analytics, qui nous fournit des statistiques de trafic agrégées — pages vues, référents, géographie approximative, type d'appareil. Cela tourne sur chaque page, y compris celle-ci, et il n'y a actuellement ni bandeau de consentement ni anonymisation d'IP, donc Google reçoit ton adresse IP dans le cadre de la mesure standard. Si tu préfères ne pas être mesuré, un bloqueur de traceurs ou les protections de type &laquo; ne pas suivre &raquo; de ton navigateur l'en empêcheront. Chaque page sauf celle de connexion charge aussi Microsoft Clarity, qui enregistre la façon dont les visiteurs utilisent le site — clics, touchers, défilement, mouvements de souris — sous forme de rediffusions de sessions et de cartes de chaleur, pour que nous voyions où les pages déroutent. Clarity masque ce que tu saisis dans les formulaires, reçoit ton adresse IP et les informations de ton navigateur de la même manière, et les mêmes bloqueurs l'arrêtent.",
-                    "<strong>Télémétrie serveur.</strong> Chaque appel d'outil MCP écrit une ligne de télémétrie d'utilisation — quel outil a été exécuté, s'il a réussi, combien de temps il a pris — liée à ton identifiant de compte mais pas à ce que tu as enregistré. Nous l'utilisons pour repérer les outils lents ou défaillants. Elle n'est partagée avec personne, et elle est supprimée avec tout le reste quand tu supprimes ton compte.",
+                    "<strong>Télémétrie serveur.</strong> Chaque appel d'outil MCP écrit une ligne de télémétrie d'utilisation — quel outil a été exécuté, s'il a réussi, combien de temps il a pris, quelle révision du protocole MCP et quelle application d'IA (selon le nom et la version qu'elle indique) ont effectué l'appel — liée à ton identifiant de compte mais pas à ce que tu as enregistré. Nous l'utilisons pour repérer les outils lents ou défaillants. Elle n'est partagée avec personne, et elle est supprimée avec tout le reste quand tu supprimes ton compte.",
                 ]),
                 p(
                     "Comme le site charge des polices et des icônes depuis Google Fonts et jsDelivr, et que la page d'accueil récupère le nombre d'étoiles du projet via l'API GitHub, visiter ces pages expose ton adresse IP à ces fournisseurs.",
@@ -89,6 +90,17 @@ export const PRIVACY_FR: LegalDoc = {
             blocks: [
                 p(
                     'Toutes les données sont stockées chez <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL). L\'authentification est gérée par Supabase Auth. Le serveur est hébergé chez DigitalOcean.',
+                ),
+            ],
+        },
+        {
+            heading: "Combien de temps nous conservons les données",
+            blocks: [
+                p(
+                    "Tes journaux de repas, d'hydratation et de poids, tes objectifs, tes réglages de profil et ta télémétrie d'utilisation des outils sont conservés tant que ton compte existe — aucun n'a de date d'expiration propre ni de purge programmée. Quand tu supprimes ton compte, tout cela est supprimé immédiatement et de manière irréversible, comme décrit ci-dessous. Les seules traces restantes sont la ligne de télémétrie de la suppression elle-même, enregistrée sans ton identifiant de compte, le journal des requêtes du serveur à courte durée de vie décrit plus haut, qui ne contient jamais ton identifiant de compte, et les sauvegardes tournantes de notre fournisseur de base de données, qui expirent selon leur propre calendrier.",
+                ),
+                p(
+                    "Les archives d'export sont éphémères. Chaque nouvel export écrase le précédent, et le fichier est supprimé automatiquement dès que son lien de téléchargement de 60 minutes a expiré — un nettoyage s'exécute toutes les dix minutes, si bien qu'une archive ne reste normalement pas stockée plus d'environ 70 minutes.",
                 ),
             ],
         },
@@ -117,7 +129,7 @@ export const TERMS_FR: LegalDoc = {
         "Les conditions qui régissent l'utilisation de Nutrition MCP — le traqueur nutritionnel gratuit et open source, et le serveur MCP distant pour Claude et ChatGPT. Conditions en langage clair couvrant les comptes, l'usage acceptable, tes données et la responsabilité.",
     ogDescription:
         "Les conditions qui régissent l'utilisation de Nutrition MCP — le traqueur nutritionnel gratuit et open source, et le serveur MCP distant pour Claude et ChatGPT.",
-    lastUpdated: "19 septembre 2026",
+    lastUpdated: "23 septembre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
         {
@@ -185,10 +197,10 @@ export const TERMS_FR: LegalDoc = {
                     'Tes journaux restent les tiens. Nous les stockons et les traitons pour faire fonctionner le service pour toi, comme décrit dans notre <a href="/privacy" data-legal-link="privacy">Politique de confidentialité</a>. Tu es responsable du contenu que tu enregistres.',
                 ),
                 p(
-                    "Tu peux exporter ton <strong>journal de repas</strong> en CSV à tout moment en demandant à ton assistant IA d'exporter tes repas. L'export ne couvre que les repas — une ligne par repas avec son heure, son fuseau horaire, son type de repas, sa description, ses calories, protéines, glucides, lipides, fibres, sucre, alcool, caféine et notes. L'alcool est inclus, que le suivi de l'alcool soit activé ou non pour ton compte. L'eau, le poids, les objectifs et les réglages ne sont pas inclus dans l'export à ce jour. Le lien de téléchargement que nous te renvoyons est privé et expire au bout de 60 minutes.",
+                    "Tu peux exporter toutes tes données à tout moment en demandant à ton assistant IA de les exporter. L'export est une archive ZIP contenant des fichiers CSV pour tes repas, ton hydratation, ton poids, tes objectifs et tes réglages de profil ; l'alcool est inclus, que le suivi de l'alcool soit activé ou non. Le lien de téléchargement que nous te renvoyons est privé et expire au bout de 60 minutes.",
                 ),
                 p(
-                    "Nous enregistrons aussi une télémétrie opérationnelle de base sur la façon dont le service est utilisé : pour chaque appel d'outil, le nom de l'outil, s'il a réussi, combien de temps il a pris, une catégorie d'erreur générale en cas d'échec, la longueur de toute plage de dates demandée, et l'identifiant de session. Ces lignes sont liées à ton identifiant de compte. Elles ne contiennent pas ce que tu as enregistré — ni description d'aliment, ni calories, ni poids. Nous les utilisons pour garder le service opérationnel et voir quels outils méritent d'être améliorés, et elles sont supprimées avec tout le reste quand tu supprimes ton compte.",
+                    "Nous enregistrons aussi une télémétrie opérationnelle de base sur la façon dont le service est utilisé : pour chaque appel d'outil, le nom de l'outil, s'il a réussi, combien de temps il a pris, une catégorie d'erreur générale en cas d'échec, la longueur de toute plage de dates demandée, l'identifiant de session, la révision du protocole MCP avec laquelle ton application d'IA s'est connectée, et le nom et la version sous lesquels cette application se présente. Ces lignes sont liées à ton identifiant de compte. Elles ne contiennent pas ce que tu as enregistré — ni description d'aliment, ni calories, ni poids. Nous les utilisons pour garder le service opérationnel et voir quels outils méritent d'être améliorés, et elles sont supprimées avec tout le reste quand tu supprimes ton compte.",
                 ),
                 p(
                     "Tu peux supprimer ton compte et toutes les données associées à tout moment en demandant à ton assistant IA de <strong>supprimer ton compte</strong> pendant qu'il est connecté — cette action est immédiate et irréversible.",

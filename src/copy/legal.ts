@@ -61,7 +61,7 @@ const PRIVACY_EN: LegalDoc = {
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
     ogDescription:
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
-    lastUpdated: "September 19, 2026",
+    lastUpdated: "September 23, 2026",
     backToHome: "Back to home",
     sections: [
         {
@@ -77,7 +77,8 @@ const PRIVACY_EN: LegalDoc = {
                     "<strong>Body weight logs</strong> — weight, notes, and timestamps. This is health data, and it is treated exactly like the rest of your logs.",
                     "<strong>Goals</strong> — your daily calorie, protein, carb, fat, fiber, sugar, alcohol, caffeine, and water targets, and your target weight.",
                     "<strong>Profile settings</strong> — your IANA timezone, preferred weight unit, whether alcohol tracking is switched on and which standard drink it is shown in, and whether in-chat widgets are enabled.",
-                    "<strong>Tool-usage telemetry</strong> — for each MCP tool call, which tool ran, whether it succeeded, how long it took, a coarse error category when it failed, the span in days of any date range you asked for, and the MCP session id. It is linked to your account id. It never includes the content of your logs.",
+                    "<strong>Tool-usage telemetry</strong> — for each MCP tool call, which tool ran, whether it succeeded, how long it took, a coarse error category when it failed, the span in days of any date range you asked for, the MCP session id, which revision of the MCP protocol your AI app connected with, and the name and version that app reports for itself (for example &ldquo;claude-ai/1.0&rdquo;) when it sends them. It is linked to your account id. It never includes the content of your logs.",
+                    "<strong>Server request log</strong> — for each request to the server: the method, path, response status and response time, your IP address with its last part removed, and for MCP requests the protocol revision and the name and version your AI app reports. It is written to our hosting provider's runtime log, is not linked to your account id, and is kept only briefly: that log is a rolling buffer that overwrites older lines as new traffic arrives.",
                 ]),
                 p(
                     "<strong>Alcohol is health data too</strong>, and of a more sensitive kind than a calorie count, so it works differently from everything above. Alcohol tracking is off by default, and we only ever record alcohol when it comes from you — a drink you log, or a column in a file you import. Nothing infers it on your behalf. Switching the setting off does two things: the bulk importer stops reading the alcohol column out of files you upload, and everything else stops showing alcohol in the meals, goals, progress and widgets you see. It is not a delete switch. Alcohol you logged directly is still recorded whether the setting is on or off, anything already stored stays in the database, and all of it still appears in the meals file of any export you take. To actually remove an alcohol figure, delete the meal it belongs to, or delete your account.",
@@ -98,7 +99,7 @@ const PRIVACY_EN: LegalDoc = {
                 ),
                 ul([
                     "<strong>Website analytics.</strong> These pages load Google Analytics, which gives us aggregate traffic statistics — page views, referrers, rough geography, device type. It runs on every page, including this one, and there is currently no consent banner and no IP anonymization, so Google receives your IP address as part of the standard measurement. If you would rather not be measured, a tracker blocker or your browser's &ldquo;do not track&rdquo;-style protections will stop it. Every page except the sign-in page also loads Microsoft Clarity, which records how visitors use the site — clicks, taps, scrolling, mouse movement — as session replays and heatmaps, so we can see where the pages confuse people. Clarity masks what you type into forms, receives your IP address and browser details the same way, and is stopped by the same blockers.",
-                    "<strong>Server telemetry.</strong> Every MCP tool call writes one row of usage telemetry — which tool ran, whether it succeeded, how long it took — linked to your account id but not to what you logged. We use it to find slow and broken tools. It is not shared with anyone, and it is deleted along with everything else when you delete your account.",
+                    "<strong>Server telemetry.</strong> Every MCP tool call writes one row of usage telemetry — which tool ran, whether it succeeded, how long it took, which MCP protocol revision and which AI app (by the name and version it reports) made the call — linked to your account id but not to what you logged. We use it to find slow and broken tools. It is not shared with anyone, and it is deleted along with everything else when you delete your account.",
                 ]),
                 p(
                     "Because the site loads fonts and icons from Google Fonts and jsDelivr, and the home page fetches the project's star count from the GitHub API, visiting these pages exposes your IP address to those providers.",
@@ -110,6 +111,17 @@ const PRIVACY_EN: LegalDoc = {
             blocks: [
                 p(
                     'All data is stored in <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL). Authentication is handled by Supabase Auth. The server is hosted on DigitalOcean.',
+                ),
+            ],
+        },
+        {
+            heading: "How long we keep data",
+            blocks: [
+                p(
+                    "Your meal, water and weight logs, goals, profile settings, and tool-usage telemetry are kept for as long as your account exists — none of them has a separate expiry date or a scheduled purge. When you delete your account, all of it is deleted immediately and irreversibly, as described below. The only traces left are the telemetry row for the deletion itself, which is recorded without your account id, the short-lived server request log described above, which never carries your account id, and our database provider's rolling backups, which age out on their own schedule.",
+                ),
+                p(
+                    "Export archives are short-lived. Each new export overwrites the previous one, and the file is deleted automatically once its 60-minute download link has expired — a cleanup runs every ten minutes, so an archive normally stays in storage for no more than about 70 minutes.",
                 ),
             ],
         },
@@ -138,7 +150,7 @@ const TERMS_EN: LegalDoc = {
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT. Plain-language terms covering accounts, acceptable use, your data, and liability.",
     ogDescription:
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
-    lastUpdated: "September 19, 2026",
+    lastUpdated: "September 23, 2026",
     backToHome: "Back to home",
     sections: [
         {
@@ -206,10 +218,10 @@ const TERMS_EN: LegalDoc = {
                     'Your logs remain yours. We store and process them to operate the service for you, as described in our <a href="/privacy" data-legal-link="privacy">Privacy Policy</a>. You are responsible for the content you log.',
                 ),
                 p(
-                    "You can export your <strong>meal log</strong> to CSV at any time by asking your AI assistant to export your meals. The export covers meals only — one row per meal with its time, timezone, meal type, description, calories, protein, carbs, fat, fiber, sugar, alcohol, caffeine, and notes. Alcohol is included whether or not alcohol tracking is switched on for your account. Water, weight, goals, and settings are not included in the export today. The download link we hand back is private and expires after 60 minutes.",
+                    "You can export all of your data at any time by asking your AI assistant to export it. The export is a ZIP archive containing CSV files for your meals, water, weight, goals and profile settings; alcohol is included whether or not alcohol tracking is switched on. The download link we hand back is private and expires after 60 minutes.",
                 ),
                 p(
-                    "We also record basic operational telemetry about how the service is used: for every tool call, the tool's name, whether it succeeded, how long it took, a coarse error category when it fails, the length of any date range you asked for, and the session id. These rows are linked to your account id. They do not contain what you logged — no food descriptions, no calories, no weights. We use them to keep the service working and to see which tools are worth improving, and they are deleted along with everything else when you delete your account.",
+                    "We also record basic operational telemetry about how the service is used: for every tool call, the tool's name, whether it succeeded, how long it took, a coarse error category when it fails, the length of any date range you asked for, the session id, the MCP protocol revision your AI app connected with, and the name and version that app reports for itself. These rows are linked to your account id. They do not contain what you logged — no food descriptions, no calories, no weights. We use them to keep the service working and to see which tools are worth improving, and they are deleted along with everything else when you delete your account.",
                 ),
                 p(
                     "You can delete your account and all associated data at any time by asking your AI assistant to <strong>delete your account</strong> while connected — that action is immediate and irreversible.",
@@ -319,7 +331,7 @@ const PRIVACY_DE: LegalDoc = {
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wie es genutzt wird, wo es liegt und wie du dein Konto samt allem darin jederzeit löschen kannst.",
     ogDescription:
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wie es genutzt wird, wo es liegt und wie du dein Konto samt allem darin jederzeit löschen kannst.",
-    lastUpdated: "19. September 2026",
+    lastUpdated: "23. September 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -335,7 +347,8 @@ const PRIVACY_DE: LegalDoc = {
                     "<strong>Körpergewichts-Einträge</strong> — Gewicht, Notizen und Zeitstempel. Das sind Gesundheitsdaten und werden genauso behandelt wie alle anderen Einträge.",
                     "<strong>Ziele</strong> — deine täglichen Ziele für Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser sowie dein Zielgewicht.",
                     "<strong>Profileinstellungen</strong> — deine IANA-Zeitzone, bevorzugte Gewichtseinheit, ob die Alkohol-Erfassung aktiviert ist und in welchem Standardgetränk sie angezeigt wird, sowie ob In-Chat-Widgets aktiviert sind.",
-                    "<strong>Nutzungs-Telemetrie der Werkzeuge</strong> — für jeden MCP-Tool-Aufruf, welches Werkzeug ausgeführt wurde, ob es erfolgreich war, wie lange es dauerte, eine grobe Fehlerkategorie bei einem Fehlschlag, die Länge in Tagen eines angefragten Datumsbereichs sowie die MCP-Sitzungs-ID. Sie ist mit deiner Konto-ID verknüpft und enthält niemals den Inhalt deiner Einträge.",
+                    "<strong>Nutzungs-Telemetrie der Werkzeuge</strong> — für jeden MCP-Tool-Aufruf, welches Werkzeug ausgeführt wurde, ob es erfolgreich war, wie lange es dauerte, eine grobe Fehlerkategorie bei einem Fehlschlag, die Länge in Tagen eines angefragten Datumsbereichs, die MCP-Sitzungs-ID, die Revision des MCP-Protokolls, mit der sich deine KI-App verbunden hat, sowie Namen und Version, die diese App für sich selbst angibt (zum Beispiel &bdquo;claude-ai/1.0&ldquo;), sofern sie diese sendet. Sie ist mit deiner Konto-ID verknüpft und enthält niemals den Inhalt deiner Einträge.",
+                    "<strong>Server-Anfrageprotokoll</strong> — für jede Anfrage an den Server: Methode, Pfad, Antwortstatus und Antwortzeit, deine IP-Adresse ohne ihren letzten Teil sowie bei MCP-Anfragen die Protokollrevision und Name und Version, die deine KI-App angibt. Es wird in das Laufzeitprotokoll unseres Hosting-Anbieters geschrieben, ist nicht mit deiner Konto-ID verknüpft und wird nur kurz aufbewahrt: Dieses Protokoll ist ein rollierender Puffer, der ältere Zeilen überschreibt, sobald neuer Traffic eintrifft.",
                 ]),
                 p(
                     "<strong>Auch Alkohol ist ein Gesundheitsdatum</strong>, und zwar ein sensibleres als eine Kalorienzahl, daher funktioniert es anders als alles oben Genannte. Die Alkohol-Erfassung ist standardmäßig deaktiviert, und wir erfassen Alkohol ausschließlich, wenn er von dir stammt — ein von dir eingetragenes Getränk oder eine Spalte in einer importierten Datei. Nichts wird stellvertretend für dich abgeleitet. Das Deaktivieren der Einstellung bewirkt zwei Dinge: Der Massenimport liest die Alkoholspalte in hochgeladenen Dateien nicht mehr aus, und überall sonst wird Alkohol in den Mahlzeiten, Zielen, Fortschritten und Widgets, die du siehst, nicht mehr angezeigt. Es ist kein Löschschalter. Direkt von dir erfasster Alkohol bleibt unabhängig vom Zustand dieser Einstellung gespeichert, bereits Gespeichertes bleibt in der Datenbank, und all das erscheint weiterhin in der Mahlzeiten-Datei jedes Exports, den du erstellst. Um einen Alkoholwert tatsächlich zu entfernen, lösche die zugehörige Mahlzeit oder dein Konto.",
@@ -356,7 +369,7 @@ const PRIVACY_DE: LegalDoc = {
                 ),
                 ul([
                     "<strong>Website-Analyse.</strong> Diese Seiten laden Google Analytics, das uns aggregierte Traffic-Statistiken liefert — Seitenaufrufe, Referrer, grobe Geografie, Gerätetyp. Es läuft auf jeder Seite, auch dieser hier, und derzeit gibt es weder ein Consent-Banner noch eine IP-Anonymisierung, sodass Google im Rahmen der Standardmessung deine IP-Adresse erhält. Möchtest du nicht erfasst werden, verhindert das ein Tracker-Blocker oder die &bdquo;Do-Not-Track&ldquo;-Einstellungen deines Browsers. Jede Seite außer der Anmeldeseite lädt außerdem Microsoft Clarity, das aufzeichnet, wie Besucher die Website nutzen — Klicks, Tippen, Scrollen, Mausbewegungen — als Sitzungsaufzeichnungen und Heatmaps, damit wir sehen, wo die Seiten verwirren. Clarity maskiert, was du in Formulare eingibst, erhält deine IP-Adresse und Browserdaten auf dieselbe Weise und wird von denselben Blockern gestoppt.",
-                    "<strong>Server-Telemetrie.</strong> Jeder MCP-Tool-Aufruf schreibt eine Zeile Nutzungs-Telemetrie — welches Werkzeug ausgeführt wurde, ob es erfolgreich war, wie lange es dauerte — verknüpft mit deiner Konto-ID, aber nicht mit dem, was du eingetragen hast. Wir nutzen sie, um langsame und defekte Werkzeuge zu finden. Sie wird mit niemandem geteilt und zusammen mit allem anderen gelöscht, wenn du dein Konto löschst.",
+                    "<strong>Server-Telemetrie.</strong> Jeder MCP-Tool-Aufruf schreibt eine Zeile Nutzungs-Telemetrie — welches Werkzeug ausgeführt wurde, ob es erfolgreich war, wie lange es dauerte, welche MCP-Protokollrevision und welche KI-App (mit dem Namen und der Version, die sie angibt) den Aufruf gemacht hat — verknüpft mit deiner Konto-ID, aber nicht mit dem, was du eingetragen hast. Wir nutzen sie, um langsame und defekte Werkzeuge zu finden. Sie wird mit niemandem geteilt und zusammen mit allem anderen gelöscht, wenn du dein Konto löschst.",
                 ]),
                 p(
                     "Da die Seite Schriftarten und Icons von Google Fonts und jsDelivr lädt und die Startseite die Star-Anzahl des Projekts über die GitHub-API abruft, wird beim Besuch dieser Seiten deine IP-Adresse gegenüber diesen Anbietern offengelegt.",
@@ -368,6 +381,17 @@ const PRIVACY_DE: LegalDoc = {
             blocks: [
                 p(
                     'Alle Daten werden bei <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) gespeichert. Die Authentifizierung erfolgt über Supabase Auth. Der Server wird bei DigitalOcean gehostet.',
+                ),
+            ],
+        },
+        {
+            heading: "Wie lange wir Daten aufbewahren",
+            blocks: [
+                p(
+                    "Deine Mahlzeiten-, Wasser- und Gewichts-Einträge, Ziele, Profileinstellungen und deine Nutzungs-Telemetrie werden so lange aufbewahrt, wie dein Konto besteht — für keine davon gibt es ein separates Ablaufdatum oder eine geplante Bereinigung. Wenn du dein Konto löschst, wird all das sofort und unumkehrbar gelöscht, wie unten beschrieben. Als einzige Spuren bleiben die Telemetrie-Zeile für die Löschung selbst, die ohne deine Konto-ID erfasst wird, das oben beschriebene kurzlebige Server-Anfrageprotokoll, das nie deine Konto-ID enthält, sowie die rollierenden Backups unseres Datenbankanbieters, die nach dessen eigenem Zeitplan auslaufen.",
+                ),
+                p(
+                    "Exportarchive sind kurzlebig. Jeder neue Export überschreibt den vorherigen, und die Datei wird automatisch gelöscht, sobald ihr 60-Minuten-Download-Link abgelaufen ist — eine Bereinigung läuft alle zehn Minuten, sodass ein Archiv normalerweise nicht länger als etwa 70 Minuten gespeichert bleibt.",
                 ),
             ],
         },
@@ -396,7 +420,7 @@ const TERMS_DE: LegalDoc = {
         "Die Bedingungen für die Nutzung von Nutrition MCP — dem kostenlosen, quelloffenen Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT. Verständliche Bedingungen zu Konten, zulässiger Nutzung, deinen Daten und Haftung.",
     ogDescription:
         "Die Bedingungen für die Nutzung von Nutrition MCP — dem kostenlosen, quelloffenen Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT.",
-    lastUpdated: "19. September 2026",
+    lastUpdated: "23. September 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -466,10 +490,10 @@ const TERMS_DE: LegalDoc = {
                     'Deine Einträge bleiben deine. Wir speichern und verarbeiten sie, um den Dienst für dich zu betreiben, wie in unserer <a href="/privacy" data-legal-link="privacy">Datenschutzerklärung</a> beschrieben. Du bist für die Inhalte verantwortlich, die du einträgst.',
                 ),
                 p(
-                    "Du kannst dein <strong>Mahlzeitenprotokoll</strong> jederzeit als CSV exportieren, indem du deinen KI-Assistenten bittest, deine Mahlzeiten zu exportieren. Der Export umfasst ausschließlich Mahlzeiten — eine Zeile pro Mahlzeit mit Uhrzeit, Zeitzone, Mahlzeitentyp, Beschreibung, Kalorien, Protein, Kohlenhydraten, Fett, Ballaststoffen, Zucker, Alkohol, Koffein und Notizen. Alkohol ist enthalten, unabhängig davon, ob die Alkohol-Erfassung für dein Konto aktiviert ist. Wasser, Gewicht, Ziele und Einstellungen sind im heutigen Export nicht enthalten. Der von uns zurückgegebene Download-Link ist privat und läuft nach 60 Minuten ab.",
+                    "Du kannst jederzeit alle deine Daten exportieren, indem du deinen KI-Assistenten bittest, sie zu exportieren. Der Export ist ein ZIP-Archiv mit CSV-Dateien für deine Mahlzeiten, Wasser, Gewicht, Ziele und Profileinstellungen; Alkohol ist enthalten, unabhängig davon, ob die Alkohol-Erfassung aktiviert ist. Der von uns zurückgegebene Download-Link ist privat und läuft nach 60 Minuten ab.",
                 ),
                 p(
-                    "Außerdem erfassen wir grundlegende betriebliche Telemetrie zur Nutzung des Dienstes: für jeden Tool-Aufruf den Namen des Werkzeugs, ob er erfolgreich war, wie lange er dauerte, eine grobe Fehlerkategorie bei einem Fehlschlag, die Länge eines angefragten Datumsbereichs sowie die Sitzungs-ID. Diese Zeilen sind mit deiner Konto-ID verknüpft. Sie enthalten nicht, was du eingetragen hast — keine Lebensmittelbeschreibungen, keine Kalorien, keine Gewichte. Wir nutzen sie, um den Dienst am Laufen zu halten und zu erkennen, welche Werkzeuge eine Verbesserung wert sind; sie werden zusammen mit allem anderen gelöscht, wenn du dein Konto löschst.",
+                    "Außerdem erfassen wir grundlegende betriebliche Telemetrie zur Nutzung des Dienstes: für jeden Tool-Aufruf den Namen des Werkzeugs, ob er erfolgreich war, wie lange er dauerte, eine grobe Fehlerkategorie bei einem Fehlschlag, die Länge eines angefragten Datumsbereichs, die Sitzungs-ID, die MCP-Protokollrevision, mit der sich deine KI-App verbunden hat, sowie Namen und Version, die diese App für sich selbst angibt. Diese Zeilen sind mit deiner Konto-ID verknüpft. Sie enthalten nicht, was du eingetragen hast — keine Lebensmittelbeschreibungen, keine Kalorien, keine Gewichte. Wir nutzen sie, um den Dienst am Laufen zu halten und zu erkennen, welche Werkzeuge eine Verbesserung wert sind; sie werden zusammen mit allem anderen gelöscht, wenn du dein Konto löschst.",
                 ),
                 p(
                     "Du kannst dein Konto und alle zugehörigen Daten jederzeit löschen, indem du deinen KI-Assistenten bittest, während er verbunden ist, <strong>dein Konto zu löschen</strong> — diese Aktion erfolgt sofort und ist unumkehrbar.",

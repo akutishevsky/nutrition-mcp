@@ -15,7 +15,7 @@ export const PRIVACY_NL: LegalDoc = {
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
     ogDescription:
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
-    lastUpdated: "19 september 2026",
+    lastUpdated: "23 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -37,7 +37,8 @@ export const PRIVACY_NL: LegalDoc = {
                         "<strong>Lichaamsgewichtregistraties</strong> — gewicht, notities en tijdstempels. Dit zijn gezondheidsgegevens en ze worden precies zo behandeld als de rest van je registraties.",
                         "<strong>Doelen</strong> — je dagelijkse doelen voor calorieën, eiwit, koolhydraten, vet, vezels, suiker, alcohol, cafeïne en water, en je streefgewicht.",
                         "<strong>Profielinstellingen</strong> — je IANA-tijdzone, voorkeurseenheid voor gewicht, of alcoholregistratie is ingeschakeld en in welk standaardglas het wordt getoond, en of widgets in de chat zijn ingeschakeld.",
-                        "<strong>Gebruikstelemetrie van tools</strong> — voor elke aanroep van een MCP-tool: welke tool het was, of de aanroep slaagde, hoe lang die duurde, een grove foutcategorie bij een mislukking, de omvang in dagen van een opgevraagde datumreeks, en de MCP-sessie-ID. Dit is gekoppeld aan je account-ID en bevat nooit de inhoud van je registraties.",
+                        "<strong>Gebruikstelemetrie van tools</strong> — voor elke aanroep van een MCP-tool: welke tool het was, of de aanroep slaagde, hoe lang die duurde, een grove foutcategorie bij een mislukking, de omvang in dagen van een opgevraagde datumreeks, de MCP-sessie-ID, met welke revisie van het MCP-protocol je AI-app verbinding maakte, en de naam en versie waarmee die app zichzelf aanduidt (bijvoorbeeld &bdquo;claude-ai/1.0&rdquo;), als die ze meestuurt. Dit is gekoppeld aan je account-ID en bevat nooit de inhoud van je registraties.",
+                        "<strong>Serververzoeklog</strong> — voor elk verzoek aan de server: de methode, het pad, de antwoordstatus en de antwoordtijd, je IP-adres zonder het laatste deel, en bij MCP-verzoeken de protocolrevisie en de naam en versie die je AI-app opgeeft. Dit wordt weggeschreven naar het runtimelog van onze hostingprovider, is niet gekoppeld aan je account-ID en wordt maar kort bewaard: dat log is een rollende buffer die oudere regels overschrijft zodra er nieuw verkeer binnenkomt.",
                     ],
                 },
                 {
@@ -65,7 +66,7 @@ export const PRIVACY_NL: LegalDoc = {
                     type: "ul",
                     items: [
                         "<strong>Website-analyse.</strong> Deze pagina's laden Google Analytics, dat ons geaggregeerde verkeersstatistieken geeft — paginaweergaven, verwijzers, ruwe geografie, apparaattype. Het draait op elke pagina, ook deze, en er is momenteel geen toestemmingsbanner en geen IP-anonimisering, waardoor Google als onderdeel van de standaardmeting je IP-adres ontvangt. Wil je liever niet gemeten worden, dan houdt een tracker-blocker of de &bdquo;Do-Not-Track&rdquo;-instellingen van je browser dit tegen. Elke pagina behalve de inlogpagina laadt ook Microsoft Clarity, dat vastlegt hoe bezoekers de site gebruiken — klikken, tikken, scrollen, muisbewegingen — als sessie-opnames en heatmaps, zodat we zien waar de pagina's verwarren. Clarity maskeert wat je in formulieren typt, ontvangt je IP-adres en browsergegevens op dezelfde manier en wordt door dezelfde blockers tegengehouden.",
-                        "<strong>Servertelemetrie.</strong> Elke MCP-tool-aanroep schrijft één regel gebruikstelemetrie — welke tool het was, of de aanroep slaagde, hoe lang die duurde — gekoppeld aan je account-ID maar niet aan wat je hebt gelogd. We gebruiken dit om trage en kapotte tools op te sporen. Het wordt met niemand gedeeld en wordt samen met al het andere verwijderd zodra je je account verwijdert.",
+                        "<strong>Servertelemetrie.</strong> Elke MCP-tool-aanroep schrijft één regel gebruikstelemetrie — welke tool het was, of de aanroep slaagde, hoe lang die duurde, welke MCP-protocolrevisie en welke AI-app (met de naam en versie die die opgeeft) de aanroep deden — gekoppeld aan je account-ID maar niet aan wat je hebt gelogd. We gebruiken dit om trage en kapotte tools op te sporen. Het wordt met niemand gedeeld en wordt samen met al het andere verwijderd zodra je je account verwijdert.",
                     ],
                 },
                 {
@@ -80,6 +81,19 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "p",
                     html: 'Alle gegevens worden opgeslagen bij <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL). Authenticatie wordt afgehandeld door Supabase Auth. De server wordt gehost bij DigitalOcean.',
+                },
+            ],
+        },
+        {
+            heading: "Hoe lang we gegevens bewaren",
+            blocks: [
+                {
+                    type: "p",
+                    html: "Je maaltijd-, water- en gewichtsregistraties, doelen, profielinstellingen en gebruikstelemetrie worden bewaard zolang je account bestaat — geen daarvan heeft een eigen vervaldatum of een geplande opschoning. Wanneer je je account verwijdert, wordt dit alles direct en onomkeerbaar verwijderd, zoals hieronder beschreven. Het enige wat overblijft zijn de telemetrieregel van de verwijdering zelf, die zonder je account-ID wordt vastgelegd, het hierboven beschreven kortlevende serververzoeklog, dat nooit je account-ID bevat, en de rollende back-ups van onze databaseprovider, die volgens hun eigen schema verlopen.",
+                },
+                {
+                    type: "p",
+                    html: "Exportarchieven zijn van korte duur. Elke nieuwe export overschrijft de vorige, en het bestand wordt automatisch verwijderd zodra de downloadlink van 60 minuten is verlopen — er draait elke tien minuten een opschoning, dus een archief blijft normaal gesproken niet langer dan ongeveer 70 minuten opgeslagen.",
                 },
             ],
         },
@@ -110,7 +124,7 @@ export const TERMS_NL: LegalDoc = {
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT. Begrijpelijke voorwaarden over accounts, toegestaan gebruik, je gegevens en aansprakelijkheid.",
     ogDescription:
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT.",
-    lastUpdated: "19 september 2026",
+    lastUpdated: "23 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -194,11 +208,11 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Je kunt je <strong>maaltijdgeschiedenis</strong> op elk moment exporteren naar CSV door je AI-assistent te vragen je maaltijden te exporteren. De export omvat alleen maaltijden — één regel per maaltijd met tijd, tijdzone, maaltijdtype, omschrijving, calorieën, eiwit, koolhydraten, vet, vezels, suiker, alcohol, cafeïne en notities. Alcohol wordt meegenomen ongeacht of alcoholregistratie voor je account is ingeschakeld. Water, gewicht, doelen en instellingen zitten vandaag niet in de export. De downloadlink die we teruggeven is privé en verloopt na 60 minuten.",
+                    html: "Je kunt op elk moment al je gegevens exporteren door je AI-assistent te vragen ze te exporteren. De export is een ZIP-archief met CSV-bestanden voor je maaltijden, water, gewicht, doelen en profielinstellingen; alcohol wordt meegenomen ongeacht of alcoholregistratie is ingeschakeld. De downloadlink die we teruggeven is privé en verloopt na 60 minuten.",
                 },
                 {
                     type: "p",
-                    html: "We registreren ook basale operationele telemetrie over hoe de dienst wordt gebruikt: voor elke tool-aanroep de naam van de tool, of de aanroep slaagde, hoe lang die duurde, een grove foutcategorie bij een mislukking, de lengte van een opgevraagde datumreeks, en de sessie-ID. Deze regels zijn gekoppeld aan je account-ID. Ze bevatten niet wat je hebt gelogd — geen voedselomschrijvingen, geen calorieën, geen gewichten. We gebruiken ze om de dienst draaiende te houden en te zien welke tools het waard zijn om te verbeteren, en ze worden samen met al het andere verwijderd zodra je je account verwijdert.",
+                    html: "We registreren ook basale operationele telemetrie over hoe de dienst wordt gebruikt: voor elke tool-aanroep de naam van de tool, of de aanroep slaagde, hoe lang die duurde, een grove foutcategorie bij een mislukking, de lengte van een opgevraagde datumreeks, de sessie-ID, met welke revisie van het MCP-protocol je AI-app verbinding maakte, en de naam en versie waarmee die app zichzelf aanduidt. Deze regels zijn gekoppeld aan je account-ID. Ze bevatten niet wat je hebt gelogd — geen voedselomschrijvingen, geen calorieën, geen gewichten. We gebruiken ze om de dienst draaiende te houden en te zien welke tools het waard zijn om te verbeteren, en ze worden samen met al het andere verwijderd zodra je je account verwijdert.",
                 },
                 {
                     type: "p",
