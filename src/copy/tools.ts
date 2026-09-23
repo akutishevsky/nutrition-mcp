@@ -717,10 +717,11 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "Pull all meals between two dates in one go — handy for reviewing a week or a month.",
+                "Pull all meals between two dates in one go — handy for reviewing a week or a month. One call covers up to 31 days; for longer stretches, trends and summaries give you daily totals.",
             params: {
                 start_date: "Start date (YYYY-MM-DD)",
-                end_date: "End date (YYYY-MM-DD)",
+                end_date:
+                    "End date (YYYY-MM-DD), up to 31 days including the start",
             },
             example: "List my meals from Monday to Friday",
         },

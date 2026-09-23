@@ -195,10 +195,11 @@ export const TOOLS_ES: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "Obtén todas las comidas entre dos fechas de una sola vez: útil para revisar una semana o un mes.",
+                "Obtén todas las comidas entre dos fechas de una sola vez: útil para revisar una semana o un mes. Una llamada cubre hasta 31 días; para periodos más largos, las tendencias y los resúmenes te dan totales diarios.",
             params: {
                 start_date: "Fecha de inicio (AAAA-MM-DD)",
-                end_date: "Fecha de fin (AAAA-MM-DD)",
+                end_date:
+                    "Fecha de fin (AAAA-MM-DD), como máximo 31 días contando el día de inicio",
             },
             example: "Lista mis comidas de lunes a viernes",
         },

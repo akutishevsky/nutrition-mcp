@@ -31,6 +31,8 @@ import {
     MAX_GOAL_MG,
     gateAlcohol,
     handleMcp,
+    MEALS_RANGE_MAX_DAYS,
+    WEIGHT_RANGE_MAX_DAYS,
 } from "./mcp.js";
 import {
     Client,
@@ -1468,6 +1470,8 @@ mock.module("./supabase.js", () => ({
     // query under test.
     getMealsInRange: async () => db.meals,
     getWaterInRange: async () => db.water,
+    // get_weight_by_date_range's reader; its range guard is what is under test.
+    getWeightInRange: async () => [],
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
         db.inserted.push(input);
         const saved = storedMeal(input);
@@ -2727,6 +2731,110 @@ describe("delete tools distinguish deleted from not-found", () => {
             });
         });
     }
+});
+
+// ---------- range listings are bounded ----------
+//
+// get_meals_by_date_range returns every meal as full text from an unpaged read,
+// so an unbounded range dumped the whole diary and could truncate silently at
+// PostgREST's row cap. The guard runs inside withAnalytics, so each rejection
+// is an isError result with an analytics row, not a schema-level refusal.
+describe("date-range listings reject bad and oversized ranges", () => {
+    const rowsFor = (tool: string) =>
+        db.analyticsRows.filter((r) => r.tool_name === tool);
+
+    test("the meal cap is a month", () => {
+        expect(MEALS_RANGE_MAX_DAYS).toBe(31);
+    });
+
+    test("a range one day over the cap is refused with the way forward", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_by_date_range", {
+                start_date: "2026-01-01",
+                end_date: "2026-02-01",
+            });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("spans 32 days");
+            expect(text).toContain(`at most ${MEALS_RANGE_MAX_DAYS} days`);
+            expect(text).toContain("get_trends");
+            // Not get_nutrition_summary: it reads unpaged and would truncate a
+            // long range at PostgREST's row cap (#66).
+            expect(text).not.toContain("get_nutrition_summary");
+            expect(text).toContain("monthly calls");
+        });
+        const rows = rowsFor("get_meals_by_date_range");
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.success).toBe(false);
+        expect(rows[0]!.error_category).toBe("date_range_too_long");
+    });
+
+    test("exactly 31 days inclusive is accepted", async () => {
+        db.meals = [meal({ logged_at: "2026-01-15T12:00:00.000Z" })];
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_by_date_range", {
+                start_date: "2026-01-01",
+                end_date: "2026-01-31",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("## 2026-01-15 (1 meal)");
+        });
+        expect(rowsFor("get_meals_by_date_range")[0]!.success).toBe(true);
+    });
+
+    test("a reversed range is refused", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_by_date_range", {
+                start_date: "2026-02-01",
+                end_date: "2026-01-01",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("is after end_date");
+        });
+        expect(rowsFor("get_meals_by_date_range")[0]!.error_category).toBe(
+            "invalid_date_format",
+        );
+    });
+
+    test.each(["2026-02-30", "2026-1-5", "yesterday", "2026-01-01T00:00"])(
+        "a non-calendar date %p is refused",
+        async (bad) => {
+            await withTools(null, async (call) => {
+                const r = await call("get_meals_by_date_range", {
+                    start_date: "2026-01-01",
+                    end_date: bad,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    `Invalid end_date "${bad}": not a real calendar date`,
+                );
+            });
+            expect(rowsFor("get_meals_by_date_range")[0]!.error_category).toBe(
+                "invalid_date_format",
+            );
+        },
+    );
+
+    test("get_weight_by_date_range has the same guard with a year's cap", async () => {
+        await withTools(null, async (call) => {
+            const ok = await call("get_weight_by_date_range", {
+                start_date: "2024-01-01",
+                end_date: "2024-12-31",
+            });
+            expect(ok.isError).toBeFalsy();
+            expect(textOf(ok)).toContain("No weight found");
+
+            const over = await call("get_weight_by_date_range", {
+                start_date: "2024-01-01",
+                end_date: "2025-01-01",
+            });
+            expect(over.isError).toBe(true);
+            expect(textOf(over)).toContain(
+                `at most ${WEIGHT_RANGE_MAX_DAYS} days`,
+            );
+            expect(textOf(over)).toContain("get_weight_trends");
+        });
+    });
 });
 
 // ---------- delete_account leaves no trace of the deleted user ----------

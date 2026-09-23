@@ -201,10 +201,10 @@ export const TOOLS_JA: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "2つの日付の間のすべての食事を一度に取得します — 1週間や1か月分をまとめて振り返るのに便利です。",
+                "2つの日付の間のすべての食事を一度に取得します — 1週間や1か月分をまとめて振り返るのに便利です。1回で最大31日分まで取得できます。それより長い期間は、トレンドやサマリーで1日ごとの合計を確認できます。",
             params: {
                 start_date: "開始日（YYYY-MM-DD）",
-                end_date: "終了日（YYYY-MM-DD）",
+                end_date: "終了日（YYYY-MM-DD）、開始日を含めて最大31日間",
             },
             example: "月曜から金曜までの食事を一覧にして",
         },

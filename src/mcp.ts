@@ -1217,6 +1217,72 @@ function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
     );
 }
 
+// Longest window, in calendar days inclusive, get_meals_by_date_range will
+// list. Every meal comes back as full text, so an open range dumped the whole
+// diary into one response, and the unpaged getMealsInRange read would also
+// hit PostgREST's 1000-row cap and truncate silently (the #66 failure mode)
+// long before a year was up. A month covers any "what did I eat" review;
+// longer periods belong to the aggregating tools the error names.
+export const MEALS_RANGE_MAX_DAYS = 31;
+
+// The same guard for get_weight_by_date_range. Weight rows are one short line
+// each, so the bound is a year (366 so a leap year fits) rather than a month:
+// it only has to keep a daily weigh-in history well clear of the 1000-row cap
+// and match get_weight_trends' own 365-day ceiling.
+export const WEIGHT_RANGE_MAX_DAYS = 366;
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+// A YYYY-MM-DD string naming a date that exists. The Date.UTC round trip is
+// what rejects "2026-02-30": Date rolls it over to March 2nd instead of
+// failing, so the parts are compared back rather than trusting the parse.
+function isCalendarDate(value: string): boolean {
+    const m = ISO_DATE.exec(value);
+    if (!m) return false;
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    const date = new Date(Date.UTC(y, mo - 1, d));
+    return (
+        date.getUTCFullYear() === y &&
+        date.getUTCMonth() === mo - 1 &&
+        date.getUTCDate() === d
+    );
+}
+
+// Validate a start_date/end_date pair for a range-listing tool, throwing the
+// caller-facing message. Throwing (rather than returning text) is what routes
+// the rejection through withAnalytics as a failure with an error category,
+// the same as every other bad-argument path here. The wording is matched in
+// categorizeError (src/analytics.ts): the over-limit message deliberately
+// avoids "limit", which tier 3 would otherwise read as rate_limited.
+function assertDateRange(
+    start: string,
+    end: string,
+    maxDays: number,
+    longerHint: string,
+): void {
+    for (const [name, value] of [
+        ["start_date", start],
+        ["end_date", end],
+    ] as const) {
+        if (!isCalendarDate(value)) {
+            throw new Error(
+                `Invalid ${name} "${value}": not a real calendar date. Use YYYY-MM-DD, e.g. "2026-01-31".`,
+            );
+        }
+    }
+    if (start > end) {
+        throw new Error(
+            `Invalid date range: start_date (${start}) is after end_date (${end}). Swap them.`,
+        );
+    }
+    const days = dateDiffDays(start, end) + 1;
+    if (days > maxDays) {
+        throw new Error(
+            `Date range too long: ${start} to ${end} spans ${days} days, and at most ${maxDays} days (inclusive) can be listed at once. ${longerHint}`,
+        );
+    }
+}
+
 export function formatMeal(meal: Meal, alcohol: AlcoholDisplay = null): string {
     const parts = [
         `ID: ${meal.id}`,
@@ -1957,8 +2023,7 @@ export function registerTools(
         "get_meals_by_date_range",
         {
             title: "Get Meals by Date Range",
-            description:
-                "Get all meals between two dates (inclusive). Use this instead of multiple get_meals_by_date calls when you need meals for more than one day.",
+            description: `Get all meals between two dates (inclusive), grouped by day. Use this instead of multiple get_meals_by_date calls when you need meals for more than one day. The range can span at most ${MEALS_RANGE_MAX_DAYS} days; get_trends covers longer periods with daily totals instead of individual meals.`,
             annotations: {
                 title: "Get Meals by Date Range",
                 readOnlyHint: true,
@@ -1968,13 +2033,23 @@ export function registerTools(
             },
             inputSchema: z.object({
                 start_date: z.string().describe("Start date (YYYY-MM-DD)"),
-                end_date: z.string().describe("End date (YYYY-MM-DD)"),
+                end_date: z
+                    .string()
+                    .describe(
+                        `End date (YYYY-MM-DD). The range spans at most ${MEALS_RANGE_MAX_DAYS} days, both ends included.`,
+                    ),
             }),
         },
         async ({ start_date, end_date }) => {
             return withAnalytics(
                 "get_meals_by_date_range",
                 async () => {
+                    assertDateRange(
+                        start_date,
+                        end_date,
+                        MEALS_RANGE_MAX_DAYS,
+                        "For a longer period use get_trends (daily totals rather than every meal), or split the range into monthly calls.",
+                    );
                     const tz = await getUserTimezone(userId);
                     const meals = await getMealsInRange(
                         userId,
@@ -3437,8 +3512,7 @@ export function registerTools(
         "get_weight_by_date_range",
         {
             title: "Get Weight by Date Range",
-            description:
-                "Get all weight entries between two dates (inclusive), grouped by day with each day's average. Use this instead of multiple get_weight_by_date calls.",
+            description: `Get all weight entries between two dates (inclusive), grouped by day with each day's average. Use this instead of multiple get_weight_by_date calls. The range can span at most ${WEIGHT_RANGE_MAX_DAYS} days.`,
             annotations: {
                 title: "Get Weight by Date Range",
                 readOnlyHint: true,
@@ -3455,6 +3529,12 @@ export function registerTools(
             return withAnalytics(
                 "get_weight_by_date_range",
                 async () => {
+                    assertDateRange(
+                        start_date,
+                        end_date,
+                        WEIGHT_RANGE_MAX_DAYS,
+                        "For a longer trend use get_weight_trends, or split the range into yearly calls.",
+                    );
                     const [tz, weightPref] = await Promise.all([
                         getUserTimezone(userId),
                         getPreferredWeightUnit(userId),

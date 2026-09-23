@@ -201,10 +201,11 @@ export const TOOLS_FR: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "Récupère tous les repas entre deux dates en une fois — pratique pour passer en revue une semaine ou un mois.",
+                "Récupère tous les repas entre deux dates en une fois — pratique pour passer en revue une semaine ou un mois. Un appel couvre jusqu'à 31 jours ; pour des périodes plus longues, les tendances et les résumés donnent des totaux quotidiens.",
             params: {
                 start_date: "Date de début (AAAA-MM-JJ)",
-                end_date: "Date de fin (AAAA-MM-JJ)",
+                end_date:
+                    "Date de fin (AAAA-MM-JJ), au plus 31 jours, jour de début compris",
             },
             example: "Liste mes repas du lundi au vendredi",
         },

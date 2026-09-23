@@ -195,10 +195,11 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "Haal in één keer alle maaltijden tussen twee datums op — handig om een week of een maand te overzien.",
+                "Haal in één keer alle maaltijden tussen twee datums op — handig om een week of een maand te overzien. Eén aanroep beslaat maximaal 31 dagen; voor langere periodes geven trends en overzichten dagtotalen.",
             params: {
                 start_date: "Startdatum (JJJJ-MM-DD)",
-                end_date: "Einddatum (JJJJ-MM-DD)",
+                end_date:
+                    "Einddatum (JJJJ-MM-DD), hoogstens 31 dagen inclusief de startdag",
             },
             example: "Toon mijn maaltijden van maandag tot vrijdag",
         },

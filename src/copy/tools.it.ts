@@ -199,10 +199,11 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "Recupera tutti i pasti tra due date in un'unica volta — utile per rivedere una settimana o un mese.",
+                "Recupera tutti i pasti tra due date in un'unica volta — utile per rivedere una settimana o un mese. Una chiamata copre fino a 31 giorni; per periodi più lunghi, tendenze e riepiloghi forniscono i totali giornalieri.",
             params: {
                 start_date: "Data di inizio (AAAA-MM-GG)",
-                end_date: "Data di fine (AAAA-MM-GG)",
+                end_date:
+                    "Data di fine (AAAA-MM-GG), al massimo 31 giorni compreso il giorno di inizio",
             },
             example: "Elenca i miei pasti da lunedì a venerdì",
         },

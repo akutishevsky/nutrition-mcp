@@ -22,6 +22,19 @@ describe("categorizeError", () => {
         ],
         // src/tz.ts shiftLocalDate / splitDate
         ["Invalid date string: 2026-99-99", "invalid_date_format"],
+        // src/mcp.ts assertDateRange — the echoed value must not steer it
+        [
+            'Invalid start_date "auth-token": not a real calendar date. Use YYYY-MM-DD, e.g. "2026-01-31".',
+            "invalid_date_format",
+        ],
+        [
+            "Invalid date range: start_date (2026-02-01) is after end_date (2026-01-01). Swap them.",
+            "invalid_date_format",
+        ],
+        [
+            "Date range too long: 2026-01-01 to 2026-12-31 spans 365 days, and at most 31 days (inclusive) can be listed at once. For a longer period use get_trends (daily totals rather than every meal), or split the range into monthly calls.",
+            "date_range_too_long",
+        ],
 
         // src/mcp.ts set_timezone
         [

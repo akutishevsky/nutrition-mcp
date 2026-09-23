@@ -77,6 +77,18 @@ export function categorizeError(error: unknown): string {
     )
         return "invalid_date_format";
 
+    // assertDateRange (src/mcp.ts), behind the *_by_date_range listing tools.
+    // Matched here rather than left to tier 3's "date" keyword because the
+    // message echoes the caller's own value, which could carry "auth" or
+    // "token" and be misfiled as auth_expired.
+    if (
+        msg.includes("not a real calendar date") ||
+        msg.includes("invalid date range")
+    )
+        return "invalid_date_format";
+    // Its own bucket so tool_analytics shows how often the range cap bites.
+    if (msg.includes("date range too long")) return "date_range_too_long";
+
     // Thrown by set_timezone in src/mcp.ts (not src/tz.ts — that file only
     // ever throws the logged_at-shaped messages matched above).
     if (msg.includes("invalid timezone")) return "invalid_timezone";
