@@ -3750,11 +3750,52 @@ describe("export_all_data is on the tool surface", () => {
     test("it is annotated as the write it is", async () => {
         const all = (await toolsOf()).find((t) => t.name === "export_all_data");
         expect(all?.annotations).toEqual({
+            title: "Export All Data",
             readOnlyHint: false,
             destructiveHint: false,
             idempotentHint: false,
             openWorldHint: false,
         });
+    });
+});
+
+// The connector directory's review criteria require a `title` and the
+// applicable hints in every tool's annotations — Claude derives auto-permissions
+// from them (read-only tools run unprompted, destructive ones always prompt).
+// The top-level `title` alone does not satisfy it, which is how 34 of 36 tools
+// shipped without one.
+describe("every tool carries directory-ready annotations", () => {
+    test("title and hints are present and consistent", async () => {
+        const server = new McpServer(
+            { name: "t", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [ct, st] = InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "c", version: "0.0.0" });
+        await Promise.all([server.connect(st), client.connect(ct)]);
+        const { tools } = await client.listTools();
+        await client.close();
+        await server.close();
+
+        expect(tools.length).toBe(36);
+        for (const t of tools) {
+            const a = t.annotations;
+            expect(a?.title, t.name).toBeTruthy();
+            expect(a?.title, t.name).toBe(t.title);
+            expect(typeof a?.readOnlyHint, t.name).toBe("boolean");
+            expect(typeof a?.destructiveHint, t.name).toBe("boolean");
+            if (a?.readOnlyHint) expect(a.destructiveHint, t.name).toBe(false);
+        }
+        for (const name of [
+            "delete_meal",
+            "delete_water",
+            "delete_weight",
+            "delete_account",
+        ]) {
+            const a = tools.find((t) => t.name === name)?.annotations;
+            expect(a?.destructiveHint, name).toBe(true);
+        }
     });
 });
 
