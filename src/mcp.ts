@@ -1363,6 +1363,7 @@ export function registerTools(
                 NUTRIENT_COVERAGE +
                 "\nPutting '180 mg caffeine' or '6 g fiber' in notes or in the description instead of in the field leaves it out of every total, goal and chart.",
             annotations: {
+                title: "Log Meal",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -1768,6 +1769,7 @@ export function registerTools(
             description:
                 "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, fall back to web search or estimation. Two gaps to close yourself before logging: a fiber or sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product get caffeine_mg from the label or a web search.",
             annotations: {
+                title: "Look Up Barcode",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -1871,6 +1873,7 @@ export function registerTools(
             title: "Get Today's Meals",
             description: "Get all meals logged today",
             annotations: {
+                title: "Get Today's Meals",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -1913,6 +1916,7 @@ export function registerTools(
             title: "Get Meals by Date",
             description: "Get all meals for a specific date",
             annotations: {
+                title: "Get Meals by Date",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -1956,6 +1960,7 @@ export function registerTools(
             description:
                 "Get all meals between two dates (inclusive). Use this instead of multiple get_meals_by_date calls when you need meals for more than one day.",
             annotations: {
+                title: "Get Meals by Date Range",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2030,6 +2035,7 @@ export function registerTools(
             description:
                 "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Use this BEFORE logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil) — turn each difference between variations into a question for the user rather than picking one silently, and ask those questions one at a time across several turns instead of batching them. Also use it for requests like 'log my usual breakfast': search, interview the user to pin down the variation and the amount, then log_meal. For a restaurant meal, search the restaurant name as well as the dish — a past visit to the same venue is stronger evidence than anything on the web. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
             annotations: {
+                title: "Search Past Meals",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2240,6 +2246,7 @@ export function registerTools(
             description:
                 "Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Nutrition Summary",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2500,6 +2507,7 @@ export function registerTools(
             description:
                 "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Calories, protein, carbs, fat, fiber and water are targets to REACH; sugar, alcohol and caffeine are limits to STAY UNDER, and progress against them is worded accordingly. Every gram target is in grams and the caffeine limit is in MILLIGRAMS. For a limit, 0 is a real value meaning 'none at all' rather than 'unset'. Targets are the user's own choice; this server does not provide medical or dietary advice.",
             annotations: {
+                title: "Set Nutrition Goals",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2691,6 +2699,7 @@ export function registerTools(
             description:
                 "Get the user's current daily calorie and macro targets.",
             annotations: {
+                title: "Get Nutrition Goals",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2726,6 +2735,7 @@ export function registerTools(
             description:
                 "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Goal Progress",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2875,6 +2885,7 @@ export function registerTools(
             title: "Delete Meal",
             description: "Delete a meal entry by ID",
             annotations: {
+                title: "Delete Meal",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: true,
@@ -2916,6 +2927,7 @@ export function registerTools(
                 "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to BACKFILL nutrition a meal was logged without: if a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg, estimate the value and pass just that field rather than telling the user the figure in prose. Meal ids come from get_meals_today, get_meals_by_date or search_meals.\n\n" +
                 NUTRIENT_COVERAGE,
             annotations: {
+                title: "Update Meal",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3020,6 +3032,7 @@ export function registerTools(
             description:
                 "Log a hydration entry in milliliters. If the user gives a volume in another unit (cups, oz, liters), convert it: 1 cup = 240 ml, 1 fl oz = 30 ml, 1 L = 1000 ml. If only 'a glass' is mentioned, ask for the size or assume 250 ml and confirm.",
             annotations: {
+                title: "Log Water",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -3089,6 +3102,7 @@ export function registerTools(
             description:
                 "Get today's total water intake (ml) and the list of entries.",
             annotations: {
+                title: "Get Today's Water",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3141,6 +3155,7 @@ export function registerTools(
             description:
                 "Get water intake total and entries for a specific date.",
             annotations: {
+                title: "Get Water by Date",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3192,6 +3207,7 @@ export function registerTools(
             title: "Delete Water Entry",
             description: "Delete a water log entry by ID.",
             annotations: {
+                title: "Delete Water Entry",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: true,
@@ -3229,6 +3245,7 @@ export function registerTools(
             description:
                 "Log a body-weight measurement. Provide the number in `weight` and its `unit` ('kg' or 'lb'); if you omit the unit, the user's saved preference is used, and if they have no preference set yet the call fails asking you to specify one. IMPORTANT: do NOT convert units yourself — pass the value in whatever unit the user stated and set `unit` accordingly. The server stores weight canonically and converts as needed. Multiple weigh-ins per day are allowed.",
             annotations: {
+                title: "Log Weight",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -3313,6 +3330,7 @@ export function registerTools(
             description:
                 "Get today's weight entries, shown in the user's preferred unit.",
             annotations: {
+                title: "Get Today's Weight",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3367,6 +3385,7 @@ export function registerTools(
             description:
                 "Get weight entries for a specific date, in the user's preferred unit.",
             annotations: {
+                title: "Get Weight by Date",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3421,6 +3440,7 @@ export function registerTools(
             description:
                 "Get all weight entries between two dates (inclusive), grouped by day with each day's average. Use this instead of multiple get_weight_by_date calls.",
             annotations: {
+                title: "Get Weight by Date Range",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3504,6 +3524,7 @@ export function registerTools(
             description:
                 "Weight trend over a window: latest reading, overall change, 7/14/30-day moving averages (to smooth day-to-day noise), min/max, and progress toward the target weight if one is set. Aggregates multiple weigh-ins per day by averaging. Defaults to the last 30 days ending today.",
             annotations: {
+                title: "Get Weight Trends",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3645,6 +3666,7 @@ export function registerTools(
             description:
                 "Update fields of an existing weight entry. Provide `unit` alongside `weight` (defaults to the user's preferred unit); do NOT convert units yourself.",
             annotations: {
+                title: "Update Weight Entry",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3724,6 +3746,7 @@ export function registerTools(
             title: "Delete Weight Entry",
             description: "Delete a weight log entry by ID.",
             annotations: {
+                title: "Delete Weight Entry",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: true,
@@ -3761,6 +3784,7 @@ export function registerTools(
             description:
                 "Set the user's preferred weight unit ('kg' or 'lb'), or pass null to clear it. This controls how weights are shown and how a bare number is interpreted when logging without an explicit unit. Stored weights are unaffected (they are canonical) — only display and default parsing change. While unset, logging requires an explicit unit and weights display in kg.",
             annotations: {
+                title: "Set Weight Unit",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3810,6 +3834,7 @@ export function registerTools(
             description:
                 "Enable or disable the in-chat visual widgets (nutrition dashboard, goal progress, meal-logged rings, trends, weight charts). When disabled, the same tools still return their full text and data — just no rendered widget. Widgets are enabled by default. Note: hosts read the widget list when a session connects, so the change takes effect in new conversations; an already-open chat may keep showing widgets until it reconnects.",
             annotations: {
+                title: "Set Widget Display",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3853,6 +3878,7 @@ export function registerTools(
             description:
                 "Turn alcohol tracking on or off for the user, and optionally choose whether drinks are counted in US standard drinks (14 g of ethanol) or UK units (7.9 g). Off by default. Alcohol grams passed to log_meal, update_meal or bulk_import_meals are stored either way — this setting controls whether alcohol is shown in meals, goals and progress. One exception, which matters BEFORE a backfill: the file importer (start_meal_import) skips the file's alcohol column entirely while tracking is off, because it will not write a figure the user was never shown for review — and re-importing the same file later does not backfill it. So if the user wants alcohol from an export, turn this on first. Offer it when the user asks to track drinking; do not enable it on your own initiative, and if they ask to stop seeing alcohol, disable it here rather than deleting their meals. The change is live immediately — the next tool call in this same conversation already honours it, with nothing to reconnect or restart.",
             annotations: {
+                title: "Set Alcohol Tracking",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3921,6 +3947,7 @@ export function registerTools(
             description:
                 "Rolling 7/14/30-day averages, standard deviation, coefficient of variation, logging streaks, day-of-week breakdowns, and best/worst day for calories and each macro. Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today. Figures are estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Trends",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4032,6 +4059,7 @@ export function registerTools(
             description:
                 "Pre-aggregated behavioural patterns across the logged window: meal-type presence rates, breakfast effect (days with vs without), high-calorie-lunch effect, late-dinner effect, weekday vs weekend, and outlier days. Narrate findings conversationally to the user. Defaults to the last 30 days. Patterns are descriptive estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Meal Patterns",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4097,6 +4125,7 @@ export function registerTools(
             description:
                 "Export EVERY table this server tracks for the user — meals, water, weight, nutrition goals and profile settings — as a single ZIP archive (meals.csv, water.csv, weight.csv, goals.csv, profile.csv, plus a README.txt describing the columns and the units they are in) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; water, weight, goals and profile are export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
             annotations: {
+                title: "Export All Data",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -4193,6 +4222,7 @@ export function registerTools(
             description:
                 "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
             annotations: {
+                title: "Get Profile",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4252,6 +4282,7 @@ export function registerTools(
             description:
                 "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). This controls which calendar day meals and water are grouped into — e.g. a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and it is also how a logged_at with no UTC offset is placed on write, which is permanent: correcting the timezone later re-buckets nothing that is already stored. If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
             annotations: {
+                title: "Set Timezone",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4295,6 +4326,7 @@ export function registerTools(
             title: "Set Language",
             description: `Set the user's UI language for in-chat widgets (dashboards, charts). Supported: ${SITE_LOCALES.map((l) => `'${l}' (${LOCALE_NAMES[l]})`).join(", ")}. This does not change what language the model replies in — only the text rendered inside widget cards. Offer to set this the first time you notice the user writing in a non-English language.`,
             annotations: {
+                title: "Set Language",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4345,6 +4377,7 @@ export function registerTools(
             description:
                 "Get the current date and time in the user's timezone, plus the UTC instant. Call this whenever you need to know what time it is for this user — to resolve 'today', 'this morning', 'an hour ago' or 'last Monday' into a real timestamp — instead of asking the user or guessing. Not needed to log something that is happening now: omit logged_at and the server stamps the current time itself.",
             annotations: {
+                title: "Get Current Time",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -4383,6 +4416,7 @@ export function registerTools(
             description:
                 "Permanently delete the user's account and all associated data (meals, tokens, auth). This action is irreversible. Always confirm with the user before calling this tool.",
             annotations: {
+                title: "Delete Account",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: false,
