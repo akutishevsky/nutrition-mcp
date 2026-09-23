@@ -3,6 +3,10 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
+# App Platform hands build-time env vars to a Dockerfile build only as build
+# args, so NOINDEX must be declared here for gen:all to see it and leave the
+# analytics tags out of the dev deploy's pages. Unset means empty: prod keeps them.
+ARG NOINDEX
 RUN bun run gen:all
 USER bun
 EXPOSE 8080
