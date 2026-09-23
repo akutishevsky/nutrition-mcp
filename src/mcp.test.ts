@@ -3784,10 +3784,11 @@ describe("current-time disclosure", () => {
                 expect(desc).not.toContain(
                     "ask the user before calling this tool",
                 );
-                // The only surviving mention of asking is the prohibition.
-                expect(
-                    desc.replaceAll("Do NOT ask the user what time it is.", ""),
-                ).not.toContain("ask the user");
+                // Asking the user is not prescribed: the text states that the
+                // server knows the time, so there is no need to ask (#102).
+                expect(desc).not.toMatch(/\b(?:do not|don't) ask the user\b/i);
+                expect(desc).toContain("The server knows the current time");
+                expect(desc).toContain("no need to ask the user");
                 expect(desc).toContain("omit this field entirely");
                 expect(desc).toContain("get_current_time");
             }
@@ -4079,6 +4080,46 @@ describe("/mcp serves the 2026-07-28 revision", () => {
         expect(body.result?.instructions).toBe(full.instructions);
         expect(full.instructions.length).toBeGreaterThan(0);
     });
+});
+
+// Directory policy: tool text must not direct Claude to external software the
+// user did not ask for. "search the web" used to appear in the nutrient rule,
+// the photo-logging steps, lookup_barcode and several field descriptions, so
+// this sweeps every surface the model reads — the server instructions, every
+// tool description and every input-field description — rather than pinning
+// the sites that happened to carry it.
+describe("tool text names no external tool", () => {
+    const WEB = /web search|search the web|searching the web/i;
+
+    test.each(ERAS)(
+        "no instructions, tool or field description mentions web search (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const instructions = client.getInstructions() ?? "";
+                expect(instructions.length).toBeGreaterThan(0);
+                expect(instructions).not.toMatch(WEB);
+                // Rewording for the policy kept the issue #102 default: the
+                // instructions still say to omit logged_at for "just now".
+                expect(instructions).toContain("omit logged_at");
+                expect(instructions).toContain("get_current_time");
+                const { tools } = await client.listTools();
+                expect(tools.length).toBeGreaterThan(30);
+                for (const tool of tools) {
+                    expect(tool.description ?? "", tool.name).not.toMatch(WEB);
+                    const props = (tool.inputSchema.properties ?? {}) as Record<
+                        string,
+                        { description?: string }
+                    >;
+                    for (const [key, prop] of Object.entries(props)) {
+                        expect(
+                            prop.description ?? "",
+                            `${tool.name}.${key}`,
+                        ).not.toMatch(WEB);
+                    }
+                }
+            });
+        },
+    );
 });
 
 // The product surface, driven end to end over BOTH legs. Everything in here is
