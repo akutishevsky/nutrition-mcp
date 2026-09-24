@@ -1412,10 +1412,12 @@ export async function deleteAllUserData(userId: string): Promise<void> {
 
 // ---------- OAuth tokens ----------
 
-export async function storeToken(token: string, userId: string): Promise<void> {
-    const expiresAt = new Date(
-        Date.now() + 365 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+export async function storeToken(
+    token: string,
+    userId: string,
+    ttlSeconds: number = 365 * 24 * 60 * 60,
+): Promise<void> {
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
 
     const { error } = await getSupabase().from("oauth_tokens").upsert(
         {
@@ -1552,23 +1554,30 @@ export async function seedPatreonTokensFromEnv(): Promise<void> {
 
 // ---------- Auth codes ----------
 
-export async function storeAuthCode(
-    code: string,
-    redirectUri: string,
-    userId: string,
-    codeChallenge?: string,
-): Promise<void> {
+export interface AuthCodeRecord {
+    code: string;
+    redirectUri: string;
+    userId: string;
+    codeChallenge: string;
+    // The client the code was issued to and the RFC 8707 resource it was
+    // requested for (null when the client sent none). Both columns were added
+    // with oauth_clients; /token binds a code to its client in Phase B.
+    clientId: string;
+    resource: string | null;
+}
+
+export async function storeAuthCode(rec: AuthCodeRecord): Promise<void> {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    const { error } = await getSupabase()
-        .from("auth_codes")
-        .insert({
-            code,
-            redirect_uri: redirectUri,
-            user_id: userId,
-            code_challenge: codeChallenge ?? null,
-            expires_at: expiresAt,
-        });
+    const { error } = await getSupabase().from("auth_codes").insert({
+        code: rec.code,
+        redirect_uri: rec.redirectUri,
+        user_id: rec.userId,
+        code_challenge: rec.codeChallenge,
+        client_id: rec.clientId,
+        resource: rec.resource,
+        expires_at: expiresAt,
+    });
 
     if (error) throw new Error(`Failed to store auth code: ${error.message}`);
 }
@@ -1578,6 +1587,9 @@ export interface AuthCodeData {
     redirect_uri: string;
     user_id: string;
     code_challenge: string | null;
+    // Null on codes minted before the oauth_clients migration.
+    client_id: string | null;
+    resource: string | null;
 }
 
 export async function consumeAuthCode(
@@ -1722,24 +1734,58 @@ export async function getLandingStats(): Promise<LandingStats> {
     return { ...rest, timezone_levels };
 }
 
-// ---------- Registered clients ----------
+// ---------- OAuth clients ----------
 
-export function registerClient(
-    clientName: string | null,
-    redirectUris: string[],
-): void {
-    getSupabase()
-        .from("registered_clients")
-        .insert({
-            client_name: clientName,
-            redirect_uris: redirectUris,
-        })
-        .then(({ error }) => {
-            if (error) {
-                console.warn(
-                    "Failed to persist client registration:",
-                    error.message,
-                );
-            }
-        });
+// One row per RFC 7591 registration (oauth_clients). The secret is stored only
+// as its sha256 hex; the raw value is returned to the registrant once and never
+// persisted. The legacy env client never has a row here — src/oauth-store.ts
+// resolves it in memory.
+export interface OAuthClientRow {
+    client_id: string;
+    client_secret_hash: string | null;
+    token_endpoint_auth_method:
+        "none" | "client_secret_post" | "client_secret_basic";
+    redirect_uris: string[];
+    client_name: string | null;
+    grant_types: string[];
+}
+
+export async function insertOAuthClient(row: OAuthClientRow): Promise<void> {
+    const { error } = await getSupabase().from("oauth_clients").insert(row);
+    if (error)
+        throw new Error(`Failed to register OAuth client: ${error.message}`);
+}
+
+// Null for an unknown client. A lookup failure throws rather than returning
+// null: "the database is down" must not read as "this client doesn't exist",
+// which /authorize would report to the user as invalid_client.
+export async function getOAuthClient(
+    clientId: string,
+): Promise<OAuthClientRow | null> {
+    const { data, error } = await getSupabase()
+        .from("oauth_clients")
+        .select(
+            "client_id, client_secret_hash, token_endpoint_auth_method, redirect_uris, client_name, grant_types",
+        )
+        .eq("client_id", clientId)
+        .maybeSingle();
+    if (error)
+        throw new Error(`Failed to look up OAuth client: ${error.message}`);
+    return (data as OAuthClientRow | null) ?? null;
+}
+
+// Is this exact string in the hand-reviewed snapshot of redirects the legacy
+// env client may still use (oauth_legacy_redirect_uris)? Exact equality only —
+// the snapshot is a list of strings Anton approved, not a pattern.
+export async function isLegacyRedirectUri(uri: string): Promise<boolean> {
+    const { data, error } = await getSupabase()
+        .from("oauth_legacy_redirect_uris")
+        .select("redirect_uri")
+        .eq("redirect_uri", uri)
+        .maybeSingle();
+    if (error)
+        throw new Error(
+            `Failed to look up legacy redirect URI: ${error.message}`,
+        );
+    return data !== null;
 }

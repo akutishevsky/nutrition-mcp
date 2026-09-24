@@ -1,4 +1,4 @@
-import type { LoginDoc, LoginErrors } from "./login.js";
+import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_DE: LoginDoc = {
     title: "Nutrition MCP",
@@ -23,4 +23,12 @@ export const LOGIN_ERRORS_DE: LoginErrors = {
         "Die Anmeldung mit Google wurde abgebrochen. Bitte versuche es erneut.",
     googleFailed:
         "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuche es erneut.",
+};
+
+export const LOGIN_CLIENT_NOTICE_DE: LoginClientNotice = {
+    returnTo: "Nach der Anmeldung wirst du zu {host} zurückgeleitet.",
+    unknownHost:
+        "{host} ist kein Assistent, den wir kennen. Fahre nur fort, wenn du die Verbindung selbst von {host} aus gestartet hast.",
+    loopback:
+        "Du wirst zu einem Programm zurückgeleitet, das auf diesem Computer läuft ({host}). Fahre nur fort, wenn du diese Verbindung selbst von dort aus gestartet hast.",
 };

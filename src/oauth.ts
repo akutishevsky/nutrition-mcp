@@ -1,16 +1,27 @@
 import { Hono, type Context } from "hono";
 import crypto from "node:crypto";
 import {
-    storeToken,
-    storeAuthCode,
-    consumeAuthCode,
-    signUpUser,
-    signInUser,
-    signInWithGoogleIdToken,
-    storeRefreshToken,
-    consumeRefreshToken,
-    registerClient,
-} from "./supabase.js";
+    createSupabaseOAuthStore,
+    legacyClientFromEnv,
+    sha256Hex,
+    supabaseOAuthAuth,
+    withLegacyClient,
+    type OAuthAuth,
+    type OAuthClient,
+    type OAuthStore,
+    type TokenEndpointAuthMethod,
+} from "./oauth-store.js";
+import {
+    KNOWN_CLIENT_HOSTS,
+    isLoopbackRedirect,
+    isValidCodeChallenge,
+    parseRedirectUri,
+    pkceS256,
+    redirectDisplay,
+    redirectMatches,
+    resourceAllowed,
+    type RedirectKind,
+} from "./oauth-validate.js";
 import { getBaseUrl } from "./url.js";
 import { rateLimitAuth } from "./middleware.js";
 import {
@@ -20,15 +31,35 @@ import {
     TRANSLATION_NOTICE,
     type SiteLocale,
 } from "./routes.js";
-import { LOGIN_ERRORS, type LoginErrors } from "./copy/login.js";
+import {
+    LOGIN_CLIENT_NOTICE,
+    LOGIN_ERRORS,
+    type LoginErrors,
+} from "./copy/login.js";
 import { chromeFor } from "./copy/chrome.js";
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
-interface OAuthSession {
+// Lifetime of an access token, in both its stored expires_at and the
+// `expires_in` /token reports. Unchanged from before Phase A; Phase C
+// shortens it.
+export const ACCESS_TOKEN_TTL_SECONDS = 365 * 24 * 60 * 60;
+
+export interface OAuthSession {
     state: string;
     redirectUri: string;
-    codeChallenge?: string;
+    // Validated at /authorize (isValidCodeChallenge) before a session exists.
+    codeChallenge: string;
+    // Always "S256": an absent method is accepted as S256 and normalized here,
+    // so the switcher re-enters /authorize with it spelled out.
+    codeChallengeMethod: "S256";
+    // RFC 8707 resource exactly as the client sent it, when it sent one.
+    resource?: string;
+    // What the consent notice shows: the https host (with any port), the
+    // loopback host:port, or "scheme://" for a private-use scheme. Derived
+    // from the validated redirect_uri, never from client-supplied metadata.
+    redirectHost: string;
+    redirectKind: RedirectKind;
     clientId: string;
     // Raw nonce for an in-flight Google sign-in; the hashed form is sent to
     // Google and the raw value is handed to signInWithIdToken on callback.
@@ -46,22 +77,13 @@ const sessions = new Map<
     { session: OAuthSession; expiresAt: number }
 >();
 
-function cleanExpiredSessions() {
-    const now = Date.now();
+function cleanExpiredSessions(now: number = Date.now()) {
     for (const [key, value] of sessions) {
         if (value.expiresAt < now) sessions.delete(key);
     }
 }
 
 setInterval(cleanExpiredSessions, 60 * 1000);
-
-function base64URLEncode(buffer: Buffer): string {
-    return buffer
-        .toString("base64")
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=/g, "");
-}
 
 function escapeHtml(str: string): string {
     return str
@@ -96,14 +118,19 @@ async function availableLoginLocales(): Promise<SiteLocale[]> {
 // into a URL, so a field added to OAuthSession later doesn't get forgotten
 // in a second, drifting copy of this logic.
 function authorizeUrl(session: OAuthSession, locale: SiteLocale): string {
+    // Every parameter /authorize requires has to be carried here: the
+    // switcher and the translation notice re-enter /authorize from this URL,
+    // and a dropped code_challenge_method or resource would turn a language
+    // change into an error redirect (or a token bound to the wrong resource).
     const params = new URLSearchParams({
         response_type: "code",
         client_id: session.clientId,
         redirect_uri: session.redirectUri,
         state: session.state,
+        code_challenge: session.codeChallenge,
+        code_challenge_method: session.codeChallengeMethod,
     });
-    if (session.codeChallenge)
-        params.set("code_challenge", session.codeChallenge);
+    if (session.resource) params.set("resource", session.resource);
     if (locale !== "en") params.set("locale", locale);
     return `/authorize?${params.toString()}`;
 }
@@ -167,6 +194,41 @@ function renderTranslationNotice(
                         </div>`;
 }
 
+// Where the browser goes after sign-in, shown on the consent page because the
+// MCP spec requires the redirect host be displayed — and because registration
+// is open, the host is the one thing the user can check: anyone can register
+// a client whose redirect points at their own server, so a login page that
+// shows nothing is a login page that hands codes to strangers (#148). The
+// client's self-declared client_name is never rendered: it is attacker-chosen
+// ("Claude") and would lend a lookalike the credibility the host denies it.
+function renderClientNotice(session: OAuthSession): string {
+    const copy = LOGIN_CLIENT_NOTICE[session.locale];
+    let template: string;
+    let warn: boolean;
+    if (session.redirectKind === "loopback") {
+        template = copy.loopback;
+        warn = true;
+    } else if (
+        session.redirectKind === "https" &&
+        KNOWN_CLIENT_HOSTS.has(session.redirectHost)
+    ) {
+        template = copy.returnTo;
+        warn = false;
+    } else {
+        // Any other https host, and every private-use scheme (shown as the
+        // whole URI minus its query — see redirectDisplay — since the scheme
+        // alone would hide a browser launcher's web destination).
+        template = copy.unknownHost;
+        warn = true;
+    }
+    const host = `<strong>${escapeHtml(session.redirectHost)}</strong>`;
+    const text = template
+        .split("{host}")
+        .map((part) => escapeHtml(part))
+        .join(host);
+    return `<p class="client-notice"${warn ? " data-warn" : ""}>${text}</p>`;
+}
+
 export async function renderLoginPage(
     sessionId: string,
     session: OAuthSession,
@@ -181,17 +243,19 @@ export async function renderLoginPage(
     const errorHtml = error
         ? `<div class="error-banner">${escapeHtml(error)}</div>`
         : "";
+    // Every replacement is passed as a function: a string replacement expands
+    // "$'", "$&" and "$`" patterns, and the notice and error carry text the
+    // caller controls (a registered host, a Supabase error message), which
+    // could otherwise splice copies of the template into the page.
+    const notice = renderClientNotice(session);
+    const switcher = await renderLangSwitcher(session, locale);
+    const translation = renderTranslationNotice(session, locale);
     return template
-        .replaceAll("{{SESSION_ID}}", escapeHtml(sessionId))
-        .replaceAll("{{ERROR}}", errorHtml)
-        .replaceAll(
-            "{{LANG_SWITCHER}}",
-            await renderLangSwitcher(session, locale),
-        )
-        .replaceAll(
-            "{{TRANSLATION_NOTICE}}",
-            renderTranslationNotice(session, locale),
-        );
+        .replaceAll("{{SESSION_ID}}", () => escapeHtml(sessionId))
+        .replaceAll("{{ERROR}}", () => errorHtml)
+        .replaceAll("{{CLIENT_NOTICE}}", () => notice)
+        .replaceAll("{{LANG_SWITCHER}}", () => switcher)
+        .replaceAll("{{TRANSLATION_NOTICE}}", () => translation);
 }
 
 // Mint an authorization code for the now-authenticated user and redirect back to
@@ -199,6 +263,7 @@ export async function renderLoginPage(
 // the two can't drift. Consumes the session.
 async function finishAuthorization(
     c: Context,
+    store: OAuthStore,
     sessionId: string,
     session: OAuthSession,
     userId: string,
@@ -206,12 +271,14 @@ async function finishAuthorization(
     sessions.delete(sessionId);
 
     const authCode = crypto.randomUUID();
-    await storeAuthCode(
-        authCode,
-        session.redirectUri,
+    await store.storeAuthCode({
+        code: authCode,
+        redirectUri: session.redirectUri,
         userId,
-        session.codeChallenge,
-    );
+        codeChallenge: session.codeChallenge,
+        clientId: session.clientId,
+        resource: session.resource ?? null,
+    });
 
     const redirectUrl = new URL(session.redirectUri);
     redirectUrl.searchParams.set("code", authCode);
@@ -231,8 +298,70 @@ export const OAUTH_PATHS = [
     "/token",
 ] as const;
 
-export function createOAuthRouter() {
+// What a redirect URI may be written to a log as: its origin for http(s), its
+// scheme for anything else. Never the path or query — per-connector callbacks
+// carry per-user and per-connector ids there.
+function logOrigin(uri: string | undefined): string {
+    if (!uri) return "none";
+    try {
+        const url = new URL(uri);
+        if (url.protocol === "https:" || url.protocol === "http:")
+            return url.origin;
+        return `${url.protocol}//`;
+    } catch {
+        return "unparseable";
+    }
+}
+
+// A client id as it may be logged: ours are UUIDs (or the hex legacy id), so
+// anything else is caller-controlled text and is not echoed into the log.
+function logClientId(id: string | undefined): string {
+    if (!id) return "none";
+    return /^[A-Za-z0-9-]{1,64}$/.test(id) ? id : "malformed";
+}
+
+function oauthLog(event: string, clientId: string | undefined, uri?: string) {
+    console.warn(
+        `[oauth] ${event} client=${logClientId(clientId)} origin=${logOrigin(uri)}`,
+    );
+}
+
+// RFC 7591 §2 values this server implements.
+const TOKEN_ENDPOINT_AUTH_METHODS: readonly TokenEndpointAuthMethod[] = [
+    "none",
+    "client_secret_post",
+    "client_secret_basic",
+];
+const GRANT_TYPES = ["authorization_code", "refresh_token"] as const;
+const MAX_REDIRECT_URIS = 10;
+const CLIENT_NAME_MAX_LENGTH = 255;
+
+// Does a presented client secret match the stored sha256? Compared as hashes
+// with timingSafeEqual so the comparison leaks nothing about the stored value.
+function secretMatches(secret: string, storedHash: string | null): boolean {
+    if (!storedHash) return false;
+    const a = Buffer.from(sha256Hex(secret), "utf8");
+    const b = Buffer.from(storedHash, "utf8");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+export interface OAuthRouterDeps {
+    store?: OAuthStore;
+    auth?: OAuthAuth;
+    now?: () => number;
+}
+
+export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     const oauth = new Hono();
+    // The legacy env client is read here, at construction, and resolved in
+    // memory by whichever store is in use (see withLegacyClient).
+    const legacy = legacyClientFromEnv();
+    const store = withLegacyClient(
+        deps.store ?? createSupabaseOAuthStore(),
+        legacy,
+    );
+    const auth = deps.auth ?? supabaseOAuthAuth;
+    const now = deps.now ?? Date.now;
 
     // Per-IP rate limit across all OAuth endpoints — these are unauthenticated,
     // so this is the only throttle standing between the internet and signup /
@@ -248,26 +377,167 @@ export function createOAuthRouter() {
         oauth.use(path, rateLimitAuth);
     }
 
-    const clientId = process.env.OAUTH_CLIENT_ID;
-    const clientSecret = process.env.OAUTH_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-        throw new Error("Missing OAUTH_CLIENT_ID or OAUTH_CLIENT_SECRET");
-    }
-
-    // Dynamic client registration (required by MCP spec)
+    // Dynamic client registration (RFC 7591). Every caller gets its own
+    // client id bound to the redirect URIs it registers — this used to hand
+    // every caller the same static env client and enforce no redirect at all,
+    // which let anyone mint an /authorize link that delivered a victim's code
+    // to their own server (#148).
     oauth.post("/register", async (c) => {
-        const body = await c.req.json();
+        const invalidMetadata = (description: string) =>
+            c.json(
+                {
+                    error: "invalid_client_metadata",
+                    error_description: description,
+                },
+                400,
+            );
 
-        // Fire-and-forget: track who registers
-        registerClient(body.client_name ?? null, body.redirect_uris ?? []);
+        let body: unknown;
+        try {
+            body = await c.req.json();
+        } catch {
+            return invalidMetadata("request body must be a JSON object");
+        }
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+            return invalidMetadata("request body must be a JSON object");
+        }
+        const meta = body as Record<string, unknown>;
 
-        return c.json({
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uris: body.redirect_uris || [],
+        const redirectUris = meta.redirect_uris;
+        const invalidRedirect = (description: string, uri?: string) => {
+            oauthLog(
+                `register-rejected reason=invalid_redirect_uri`,
+                undefined,
+                uri,
+            );
+            return c.json(
+                {
+                    error: "invalid_redirect_uri",
+                    error_description: description,
+                },
+                400,
+            );
+        };
+        if (
+            !Array.isArray(redirectUris) ||
+            redirectUris.length < 1 ||
+            redirectUris.length > MAX_REDIRECT_URIS
+        ) {
+            return invalidRedirect(
+                `redirect_uris must list 1 to ${MAX_REDIRECT_URIS} URIs`,
+            );
+        }
+        for (const uri of redirectUris) {
+            if (typeof uri !== "string") {
+                return invalidRedirect("redirect_uris must be strings");
+            }
+            const parsed = parseRedirectUri(uri);
+            if (!parsed.ok) return invalidRedirect(parsed.reason, uri);
+        }
+
+        let grantTypes: string[] = [...GRANT_TYPES];
+        if (meta.grant_types !== undefined) {
+            if (
+                !Array.isArray(meta.grant_types) ||
+                meta.grant_types.length === 0 ||
+                !meta.grant_types.every(
+                    (g) =>
+                        typeof g === "string" &&
+                        (GRANT_TYPES as readonly string[]).includes(g),
+                )
+            ) {
+                return invalidMetadata(
+                    "grant_types may only contain authorization_code and refresh_token",
+                );
+            }
+            grantTypes = [...new Set(meta.grant_types as string[])];
+        }
+
+        if (
+            meta.response_types !== undefined &&
+            !(
+                Array.isArray(meta.response_types) &&
+                meta.response_types.length === 1 &&
+                meta.response_types[0] === "code"
+            )
+        ) {
+            return invalidMetadata('response_types must be ["code"]');
+        }
+
+        // RFC 7591 §2: an omitted method means client_secret_basic.
+        let authMethod: TokenEndpointAuthMethod = "client_secret_basic";
+        if (meta.token_endpoint_auth_method !== undefined) {
+            const m = meta.token_endpoint_auth_method;
+            if (
+                typeof m !== "string" ||
+                !(TOKEN_ENDPOINT_AUTH_METHODS as readonly string[]).includes(m)
+            ) {
+                return invalidMetadata(
+                    "token_endpoint_auth_method must be none, client_secret_post or client_secret_basic",
+                );
+            }
+            authMethod = m as TokenEndpointAuthMethod;
+        }
+
+        const clientName =
+            typeof meta.client_name === "string"
+                ? meta.client_name.slice(0, CLIENT_NAME_MAX_LENGTH)
+                : null;
+
+        const clientId = crypto.randomUUID();
+        // A confidential client's secret is returned once, here, and stored
+        // only as its hash.
+        const clientSecret =
+            authMethod === "none"
+                ? null
+                : crypto.randomBytes(32).toString("base64url");
+
+        await store.createClient({
+            clientId,
+            secretHash: clientSecret ? sha256Hex(clientSecret) : null,
+            authMethod,
+            redirectUris: redirectUris as string[],
+            clientName,
+            grantTypes,
         });
+
+        return c.json(
+            {
+                client_id: clientId,
+                client_id_issued_at: Math.floor(now() / 1000),
+                ...(clientSecret
+                    ? {
+                          client_secret: clientSecret,
+                          client_secret_expires_at: 0,
+                      }
+                    : {}),
+                redirect_uris: redirectUris,
+                token_endpoint_auth_method: authMethod,
+                grant_types: grantTypes,
+                response_types: ["code"],
+                ...(clientName !== null ? { client_name: clientName } : {}),
+            },
+            201,
+        );
     });
+
+    // Is this redirect_uri one the client may use? A registered client must
+    // present one of its registered URIs (loopback ignoring the port); the
+    // legacy env client, which registered nothing, is held to loopback plus
+    // the hand-reviewed snapshot.
+    async function redirectAllowed(
+        client: OAuthClient,
+        redirectUri: string,
+    ): Promise<boolean> {
+        if (!client.legacy) {
+            return client.redirectUris.some((r) =>
+                redirectMatches(r, redirectUri),
+            );
+        }
+        if (isLoopbackRedirect(redirectUri)) return true;
+        if (!parseRedirectUri(redirectUri).ok) return false;
+        return store.isLegacyRedirect(redirectUri);
+    }
 
     // Authorization endpoint
     oauth.get("/authorize", async (c) => {
@@ -276,25 +546,124 @@ export function createOAuthRouter() {
         const redirectUri = c.req.query("redirect_uri");
         const state = c.req.query("state");
         const codeChallenge = c.req.query("code_challenge");
+        const codeChallengeMethod = c.req.query("code_challenge_method");
+        const resource = c.req.query("resource");
 
-        if (responseType !== "code") {
-            return c.json({ error: "unsupported_response_type" }, 400);
-        }
-        if (!redirectUri || !state || !reqClientId) {
-            return c.json(
-                {
-                    error: "invalid_request",
-                    error_description:
-                        "client_id, redirect_uri, and state are required",
-                },
-                400,
+        // Until the client and its redirect are validated, an error is a JSON
+        // 400 and never a redirect: redirecting to an unvalidated URI is the
+        // open redirector RFC 6749 §4.1.2.1 forbids.
+        const rejectDirect = (
+            error: string,
+            description: string,
+            event: string,
+        ) => {
+            oauthLog(
+                `authorize-rejected reason=${event}`,
+                reqClientId,
+                redirectUri,
+            );
+            return c.json({ error, error_description: description }, 400);
+        };
+        if (!reqClientId) {
+            return rejectDirect(
+                "invalid_request",
+                "client_id is required",
+                "missing_client_id",
             );
         }
-        if (reqClientId !== clientId) {
-            return c.json({ error: "invalid_client" }, 400);
+        if (!redirectUri) {
+            return rejectDirect(
+                "invalid_request",
+                "redirect_uri is required",
+                "missing_redirect_uri",
+            );
+        }
+        const client = await store.getClient(reqClientId);
+        if (!client) {
+            return rejectDirect(
+                "invalid_client",
+                "unknown client_id",
+                "unknown_client",
+            );
+        }
+        if (!(await redirectAllowed(client, redirectUri))) {
+            return rejectDirect(
+                "invalid_request",
+                "redirect_uri is not registered for this client",
+                "unregistered_redirect_uri",
+            );
+        }
+        if (client.legacy) {
+            // Measures who still uses the static client before its sunset.
+            console.warn(
+                `[oauth] legacy-client authorize origin=${logOrigin(redirectUri)}`,
+            );
+        }
+        // redirectAllowed only passes URIs that parse (redirectMatches and
+        // isLoopbackRedirect both re-validate the presented one).
+        const parsed = parseRedirectUri(redirectUri);
+        if (!parsed.ok) {
+            return rejectDirect(
+                "invalid_request",
+                parsed.reason,
+                "invalid_redirect_uri",
+            );
         }
 
-        cleanExpiredSessions();
+        // From here the redirect is trusted, so errors go back to the client
+        // (RFC 6749 §4.1.2.1). Built with URL + searchParams so an existing
+        // query on the registered URI survives and custom schemes work too.
+        const rejectRedirect = (error: string, description: string) => {
+            oauthLog(
+                `authorize-error error=${error}`,
+                reqClientId,
+                redirectUri,
+            );
+            const url = new URL(redirectUri);
+            url.searchParams.set("error", error);
+            url.searchParams.set("error_description", description);
+            if (state) url.searchParams.set("state", state);
+            return c.redirect(url.toString());
+        };
+        if (responseType !== "code") {
+            return rejectRedirect(
+                "unsupported_response_type",
+                'response_type must be "code"',
+            );
+        }
+        if (!state) {
+            return rejectRedirect("invalid_request", "state is required");
+        }
+        // PKCE is mandatory (MCP authorization spec), S256 only.
+        if (!codeChallenge || !isValidCodeChallenge(codeChallenge)) {
+            return rejectRedirect(
+                "invalid_request",
+                "code_challenge is required and must be an S256 challenge",
+            );
+        }
+        if (codeChallengeMethod === undefined) {
+            // Accepted as S256 (a 43-char base64url challenge can only be an
+            // S256 one); logged to see which clients rely on the default.
+            console.warn(
+                `[oauth] pkce-method-absent client=${logClientId(reqClientId)}`,
+            );
+        } else if (codeChallengeMethod !== "S256") {
+            return rejectRedirect(
+                "invalid_request",
+                "code_challenge_method must be S256",
+            );
+        }
+        if (
+            resource !== undefined &&
+            !resourceAllowed(resource, getBaseUrl(c))
+        ) {
+            return rejectRedirect(
+                "invalid_target",
+                "resource is not this server",
+            );
+        }
+
+        cleanExpiredSessions(now());
 
         // The language switcher re-enters here with ?locale=xx (see
         // authorizeUrl) — an unsupported or untranslated value falls back
@@ -311,12 +680,16 @@ export function createOAuthRouter() {
             state,
             redirectUri,
             codeChallenge,
-            clientId: reqClientId,
+            codeChallengeMethod: "S256",
+            ...(resource !== undefined ? { resource } : {}),
+            redirectHost: redirectDisplay(parsed),
+            redirectKind: parsed.kind,
+            clientId: client.clientId,
             locale,
         };
         sessions.set(sessionId, {
             session,
-            expiresAt: Date.now() + SESSION_TTL_MS,
+            expiresAt: now() + SESSION_TTL_MS,
         });
 
         return c.html(await renderLoginPage(sessionId, session));
@@ -335,7 +708,7 @@ export function createOAuthRouter() {
         }
 
         const entry = sessions.get(sessionId);
-        if (!entry || entry.expiresAt < Date.now()) {
+        if (!entry || entry.expiresAt < now()) {
             sessions.delete(sessionId);
             return c.json({ error: "session_expired" }, 400);
         }
@@ -344,9 +717,9 @@ export function createOAuthRouter() {
         try {
             // Try sign-in first; if user doesn't exist, sign them up
             try {
-                userId = await signInUser(email, password);
+                userId = await auth.signIn(email, password);
             } catch {
-                userId = await signUpUser(email, password);
+                userId = await auth.signUp(email, password);
             }
         } catch (err: unknown) {
             const message =
@@ -357,7 +730,7 @@ export function createOAuthRouter() {
             );
         }
 
-        return finishAuthorization(c, sessionId, entry.session, userId);
+        return finishAuthorization(c, store, sessionId, entry.session, userId);
     });
 
     // Google sign-in — step 1: redirect the user to Google's consent screen.
@@ -376,9 +749,9 @@ export function createOAuthRouter() {
             return c.json({ error: "invalid_request" }, 400);
         }
 
-        cleanExpiredSessions();
+        cleanExpiredSessions(now());
         const entry = sessions.get(sessionId);
-        if (!entry || entry.expiresAt < Date.now()) {
+        if (!entry || entry.expiresAt < now()) {
             sessions.delete(sessionId);
             return c.json({ error: "session_expired" }, 400);
         }
@@ -418,9 +791,9 @@ export function createOAuthRouter() {
             return c.json({ error: "invalid_request" }, 400);
         }
 
-        cleanExpiredSessions();
+        cleanExpiredSessions(now());
         const entry = sessions.get(sessionId);
-        if (!entry || entry.expiresAt < Date.now()) {
+        if (!entry || entry.expiresAt < now()) {
             sessions.delete(sessionId);
             return c.json({ error: "session_expired" }, 400);
         }
@@ -487,18 +860,28 @@ export function createOAuthRouter() {
                 return renderError("googleFailed");
             }
 
-            const userId = await signInWithGoogleIdToken(
+            const userId = await auth.signInWithGoogleIdToken(
                 tokenData.id_token,
                 rawNonce,
             );
 
-            return finishAuthorization(c, sessionId, entry.session, userId);
+            return finishAuthorization(
+                c,
+                store,
+                sessionId,
+                entry.session,
+                userId,
+            );
         } catch {
             return renderError("googleFailed");
         }
     });
 
-    // Token endpoint
+    // Token endpoint. Phase A only swaps the client check from the single env
+    // client to the per-client store, so newly registered clients can redeem
+    // their codes; the full RFC 6749 strictness (required client auth, Basic,
+    // redirect_uri and verifier always required, code-client binding) is
+    // Phase B.
     oauth.post("/token", async (c) => {
         const body = await c.req.parseBody();
         const grantType = body.grant_type as string;
@@ -515,20 +898,28 @@ export function createOAuthRouter() {
             }
 
             // Look up the existing user from the refresh token
-            const userId = await consumeRefreshToken(refreshToken);
-            if (!userId) {
+            const consumed = await store.consumeRefreshToken(refreshToken);
+            if (!consumed) {
                 return c.json({ error: "invalid_grant" }, 400);
             }
 
             const newAccessToken = crypto.randomUUID();
             const newRefreshToken = crypto.randomUUID();
-            await storeToken(newAccessToken, userId);
-            await storeRefreshToken(newRefreshToken, userId);
+            await store.storeToken(
+                newAccessToken,
+                consumed.userId,
+                ACCESS_TOKEN_TTL_SECONDS,
+            );
+            await store.storeRefreshToken(
+                newRefreshToken,
+                consumed.userId,
+                consumed.clientId,
+            );
 
             return c.json({
                 access_token: newAccessToken,
                 token_type: "Bearer",
-                expires_in: 365 * 24 * 60 * 60,
+                expires_in: ACCESS_TOKEN_TTL_SECONDS,
                 refresh_token: newRefreshToken,
             });
         }
@@ -541,16 +932,27 @@ export function createOAuthRouter() {
             return c.json({ error: "invalid_request" }, 400);
         }
 
-        // Validate client credentials if provided
-        if (reqClientId && reqClientId !== clientId) {
-            return c.json({ error: "invalid_client" }, 401);
-        }
-        if (reqClientSecret && reqClientSecret !== clientSecret) {
-            return c.json({ error: "invalid_client" }, 401);
+        // Validate client credentials if provided: a sent client_id must be a
+        // client we know (registered or legacy), and a sent secret must match
+        // that client's stored hash. A secret with no client_id can only have
+        // been meant for the legacy client, as it was before registration.
+        if (reqClientId || reqClientSecret) {
+            const client = reqClientId
+                ? await store.getClient(reqClientId)
+                : legacy;
+            if (!client) {
+                return c.json({ error: "invalid_client" }, 401);
+            }
+            if (
+                reqClientSecret &&
+                !secretMatches(reqClientSecret, client.secretHash)
+            ) {
+                return c.json({ error: "invalid_client" }, 401);
+            }
         }
 
         // Atomically consume the auth code
-        const authCodeData = await consumeAuthCode(code);
+        const authCodeData = await store.consumeAuthCode(code);
         if (!authCodeData) {
             return c.json({ error: "invalid_grant" }, 400);
         }
@@ -560,7 +962,9 @@ export function createOAuthRouter() {
             return c.json({ error: "invalid_grant" }, 400);
         }
 
-        // Validate PKCE
+        // Validate PKCE. Every code minted since Phase A carries a challenge;
+        // the conditional only spares a pre-Phase-A code still inside its
+        // ten-minute lifetime.
         if (authCodeData.code_challenge) {
             if (!codeVerifier) {
                 return c.json(
@@ -571,12 +975,7 @@ export function createOAuthRouter() {
                     400,
                 );
             }
-            const hash = base64URLEncode(
-                Buffer.from(
-                    crypto.createHash("sha256").update(codeVerifier).digest(),
-                ),
-            );
-            if (hash !== authCodeData.code_challenge) {
+            if (pkceS256(codeVerifier) !== authCodeData.code_challenge) {
                 return c.json({ error: "invalid_grant" }, 400);
             }
         }
@@ -584,13 +983,21 @@ export function createOAuthRouter() {
         // Issue tokens linked to the authenticated user
         const accessToken = crypto.randomUUID();
         const refreshToken = crypto.randomUUID();
-        await storeToken(accessToken, authCodeData.user_id);
-        await storeRefreshToken(refreshToken, authCodeData.user_id);
+        await store.storeToken(
+            accessToken,
+            authCodeData.user_id,
+            ACCESS_TOKEN_TTL_SECONDS,
+        );
+        await store.storeRefreshToken(
+            refreshToken,
+            authCodeData.user_id,
+            authCodeData.client_id,
+        );
 
         return c.json({
             access_token: accessToken,
             token_type: "Bearer",
-            expires_in: 365 * 24 * 60 * 60,
+            expires_in: ACCESS_TOKEN_TTL_SECONDS,
             refresh_token: refreshToken,
         });
     });

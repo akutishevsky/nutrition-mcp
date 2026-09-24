@@ -131,23 +131,34 @@ Until these are set, the Google button still renders but clicking it returns
 ## 4. Test end-to-end (local)
 
 1. Restart the server to load the new env vars: `bun run src/index.ts`.
-2. Open (substitute your real `OAUTH_CLIENT_ID`):
+2. Register a throwaway public client. `/authorize` only accepts a
+   `redirect_uri` that a client registered, and PKCE is mandatory:
     ```
-    http://localhost:8080/authorize?response_type=code&client_id=<OAUTH_CLIENT_ID>&redirect_uri=http://localhost:8080/health&state=test
+    curl -X POST http://localhost:8080/register \
+      -H 'Content-Type: application/json' \
+      -d '{"redirect_uris":["http://localhost:8080/health"],"token_endpoint_auth_method":"none"}'
     ```
-    `/health` is a throwaway redirect target so you can read the result off the
-    URL bar.
-3. Click **Continue with Google** and pick an account. You should bounce:
+    Note the `client_id` in the response. `/health` is a throwaway redirect
+    target so you can read the result off the URL bar.
+3. Open (substitute that `client_id`; the challenge is the RFC 7636 Appendix B
+   example, whose verifier is used in step 6):
+    ```
+    http://localhost:8080/authorize?response_type=code&client_id=<client_id>&redirect_uri=http://localhost:8080/health&state=test&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256
+    ```
+    The login page warns that `localhost:8080` is a program on this computer —
+    expected for a loopback redirect.
+4. Click **Continue with Google** and pick an account. You should bounce:
    `/authorize/google` → Google → `/auth/google/callback` →
    `…/health?code=…&state=test`.
-4. **Supabase → Authentication → Users**: confirm a new user with a **Google**
+5. **Supabase → Authentication → Users**: confirm a new user with a **Google**
    identity appeared.
-5. _(Optional, full token check)_ exchange the `code` for a token and call `/mcp`:
+6. _(Optional, full token check)_ exchange the `code` for a token and call `/mcp`:
     ```
     curl -X POST http://localhost:8080/token \
       -d grant_type=authorization_code -d code=<authCode> \
       -d redirect_uri=http://localhost:8080/health \
-      -d client_id=<OAUTH_CLIENT_ID> -d client_secret=<OAUTH_CLIENT_SECRET>
+      -d client_id=<client_id> \
+      -d code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
     ```
     then
     ```
