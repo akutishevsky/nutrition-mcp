@@ -194,10 +194,11 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "Ruf alle Mahlzeiten zwischen zwei Daten auf einmal ab — praktisch, um eine Woche oder einen Monat auszuwerten.",
+                "Ruf alle Mahlzeiten zwischen zwei Daten auf einmal ab — praktisch, um eine Woche oder einen Monat auszuwerten. Ein Aufruf deckt bis zu 31 Tage ab; für längere Zeiträume liefern Trends und Zusammenfassungen Tagessummen.",
             params: {
                 start_date: "Startdatum (JJJJ-MM-TT)",
-                end_date: "Enddatum (JJJJ-MM-TT)",
+                end_date:
+                    "Enddatum (JJJJ-MM-TT), höchstens 31 Tage einschließlich des Starttags",
             },
             example: "List meine Mahlzeiten von Montag bis Freitag auf",
         },

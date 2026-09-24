@@ -31,6 +31,8 @@ import {
     MAX_GOAL_MG,
     gateAlcohol,
     handleMcp,
+    MEALS_RANGE_MAX_DAYS,
+    WEIGHT_RANGE_MAX_DAYS,
 } from "./mcp.js";
 import {
     Client,
@@ -1468,6 +1470,8 @@ mock.module("./supabase.js", () => ({
     // query under test.
     getMealsInRange: async () => db.meals,
     getWaterInRange: async () => db.water,
+    // get_weight_by_date_range's reader; its range guard is what is under test.
+    getWeightInRange: async () => [],
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
         db.inserted.push(input);
         const saved = storedMeal(input);
@@ -2729,6 +2733,110 @@ describe("delete tools distinguish deleted from not-found", () => {
     }
 });
 
+// ---------- range listings are bounded ----------
+//
+// get_meals_by_date_range returns every meal as full text from an unpaged read,
+// so an unbounded range dumped the whole diary and could truncate silently at
+// PostgREST's row cap. The guard runs inside withAnalytics, so each rejection
+// is an isError result with an analytics row, not a schema-level refusal.
+describe("date-range listings reject bad and oversized ranges", () => {
+    const rowsFor = (tool: string) =>
+        db.analyticsRows.filter((r) => r.tool_name === tool);
+
+    test("the meal cap is a month", () => {
+        expect(MEALS_RANGE_MAX_DAYS).toBe(31);
+    });
+
+    test("a range one day over the cap is refused with the way forward", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_by_date_range", {
+                start_date: "2026-01-01",
+                end_date: "2026-02-01",
+            });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("spans 32 days");
+            expect(text).toContain(`at most ${MEALS_RANGE_MAX_DAYS} days`);
+            expect(text).toContain("get_trends");
+            // Not get_nutrition_summary: it reads unpaged and would truncate a
+            // long range at PostgREST's row cap (#66).
+            expect(text).not.toContain("get_nutrition_summary");
+            expect(text).toContain("monthly calls");
+        });
+        const rows = rowsFor("get_meals_by_date_range");
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.success).toBe(false);
+        expect(rows[0]!.error_category).toBe("date_range_too_long");
+    });
+
+    test("exactly 31 days inclusive is accepted", async () => {
+        db.meals = [meal({ logged_at: "2026-01-15T12:00:00.000Z" })];
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_by_date_range", {
+                start_date: "2026-01-01",
+                end_date: "2026-01-31",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("## 2026-01-15 (1 meal)");
+        });
+        expect(rowsFor("get_meals_by_date_range")[0]!.success).toBe(true);
+    });
+
+    test("a reversed range is refused", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_by_date_range", {
+                start_date: "2026-02-01",
+                end_date: "2026-01-01",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("is after end_date");
+        });
+        expect(rowsFor("get_meals_by_date_range")[0]!.error_category).toBe(
+            "invalid_date_format",
+        );
+    });
+
+    test.each(["2026-02-30", "2026-1-5", "yesterday", "2026-01-01T00:00"])(
+        "a non-calendar date %p is refused",
+        async (bad) => {
+            await withTools(null, async (call) => {
+                const r = await call("get_meals_by_date_range", {
+                    start_date: "2026-01-01",
+                    end_date: bad,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    `Invalid end_date "${bad}": not a real calendar date`,
+                );
+            });
+            expect(rowsFor("get_meals_by_date_range")[0]!.error_category).toBe(
+                "invalid_date_format",
+            );
+        },
+    );
+
+    test("get_weight_by_date_range has the same guard with a year's cap", async () => {
+        await withTools(null, async (call) => {
+            const ok = await call("get_weight_by_date_range", {
+                start_date: "2024-01-01",
+                end_date: "2024-12-31",
+            });
+            expect(ok.isError).toBeFalsy();
+            expect(textOf(ok)).toContain("No weight found");
+
+            const over = await call("get_weight_by_date_range", {
+                start_date: "2024-01-01",
+                end_date: "2025-01-01",
+            });
+            expect(over.isError).toBe(true);
+            expect(textOf(over)).toContain(
+                `at most ${WEIGHT_RANGE_MAX_DAYS} days`,
+            );
+            expect(textOf(over)).toContain("get_weight_trends");
+        });
+    });
+});
+
 // ---------- delete_account leaves no trace of the deleted user ----------
 
 // deleteAllUserData deletes tool_analytics first, then withAnalytics inserts a
@@ -3676,10 +3784,11 @@ describe("current-time disclosure", () => {
                 expect(desc).not.toContain(
                     "ask the user before calling this tool",
                 );
-                // The only surviving mention of asking is the prohibition.
-                expect(
-                    desc.replaceAll("Do NOT ask the user what time it is.", ""),
-                ).not.toContain("ask the user");
+                // Asking the user is not prescribed: the text states that the
+                // server knows the time, so there is no need to ask (#102).
+                expect(desc).not.toMatch(/\b(?:do not|don't) ask the user\b/i);
+                expect(desc).toContain("The server knows the current time");
+                expect(desc).toContain("no need to ask the user");
                 expect(desc).toContain("omit this field entirely");
                 expect(desc).toContain("get_current_time");
             }
@@ -3750,11 +3859,52 @@ describe("export_all_data is on the tool surface", () => {
     test("it is annotated as the write it is", async () => {
         const all = (await toolsOf()).find((t) => t.name === "export_all_data");
         expect(all?.annotations).toEqual({
+            title: "Export All Data",
             readOnlyHint: false,
             destructiveHint: false,
             idempotentHint: false,
             openWorldHint: false,
         });
+    });
+});
+
+// The connector directory's review criteria require a `title` and the
+// applicable hints in every tool's annotations — Claude derives auto-permissions
+// from them (read-only tools run unprompted, destructive ones always prompt).
+// The top-level `title` alone does not satisfy it, which is how 34 of 36 tools
+// shipped without one.
+describe("every tool carries directory-ready annotations", () => {
+    test("title and hints are present and consistent", async () => {
+        const server = new McpServer(
+            { name: "t", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [ct, st] = InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "c", version: "0.0.0" });
+        await Promise.all([server.connect(st), client.connect(ct)]);
+        const { tools } = await client.listTools();
+        await client.close();
+        await server.close();
+
+        expect(tools.length).toBe(36);
+        for (const t of tools) {
+            const a = t.annotations;
+            expect(a?.title, t.name).toBeTruthy();
+            expect(a?.title, t.name).toBe(t.title);
+            expect(typeof a?.readOnlyHint, t.name).toBe("boolean");
+            expect(typeof a?.destructiveHint, t.name).toBe("boolean");
+            if (a?.readOnlyHint) expect(a.destructiveHint, t.name).toBe(false);
+        }
+        for (const name of [
+            "delete_meal",
+            "delete_water",
+            "delete_weight",
+            "delete_account",
+        ]) {
+            const a = tools.find((t) => t.name === name)?.annotations;
+            expect(a?.destructiveHint, name).toBe(true);
+        }
     });
 });
 
@@ -3930,6 +4080,46 @@ describe("/mcp serves the 2026-07-28 revision", () => {
         expect(body.result?.instructions).toBe(full.instructions);
         expect(full.instructions.length).toBeGreaterThan(0);
     });
+});
+
+// Directory policy: tool text must not direct Claude to external software the
+// user did not ask for. "search the web" used to appear in the nutrient rule,
+// the photo-logging steps, lookup_barcode and several field descriptions, so
+// this sweeps every surface the model reads — the server instructions, every
+// tool description and every input-field description — rather than pinning
+// the sites that happened to carry it.
+describe("tool text names no external tool", () => {
+    const WEB = /web search|search the web|searching the web/i;
+
+    test.each(ERAS)(
+        "no instructions, tool or field description mentions web search (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const instructions = client.getInstructions() ?? "";
+                expect(instructions.length).toBeGreaterThan(0);
+                expect(instructions).not.toMatch(WEB);
+                // Rewording for the policy kept the issue #102 default: the
+                // instructions still say to omit logged_at for "just now".
+                expect(instructions).toContain("omit logged_at");
+                expect(instructions).toContain("get_current_time");
+                const { tools } = await client.listTools();
+                expect(tools.length).toBeGreaterThan(30);
+                for (const tool of tools) {
+                    expect(tool.description ?? "", tool.name).not.toMatch(WEB);
+                    const props = (tool.inputSchema.properties ?? {}) as Record<
+                        string,
+                        { description?: string }
+                    >;
+                    for (const [key, prop] of Object.entries(props)) {
+                        expect(
+                            prop.description ?? "",
+                            `${tool.name}.${key}`,
+                        ).not.toMatch(WEB);
+                    }
+                }
+            });
+        },
+    );
 });
 
 // The product surface, driven end to end over BOTH legs. Everything in here is

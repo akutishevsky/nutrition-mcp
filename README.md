@@ -63,7 +63,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts (read from a photo or typed)                                         |
 | `get_meals_today`          | Get all meals logged today                                                                                                                       |
 | `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD)                                                                                                       |
-| `get_meals_by_date_range`  | Get meals between two dates (inclusive)                                                                                                          |
+| `get_meals_by_date_range`  | Get meals between two dates (inclusive), up to 31 days per call                                                                                  |
 | `search_meals`             | Search past meals by keyword, grouped into recurring variations (counts, last logged, typical macros)                                            |
 | `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range                                                                                          |
 | `update_meal`              | Update any fields of an existing meal                                                                                                            |
@@ -78,7 +78,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `log_weight`               | Log a body-weight measurement in kg or lb (converted and stored server-side)                                                                     |
 | `get_weight_today`         | Get today's weight entries                                                                                                                       |
 | `get_weight_by_date`       | Get weight entries for a specific date                                                                                                           |
-| `get_weight_by_date_range` | Get weight entries between two dates (inclusive), grouped by day                                                                                 |
+| `get_weight_by_date_range` | Get weight entries between two dates (inclusive), grouped by day, up to 366 days per call                                                        |
 | `get_weight_trends`        | Weight trend: latest, overall change, 7/14/30-day moving averages, min/max, and goal progress                                                    |
 | `update_weight`            | Update an existing weight entry                                                                                                                  |
 | `delete_weight`            | Delete a weight entry by ID                                                                                                                      |

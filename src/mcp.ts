@@ -138,47 +138,39 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // (dayCarries in insights.ts), so one forgotten fiber figure silently deletes a
 // day from the user's fiber trend rather than making it slightly wrong.
 const NUTRIENT_COVERAGE = `Fiber, sugar and caffeine are tracked here alongside the headline macros, and they are only worth tracking if they are actually filled in.
-- fiber_g and sugar_g: send them on EVERY meal, exactly as you already send protein, carbs and fat. Not knowing the exact figure is not a reason to leave one out — you do not know the exact protein either. Work in this order: a nutrition label, a barcode lookup, or a chain's published per-item nutrition; then a web search for that product or dish; then your own estimate from the ingredients and the portion. A 0 is the right answer wherever 0 is true (a steak, eggs, oil, black coffee) — what is wrong is omitting the field, because a missing value is not a zero: it records "nobody measured this" and drops the whole day out of the user's fiber and sugar averages, goal lines and charts.
-- caffeine_mg: decide it deliberately on every entry instead of defaulting to silence, but only send a number when the item really is a caffeine source — coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. If it is one, get the figure from the label or the chain's nutrition, or search the web for the branded drink, or fall back to the typical amounts in the field description. If the item is plainly not a caffeine source, OMIT the field rather than sending 0 — an explicit 0 means "measured, and it was none", which turns on a caffeine row for a user who never consumes any.`;
+- fiber_g and sugar_g: send them on EVERY meal, exactly as you already send protein, carbs and fat. Not knowing the exact figure is not a reason to leave one out — you do not know the exact protein either. Work in this order: a nutrition label, a barcode lookup, or the chain's or product's published per-item nutrition where it is available; otherwise an estimate from the ingredients and the portion. A 0 is the right answer wherever 0 is true (a steak, eggs, oil, black coffee) — what is wrong is omitting the field, because a missing value is not a zero: it records "nobody measured this" and drops the whole day out of the user's fiber and sugar averages, goal lines and charts.
+- caffeine_mg: decide it deliberately on every entry instead of defaulting to silence, but only send a number when the item really is a caffeine source — coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. If it is one, use the figure on the label or in the chain's published nutrition where available; otherwise use the typical amounts in the field description. If the item is plainly not a caffeine source, OMIT the field rather than sending 0 — an explicit 0 means "measured, and it was none", which turns on a caffeine row for a user who never consumes any.`;
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
-// Advisory — not every client surfaces it, so the enforcement rule ("interview
-// the user one question at a time; never log from a photo until every open
-// question is resolved") is repeated in log_meal's own description. Keep both
-// in sync. Note this is guidance only: the client model decides whether to
-// follow it, so the loop cannot be strictly enforced from here.
+// Advisory — not every client surfaces it, so the photo-logging substance
+// (resolve open questions and get the user's confirmation before logging, unless
+// they ask to just log it) is repeated in log_meal's own description. Keep both
+// in sync. Both describe what an accurate entry needs rather than scripting the
+// conversation: the directory policy asks tool text to describe what the tool
+// does, not how Claude should behave, and to name no external tool (so no "search
+// the web") the user did not ask for.
 const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, goals, and trends, per-user with timezone support.
 
 All nutrition figures are estimates and this server does not provide medical or dietary advice.
 
-Knowing what time it is — some hosts put the current date and time in your context and some do not, but this server always knows both the clock and the user's timezone. Never ask the user what time it is.
-- Logging something that just happened: omit logged_at entirely. The server stamps the entry with the current time, which is more accurate than any time you could reconstruct.
-- Resolving a relative time ("this morning", "an hour ago", "last Monday") or working out what "today" means: call get_current_time, then pass the resolved local time as logged_at.
-- Only ask the user for a time when the entry is for some other moment they have not told you.
+Current time — some hosts put the current date and time in context and some do not; this server always knows both the clock and the user's timezone, and get_current_time returns them.
+- For something that just happened, omit logged_at: the server stamps the entry with the current time, which is more accurate than a reconstructed one, so there is no need to ask the user what time it is.
+- A relative time ("this morning", "an hour ago", "last Monday") or "today" resolves via get_current_time, passed on as the local time in logged_at.
+- The user only needs to supply a time for an entry at some other moment they have not mentioned.
 
 Recording a complete meal — this applies to every write path (log_meal, update_meal, a barcode lookup you then log, a meal you copied from search_meals), not just to photos.
 ${NUTRIENT_COVERAGE}
 When you notice after the fact that a meal went in without its fiber or sugar, do not leave it: fill it in with update_meal rather than mentioning it in prose.
 
-Photo-based meal logging — when the user sends a photo of food, follow these steps in order:
-1. Pick the flow. A packaged product with a visible barcode: transcribe the digits printed under the barcode and call lookup_barcode. A plate, bowl, or prepared meal: continue below.
-2. Identify each distinct dish or food item in the photo.
-3. Establish provenance: restaurant/takeout or homemade? It changes everything downstream, so settle it before asking anything else. Read the photo for cues — restaurant plating, branded packaging or cups, a table setting in a venue, a tray — versus home tableware and a domestic background. If the cues are clear, state your read and let the user correct it ("Looks like this is from a restaurant — right?"). If they are not, just ask. Homemade: skip to step 6. Restaurant: continue to step 4.
-4. Restaurant path — ask which restaurant it is and where it's located (city, or neighbourhood for a chain with many branches). Ask both in one message; they are a single natural question. Then search the web for that restaurant's menu.
-   - Chains and fast food (McDonald's, Starbucks, Pret, and similar) usually publish full per-item nutrition. Find the specific item and use those numbers; they beat any estimate.
-   - Independent restaurants usually publish a menu with dish names and ingredient lists but NO macros. Use the menu to identify which dish the photo shows and what is actually in it (the ingredient list is the real value — it reveals butter, cream, oil, and sugar that the photo hides), then estimate macros from those ingredients and the visible portion.
-   - If you cannot find the menu — or cannot tell which of several dishes it is — say so plainly, make your best assumption, and put it to the user as a question. Never present a guess as if it came from the menu.
-   - Be honest about where each number came from. Published chain nutrition is reliable; a macro figure from a recipe aggregator or a random site is not, and a dish cooked in a restaurant kitchen is usually richer than the same dish cooked at home. Say which of these you are working from, and do not dress up an estimate as verified data.
-5. Restaurant path, continued — also call search_meals for the dish and for the restaurant name. The user may have eaten there before, and a past log is better evidence than any web result.
-6. Homemade path — call search_meals with a short keyword per dish, passing alternatives in both the conversation language and English (past logs may be in either). Past variations reveal ingredients invisible in the photo (raisins vs banana, milk vs water, added honey or oil). Offer them as options: "Is this the oatmeal with raisins like Monday, or with banana, or something else?"
-7. Estimate portions in household measures the user can verify at a glance — "a glass of", "a handful of", "a tablespoon of", "half the plate" — never grams or ounces (nobody can weigh food from a photo). For a restaurant meal, what matters most is how much of the serving was actually eaten: ask whether they finished it, left some, or shared it.
-8. Interview the user — this is a multi-turn conversation, not a single confirmation step. Build a checklist of every open question across all dishes: which variation or menu item each dish is, how much of each the user actually ate, and any ingredient the photo cannot show (oil, butter, sugar, dressing, sauce, what a drink was made with). On the restaurant path, any dish you could not pin down from the menu is a checklist item too. Then work through that checklist ONE question per message. Ask the single most impactful open question, wait for the answer, let it update your assumptions, and ask the next. Do NOT batch the whole checklist into one message and do NOT stop after the first answer — a single round-trip is not an interview.
-9. Keep going until every item on the checklist is resolved. Before each question it helps to note what is already settled and what is still open ("Got it — oatmeal with raisins. Two things left: how much you ate, and whether there was honey"). When the checklist is empty, summarize the full meal as you understand it and ask for a final yes before logging. Never log straight from a photo, and never log while any checklist item is still open.
-10. When logging, write the confirmed household-measure portions into the meal description itself (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") so future search_meals results are self-describing. For a restaurant meal, name the venue and city in the description too (e.g. "Pad thai with chicken (1 plate, finished) at Thai Basil, Podil, Kyiv") — the next time the user eats there, search_meals surfaces this entry and its macros, which is better evidence than searching the web again. Put anything about sourcing that the user should be able to revisit in notes, e.g. whether macros came from published chain nutrition or from an estimate.
+Meals from photos:
+- A packaged product with a visible barcode: the digits printed under the barcode go to lookup_barcode.
+- For a plated or prepared meal, whether it came from a restaurant/takeout or was made at home changes the evidence available. For a restaurant, which restaurant and where (city, or neighbourhood for a chain) matters: chains usually publish per-item nutrition, and an independent restaurant's menu or ingredient list — if the user shares it or it is available to you — reveals butter, cream, oil and sugar a photo hides. Restaurant cooking is usually richer than the same dish made at home.
+- search_meals past logs (for the dish, and for the restaurant name) reveal variations and hidden ingredients (raisins vs banana, milk vs water, added honey or oil); search with short keywords in both the conversation language and English.
+- Portions are best expressed in household measures the user can verify at a glance (a glass, a handful, a tablespoon, half the plate) rather than grams, and for a restaurant serving, how much was actually eaten matters most.
+- Before log_meal, resolve the open questions — which variation or menu item each dish is, how much was eaten, and ingredients the photo cannot show (oil, butter, sugar, dressing, sauce, what a drink was made with) — and confirm the summarized meal with the user, unless they ask to just log it. A single obvious item may need one question; a full plate usually needs several.
+- The logged description carries the confirmed portions (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") and, for a restaurant meal, the venue and city (e.g. "Pad thai with chicken (1 plate, finished) at Thai Basil, Podil, Kyiv"), so future search_meals results are self-describing. Say plainly when a figure is an estimate rather than published nutrition, and note the source in notes.
 
-Keep the interview proportional: a single obvious item with one known past variation may need only one question, while a full plate with several dishes usually needs several. A restaurant meal you pinned down from published chain nutrition may need only the how-much-did-you-eat question. If the user says to just log it or otherwise signals impatience, stop asking, state your remaining assumptions plainly, and log.
-
-For "log my usual X" requests, use search_meals the same way: search, then interview to confirm the variation and the amount before logging.
+"Log my usual X" works the same way: search_meals, then confirm the variation and the amount before logging.
 
 Importing history from another app — when the user wants to bring in past meals from MyFitnessPal, Cronometer, Lose It!, MacroFactor or a similar export:
 1. If they have a FILE, call start_meal_import first and let them drive it. The importer reads and maps the file in the browser, so the rows never pass through you and cannot be mistranscribed, and it handles column mapping, batching and retries. Do not ask them to paste a file you could import properly.
@@ -1110,10 +1102,10 @@ const LOGGED_AT_FORMS =
 // day (issue #102). Omitting the field is strictly better than guessing: the
 // server stamps `new Date()` and it genuinely knows the time.
 const LOGGED_AT_OMIT_IF_NOW =
-    " Do NOT ask the user what time it is. If you don't know the current date or time, omit this field entirely and the server stamps the entry with the current time. Only supply it for an entry that happened at some other moment, and call get_current_time if you need the user's local clock to work that moment out.";
+    " The server knows the current time and the user's timezone, so there is no need to ask the user for it: for something that just happened, omit this field entirely and the server stamps the entry with the current time. Only supply it for an entry that happened at some other moment; get_current_time returns the user's local clock for working that moment out.";
 
 // The one rendering of "what time is it for this user", shared by
-// get_current_time and get_timezone so the two can never disagree. The weekday
+// get_current_time and get_profile so the two can never disagree. The weekday
 // is there to make "last Monday" resolvable without a second round trip, and
 // the UTC instant so a caller can check its own clock against ours. Local time
 // is the repo-standard "YYYY-MM-DD HH:mm:ss" wall clock — deliberately not an
@@ -1215,6 +1207,72 @@ function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
     throw new Error(
         `${formatWeight(grams, unit)} is outside the plausible body-weight range (20–500 kg / 44–1102 lb). Double-check the number and unit.${hint}`,
     );
+}
+
+// Longest window, in calendar days inclusive, get_meals_by_date_range will
+// list. Every meal comes back as full text, so an open range dumped the whole
+// diary into one response, and the unpaged getMealsInRange read would also
+// hit PostgREST's 1000-row cap and truncate silently (the #66 failure mode)
+// long before a year was up. A month covers any "what did I eat" review;
+// longer periods belong to the aggregating tools the error names.
+export const MEALS_RANGE_MAX_DAYS = 31;
+
+// The same guard for get_weight_by_date_range. Weight rows are one short line
+// each, so the bound is a year (366 so a leap year fits) rather than a month:
+// it only has to keep a daily weigh-in history well clear of the 1000-row cap
+// and match get_weight_trends' own 365-day ceiling.
+export const WEIGHT_RANGE_MAX_DAYS = 366;
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+// A YYYY-MM-DD string naming a date that exists. The Date.UTC round trip is
+// what rejects "2026-02-30": Date rolls it over to March 2nd instead of
+// failing, so the parts are compared back rather than trusting the parse.
+function isCalendarDate(value: string): boolean {
+    const m = ISO_DATE.exec(value);
+    if (!m) return false;
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    const date = new Date(Date.UTC(y, mo - 1, d));
+    return (
+        date.getUTCFullYear() === y &&
+        date.getUTCMonth() === mo - 1 &&
+        date.getUTCDate() === d
+    );
+}
+
+// Validate a start_date/end_date pair for a range-listing tool, throwing the
+// caller-facing message. Throwing (rather than returning text) is what routes
+// the rejection through withAnalytics as a failure with an error category,
+// the same as every other bad-argument path here. The wording is matched in
+// categorizeError (src/analytics.ts): the over-limit message deliberately
+// avoids "limit", which tier 3 would otherwise read as rate_limited.
+function assertDateRange(
+    start: string,
+    end: string,
+    maxDays: number,
+    longerHint: string,
+): void {
+    for (const [name, value] of [
+        ["start_date", start],
+        ["end_date", end],
+    ] as const) {
+        if (!isCalendarDate(value)) {
+            throw new Error(
+                `Invalid ${name} "${value}": not a real calendar date. Use YYYY-MM-DD, e.g. "2026-01-31".`,
+            );
+        }
+    }
+    if (start > end) {
+        throw new Error(
+            `Invalid date range: start_date (${start}) is after end_date (${end}). Swap them.`,
+        );
+    }
+    const days = dateDiffDays(start, end) + 1;
+    if (days > maxDays) {
+        throw new Error(
+            `Date range too long: ${start} to ${end} spans ${days} days, and at most ${maxDays} days (inclusive) can be listed at once. ${longerHint}`,
+        );
+    }
 }
 
 export function formatMeal(meal: Meal, alcohol: AlcoholDisplay = null): string {
@@ -1359,10 +1417,11 @@ export function registerTools(
                 // NUTRIENT_COVERAGE rather than restated, because
                 // SERVER_INSTRUCTIONS carries the same paragraph and many hosts
                 // surface only one of the two.
-                "Log a meal entry with nutritional information. If the user doesn't specify the quantity or portion size, ask how much they ate before estimating calories and macros. When the user gives a barcode — typed, or read from a photo of the package (transcribe the digits printed under the barcode) — call lookup_barcode first to get the product's label data, then scale it to the amount eaten. Fall back to web search or estimation only when no product is found. Use web search for branded products when no barcode is available. When logging from a photo of a plated or prepared meal (no package/barcode): first identify each dish, then establish whether it is a restaurant/takeout meal or homemade before anything else. If it is from a restaurant, ask which restaurant and where, then search the web for its menu — chains publish per-item nutrition worth using directly, independent places usually publish ingredient lists that reveal the butter, cream, and oil the photo hides; if you cannot find the menu or cannot tell which dish it is, say so and put your assumption to the user as a question rather than presenting a guess as menu data. Either way, estimate portions in household measures the user can eyeball (a glass of, a handful of, a tablespoon of — NOT grams; for restaurant servings ask how much of it they actually ate), call search_meals to see how similar meals were logged before and to surface ingredients that may be invisible in the photo, then interview the user across multiple turns — one question per message, covering which variation each dish is, how much they ate, and photo-invisible ingredients (oil, sugar, sauce, what a drink was made with) — until nothing is left open. Do NOT call this tool after a single question-and-answer round; a lone confirmation is not enough. Only call it once every open question is resolved and the user has approved a full summary of the meal (or has told you to stop asking and just log it). Write the confirmed household-measure portions into the description itself (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing, and for a restaurant meal name the venue and city too (e.g. 'Pad thai with chicken (1 plate, finished) at Thai Basil, Podil, Kyiv').\n\n" +
+                "Log a meal entry with nutritional information. It needs the quantity or portion eaten; if the user has not given it, ask before estimating calories and macros. For a barcode — typed, or the digits printed under it in a photo of the package — lookup_barcode returns the product's label data to scale to the amount eaten; if no product is found, estimate. For a branded product or chain item without a barcode, use the label or the published per-item nutrition where available; otherwise estimate from the ingredients and portion. For a photo of a plated or prepared meal, whether it is from a restaurant (which one, and where) or homemade determines the evidence: a chain's published nutrition, a menu or ingredient list if the user shares it or it is available to you, and past logs via search_meals, which surface variations and ingredients the photo cannot show. For a meal logged from a photo, call this tool only after the meal is confirmed: which variation each dish is, how much was eaten (in household measures such as a glass, a handful or a tablespoon rather than grams), and hidden ingredients like oil, sugar or sauce are resolved and the user has agreed to the summary — or has asked to just log it. Write the confirmed portions into the description (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing, and for a restaurant meal name the venue and city too (e.g. 'Pad thai with chicken (1 plate, finished) at Thai Basil, Podil, Kyiv').\n\n" +
                 NUTRIENT_COVERAGE +
                 "\nPutting '180 mg caffeine' or '6 g fiber' in notes or in the description instead of in the field leaves it out of every total, goal and chart.",
             annotations: {
+                title: "Log Meal",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -1412,7 +1471,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "Dietary fiber in grams. Send this on every meal — treat it as mandatory alongside protein, carbs and fat, and estimate it rather than omitting it, because a missing value is not a zero and excludes the whole day from the user's fiber average and goal. Prefer a label or a barcode lookup, then a web search, then these anchors per 100 g: cooked lentils or beans 5-8 g, dry rolled oats 10 g, wholemeal bread 7 g, white bread 2.7 g, cooked wholewheat pasta 4 g (white 2 g), cooked brown rice 1.8 g (white 0.4 g), potato with skin 2 g, most vegetables 2-3 g, apple or pear with skin 2.4-3 g, banana 2.6 g, berries 5-7 g, almonds 12 g, chia 34 g. Meat, fish, eggs, dairy, oil and sugar contain none: send 0 there, do not omit the field.",
+                        "Dietary fiber in grams. Send this on every meal — treat it as mandatory alongside protein, carbs and fat, and estimate it rather than omitting it, because a missing value is not a zero and excludes the whole day from the user's fiber average and goal. Prefer a label, a barcode lookup or published per-item nutrition where available; otherwise estimate using these anchors per 100 g: cooked lentils or beans 5-8 g, dry rolled oats 10 g, wholemeal bread 7 g, white bread 2.7 g, cooked wholewheat pasta 4 g (white 2 g), cooked brown rice 1.8 g (white 0.4 g), potato with skin 2 g, most vegetables 2-3 g, apple or pear with skin 2.4-3 g, banana 2.6 g, berries 5-7 g, almonds 12 g, chia 34 g. Meat, fish, eggs, dairy, oil and sugar contain none: send 0 there, do not omit the field.",
                     ),
                 sugar_g: z.coerce
                     .number()
@@ -1436,7 +1495,7 @@ export function registerTools(
                     .max(MAX_CAFFEINE_MG)
                     .optional()
                     .describe(
-                        "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g and sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, searching the web for a branded drink whose label you do not know and falling back to the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
+                        "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g and sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, from the label or published nutrition where available and otherwise from the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
                     ),
                 logged_at: z
                     .string()
@@ -1580,7 +1639,7 @@ export function registerTools(
         {
             title: "Bulk Import Meals",
             description:
-                "Import many past meals in one call, for backfilling history from a file the user exported from another app (MyFitnessPal, Cronometer, Lose It!, MacroFactor) or from a list they pasted. Parse the source yourself and map it to the row schema; the server validates every row and reports per-row results, so you can fix and re-send only the rows that failed. Prefer this over calling log_meal in a loop — log_meal is rate-limited per call, so a week of meals would exhaust the budget. Two rules matter for correctness. (1) Compute expected_row_count, and expected_total_kcal when every row has calories, FROM THE SOURCE FILE using deterministic tooling (a script, or counting the actual lines) — never by re-reading the JSON you just wrote, which would only compare your output against itself and catch nothing. (2) Call once with dry_run: true first whenever the rows came from parsing a CSV, a screenshot, or free text; check the resolved logged_at and meal_type echoed back for every row, show the user what will be imported, and only then call again with dry_run: false. Pass local times exactly as the file gives them and let the server apply the user's timezone; do not compute UTC offsets yourself, and do not guess a value you cannot find — omit the field and list the column in unmapped_columns instead. (3) Because those local times are placed using the user's saved timezone, check with get_timezone before a large import: if it is unset the server falls back to UTC, and correcting it afterwards moves every imported meal — including onto adjacent days for anything logged near midnight. Offer set_timezone first. Maximum " +
+                "Import many past meals in one call, for backfilling history from a file the user exported from another app (MyFitnessPal, Cronometer, Lose It!, MacroFactor) or from a list they pasted. Parse the source yourself and map it to the row schema; the server validates every row and reports per-row results, so you can fix and re-send only the rows that failed. Prefer this over calling log_meal in a loop — log_meal is rate-limited per call, so a week of meals would exhaust the budget. Three rules matter for correctness. (1) Compute expected_row_count, and expected_total_kcal when every row has calories, FROM THE SOURCE FILE using deterministic tooling (a script, or counting the actual lines) — never by re-reading the JSON you just wrote, which would only compare your output against itself and catch nothing. (2) Call once with dry_run: true first whenever the rows came from parsing a CSV, a screenshot, or free text; check the resolved logged_at and meal_type echoed back for every row, show the user what will be imported, and only then call again with dry_run: false. Pass local times exactly as the file gives them and let the server apply the user's timezone; do not compute UTC offsets yourself, and do not guess a value you cannot find — omit the field and list the column in unmapped_columns instead. (3) Because those local times are placed using the user's saved timezone, check get_profile (which reports the saved timezone) before a large import: if it is unset the server falls back to UTC, and correcting it afterwards moves every imported meal — including onto adjacent days for anything logged near midnight. Offer set_timezone first. Maximum " +
                 MAX_ROWS_PER_CALL +
                 " rows per call: split larger files by date range, keeping all rows for one calendar date in the same call. If a single calendar date alone has more than " +
                 MAX_ROWS_PER_CALL +
@@ -1766,8 +1825,9 @@ export function registerTools(
         {
             title: "Look Up Barcode",
             description:
-                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, fall back to web search or estimation. Two gaps to close yourself before logging: a fiber or sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product get caffeine_mg from the label or a web search.",
+                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, estimate from the product description, or from the label if the user can share it. Two gaps to close yourself before logging: a fiber or sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product take caffeine_mg from the label where available, otherwise from typical amounts.",
             annotations: {
+                title: "Look Up Barcode",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -1871,6 +1931,7 @@ export function registerTools(
             title: "Get Today's Meals",
             description: "Get all meals logged today",
             annotations: {
+                title: "Get Today's Meals",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -1913,6 +1974,7 @@ export function registerTools(
             title: "Get Meals by Date",
             description: "Get all meals for a specific date",
             annotations: {
+                title: "Get Meals by Date",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -1953,9 +2015,9 @@ export function registerTools(
         "get_meals_by_date_range",
         {
             title: "Get Meals by Date Range",
-            description:
-                "Get all meals between two dates (inclusive). Use this instead of multiple get_meals_by_date calls when you need meals for more than one day.",
+            description: `Get all meals between two dates (inclusive), grouped by day. Use this instead of multiple get_meals_by_date calls when you need meals for more than one day. The range can span at most ${MEALS_RANGE_MAX_DAYS} days; get_trends covers longer periods with daily totals instead of individual meals.`,
             annotations: {
+                title: "Get Meals by Date Range",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -1963,13 +2025,23 @@ export function registerTools(
             },
             inputSchema: z.object({
                 start_date: z.string().describe("Start date (YYYY-MM-DD)"),
-                end_date: z.string().describe("End date (YYYY-MM-DD)"),
+                end_date: z
+                    .string()
+                    .describe(
+                        `End date (YYYY-MM-DD). The range spans at most ${MEALS_RANGE_MAX_DAYS} days, both ends included.`,
+                    ),
             }),
         },
         async ({ start_date, end_date }) => {
             return withAnalytics(
                 "get_meals_by_date_range",
                 async () => {
+                    assertDateRange(
+                        start_date,
+                        end_date,
+                        MEALS_RANGE_MAX_DAYS,
+                        "For a longer period use get_trends (daily totals rather than every meal), or split the range into monthly calls.",
+                    );
                     const tz = await getUserTimezone(userId);
                     const meals = await getMealsInRange(
                         userId,
@@ -2028,8 +2100,9 @@ export function registerTools(
         {
             title: "Search Past Meals",
             description:
-                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Use this BEFORE logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil) — turn each difference between variations into a question for the user rather than picking one silently, and ask those questions one at a time across several turns instead of batching them. Also use it for requests like 'log my usual breakfast': search, interview the user to pin down the variation and the amount, then log_meal. For a restaurant meal, search the restaurant name as well as the dish — a past visit to the same venue is stronger evidence than anything on the web. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
+                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Useful before logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil), and each difference between variations is a question for the user rather than something to pick silently. Also serves requests like 'log my usual breakfast': search, confirm the variation and the amount with the user, then log_meal. For a restaurant meal, search the restaurant name as well as the dish — a past visit to the same venue is stronger evidence than a generic estimate. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
             annotations: {
+                title: "Search Past Meals",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2081,7 +2154,7 @@ export function registerTools(
                             content: [
                                 {
                                     type: "text",
-                                    text: `No past meals matching ${label} in the last ${windowDays} days. If logging from a photo, proceed with your own portion assumptions — but with no past variations to draw on, you have MORE to ask about, not less. Interview the user one question per message about the amount eaten and about ingredients the photo cannot show (oil, butter, sugar, sauce, what a drink was made with) before calling log_meal.`,
+                                    text: `No past meals matching ${label} in the last ${windowDays} days. If logging from a photo, there are no past variations to draw on, so the amount eaten and ingredients the photo cannot show (oil, butter, sugar, sauce, what a drink was made with) are still open questions to confirm with the user before log_meal.`,
                                 },
                             ],
                         };
@@ -2240,6 +2313,7 @@ export function registerTools(
             description:
                 "Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Nutrition Summary",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2500,6 +2574,7 @@ export function registerTools(
             description:
                 "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Calories, protein, carbs, fat, fiber and water are targets to REACH; sugar, alcohol and caffeine are limits to STAY UNDER, and progress against them is worded accordingly. Every gram target is in grams and the caffeine limit is in MILLIGRAMS. For a limit, 0 is a real value meaning 'none at all' rather than 'unset'. Targets are the user's own choice; this server does not provide medical or dietary advice.",
             annotations: {
+                title: "Set Nutrition Goals",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2691,6 +2766,7 @@ export function registerTools(
             description:
                 "Get the user's current daily calorie and macro targets.",
             annotations: {
+                title: "Get Nutrition Goals",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2726,6 +2802,7 @@ export function registerTools(
             description:
                 "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Goal Progress",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -2875,6 +2952,7 @@ export function registerTools(
             title: "Delete Meal",
             description: "Delete a meal entry by ID",
             annotations: {
+                title: "Delete Meal",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: true,
@@ -2916,6 +2994,7 @@ export function registerTools(
                 "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to BACKFILL nutrition a meal was logged without: if a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg, estimate the value and pass just that field rather than telling the user the figure in prose. Meal ids come from get_meals_today, get_meals_by_date or search_meals.\n\n" +
                 NUTRIENT_COVERAGE,
             annotations: {
+                title: "Update Meal",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3020,6 +3099,7 @@ export function registerTools(
             description:
                 "Log a hydration entry in milliliters. If the user gives a volume in another unit (cups, oz, liters), convert it: 1 cup = 240 ml, 1 fl oz = 30 ml, 1 L = 1000 ml. If only 'a glass' is mentioned, ask for the size or assume 250 ml and confirm.",
             annotations: {
+                title: "Log Water",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -3089,6 +3169,7 @@ export function registerTools(
             description:
                 "Get today's total water intake (ml) and the list of entries.",
             annotations: {
+                title: "Get Today's Water",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3141,6 +3222,7 @@ export function registerTools(
             description:
                 "Get water intake total and entries for a specific date.",
             annotations: {
+                title: "Get Water by Date",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3192,6 +3274,7 @@ export function registerTools(
             title: "Delete Water Entry",
             description: "Delete a water log entry by ID.",
             annotations: {
+                title: "Delete Water Entry",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: true,
@@ -3229,6 +3312,7 @@ export function registerTools(
             description:
                 "Log a body-weight measurement. Provide the number in `weight` and its `unit` ('kg' or 'lb'); if you omit the unit, the user's saved preference is used, and if they have no preference set yet the call fails asking you to specify one. IMPORTANT: do NOT convert units yourself — pass the value in whatever unit the user stated and set `unit` accordingly. The server stores weight canonically and converts as needed. Multiple weigh-ins per day are allowed.",
             annotations: {
+                title: "Log Weight",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -3313,6 +3397,7 @@ export function registerTools(
             description:
                 "Get today's weight entries, shown in the user's preferred unit.",
             annotations: {
+                title: "Get Today's Weight",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3367,6 +3452,7 @@ export function registerTools(
             description:
                 "Get weight entries for a specific date, in the user's preferred unit.",
             annotations: {
+                title: "Get Weight by Date",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3418,9 +3504,9 @@ export function registerTools(
         "get_weight_by_date_range",
         {
             title: "Get Weight by Date Range",
-            description:
-                "Get all weight entries between two dates (inclusive), grouped by day with each day's average. Use this instead of multiple get_weight_by_date calls.",
+            description: `Get all weight entries between two dates (inclusive), grouped by day with each day's average. Use this instead of multiple get_weight_by_date calls. The range can span at most ${WEIGHT_RANGE_MAX_DAYS} days.`,
             annotations: {
+                title: "Get Weight by Date Range",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3435,6 +3521,12 @@ export function registerTools(
             return withAnalytics(
                 "get_weight_by_date_range",
                 async () => {
+                    assertDateRange(
+                        start_date,
+                        end_date,
+                        WEIGHT_RANGE_MAX_DAYS,
+                        "For a longer trend use get_weight_trends, or split the range into yearly calls.",
+                    );
                     const [tz, weightPref] = await Promise.all([
                         getUserTimezone(userId),
                         getPreferredWeightUnit(userId),
@@ -3504,6 +3596,7 @@ export function registerTools(
             description:
                 "Weight trend over a window: latest reading, overall change, 7/14/30-day moving averages (to smooth day-to-day noise), min/max, and progress toward the target weight if one is set. Aggregates multiple weigh-ins per day by averaging. Defaults to the last 30 days ending today.",
             annotations: {
+                title: "Get Weight Trends",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3645,6 +3738,7 @@ export function registerTools(
             description:
                 "Update fields of an existing weight entry. Provide `unit` alongside `weight` (defaults to the user's preferred unit); do NOT convert units yourself.",
             annotations: {
+                title: "Update Weight Entry",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3724,6 +3818,7 @@ export function registerTools(
             title: "Delete Weight Entry",
             description: "Delete a weight log entry by ID.",
             annotations: {
+                title: "Delete Weight Entry",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: true,
@@ -3761,6 +3856,7 @@ export function registerTools(
             description:
                 "Set the user's preferred weight unit ('kg' or 'lb'), or pass null to clear it. This controls how weights are shown and how a bare number is interpreted when logging without an explicit unit. Stored weights are unaffected (they are canonical) — only display and default parsing change. While unset, logging requires an explicit unit and weights display in kg.",
             annotations: {
+                title: "Set Weight Unit",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3810,6 +3906,7 @@ export function registerTools(
             description:
                 "Enable or disable the in-chat visual widgets (nutrition dashboard, goal progress, meal-logged rings, trends, weight charts). When disabled, the same tools still return their full text and data — just no rendered widget. Widgets are enabled by default. Note: hosts read the widget list when a session connects, so the change takes effect in new conversations; an already-open chat may keep showing widgets until it reconnects.",
             annotations: {
+                title: "Set Widget Display",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3853,6 +3950,7 @@ export function registerTools(
             description:
                 "Turn alcohol tracking on or off for the user, and optionally choose whether drinks are counted in US standard drinks (14 g of ethanol) or UK units (7.9 g). Off by default. Alcohol grams passed to log_meal, update_meal or bulk_import_meals are stored either way — this setting controls whether alcohol is shown in meals, goals and progress. One exception, which matters BEFORE a backfill: the file importer (start_meal_import) skips the file's alcohol column entirely while tracking is off, because it will not write a figure the user was never shown for review — and re-importing the same file later does not backfill it. So if the user wants alcohol from an export, turn this on first. Offer it when the user asks to track drinking; do not enable it on your own initiative, and if they ask to stop seeing alcohol, disable it here rather than deleting their meals. The change is live immediately — the next tool call in this same conversation already honours it, with nothing to reconnect or restart.",
             annotations: {
+                title: "Set Alcohol Tracking",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -3921,6 +4019,7 @@ export function registerTools(
             description:
                 "Rolling 7/14/30-day averages, standard deviation, coefficient of variation, logging streaks, day-of-week breakdowns, and best/worst day for calories and each macro. Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today. Figures are estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Trends",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4032,6 +4131,7 @@ export function registerTools(
             description:
                 "Pre-aggregated behavioural patterns across the logged window: meal-type presence rates, breakfast effect (days with vs without), high-calorie-lunch effect, late-dinner effect, weekday vs weekend, and outlier days. Narrate findings conversationally to the user. Defaults to the last 30 days. Patterns are descriptive estimates, not medical or dietary advice.",
             annotations: {
+                title: "Get Meal Patterns",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4097,6 +4197,7 @@ export function registerTools(
             description:
                 "Export EVERY table this server tracks for the user — meals, water, weight, nutrition goals and profile settings — as a single ZIP archive (meals.csv, water.csv, weight.csv, goals.csv, profile.csv, plus a README.txt describing the columns and the units they are in) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; water, weight, goals and profile are export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
             annotations: {
+                title: "Export All Data",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -4193,6 +4294,7 @@ export function registerTools(
             description:
                 "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
             annotations: {
+                title: "Get Profile",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4252,6 +4354,7 @@ export function registerTools(
             description:
                 "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). This controls which calendar day meals and water are grouped into — e.g. a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and it is also how a logged_at with no UTC offset is placed on write, which is permanent: correcting the timezone later re-buckets nothing that is already stored. If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
             annotations: {
+                title: "Set Timezone",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4295,6 +4398,7 @@ export function registerTools(
             title: "Set Language",
             description: `Set the user's UI language for in-chat widgets (dashboards, charts). Supported: ${SITE_LOCALES.map((l) => `'${l}' (${LOCALE_NAMES[l]})`).join(", ")}. This does not change what language the model replies in — only the text rendered inside widget cards. Offer to set this the first time you notice the user writing in a non-English language.`,
             annotations: {
+                title: "Set Language",
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
@@ -4345,6 +4449,7 @@ export function registerTools(
             description:
                 "Get the current date and time in the user's timezone, plus the UTC instant. Call this whenever you need to know what time it is for this user — to resolve 'today', 'this morning', 'an hour ago' or 'last Monday' into a real timestamp — instead of asking the user or guessing. Not needed to log something that is happening now: omit logged_at and the server stamps the current time itself.",
             annotations: {
+                title: "Get Current Time",
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: false,
@@ -4383,6 +4488,7 @@ export function registerTools(
             description:
                 "Permanently delete the user's account and all associated data (meals, tokens, auth). This action is irreversible. Always confirm with the user before calling this tool.",
             annotations: {
+                title: "Delete Account",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: false,

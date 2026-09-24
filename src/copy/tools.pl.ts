@@ -185,10 +185,11 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_meals_by_date_range: {
             description:
-                "Pobierz naraz wszystkie posiłki z zadanego zakresu dat — przydatne przy przeglądaniu tygodnia albo miesiąca.",
+                "Pobierz naraz wszystkie posiłki z zadanego zakresu dat — przydatne przy przeglądaniu tygodnia albo miesiąca. Jedno wywołanie obejmuje do 31 dni; dla dłuższych okresów trendy i podsumowania podają sumy dzienne.",
             params: {
                 start_date: "Data początkowa (RRRR-MM-DD)",
-                end_date: "Data końcowa (RRRR-MM-DD)",
+                end_date:
+                    "Data końcowa (RRRR-MM-DD), najwyżej 31 dni łącznie z dniem początkowym",
             },
             example: "Pokaż moje posiłki od poniedziałku do piątku",
         },
