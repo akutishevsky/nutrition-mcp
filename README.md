@@ -170,7 +170,7 @@ openssl rand -hex 32   # use as OAUTH_CLIENT_SECRET
 Email/password works out of the box. To also offer **"Continue with Google"**,
 follow [`docs/google-auth-setup.md`](docs/google-auth-setup.md) to create a
 Google OAuth client, enable the Google provider in Supabase, and set
-`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. This adds the `GET /authorize/google`
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. This adds the `POST /authorize/google`
 and `GET /auth/google/callback` routes — see [API Endpoints](#api-endpoints).
 
 ## Development
@@ -216,7 +216,7 @@ For in-chat widget development (`public/widgets/`), `bun run harness` starts a l
 | `GET /.well-known/oauth-protected-resource`   | OAuth protected-resource metadata discovery (root + `/mcp`-scoped variants) |
 | `POST /register`                              | Dynamic client registration (RFC 7591) — per-client, redirect URIs enforced |
 | `GET /authorize`                              | OAuth authorization (shows login page)                                      |
-| `GET /authorize/google`                       | Redirects to Google's OAuth consent screen ("Continue with Google")         |
+| `POST /authorize/google`                      | Login-page form; redirects to Google's consent screen                       |
 | `GET /auth/google/callback`                   | Google OAuth callback — exchanges the code, completes sign-in               |
 | `POST /approve`                               | Login/register handler                                                      |
 | `POST /token`                                 | Token exchange                                                              |

@@ -180,3 +180,31 @@ describe("GET /api/patreon-posts", () => {
         }
     });
 });
+
+// The login page's two forms both answer with a redirect off this origin:
+// POST /authorize/google to accounts.google.com, and POST /approve to the
+// client's redirect_uri (claude.ai, a custom scheme, a loopback port). CSP's
+// form-action governs those redirects too, and it does NOT fall back to
+// default-src — so today, with no form-action, neither form is constrained.
+// Adding `form-action 'self'` for hardening would silently break Google
+// sign-in in Chrome; this makes that a test failure instead. /authorize with
+// no client_id is refused before any store lookup, so this needs no database.
+describe("Content-Security-Policy on the OAuth login flow", () => {
+    test("form-action, if ever set, still lets the Google form reach Google", async () => {
+        const r = await app.request("http://x/authorize");
+        const csp = r.headers.get("Content-Security-Policy");
+        expect(csp).toBeTruthy();
+        const directives = new Map(
+            csp!
+                .split(";")
+                .map((d) => d.trim().split(/\s+/))
+                .filter((parts) => parts[0])
+                .map((parts) => [parts[0]!, parts.slice(1)] as const),
+        );
+        const formAction = directives.get("form-action");
+        if (formAction !== undefined) {
+            expect(formAction).toContain("'self'");
+            expect(formAction).toContain("https://accounts.google.com");
+        }
+    });
+});

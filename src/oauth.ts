@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import crypto from "node:crypto";
 import {
     createSupabaseOAuthStore,
@@ -69,6 +70,10 @@ export interface OAuthSession {
     // re-render of this same flow (a password or Google-sign-in failure)
     // so an error doesn't silently snap the page back to English.
     locale: SiteLocale;
+    // sha256 hex of the binding cookie /authorize set for this session in
+    // the browser that opened it (see bindingCookieName). /approve, /authorize/google and the Google
+    // callback refuse to act on this session from any other browser.
+    browserBinding: string;
 }
 
 // In-memory session store (sessions are short-lived, 10min TTL)
@@ -84,6 +89,128 @@ function cleanExpiredSessions(now: number = Date.now()) {
 }
 
 setInterval(cleanExpiredSessions, 60 * 1000);
+
+// Binds a sign-in session to the browser that started it. The session id is
+// in the login page's HTML, so whoever fetched /authorize holds it — and with
+// open registration that can be an attacker's server: it drives /authorize
+// for its own client, starts the Google leg with the scraped id, and hands
+// the victim only Google's genuine account chooser, which finishes the
+// session in the victim's browser and sends the code to the attacker's
+// redirect without the victim ever seeing the consent notice. The cookie is
+// set only by /authorize, so a session can be finished only by the browser
+// that was shown the login page for it.
+//
+// One cookie per session, named after it, not one per browser: a shared
+// per-browser value had to be minted by whichever /authorize saw no cookie,
+// so two first-time loads in flight at once (a double-clicked Connect, two
+// servers connecting together) each minted their own, the browser kept
+// whichever Set-Cookie landed last, and the other tab's sign-in failed the
+// check. Named per session, both land and neither can overwrite the other;
+// parallel sign-ins and the language switcher (which re-enters /authorize
+// and mints a fresh session) each get their own. Max-Age is the session's
+// own TTL and a finished sign-in deletes its cookie, so they don't pile up.
+//
+// SameSite=Lax, not Strict: Google's redirect back to /auth/google/callback
+// is a cross-site top-level GET, and Strict would drop the cookie on exactly
+// the request that has to carry it. __Host- on https (Secure, Path=/, no
+// Domain, so no subdomain can plant one); plain-http local dev can't set a
+// Secure cookie, so it gets the bare name.
+//
+// Read only by the three routes above — /mcp stays Bearer-only.
+const BINDING_COOKIE_PREFIX = "nm_oauth_bind_";
+// Matches a binding cookie's name as the request carries it, prefix and all.
+const BINDING_COOKIE_NAME = /^(?:__Host-)?nm_oauth_bind_[0-9a-f]{16}$/;
+// crypto.randomBytes(32) in base64url; anything else is ignored.
+const BINDING_VALUE = /^[A-Za-z0-9_-]{43}$/;
+// More live bindings than any real browser has sign-ins in flight. Past it,
+// /authorize clears them all before adding its own, so a page that bounces a
+// browser through /authorize over and over can't grow its Cookie header
+// until this site starts refusing it.
+const MAX_BINDING_COOKIES = 10;
+
+function bindingIsSecure(c: Context): boolean {
+    return getBaseUrl(c).startsWith("https:");
+}
+
+// Derived from the session id rather than equal to it, so the id itself never
+// lands in a cookie jar or a Cookie header in some proxy's log.
+function bindingCookieName(sessionId: string): string {
+    return BINDING_COOKIE_PREFIX + sha256Hex(sessionId).slice(0, 16);
+}
+
+function bindingCookieOptions(c: Context) {
+    return {
+        httpOnly: true,
+        sameSite: "Lax" as const,
+        path: "/",
+        ...(bindingIsSecure(c)
+            ? { secure: true, prefix: "host" as const }
+            : {}),
+    };
+}
+
+function readBindingCookie(c: Context, sessionId: string): string | undefined {
+    const name = bindingCookieName(sessionId);
+    const value = bindingIsSecure(c)
+        ? getCookie(c, name, "host")
+        : getCookie(c, name);
+    return value && BINDING_VALUE.test(value) ? value : undefined;
+}
+
+// Mints this session's binding, sets its cookie, and returns the hash to
+// store on the session.
+function setBindingCookie(c: Context, sessionId: string): string {
+    const held = Object.keys(getCookie(c)).filter((name) =>
+        BINDING_COOKIE_NAME.test(name),
+    );
+    if (held.length >= MAX_BINDING_COOKIES) {
+        const opts = bindingCookieOptions(c);
+        for (const name of held) {
+            const bare = name.replace(/^__Host-/, "");
+            deleteCookie(c, bare, opts);
+        }
+    }
+    const value = crypto.randomBytes(32).toString("base64url");
+    setCookie(c, bindingCookieName(sessionId), value, {
+        ...bindingCookieOptions(c),
+        maxAge: Math.floor(SESSION_TTL_MS / 1000),
+    });
+    return sha256Hex(value);
+}
+
+// Once the session is consumed its cookie has nothing left to guard.
+function clearBindingCookie(c: Context, sessionId: string): void {
+    deleteCookie(c, bindingCookieName(sessionId), bindingCookieOptions(c));
+}
+
+// Does this request come from the browser the session was created in?
+// Compared as hashes with timingSafeEqual, like secretMatches.
+function bindingMatches(
+    c: Context,
+    sessionId: string,
+    session: OAuthSession,
+): boolean {
+    const value = readBindingCookie(c, sessionId);
+    if (!value) return false;
+    const a = Buffer.from(sha256Hex(value), "utf8");
+    const b = Buffer.from(session.browserBinding, "utf8");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// The answer to a request for a session this browser didn't start. Nothing
+// about the session is touched and nothing identifying is logged: in the
+// attack this refuses, the session belongs to someone else.
+function sessionMismatch(c: Context, route: string): Response {
+    console.warn(`[oauth] session-binding-mismatch route=${route}`);
+    return c.json(
+        {
+            error: "session_mismatch",
+            error_description:
+                "Start signing in again from your AI app, in this browser.",
+        },
+        400,
+    );
+}
 
 function escapeHtml(str: string): string {
     return str
@@ -269,6 +396,7 @@ async function finishAuthorization(
     userId: string,
 ): Promise<Response> {
     sessions.delete(sessionId);
+    clearBindingCookie(c, sessionId);
 
     const authCode = crypto.randomUUID();
     await store.storeAuthCode({
@@ -686,6 +814,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             redirectKind: parsed.kind,
             clientId: client.clientId,
             locale,
+            browserBinding: setBindingCookie(c, sessionId),
         };
         sessions.set(sessionId, {
             session,
@@ -712,6 +841,9 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             sessions.delete(sessionId);
             return c.json({ error: "session_expired" }, 400);
         }
+        if (!bindingMatches(c, sessionId, entry.session)) {
+            return sessionMismatch(c, "approve");
+        }
 
         let userId: string;
         try {
@@ -737,14 +869,21 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     // We run the Google OAuth dance ourselves (rather than Supabase's PKCE
     // redirect flow) so nothing needs to persist across requests beyond the
     // existing in-memory session.
-    oauth.get("/authorize/google", async (c) => {
+    //
+    // A POST from the login page's form, never a link: a GET could be started
+    // by anything holding the session id, and the Google leg would then skip
+    // the page that carries the consent notice. The binding check below is
+    // what actually enforces that; the POST keeps the only way in on the page.
+    oauth.post("/authorize/google", async (c) => {
         const googleClientId = process.env.GOOGLE_CLIENT_ID;
         const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
         if (!googleClientId || !googleClientSecret) {
             return c.json({ error: "google_not_configured" }, 500);
         }
 
-        const sessionId = c.req.query("session_id");
+        const body = await c.req.parseBody();
+        const sessionId =
+            typeof body.session_id === "string" ? body.session_id : undefined;
         if (!sessionId) {
             return c.json({ error: "invalid_request" }, 400);
         }
@@ -754,6 +893,9 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         if (!entry || entry.expiresAt < now()) {
             sessions.delete(sessionId);
             return c.json({ error: "session_expired" }, 400);
+        }
+        if (!bindingMatches(c, sessionId, entry.session)) {
+            return sessionMismatch(c, "authorize-google");
         }
 
         // Fresh nonce per attempt. Supabase expects the SHA-256 *hex* digest sent
@@ -782,6 +924,20 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         return c.redirect(googleUrl.toString());
     });
 
+    // The old link-shaped entry point. Answered rather than left to 404 so a
+    // login page cached from before the switch says what to do.
+    oauth.get("/authorize/google", (c) =>
+        c.json(
+            {
+                error: "method_not_allowed",
+                error_description:
+                    "Start signing in again from your AI app, in this browser.",
+            },
+            405,
+            { Allow: "POST" },
+        ),
+    );
+
     // Google sign-in — step 2: Google redirects back here. Exchange the code for
     // an ID token (back-channel), trade it with Supabase for a user, then mint
     // our authorization code exactly like the password path.
@@ -796,6 +952,13 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         if (!entry || entry.expiresAt < now()) {
             sessions.delete(sessionId);
             return c.json({ error: "session_expired" }, 400);
+        }
+        // Before anything reads or changes the session — renderError below
+        // clears its nonce and would show its login page — and before any
+        // call to Google. JSON, not the translated error page: the session
+        // may be someone else's, and its page is not this browser's to see.
+        if (!bindingMatches(c, sessionId, entry.session)) {
+            return sessionMismatch(c, "google-callback");
         }
 
         // Surface user-cancelled / denied consent without treating it as a
@@ -820,8 +983,8 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
 
         const code = c.req.query("code");
         const rawNonce = entry.session.googleNonce;
-        // googleNonce is only set by /authorize/google, so its absence means this
-        // callback didn't originate from a flow we started.
+        // googleNonce is only set by POST /authorize/google, so its absence
+        // means this callback didn't originate from a flow we started.
         if (!code || !rawNonce) {
             return renderError("googleFailed");
         }
@@ -844,7 +1007,8 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
                         code,
                         client_id: googleClientId,
                         client_secret: googleClientSecret,
-                        // Must byte-match the redirect_uri sent in /authorize/google.
+                        // Must byte-match the redirect_uri sent in
+                        // POST /authorize/google.
                         redirect_uri: `${getBaseUrl(c)}/auth/google/callback`,
                         grant_type: "authorization_code",
                     }),

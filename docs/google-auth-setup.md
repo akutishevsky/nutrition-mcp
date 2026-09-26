@@ -147,8 +147,10 @@ Until these are set, the Google button still renders but clicking it returns
     ```
     The login page warns that `localhost:8080` is a program on this computer —
     expected for a loopback redirect.
-4. Click **Continue with Google** and pick an account. You should bounce:
-   `/authorize/google` → Google → `/auth/google/callback` →
+4. Click **Continue with Google** and pick an account, in the same browser that
+   opened the link in step 3 — the sign-in is bound to it by a cookie, so
+   pasting a later URL into another browser fails with `session_mismatch`. You
+   should bounce: `POST /authorize/google` → Google → `/auth/google/callback` →
    `…/health?code=…&state=test`.
 5. **Supabase → Authentication → Users**: confirm a new user with a **Google**
    identity appeared.
@@ -178,6 +180,7 @@ Until these are set, the Google button still renders but clicking it returns
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | _"Invalid Origin: URIs must not contain a path…"_ | You typed the callback into **Authorized JavaScript origins**. Use **Authorized redirect URIs** instead.                                        |
 | `redirect_uri_mismatch` on Google's screen        | The callback URL isn't registered, or differs (http vs https, port, trailing slash). Add the exact one to **Authorized redirect URIs**.         |
+| `{"error":"session_mismatch"}`                    | Sign-in finished in a different browser (or with cookies blocked) than the one that opened `/authorize`. Start again from the AI app.           |
 | `{"error":"google_not_configured"}`               | `GOOGLE_CLIENT_ID`/`SECRET` not set in that environment.                                                                                        |
 | "Access blocked / app not verified"               | Consent screen still in **Testing** — add your email under **Audience → Test users**, or **Publish**.                                           |
 | Sign-in returns a nonce error                     | Temporarily enable **Skip Nonce Check**, or confirm the Client ID in Supabase matches the one that issued the token.                            |
@@ -188,10 +191,12 @@ Until these are set, the Google button still renders but clicking it returns
 ## How it works (reference)
 
 ```
-login page → [Continue with Google]
-  → GET /authorize/google?session_id=X
+GET /authorize → login page, sets the browser-binding cookie
+login page → [Continue with Google]   (a form, not a link)
+  → POST /authorize/google  (session_id=X; cookie must match the session)
       → 302 to accounts.google.com (state=session_id, nonce=sha256hex(rawNonce))
   → Google consent → 302 to GET /auth/google/callback?code=…&state=session_id
+      → cookie checked against the session again (SameSite=Lax carries it)
       → POST oauth2.googleapis.com/token  → id_token   (server-to-server)
       → supabase.auth.signInWithIdToken({ provider:'google', token, nonce })
       → mint our auth code + 302 to the MCP client's redirect_uri

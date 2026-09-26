@@ -17,6 +17,7 @@ import type {
 } from "./oauth-store.js";
 import { pkceS256 } from "./oauth-validate.js";
 import { _resetBuckets } from "./rate-limit.js";
+import { SITE_LOCALES } from "./routes.js";
 
 // No env client is set up here: createOAuthRouter() no longer requires one,
 // and every test below registers its own client through POST /register. The
@@ -152,11 +153,23 @@ function postForm(
     path: string,
     ip: string,
     fields: Record<string, string>,
+    headers: Record<string, string> = {},
 ) {
     return fire(app, "POST", path, ip, {
         body: new URLSearchParams(fields).toString(),
-        headers: { "content-type": "application/x-www-form-urlencoded" },
+        headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            ...headers,
+        },
     });
+}
+
+// The browser-binding cookie /authorize sets, as a request `cookie` header
+// ("name=value") — what the same browser sends back on its next request.
+function bindingCookie(res: Response): string {
+    const set = res.headers.get("Set-Cookie");
+    expect(set).toBeTruthy();
+    return set!.split(";")[0]!;
 }
 
 const CLAUDE_CALLBACK = "https://claude.ai/api/mcp/auth_callback";
@@ -230,6 +243,7 @@ function fakeSession(
         redirectKind: "https",
         clientId: "test-client-id",
         locale,
+        browserBinding: "0".repeat(64),
         ...overrides,
     };
 }
@@ -238,12 +252,11 @@ test("renderLoginPage substitutes every {{SESSION_ID}} occurrence", async () => 
     const sessionId = "session-abc-123";
     const html = await renderLoginPage(sessionId, fakeSession());
 
-    // The password form's hidden field and the Google button's href both use the
-    // placeholder, so a single .replace() (first-match only) would leave one
-    // behind and break the Google link.
+    // The password form and the Google form each carry the id in a hidden
+    // field, so a single .replace() (first-match only) would leave one
+    // behind and break whichever form comes second.
     expect(html).not.toContain("{{SESSION_ID}}");
-    expect(html).toContain(`value="${sessionId}"`);
-    expect(html).toContain(`/authorize/google?session_id=${sessionId}`);
+    expect(html.split(`value="${sessionId}"`)).toHaveLength(3);
 });
 
 test("renderLoginPage renders the error banner only when given an error", async () => {
@@ -365,16 +378,20 @@ test("a Google sign-in failure re-renders the error in the session's locale", as
         ip,
     );
     expect(authorizeRes.status).toBe(200);
+    const cookie = bindingCookie(authorizeRes);
     const sessionId = sessionIdFrom(await authorizeRes.text());
     expect(sessionId).toBeTruthy();
 
     // No `code` param — the callback's own "didn't originate from a flow we
     // started" guard fires without needing to mock Google's token endpoint.
+    // Sent from the browser that opened /authorize, or the binding check
+    // would answer first.
     const callbackRes = await fire(
         app,
         "GET",
         `/auth/google/callback?state=${sessionId}`,
         ip,
+        { headers: { cookie } },
     );
     expect(callbackRes.status).toBe(400);
     const errorHtml = await callbackRes.text();
@@ -850,11 +867,17 @@ describe("legacy env client", () => {
             ip,
         );
         const sessionId = sessionIdFrom(await authorize.text())!;
-        await postForm(app, "/approve", ip, {
-            session_id: sessionId,
-            email: "a@example.com",
-            password: "pw",
-        });
+        await postForm(
+            app,
+            "/approve",
+            ip,
+            {
+                session_id: sessionId,
+                email: "a@example.com",
+                password: "pw",
+            },
+            { cookie: bindingCookie(authorize) },
+        );
         const [code] = [...store.dump().codes.keys()];
         const res = await postForm(app, "/token", ip, {
             grant_type: "authorization_code",
@@ -973,6 +996,523 @@ describe("consent notice", () => {
     });
 });
 
+// ---------- Browser binding ----------
+
+// The login page's session id is in its HTML, so anyone who fetched
+// /authorize holds it. Without a binding, an attacker's server could open a
+// session for its own client, start the Google leg with the scraped id, and
+// send the victim straight to Google's account chooser: the callback would
+// then finish the attacker's session in the victim's browser and deliver the
+// code to the attacker's redirect, the consent notice never shown. These pin
+// that a session can only be advanced by the browser /authorize handed its
+// cookie to.
+describe("browser binding", () => {
+    const GOOGLE_ENV = {
+        GOOGLE_CLIENT_ID: "google-test-client",
+        GOOGLE_CLIENT_SECRET: "google-test-secret",
+    };
+
+    // The Google routes read their env per request, so it is set only around
+    // the body of each test that needs it, then restored.
+    async function withGoogleEnv<T>(fn: () => Promise<T>): Promise<T> {
+        const saved = {
+            id: process.env.GOOGLE_CLIENT_ID,
+            secret: process.env.GOOGLE_CLIENT_SECRET,
+        };
+        process.env.GOOGLE_CLIENT_ID = GOOGLE_ENV.GOOGLE_CLIENT_ID;
+        process.env.GOOGLE_CLIENT_SECRET = GOOGLE_ENV.GOOGLE_CLIENT_SECRET;
+        try {
+            return await fn();
+        } finally {
+            if (saved.id === undefined) delete process.env.GOOGLE_CLIENT_ID;
+            else process.env.GOOGLE_CLIENT_ID = saved.id;
+            if (saved.secret === undefined)
+                delete process.env.GOOGLE_CLIENT_SECRET;
+            else process.env.GOOGLE_CLIENT_SECRET = saved.secret;
+        }
+    }
+
+    // Replaces the global fetch the Google callback posts to, counting calls,
+    // for the duration of fn.
+    async function withGoogleTokenEndpoint<T>(
+        fn: (calls: () => number) => Promise<T>,
+    ): Promise<T> {
+        const original = globalThis.fetch;
+        let calls = 0;
+        globalThis.fetch = (async () => {
+            calls++;
+            return Response.json({ id_token: "google-id-token" });
+        }) as unknown as typeof fetch;
+        try {
+            return await fn(() => calls);
+        } finally {
+            globalThis.fetch = original;
+        }
+    }
+
+    // An auth fake that records whether sign-in was ever attempted.
+    function countingAuth() {
+        const calls = { signIn: 0, signUp: 0, google: 0 };
+        const auth: OAuthAuth = {
+            signIn: async () => {
+                calls.signIn++;
+                return "user-1";
+            },
+            signUp: async () => {
+                calls.signUp++;
+                return "user-1";
+            },
+            signInWithGoogleIdToken: async () => {
+                calls.google++;
+                return "user-1";
+            },
+        };
+        return { auth, calls };
+    }
+
+    async function setup(ip: string, deps: Pick<OAuthRouterDeps, "auth"> = {}) {
+        _resetBuckets();
+        const built = buildTestApp(deps);
+        const client = await registerClient(built.app, ip, {
+            token_endpoint_auth_method: "none",
+        });
+        return { ...built, client };
+    }
+
+    // Opens a session the way a browser (or an attacker's server) does, and
+    // returns what that caller walks away with: the session id and cookie.
+    async function openSession(
+        app: Hono,
+        ip: string,
+        clientId: string,
+        headers: Record<string, string> = {},
+    ) {
+        const res = await fire(
+            app,
+            "GET",
+            authorizePath({ client_id: clientId }),
+            ip,
+            { headers },
+        );
+        expect(res.status).toBe(200);
+        const setCookie = res.headers.get("Set-Cookie")!;
+        return {
+            res,
+            setCookie,
+            cookie: bindingCookie(res),
+            sessionId: sessionIdFrom(await res.text())!,
+        };
+    }
+
+    function startGoogle(
+        app: Hono,
+        ip: string,
+        sessionId: string,
+        cookie?: string,
+    ) {
+        return postForm(
+            app,
+            "/authorize/google",
+            ip,
+            { session_id: sessionId },
+            cookie ? { cookie } : {},
+        );
+    }
+
+    // The session's own cookie name carrying a value some other browser
+    // would hold — the name is derivable from the session id, the value is
+    // not.
+    const otherBrowser = (cookie: string) =>
+        `${cookie.split("=")[0]}=${"A".repeat(43)}`;
+
+    // Every binding cookie a response sets, as "name=value" pairs, plus the
+    // full Set-Cookie lines for attribute checks.
+    function setCookies(res: Response) {
+        const lines = res.headers.getSetCookie();
+        return { lines, pairs: lines.map((l) => l.split(";")[0]!) };
+    }
+
+    async function expectMismatch(res: Response) {
+        expect(res.status).toBe(400);
+        expect(res.headers.get("Location")).toBeNull();
+        expect(((await res.json()) as { error: string }).error).toBe(
+            "session_mismatch",
+        );
+    }
+
+    test("/authorize sets an HttpOnly, SameSite=Lax, Path=/ binding cookie", async () => {
+        const ip = "198.51.100.80";
+        const { app, client } = await setup(ip);
+        const { setCookie, cookie } = await openSession(
+            app,
+            ip,
+            client.client_id,
+        );
+        expect(cookie).toMatch(
+            /^nm_oauth_bind_[0-9a-f]{16}=[A-Za-z0-9_-]{43}$/,
+        );
+        expect(setCookie).toContain("HttpOnly");
+        expect(setCookie).toContain("SameSite=Lax");
+        expect(setCookie).toContain("Path=/");
+        // Lives exactly as long as the ten-minute session it guards.
+        expect(setCookie).toContain(`Max-Age=${10 * 60}`);
+        // Plain http (local dev) can't hold a Secure cookie, so no prefix.
+        expect(setCookie).not.toContain("Secure");
+        expect(setCookie).not.toContain("__Host-");
+    });
+
+    test("behind https it is a Secure __Host- cookie", async () => {
+        const ip = "198.51.100.81";
+        const { app, client } = await setup(ip);
+        // What DigitalOcean's proxy sends. getBaseUrl, which decides
+        // http vs https here, only reads the proto alongside a host.
+        const https = {
+            "x-forwarded-proto": "https",
+            host: "nutrition-mcp.com",
+        };
+        const first = await openSession(app, ip, client.client_id, https);
+        expect(first.cookie).toMatch(
+            /^__Host-nm_oauth_bind_[0-9a-f]{16}=[A-Za-z0-9_-]{43}$/,
+        );
+        expect(first.setCookie).toContain("Secure");
+        expect(first.setCookie).toContain("Path=/");
+        expect(first.setCookie).not.toContain("Domain");
+
+        // And it is the __Host- name that is read back: the same browser
+        // finishes its sign-in.
+        const approve = await postForm(
+            app,
+            "/approve",
+            ip,
+            {
+                session_id: first.sessionId,
+                email: "a@example.com",
+                password: "pw",
+            },
+            { ...https, cookie: first.cookie },
+        );
+        expect(approve.status).toBe(302);
+    });
+
+    // Regression: the cookie used to be one per browser, minted by whichever
+    // /authorize saw none. Two first-time loads in flight together each
+    // minted their own value under the same name, the browser kept the last
+    // Set-Cookie, and the other tab's sign-in failed the binding check. Named
+    // per session, both land and both tabs finish.
+    test("two concurrent first-time /authorize loads can both finish", async () => {
+        const ip = "198.51.100.82";
+        const { app, client } = await setup(ip);
+        const [a, b] = await Promise.all([
+            openSession(app, ip, client.client_id),
+            openSession(app, ip, client.client_id),
+        ]);
+        const nameOf = (cookie: string) => cookie.split("=")[0];
+        expect(nameOf(a.cookie)).not.toBe(nameOf(b.cookie));
+
+        // The jar after both responses, in either order: neither overwrote
+        // the other.
+        const jar = `${a.cookie}; ${b.cookie}`;
+        for (const { sessionId } of [a, b]) {
+            const approve = await postForm(
+                app,
+                "/approve",
+                ip,
+                {
+                    session_id: sessionId,
+                    email: "a@example.com",
+                    password: "pw",
+                },
+                { cookie: jar },
+            );
+            expect(approve.status).toBe(302);
+        }
+    });
+
+    test("a finished sign-in deletes its own cookie and no other", async () => {
+        const ip = "198.51.100.90";
+        const { app, client } = await setup(ip);
+        const a = await openSession(app, ip, client.client_id);
+        const b = await openSession(app, ip, client.client_id);
+        const approve = await postForm(
+            app,
+            "/approve",
+            ip,
+            { session_id: a.sessionId, email: "a@example.com", password: "pw" },
+            { cookie: `${a.cookie}; ${b.cookie}` },
+        );
+        expect(approve.status).toBe(302);
+        const { lines } = setCookies(approve);
+        expect(lines).toHaveLength(1);
+        expect(lines[0]).toStartWith(`${a.cookie.split("=")[0]}=;`);
+        expect(lines[0]).toContain("Max-Age=0");
+    });
+
+    // A page that bounces a browser through /authorize over and over would
+    // otherwise grow its Cookie header by one binding per visit for ten
+    // minutes. Past the cap, /authorize clears the lot before adding its own.
+    test("/authorize clears a pile-up of binding cookies", async () => {
+        const ip = "198.51.100.91";
+        const { app, client } = await setup(ip);
+        const held = Array.from(
+            { length: 10 },
+            (_, i) =>
+                `nm_oauth_bind_${i.toString(16).padStart(16, "0")}=${"B".repeat(43)}`,
+        );
+        const res = await fire(
+            app,
+            "GET",
+            authorizePath({ client_id: client.client_id }),
+            ip,
+            { headers: { cookie: [...held, "unrelated=1"].join("; ") } },
+        );
+        expect(res.status).toBe(200);
+        const { lines, pairs } = setCookies(res);
+        const cleared = lines.filter((l) => l.includes("Max-Age=0"));
+        expect(cleared.map((l) => l.split("=")[0]).sort()).toEqual(
+            held.map((h) => h.split("=")[0]).sort(),
+        );
+        // Plus the new session's own, live cookie; nothing else is touched.
+        expect(pairs).toHaveLength(held.length + 1);
+        expect(lines.some((l) => l.startsWith("unrelated"))).toBe(false);
+
+        // Below the cap nothing is cleared.
+        const few = await fire(
+            app,
+            "GET",
+            authorizePath({ client_id: client.client_id }),
+            ip,
+            { headers: { cookie: held.slice(0, 9).join("; ") } },
+        );
+        expect(setCookies(few).lines).toHaveLength(1);
+    });
+
+    // The attack itself: the attacker's server opened the session (and got
+    // its own cookie); the victim's browser starts the Google leg with the
+    // scraped id and either no cookie or its own.
+    test("POST /authorize/google from another browser is refused and leaves the session intact", async () => {
+        await withGoogleEnv(async () => {
+            const ip = "198.51.100.83";
+            const { app, client } = await setup(ip);
+            const attacker = await openSession(app, ip, client.client_id);
+
+            await expectMismatch(
+                await startGoogle(app, ip, attacker.sessionId),
+            );
+            await expectMismatch(
+                await startGoogle(
+                    app,
+                    ip,
+                    attacker.sessionId,
+                    otherBrowser(attacker.cookie),
+                ),
+            );
+
+            // Neither refusal consumed the session: its own browser can
+            // still start the Google leg.
+            const own = await startGoogle(
+                app,
+                ip,
+                attacker.sessionId,
+                attacker.cookie,
+            );
+            expect(own.status).toBe(302);
+        });
+    });
+
+    test("the Google callback from another browser is refused before any call to Google", async () => {
+        await withGoogleEnv(() =>
+            withGoogleTokenEndpoint(async (googleCalls) => {
+                const ip = "198.51.100.84";
+                const { auth, calls } = countingAuth();
+                const { app, client, store } = await setup(ip, { auth });
+                const attacker = await openSession(app, ip, client.client_id);
+                // The attacker's server starts the Google leg itself, so the
+                // session holds a nonce — as it would in the real attack.
+                const start = await startGoogle(
+                    app,
+                    ip,
+                    attacker.sessionId,
+                    attacker.cookie,
+                );
+                expect(start.status).toBe(302);
+
+                const callback = `/auth/google/callback?state=${attacker.sessionId}&code=google-code`;
+                const browsers: Record<string, string>[] = [
+                    {},
+                    { cookie: otherBrowser(attacker.cookie) },
+                ];
+                for (const headers of browsers) {
+                    await expectMismatch(
+                        await fire(app, "GET", callback, ip, { headers }),
+                    );
+                }
+                expect(googleCalls()).toBe(0);
+                expect(calls.google).toBe(0);
+                expect(store.dump().codes.size).toBe(0);
+
+                // Untouched: the nonce is still there, so the browser that
+                // started it completes normally.
+                const own = await fire(app, "GET", callback, ip, {
+                    headers: { cookie: attacker.cookie },
+                });
+                expect(own.status).toBe(302);
+                expect(googleCalls()).toBe(1);
+                const location = new URL(own.headers.get("Location")!);
+                expect(`${location.origin}${location.pathname}`).toBe(
+                    CLAUDE_CALLBACK,
+                );
+                expect(location.searchParams.get("code")).toBeTruthy();
+            }),
+        );
+    });
+
+    test("POST /approve from another browser is refused without attempting sign-in", async () => {
+        const ip = "198.51.100.85";
+        const { auth, calls } = countingAuth();
+        const { app, client, store } = await setup(ip, { auth });
+        const attacker = await openSession(app, ip, client.client_id);
+        const fields = {
+            session_id: attacker.sessionId,
+            email: "victim@example.com",
+            password: "pw",
+        };
+
+        await expectMismatch(await postForm(app, "/approve", ip, fields));
+        await expectMismatch(
+            await postForm(app, "/approve", ip, fields, {
+                cookie: otherBrowser(attacker.cookie),
+            }),
+        );
+        expect(calls.signIn).toBe(0);
+        expect(calls.signUp).toBe(0);
+        expect(store.dump().codes.size).toBe(0);
+
+        // Not consumed: its own browser still signs in.
+        const own = await postForm(app, "/approve", ip, fields, {
+            cookie: attacker.cookie,
+        });
+        expect(own.status).toBe(302);
+    });
+
+    test("the Google leg starts with a POST carrying the cookie", async () => {
+        await withGoogleEnv(async () => {
+            const ip = "198.51.100.86";
+            const { app, client } = await setup(ip);
+            const browser = await openSession(app, ip, client.client_id);
+            const res = await startGoogle(
+                app,
+                ip,
+                browser.sessionId,
+                browser.cookie,
+            );
+            expect(res.status).toBe(302);
+            const google = new URL(res.headers.get("Location")!);
+            expect(google.origin).toBe("https://accounts.google.com");
+            expect(google.searchParams.get("state")).toBe(browser.sessionId);
+            expect(google.searchParams.get("client_id")).toBe(
+                GOOGLE_ENV.GOOGLE_CLIENT_ID,
+            );
+            expect(google.searchParams.get("nonce")).toMatch(/^[0-9a-f]{64}$/);
+        });
+    });
+
+    // The link-shaped entry point is gone: a GET with a session id — even
+    // from the right browser — no longer reaches Google.
+    test("GET /authorize/google no longer starts the Google leg", async () => {
+        await withGoogleEnv(async () => {
+            const ip = "198.51.100.87";
+            const { app, client } = await setup(ip);
+            const browser = await openSession(app, ip, client.client_id);
+            const res = await fire(
+                app,
+                "GET",
+                `/authorize/google?session_id=${browser.sessionId}`,
+                ip,
+                { headers: { cookie: browser.cookie } },
+            );
+            expect(res.status).toBe(405);
+            expect(res.headers.get("Allow")).toBe("POST");
+            expect(res.headers.get("Location")).toBeNull();
+        });
+    });
+
+    // The switcher re-enters /authorize and mints a fresh session, which
+    // gets its own cookie beside the first; the browser sends both back.
+    test("the language switcher binds the new session to its own cookie", async () => {
+        const ip = "198.51.100.88";
+        const { app, client } = await setup(ip);
+        const first = await openSession(app, ip, client.client_id);
+        const switched = await fire(
+            app,
+            "GET",
+            authorizePath({ client_id: client.client_id, locale: "de" }),
+            ip,
+            { headers: { cookie: first.cookie } },
+        );
+        expect(switched.status).toBe(200);
+        const second = bindingCookie(switched);
+        expect(second.split("=")[0]).not.toBe(first.cookie.split("=")[0]);
+        const html = await switched.text();
+        expect(html).toContain('<html lang="de">');
+        const sessionId = sessionIdFrom(html)!;
+        expect(sessionId).not.toBe(first.sessionId);
+
+        const approve = await postForm(
+            app,
+            "/approve",
+            ip,
+            { session_id: sessionId, email: "a@example.com", password: "pw" },
+            { cookie: `${first.cookie}; ${second}` },
+        );
+        expect(approve.status).toBe(302);
+    });
+
+    // A rejected /authorize never creates a session, so it has nothing to
+    // bind and sets no cookie.
+    test("a rejected /authorize sets no cookie", async () => {
+        const ip = "198.51.100.89";
+        const { app, client } = await setup(ip);
+        const res = await fire(
+            app,
+            "GET",
+            authorizePath({
+                client_id: client.client_id,
+                redirect_uri: "https://evil.example/cb",
+            }),
+            ip,
+        );
+        expect(res.status).toBe(400);
+        expect(res.headers.get("Set-Cookie")).toBeNull();
+    });
+});
+
+// Every locale's login template starts the Google leg with a POST form that
+// carries the session id in a hidden field — never a link, which is what let
+// anything holding the id start it. Read from the generated files (run
+// `bun run gen:all` first), since they, not the generator, are what is served.
+test("every login template's Google control is a POST form with the hidden session_id", async () => {
+    for (const locale of SITE_LOCALES) {
+        const path =
+            locale === "en"
+                ? "./public/login.html"
+                : `./public/${locale}/login.html`;
+        const html = await Bun.file(path).text();
+        const form = html.match(
+            /<form\b[^>]*action="\/authorize\/google"[^>]*>[\s\S]*?<\/form>/,
+        )?.[0];
+        expect(`${path}: ${form !== undefined}`).toBe(`${path}: true`);
+        expect(form).toMatch(/method="post"/i);
+        expect(form).toMatch(
+            /<input\s+type="hidden"\s+name="session_id"\s+value="\{\{SESSION_ID\}\}"/,
+        );
+        expect(form).toMatch(/<button\s+type="submit"/);
+        expect(html).not.toContain("/authorize/google?");
+        // No page-level CSP of its own that could block the form's redirect
+        // to Google (see the form-action test in src/index.test.ts).
+        expect(html).not.toMatch(/http-equiv="Content-Security-Policy"/i);
+    }
+});
+
 // ---------- End to end ----------
 
 test("register -> authorize -> approve -> token -> refresh", async () => {
@@ -994,12 +1534,18 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
     const sessionId = sessionIdFrom(await authorize.text());
     expect(sessionId).toBeTruthy();
 
-    const approve = await postForm(app, "/approve", ip, {
-        session_id: sessionId!,
-        email: "someone@example.com",
-        password: "pw",
-        action: "login",
-    });
+    const approve = await postForm(
+        app,
+        "/approve",
+        ip,
+        {
+            session_id: sessionId!,
+            email: "someone@example.com",
+            password: "pw",
+            action: "login",
+        },
+        { cookie: bindingCookie(authorize) },
+    );
     expect(approve.status).toBe(302);
     const location = new URL(approve.headers.get("Location")!);
     expect(`${location.origin}${location.pathname}`).toBe(CLAUDE_CALLBACK);
@@ -1082,11 +1628,17 @@ describe("POST /token client check (Phase A)", () => {
             authorizePath({ client_id: client.client_id }),
             ip,
         );
-        const approve = await postForm(app, "/approve", ip, {
-            session_id: sessionIdFrom(await authorize.text())!,
-            email: "a@example.com",
-            password: "pw",
-        });
+        const approve = await postForm(
+            app,
+            "/approve",
+            ip,
+            {
+                session_id: sessionIdFrom(await authorize.text())!,
+                email: "a@example.com",
+                password: "pw",
+            },
+            { cookie: bindingCookie(authorize) },
+        );
         const code = new URL(approve.headers.get("Location")!).searchParams.get(
             "code",
         )!;
@@ -1170,7 +1722,7 @@ const OAUTH_METHODS: Record<(typeof OAUTH_PATHS)[number], string> = {
     "/register": "POST",
     "/authorize": "GET",
     "/approve": "POST",
-    "/authorize/google": "GET",
+    "/authorize/google": "POST",
     "/auth/google/callback": "GET",
     "/token": "POST",
 };

@@ -127,6 +127,12 @@ const LOGIN_STYLE = `        <style>
                 border-color: color-mix(in srgb, var(--cal) 45%, var(--surface));
                 color: var(--ink);
             }
+            /* The Google button sits in its own form (a POST, see the
+               markup) and must look exactly as it did as a link: the
+               wrapper adds no box of its own. */
+            .auth-google-form {
+                margin: 0;
+            }
         </style>`;
 
 function renderDoc(doc: LoginDoc, locale: SiteLocale): string {
@@ -184,16 +190,31 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true })}
 
                         {{ERROR}}
 
-                        <a
-                            class="auth-btn auth-btn-google"
-                            href="/authorize/google?session_id={{SESSION_ID}}"
+                        <!-- A POST form, not a link: POST /authorize/google
+                             is the only way into the Google leg, so it always
+                             starts from this page and its CLIENT_NOTICE (see
+                             the binding cookie in src/oauth.ts). -->
+                        <form
+                            method="post"
+                            action="/authorize/google"
+                            class="auth-google-form"
                         >
-                            <i
-                                class="fa-brands fa-google auth-btn-google-icon"
-                                aria-hidden="true"
-                            ></i>
-                            ${esc(doc.googleButton)}
-                        </a>
+                            <input
+                                type="hidden"
+                                name="session_id"
+                                value="{{SESSION_ID}}"
+                            />
+                            <button
+                                type="submit"
+                                class="auth-btn auth-btn-google"
+                            >
+                                <i
+                                    class="fa-brands fa-google auth-btn-google-icon"
+                                    aria-hidden="true"
+                                ></i>
+                                ${esc(doc.googleButton)}
+                            </button>
+                        </form>
 
                         <div class="auth-divider">
                             <span>${esc(doc.dividerText)}</span>
