@@ -35,20 +35,35 @@ export function protectedResourceMetadata(baseUrl: string, resource: string) {
     };
 }
 
+// This authorization server's issuer identifier: the bare origin. The one
+// source for both the metadata `issuer` below and the `iss` parameter /authorize
+// adds to every authorization response (RFC 9207), which a client compares
+// byte for byte against the metadata — so both must come from here.
+export function issuerFor(baseUrl: string): string {
+    return baseUrl;
+}
+
 // RFC 8414 authorization server metadata. Byte-identical on every route that
 // serves it: the issuer is this origin with no path, so `issuer` must stay the
 // bare origin or the RFC 8414 §3.3 issuer-match check fails and conformant
 // clients discard the document.
 export function authorizationServerMetadata(baseUrl: string) {
     return {
-        issuer: baseUrl,
+        issuer: issuerFor(baseUrl),
         authorization_endpoint: `${baseUrl}/authorize`,
         token_endpoint: `${baseUrl}/token`,
         registration_endpoint: `${baseUrl}/register`,
         grant_types_supported: ["authorization_code", "refresh_token"],
         response_types_supported: ["code"],
         code_challenge_methods_supported: ["S256"],
-        token_endpoint_auth_methods_supported: ["none", "client_secret_post"],
+        token_endpoint_auth_methods_supported: [
+            "none",
+            "client_secret_post",
+            "client_secret_basic",
+        ],
+        // RFC 9207: every authorization response (success and post-validation
+        // error redirects alike) carries `iss`, equal to `issuer` above.
+        authorization_response_iss_parameter_supported: true,
     };
 }
 

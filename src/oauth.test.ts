@@ -16,6 +16,7 @@ import type {
     OAuthStore,
 } from "./oauth-store.js";
 import { pkceS256 } from "./oauth-validate.js";
+import { authorizationServerMetadata } from "./discovery.js";
 import { _resetBuckets } from "./rate-limit.js";
 import { SITE_LOCALES } from "./routes.js";
 
@@ -48,6 +49,8 @@ function fakeStore(opts: { legacyRedirects?: string[] } = {}) {
         codes: new Map<string, AuthCodeData>(),
         tokens: new Map<string, { userId: string; ttlSeconds: number }>(),
         refresh: new Map<string, { userId: string; clientId: string | null }>(),
+        // Client ids touchClient was called with, in order.
+        touched: [] as string[],
     };
     const legacyRedirects = new Set(opts.legacyRedirects ?? []);
     const store: OAuthStore & { dump(): typeof state } = {
@@ -64,6 +67,9 @@ function fakeStore(opts: { legacyRedirects?: string[] } = {}) {
                 redirectUris: c.redirectUris,
                 legacy: false,
             };
+        },
+        async touchClient(clientId) {
+            state.touched.push(clientId);
         },
         async isLegacyRedirect(uri) {
             return legacyRedirects.has(uri);
@@ -625,6 +631,10 @@ describe("GET /authorize", () => {
         expect(location.searchParams.get("error")).toBe(error);
         expect(location.searchParams.get("error_description")).toBeTruthy();
         expect(location.searchParams.get("state")).toBe(state ?? null);
+        // RFC 9207: error responses carry iss too.
+        expect(location.searchParams.get("iss")).toBe(
+            authorizationServerMetadata("http://localhost").issuer,
+        );
     }
 
     test("a missing code_challenge redirects with invalid_request and state", async () => {
@@ -785,13 +795,13 @@ describe("legacy env client", () => {
 
     // createOAuthRouter() reads the env client at construction, so the env
     // only has to be set around building the app, then restored at once.
-    function buildLegacyApp() {
+    function buildLegacyApp(secret = LEGACY_SECRET) {
         const saved = {
             id: process.env.OAUTH_CLIENT_ID,
             secret: process.env.OAUTH_CLIENT_SECRET,
         };
         process.env.OAUTH_CLIENT_ID = LEGACY_ID;
-        process.env.OAUTH_CLIENT_SECRET = LEGACY_SECRET;
+        process.env.OAUTH_CLIENT_SECRET = secret;
         try {
             return buildTestApp({
                 store: fakeStore({ legacyRedirects: [SNAPSHOT_URI] }),
@@ -888,6 +898,164 @@ describe("legacy env client", () => {
             client_secret: LEGACY_SECRET,
         });
         expect(res.status).toBe(200);
+    });
+
+    // Its secret was handed to every caller, so it stays optional — but a
+    // wrong one is still refused, and Basic works now that it's advertised
+    // (the MCP SDK may switch to it on its own).
+    test("/token: legacy secret optional, must match if sent, Basic accepted", async () => {
+        _resetBuckets();
+        const { app, store } = buildLegacyApp();
+        const ip = "198.51.100.45";
+        async function code() {
+            const authorize = await fire(
+                app,
+                "GET",
+                authorizePath({
+                    client_id: LEGACY_ID,
+                    redirect_uri: SNAPSHOT_URI,
+                }),
+                ip,
+            );
+            const before = new Set(store.dump().codes.keys());
+            await postForm(
+                app,
+                "/approve",
+                ip,
+                {
+                    session_id: sessionIdFrom(await authorize.text())!,
+                    email: "a@example.com",
+                    password: "pw",
+                },
+                { cookie: bindingCookie(authorize) },
+            );
+            return [...store.dump().codes.keys()].find((k) => !before.has(k))!;
+        }
+        const grant = (c: string) => ({
+            grant_type: "authorization_code",
+            code: c,
+            redirect_uri: SNAPSHOT_URI,
+            code_verifier: VERIFIER,
+        });
+
+        const noSecret = await postForm(app, "/token", ip, {
+            ...grant(await code()),
+            client_id: LEGACY_ID,
+        });
+        expect(noSecret.status).toBe(200);
+
+        const wrong = await postForm(app, "/token", ip, {
+            ...grant(await code()),
+            client_id: LEGACY_ID,
+            client_secret: "wrong",
+        });
+        expect(wrong.status).toBe(401);
+
+        const viaBasic = await postForm(
+            app,
+            "/token",
+            ip,
+            grant(await code()),
+            {
+                authorization: `Basic ${Buffer.from(`${LEGACY_ID}:${LEGACY_SECRET}`).toString("base64")}`,
+            },
+        );
+        expect(viaBasic.status).toBe(200);
+        // No oauth_clients row to stamp for the legacy client.
+        expect(store.dump().touched).not.toContain(LEGACY_ID);
+    });
+
+    // Runs authorize -> approve for the legacy client and returns the code.
+    async function legacyCode(app: Hono, store: FakeStore, ip: string) {
+        const authorize = await fire(
+            app,
+            "GET",
+            authorizePath({ client_id: LEGACY_ID, redirect_uri: SNAPSHOT_URI }),
+            ip,
+        );
+        const before = new Set(store.dump().codes.keys());
+        await postForm(
+            app,
+            "/approve",
+            ip,
+            {
+                session_id: sessionIdFrom(await authorize.text())!,
+                email: "a@example.com",
+                password: "pw",
+            },
+            { cookie: bindingCookie(authorize) },
+        );
+        return [...store.dump().codes.keys()].find((k) => !before.has(k))!;
+    }
+
+    // The MCP SDK builds Basic as btoa(`${id}:${secret}`) with no
+    // form-encoding, and switches a pre-registration client to Basic on its
+    // own once Basic is advertised. A "+" in the secret must not decode to a
+    // space and log that client out.
+    test("/token: raw (not form-encoded) Basic with a '+' or '%' in the secret", async () => {
+        for (const [i, secret] of [
+            "abc+def/ghi=",
+            "abc%2Bdef",
+            "abc%zz",
+        ].entries()) {
+            _resetBuckets();
+            const { app, store } = buildLegacyApp(secret);
+            const ip = `198.51.100.${46 + i}`;
+            const res = await postForm(
+                app,
+                "/token",
+                ip,
+                {
+                    grant_type: "authorization_code",
+                    code: await legacyCode(app, store, ip),
+                    redirect_uri: SNAPSHOT_URI,
+                    code_verifier: VERIFIER,
+                },
+                {
+                    authorization: `Basic ${btoa(`${LEGACY_ID}:${secret}`)}`,
+                },
+            );
+            expect({ secret, status: res.status }).toEqual({
+                secret,
+                status: 200,
+            });
+        }
+    });
+
+    // Before per-client registration the legacy client was the only one, and
+    // /token accepted its secret with no client_id; kept until the sunset.
+    test("/token: a legacy secret with no client_id is the legacy client", async () => {
+        _resetBuckets();
+        const { app, store } = buildLegacyApp();
+        const ip = "198.51.100.49";
+        const grant = async () => ({
+            grant_type: "authorization_code",
+            code: await legacyCode(app, store, ip),
+            redirect_uri: SNAPSHOT_URI,
+            code_verifier: VERIFIER,
+        });
+        const ok = await postForm(app, "/token", ip, {
+            ...(await grant()),
+            client_secret: LEGACY_SECRET,
+        });
+        expect(ok.status).toBe(200);
+        const { refresh_token } = (await ok.json()) as {
+            refresh_token: string;
+        };
+        // The refresh token is bound to the legacy client, and the same
+        // secret-only request refreshes it.
+        const refreshed = await postForm(app, "/token", ip, {
+            grant_type: "refresh_token",
+            refresh_token,
+            client_secret: LEGACY_SECRET,
+        });
+        expect(refreshed.status).toBe(200);
+
+        const wrong = await postForm(app, "/token", ip, {
+            ...(await grant()),
+            client_secret: "wrong",
+        });
+        expect(wrong.status).toBe(401);
     });
 });
 
@@ -1550,6 +1718,10 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
     const location = new URL(approve.headers.get("Location")!);
     expect(`${location.origin}${location.pathname}`).toBe(CLAUDE_CALLBACK);
     expect(location.searchParams.get("state")).toBe("st-1");
+    // RFC 9207: iss is this server's issuer, byte-identical to the metadata.
+    expect(location.searchParams.get("iss")).toBe(
+        authorizationServerMetadata("http://localhost").issuer,
+    );
     const code = location.searchParams.get("code");
     expect(code).toBeTruthy();
 
@@ -1567,6 +1739,8 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
         client_id: client.client_id,
     });
     expect(token.status).toBe(200);
+    expect(token.headers.get("Cache-Control")).toBe("no-store");
+    expect(token.headers.get("Pragma")).toBe("no-cache");
     const pair = (await token.json()) as {
         access_token: string;
         refresh_token: string;
@@ -1578,6 +1752,11 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
     expect(pair.access_token).toBeTruthy();
     expect(pair.refresh_token).toBeTruthy();
     expect(store.dump().tokens.get(pair.access_token)?.userId).toBe("user-1");
+    // The refresh token is bound to the client that redeemed the code.
+    expect(store.dump().refresh.get(pair.refresh_token)?.clientId).toBe(
+        client.client_id,
+    );
+    expect(store.dump().touched).toContain(client.client_id);
 
     // A code is single-use.
     const replay = await postForm(app, "/token", ip, {
@@ -1588,12 +1767,18 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
         client_id: client.client_id,
     });
     expect(replay.status).toBe(400);
+    expect(((await replay.json()) as { error: string }).error).toBe(
+        "invalid_grant",
+    );
+    expect(replay.headers.get("Cache-Control")).toBe("no-store");
 
     const refreshed = await postForm(app, "/token", ip, {
         grant_type: "refresh_token",
         refresh_token: pair.refresh_token,
+        client_id: client.client_id,
     });
     expect(refreshed.status).toBe(200);
+    expect(refreshed.headers.get("Cache-Control")).toBe("no-store");
     const next = (await refreshed.json()) as {
         access_token: string;
         refresh_token: string;
@@ -1605,112 +1790,672 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
     const stale = await postForm(app, "/token", ip, {
         grant_type: "refresh_token",
         refresh_token: pair.refresh_token,
+        client_id: client.client_id,
     });
     expect(stale.status).toBe(400);
+    expect(stale.headers.get("Cache-Control")).toBe("no-store");
+    expect(stale.headers.get("Pragma")).toBe("no-cache");
     expect(((await stale.json()) as { error: string }).error).toBe(
         "invalid_grant",
     );
 });
 
-// Phase A only swaps /token's client check from the env client to the store;
-// these pin that a registered client's id and secret are what it checks now.
-describe("POST /token client check (Phase A)", () => {
+// ---------- POST /token (Phase B) ----------
+
+describe("POST /token", () => {
+    const SECOND_CALLBACK = "https://other-client.example/cb";
+
+    // Registers a client, runs authorize -> approve for it, and returns the
+    // code the redirect carried. `app`/`store` can be passed in so two
+    // clients share one server.
     async function codeFor(
         ip: string,
         meta: Record<string, unknown>,
-    ): Promise<{ app: Hono; client: Registration; code: string }> {
-        _resetBuckets();
-        const { app } = buildTestApp();
+        shared?: { app: Hono; store: FakeStore },
+        authorize: Record<string, string> = {},
+    ) {
+        if (!shared) _resetBuckets();
+        const { app, store } = shared ?? buildTestApp();
         const client = await registerClient(app, ip, meta);
-        const authorize = await fire(
+        const redirect = client.redirect_uris[0]!;
+        const res = await fire(
             app,
             "GET",
-            authorizePath({ client_id: client.client_id }),
+            authorizePath({
+                client_id: client.client_id,
+                redirect_uri: redirect,
+                ...authorize,
+            }),
             ip,
         );
+        expect(res.status).toBe(200);
         const approve = await postForm(
             app,
             "/approve",
             ip,
             {
-                session_id: sessionIdFrom(await authorize.text())!,
+                session_id: sessionIdFrom(await res.text())!,
                 email: "a@example.com",
                 password: "pw",
             },
-            { cookie: bindingCookie(authorize) },
+            { cookie: bindingCookie(res) },
         );
+        expect(approve.status).toBe(302);
         const code = new URL(approve.headers.get("Location")!).searchParams.get(
             "code",
         )!;
-        return { app, client, code };
+        return { app, store, client, code, redirect };
     }
 
     function redeem(
         app: Hono,
         ip: string,
-        code: string,
-        extra: Record<string, string>,
+        fields: Record<string, string | undefined>,
+        headers: Record<string, string> = {},
     ) {
-        return postForm(app, "/token", ip, {
+        const all: Record<string, string> = {};
+        const merged: Record<string, string | undefined> = {
             grant_type: "authorization_code",
-            code,
             redirect_uri: CLAUDE_CALLBACK,
             code_verifier: VERIFIER,
-            ...extra,
-        });
+            ...fields,
+        };
+        for (const [k, v] of Object.entries(merged))
+            if (v !== undefined) all[k] = v;
+        return postForm(app, "/token", ip, all, headers);
     }
 
-    test("a confidential client's correct secret is accepted", async () => {
+    // RFC 6749 §2.3.1: each half form-encoded, then base64 of "id:secret".
+    function basic(id: string, secret: string) {
+        const enc = (v: string) =>
+            new URLSearchParams({ v }).toString().slice(2);
+        return `Basic ${Buffer.from(`${enc(id)}:${enc(secret)}`).toString("base64")}`;
+    }
+
+    async function expectError(res: Response, status: number, error: string) {
+        expect(res.status).toBe(status);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
+        expect(res.headers.get("Pragma")).toBe("no-cache");
+        expect(((await res.json()) as { error: string }).error).toBe(error);
+    }
+
+    // ----- authorization_code: client authentication -----
+
+    test("a confidential client's secret is accepted in the body", async () => {
         const ip = "198.51.100.70";
         const { app, client, code } = await codeFor(ip, {
             token_endpoint_auth_method: "client_secret_post",
         });
-        const res = await redeem(app, ip, code, {
+        const res = await redeem(app, ip, {
+            code,
             client_id: client.client_id,
             client_secret: client.client_secret!,
         });
         expect(res.status).toBe(200);
     });
 
-    test("a wrong secret is 401 invalid_client", async () => {
+    test("Basic auth with the right secret is accepted", async () => {
         const ip = "198.51.100.71";
+        const { app, client, code } = await codeFor(ip, {});
+        expect(client.token_endpoint_auth_method).toBe("client_secret_basic");
+        const res = await redeem(
+            app,
+            ip,
+            { code },
+            { authorization: basic(client.client_id, client.client_secret!) },
+        );
+        expect(res.status).toBe(200);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
+    });
+
+    // Either transport proves the same secret; see authenticateClient.
+    test("a confidential client may use either secret transport", async () => {
+        const ip = "198.51.100.72";
+        const post = await codeFor(ip, {});
+        expect(
+            (
+                await redeem(post.app, ip, {
+                    code: post.code,
+                    client_id: post.client.client_id,
+                    client_secret: post.client.client_secret!,
+                })
+            ).status,
+        ).toBe(200);
+
+        const viaBasic = await codeFor(ip, {
+            token_endpoint_auth_method: "client_secret_post",
+        });
+        expect(
+            (
+                await redeem(
+                    viaBasic.app,
+                    ip,
+                    { code: viaBasic.code },
+                    {
+                        authorization: basic(
+                            viaBasic.client.client_id,
+                            viaBasic.client.client_secret!,
+                        ),
+                    },
+                )
+            ).status,
+        ).toBe(200);
+    });
+
+    test("Basic auth with a wrong secret is 401 with WWW-Authenticate: Basic", async () => {
+        const ip = "198.51.100.73";
+        const { app, client, code, store } = await codeFor(ip, {});
+        const res = await redeem(
+            app,
+            ip,
+            { code },
+            { authorization: basic(client.client_id, "wrong") },
+        );
+        expect(res.headers.get("WWW-Authenticate")).toStartWith("Basic");
+        await expectError(res, 401, "invalid_client");
+        // Refused before the code was touched.
+        expect(store.dump().codes.has(code)).toBe(true);
+    });
+
+    test("a malformed Basic header is 401 with WWW-Authenticate: Basic", async () => {
+        const ip = "198.51.100.74";
+        const { app, code } = await codeFor(ip, {});
+        for (const authorization of [
+            "Basic !!!",
+            `Basic ${Buffer.from("no-colon").toString("base64")}`,
+            `Basic ${Buffer.from("%zz:secret").toString("base64")}`,
+        ]) {
+            const res = await redeem(app, ip, { code }, { authorization });
+            expect(res.headers.get("WWW-Authenticate")).toStartWith("Basic");
+            await expectError(res, 401, "invalid_client");
+        }
+    });
+
+    test("Basic credentials are form-decoded", async () => {
+        const ip = "198.51.100.75";
+        const { app, client, code, store } = await codeFor(ip, {});
+        // Swap in a secret that needs encoding, as the store would hold it.
+        store.dump().clients.get(client.client_id)!.secretHash = crypto
+            .createHash("sha256")
+            .update("s3cret with+plus:colon")
+            .digest("hex");
+        const res = await redeem(
+            app,
+            ip,
+            { code },
+            {
+                authorization: basic(
+                    client.client_id,
+                    "s3cret with+plus:colon",
+                ),
+            },
+        );
+        expect(res.status).toBe(200);
+    });
+
+    // The MCP SDK sends btoa(`${id}:${secret}`) without form-encoding; the
+    // raw halves are accepted as well as the decoded ones.
+    test("raw (not form-encoded) Basic credentials are accepted", async () => {
+        const ip = "198.51.100.69";
+        const { app, client, code, store } = await codeFor(ip, {});
+        store.dump().clients.get(client.client_id)!.secretHash = crypto
+            .createHash("sha256")
+            .update("abc+def/ghi%zz=")
+            .digest("hex");
+        const res = await redeem(
+            app,
+            ip,
+            { code },
+            {
+                authorization: `Basic ${btoa(`${client.client_id}:abc+def/ghi%zz=`)}`,
+            },
+        );
+        expect(res.status).toBe(200);
+    });
+
+    test("a secret with no client_id is 401 when there is no legacy client", async () => {
+        const ip = "198.51.100.68";
+        const { app, code } = await codeFor(ip, {});
+        await expectError(
+            await redeem(app, ip, { code, client_secret: "anything" }),
+            401,
+            "invalid_client",
+        );
+    });
+
+    test("a confidential client with no secret is 401", async () => {
+        const ip = "198.51.100.76";
         const { app, client, code } = await codeFor(ip, {
             token_endpoint_auth_method: "client_secret_post",
         });
-        const res = await redeem(app, ip, code, {
+        const res = await redeem(app, ip, {
+            code,
             client_id: client.client_id,
-            client_secret: "wrong",
         });
-        expect(res.status).toBe(401);
-        expect(((await res.json()) as { error: string }).error).toBe(
+        // Body-only attempt: no Basic challenge.
+        expect(res.headers.get("WWW-Authenticate")).toBeNull();
+        await expectError(res, 401, "invalid_client");
+    });
+
+    test("a wrong body secret is 401 invalid_client", async () => {
+        const ip = "198.51.100.77";
+        const { app, client, code } = await codeFor(ip, {
+            token_endpoint_auth_method: "client_secret_post",
+        });
+        await expectError(
+            await redeem(app, ip, {
+                code,
+                client_id: client.client_id,
+                client_secret: "wrong",
+            }),
+            401,
+            "invalid_client",
+        );
+    });
+
+    test("credentials in both the header and the body are invalid_request", async () => {
+        const ip = "198.51.100.78";
+        const { app, client, code } = await codeFor(ip, {});
+        await expectError(
+            await redeem(
+                app,
+                ip,
+                {
+                    code,
+                    client_id: client.client_id,
+                    client_secret: client.client_secret!,
+                },
+                {
+                    authorization: basic(
+                        client.client_id,
+                        client.client_secret!,
+                    ),
+                },
+            ),
+            400,
+            "invalid_request",
+        );
+    });
+
+    test("a public client must send its client_id", async () => {
+        const ip = "198.51.100.79";
+        const { app, client, code } = await codeFor(ip, {
+            token_endpoint_auth_method: "none",
+        });
+        await expectError(
+            await redeem(app, ip, { code }),
+            401,
+            "invalid_client",
+        );
+        // A public client presenting a secret is refused too.
+        await expectError(
+            await redeem(app, ip, {
+                code,
+                client_id: client.client_id,
+                client_secret: "anything",
+            }),
+            401,
             "invalid_client",
         );
     });
 
     test("an unknown client_id is 401 invalid_client", async () => {
-        const ip = "198.51.100.72";
+        const ip = "198.51.100.110";
         const { app, code } = await codeFor(ip, {
             token_endpoint_auth_method: "none",
         });
-        const res = await redeem(app, ip, code, {
-            client_id: crypto.randomUUID(),
-        });
-        expect(res.status).toBe(401);
+        await expectError(
+            await redeem(app, ip, { code, client_id: crypto.randomUUID() }),
+            401,
+            "invalid_client",
+        );
     });
 
-    test("a wrong code_verifier is invalid_grant", async () => {
-        const ip = "198.51.100.73";
+    // ----- authorization_code: the grant -----
+
+    test("a code issued to client A cannot be redeemed by client B", async () => {
+        const ip = "198.51.100.111";
+        const a = await codeFor(ip, { token_endpoint_auth_method: "none" });
+        const b = await registerClient(a.app, ip, {
+            token_endpoint_auth_method: "none",
+            redirect_uris: [CLAUDE_CALLBACK],
+        });
+        await expectError(
+            await redeem(a.app, ip, { code: a.code, client_id: b.client_id }),
+            400,
+            "invalid_grant",
+        );
+        // Spent by the failed attempt: A can't redeem it afterwards either.
+        await expectError(
+            await redeem(a.app, ip, {
+                code: a.code,
+                client_id: a.client.client_id,
+            }),
+            400,
+            "invalid_grant",
+        );
+    });
+
+    // A code minted before auth_codes carried a client_id is not bound.
+    test("a null-client code is redeemable by any authenticated client", async () => {
+        const ip = "198.51.100.112";
+        const { app, store, client, code } = await codeFor(ip, {
+            token_endpoint_auth_method: "none",
+        });
+        store.dump().codes.get(code)!.client_id = null;
+        const res = await redeem(app, ip, {
+            code,
+            client_id: client.client_id,
+        });
+        expect(res.status).toBe(200);
+    });
+
+    for (const [label, fields] of [
+        ["a missing redirect_uri", { redirect_uri: undefined }],
+        ["a mismatched redirect_uri", { redirect_uri: SECOND_CALLBACK }],
+        [
+            "a redirect_uri differing only by port and trailing slash",
+            { redirect_uri: "https://claude.ai:443/api/mcp/auth_callback/" },
+        ],
+        ["a wrong code_verifier", { code_verifier: "x".repeat(43) }],
+        // Documented choice: invalid_grant, like a wrong verifier.
+        ["a missing code_verifier", { code_verifier: undefined }],
+        ["a too-short code_verifier", { code_verifier: "x".repeat(42) }],
+        [
+            "a code_verifier with invalid characters",
+            { code_verifier: `${VERIFIER}!` },
+        ],
+    ] as const) {
+        test(`${label} is invalid_grant`, async () => {
+            const ip = "198.51.100.113";
+            const { app, client, code } = await codeFor(ip, {
+                token_endpoint_auth_method: "none",
+            });
+            await expectError(
+                await redeem(app, ip, {
+                    code,
+                    client_id: client.client_id,
+                    ...fields,
+                }),
+                400,
+                "invalid_grant",
+            );
+        });
+    }
+
+    test("a code with no challenge is always rejected", async () => {
+        const ip = "198.51.100.114";
+        const { app, store, client, code } = await codeFor(ip, {
+            token_endpoint_auth_method: "none",
+        });
+        store.dump().codes.get(code)!.code_challenge = null;
+        await expectError(
+            await redeem(app, ip, { code, client_id: client.client_id }),
+            400,
+            "invalid_grant",
+        );
+    });
+
+    test("a replayed code is invalid_grant", async () => {
+        const ip = "198.51.100.115";
         const { app, client, code } = await codeFor(ip, {
             token_endpoint_auth_method: "none",
         });
-        const res = await redeem(app, ip, code, {
-            client_id: client.client_id,
-            code_verifier: "x".repeat(43),
+        const fields = { code, client_id: client.client_id };
+        expect((await redeem(app, ip, fields)).status).toBe(200);
+        await expectError(await redeem(app, ip, fields), 400, "invalid_grant");
+    });
+
+    test("a missing code is invalid_request", async () => {
+        const ip = "198.51.100.116";
+        const { app, client } = await codeFor(ip, {
+            token_endpoint_auth_method: "none",
         });
-        expect(res.status).toBe(400);
-        expect(((await res.json()) as { error: string }).error).toBe(
+        await expectError(
+            await redeem(app, ip, { client_id: client.client_id }),
+            400,
+            "invalid_request",
+        );
+    });
+
+    test("resource must match the one the code was issued for", async () => {
+        const ip = "198.51.100.117";
+        const RESOURCE = "http://localhost/mcp";
+        const bound = await codeFor(
+            ip,
+            { token_endpoint_auth_method: "none" },
+            undefined,
+            { resource: RESOURCE },
+        );
+        expect(bound.store.dump().codes.get(bound.code)!.resource).toBe(
+            RESOURCE,
+        );
+        // The bare origin is this server too, but not what was authorized.
+        await expectError(
+            await redeem(bound.app, ip, {
+                code: bound.code,
+                client_id: bound.client.client_id,
+                resource: "http://localhost",
+            }),
+            400,
+            "invalid_target",
+        );
+
+        const again = await codeFor(
+            ip,
+            { token_endpoint_auth_method: "none" },
+            { app: bound.app, store: bound.store },
+            { resource: RESOURCE },
+        );
+        // Same resource, normalized (trailing slash) — accepted.
+        expect(
+            (
+                await redeem(again.app, ip, {
+                    code: again.code,
+                    client_id: again.client.client_id,
+                    resource: `${RESOURCE}/`,
+                })
+            ).status,
+        ).toBe(200);
+    });
+
+    test("a foreign resource is invalid_target; omitting it is fine", async () => {
+        const ip = "198.51.100.118";
+        const first = await codeFor(ip, { token_endpoint_auth_method: "none" });
+        await expectError(
+            await redeem(first.app, ip, {
+                code: first.code,
+                client_id: first.client.client_id,
+                resource: "https://evil.example/mcp",
+            }),
+            400,
+            "invalid_target",
+        );
+        const second = await codeFor(
+            ip,
+            { token_endpoint_auth_method: "none" },
+            { app: first.app, store: first.store },
+        );
+        expect(
+            (
+                await redeem(second.app, ip, {
+                    code: second.code,
+                    client_id: second.client.client_id,
+                })
+            ).status,
+        ).toBe(200);
+    });
+
+    test("a missing or unknown grant_type is rejected", async () => {
+        _resetBuckets();
+        const { app } = buildTestApp();
+        const ip = "198.51.100.119";
+        await expectError(
+            await postForm(app, "/token", ip, {}),
+            400,
+            "invalid_request",
+        );
+        await expectError(
+            await postForm(app, "/token", ip, { grant_type: "password" }),
+            400,
+            "unsupported_grant_type",
+        );
+    });
+
+    // ----- refresh_token -----
+
+    async function tokensFor(
+        ip: string,
+        meta: Record<string, unknown>,
+        shared?: { app: Hono; store: FakeStore },
+    ) {
+        const got = await codeFor(ip, meta, shared);
+        const res = await redeem(got.app, ip, {
+            code: got.code,
+            client_id: got.client.client_id,
+            ...(got.client.client_secret
+                ? { client_secret: got.client.client_secret }
+                : {}),
+        });
+        expect(res.status).toBe(200);
+        const pair = (await res.json()) as { refresh_token: string };
+        return { ...got, refreshToken: pair.refresh_token };
+    }
+
+    function refresh(
+        app: Hono,
+        ip: string,
+        fields: Record<string, string>,
+        headers: Record<string, string> = {},
+    ) {
+        return postForm(
+            app,
+            "/token",
+            ip,
+            { grant_type: "refresh_token", ...fields },
+            headers,
+        );
+    }
+
+    test("a refresh token from client A presented by client B is invalid_grant", async () => {
+        const ip = "198.51.100.120";
+        const a = await tokensFor(ip, { token_endpoint_auth_method: "none" });
+        const b = await registerClient(a.app, ip, {
+            token_endpoint_auth_method: "none",
+        });
+        await expectError(
+            await refresh(a.app, ip, {
+                refresh_token: a.refreshToken,
+                client_id: b.client_id,
+            }),
+            400,
             "invalid_grant",
         );
+        // Nor with no client at all.
+        const again = await tokensFor(
+            ip,
+            { token_endpoint_auth_method: "none" },
+            { app: a.app, store: a.store },
+        );
+        await expectError(
+            await refresh(a.app, ip, { refresh_token: again.refreshToken }),
+            400,
+            "invalid_grant",
+        );
+    });
+
+    // Written before refresh_tokens.client_id existed: accepted from anyone,
+    // including a caller that sends no client credentials, so nobody already
+    // connected is logged out.
+    test("a null-client refresh token is accepted from any client", async () => {
+        const ip = "198.51.100.121";
+        _resetBuckets();
+        const { app, store } = buildTestApp();
+        store.dump().refresh.set("old-token", {
+            userId: "user-9",
+            clientId: null,
+        });
+        store.dump().refresh.set("old-token-2", {
+            userId: "user-9",
+            clientId: null,
+        });
+        const client = await registerClient(app, ip, {
+            token_endpoint_auth_method: "none",
+        });
+
+        const anonymous = await refresh(app, ip, {
+            refresh_token: "old-token",
+        });
+        expect(anonymous.status).toBe(200);
+        const anon = (await anonymous.json()) as { refresh_token: string };
+        // Still unbound: nobody identified themselves.
+        expect(store.dump().refresh.get(anon.refresh_token)?.clientId).toBe(
+            null,
+        );
+
+        const named = await refresh(app, ip, {
+            refresh_token: "old-token-2",
+            client_id: client.client_id,
+        });
+        expect(named.status).toBe(200);
+        const next = (await named.json()) as { refresh_token: string };
+        // The rotated token picks up the client that refreshed it.
+        expect(store.dump().refresh.get(next.refresh_token)).toEqual({
+            userId: "user-9",
+            clientId: client.client_id,
+        });
+    });
+
+    test("a confidential client must authenticate to refresh", async () => {
+        const ip = "198.51.100.122";
+        const got = await tokensFor(ip, {});
+        await expectError(
+            await refresh(got.app, ip, {
+                refresh_token: got.refreshToken,
+                client_id: got.client.client_id,
+            }),
+            401,
+            "invalid_client",
+        );
+        // The failed authentication didn't burn the token.
+        const ok = await refresh(
+            got.app,
+            ip,
+            { refresh_token: got.refreshToken },
+            {
+                authorization: basic(
+                    got.client.client_id,
+                    got.client.client_secret!,
+                ),
+            },
+        );
+        expect(ok.status).toBe(200);
+        const body = (await ok.json()) as { refresh_token: string };
+        expect(body.refresh_token).not.toBe(got.refreshToken);
+    });
+
+    test("refresh errors: missing token is invalid_request, unknown is invalid_grant", async () => {
+        _resetBuckets();
+        const { app } = buildTestApp();
+        const ip = "198.51.100.123";
+        await expectError(await refresh(app, ip, {}), 400, "invalid_request");
+        await expectError(
+            await refresh(app, ip, { refresh_token: "nope" }),
+            400,
+            "invalid_grant",
+        );
+    });
+
+    test("a rate-limited /token answer is not cacheable either", async () => {
+        _resetBuckets();
+        const { app } = buildTestApp();
+        const ip = "198.51.100.124";
+        let res: Response;
+        do {
+            res = await postForm(app, "/token", ip, {});
+        } while (res.status !== 429);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
+        expect(res.headers.get("Pragma")).toBe("no-cache");
     });
 });
 
