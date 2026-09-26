@@ -69,6 +69,11 @@ function rejectUnauthenticated(
     return c.json({ error, error_description: description }, 401);
 }
 
+// No audience check here, deliberately: this server protects exactly one
+// resource (mcpResourceUrl), and /authorize refuses any RFC 8707 `resource`
+// that is not it, so every token it issues is implicitly audience-bound to
+// /mcp. A second protected resource would need the code's `resource` carried
+// onto the token and checked here.
 export const authenticateBearer = async (c: Context, next: Next) => {
     const authHeader = c.req.header("Authorization");
 
