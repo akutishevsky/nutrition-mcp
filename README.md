@@ -51,7 +51,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 - **Hono** — HTTP framework
 - **MCP SDK** — Model Context Protocol over Streamable HTTP
 - **Supabase** — PostgreSQL database + user authentication
-- **OAuth 2.0** — authentication for Claude.ai and other MCP clients: per-client dynamic client registration (RFC 7591) with exact redirect-URI matching, and mandatory PKCE (`S256`)
+- **OAuth 2.0** — authentication for Claude.ai and other MCP clients: per-client dynamic client registration (RFC 7591) with exact redirect-URI matching, mandatory PKCE (`S256`), token-endpoint client authentication (`none`, `client_secret_post`, `client_secret_basic`), codes and refresh tokens bound to the client they were issued to, and `iss` on every authorization response (RFC 9207)
 
 ## MCP Tools
 
@@ -209,19 +209,19 @@ For in-chat widget development (`public/widgets/`), `bun run harness` starts a l
 
 ## API Endpoints
 
-| Endpoint                                      | Description                                                                 |
-| --------------------------------------------- | --------------------------------------------------------------------------- |
-| `GET /health`                                 | Health check                                                                |
-| `GET /.well-known/oauth-authorization-server` | OAuth metadata discovery (root + `/mcp`-scoped variants)                    |
-| `GET /.well-known/oauth-protected-resource`   | OAuth protected-resource metadata discovery (root + `/mcp`-scoped variants) |
-| `POST /register`                              | Dynamic client registration (RFC 7591) — per-client, redirect URIs enforced |
-| `GET /authorize`                              | OAuth authorization (shows login page)                                      |
-| `POST /authorize/google`                      | Login-page form; redirects to Google's consent screen                       |
-| `GET /auth/google/callback`                   | Google OAuth callback — exchanges the code, completes sign-in               |
-| `POST /approve`                               | Login/register handler                                                      |
-| `POST /token`                                 | Token exchange                                                              |
-| `GET /favicon.ico`                            | Server icon                                                                 |
-| `ALL /mcp`                                    | MCP endpoint (authenticated)                                                |
+| Endpoint                                      | Description                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| `GET /health`                                 | Health check                                                                   |
+| `GET /.well-known/oauth-authorization-server` | OAuth metadata discovery (root + `/mcp`-scoped variants)                       |
+| `GET /.well-known/oauth-protected-resource`   | OAuth protected-resource metadata discovery (root + `/mcp`-scoped variants)    |
+| `POST /register`                              | Dynamic client registration (RFC 7591) — per-client, redirect URIs enforced    |
+| `GET /authorize`                              | OAuth authorization (shows login page)                                         |
+| `POST /authorize/google`                      | Login-page form; redirects to Google's consent screen                          |
+| `GET /auth/google/callback`                   | Google OAuth callback — exchanges the code, completes sign-in                  |
+| `POST /approve`                               | Login/register handler                                                         |
+| `POST /token`                                 | Token exchange — client-authenticated, `redirect_uri` + PKCE verifier required |
+| `GET /favicon.ico`                            | Server icon                                                                    |
+| `ALL /mcp`                                    | MCP endpoint (authenticated)                                                   |
 
 ## Deploy
 

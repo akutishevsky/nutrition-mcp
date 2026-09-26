@@ -75,6 +75,17 @@ app.use("*", async (c, next) => {
     if (process.env.NOINDEX) c.header("X-Robots-Tag", "noindex, nofollow");
 });
 
+// Every /token response must never be cached (RFC 6749 §5.1), including the
+// ones answered before the request reaches the OAuth router: the body-limit
+// 413 and the shutdown gate's 503 below. The router sets the same headers for
+// itself (it is also mounted on its own in tests); this covers the app-level
+// short circuits. Registered ahead of both so its after-next() runs on theirs.
+app.use("/token", async (c, next) => {
+    await next();
+    c.header("Cache-Control", "no-store");
+    c.header("Pragma", "no-cache");
+});
+
 // Body limit
 app.use(
     "*",

@@ -122,6 +122,37 @@ describe("the shutdown gate", () => {
     });
 });
 
+// RFC 6749 §5.1: every /token response is no-store, including the ones the
+// app answers before the request reaches the OAuth router (which sets the
+// headers for its own responses).
+describe("/token responses answered before the OAuth router", () => {
+    test("the body-limit 413 is no-store", async () => {
+        const r = await app.request("http://x/token", {
+            method: "POST",
+            headers: {
+                "content-type": "application/x-www-form-urlencoded",
+                "content-length": String(2 * 1024 * 1024),
+            },
+            body: "grant_type=" + "a".repeat(2 * 1024 * 1024),
+        });
+        expect(r.status).toBe(413);
+        expect(r.headers.get("Cache-Control")).toBe("no-store");
+        expect(r.headers.get("Pragma")).toBe("no-cache");
+    });
+
+    test("the shutdown gate's 503 is no-store", async () => {
+        setShuttingDownForTest(true);
+        const r = await app.request("http://x/token", {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: "grant_type=refresh_token",
+        });
+        expect(r.status).toBe(503);
+        expect(r.headers.get("Cache-Control")).toBe("no-store");
+        expect(r.headers.get("Pragma")).toBe("no-cache");
+    });
+});
+
 describe("CORS allow-headers", () => {
     test("reflects the requested headers, covering the Mcp-Param-* family", async () => {
         // A static allowHeaders list cannot cover Mcp-Param-*, which is
