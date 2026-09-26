@@ -2,6 +2,7 @@ import { test, expect } from "bun:test";
 import { Hono } from "hono";
 import {
     MCP_PATH,
+    issuerFor,
     registerDiscoveryRoutes,
     resourceMetadataUrl,
 } from "./discovery.js";
@@ -164,4 +165,23 @@ test("discovery documents are built from the requesting host", async () => {
         resource: "http://localhost:8080/mcp",
         authorization_servers: ["http://localhost:8080"],
     });
+});
+
+// What /token and /authorize actually enforce: all three client-auth methods,
+// S256 only, and `iss` on every authorization response (RFC 9207). No CIMD flag:
+// client ID metadata documents are not supported, and advertising them would
+// send clients down a path that fails.
+test("authorization-server metadata advertises exactly what is enforced", async () => {
+    const app = buildTestApp();
+    const doc = await json(app, "/.well-known/oauth-authorization-server");
+    expect(doc.token_endpoint_auth_methods_supported).toEqual([
+        "none",
+        "client_secret_post",
+        "client_secret_basic",
+    ]);
+    expect(doc.code_challenge_methods_supported).toEqual(["S256"]);
+    expect(doc.authorization_response_iss_parameter_supported).toBe(true);
+    expect("client_id_metadata_document_supported" in doc).toBe(false);
+    // The iss /authorize sends comes from the same helper as this issuer.
+    expect(doc.issuer).toBe(issuerFor(ORIGIN));
 });

@@ -16,6 +16,8 @@ import {
     KNOWN_CLIENT_HOSTS,
     isLoopbackRedirect,
     isValidCodeChallenge,
+    isValidCodeVerifier,
+    normalizeResource,
     parseRedirectUri,
     pkceS256,
     redirectDisplay,
@@ -24,6 +26,7 @@ import {
     type RedirectKind,
 } from "./oauth-validate.js";
 import { getBaseUrl } from "./url.js";
+import { issuerFor } from "./discovery.js";
 import { rateLimitAuth } from "./middleware.js";
 import {
     HTML_LANG,
@@ -411,6 +414,11 @@ async function finishAuthorization(
     const redirectUrl = new URL(session.redirectUri);
     redirectUrl.searchParams.set("code", authCode);
     redirectUrl.searchParams.set("state", session.state);
+    // RFC 9207: names the server that issued the code, so a client talking to
+    // several authorization servers can't be fed another server's response.
+    // From the same helper as the metadata `issuer`, which it must equal
+    // byte for byte.
+    redirectUrl.searchParams.set("iss", issuerFor(getBaseUrl(c)));
 
     return c.redirect(redirectUrl.toString());
 }
@@ -473,6 +481,82 @@ function secretMatches(secret: string, storedHash: string | null): boolean {
     return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+// RFC 6749 §2.3.1: the client id and secret in an `Authorization: Basic`
+// header are each application/x-www-form-urlencoded before being joined with
+// ":" and base64-encoded, so both halves are form-decoded here ("+" is a
+// space). The raw halves are kept too, and authentication accepts either: the
+// MCP SDK builds the header as btoa(`${id}:${secret}`) with no form-encoding,
+// and it switches a client that registered with no stored auth method (every
+// client from before per-client registration) to Basic on its own once Basic
+// is advertised. A legacy secret with a "+" or "%" in it would otherwise
+// decode to something else and log that client out at its next refresh.
+// Returns undefined when there is no Basic header, null when there is one but
+// it does not decode — which is a failed authentication, not an absent one.
+interface BasicCredentials {
+    // Form-decoded, or the raw half when it does not form-decode.
+    id: string;
+    secret: string;
+    raw: { id: string; secret: string };
+}
+
+function parseBasicAuth(
+    header: string | undefined,
+): BasicCredentials | null | undefined {
+    if (!header) return undefined;
+    const match = header.match(/^Basic\s+(\S+)\s*$/i);
+    if (!match) {
+        // Some other scheme (a Bearer token, say) is not an attempt at
+        // client authentication; ignore it like any unknown header.
+        return /^Basic\b/i.test(header) ? null : undefined;
+    }
+    const encoded = match[1]!;
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) return null;
+    const decoded = Buffer.from(encoded, "base64").toString("utf8");
+    const colon = decoded.indexOf(":");
+    if (colon < 0) return null;
+    const raw = {
+        id: decoded.slice(0, colon),
+        secret: decoded.slice(colon + 1),
+    };
+    const formDecode = (v: string) => {
+        try {
+            return decodeURIComponent(v.replace(/\+/g, " "));
+        } catch {
+            return v;
+        }
+    };
+    if (!raw.id) return null;
+    return { id: formDecode(raw.id), secret: formDecode(raw.secret), raw };
+}
+
+type ClientAuthResult =
+    // `client` is null only when the caller sent no client credentials at
+    // all and the grant allows that (a refresh with a null-client token).
+    | { ok: true; client: OAuthClient | null }
+    | { ok: false; response: Response };
+
+// Every /token response, success or error, must never be cached (RFC 6749
+// §5.1). Set by middleware registered ahead of the rate limiter, so even its
+// 429 carries them.
+const NO_STORE_HEADERS = {
+    "Cache-Control": "no-store",
+    Pragma: "no-cache",
+} as const;
+
+// A form field as a string, or undefined when absent or not a string (parseBody
+// yields File for a multipart upload, and an array for a repeated key when
+// asked; neither is a valid OAuth parameter).
+function str(v: unknown): string | undefined {
+    return typeof v === "string" ? v : undefined;
+}
+
+// pkceS256(verifier) against the stored challenge, in constant time.
+function challengeMatches(computed: string, stored: string): boolean {
+    const a = Buffer.from(computed, "utf8");
+    const b = Buffer.from(stored, "utf8");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 export interface OAuthRouterDeps {
     store?: OAuthStore;
     auth?: OAuthAuth;
@@ -501,6 +585,14 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     // *every* path of the parent app — a wildcard here rate-limited /mcp too,
     // capping authenticated MCP traffic at the 30/min per-IP auth limit. Listing
     // the endpoints explicitly keeps the limiter from leaking beyond OAuth again.
+    // Ahead of the limiter so its 429 is covered too; applied after next()
+    // so it lands on whatever response the handler (or the limiter) built.
+    oauth.use("/token", async (c, next) => {
+        await next();
+        for (const [name, value] of Object.entries(NO_STORE_HEADERS)) {
+            c.res.headers.set(name, value);
+        }
+    });
     for (const path of OAUTH_PATHS) {
         oauth.use(path, rateLimitAuth);
     }
@@ -751,6 +843,8 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             url.searchParams.set("error", error);
             url.searchParams.set("error_description", description);
             if (state) url.searchParams.set("state", state);
+            // RFC 9207 applies to error responses too.
+            url.searchParams.set("iss", issuerFor(getBaseUrl(c)));
             return c.redirect(url.toString());
         };
         if (responseType !== "code") {
@@ -1041,30 +1135,200 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         }
     });
 
-    // Token endpoint. Phase A only swaps the client check from the single env
-    // client to the per-client store, so newly registered clients can redeem
-    // their codes; the full RFC 6749 strictness (required client auth, Basic,
-    // redirect_uri and verifier always required, code-client binding) is
-    // Phase B.
+    // Who is calling /token? RFC 6749 §2.3 client authentication, from the
+    // form body (client_secret_post, or a bare client_id for a public client)
+    // or an `Authorization: Basic` header (client_secret_basic).
+    //
+    // Transport is not pinned to the registered method: a confidential client
+    // registered as client_secret_basic may send its secret in the body and a
+    // client_secret_post one may use Basic. What authenticates the client is
+    // possession of the secret, delivered over TLS either way, so refusing the
+    // other transport adds no security — and it would break real clients: the
+    // MCP TypeScript SDK picks the transport from the server's advertised
+    // methods rather than its own registration, and now that Basic is
+    // advertised, clients holding the legacy secret (registered as post) may
+    // switch to it. What *is* enforced is the one distinction that matters,
+    // secret or no secret: a confidential client must prove its secret, and a
+    // public ("none") client must not present one.
+    //
+    // `required`: whether a request with no client credentials at all is
+    // refused. The authorization_code grant always requires them; a refresh
+    // doesn't, so a null-client refresh token issued before refresh tokens
+    // were bound to clients still refreshes for a caller that never sent a
+    // client id (see the refresh_token grant).
+    async function authenticateClient(
+        c: Context,
+        body: Record<string, unknown>,
+        required: boolean,
+    ): Promise<ClientAuthResult> {
+        const basic = parseBasicAuth(c.req.header("Authorization"));
+        const triedBasic = basic !== undefined;
+        const fail = (description: string): ClientAuthResult => {
+            oauthLog(
+                "token-rejected reason=invalid_client",
+                basic?.id ?? str(body.client_id),
+            );
+            return {
+                ok: false,
+                response: c.json(
+                    { error: "invalid_client", error_description: description },
+                    401,
+                    // RFC 6749 §5.2: a client that tried Basic is told which
+                    // scheme to retry with.
+                    triedBasic
+                        ? { "WWW-Authenticate": 'Basic realm="oauth"' }
+                        : {},
+                ),
+            };
+        };
+        if (basic === null) return fail("malformed Basic credentials");
+
+        const bodyId = str(body.client_id);
+        // An empty secret is no secret, in the body as in Basic below.
+        const bodySecret = str(body.client_secret) || undefined;
+        if (basic && bodySecret !== undefined) {
+            // RFC 6749 §2.3: at most one authentication method per request.
+            return {
+                ok: false,
+                response: c.json(
+                    {
+                        error: "invalid_request",
+                        error_description:
+                            "send client credentials in the Authorization header or the body, not both",
+                    },
+                    400,
+                ),
+            };
+        }
+        // A client_id in the body beside Basic is allowed (§3.2.1 lets any
+        // client identify itself that way), but it must name the same client.
+        if (
+            basic &&
+            bodyId !== undefined &&
+            bodyId !== basic.id &&
+            bodyId !== basic.raw.id
+        ) {
+            return {
+                ok: false,
+                response: c.json(
+                    {
+                        error: "invalid_request",
+                        error_description:
+                            "client_id does not match the Authorization header",
+                    },
+                    400,
+                ),
+            };
+        }
+
+        // An empty Basic password is "no secret", as some public clients send.
+        const secret = basic ? basic.secret || undefined : bodySecret;
+        // Every form the secret may have been sent in (see parseBasicAuth);
+        // matching any one of them authenticates.
+        const secrets = basic
+            ? [basic.secret, basic.raw.secret].filter(Boolean)
+            : bodySecret !== undefined
+              ? [bodySecret]
+              : [];
+        const secretOk = (hash: string | null) =>
+            secrets.some((s) => secretMatches(s, hash));
+
+        let client: OAuthClient | null;
+        if (basic) {
+            client = await store.getClient(basic.id);
+            if (!client && basic.raw.id !== basic.id)
+                client = await store.getClient(basic.raw.id);
+        } else if (bodyId !== undefined) {
+            client = await store.getClient(bodyId);
+        } else if (secret !== undefined && legacy) {
+            // A secret with no client_id can only have been meant for the
+            // legacy client: before per-client registration it was the only
+            // client, and the /token code of that era accepted exactly this.
+            // Kept until the legacy client's sunset so a hand-configured
+            // integration isn't logged out at its next refresh.
+            client = legacy;
+        } else {
+            if (secret !== undefined) return fail("client_id is required");
+            if (required) return fail("client authentication is required");
+            return { ok: true, client: null };
+        }
+        if (!client) return fail("unknown client");
+
+        if (client.legacy) {
+            // The legacy env client's secret is optional (it was handed to
+            // every caller, so it proves little), but a wrong one is refused.
+            if (secret !== undefined && !secretOk(client.secretHash))
+                return fail("client authentication failed");
+        } else if (client.authMethod === "none") {
+            if (secret !== undefined)
+                return fail("a public client has no secret");
+        } else {
+            if (secret === undefined)
+                return fail("client authentication is required");
+            if (!secretOk(client.secretHash))
+                return fail("client authentication failed");
+        }
+
+        // Fire-and-forget: last_used_at must never delay or fail /token.
+        store.touchClient(client.clientId).catch(() => {});
+        return { ok: true, client };
+    }
+
+    // Token endpoint (RFC 6749 §3.2). Form-encoded, like every OAuth client
+    // sends it — /register is the JSON one; don't unify the parsers.
     oauth.post("/token", async (c) => {
-        const body = await c.req.parseBody();
-        const grantType = body.grant_type as string;
-        const code = body.code as string;
-        const codeVerifier = body.code_verifier as string | undefined;
-        const redirectUri = body.redirect_uri as string;
-        const reqClientId = body.client_id as string | undefined;
-        const reqClientSecret = body.client_secret as string | undefined;
+        const body = (await c.req.parseBody()) as Record<string, unknown>;
+        const grantType = str(body.grant_type);
+
+        const tokenError = (
+            error: string,
+            description?: string,
+            status: 400 | 401 = 400,
+        ) =>
+            c.json(
+                {
+                    error,
+                    ...(description ? { error_description: description } : {}),
+                },
+                status,
+            );
+
+        if (grantType === undefined) {
+            return tokenError("invalid_request", "grant_type is required");
+        }
 
         if (grantType === "refresh_token") {
-            const refreshToken = body.refresh_token as string;
+            const refreshToken = str(body.refresh_token);
             if (!refreshToken) {
-                return c.json({ error: "invalid_request" }, 400);
+                return tokenError(
+                    "invalid_request",
+                    "refresh_token is required",
+                );
             }
 
-            // Look up the existing user from the refresh token
+            // Authenticate before consuming, so a caller that fails client
+            // authentication can't burn someone's refresh token with it.
+            const auth = await authenticateClient(c, body, false);
+            if (!auth.ok) return auth.response;
+
             const consumed = await store.consumeRefreshToken(refreshToken);
             if (!consumed) {
-                return c.json({ error: "invalid_grant" }, 400);
+                return tokenError("invalid_grant");
+            }
+            // Bound to the client it was issued to. A null client is a token
+            // issued before refresh tokens carried one; it is accepted from any
+            // caller so nobody connected before this is logged out. A token
+            // presented by the wrong client stays consumed: someone else holds
+            // it, and the rightful client has to reconnect either way.
+            if (
+                consumed.clientId !== null &&
+                auth.client?.clientId !== consumed.clientId
+            ) {
+                oauthLog(
+                    "token-rejected reason=refresh_client_mismatch",
+                    auth.client?.clientId,
+                );
+                return tokenError("invalid_grant");
             }
 
             const newAccessToken = crypto.randomUUID();
@@ -1074,10 +1338,14 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
                 consumed.userId,
                 ACCESS_TOKEN_TTL_SECONDS,
             );
+            // Rotated, and returned in this same response (MCP spec: public
+            // clients' refresh tokens MUST rotate). A null-client token picks
+            // up the client that refreshed it, when that client identified
+            // itself.
             await store.storeRefreshToken(
                 newRefreshToken,
                 consumed.userId,
-                consumed.clientId,
+                consumed.clientId ?? auth.client?.clientId ?? null,
             );
 
             return c.json({
@@ -1089,58 +1357,100 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         }
 
         if (grantType !== "authorization_code") {
-            return c.json({ error: "unsupported_grant_type" }, 400);
+            return tokenError("unsupported_grant_type");
         }
 
+        const code = str(body.code);
         if (!code) {
-            return c.json({ error: "invalid_request" }, 400);
+            return tokenError("invalid_request", "code is required");
         }
 
-        // Validate client credentials if provided: a sent client_id must be a
-        // client we know (registered or legacy), and a sent secret must match
-        // that client's stored hash. A secret with no client_id can only have
-        // been meant for the legacy client, as it was before registration.
-        if (reqClientId || reqClientSecret) {
-            const client = reqClientId
-                ? await store.getClient(reqClientId)
-                : legacy;
-            if (!client) {
-                return c.json({ error: "invalid_client" }, 401);
-            }
-            if (
-                reqClientSecret &&
-                !secretMatches(reqClientSecret, client.secretHash)
-            ) {
-                return c.json({ error: "invalid_client" }, 401);
-            }
-        }
+        const auth = await authenticateClient(c, body, true);
+        if (!auth.ok) return auth.response;
+        // required=true never yields a null client.
+        const client = auth.client!;
 
-        // Atomically consume the auth code
+        // Atomically consume the code before any check below: whatever fails
+        // next, the code is spent, so a failed attempt can't be retried with
+        // a guessed verifier or redirect.
         const authCodeData = await store.consumeAuthCode(code);
         if (!authCodeData) {
-            return c.json({ error: "invalid_grant" }, 400);
+            return tokenError("invalid_grant");
+        }
+        const rejectGrant = (reason: string, description: string) => {
+            oauthLog(`token-rejected reason=${reason}`, client.clientId);
+            return tokenError("invalid_grant", description);
+        };
+
+        // Bound to the client it was issued to. A null client_id is a code
+        // minted before auth_codes carried one; none of those outlive their
+        // ten minutes past the deploy that added the column, but the check
+        // spares them.
+        if (
+            authCodeData.client_id !== null &&
+            authCodeData.client_id !== client.clientId
+        ) {
+            return rejectGrant(
+                "code_client_mismatch",
+                "code was not issued to this client",
+            );
         }
 
-        // Validate redirect_uri
-        if (redirectUri && redirectUri !== authCodeData.redirect_uri) {
-            return c.json({ error: "invalid_grant" }, 400);
+        // Required, and exactly the string /authorize was given (RFC 6749
+        // §4.1.3) — no loopback port leniency here: it is the same client
+        // replaying the same value.
+        const redirectUri = str(body.redirect_uri);
+        if (redirectUri !== authCodeData.redirect_uri) {
+            return rejectGrant(
+                "redirect_uri_mismatch",
+                "redirect_uri is required and must match the authorization request",
+            );
         }
 
-        // Validate PKCE. Every code minted since Phase A carries a challenge;
-        // the conditional only spares a pre-Phase-A code still inside its
-        // ten-minute lifetime.
-        if (authCodeData.code_challenge) {
-            if (!codeVerifier) {
-                return c.json(
-                    {
-                        error: "invalid_request",
-                        error_description: "code_verifier required",
-                    },
-                    400,
+        // PKCE (RFC 7636 §4.6). A missing verifier is invalid_grant, not
+        // invalid_request: the code is already spent at this point, and the
+        // grant is exactly what a verifier-less request fails to prove — the
+        // same answer as a wrong one, so the two can't be told apart. A code
+        // with no challenge (only possible from before PKCE was mandatory) is
+        // refused outright.
+        const codeVerifier = str(body.code_verifier);
+        if (
+            !authCodeData.code_challenge ||
+            codeVerifier === undefined ||
+            !isValidCodeVerifier(codeVerifier) ||
+            !challengeMatches(
+                pkceS256(codeVerifier),
+                authCodeData.code_challenge,
+            )
+        ) {
+            return rejectGrant(
+                "pkce_failed",
+                "code_verifier is required and must match the code_challenge",
+            );
+        }
+
+        // RFC 8707: a resource sent here must be this server and, when the
+        // authorization request named one, the same one. Omitting it is fine
+        // (§2.2: the token is then for what was authorized).
+        const resource = str(body.resource);
+        if (resource !== undefined) {
+            const presented = normalizeResource(resource);
+            const authorized =
+                authCodeData.resource === null
+                    ? null
+                    : normalizeResource(authCodeData.resource);
+            if (
+                !resourceAllowed(resource, getBaseUrl(c)) ||
+                (authorized !== null && presented !== authorized)
+            ) {
+                oauthLog(
+                    "token-rejected reason=invalid_target",
+                    client.clientId,
                 );
-            }
-            if (pkceS256(codeVerifier) !== authCodeData.code_challenge) {
-                return c.json({ error: "invalid_grant" }, 400);
+                return tokenError(
+                    "invalid_target",
+                    "resource does not match the authorization request",
+                );
             }
         }
 
@@ -1155,7 +1465,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         await store.storeRefreshToken(
             refreshToken,
             authCodeData.user_id,
-            authCodeData.client_id,
+            client.clientId,
         );
 
         return c.json({

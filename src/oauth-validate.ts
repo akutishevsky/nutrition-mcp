@@ -297,6 +297,15 @@ export function isValidCodeChallenge(challenge: string): boolean {
     );
 }
 
+// RFC 7636 §4.1: code_verifier = 43*128unreserved, where unreserved is
+// [A-Za-z0-9._~-].
+export function isValidCodeVerifier(verifier: string): boolean {
+    return (
+        typeof verifier === "string" &&
+        /^[A-Za-z0-9._~-]{43,128}$/.test(verifier)
+    );
+}
+
 // Base64url without padding (RFC 4648 §5).
 export function base64URLEncode(buffer: Buffer): string {
     return buffer

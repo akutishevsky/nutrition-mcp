@@ -1561,7 +1561,7 @@ export interface AuthCodeRecord {
     codeChallenge: string;
     // The client the code was issued to and the RFC 8707 resource it was
     // requested for (null when the client sent none). Both columns were added
-    // with oauth_clients; /token binds a code to its client in Phase B.
+    // with oauth_clients; /token refuses a code redeemed by any other client.
     clientId: string;
     resource: string | null;
 }
@@ -1611,9 +1611,13 @@ export async function consumeAuthCode(
 
 // ---------- Refresh tokens ----------
 
+// clientId is the OAuth client the token was issued to (refresh_tokens.client_id);
+// null only for a refresh that started from a pre-binding, null-client token
+// presented without any client credentials.
 export async function storeRefreshToken(
     token: string,
     userId: string,
+    clientId: string | null,
 ): Promise<void> {
     const expiresAt = new Date(
         Date.now() + 365 * 24 * 60 * 60 * 1000,
@@ -1622,6 +1626,7 @@ export async function storeRefreshToken(
     const { error } = await getSupabase().from("refresh_tokens").insert({
         token,
         user_id: userId,
+        client_id: clientId,
         expires_at: expiresAt,
     });
 
@@ -1629,19 +1634,24 @@ export async function storeRefreshToken(
         throw new Error(`Failed to store refresh token: ${error.message}`);
 }
 
+// Atomically deletes and returns the token's owner and client. clientId is null
+// on rows written before refresh_tokens.client_id existed.
 export async function consumeRefreshToken(
     token: string,
-): Promise<string | null> {
+): Promise<{ userId: string; clientId: string | null } | null> {
     const { data, error } = await getSupabase()
         .from("refresh_tokens")
         .delete()
         .eq("token", token)
         .gt("expires_at", new Date().toISOString())
-        .select("user_id")
+        .select("user_id, client_id")
         .single();
 
     if (error || !data) return null;
-    return data.user_id as string;
+    return {
+        userId: data.user_id as string,
+        clientId: (data.client_id as string | null) ?? null,
+    };
 }
 
 // ---------- Public landing stats ----------
@@ -1772,6 +1782,21 @@ export async function getOAuthClient(
     if (error)
         throw new Error(`Failed to look up OAuth client: ${error.message}`);
     return (data as OAuthClientRow | null) ?? null;
+}
+
+// Stamps oauth_clients.last_used_at when a client authenticates at /token, so
+// a later cleanup can tell registrations that were never used from ones that
+// were. Best effort: the caller does not await it, and a failure is logged
+// rather than thrown, since it must never fail a token request.
+export async function touchOAuthClient(clientId: string): Promise<void> {
+    const { error } = await getSupabase()
+        .from("oauth_clients")
+        .update({ last_used_at: new Date().toISOString() })
+        .eq("client_id", clientId);
+    if (error)
+        console.error(
+            `[oauth] failed to update client last_used_at: ${error.message}`,
+        );
 }
 
 // Is this exact string in the hand-reviewed snapshot of redirects the legacy

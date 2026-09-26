@@ -16,6 +16,7 @@ import {
     storeAuthCode,
     storeRefreshToken,
     storeToken,
+    touchOAuthClient,
     type AuthCodeData,
     type AuthCodeRecord,
 } from "./supabase.js";
@@ -44,6 +45,10 @@ export interface NewOAuthClient extends Omit<OAuthClient, "legacy"> {
 export interface OAuthStore {
     createClient(c: NewOAuthClient): Promise<void>;
     getClient(clientId: string): Promise<OAuthClient | null>;
+    // Records that a registered client just authenticated at /token
+    // (oauth_clients.last_used_at). The router never awaits it for the
+    // response, and it must not throw.
+    touchClient(clientId: string): Promise<void>;
     isLegacyRedirect(uri: string): Promise<boolean>;
     storeAuthCode(rec: AuthCodeRecord): Promise<void>;
     consumeAuthCode(code: string): Promise<AuthCodeData | null>;
@@ -110,6 +115,11 @@ export function withLegacyClient(
             clientId === legacy.clientId
                 ? Promise.resolve(legacy)
                 : store.getClient(clientId),
+        // No oauth_clients row to stamp.
+        touchClient: (clientId) =>
+            clientId === legacy.clientId
+                ? Promise.resolve()
+                : store.touchClient(clientId),
     };
 }
 
@@ -136,20 +146,13 @@ export function createSupabaseOAuthStore(): OAuthStore {
                 legacy: false,
             };
         },
+        touchClient: touchOAuthClient,
         isLegacyRedirect: isLegacyRedirectUri,
         storeAuthCode,
         consumeAuthCode,
         storeToken,
-        // refresh_tokens has no client_id column until Phase B's migration,
-        // so the binding is accepted here and dropped; consumed tokens report
-        // a null client, which Phase B treats as "any client".
-        async storeRefreshToken(token, userId, _clientId) {
-            await storeRefreshToken(token, userId);
-        },
-        async consumeRefreshToken(token) {
-            const userId = await consumeRefreshToken(token);
-            return userId ? { userId, clientId: null } : null;
-        },
+        storeRefreshToken,
+        consumeRefreshToken,
     };
 }
 

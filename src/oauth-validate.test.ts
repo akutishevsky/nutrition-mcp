@@ -5,6 +5,7 @@ import {
     REDIRECT_URI_MAX_LENGTH,
     isLoopbackRedirect,
     isValidCodeChallenge,
+    isValidCodeVerifier,
     normalizeResource,
     parseRedirectUri,
     pkceS256,
@@ -380,6 +381,21 @@ describe("PKCE", () => {
         expect(pkceS256("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")).toBe(
             "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
         );
+    });
+
+    test("isValidCodeVerifier is RFC 7636's 43*128unreserved", () => {
+        expect(
+            isValidCodeVerifier("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"),
+        ).toBe(true);
+        expect(isValidCodeVerifier("a".repeat(43))).toBe(true);
+        expect(isValidCodeVerifier("a".repeat(128))).toBe(true);
+        expect(isValidCodeVerifier("._~-".repeat(11))).toBe(true);
+        expect(isValidCodeVerifier("a".repeat(42))).toBe(false);
+        expect(isValidCodeVerifier("a".repeat(129))).toBe(false);
+        expect(isValidCodeVerifier("a".repeat(42) + "+")).toBe(false);
+        expect(isValidCodeVerifier("a".repeat(42) + "/")).toBe(false);
+        expect(isValidCodeVerifier("a".repeat(42) + " ")).toBe(false);
+        expect(isValidCodeVerifier("a".repeat(43) + "\n")).toBe(false);
     });
 
     test("isValidCodeChallenge accepts exactly 43 base64url characters", () => {
