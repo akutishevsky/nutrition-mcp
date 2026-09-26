@@ -1,4 +1,4 @@
-import type { LoginDoc, LoginErrors } from "./login.js";
+import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_JA: LoginDoc = {
     title: "Nutrition MCP",
@@ -23,4 +23,12 @@ export const LOGIN_ERRORS_JA: LoginErrors = {
         "Googleでのサインインがキャンセルされました。もう一度お試しください。",
     googleFailed:
         "Googleでのサインインに失敗しました。もう一度お試しください。",
+};
+
+export const LOGIN_CLIENT_NOTICE_JA: LoginClientNotice = {
+    returnTo: "サインイン後、{host}に戻ります。",
+    unknownHost:
+        "{host}は当サービスが把握しているアシスタントではありません。ご自身で{host}から接続を開始した場合のみ続行してください。",
+    loopback:
+        "このコンピューター上で動作しているプログラム（{host}）に戻ります。ご自身でこのプログラムから接続を開始した場合のみ続行してください。",
 };

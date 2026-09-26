@@ -1,4 +1,4 @@
-import type { LoginDoc, LoginErrors } from "./login.js";
+import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_ES: LoginDoc = {
     title: "Nutrition MCP",
@@ -22,4 +22,12 @@ export const LOGIN_ERRORS_ES: LoginErrors = {
     googleCancelled:
         "Se canceló el inicio de sesión con Google. Inténtalo de nuevo.",
     googleFailed: "El inicio de sesión con Google falló. Inténtalo de nuevo.",
+};
+
+export const LOGIN_CLIENT_NOTICE_ES: LoginClientNotice = {
+    returnTo: "Después de iniciar sesión, volverás a {host}.",
+    unknownHost:
+        "{host} no es un asistente que reconozcamos. Continúa solo si fuiste tú quien empezó a conectar desde {host}.",
+    loopback:
+        "Volverás a un programa que se está ejecutando en este equipo ({host}). Continúa solo si iniciaste esta conexión desde él.",
 };

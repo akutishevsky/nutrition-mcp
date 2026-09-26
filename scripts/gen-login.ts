@@ -4,15 +4,21 @@
  *
  * Unlike every other generated page, this one is a TEMPLATE, not a final
  * document: src/oauth.ts's renderLoginPage() reads whichever locale's
- * output this writes and fills in four placeholders at request time —
- * {{SESSION_ID}}, {{ERROR}}, {{LANG_SWITCHER}}, and
- * {{TRANSLATION_NOTICE}}. The latter two both have to be built per-request
- * rather than by scripts/site-partials.ts's ordinary nav()/translationNotice()
- * helpers: their links need to point back at THIS in-flight OAuth flow in
- * another language, which means carrying the session's state/redirect_uri/
- * client_id (see authorizeUrl() in oauth.ts) — a fixed pathFor(locale, "")
+ * output this writes and fills in five placeholders at request time —
+ * {{SESSION_ID}}, {{ERROR}}, {{CLIENT_NOTICE}}, {{LANG_SWITCHER}}, and
+ * {{TRANSLATION_NOTICE}}. {{CLIENT_NOTICE}} is src/oauth.ts's
+ * renderClientNotice(): the host the session's redirect_uri will send the
+ * browser to, in the locale's LOGIN_CLIENT_NOTICE wording, as a
+ * <p class="client-notice"> (plus data-warn for an unknown host or a
+ * loopback redirect) — it depends on the registered client, so it can't be
+ * baked in here. {{LANG_SWITCHER}} and {{TRANSLATION_NOTICE}} both have to
+ * be built per-request rather than by scripts/site-partials.ts's ordinary
+ * nav()/translationNotice() helpers: their links need to point back at THIS
+ * in-flight OAuth flow in another language, which means carrying the
+ * session's state/redirect_uri/client_id (see authorizeUrl() in oauth.ts)
+ * — a fixed pathFor(locale, "")
  * would send someone to the marketing homepage instead of back to their
- * login attempt. Those four tokens must reach the written file untouched;
+ * login attempt. Those five tokens must reach the written file untouched;
  * nothing below runs esc()/interpolation on them.
  *
  * Re-run after editing src/copy/login.ts:
@@ -90,6 +96,43 @@ const LOGIN_STYLE = `        <style>
                 font-size: 0.8rem;
                 text-align: center;
             }
+            /* Where sign-in sends the browser (the CLIENT_NOTICE token,
+               built by src/oauth.ts's renderClientNotice()). Same compact
+               callout as the translation notice above; the host itself is set in
+               the mono face the site uses for URLs, and may be long, so it
+               wraps anywhere rather than widening the card. */
+            .auth-card .client-notice {
+                margin: 0 0 1.1rem;
+                padding: 0.65rem 0.85rem;
+                border-radius: var(--radius);
+                background: var(--surface-2);
+                border: 1px solid var(--line);
+                color: var(--ink-2);
+                font-size: 0.8rem;
+                line-height: 1.5;
+                text-align: center;
+            }
+            .auth-card .client-notice strong {
+                font-family: var(--font-mono);
+                font-weight: 600;
+                color: var(--ink);
+                overflow-wrap: anywhere;
+            }
+            /* Unknown host or loopback: an amber tint off --cal (declared
+               for light and both dark paths in styles.css), mixed into the
+               card surface the way .error-banner mixes --danger. Text stays
+               --ink: --cal on a light surface is too low-contrast to read. */
+            .auth-card .client-notice[data-warn] {
+                background: color-mix(in srgb, var(--cal) 12%, var(--surface));
+                border-color: color-mix(in srgb, var(--cal) 45%, var(--surface));
+                color: var(--ink);
+            }
+            /* The Google button sits in its own form (a POST, see the
+               markup) and must look exactly as it did as a link: the
+               wrapper adds no box of its own. */
+            .auth-google-form {
+                margin: 0;
+            }
         </style>`;
 
 function renderDoc(doc: LoginDoc, locale: SiteLocale): string {
@@ -141,20 +184,37 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true })}
                             <p class="auth-sub">${esc(doc.subtitle)}</p>
                         </div>
 
+                        {{CLIENT_NOTICE}}
+
                         {{TRANSLATION_NOTICE}}
 
                         {{ERROR}}
 
-                        <a
-                            class="auth-btn auth-btn-google"
-                            href="/authorize/google?session_id={{SESSION_ID}}"
+                        <!-- A POST form, not a link: POST /authorize/google
+                             is the only way into the Google leg, so it always
+                             starts from this page and its CLIENT_NOTICE (see
+                             the binding cookie in src/oauth.ts). -->
+                        <form
+                            method="post"
+                            action="/authorize/google"
+                            class="auth-google-form"
                         >
-                            <i
-                                class="fa-brands fa-google auth-btn-google-icon"
-                                aria-hidden="true"
-                            ></i>
-                            ${esc(doc.googleButton)}
-                        </a>
+                            <input
+                                type="hidden"
+                                name="session_id"
+                                value="{{SESSION_ID}}"
+                            />
+                            <button
+                                type="submit"
+                                class="auth-btn auth-btn-google"
+                            >
+                                <i
+                                    class="fa-brands fa-google auth-btn-google-icon"
+                                    aria-hidden="true"
+                                ></i>
+                                ${esc(doc.googleButton)}
+                            </button>
+                        </form>
 
                         <div class="auth-divider">
                             <span>${esc(doc.dividerText)}</span>

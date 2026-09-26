@@ -1,4 +1,4 @@
-import type { LoginDoc, LoginErrors } from "./login.js";
+import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_FR: LoginDoc = {
     title: "Nutrition MCP",
@@ -21,4 +21,12 @@ export const LOGIN_FR: LoginDoc = {
 export const LOGIN_ERRORS_FR: LoginErrors = {
     googleCancelled: "La connexion avec Google a été annulée. Réessaie.",
     googleFailed: "La connexion avec Google a échoué. Réessaie.",
+};
+
+export const LOGIN_CLIENT_NOTICE_FR: LoginClientNotice = {
+    returnTo: "Après ta connexion, nous te renverrons vers {host}.",
+    unknownHost:
+        "{host} n'est pas un assistant que nous connaissons. Ne continue que si c'est toi qui as lancé la connexion depuis {host}.",
+    loopback:
+        "Nous te renverrons vers un programme qui tourne sur cet ordinateur ({host}). Ne continue que si c'est depuis ce programme que tu as lancé cette connexion.",
 };

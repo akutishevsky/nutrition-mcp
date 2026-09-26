@@ -51,7 +51,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 - **Hono** — HTTP framework
 - **MCP SDK** — Model Context Protocol over Streamable HTTP
 - **Supabase** — PostgreSQL database + user authentication
-- **OAuth 2.0** — authentication for Claude.ai connectors
+- **OAuth 2.0** — authentication for Claude.ai and other MCP clients: per-client dynamic client registration (RFC 7591) with exact redirect-URI matching, and mandatory PKCE (`S256`)
 
 ## MCP Tools
 
@@ -132,24 +132,25 @@ Requires Bun 1.x (matches the Dockerfile's `oven/bun:1` base image; no exact min
 
 ### 2. Environment variables
 
-| Variable                | Description                                                                                                                                                    |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`          | Your Supabase project URL                                                                                                                                      |
-| `SUPABASE_SECRET_KEY`   | Supabase service role key (bypasses RLS)                                                                                                                       |
-| `OAUTH_CLIENT_ID`       | Random string for OAuth client identification                                                                                                                  |
-| `OAUTH_CLIENT_SECRET`   | Random string for OAuth client authentication                                                                                                                  |
-| `ALLOWED_ORIGINS`       | _(optional)_ Comma-separated list of extra browser origins allowed to call `/mcp` via CORS — `localhost`/`127.0.0.1` on any port are always allowed regardless |
-| `GOOGLE_CLIENT_ID`      | _(optional)_ Google OAuth client ID for "Sign in with Google"                                                                                                  |
-| `GOOGLE_CLIENT_SECRET`  | _(optional)_ Google OAuth client secret                                                                                                                        |
-| `OFF_USER_AGENT`        | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)`                                                                                  |
-| `PATREON_CLIENT_ID`     | _(optional)_ Patreon OAuth client ID, for showing recent posts on the landing page's Support section                                                           |
-| `PATREON_CLIENT_SECRET` | _(optional)_ Patreon OAuth client secret                                                                                                                       |
-| `PATREON_CAMPAIGN_ID`   | _(optional)_ Patreon campaign ID to fetch posts from                                                                                                           |
-| `PATREON_ACCESS_TOKEN`  | _(optional)_ Creator's Access Token from Patreon's client management page — one-time bootstrap seed, see below                                                 |
-| `PATREON_REFRESH_TOKEN` | _(optional)_ Creator's Refresh Token from the same page — one-time bootstrap seed, see below                                                                   |
-| `PORT`                  | Server port (default: `8080`)                                                                                                                                  |
+| Variable                | Description                                                                                                                                                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`          | Your Supabase project URL                                                                                                                                                                                                                                                 |
+| `SUPABASE_SECRET_KEY`   | Supabase service role key (bypasses RLS)                                                                                                                                                                                                                                  |
+| `OAUTH_CLIENT_ID`       | _(optional, legacy)_ ID of the pre-registration static OAuth client. Clients now register themselves via `POST /register`; this only keeps older connections working until the legacy client is retired                                                                   |
+| `OAUTH_CLIENT_SECRET`   | _(optional, legacy)_ Secret of the legacy static OAuth client                                                                                                                                                                                                             |
+| `ALLOWED_ORIGINS`       | _(optional)_ Comma-separated list of extra browser origins allowed to call `/mcp` via CORS — `localhost`/`127.0.0.1` on any port are always allowed regardless                                                                                                            |
+| `GOOGLE_CLIENT_ID`      | _(optional)_ Google OAuth client ID for "Sign in with Google"                                                                                                                                                                                                             |
+| `GOOGLE_CLIENT_SECRET`  | _(optional)_ Google OAuth client secret                                                                                                                                                                                                                                   |
+| `OFF_USER_AGENT`        | Open Food Facts User-Agent for barcode lookups, in the form `AppName (email)`                                                                                                                                                                                             |
+| `PATREON_CLIENT_ID`     | _(optional)_ Patreon OAuth client ID, for showing recent posts on the landing page's Support section                                                                                                                                                                      |
+| `PATREON_CLIENT_SECRET` | _(optional)_ Patreon OAuth client secret                                                                                                                                                                                                                                  |
+| `PATREON_CAMPAIGN_ID`   | _(optional)_ Patreon campaign ID to fetch posts from                                                                                                                                                                                                                      |
+| `PATREON_ACCESS_TOKEN`  | _(optional)_ Creator's Access Token from Patreon's client management page — one-time bootstrap seed, see below                                                                                                                                                            |
+| `PATREON_REFRESH_TOKEN` | _(optional)_ Creator's Refresh Token from the same page — one-time bootstrap seed, see below                                                                                                                                                                              |
+| `PORT`                  | Server port (default: `8080`)                                                                                                                                                                                                                                             |
+| `NOINDEX`               | _(optional)_ Any non-empty value sends `X-Robots-Tag: noindex, nofollow` on every response and leaves Google Analytics and Clarity out of the generated pages, for a dev or staging deploy. Must be set at build time too, since the pages are generated during the build |
 
-Generate OAuth credentials:
+Legacy only — a fresh deploy doesn't need these, since every client registers its own credentials via `POST /register`. To set the optional `OAUTH_CLIENT_*` pair for the legacy static client:
 
 ```bash
 bun run generate-oauth-creds
@@ -169,7 +170,7 @@ openssl rand -hex 32   # use as OAUTH_CLIENT_SECRET
 Email/password works out of the box. To also offer **"Continue with Google"**,
 follow [`docs/google-auth-setup.md`](docs/google-auth-setup.md) to create a
 Google OAuth client, enable the Google provider in Supabase, and set
-`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. This adds the `GET /authorize/google`
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. This adds the `POST /authorize/google`
 and `GET /auth/google/callback` routes — see [API Endpoints](#api-endpoints).
 
 ## Development
@@ -213,9 +214,9 @@ For in-chat widget development (`public/widgets/`), `bun run harness` starts a l
 | `GET /health`                                 | Health check                                                                |
 | `GET /.well-known/oauth-authorization-server` | OAuth metadata discovery (root + `/mcp`-scoped variants)                    |
 | `GET /.well-known/oauth-protected-resource`   | OAuth protected-resource metadata discovery (root + `/mcp`-scoped variants) |
-| `POST /register`                              | Dynamic client registration                                                 |
+| `POST /register`                              | Dynamic client registration (RFC 7591) — per-client, redirect URIs enforced |
 | `GET /authorize`                              | OAuth authorization (shows login page)                                      |
-| `GET /authorize/google`                       | Redirects to Google's OAuth consent screen ("Continue with Google")         |
+| `POST /authorize/google`                      | Login-page form; redirects to Google's consent screen                       |
 | `GET /auth/google/callback`                   | Google OAuth callback — exchanges the code, completes sign-in               |
 | `POST /approve`                               | Login/register handler                                                      |
 | `POST /token`                                 | Token exchange                                                              |

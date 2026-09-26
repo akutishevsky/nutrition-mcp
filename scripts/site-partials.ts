@@ -85,8 +85,15 @@ export const CLARITY = `        <script>
             })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
         </script>`;
 
-/** The `<head>` assets every page shares, the login page included. */
-export const BASE_HEAD_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
+/**
+ * Off when NOINDEX is set (the dev deploy), so testing there never lands in
+ * the production GA property or Clarity project. Read at generation time,
+ * which on DigitalOcean is the Docker build (`bun run gen:all`), so the
+ * variable must be available at build time, not only at run time.
+ */
+const ANALYTICS_ENABLED = !process.env.NOINDEX;
+
+const STYLE_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link
@@ -97,8 +104,9 @@ export const BASE_HEAD_ASSETS = `        <link rel="preconnect" href="https://fo
             rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
         />
-        <link rel="stylesheet" href="/styles.css" />
-        <script
+        <link rel="stylesheet" href="/styles.css" />`;
+
+const GOOGLE_ANALYTICS = `        <script
             async
             src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
         ></script>
@@ -111,9 +119,17 @@ export const BASE_HEAD_ASSETS = `        <link rel="preconnect" href="https://fo
             gtag("config", "G-1K4HRB2R8X");
         </script>`;
 
+/** The `<head>` assets every page shares, the login page included. */
+export const BASE_HEAD_ASSETS = ANALYTICS_ENABLED
+    ? `${STYLE_ASSETS}
+${GOOGLE_ANALYTICS}`
+    : STYLE_ASSETS;
+
 /** Every public page's `<head>` assets: the shared set plus Clarity. */
-export const HEAD_ASSETS = `${BASE_HEAD_ASSETS}
-${CLARITY}`;
+export const HEAD_ASSETS = ANALYTICS_ENABLED
+    ? `${BASE_HEAD_ASSETS}
+${CLARITY}`
+    : BASE_HEAD_ASSETS;
 
 export const THEME_PREPAINT = `        <script>
             // Apply a saved theme override before paint to avoid a flash.

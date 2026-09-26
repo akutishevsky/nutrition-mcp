@@ -1,17 +1,6 @@
 import { test, expect, describe, afterEach } from "bun:test";
 
-// index.ts calls createOAuthRouter() at module scope, and that throws when the
-// OAuth env is unset (src/oauth.ts). Bun auto-loads .env, so a static import
-// here passes on a dev machine and fails on CI, which has no .env — that is
-// exactly how this file first went red on Linux while green on macOS.
-//
-// The defaults have to be set BEFORE index.js is evaluated, and a static import
-// would hoist above these lines, so the import is dynamic. Same values as
-// src/oauth.test.ts, and ||= so a real .env still wins.
-process.env.OAUTH_CLIENT_ID ||= "test-client-id";
-process.env.OAUTH_CLIENT_SECRET ||= "test-client-secret";
-
-const { app, setShuttingDownForTest } = await import("./index.js");
+import { app, setShuttingDownForTest } from "./index.js";
 
 // The shutdown gate (src/index.ts) exists because closing the MCP handler while
 // Bun.serve keeps accepting turns every in-flight POST /mcp into a 500 that a
@@ -188,6 +177,34 @@ describe("GET /api/patreon-posts", () => {
                 process.env.PATREON_CLIENT_SECRET = saved.secret;
             if (saved.campaign !== undefined)
                 process.env.PATREON_CAMPAIGN_ID = saved.campaign;
+        }
+    });
+});
+
+// The login page's two forms both answer with a redirect off this origin:
+// POST /authorize/google to accounts.google.com, and POST /approve to the
+// client's redirect_uri (claude.ai, a custom scheme, a loopback port). CSP's
+// form-action governs those redirects too, and it does NOT fall back to
+// default-src — so today, with no form-action, neither form is constrained.
+// Adding `form-action 'self'` for hardening would silently break Google
+// sign-in in Chrome; this makes that a test failure instead. /authorize with
+// no client_id is refused before any store lookup, so this needs no database.
+describe("Content-Security-Policy on the OAuth login flow", () => {
+    test("form-action, if ever set, still lets the Google form reach Google", async () => {
+        const r = await app.request("http://x/authorize");
+        const csp = r.headers.get("Content-Security-Policy");
+        expect(csp).toBeTruthy();
+        const directives = new Map(
+            csp!
+                .split(";")
+                .map((d) => d.trim().split(/\s+/))
+                .filter((parts) => parts[0])
+                .map((parts) => [parts[0]!, parts.slice(1)] as const),
+        );
+        const formAction = directives.get("form-action");
+        if (formAction !== undefined) {
+            expect(formAction).toContain("'self'");
+            expect(formAction).toContain("https://accounts.google.com");
         }
     });
 });

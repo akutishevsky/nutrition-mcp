@@ -68,6 +68,11 @@ app.use("*", async (c, next) => {
         );
     }
     c.header("Referrer-Policy", "no-referrer");
+    // Set on non-production deploys (the dev app) so search engines never
+    // index them. A header rather than a robots.txt Disallow: a crawler that
+    // is barred from fetching a page never sees its noindex, and can still
+    // list the bare URL if something links to it.
+    if (process.env.NOINDEX) c.header("X-Robots-Tag", "noindex, nofollow");
 });
 
 // Body limit

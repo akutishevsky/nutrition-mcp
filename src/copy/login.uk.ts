@@ -1,4 +1,4 @@
-import type { LoginDoc, LoginErrors } from "./login.js";
+import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_UK: LoginDoc = {
     title: "Nutrition MCP",
@@ -23,4 +23,12 @@ export const LOGIN_UK: LoginDoc = {
 export const LOGIN_ERRORS_UK: LoginErrors = {
     googleCancelled: "Вхід через Google скасовано. Спробуй ще раз.",
     googleFailed: "Не вдалося увійти через Google. Спробуй ще раз.",
+};
+
+export const LOGIN_CLIENT_NOTICE_UK: LoginClientNotice = {
+    returnTo: "Після входу тебе буде переспрямовано до {host}.",
+    unknownHost:
+        "{host} — невідомий нам асистент. Продовжуй, лише якщо саме ти зараз підключаєшся з {host}.",
+    loopback:
+        "Тебе буде переспрямовано до програми, що працює на цьому комп'ютері ({host}). Продовжуй, лише якщо саме з неї ти зараз підключаєшся.",
 };
