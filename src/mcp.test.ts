@@ -48,6 +48,7 @@ import * as actualSupabase from "./supabase.js";
 // the next file the mock again. Restore from this copy.
 const realSupabase = { ...actualSupabase };
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
+import { ToolError } from "./errors.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
     buildDailyBuckets,
@@ -1444,6 +1445,10 @@ const db = {
     analyticsRows: [] as Record<string, unknown>[],
     accountWipes: 0,
     profileReads: [] as string[],
+    // Thrown by getMealsInRange/deleteMeal/updateMeal when set: stands in for
+    // a raw Postgres/PostgREST failure, or for the real updateMeal's not-found
+    // ToolError, neither of which the stubs otherwise produce.
+    failWith: null as Error | null,
 };
 
 mock.module("./supabase.js", () => ({
@@ -1475,7 +1480,10 @@ mock.module("./supabase.js", () => ({
     // the window they ask for, and filtering here would only re-implement the
     // query under test. Paging, ordering and the count reconcile belong to the
     // real reader, driven against a stubbed fetch in supabase-window.test.ts.
-    getMealsInRange: async () => db.meals,
+    getMealsInRange: async () => {
+        if (db.failWith) throw db.failWith;
+        return db.meals;
+    },
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.
     getWeightInRange: async () => [],
@@ -1490,6 +1498,7 @@ mock.module("./supabase.js", () => ({
         id: string,
         fields: Record<string, unknown>,
     ) => {
+        if (db.failWith) throw db.failWith;
         db.mealUpdates.push(fields);
         const saved = storedMeal({ ...fields, id });
         db.meals = [saved];
@@ -1548,6 +1557,7 @@ mock.module("./supabase.js", () => ({
         } as WeightEntry;
     },
     deleteMeal: async (_userId: string, id: string) => {
+        if (db.failWith) throw db.failWith;
         const before = db.meals.length;
         db.meals = db.meals.filter((m) => m.id !== id);
         return db.meals.length < before;
@@ -1596,6 +1606,7 @@ beforeEach(() => {
     db.analyticsRows = [];
     db.accountWipes = 0;
     db.profileReads = [];
+    db.failWith = null;
 });
 
 interface ToolResult {
@@ -2741,6 +2752,65 @@ describe("delete tools distinguish deleted from not-found", () => {
             });
         });
     }
+});
+
+// ---------- raw errors are sanitized at the exit ----------
+//
+// withAnalytics hands the model a ToolError's text verbatim and replaces every
+// other error with a category message plus a ref, so Postgres/PostgREST text
+// (table names, casts, constraint names) never reaches the conversation.
+describe("raw database errors never reach the model", () => {
+    const rowFor = (tool: string) =>
+        db.analyticsRows.find((r) => r.tool_name === tool)!;
+
+    test("a read failure becomes a category message with a ref", async () => {
+        db.failWith = new Error(
+            'Failed to get meals: relation "public.meals" does not exist',
+        );
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-07-01",
+                end_date: "2026-07-07",
+            });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("get_nutrition_summary could not finish");
+            expect(text).toMatch(/\(ref [0-9a-f]{8}\)/);
+            expect(text).not.toContain("relation");
+            expect(text).not.toContain("Failed to");
+            expect(text.startsWith("Error:")).toBe(false);
+        });
+        expect(rowFor("get_nutrition_summary").error_category).toBe(
+            "supabase_error",
+        );
+    });
+
+    test("a rejected value is reported as one, without the cast text", async () => {
+        db.failWith = new Error(
+            'Failed to delete meal: invalid input syntax for type uuid: "abc"',
+        );
+        await withTools(null, async (call) => {
+            const r = await call("delete_meal", { id: MEAL_ID });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("rejected one of the values");
+            expect(text).not.toContain("invalid input syntax");
+            expect(text).not.toContain("uuid");
+        });
+        expect(rowFor("delete_meal").error_category).toBe("db_rejected_value");
+    });
+
+    // The real updateMeal pre-checks the row and throws this ToolError for a
+    // well-formed id the user doesn't have; its text is written for the model.
+    test("update_meal's not-found ToolError passes through verbatim", async () => {
+        db.failWith = new ToolError(`No meal found with id ${MEAL_ID}.`);
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", { id: MEAL_ID, notes: "x" });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toBe(`No meal found with id ${MEAL_ID}.`);
+        });
+        expect(rowFor("update_meal").error_category).toBe("record_not_found");
+    });
 });
 
 // ---------- range listings are bounded ----------
