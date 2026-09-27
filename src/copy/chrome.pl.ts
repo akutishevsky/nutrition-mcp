@@ -69,7 +69,7 @@ export const CHROME_PL: ChromeCopy = {
 
     consent: {
         title: "Analityczne pliki cookie.",
-        body: "Za Twoją zgodą Google Analytics i Microsoft Clarity pokazują nam, jak używane są te strony, w tym nagrania sesji z zamaskowanym wpisywanym tekstem. Nic się nie wczyta, dopóki nie wyrazisz zgody.",
+        body: "Za Twoją zgodą Google Analytics i Microsoft Clarity pokazują nam, które strony pomagają i gdzie ludzie utykają, w tym odtworzenia kliknięć i przewijania, które nigdy nie obejmują tego, co wpisujesz. Nic się nie wczyta, dopóki nie wyrazisz zgody.",
         accept: "Akceptuj",
         reject: "Odrzuć",
         settings: "Ustawienia plików cookie",

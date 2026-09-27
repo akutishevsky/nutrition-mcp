@@ -67,7 +67,7 @@ export const CHROME_FR: ChromeCopy = {
 
     consent: {
         title: "Cookies de mesure d'audience.",
-        body: "Avec ton accord, Google Analytics et Microsoft Clarity nous montrent comment ces pages sont utilisées, y compris des enregistrements de session où ta saisie est masquée. Rien n'est chargé tant que tu n'as pas accepté.",
+        body: "Avec ton accord, Google Analytics et Microsoft Clarity nous montrent quelles pages sont utiles et où les gens bloquent, y compris des rediffusions de clics et de défilement qui n'incluent jamais ce que tu tapes. Rien n'est chargé tant que tu n'as pas accepté.",
         accept: "Accepter",
         reject: "Refuser",
         settings: "Paramètres des cookies",
