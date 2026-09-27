@@ -23,6 +23,7 @@ A remote MCP server for personal nutrition tracking — log meals with calories,
 - [Connect to Claude.ai](#connect-to-claudeai)
 - [API Endpoints](#api-endpoints)
 - [Deploy](#deploy)
+- [Support & security](#support--security)
 - [License](#license)
 
 ## Quick Start
@@ -113,7 +114,7 @@ cp .env.example .env   # fill in real values as you go through the steps below
 
 Requires Bun 1.x (matches the Dockerfile's `oven/bun:1` base image; no exact minor version is pinned).
 
-> **Making it yours:** The public site includes the maintainer's personal bits — Google Analytics, Microsoft Clarity, Patreon/GitHub/contact links, and the `nutrition-mcp.com` domain. Run `bun run gen:all` to produce the public pages, then `bun run depersonalize` to strip the personal bits in one pass (both analytics tags + their CSP hosts, the Support/Contact sections, social links, and the domain → a `your-domain.com` placeholder). Use `bun run depersonalize --dry` to preview without writing. Afterwards, swap in your own `public/og.png`, `favicon.ico`, and `apple-touch-icon.png`, replace the domain placeholder with your real domain, and rewrite the analytics paragraphs of the privacy policy and terms (`src/copy/legal*.ts`), which still name both services. Its edits to the generated pages are undone by `bun run gen:all` — to regenerate, first change the sources it reads from (`HEAD_ASSETS` and `CLARITY_PROJECT_ID` in `scripts/site-partials.ts`, `SITE` in `src/routes.ts`), then run it again. This script only touches the generated files under `public/`, the import widget's support address and `src/index.ts` — it doesn't touch this README, so if you're publishing your own fork, also edit or remove the Patreon line near the top of this file and the Medium link in [Demo](#demo).
+> **Making it yours:** The public site includes the maintainer's personal bits — Google Analytics, Microsoft Clarity, Patreon/GitHub/contact links, and the `nutrition-mcp.com` domain. Run `bun run gen:all` to produce the public pages, then `bun run depersonalize` to strip the personal bits in one pass (both analytics tags + their CSP hosts, the Support/Contact sections, social links, and the domain → a `your-domain.com` placeholder). Use `bun run depersonalize --dry` to preview without writing. Afterwards, swap in your own `public/og.png`, `favicon.ico`, and `apple-touch-icon.png`, replace the domain placeholder with your real domain, and rewrite the analytics paragraphs of the privacy policy and terms (`src/copy/legal*.ts`), which still name both services. Its edits to the generated pages are undone by `bun run gen:all` — to regenerate, first change the sources it reads from (`HEAD_ASSETS` and `CLARITY_PROJECT_ID` in `scripts/site-partials.ts`, `SITE` in `src/routes.ts`), then run it again. This script only touches the generated files under `public/`, the import widget's support address, `src/index.ts` and the security.txt contact in `src/security-txt.ts` (blanked, so `/.well-known/security.txt` answers 404 until you set your own) — it doesn't touch this README or `SECURITY.md`, so if you're publishing your own fork, rewrite `SECURITY.md` for your deployment and also edit or remove the Patreon line near the top of this file and the Medium link in [Demo](#demo).
 
 ### 1. Supabase setup
 
@@ -220,6 +221,8 @@ For in-chat widget development (`public/widgets/`), `bun run harness` starts a l
 | `GET /auth/google/callback`                   | Google OAuth callback — exchanges the code, completes sign-in                  |
 | `POST /approve`                               | Login/register handler                                                         |
 | `POST /token`                                 | Token exchange — client-authenticated, `redirect_uri` + PKCE verifier required |
+| `GET /.well-known/security.txt`               | Security contact (RFC 9116); `Expires` rolls forward daily                     |
+| `GET /security.txt`                           | 301 redirect to `/.well-known/security.txt`                                    |
 | `GET /favicon.ico`                            | Server icon                                                                    |
 | `ALL /mcp`                                    | MCP endpoint (authenticated)                                                   |
 
@@ -231,6 +234,12 @@ The project includes a `Dockerfile` for container-based deployment.
 2. Set the environment variables listed above
 3. The app auto-detects the Dockerfile and deploys on port `8080`
 4. Point your domain to the deployed URL
+
+## Support & security
+
+- **Help, bugs, feature requests:** open a [GitHub issue](https://github.com/akutishevsky/nutrition-mcp/issues) or email anton@nutrition-mcp.com.
+- **Security vulnerabilities:** do **not** open a public issue. Report privately via [GitHub private vulnerability reporting](https://github.com/akutishevsky/nutrition-mcp/security/advisories/new) or email anton@nutrition-mcp.com — see [SECURITY.md](SECURITY.md). Machine-readable contact: https://nutrition-mcp.com/.well-known/security.txt
+- **Account deletion / your data:** the `delete_account` and `export_all_data` tools, or email the address above. See the [privacy policy](https://nutrition-mcp.com/privacy).
 
 ## License
 

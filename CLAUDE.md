@@ -12,6 +12,8 @@ nutrition-mcp is a Model Context Protocol (MCP) server for nutrition-related fun
 
 This is a remote MCP server, and DigitalOcean auto-deploys `main`. **Merging to `main` ships to production** — there is no separate deploy step to run and no version bump or tag needed for a change to reach clients. Every client hitting `https://nutrition-mcp.com/mcp` picks it up as soon as the deploy finishes, so treat a merge as a release: prompt and tool-description edits go live exactly like code does.
 
+**Security contact.** `/.well-known/security.txt` (RFC 9116) is built per request in `src/security-txt.ts`, not served from a static file, so `Expires` can't go stale: it is rolled 180 days ahead and truncated to UTC midnight, so the body is stable for a day. `Canonical` uses `SITE`, never the request host (`getBaseUrl` trusts `x-forwarded-host`). `/security.txt` 301s to it. The contact address sits between `security-contact` markers that `scripts/depersonalize.ts` blanks, and an empty contact makes the route 404 on forks. `SECURITY.md` is the human-readable policy (private reporting via GitHub advisories, which must stay enabled on the repo, plus the email); keep its address in sync with the one the site uses.
+
 ## Publishing to the registry
 
 Separate from deploying, and rarely required. The MCP Registry is only discovery metadata pointing at `https://nutrition-mcp.com/mcp`, so a fix takes effect without republishing. To refresh the registry listing on a release, bump the version in all three places above, merge to `main`, then push a matching `v*` tag:
