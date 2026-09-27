@@ -357,6 +357,8 @@ export function nav(
          * src/oauth.ts) instead of at generation time.
          */
         dynamicSwitcher?: boolean;
+        /** False on the login page, which carries no analytics. */
+        consent?: boolean;
     },
 ): string {
     const p = (id: string) => pathFor(locale, id);
@@ -371,7 +373,30 @@ export function nav(
                         >${esc(LOCALE_NAMES[l])}</a
                     >`;
     }).join("\n");
-    const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>
+    // The consent banner: a strip in the normal flow above the sticky
+    // header, so it pushes the page down rather than covering any of it.
+    // html[data-consent] is stamped in <head> before first paint, so the
+    // strip is there from the first frame and nothing shifts. It sits after
+    // the skip link (still the first tab stop) and ahead of the header, so
+    // keyboard and screen-reader users meet it before the page. Reopened
+    // from the footer's "Cookie settings", site.js docks it to the bottom
+    // edge instead (html[data-consent-reopen]). `data-consent-link` keeps
+    // the aria-current replaceAll below off its privacy link, and
+    // `data-analytics` is what scripts/depersonalize.ts strips it by.
+    const banner =
+        ANALYTICS_ENABLED && opts?.consent !== false
+            ? `
+        <section class="consent" role="region" aria-labelledby="consent-title" data-analytics>
+            <div class="consent-inner">
+                <p class="consent-text"><strong id="consent-title" class="consent-title">${esc(c.consent.title)}</strong> ${esc(c.consent.body)} <a data-consent-link href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a></p>
+                <div class="consent-actions">
+                    <button type="button" class="btn consent-btn" data-consent-choice="denied">${esc(c.consent.reject)}</button>
+                    <button type="button" class="btn consent-btn" data-consent-choice="granted">${esc(c.consent.accept)}</button>
+                </div>
+            </div>
+        </section>`
+            : "";
+    const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>${banner}
         <header class="site-head" id="site-head">
             <div class="head-inner">
                 <a class="brand" href="${p("")}" aria-label="${esc(c.brandHomeAriaLabel)}">
@@ -502,13 +527,10 @@ ${switcherItems}
  *
  * With analytics enabled (and unless `opts.consent` is false — the login
  * page, which carries no analytics), the footer also gets a "Cookie
- * settings" button and the consent banner is emitted right after it.
- * Both are driven by public/site.js against the `nmConsent` object that
- * analyticsHead() defines; the banner shows only while <html> carries
- * data-consent="ask". Each carries `data-analytics`, the hook
- * scripts/depersonalize.ts strips them by. The banner's privacy link has
- * `data-consent-link` ahead of its href so the aria-current replaceAll
- * below never matches it.
+ * settings" button, which reopens the consent banner nav() renders. It is
+ * driven by public/site.js against the `nmConsent` object analyticsHead()
+ * defines, and carries `data-analytics`, the hook scripts/depersonalize.ts
+ * strips it by.
  */
 export function footer(
     locale: SiteLocale,
@@ -558,24 +580,10 @@ export function footer(
                 </p>
             </div>
         </footer>`;
-    const banner = consent
-        ? `
-        <section class="consent" role="region" aria-labelledby="consent-title" data-analytics>
-            <h2 id="consent-title" class="consent-title">${esc(c.consent.title)}</h2>
-            <p class="consent-body">${esc(c.consent.body)} <a data-consent-link href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a></p>
-            <div class="consent-actions">
-                <button type="button" class="btn consent-btn" data-consent-choice="denied">${esc(c.consent.reject)}</button>
-                <button type="button" class="btn consent-btn" data-consent-choice="granted">${esc(c.consent.accept)}</button>
-            </div>
-        </section>
-`
-        : "";
-    if (!currentSuffix) return html + banner;
+    if (!currentSuffix) return html;
     const currentHref = p(currentSuffix);
-    return (
-        html.replaceAll(
-            `<a href="${currentHref}">`,
-            `<a href="${currentHref}" aria-current="page">`,
-        ) + banner
+    return html.replaceAll(
+        `<a href="${currentHref}">`,
+        `<a href="${currentHref}" aria-current="page">`,
     );
 }

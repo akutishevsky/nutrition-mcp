@@ -66,10 +66,10 @@ export const CHROME_ES: ChromeCopy = {
     },
 
     consent: {
-        title: "Cookies de analítica",
-        body: "Con tu permiso usamos Google Analytics y Microsoft Clarity para ver cómo se usan estas páginas, incluidas grabaciones de sesión en las que todo lo que escribes queda oculto. No se carga nada a menos que aceptes, y puedes cambiar de opinión en cualquier momento desde el pie de página.",
-        accept: "Aceptar analítica",
-        reject: "Rechazar analítica",
+        title: "Cookies de analítica.",
+        body: "Con tu permiso, Google Analytics y Microsoft Clarity nos muestran cómo se usan estas páginas, incluidas grabaciones de sesión con lo que escribes oculto. No se carga nada hasta que aceptes.",
+        accept: "Aceptar",
+        reject: "Rechazar",
         settings: "Configuración de cookies",
     },
 };

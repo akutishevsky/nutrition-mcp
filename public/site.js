@@ -130,6 +130,7 @@
         var reopened = null;
         function closeReopened() {
             doc.removeEventListener("keydown", onEscape, true);
+            root.removeAttribute("data-consent-reopen");
             var opener = reopened && reopened.opener;
             reopened = null;
             return opener;
@@ -201,6 +202,9 @@
                 } else {
                     reopened.opener = btn;
                 }
+                // The strip normally sits at the top of the page; reopened
+                // from the footer it docks to the bottom edge instead.
+                root.setAttribute("data-consent-reopen", "");
                 root.setAttribute("data-consent", "ask");
                 var first = doc.querySelector(".consent [data-consent-choice]");
                 if (first) first.focus();

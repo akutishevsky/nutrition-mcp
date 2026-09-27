@@ -65,8 +65,8 @@ type Rule = {
  * is marked `data-analytics` by scripts/site-partials.ts, so these key on
  * that marker rather than on vendor markup: the one inline snippet from
  * analyticsHead() (Google Analytics and Microsoft Clarity both load from
- * inside it, only after the visitor accepts), the consent banner footer()
- * renders after `</footer>`, and the footer "Cookie settings" button.
+ * inside it, only after the visitor accepts), the consent banner nav()
+ * renders above the header, and the footer "Cookie settings" button.
  * Required rather than optional: every page but the login page carries all
  * three (login opts out via footer(..., { consent: false }) and uses the
  * analytics-free BASE_HEAD_ASSETS), so the login jobs take none of these and

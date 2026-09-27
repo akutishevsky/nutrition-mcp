@@ -6,6 +6,7 @@ import {
     GA_MEASUREMENT_ID,
     analyticsHead,
     footer,
+    nav,
 } from "../scripts/site-partials.js";
 import { chromeFor } from "./copy/chrome.js";
 import {
@@ -300,24 +301,40 @@ describe("analytics head snippet (behaviour)", () => {
 const unescape = (s: string) =>
     s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 
-describe("footer() consent markup", () => {
-    test("renders the settings button and banner only when analytics are on", () => {
+describe("consent markup in nav() and footer()", () => {
+    const n = ANALYTICS_ENABLED ? 1 : 0;
+
+    test("footer() renders the settings button, and no banner, only when analytics are on", () => {
         const html = footer("de", "/privacy");
-        const n = ANALYTICS_ENABLED ? 1 : 0;
         expect(html.match(/data-consent-open/g) ?? []).toHaveLength(n);
-        expect(html.match(/<section class="consent"/g) ?? []).toHaveLength(n);
+        expect(html).not.toContain('class="consent"');
     });
 
-    test("{ consent: false } leaves both out", () => {
-        const html = footer("de", "/privacy", { consent: false });
-        expect(html).not.toContain("data-consent-open");
-        expect(html).not.toContain('class="consent"');
-        expect(html).not.toContain("data-analytics");
+    test("nav() renders the banner after the skip link and before the header", () => {
+        const html = nav("de", "/privacy", "/privacy");
+        expect(html.match(/<section class="consent"/g) ?? []).toHaveLength(n);
+        if (!ANALYTICS_ENABLED) return;
+        const skip = html.indexOf('class="skip"');
+        const banner = html.indexOf('<section class="consent"');
+        const header = html.indexOf('<header class="site-head"');
+        expect(skip).toBeLessThan(banner);
+        expect(banner).toBeLessThan(header);
+    });
+
+    test("{ consent: false } leaves the banner and the button out", () => {
+        for (const html of [
+            footer("de", "/privacy", { consent: false }),
+            nav("de", "", undefined, { dynamicSwitcher: true, consent: false }),
+        ]) {
+            expect(html).not.toContain("data-consent-open");
+            expect(html).not.toContain('class="consent"');
+            expect(html).not.toContain("data-analytics");
+        }
     });
 
     test("the banner's privacy link is not marked aria-current", () => {
         if (!ANALYTICS_ENABLED) return;
-        const html = footer("de", "/privacy");
+        const html = nav("de", "/privacy", "/privacy");
         const link = html.match(/<a data-consent-link[^>]*>/)?.[0];
         expect(link).toBe(
             `<a data-consent-link href="${pathFor("de", "/privacy")}">`,
@@ -441,11 +458,9 @@ describe("generated pages", () => {
             expect({
                 path: p.path,
                 title: pick(
-                    /<h2 id="consent-title" class="consent-title">([\s\S]*?)<\/h2>/,
+                    /<strong id="consent-title" class="consent-title">([\s\S]*?)<\/strong>/,
                 ),
-                body: pick(
-                    /<p class="consent-body">([\s\S]*?) <a data-consent-link/,
-                ),
+                body: pick(/<\/strong> ([\s\S]*?) <a data-consent-link/),
                 reject: pick(
                     /<button[^>]*data-consent-choice="denied"[^>]*>([\s\S]*?)<\/button>/,
                 ),

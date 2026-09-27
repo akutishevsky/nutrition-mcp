@@ -65,10 +65,10 @@ export const CHROME_JA: ChromeCopy = {
     },
 
     consent: {
-        title: "分析用Cookie",
-        body: "同意いただいた場合に限り、Google Analytics と Microsoft Clarity を使って、これらのページがどのように使われているかを把握します。セッション記録も含まれますが、入力した内容はすべてマスクされます。同意しない限り何も読み込まれず、フッターからいつでも選択を変更できます。",
-        accept: "分析を許可",
-        reject: "分析を拒否",
+        title: "【分析用Cookie】",
+        body: "同意いただいた場合のみ、Google Analytics と Microsoft Clarity でこれらのページの使われ方を把握します（入力内容をマスクしたセッション記録を含む）。同意するまで何も読み込まれません。",
+        accept: "許可する",
+        reject: "拒否する",
         settings: "Cookie設定",
     },
 };

@@ -22,7 +22,7 @@
  * nothing below runs esc()/interpolation on them.
  *
  * No analytics of any kind on this page: the head takes BASE_HEAD_ASSETS
- * (no GA, no Clarity, no consent loader) and footer() is told
+ * (no GA, no Clarity, no consent loader) and nav()/footer() are told
  * `{ consent: false }`, so there is no banner and no "Cookie settings"
  * button either — there would be nothing for them to control.
  *
@@ -177,7 +177,7 @@ ${LOGIN_STYLE}
 ${generatedBanner("scripts/gen-login.ts")}
 ${THEME_PREPAINT}
 
-${nav(locale, "", undefined, { dynamicSwitcher: true })}
+${nav(locale, "", undefined, { dynamicSwitcher: true, consent: false })}
 
         <main id="main">
             <div class="auth-stage">

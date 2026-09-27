@@ -66,10 +66,10 @@ export const CHROME_NL: ChromeCopy = {
     },
 
     consent: {
-        title: "Analytische cookies",
-        body: "Met je toestemming gebruiken we Google Analytics en Microsoft Clarity om te zien hoe deze pagina's worden gebruikt, inclusief sessie-opnames waarin alles wat je typt wordt afgeschermd. Er wordt niets geladen tenzij je akkoord gaat, en je kunt je keuze altijd wijzigen via de footer.",
-        accept: "Analyse accepteren",
-        reject: "Analyse weigeren",
+        title: "Analytische cookies.",
+        body: "Met je toestemming laten Google Analytics en Microsoft Clarity ons zien hoe deze pagina's worden gebruikt, inclusief sessie-opnames waarin wat je typt is afgeschermd. Er laadt niets tot je akkoord gaat.",
+        accept: "Accepteren",
+        reject: "Weigeren",
         settings: "Cookie-instellingen",
     },
 };

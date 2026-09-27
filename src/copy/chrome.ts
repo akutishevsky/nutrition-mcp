@@ -173,11 +173,16 @@ export interface ChromeCopy {
     };
 
     /**
-     * The analytics consent banner and the footer's button that reopens it
-     * (scripts/site-partials.ts's footer()). All plain text, escaped at
-     * render. `body` is followed by a link to the privacy policy, labelled
-     * with `footer.privacyPolicy`. Keep `accept` and `reject` of comparable
-     * length: the two buttons are styled identically on purpose.
+     * The analytics consent banner (the strip nav() renders above the
+     * header) and the footer's button that reopens it (footer()), both in
+     * scripts/site-partials.ts. All plain text, escaped at render. `title`
+     * is a run-in heading printed in bold straight before `body` on the
+     * same line, so it carries its own closing punctuation; `body` is
+     * followed by a link to the privacy policy, labelled with
+     * `footer.privacyPolicy`. Keep it short: the strip is meant to be one
+     * or two lines on a desktop. `accept` and `reject` are bare verbs (the
+     * title already names what is being accepted) of comparable length:
+     * the two buttons are styled identically on purpose.
      */
     consent: {
         title: string;
@@ -255,10 +260,10 @@ export const CHROME_EN: ChromeCopy = {
     },
 
     consent: {
-        title: "Analytics cookies",
-        body: "With your permission we use Google Analytics and Microsoft Clarity to see how these pages are used, including session recordings with anything you type masked. Nothing loads unless you accept, and you can change your mind any time from the footer.",
-        accept: "Accept analytics",
-        reject: "Reject analytics",
+        title: "Analytics cookies.",
+        body: "With your permission, Google Analytics and Microsoft Clarity show us how these pages are used, including session recordings with typing masked. Nothing loads until you accept.",
+        accept: "Accept",
+        reject: "Reject",
         settings: "Cookie settings",
     },
 };
