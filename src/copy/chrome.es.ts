@@ -67,7 +67,7 @@ export const CHROME_ES: ChromeCopy = {
 
     consent: {
         title: "Cookies de analítica.",
-        body: "Con tu permiso, Google Analytics y Microsoft Clarity nos muestran qué páginas ayudan y dónde se atasca la gente, incluidas reproducciones de clics y desplazamientos que nunca incluyen lo que escribes. No se carga nada hasta que aceptes.",
+        body: "Con tu permiso, Google Analytics y Microsoft Clarity nos muestran qué páginas ayudan y dónde se atasca la gente. No se carga nada hasta que aceptes.",
         accept: "Aceptar",
         reject: "Rechazar",
         settings: "Configuración de cookies",
