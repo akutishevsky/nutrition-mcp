@@ -84,7 +84,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `update_weight`            | Update an existing weight entry                                                                                                                  |
 | `delete_weight`            | Delete a weight entry by ID                                                                                                                      |
 | `set_weight_unit`          | Set the preferred weight unit (`kg` or `lb`; null to clear)                                                                                      |
-| `get_trends`               | 7/14/30-day averages, std dev, streaks, day-of-week, best/worst day                                                                              |
+| `get_trends`               | 7/14/30-day averages, std dev, streaks, day-of-week calorie averages, best/worst day by calories                                                 |
 | `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                |
 | `export_all_data`          | Export every table — meals, water, weight, goals, profile — as one ZIP of CSVs plus a README, and return a 60-minute download link               |
 | `get_profile`              | Get timezone (+ local date/time), widget language, weight unit, widget display and alcohol tracking in one call                                  |

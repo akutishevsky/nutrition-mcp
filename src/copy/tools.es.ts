@@ -353,7 +353,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Promedios móviles de 7/14/30 días, variabilidad, rachas de registro, desgloses por día de la semana, y tus mejores y peores días de calorías y cada macro: ya calculados para que la IA solo tenga que narrarlos.",
+                "Promedios móviles de 7/14/30 días, variabilidad, rachas de registro, promedios de calorías por día de la semana, y tus mejores y peores días según las calorías: ya calculados para que la IA solo tenga que narrarlos.",
             params: {
                 days: "Tamaño de la ventana en días (por defecto 30, máximo 365).",
             },

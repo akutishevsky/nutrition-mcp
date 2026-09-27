@@ -355,7 +355,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Voortschrijdende gemiddelden over 7/14/30 dagen, variabiliteit, logstreaks, uitsplitsingen per weekdag, en je beste en slechtste dagen voor calorieën en elke macro — vooraf berekend zodat de AI ze zo kan navertellen.",
+                "Voortschrijdende gemiddelden over 7/14/30 dagen, variabiliteit, logstreaks, gemiddelde calorieën per weekdag, en je beste en slechtste dagen op basis van calorieën — vooraf berekend zodat de AI ze zo kan navertellen.",
             params: {
                 days: "Periode in dagen (standaard 30, max 365).",
             },

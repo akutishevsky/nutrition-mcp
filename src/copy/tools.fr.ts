@@ -360,7 +360,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Moyennes glissantes sur 7/14/30 jours, variabilité, séries d'enregistrement, répartition par jour de la semaine, et tes meilleurs et pires jours pour les calories et chaque macro — précalculés pour que l'IA puisse simplement les commenter.",
+                "Moyennes glissantes sur 7/14/30 jours, variabilité, séries d'enregistrement, moyennes de calories par jour de la semaine, et tes meilleurs et pires jours selon les calories — précalculés pour que l'IA puisse simplement les commenter.",
             params: {
                 days: "Taille de la période en jours (30 par défaut, 365 maximum).",
             },
