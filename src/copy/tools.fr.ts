@@ -346,10 +346,11 @@ export const TOOLS_FR: ToolsDoc = {
         },
         get_nutrition_summary: {
             description:
-                "Obtiens les totaux nutritionnels quotidiens sur une période sous forme de tableau de bord interactif : tuiles de macros comparées aux objectifs et un détail jour par jour.",
+                "Obtiens les totaux nutritionnels quotidiens sur une période sous forme de tableau de bord interactif : tuiles de macros comparées aux objectifs et un détail jour par jour. Un appel couvre jusqu'à 92 jours ; pour des périodes plus longues, les tendances donnent des moyennes glissantes.",
             params: {
                 start_date: "Date de début (AAAA-MM-JJ)",
-                end_date: "Date de fin (AAAA-MM-JJ)",
+                end_date:
+                    "Date de fin (AAAA-MM-JJ), au plus 92 jours, jour de début compris",
             },
             example: "Donne-moi un résumé de la semaine dernière",
         },

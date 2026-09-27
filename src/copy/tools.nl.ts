@@ -341,10 +341,11 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_nutrition_summary: {
             description:
-                "Krijg dagelijkse voedingstotalen over een periode als interactief dashboard: macrotegels ten opzichte van doelen en een uitsplitsing per dag.",
+                "Krijg dagelijkse voedingstotalen over een periode als interactief dashboard: macrotegels ten opzichte van doelen en een uitsplitsing per dag. Eén aanroep beslaat maximaal 92 dagen; voor langere periodes geven trends voortschrijdende gemiddelden.",
             params: {
                 start_date: "Startdatum (JJJJ-MM-DD)",
-                end_date: "Einddatum (JJJJ-MM-DD)",
+                end_date:
+                    "Einddatum (JJJJ-MM-DD), hoogstens 92 dagen inclusief de startdag",
             },
             example: "Geef me een overzicht van de afgelopen week",
         },

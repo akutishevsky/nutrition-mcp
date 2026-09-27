@@ -344,10 +344,11 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_nutrition_summary: {
             description:
-                "Ottieni i totali nutrizionali giornalieri in un intervallo di date come dashboard interattiva: riquadri delle macro rispetto agli obiettivi e una ripartizione per giorno.",
+                "Ottieni i totali nutrizionali giornalieri in un intervallo di date come dashboard interattiva: riquadri delle macro rispetto agli obiettivi e una ripartizione per giorno. Una chiamata copre fino a 92 giorni; per periodi più lunghi, le tendenze forniscono medie mobili.",
             params: {
                 start_date: "Data di inizio (AAAA-MM-GG)",
-                end_date: "Data di fine (AAAA-MM-GG)",
+                end_date:
+                    "Data di fine (AAAA-MM-GG), al massimo 92 giorni compreso il giorno di inizio",
             },
             example: "Dammi un riepilogo di questa settimana passata",
         },
