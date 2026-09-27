@@ -51,10 +51,9 @@ export interface OAuthStore {
     touchClient(clientId: string): Promise<void>;
     isLegacyRedirect(uri: string): Promise<boolean>;
     // Tokens and codes cross this interface raw. The store owns their at-rest
-    // form: it writes only hashSecret(raw), and a consume or lookup matches
-    // storedFormsOf(raw) (src/token-hash.ts) — the hash, plus the raw value of
-    // a pre-hashing row until the backfill rewrites those. Both the Supabase
-    // store and the test fake keep this contract.
+    // form: it writes only hashSecret(raw) (src/token-hash.ts), and a consume
+    // or lookup matches that hash exactly. Both the Supabase store and the
+    // test fake keep this contract.
     storeAuthCode(rec: AuthCodeRecord): Promise<void>;
     consumeAuthCode(code: string): Promise<AuthCodeData | null>;
     storeToken(
