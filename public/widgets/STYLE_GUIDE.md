@@ -485,6 +485,12 @@ one function:
 //            divided: boolean,           // add a leading hairline (.psec) when
 //                                        //   something of the widget's own sits
 //                                        //   between the header line and the strip
+//            contributors: object | null,// per-metric count of meals with a
+//                                        //   positive value, when `meals` is a
+//                                        //   bounded subset (nutrition-summary's
+//                                        //   top-8-per-metric union); "N more
+//                                        //   meals" counts against it. Default
+//                                        //   null: meals.length is the count
 //          }
 // Requires fmt(n, decimals) and esc(s) in scope.
 root.innerHTML = `

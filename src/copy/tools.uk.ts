@@ -179,7 +179,9 @@ export const TOOLS_UK: ToolsDoc = {
         },
         get_meals_today: {
             description: "Переглянь усі прийоми їжі, які ти записав сьогодні.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (за замовчуванням) — один рядок на прийом їжі з його ідентифікатором, або <code>full</code>, щоб додати нотатки й точний час",
+            },
             example: "Що я їв сьогодні?",
         },
         get_meals_by_date: {
@@ -187,6 +189,7 @@ export const TOOLS_UK: ToolsDoc = {
                 "Переглянь усі прийоми їжі, записані за конкретний день.",
             params: {
                 date: "Дата у форматі YYYY-MM-DD",
+                detail: "<code>compact</code> (за замовчуванням) — один рядок на прийом їжі з його ідентифікатором, або <code>full</code>, щоб додати нотатки й точний час",
             },
             example: "Покажи все, що я їв 4 липня",
         },
@@ -197,6 +200,7 @@ export const TOOLS_UK: ToolsDoc = {
                 start_date: "Дата початку (YYYY-MM-DD)",
                 end_date:
                     "Дата закінчення (YYYY-MM-DD), діапазон до 31 дня включно з початковим",
+                detail: "<code>compact</code> (за замовчуванням) — один рядок на прийом їжі з його ідентифікатором, або <code>full</code>, щоб додати нотатки й точний час",
             },
             example: "Покажи список прийомів їжі з понеділка по п'ятницю",
         },

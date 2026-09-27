@@ -226,14 +226,17 @@ export const TOOLS: ToolIdentity[] = [
         name: "get_meals_today",
         category: "reviewing-your-meals",
         badges: ["view"],
-        params: [],
+        params: [{ name: "detail", required: false }],
         hasPhotoHint: false,
     },
     {
         name: "get_meals_by_date",
         category: "reviewing-your-meals",
         badges: ["view"],
-        params: [{ name: "date", required: true }],
+        params: [
+            { name: "date", required: true },
+            { name: "detail", required: false },
+        ],
         hasPhotoHint: false,
     },
     {
@@ -243,6 +246,7 @@ export const TOOLS: ToolIdentity[] = [
         params: [
             { name: "start_date", required: true },
             { name: "end_date", required: true },
+            { name: "detail", required: false },
         ],
         hasPhotoHint: false,
     },
@@ -705,13 +709,16 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_meals_today: {
             description: "See every meal you've logged today.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (default) for one line per meal with its id, or <code>full</code> to include notes and exact times",
+            },
             example: "What have I eaten today?",
         },
         get_meals_by_date: {
             description: "See all the meals you logged on a specific day.",
             params: {
                 date: "Date in YYYY-MM-DD format",
+                detail: "<code>compact</code> (default) for one line per meal with its id, or <code>full</code> to include notes and exact times",
             },
             example: "Show me everything I ate on July 4th",
         },
@@ -722,6 +729,7 @@ const TOOLS_EN: ToolsDoc = {
                 start_date: "Start date (YYYY-MM-DD)",
                 end_date:
                     "End date (YYYY-MM-DD), up to 31 days including the start",
+                detail: "<code>compact</code> (default) for one line per meal with its id, or <code>full</code> to include notes and exact times",
             },
             example: "List my meals from Monday to Friday",
         },
