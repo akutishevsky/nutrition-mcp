@@ -53,6 +53,7 @@ import {
     withAnalytics,
     categorizeError,
 } from "./analytics.js";
+import { ToolError } from "./errors.js";
 import {
     todayInTz,
     validateTz,
@@ -1172,7 +1173,7 @@ async function resolveWriteTimestamp(
             err.usedProfileTimezone &&
             tz === null
         ) {
-            throw new Error(`${err.message} ${unsetTzNote(raw)}`);
+            throw new ToolError(`${err.message} ${unsetTzNote(raw)}`);
         }
         throw err;
     }
@@ -1204,7 +1205,7 @@ function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
     const hint = isPlausibleWeightGrams(asOther)
         ? ` If you meant ${fromGrams(grams, unit)} ${other}, pass unit: '${other}'.`
         : "";
-    throw new Error(
+    throw new ToolError(
         `${formatWeight(grams, unit)} is outside the plausible body-weight range (20–500 kg / 44–1102 lb). Double-check the number and unit.${hint}`,
     );
 }
@@ -1257,19 +1258,19 @@ function assertDateRange(
         ["end_date", end],
     ] as const) {
         if (!isCalendarDate(value)) {
-            throw new Error(
+            throw new ToolError(
                 `Invalid ${name} "${value}": not a real calendar date. Use YYYY-MM-DD, e.g. "2026-01-31".`,
             );
         }
     }
     if (start > end) {
-        throw new Error(
+        throw new ToolError(
             `Invalid date range: start_date (${start}) is after end_date (${end}). Swap them.`,
         );
     }
     const days = dateDiffDays(start, end) + 1;
     if (days > maxDays) {
-        throw new Error(
+        throw new ToolError(
             `Date range too long: ${start} to ${end} spans ${days} days, and at most ${maxDays} days (inclusive) can be listed at once. ${longerHint}`,
         );
     }
@@ -3876,7 +3877,7 @@ export function registerTools(
                 "set_weight_unit",
                 async () => {
                     if (unit !== null && !isWeightUnit(unit)) {
-                        throw new Error(
+                        throw new ToolError(
                             `Invalid weight unit: ${unit}. Use 'kg', 'lb', or null to clear.`,
                         );
                     }
@@ -4373,7 +4374,7 @@ export function registerTools(
                 "set_timezone",
                 async () => {
                     if (!validateTz(timezone)) {
-                        throw new Error(
+                        throw new ToolError(
                             `Invalid timezone: ${timezone}. Use an IANA identifier like 'America/Los_Angeles' or 'Europe/London'.`,
                         );
                     }
@@ -4417,7 +4418,7 @@ export function registerTools(
                 "set_language",
                 async () => {
                     if (!SITE_LOCALES.includes(locale as SiteLocale)) {
-                        throw new Error(
+                        throw new ToolError(
                             `Unsupported language: ${locale}. Use one of: ${SITE_LOCALES.join(", ")}.`,
                         );
                     }

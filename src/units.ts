@@ -4,6 +4,8 @@
 // rather than being delegated to the model. Energy is stored as whole kcal —
 // see toStoredCalories at the bottom.
 
+import { ToolError } from "./errors.js";
+
 export type WeightUnit = "kg" | "lb";
 
 export const WEIGHT_UNITS: readonly WeightUnit[] = ["kg", "lb"];
@@ -34,7 +36,7 @@ export function isWeightUnit(x: unknown): x is WeightUnit {
 /** Convert a value in the given unit to canonical integer grams (rounded). */
 export function toGrams(value: number, unit: WeightUnit): number {
     if (!Number.isFinite(value)) {
-        throw new Error(`Invalid weight value: ${value}`);
+        throw new ToolError(`Invalid weight value: ${value}`);
     }
     const grams = unit === "kg" ? value * GRAMS_PER_KG : value * GRAMS_PER_LB;
     return Math.round(grams);
@@ -64,7 +66,7 @@ export function pickWriteUnit(
 ): WeightUnit {
     const unit = explicit ?? preference;
     if (!unit) {
-        throw new Error(
+        throw new ToolError(
             "No weight unit given and no preference set. Pass unit ('kg' or 'lb'), or set a default first with set_weight_unit.",
         );
     }
