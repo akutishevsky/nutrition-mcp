@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { test, expect, spyOn } from "bun:test";
 import type { MealInput, MealInsertResult, Meal } from "./supabase.js";
 import {
     serializeImportResult,
@@ -829,7 +829,15 @@ test("runImport isolates a per-row database failure", async () => {
         row({ source_line: 3, description: "Poison" }),
         row({ source_line: 4, description: "B" }),
     ];
-    const result = await runImport(args(rows), deps);
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    let result;
+    let warned: string[];
+    try {
+        result = await runImport(args(rows), deps);
+    } finally {
+        warned = warn.mock.calls.map((c) => String(c[0]));
+        warn.mockRestore();
+    }
 
     expect(result.status).toBe("partial_success");
     expect(result.summary.created).toBe(2);
@@ -842,6 +850,18 @@ test("runImport isolates a per-row database failure", async () => {
         "created",
     ]);
     expect(result.results[1]!.error?.code).toBe("insert_failed");
+    // The driver's text goes to the log under the row's source line, JSON-
+    // escaped and without a user id; the caller gets a fixed sentence.
+    expect(result.results[1]!.error?.message).toBe(
+        "Database write failed for this row.",
+    );
+    expect(result.results[1]!.error?.message).not.toContain(
+        "simulated db failure",
+    );
+    expect(result.results[1]!.error?.retryable).toBe(true);
+    expect(warned).toEqual([
+        `[import] insert_failed line 3: ${JSON.stringify("simulated db failure")}`,
+    ]);
 });
 
 test("runImport on_error=abort writes nothing when a row fails validation", async () => {

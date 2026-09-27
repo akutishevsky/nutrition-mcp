@@ -340,10 +340,11 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_nutrition_summary: {
             description:
-                "Ruf tägliche Ernährungssummen über einen Datumsbereich als interaktives Dashboard ab: Makro-Kacheln im Vergleich zu Zielen und eine Aufschlüsselung nach Tag.",
+                "Ruf tägliche Ernährungssummen über einen Datumsbereich als interaktives Dashboard ab: Makro-Kacheln im Vergleich zu Zielen und eine Aufschlüsselung nach Tag. Ein Aufruf deckt bis zu 92 Tage ab; für längere Zeiträume liefern Trends gleitende Durchschnitte.",
             params: {
                 start_date: "Startdatum (JJJJ-MM-TT)",
-                end_date: "Enddatum (JJJJ-MM-TT)",
+                end_date:
+                    "Enddatum (JJJJ-MM-TT), höchstens 92 Tage einschließlich des Starttags",
             },
             example: "Gib mir eine Übersicht über die letzte Woche",
         },

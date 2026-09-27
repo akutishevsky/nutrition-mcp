@@ -13,7 +13,9 @@ import {
     shiftLocalDate,
     parseLoggedAt,
     resolveWriteLoggedAt,
+    LoggedAtError,
 } from "./tz.js";
+import { ToolError } from "./errors.js";
 
 test("dateInTz maps an instant to the local calendar day", () => {
     // 07:00Z = 23:00 the previous day in LA, same day in UTC/Tokyo.
@@ -201,6 +203,18 @@ test("shiftLocalDate does calendar arithmetic across month boundaries", () => {
     expect(shiftLocalDate("2024-03-01", -1)).toBe("2024-02-29");
 });
 
+// Non-numeric parts used to slip past the `== null` guard and build an Invalid
+// Date, whose toISOString() threw a RangeError with engine wording. The
+// handlers validate dates first; this is the second line of defence.
+test("shiftLocalDate rejects non-numeric date parts with its own message", () => {
+    for (const bad of ["2026-aa-01", "2026-01-xx", "yesterday", ""]) {
+        expect(() => shiftLocalDate(bad, 1)).toThrow(
+            new ToolError(`Invalid date string: ${bad}`),
+        );
+        expect(() => shiftLocalDate(bad, 1)).toThrow(ToolError);
+    }
+});
+
 // Issue #68: the manual write tools used to hand `logged_at` straight to a
 // timestamptz column, where an offset-less string is read in the session zone
 // (UTC). A Kyiv user logging 21:00 got 00:00 the NEXT day, and the tool's own
@@ -338,4 +352,21 @@ test("validateTz accepts IANA names and rejects junk", () => {
     expect(validateTz("Etc/GMT+5")).toBe(true);
     expect(validateTz("Mars/Phobos")).toBe(false);
     expect(validateTz("")).toBe(false);
+});
+
+// withAnalytics passes a ToolError's message through verbatim and sanitizes
+// everything else, so the logged_at explanations (and the set_timezone hint
+// built on them) only reach the model because LoggedAtError is a ToolError.
+// Its own name must survive the subclassing: ToolError declares `name` as a
+// class field, which initializes during super() and is then overwritten.
+test("LoggedAtError is a ToolError that keeps its own name", () => {
+    let caught: unknown;
+    try {
+        resolveWriteLoggedAt("not-a-date", "UTC", Date.now());
+    } catch (err) {
+        caught = err;
+    }
+    expect(caught).toBeInstanceOf(LoggedAtError);
+    expect(caught).toBeInstanceOf(ToolError);
+    expect((caught as Error).name).toBe("LoggedAtError");
 });

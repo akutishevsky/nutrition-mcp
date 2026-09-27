@@ -1,4 +1,12 @@
-import { test, expect, describe, mock, beforeEach, afterAll } from "bun:test";
+import {
+    test,
+    expect,
+    describe,
+    mock,
+    beforeEach,
+    afterAll,
+    spyOn,
+} from "bun:test";
 import { z } from "zod";
 import {
     formatGoalLine,
@@ -32,6 +40,7 @@ import {
     gateAlcohol,
     handleMcp,
     MEALS_RANGE_MAX_DAYS,
+    SUMMARY_RANGE_MAX_DAYS,
     WEIGHT_RANGE_MAX_DAYS,
 } from "./mcp.js";
 import {
@@ -48,6 +57,7 @@ import * as actualSupabase from "./supabase.js";
 // the next file the mock again. Restore from this copy.
 const realSupabase = { ...actualSupabase };
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
+import { ToolError } from "./errors.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
     buildDailyBuckets,
@@ -65,9 +75,15 @@ import type {
 import { dateInTz, formatLocalDateTime, weekdayInTz } from "./tz.js";
 import { getWidgetHtml } from "./widgets.js";
 
+// Real uuids, because the id tools check the shape before touching the
+// database: a fixture like "m1" would never reach the stubs below.
+const MEAL_ID = "00000000-0000-4000-8000-000000000001";
+const WATER_ID = "00000000-0000-4000-8000-000000000002";
+const WEIGHT_ID = "00000000-0000-4000-8000-000000000003";
+
 function meal(over: Partial<Meal> = {}): Meal {
     return {
-        id: "m1",
+        id: MEAL_ID,
         user_id: "u1",
         logged_at: "2026-07-26T12:00:00.000Z",
         meal_type: "dinner",
@@ -1438,6 +1454,13 @@ const db = {
     analyticsRows: [] as Record<string, unknown>[],
     accountWipes: 0,
     profileReads: [] as string[],
+    // Thrown by getMealsInRange/deleteMeal/updateMeal when set: stands in for
+    // a raw Postgres/PostgREST failure, or for the real updateMeal's not-found
+    // ToolError, neither of which the stubs otherwise produce.
+    failWith: null as Error | null,
+    // Every call to a delete stub, found or not: stays 0 when a tool refuses
+    // an id before it reaches the database.
+    deleteCalls: 0,
 };
 
 mock.module("./supabase.js", () => ({
@@ -1467,8 +1490,12 @@ mock.module("./supabase.js", () => ({
     // The range readers behind get_nutrition_summary. They ignore the dates and
     // hand back whatever the test staged: the fixtures below already sit inside
     // the window they ask for, and filtering here would only re-implement the
-    // query under test.
-    getMealsInRange: async () => db.meals,
+    // query under test. Paging, ordering and the count reconcile belong to the
+    // real reader, driven against a stubbed fetch in supabase-window.test.ts.
+    getMealsInRange: async () => {
+        if (db.failWith) throw db.failWith;
+        return db.meals;
+    },
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.
     getWeightInRange: async () => [],
@@ -1483,6 +1510,7 @@ mock.module("./supabase.js", () => ({
         id: string,
         fields: Record<string, unknown>,
     ) => {
+        if (db.failWith) throw db.failWith;
         db.mealUpdates.push(fields);
         const saved = storedMeal({ ...fields, id });
         db.meals = [saved];
@@ -1492,7 +1520,7 @@ mock.module("./supabase.js", () => ({
         db.waterInserted.push(input);
         return {
             entry: {
-                id: "w1",
+                id: WATER_ID,
                 user_id: "u1",
                 amount_ml: (input.amount_ml as number) ?? 0,
                 logged_at:
@@ -1509,7 +1537,7 @@ mock.module("./supabase.js", () => ({
         db.weightInserted.push(input);
         return {
             entry: {
-                id: "k1",
+                id: WEIGHT_ID,
                 user_id: "u1",
                 weight_g: (input.weight_g as number) ?? 0,
                 logged_at:
@@ -1541,12 +1569,20 @@ mock.module("./supabase.js", () => ({
         } as WeightEntry;
     },
     deleteMeal: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        if (db.failWith) throw db.failWith;
         const before = db.meals.length;
         db.meals = db.meals.filter((m) => m.id !== id);
         return db.meals.length < before;
     },
-    deleteWater: async (_userId: string, id: string) => db.rowIds.delete(id),
-    deleteWeight: async (_userId: string, id: string) => db.rowIds.delete(id),
+    deleteWater: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        return db.rowIds.delete(id);
+    },
+    deleteWeight: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        return db.rowIds.delete(id);
+    },
     countMeals: async () => db.meals.length,
     existingIdempotencyKeys: async () => new Set<string>(),
     existingMealIds: async (_userId: string, ids: string[]) =>
@@ -1589,6 +1625,8 @@ beforeEach(() => {
     db.analyticsRows = [];
     db.accountWipes = 0;
     db.profileReads = [];
+    db.failWith = null;
+    db.deleteCalls = 0;
 });
 
 interface ToolResult {
@@ -1707,11 +1745,11 @@ describe("write-tool numeric bounds", () => {
     test("update_meal is bounded the same way", async () => {
         await withTools(null, async (call) => {
             expect(
-                (await call("update_meal", { id: "m1", sugar_g: -0.5 }))
+                (await call("update_meal", { id: MEAL_ID, sugar_g: -0.5 }))
                     .isError,
             ).toBe(true);
             expect(
-                (await call("update_meal", { id: "m1", alcohol_g: 1e308 }))
+                (await call("update_meal", { id: MEAL_ID, alcohol_g: 1e308 }))
                     .isError,
             ).toBe(true);
         });
@@ -1929,13 +1967,13 @@ describe("log_meal / update_meal surface hidden alcohol", () => {
     test("update_meal nudges on the same terms", async () => {
         await withTools(null, async (call) => {
             const text = textOf(
-                await call("update_meal", { id: "m1", alcohol_g: 14 }),
+                await call("update_meal", { id: MEAL_ID, alcohol_g: 14 }),
             );
             expect(text).toContain("set_alcohol_tracking");
         });
         await withTools("uk", async (call) => {
             const text = textOf(
-                await call("update_meal", { id: "m1", alcohol_g: 14 }),
+                await call("update_meal", { id: MEAL_ID, alcohol_g: 14 }),
             );
             expect(text).not.toContain("set_alcohol_tracking");
         });
@@ -1952,7 +1990,7 @@ describe("log_meal / update_meal surface hidden alcohol", () => {
 
 describe("missingNutrientNote", () => {
     const base = {
-        id: "m1",
+        id: MEAL_ID,
         user_id: "u1",
         logged_at: "2026-08-07T12:00:00.000Z",
         meal_type: "lunch" as const,
@@ -1973,7 +2011,7 @@ describe("missingNutrientNote", () => {
         const note = missingNutrientNote(base);
         expect(note).toContain("fiber_g, sugar_g");
         expect(note).toContain("update_meal");
-        expect(note).toContain("m1");
+        expect(note).toContain(MEAL_ID);
         // The sentence that stops the model "fixing" it by sending 0s blindly.
         expect(note).toContain("A missing value is not a zero");
     });
@@ -2055,7 +2093,7 @@ describe("log_meal / update_meal chase missing fiber and sugar", () => {
     test("update_meal re-checks the meal it just wrote", async () => {
         await withTools(null, async (call) => {
             const text = textOf(
-                await call("update_meal", { id: "m1", fiber_g: 6 }),
+                await call("update_meal", { id: MEAL_ID, fiber_g: 6 }),
             );
             expect(text).toContain("sugar_g");
             expect(text).not.toContain("fiber_g");
@@ -2120,7 +2158,10 @@ describe("log_meal and update_meal round-trip caffeine_mg", () => {
 
     test("update_meal passes a corrected figure through", async () => {
         await withTools(null, async (call) => {
-            const r = await call("update_meal", { id: "m1", caffeine_mg: 126 });
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                caffeine_mg: 126,
+            });
             expect(r.isError).toBeFalsy();
             expect(db.mealUpdates[0]!.caffeine_mg).toBe(126);
             expect(textOf(r)).toContain("Caffeine: 126 mg");
@@ -2128,7 +2169,7 @@ describe("log_meal and update_meal round-trip caffeine_mg", () => {
 
         await withTools(null, async (call) => {
             const r = await call("update_meal", {
-                id: "m1",
+                id: MEAL_ID,
                 caffeine_mg: MAX_CAFFEINE_MG + 1,
             });
             expect(r.isError).toBe(true);
@@ -2690,26 +2731,26 @@ describe("delete tools distinguish deleted from not-found", () => {
     }[] = [
         {
             tool: "delete_meal",
-            id: "m1",
+            id: MEAL_ID,
             seed: (id) => {
                 db.meals = [storedMeal({ id })];
             },
-            deleted: "Meal m1 deleted.",
-            notFound: "No meal found with id m1.",
+            deleted: `Meal ${MEAL_ID} deleted.`,
+            notFound: `No meal found with id ${MEAL_ID}.`,
         },
         {
             tool: "delete_water",
-            id: "w1",
+            id: WATER_ID,
             seed: (id) => db.rowIds.add(id),
-            deleted: "Water entry w1 deleted.",
-            notFound: "No water entry found with id w1.",
+            deleted: `Water entry ${WATER_ID} deleted.`,
+            notFound: `No water entry found with id ${WATER_ID}.`,
         },
         {
             tool: "delete_weight",
-            id: "k1",
+            id: WEIGHT_ID,
             seed: (id) => db.rowIds.add(id),
-            deleted: "Weight entry k1 deleted.",
-            notFound: "No weight entry found with id k1.",
+            deleted: `Weight entry ${WEIGHT_ID} deleted.`,
+            notFound: `No weight entry found with id ${WEIGHT_ID}.`,
         },
     ];
 
@@ -2733,12 +2774,170 @@ describe("delete tools distinguish deleted from not-found", () => {
     }
 });
 
+// ---------- id params are checked before the database ----------
+//
+// A non-uuid id used to reach Postgres and come back as a uuid cast error. The
+// delete tools answer it like any other missing row; the update tools throw a
+// ToolError, which categorizeError files as record_not_found.
+describe("id params are validated before the database", () => {
+    const rowFor = (tool: string) =>
+        db.analyticsRows.find((r) => r.tool_name === tool)!;
+
+    test.each([
+        ["delete_meal", "meal", "get_meals_today"],
+        ["delete_water", "water entry", "get_water_today"],
+        ["delete_weight", "weight entry", "get_weight_today"],
+    ])(
+        "%s answers a non-uuid id without touching the database",
+        async (tool, kind, source) => {
+            await withTools(null, async (call) => {
+                const r = await call(tool, { id: "not-a-uuid" });
+                expect(r.isError).toBeFalsy();
+                const text = textOf(r);
+                expect(
+                    text.startsWith(`No ${kind} found with id "not-a-uuid"`),
+                ).toBe(true);
+                expect(text).toContain("ids are UUIDs");
+                expect(text).toContain(source);
+            });
+            expect(db.deleteCalls).toBe(0);
+            // Nothing matched, as with a well-formed id that names no row:
+            // an answer, not a failure.
+            expect(rowFor(tool).success).toBe(true);
+        },
+    );
+
+    test("the echoed id is clipped to 64 characters", async () => {
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("delete_meal", { id: "x".repeat(200) }),
+            );
+            expect(text).toContain(`"${"x".repeat(64)}"`);
+            expect(text).not.toContain("x".repeat(65));
+        });
+    });
+
+    test.each([
+        ["update_meal", "meal", "mealUpdates"],
+        ["update_weight", "weight entry", "weightUpdates"],
+    ] as const)(
+        "%s refuses a non-uuid id as record_not_found",
+        async (tool, kind, updates) => {
+            await withTools(null, async (call) => {
+                const r = await call(tool, { id: "not-a-uuid", notes: "x" });
+                expect(r.isError).toBe(true);
+                expect(
+                    textOf(r).startsWith(
+                        `No ${kind} found with id "not-a-uuid"`,
+                    ),
+                ).toBe(true);
+            });
+            expect(db[updates]).toHaveLength(0);
+            // resolveWriteTimestamp reads the profile; the id check runs first.
+            expect(db.profileReads).toHaveLength(0);
+            expect(rowFor(tool).error_category).toBe("record_not_found");
+        },
+    );
+});
+
+// ---------- raw errors are sanitized at the exit ----------
+//
+// withAnalytics hands the model a ToolError's text verbatim and replaces every
+// other error with a category message plus a ref, so Postgres/PostgREST text
+// (table names, casts, constraint names) never reaches the conversation.
+describe("raw database errors never reach the model", () => {
+    const rowFor = (tool: string) =>
+        db.analyticsRows.find((r) => r.tool_name === tool)!;
+
+    test("a read failure becomes a category message with a ref", async () => {
+        db.failWith = new Error(
+            'Failed to get meals: relation "public.meals" does not exist',
+        );
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-07-01",
+                end_date: "2026-07-07",
+            });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("get_nutrition_summary could not finish");
+            expect(text).toMatch(/\(ref [0-9a-f]{8}\)/);
+            expect(text).not.toContain("relation");
+            expect(text).not.toContain("Failed to");
+            expect(text.startsWith("Error:")).toBe(false);
+        });
+        expect(rowFor("get_nutrition_summary").error_category).toBe(
+            "supabase_error",
+        );
+    });
+
+    test("a rejected value is reported as one, without the cast text", async () => {
+        db.failWith = new Error(
+            'Failed to delete meal: invalid input syntax for type uuid: "abc"',
+        );
+        await withTools(null, async (call) => {
+            const r = await call("delete_meal", { id: MEAL_ID });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("rejected one of the values");
+            expect(text).not.toContain("invalid input syntax");
+            expect(text).not.toContain("uuid");
+        });
+        expect(rowFor("delete_meal").error_category).toBe("db_rejected_value");
+    });
+
+    // The real updateMeal pre-checks the row and throws this ToolError for a
+    // well-formed id the user doesn't have; its text is written for the model.
+    test("update_meal's not-found ToolError passes through verbatim", async () => {
+        db.failWith = new ToolError(`No meal found with id ${MEAL_ID}.`);
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", { id: MEAL_ID, notes: "x" });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toBe(`No meal found with id ${MEAL_ID}.`);
+        });
+        expect(rowFor("update_meal").error_category).toBe("record_not_found");
+    });
+
+    // Resources bypass withAnalytics, and the SDK forwards a thrown message to
+    // the client verbatim, so the weekly summary carries its own catch.
+    test("the weekly-summary resource hides the raw text behind a ref", async () => {
+        db.failWith = new Error(
+            'Failed to get meals: relation "public.meals" does not exist',
+        );
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            const message = await withHttpClient("u1", "legacy", (client) =>
+                client.readResource({ uri: "nutrition://weekly-summary" }).then(
+                    () => "resolved",
+                    (e: unknown) =>
+                        e instanceof Error ? e.message : String(e),
+                ),
+            );
+            expect(message).toContain("Couldn't build the weekly summary");
+            const ref = message.match(/\(ref ([0-9a-f]{8})\)/)?.[1];
+            expect(ref).toBeDefined();
+            expect(message).not.toContain("relation");
+            expect(message).not.toContain("Failed to");
+            const line = warn.mock.calls
+                .map((c) => String(c[0]))
+                .find((l) => l.startsWith("[resource] weekly-summary"));
+            expect(line).toBe(
+                `[resource] weekly-summary error ref=${ref}: ${JSON.stringify('Failed to get meals: relation "public.meals" does not exist')}`,
+            );
+        } finally {
+            warn.mockRestore();
+        }
+    });
+});
+
 // ---------- range listings are bounded ----------
 //
-// get_meals_by_date_range returns every meal as full text from an unpaged read,
-// so an unbounded range dumped the whole diary and could truncate silently at
-// PostgREST's row cap. The guard runs inside withAnalytics, so each rejection
-// is an isError result with an analytics row, not a schema-level refusal.
+// get_meals_by_date_range returns every meal as full text, so an unbounded
+// range dumped the whole diary into one response; get_nutrition_summary has
+// the same guard at a quarter. The readers page, so the caps are about
+// response size, not truncation. The guard runs inside withAnalytics, so each
+// rejection is an isError result with an analytics row, not a schema-level
+// refusal.
 describe("date-range listings reject bad and oversized ranges", () => {
     const rowsFor = (tool: string) =>
         db.analyticsRows.filter((r) => r.tool_name === tool);
@@ -2758,8 +2957,8 @@ describe("date-range listings reject bad and oversized ranges", () => {
             expect(text).toContain("spans 32 days");
             expect(text).toContain(`at most ${MEALS_RANGE_MAX_DAYS} days`);
             expect(text).toContain("get_trends");
-            // Not get_nutrition_summary: it reads unpaged and would truncate a
-            // long range at PostgREST's row cap (#66).
+            // Not get_nutrition_summary: it is capped itself (at
+            // SUMMARY_RANGE_MAX_DAYS), so it is no route to a longer period.
             expect(text).not.toContain("get_nutrition_summary");
             expect(text).toContain("monthly calls");
         });
@@ -2834,6 +3033,100 @@ describe("date-range listings reject bad and oversized ranges", () => {
             );
             expect(textOf(over)).toContain("get_weight_trends");
         });
+    });
+
+    test("the summary cap is a quarter", () => {
+        expect(SUMMARY_RANGE_MAX_DAYS).toBe(92);
+    });
+
+    test("get_nutrition_summary refuses a range one day over its cap", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-01-01",
+                end_date: "2026-04-03",
+            });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("spans 93 days");
+            expect(text).toContain(`at most ${SUMMARY_RANGE_MAX_DAYS} days`);
+            expect(text).toContain("get_trends");
+        });
+        const rows = rowsFor("get_nutrition_summary");
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.error_category).toBe("date_range_too_long");
+    });
+
+    test("get_nutrition_summary accepts exactly 92 days", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-01-01",
+                end_date: "2026-04-02",
+            });
+            expect(r.isError).toBeFalsy();
+        });
+        expect(rowsFor("get_nutrition_summary")[0]!.success).toBe(true);
+    });
+
+    test("get_nutrition_summary refuses a reversed range", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-02-01",
+                end_date: "2026-01-01",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("is after end_date");
+        });
+        expect(rowsFor("get_nutrition_summary")[0]!.error_category).toBe(
+            "invalid_date_format",
+        );
+    });
+
+    test("get_nutrition_summary refuses a non-calendar date", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-02-01",
+                end_date: "2026-02-30",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain(
+                `Invalid end_date "2026-02-30": not a real calendar date`,
+            );
+        });
+    });
+});
+
+// ---------- single dates are validated before they are read ----------
+//
+// shiftLocalDate and zonedDayStartUtc roll "2026-99-99" over to 2034 instead of
+// failing, and throw their own internal wording for "yesterday", so each
+// date-taking read tool checks its date first and answers with the
+// caller-facing message.
+describe("date params are real calendar dates", () => {
+    const rowFor = (tool: string) =>
+        db.analyticsRows.find((r) => r.tool_name === tool)!;
+
+    test.each([
+        ["get_trends", "end_date", "yesterday"],
+        ["get_meal_patterns", "end_date", "yesterday"],
+        ["get_weight_trends", "end_date", "yesterday"],
+        ["get_trends", "end_date", "2026-aa-01"],
+        ["get_meals_by_date", "date", "2026-99-99"],
+        ["get_goal_progress", "date", "2026-99-99"],
+        ["get_water_by_date", "date", "2026-99-99"],
+        ["get_weight_by_date", "date", "2026-99-99"],
+        ["get_meals_by_date", "date", "2026-02-30"],
+    ])("%s refuses %s %p", async (tool, param, bad) => {
+        await withTools(null, async (call) => {
+            const r = await call(tool, { [param]: bad });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain(
+                `Invalid ${param} "${bad}": not a real calendar date`,
+            );
+            expect(text).not.toContain("Invalid Date");
+            expect(text).not.toContain("Invalid date string");
+        });
+        expect(rowFor(tool).error_category).toBe("invalid_date_format");
     });
 });
 
@@ -3344,7 +3637,7 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
         db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
         await withTools(null, async (call) => {
             const r = await call("update_meal", {
-                id: "m1",
+                id: MEAL_ID,
                 logged_at: "2026-07-20T08:30:00",
             });
             expect(r.isError).toBeFalsy();
@@ -3485,13 +3778,13 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
         db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
         await withTools(null, async (call) => {
             await call("update_weight", {
-                id: "k1",
+                id: WEIGHT_ID,
                 logged_at: "2026-07-20T08:30:00",
             });
             expect(loggedAtOf(db.weightUpdates[0])).toBe(
                 "2026-07-20T05:30:00.000Z",
             );
-            await call("update_weight", { id: "k1", notes: "morning" });
+            await call("update_weight", { id: WEIGHT_ID, notes: "morning" });
             expect(db.weightUpdates[1]).not.toHaveProperty("logged_at");
         });
     });

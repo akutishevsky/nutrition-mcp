@@ -151,7 +151,14 @@ Invariants worth keeping:
 - **`meals.csv` is byte-identical to `buildMealsCsv`**, whose headers are the importer's column aliases. It is the only file with a way back in; renaming a column there for looks breaks a re-import silently.
 - **Alcohol is not gated on `alcohol_tracking_enabled`.** The opt-in governs display, not the export — the privacy page promises the export always includes what was logged. It looks like a missing check, so the code says why.
 - **`exportAllData` derives tz and weight unit from one `getProfile` row.** The `getUserTimezone` / `getPreferredWeightUnit` wrappers are each their own `select * from profiles`, so chaining them multiplies one query by the number of preferences read.
-- **`getAllMeals` / `getAllWater` / `getAllWeight` reconcile against an exact count and throw when short.** PostgREST caps rows at 1000 by default, which truncated an export once already (#66); a loud failure beats a quiet partial backup.
+- **`getAllMeals` / `getAllWater` / `getAllWeight` reconcile against an exact count and throw when short.** PostgREST caps rows at 1000 by default, which truncated an export once already (#66); a loud failure beats a quiet partial backup. The window readers below reconcile the same way.
+
+---
+
+## Reads and error text
+
+- **Every `logged_at` window read goes through `selectLoggedWindow` (`src/supabase.ts`).** `getMealsInRange` / `getWaterInRange` / `getWeightInRange` page with `.range()`, order by `logged_at` then `id`, drop the adjacent duplicate a backdated insert between pages can produce, and reconcile the deduped length against the first page's exact count, throwing `result would be truncated` (category `read_truncated`) when short. The three `get*ByDate` readers delegate to them. The `id` tie-break is load-bearing: date-only imports all anchor at local noon, so ties at a page edge are routine. An unpaged select kept PostgREST's _oldest_ 1000 rows, so a 365-day `get_trends` showed the latest 30 days as zeros. The range caps (`MEALS_RANGE_MAX_DAYS` 31, `SUMMARY_RANGE_MAX_DAYS` 92, `WEIGHT_RANGE_MAX_DAYS` 366) are about response size, not truncation.
+- **`ToolError` (`src/errors.ts`) is the only error text that reaches the model.** `withAnalytics` returns a `ToolError`'s message verbatim; every other error becomes a per-category message (`userFacingError` in `src/analytics.ts`) plus an 8-hex `ref` from `newErrorRef()`, and the raw message is logged JSON-escaped under that ref with no user id. The weekly-summary resource, the import's per-row `insert_failed` and `lookup_barcode`'s Open Food Facts fallback follow the same rule outside `withAnalytics`. Throw `ToolError` only for text written for the caller, never to wrap third-party text. `csv.ts` / `chunk.ts` are `@inlinets`-inlined into widgets and must not import it.
 
 ---
 
