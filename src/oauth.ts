@@ -4,7 +4,6 @@ import crypto from "node:crypto";
 import {
     createSupabaseOAuthStore,
     legacyClientFromEnv,
-    sha256Hex,
     supabaseOAuthAuth,
     withLegacyClient,
     type OAuthAuth,
@@ -25,6 +24,7 @@ import {
     resourceAllowed,
     type RedirectKind,
 } from "./oauth-validate.js";
+import { hashSecret, newOpaqueToken } from "./token-hash.js";
 import { getBaseUrl } from "./url.js";
 import { issuerFor } from "./discovery.js";
 import { rateLimitAuth } from "./middleware.js";
@@ -45,9 +45,15 @@ import { chromeFor } from "./copy/chrome.js";
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
 // Lifetime of an access token, in both its stored expires_at and the
-// `expires_in` /token reports. Unchanged from before Phase A; Phase C
-// shortens it.
-export const ACCESS_TOKEN_TTL_SECONDS = 365 * 24 * 60 * 60;
+// `expires_in` /token reports. Was 365 days until Phase C; clients refresh on
+// a 401, so a short lifetime costs a refresh, not a sign-in. The plan is to
+// watch the `[oauth] token grant=refresh_token` lines for a week, then drop
+// it to an hour. Existing rows keep whatever expiry they were written with.
+export const ACCESS_TOKEN_TTL_SECONDS = 24 * 60 * 60;
+
+// Lifetime of a refresh token, counted from its issue: each rotation gets a
+// fresh 90 days (sliding), and every token is strictly single-use.
+export const REFRESH_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export interface OAuthSession {
     state: string;
@@ -123,7 +129,7 @@ setInterval(cleanExpiredSessions, 60 * 1000);
 const BINDING_COOKIE_PREFIX = "nm_oauth_bind_";
 // Matches a binding cookie's name as the request carries it, prefix and all.
 const BINDING_COOKIE_NAME = /^(?:__Host-)?nm_oauth_bind_[0-9a-f]{16}$/;
-// crypto.randomBytes(32) in base64url; anything else is ignored.
+// newOpaqueToken(): 32 random bytes in base64url; anything else is ignored.
 const BINDING_VALUE = /^[A-Za-z0-9_-]{43}$/;
 // More live bindings than any real browser has sign-ins in flight. Past it,
 // /authorize clears them all before adding its own, so a page that bounces a
@@ -138,7 +144,7 @@ function bindingIsSecure(c: Context): boolean {
 // Derived from the session id rather than equal to it, so the id itself never
 // lands in a cookie jar or a Cookie header in some proxy's log.
 function bindingCookieName(sessionId: string): string {
-    return BINDING_COOKIE_PREFIX + sha256Hex(sessionId).slice(0, 16);
+    return BINDING_COOKIE_PREFIX + hashSecret(sessionId).slice(0, 16);
 }
 
 function bindingCookieOptions(c: Context) {
@@ -173,12 +179,12 @@ function setBindingCookie(c: Context, sessionId: string): string {
             deleteCookie(c, bare, opts);
         }
     }
-    const value = crypto.randomBytes(32).toString("base64url");
+    const value = newOpaqueToken();
     setCookie(c, bindingCookieName(sessionId), value, {
         ...bindingCookieOptions(c),
         maxAge: Math.floor(SESSION_TTL_MS / 1000),
     });
-    return sha256Hex(value);
+    return hashSecret(value);
 }
 
 // Once the session is consumed its cookie has nothing left to guard.
@@ -195,7 +201,7 @@ function bindingMatches(
 ): boolean {
     const value = readBindingCookie(c, sessionId);
     if (!value) return false;
-    const a = Buffer.from(sha256Hex(value), "utf8");
+    const a = Buffer.from(hashSecret(value), "utf8");
     const b = Buffer.from(session.browserBinding, "utf8");
     return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
@@ -401,7 +407,7 @@ async function finishAuthorization(
     sessions.delete(sessionId);
     clearBindingCookie(c, sessionId);
 
-    const authCode = crypto.randomUUID();
+    const authCode = newOpaqueToken();
     await store.storeAuthCode({
         code: authCode,
         redirectUri: session.redirectUri,
@@ -476,7 +482,7 @@ const CLIENT_NAME_MAX_LENGTH = 255;
 // with timingSafeEqual so the comparison leaks nothing about the stored value.
 function secretMatches(secret: string, storedHash: string | null): boolean {
     if (!storedHash) return false;
-    const a = Buffer.from(sha256Hex(secret), "utf8");
+    const a = Buffer.from(hashSecret(secret), "utf8");
     const b = Buffer.from(storedHash, "utf8");
     return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
@@ -543,6 +549,73 @@ const NO_STORE_HEADERS = {
     Pragma: "no-cache",
 } as const;
 
+// The one `[oauth] token …` line each /token call logs, filled in by the
+// handler as it goes and written by the /token middleware once a response
+// exists. Writing it there rather than at each return is what makes it exactly
+// one line per call: every early return, the rate limiter's 429 and a thrown
+// error all pass through the same place. Keyed by the request's Context, which
+// Hono shares between the middleware and the handler.
+interface TokenCallNote {
+    grant?: string;
+    client?: string;
+    reason?: string;
+}
+const tokenCallNotes = new WeakMap<Context, TokenCallNote>();
+
+function tokenNote(c: Context): TokenCallNote {
+    let note = tokenCallNotes.get(c);
+    if (!note) {
+        note = {};
+        tokenCallNotes.set(c, note);
+    }
+    return note;
+}
+
+// grant_type as it may be logged: a value this server implements, or a fixed
+// word — never the caller's own text.
+function grantForLog(grantType: string | undefined): string {
+    if (grantType === undefined) return "missing";
+    return (GRANT_TYPES as readonly string[]).includes(grantType)
+        ? grantType
+        : "unsupported";
+}
+
+// The outcome, read off the response itself so no return path can report
+// something other than what the client was actually told.
+async function tokenResult(c: Context, threw: boolean): Promise<string> {
+    if (threw || c.error || c.res.status >= 500) return "server_error";
+    if (c.res.status === 429) return "rate_limited";
+    if (c.res.ok) return "ok";
+    try {
+        const body = (await c.res.clone().json()) as { error?: unknown };
+        if (typeof body.error === "string" && /^[a-z_]{1,40}$/.test(body.error))
+            return body.error;
+    } catch {
+        // Not JSON; fall through to the status.
+    }
+    return `http_${c.res.status}`;
+}
+
+// For the app-level /token middleware in src/index.ts: writes the token line
+// for a /token call the router never saw — the app's body-limit 413 and the
+// shutdown gate's 503 answer before it — so those are logged once too. A call
+// the router's own /token middleware noted has already been logged. The body
+// was never read, so the grant and client are unknown.
+export async function logTokenCallAnsweredBeforeRouter(
+    c: Context,
+): Promise<void> {
+    if (tokenCallNotes.has(c)) return;
+    let result = `http_${c.res.status}`;
+    try {
+        const body = (await c.res.clone().json()) as { error?: unknown };
+        if (typeof body.error === "string" && /^[a-z_]{1,40}$/.test(body.error))
+            result = body.error;
+    } catch {
+        // Not JSON; keep the status.
+    }
+    console.warn(`[oauth] token grant=unknown result=${result} client=none`);
+}
+
 // A form field as a string, or undefined when absent or not a string (parseBody
 // yields File for a multipart upload, and an array for a repeated key when
 // asked; neither is a valid OAuth parameter).
@@ -587,10 +660,29 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     // the endpoints explicitly keeps the limiter from leaking beyond OAuth again.
     // Ahead of the limiter so its 429 is covered too; applied after next()
     // so it lands on whatever response the handler (or the limiter) built.
+    //
+    // The same middleware writes the one `[oauth] token grant=… result=…
+    // client=…` line per call (see TokenCallNote). Never a token, code,
+    // secret or user id: grant is a fixed vocabulary, result an OAuth error
+    // code, client an id we issued, "legacy", or "none".
     oauth.use("/token", async (c, next) => {
-        await next();
-        for (const [name, value] of Object.entries(NO_STORE_HEADERS)) {
-            c.res.headers.set(name, value);
+        const note = tokenNote(c);
+        let threw = false;
+        try {
+            await next();
+        } catch (err) {
+            threw = true;
+            throw err;
+        } finally {
+            if (!threw) {
+                for (const [name, value] of Object.entries(NO_STORE_HEADERS)) {
+                    c.res.headers.set(name, value);
+                }
+            }
+            const result = await tokenResult(c, threw);
+            const line = `[oauth] token grant=${note.grant ?? "unknown"} result=${result} client=${note.client ?? "none"}${note.reason ? ` reason=${note.reason}` : ""}`;
+            if (result === "ok") console.log(line);
+            else console.warn(line);
         }
     });
     for (const path of OAUTH_PATHS) {
@@ -707,14 +799,11 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         const clientId = crypto.randomUUID();
         // A confidential client's secret is returned once, here, and stored
         // only as its hash.
-        const clientSecret =
-            authMethod === "none"
-                ? null
-                : crypto.randomBytes(32).toString("base64url");
+        const clientSecret = authMethod === "none" ? null : newOpaqueToken();
 
         await store.createClient({
             clientId,
-            secretHash: clientSecret ? sha256Hex(clientSecret) : null,
+            secretHash: clientSecret ? hashSecret(clientSecret) : null,
             authMethod,
             redirectUris: redirectUris as string[],
             clientName,
@@ -1163,11 +1252,14 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     ): Promise<ClientAuthResult> {
         const basic = parseBasicAuth(c.req.header("Authorization"));
         const triedBasic = basic !== undefined;
+        const note = tokenNote(c);
         const fail = (description: string): ClientAuthResult => {
-            oauthLog(
-                "token-rejected reason=invalid_client",
-                basic?.id ?? str(body.client_id),
-            );
+            // The id the caller claimed, as it may be logged.
+            const claimed = basic?.id ?? str(body.client_id);
+            note.client =
+                legacy && claimed === legacy.clientId
+                    ? "legacy"
+                    : logClientId(claimed);
             return {
                 ok: false,
                 response: c.json(
@@ -1269,6 +1361,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
                 return fail("client authentication failed");
         }
 
+        note.client = client.legacy ? "legacy" : client.clientId;
         // Fire-and-forget: last_used_at must never delay or fail /token.
         store.touchClient(client.clientId).catch(() => {});
         return { ok: true, client };
@@ -1279,6 +1372,8 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     oauth.post("/token", async (c) => {
         const body = (await c.req.parseBody()) as Record<string, unknown>;
         const grantType = str(body.grant_type);
+        const note = tokenNote(c);
+        note.grant = grantForLog(grantType);
 
         const tokenError = (
             error: string,
@@ -1324,15 +1419,12 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
                 consumed.clientId !== null &&
                 auth.client?.clientId !== consumed.clientId
             ) {
-                oauthLog(
-                    "token-rejected reason=refresh_client_mismatch",
-                    auth.client?.clientId,
-                );
+                note.reason = "refresh_client_mismatch";
                 return tokenError("invalid_grant");
             }
 
-            const newAccessToken = crypto.randomUUID();
-            const newRefreshToken = crypto.randomUUID();
+            const newAccessToken = newOpaqueToken();
+            const newRefreshToken = newOpaqueToken();
             await store.storeToken(
                 newAccessToken,
                 consumed.userId,
@@ -1346,6 +1438,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
                 newRefreshToken,
                 consumed.userId,
                 consumed.clientId ?? auth.client?.clientId ?? null,
+                REFRESH_TOKEN_TTL_SECONDS,
             );
 
             return c.json({
@@ -1378,7 +1471,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             return tokenError("invalid_grant");
         }
         const rejectGrant = (reason: string, description: string) => {
-            oauthLog(`token-rejected reason=${reason}`, client.clientId);
+            note.reason = reason;
             return tokenError("invalid_grant", description);
         };
 
@@ -1443,10 +1536,6 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
                 !resourceAllowed(resource, getBaseUrl(c)) ||
                 (authorized !== null && presented !== authorized)
             ) {
-                oauthLog(
-                    "token-rejected reason=invalid_target",
-                    client.clientId,
-                );
                 return tokenError(
                     "invalid_target",
                     "resource does not match the authorization request",
@@ -1455,8 +1544,8 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         }
 
         // Issue tokens linked to the authenticated user
-        const accessToken = crypto.randomUUID();
-        const refreshToken = crypto.randomUUID();
+        const accessToken = newOpaqueToken();
+        const refreshToken = newOpaqueToken();
         await store.storeToken(
             accessToken,
             authCodeData.user_id,
@@ -1466,6 +1555,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             refreshToken,
             authCodeData.user_id,
             client.clientId,
+            REFRESH_TOKEN_TTL_SECONDS,
         );
 
         return c.json({
