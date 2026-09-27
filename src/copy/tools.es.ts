@@ -144,7 +144,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Cambia los detalles de una comida que ya registraste: su descripción, cualquier macro, fibra, azúcar, alcohol o cafeína, la hora o las notas. También es cómo se rellena un dato que faltaba: si una comida se guardó sin su fibra o azúcar, el servidor lo indica y la IA lo completa aquí.",
+                "Cambia los detalles de una comida que ya registraste: su descripción, cualquier macro, fibra, azúcar, alcohol o cafeína, la hora o las notas. También es cómo se rellena un dato que faltaba: si una comida se guardó sin su fibra o azúcar, el servidor lo indica y la IA lo completa aquí si estás de acuerdo.",
             params: {
                 id: "UUID de la comida a actualizar",
                 description: "",

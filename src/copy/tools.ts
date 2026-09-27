@@ -672,7 +672,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Change the details of a meal you already logged — its description, any macro, fiber, sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber or sugar, the server says so and the AI fills it in here.",
+                "Change the details of a meal you already logged — its description, any macro, fiber, sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber or sugar, the server says so and the AI fills it in here once you agree.",
             params: {
                 id: "UUID of the meal to update",
                 description: "",

@@ -19,7 +19,7 @@ describe("categorizeError", () => {
             "invalid_date_format",
         ],
         [
-            'logged_at is in the future (2026-08-27T16:30:49). "2026-08-27T16:30:49" carries no UTC offset and this account has no timezone set, so it was read as UTC. Set one with set_timezone.',
+            'logged_at is in the future (2026-08-27T16:30:49). "2026-08-27T16:30:49" carries no UTC offset and this account has no timezone set, so it was read as UTC. The user can set one with set_timezone.',
             "invalid_date_format",
         ],
         // src/tz.ts shiftLocalDate / splitDate
