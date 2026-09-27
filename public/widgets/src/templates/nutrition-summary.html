@@ -262,15 +262,24 @@
                         caffeine_mg: 128,
                     },
                 ],
-                // What the server sends beside a bounded `meals`: per metric,
-                // how many meals had a positive value. The days add up to 11
-                // meals but only 10 are listed above — the 11th (say, cucumber
-                // slices: 16 kcal, 0.7 g protein, 3.8 g carbs, 0.1 g fat,
-                // 0.5 g fiber, 1.7 g sugar, no alcohol or caffeine) fell
-                // outside every metric's top 8, exactly as the server drops
-                // it. So each count is the listed rows plus one, except
-                // alcohol and caffeine; calories reads "3 more meals".
-                meal_contributors: {
+            };
+
+            // The CallToolResult `_meta` key get_nutrition_summary puts the
+            // per-metric counts under (MEAL_CONTRIBUTORS_META_KEY in
+            // src/mcp.ts). Not structuredContent: hosts validate that against
+            // a cached outputSchema, so it can never gain a field.
+            const CONTRIBUTORS_META_KEY = "nutrition-mcp.com/meal-contributors";
+
+            // What the server sends in `_meta` beside a bounded `meals`: per
+            // metric, how many meals had a positive value. The days add up to
+            // 11 meals but only 10 are listed above — the 11th (say, cucumber
+            // slices: 16 kcal, 0.7 g protein, 3.8 g carbs, 0.1 g fat, 0.5 g
+            // fiber, 1.7 g sugar, no alcohol or caffeine) fell outside every
+            // metric's top 8, exactly as the server drops it. So each count is
+            // the listed rows plus one, except alcohol and caffeine; calories
+            // reads "3 more meals".
+            const SAMPLE_META = {
+                [CONTRIBUTORS_META_KEY]: {
                     calories: 11,
                     protein_g: 10,
                     carbs_g: 11,
@@ -449,7 +458,8 @@
                     : plural(T.nutritionSummary.daysLogged, logged);
             }
 
-            function render(data) {
+            // `resultMeta` is the tool result's `_meta` (or null — see bridge.js).
+            function render(data, resultMeta) {
                 const root = document.getElementById("root");
                 // structuredContent.locale (the user's saved get_language /
                 // set_language preference, resolved server-side) wins over
@@ -513,10 +523,23 @@
                         // strip; a single-day summary has nothing there and
                         // needs no hairline above it.
                         divided: !!trend,
-                        // True per-metric meal counts: data.meals is bounded
-                        // to each metric's top 8, so "N more meals" must count
-                        // against these rather than data.meals.length.
-                        contributors: data.meal_contributors,
+                        // data.meals is bounded to each metric's top 8, so
+                        // "N more meals" counts against the true per-metric
+                        // counts from `_meta`, and — when a host dropped
+                        // `_meta` — says "N or more" instead of guessing.
+                        contributors:
+                            (resultMeta && resultMeta[CONTRIBUTORS_META_KEY]) ||
+                            null,
+                        bounded: true,
+                        // Every meal in the window, so a list the server did
+                        // not actually trim still counts exactly without _meta.
+                        // null (not 0) if any day lacks a count: 0 would read
+                        // as "nothing was trimmed".
+                        mealTotal: data.days.every((d) =>
+                            Number.isFinite(d && d.meal_count),
+                        )
+                            ? data.days.reduce((n, d) => n + d.meal_count, 0)
+                            : null,
                     },
                 );
 
@@ -557,6 +580,7 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                sampleMeta: SAMPLE_META,
                 onReady(api) {
                     __widgetApi = api;
                 },

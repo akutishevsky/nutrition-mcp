@@ -30,7 +30,12 @@ warmed in `src/index.ts`). Nothing generated is committed.
 - **The host bridge is shared JS.** `shared/bridge.js` exposes one global,
   `initWidget(config)`, that runs the entire iframe↔host handshake, theme handling,
   height reporting, and the standalone preview fallback. A template supplies only
-  `{ name, loading, coerce, render, sample }`. Handshake details (the
+  `{ name, loading, coerce, render, sample }` (plus optional `sampleMeta` and
+  `onReady`). `render(data, meta)` gets the CallToolResult's `_meta` object as its
+  second argument, or `null` — the channel for anything new a widget needs, since
+  hosts validate `structuredContent` against a **cached** `outputSchema` and a new
+  field there fails the whole tool call for every client with a stale
+  `tools/list`. Treat `meta` as optional: a host may not forward it. Handshake details (the
   `appInfo`/`appCapabilities` gotcha, `data-theme`, `size-changed`) live in
   **`CLAUDE.md` → Custom UI Widgets (MCP Apps)** and the `mcp-apps-widgets` memory.
 - `bun test src/widgets.test.ts` asserts every widget assembles with no unresolved
@@ -485,12 +490,27 @@ one function:
 //            divided: boolean,           // add a leading hairline (.psec) when
 //                                        //   something of the widget's own sits
 //                                        //   between the header line and the strip
+//            bounded: boolean,           // `meals` may be a server-trimmed
+//                                        //   subset (nutrition-summary's top-8-
+//                                        //   per-metric union). Default false:
+//                                        //   the rows are complete and exact
+//            mealTotal: number | null,   // meals in the whole window (the
+//                                        //   summary sums days[].meal_count);
+//                                        //   when <= meals.length nothing was
+//                                        //   trimmed and a bounded list counts
+//                                        //   exactly from its rows
 //            contributors: object | null,// per-metric count of meals with a
-//                                        //   positive value, when `meals` is a
-//                                        //   bounded subset (nutrition-summary's
-//                                        //   top-8-per-metric union); "N more
-//                                        //   meals" counts against it. Default
-//                                        //   null: meals.length is the count
+//                                        //   positive value, for a bounded
+//                                        //   caller; "N more meals" counts
+//                                        //   against it. It arrives in the
+//                                        //   tool result's `_meta` (render's
+//                                        //   second argument), never in
+//                                        //   structuredContent. Missing while
+//                                        //   trimmed, past 8 rows the line
+//                                        //   reads "+ N or more smaller meals"
+//                                        //   (T.macros.moreMealsAtLeast) and at
+//                                        //   exactly 8 "+ possibly more smaller
+//                                        //   meals" (T.macros.moreMealsMaybe)
 //          }
 // Requires fmt(n, decimals) and esc(s) in scope.
 root.innerHTML = `

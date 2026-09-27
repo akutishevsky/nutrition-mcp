@@ -6,7 +6,7 @@
 // helpers each template supplies — and the caption strings are asserted against
 // real values. Without this the wording is pinned by nothing at all.
 import { test, expect } from "bun:test";
-import { WIDGET_STRINGS_EN } from "../../src/copy/widgets";
+import { WIDGET_STRINGS, WIDGET_STRINGS_EN } from "../../src/copy/widgets";
 
 const SRC = "./public/widgets/src";
 
@@ -58,10 +58,15 @@ const macrosApi = await (async () => {
             goal?: Vals | null,
             wording?: unknown,
             meals?: unknown[],
-            opts?: { drinkUnit?: string },
+            opts?: {
+                drinkUnit?: string;
+                bounded?: boolean;
+                contributors?: Record<string, number | null> | null;
+                mealTotal?: number | null;
+            },
         ) => unknown;
         dayHasData: (day: Vals) => boolean;
-        mealList: (m: Macro, meals: unknown[]) => string;
+        mealList: (m: Macro, meals: unknown[], ctx?: unknown) => string;
     };
 })();
 
@@ -298,6 +303,130 @@ test("the breakdown gives grams a tenth and keeps whole units whole", () => {
     // left out entirely rather than listed as a 0.
     expect(list("caffeine_mg")).toContain("Flat white");
     expect(list("caffeine_mg")).not.toContain("Porridge");
+});
+
+// The "N more" line under a capped (8-row) breakdown. nutrition-summary's
+// meals are trimmed server-side to each metric's top 8, so its true counts
+// travel in the tool result's `_meta`; when a host drops that, the rows past 8
+// are only those some other metric kept, and the line must not state a number
+// it cannot know. Every other caller's rows are complete and exact.
+test("the breakdown's 'N more' line is exact when it can be and a lower bound when not", () => {
+    const eleven = Array.from({ length: 11 }, (_, i) => ({
+        description: `Meal ${i + 1}`,
+        calories: 100 + i,
+    }));
+    const five = eleven.slice(0, 5);
+    const ctx = (opts: Parameters<typeof macrosApi.macroCtxOf>[4]) =>
+        macrosApi.macroCtxOf(VALS, GOALS, undefined, eleven, opts);
+    const cal = macroOf("calories");
+    // A true count: exact, against the count rather than the rows.
+    expect(
+        macrosApi.mealList(
+            cal,
+            eleven,
+            ctx({ bounded: true, contributors: { calories: 14 } }),
+        ),
+    ).toContain("+ 6 smaller meals");
+    // Bounded, no count, past the cap: a lower bound.
+    const noMeta = macrosApi.mealList(cal, eleven, ctx({ bounded: true }));
+    expect(noMeta).toContain("+ 3 or more smaller meals");
+    // A null count (alcohol with tracking off) is "no count", never 0.
+    expect(
+        macrosApi.mealList(
+            cal,
+            eleven,
+            ctx({ bounded: true, contributors: { calories: null } }),
+        ),
+    ).toContain("+ 3 or more smaller meals");
+    // Complete rows (every other widget): exact, from the rows.
+    const complete = macrosApi.mealList(cal, eleven, ctx({}));
+    expect(complete).toContain("+ 3 smaller meals");
+    expect(complete).not.toContain("or more");
+    // Bounded but within the cap: nothing past it to hint at.
+    expect(macrosApi.mealList(cal, five, ctx({ bounded: true }))).not.toContain(
+        "md-more",
+    );
+});
+
+// The commonest trim: one set of big meals leads every metric, so the server's
+// union is exactly those 8 and every metric has exactly CAP rows. Without the
+// _meta count nothing proves a meal is missing — or that none is — so the line
+// must neither vanish (an implied complete list) nor state a number.
+test("a bounded list of exactly 8 rows says 'possibly more' unless the window proves it complete", () => {
+    const eight = Array.from({ length: 8 }, (_, i) => ({
+        description: `Meal ${i + 1}`,
+        calories: 900 - i * 10,
+    }));
+    const cal = macroOf("calories");
+    const list = (opts: Parameters<typeof macrosApi.macroCtxOf>[4]) =>
+        macrosApi.mealList(
+            cal,
+            eight,
+            macrosApi.macroCtxOf(VALS, GOALS, undefined, eight, opts),
+        );
+    // 12 meals in the window, 8 listed, no count: possibly more, no number.
+    const trimmed = list({ bounded: true, mealTotal: 12 });
+    expect(trimmed).toContain("+ possibly more smaller meals");
+    expect(trimmed).not.toMatch(/\+ \d/);
+    // Window total unknown: the same.
+    expect(list({ bounded: true })).toContain("+ possibly more smaller meals");
+    // The true count still wins: 12 contributors, 8 shown.
+    expect(
+        list({ bounded: true, mealTotal: 12, contributors: { calories: 12 } }),
+    ).toContain("+ 4 smaller meals");
+    // Every meal of the window arrived: the list is complete, no line.
+    expect(list({ bounded: true, mealTotal: 8 })).not.toContain("md-more");
+    // Not bounded (every other widget): complete, no line.
+    expect(list({})).not.toContain("md-more");
+});
+
+// A bounded list the server did not actually trim (every meal made some
+// metric's top 8) is complete, so its rows count exactly even without _meta.
+test("a bounded list whose window total arrived in full counts exactly", () => {
+    const eleven = Array.from({ length: 11 }, (_, i) => ({
+        description: `Meal ${i + 1}`,
+        calories: 100 + i,
+    }));
+    const out = macrosApi.mealList(
+        macroOf("calories"),
+        eleven,
+        macrosApi.macroCtxOf(VALS, GOALS, undefined, eleven, {
+            bounded: true,
+            mealTotal: 11,
+        }),
+    );
+    expect(out).toContain("+ 3 smaller meals");
+    expect(out).not.toContain("or more");
+});
+
+// Polish and Ukrainian put 2–4 in the "few" category, which the 5+ "other"
+// genitive gets wrong ("3 mniejszych posiłków"); 2–4 is also the likeliest
+// range for the "N more meals" line.
+test("the 'N more meals' lines use the 'few' form in Polish and Ukrainian", async () => {
+    const i18nSrc = await Bun.file(`${SRC}/shared/i18n.js`).text();
+    const api = new Function(
+        "WIDGET_STRINGS",
+        `${i18nSrc}\nreturn { setLocale, plural, t: () => T };`,
+    )(WIDGET_STRINGS) as {
+        setLocale: (l: string) => void;
+        plural: (forms: unknown, n: number) => string;
+        t: () => typeof WIDGET_STRINGS_EN;
+    };
+    api.setLocale("pl");
+    const pl = api.t().macros;
+    expect(api.plural(pl.moreMeals, 1)).toBe("+ 1 mniejszy posiłek");
+    expect(api.plural(pl.moreMeals, 3)).toBe("+ 3 mniejsze posiłki");
+    expect(api.plural(pl.moreMeals, 5)).toBe("+ 5 mniejszych posiłków");
+    expect(api.plural(pl.moreMealsAtLeast, 3)).toBe(
+        "+ co najmniej 3 mniejsze posiłki",
+    );
+    api.setLocale("uk");
+    const uk = api.t().macros;
+    expect(api.plural(uk.moreMeals, 3)).toBe("+ ще 3 менші страви");
+    expect(api.plural(uk.moreMeals, 5)).toBe("+ ще 5 менших страв");
+    expect(api.plural(uk.moreMealsAtLeast, 3)).toBe(
+        "+ ще щонайменше 3 менші страви",
+    );
 });
 
 // Hover and a cursor are the whole affordance on a pointer device, and a
