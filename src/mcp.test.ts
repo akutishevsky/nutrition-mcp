@@ -65,9 +65,15 @@ import type {
 import { dateInTz, formatLocalDateTime, weekdayInTz } from "./tz.js";
 import { getWidgetHtml } from "./widgets.js";
 
+// Real uuids, because the id tools check the shape before touching the
+// database: a fixture like "m1" would never reach the stubs below.
+const MEAL_ID = "00000000-0000-4000-8000-000000000001";
+const WATER_ID = "00000000-0000-4000-8000-000000000002";
+const WEIGHT_ID = "00000000-0000-4000-8000-000000000003";
+
 function meal(over: Partial<Meal> = {}): Meal {
     return {
-        id: "m1",
+        id: MEAL_ID,
         user_id: "u1",
         logged_at: "2026-07-26T12:00:00.000Z",
         meal_type: "dinner",
@@ -1492,7 +1498,7 @@ mock.module("./supabase.js", () => ({
         db.waterInserted.push(input);
         return {
             entry: {
-                id: "w1",
+                id: WATER_ID,
                 user_id: "u1",
                 amount_ml: (input.amount_ml as number) ?? 0,
                 logged_at:
@@ -1509,7 +1515,7 @@ mock.module("./supabase.js", () => ({
         db.weightInserted.push(input);
         return {
             entry: {
-                id: "k1",
+                id: WEIGHT_ID,
                 user_id: "u1",
                 weight_g: (input.weight_g as number) ?? 0,
                 logged_at:
@@ -1707,11 +1713,11 @@ describe("write-tool numeric bounds", () => {
     test("update_meal is bounded the same way", async () => {
         await withTools(null, async (call) => {
             expect(
-                (await call("update_meal", { id: "m1", sugar_g: -0.5 }))
+                (await call("update_meal", { id: MEAL_ID, sugar_g: -0.5 }))
                     .isError,
             ).toBe(true);
             expect(
-                (await call("update_meal", { id: "m1", alcohol_g: 1e308 }))
+                (await call("update_meal", { id: MEAL_ID, alcohol_g: 1e308 }))
                     .isError,
             ).toBe(true);
         });
@@ -1929,13 +1935,13 @@ describe("log_meal / update_meal surface hidden alcohol", () => {
     test("update_meal nudges on the same terms", async () => {
         await withTools(null, async (call) => {
             const text = textOf(
-                await call("update_meal", { id: "m1", alcohol_g: 14 }),
+                await call("update_meal", { id: MEAL_ID, alcohol_g: 14 }),
             );
             expect(text).toContain("set_alcohol_tracking");
         });
         await withTools("uk", async (call) => {
             const text = textOf(
-                await call("update_meal", { id: "m1", alcohol_g: 14 }),
+                await call("update_meal", { id: MEAL_ID, alcohol_g: 14 }),
             );
             expect(text).not.toContain("set_alcohol_tracking");
         });
@@ -1952,7 +1958,7 @@ describe("log_meal / update_meal surface hidden alcohol", () => {
 
 describe("missingNutrientNote", () => {
     const base = {
-        id: "m1",
+        id: MEAL_ID,
         user_id: "u1",
         logged_at: "2026-08-07T12:00:00.000Z",
         meal_type: "lunch" as const,
@@ -1973,7 +1979,7 @@ describe("missingNutrientNote", () => {
         const note = missingNutrientNote(base);
         expect(note).toContain("fiber_g, sugar_g");
         expect(note).toContain("update_meal");
-        expect(note).toContain("m1");
+        expect(note).toContain(MEAL_ID);
         // The sentence that stops the model "fixing" it by sending 0s blindly.
         expect(note).toContain("A missing value is not a zero");
     });
@@ -2055,7 +2061,7 @@ describe("log_meal / update_meal chase missing fiber and sugar", () => {
     test("update_meal re-checks the meal it just wrote", async () => {
         await withTools(null, async (call) => {
             const text = textOf(
-                await call("update_meal", { id: "m1", fiber_g: 6 }),
+                await call("update_meal", { id: MEAL_ID, fiber_g: 6 }),
             );
             expect(text).toContain("sugar_g");
             expect(text).not.toContain("fiber_g");
@@ -2120,7 +2126,10 @@ describe("log_meal and update_meal round-trip caffeine_mg", () => {
 
     test("update_meal passes a corrected figure through", async () => {
         await withTools(null, async (call) => {
-            const r = await call("update_meal", { id: "m1", caffeine_mg: 126 });
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                caffeine_mg: 126,
+            });
             expect(r.isError).toBeFalsy();
             expect(db.mealUpdates[0]!.caffeine_mg).toBe(126);
             expect(textOf(r)).toContain("Caffeine: 126 mg");
@@ -2128,7 +2137,7 @@ describe("log_meal and update_meal round-trip caffeine_mg", () => {
 
         await withTools(null, async (call) => {
             const r = await call("update_meal", {
-                id: "m1",
+                id: MEAL_ID,
                 caffeine_mg: MAX_CAFFEINE_MG + 1,
             });
             expect(r.isError).toBe(true);
@@ -2690,26 +2699,26 @@ describe("delete tools distinguish deleted from not-found", () => {
     }[] = [
         {
             tool: "delete_meal",
-            id: "m1",
+            id: MEAL_ID,
             seed: (id) => {
                 db.meals = [storedMeal({ id })];
             },
-            deleted: "Meal m1 deleted.",
-            notFound: "No meal found with id m1.",
+            deleted: `Meal ${MEAL_ID} deleted.`,
+            notFound: `No meal found with id ${MEAL_ID}.`,
         },
         {
             tool: "delete_water",
-            id: "w1",
+            id: WATER_ID,
             seed: (id) => db.rowIds.add(id),
-            deleted: "Water entry w1 deleted.",
-            notFound: "No water entry found with id w1.",
+            deleted: `Water entry ${WATER_ID} deleted.`,
+            notFound: `No water entry found with id ${WATER_ID}.`,
         },
         {
             tool: "delete_weight",
-            id: "k1",
+            id: WEIGHT_ID,
             seed: (id) => db.rowIds.add(id),
-            deleted: "Weight entry k1 deleted.",
-            notFound: "No weight entry found with id k1.",
+            deleted: `Weight entry ${WEIGHT_ID} deleted.`,
+            notFound: `No weight entry found with id ${WEIGHT_ID}.`,
         },
     ];
 
@@ -3344,7 +3353,7 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
         db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
         await withTools(null, async (call) => {
             const r = await call("update_meal", {
-                id: "m1",
+                id: MEAL_ID,
                 logged_at: "2026-07-20T08:30:00",
             });
             expect(r.isError).toBeFalsy();
@@ -3485,13 +3494,13 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
         db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
         await withTools(null, async (call) => {
             await call("update_weight", {
-                id: "k1",
+                id: WEIGHT_ID,
                 logged_at: "2026-07-20T08:30:00",
             });
             expect(loggedAtOf(db.weightUpdates[0])).toBe(
                 "2026-07-20T05:30:00.000Z",
             );
-            await call("update_weight", { id: "k1", notes: "morning" });
+            await call("update_weight", { id: WEIGHT_ID, notes: "morning" });
             expect(db.weightUpdates[1]).not.toHaveProperty("logged_at");
         });
     });
