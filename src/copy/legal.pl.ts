@@ -23,7 +23,7 @@ export const PRIVACY_PL: LegalDoc = {
         "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
     ogDescription:
         "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
-    lastUpdated: "23 września 2026",
+    lastUpdated: "27 września 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
         {
@@ -60,7 +60,7 @@ export const PRIVACY_PL: LegalDoc = {
                     "Istnieją dwa rodzaje analityki, i żaden nie dotyka treści Twoich wpisów:",
                 ),
                 ul([
-                    "<strong>Analityka strony.</strong> Te strony wczytują Google Analytics, który daje nam zbiorcze statystyki ruchu — odsłony, źródła odwiedzin, przybliżoną geografię, typ urządzenia. Działa na każdej stronie, w tym na tej, a obecnie nie ma banera zgody ani anonimizacji IP, więc Google otrzymuje Twój adres IP w ramach standardowego pomiaru. Jeśli wolisz nie być mierzony/a, zablokuje to bloker trackerów albo ochrona typu &bdquo;do not track&rdquo; w Twojej przeglądarce. Każda strona poza stroną logowania wczytuje też Microsoft Clarity, który rejestruje, jak odwiedzający korzystają z witryny — kliknięcia, dotknięcia, przewijanie, ruchy myszy — w postaci nagrań sesji i map cieplnych, abyśmy widzieli, gdzie strony są niejasne. Clarity maskuje to, co wpisujesz w formularze, otrzymuje Twój adres IP i dane przeglądarki w ten sam sposób i blokują go te same blokery.",
+                    "<strong>Analityka strony.</strong> Za Twoją zgodą te strony wczytują Google Analytics, który daje nam zbiorcze statystyki ruchu — odsłony, źródła odwiedzin, przybliżoną geografię, typ urządzenia — oraz Microsoft Clarity, który rejestruje, jak odwiedzający korzystają z witryny — kliknięcia, dotknięcia, przewijanie, ruchy myszy — w postaci nagrań sesji i map cieplnych, abyśmy widzieli, gdzie strony są niejasne. Żadne z tych narzędzi nie wczytuje się, dopóki nie wyrazisz zgody w banerze cookies; jeśli odmówisz, żadne z nich się nie wczyta, a jeśli Twoja przeglądarka wysyła sygnał Global Privacy Control, żadne z nich się nie wczyta, chyba że wyrazisz zgodę w stopce. Zgoda obejmuje wyłącznie przechowywanie danych analitycznych: przechowywanie danych reklamowych i Google Signals pozostają wyłączone. Google otrzymuje Twój adres IP przy każdym żądaniu, ale według Google nie zapisuje go ani nie przechowuje w przypadku odwiedzających z UE, Szwajcarii i Wielkiej Brytanii, a używa go tylko do ustalenia przybliżonej lokalizacji. Clarity maskuje to, co wpisujesz w formularze, i również otrzymuje Twój adres IP oraz dane przeglądarki. Żadne z nich nie działa na stronie logowania. Zgodę możesz w każdej chwili wycofać przyciskiem &bdquo;Ustawienia plików cookie&rdquo; w stopce, co usuwa też analityczne pliki cookie ustawione przez tę witrynę; Twój wybór jest przechowywany w pamięci lokalnej przeglądarki przez maksymalnie 6 miesięcy.",
                     "<strong>Telemetria serwera.</strong> Każde wywołanie narzędzia MCP zapisuje jeden wiersz telemetrii użycia — które narzędzie zostało uruchomione, czy się powiodło, ile trwało, która wersja protokołu MCP i która aplikacja AI (według podawanej przez nią nazwy i wersji) wykonała wywołanie — powiązany z Twoim identyfikatorem konta, ale nie z tym, co zapisałeś/aś. Wykorzystujemy to, żeby znajdować wolne i uszkodzone narzędzia. Nie jest to udostępniane nikomu i jest usuwane razem ze wszystkim innym, gdy usuwasz swoje konto.",
                 ]),
                 p(
@@ -112,7 +112,7 @@ export const TERMS_PL: LegalDoc = {
         "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT. Regulamin napisany prostym językiem, obejmujący konta, dopuszczalne użycie, Twoje dane i odpowiedzialność.",
     ogDescription:
         "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT.",
-    lastUpdated: "23 września 2026",
+    lastUpdated: "27 września 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
         {
@@ -205,7 +205,7 @@ export const TERMS_PL: LegalDoc = {
                     "Usługa zależy od stron trzecich: Supabase — baza danych, uwierzytelnianie i przechowywanie eksportów, DigitalOcean — hosting, Open Food Facts — dane z kodów kreskowych, oraz dowolny asystent AI, z którego się łączysz.",
                 ),
                 p(
-                    "Sama strona internetowa korzysta też z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz GitHub API do wyświetlania liczby gwiazdek projektu. Wczytanie strony wysyła więc zapytania do tych usług, które mogą zobaczyć Twój adres IP i przeglądarkę.",
+                    "Sama strona internetowa korzysta też, za Twoją zgodą, z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz GitHub API do wyświetlania liczby gwiazdek projektu. Wczytanie strony wysyła więc zapytania do Google Fonts i jsDelivr (a na stronie głównej także do GitHub), które mogą zobaczyć Twój adres IP i przeglądarkę; z Google Analytics i Microsoft Clarity strona łączy się dopiero po wyrażeniu zgody na analitykę.",
                 ),
                 p(
                     "Ich regulaminy i dostępność są ich własną sprawą, i nie ponosimy za nie odpowiedzialności.",

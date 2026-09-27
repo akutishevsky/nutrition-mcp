@@ -15,7 +15,7 @@ The site is also being translated: German, Spanish, French, Dutch, Polish, Itali
 ## Main pages
 
 - [Home](https://nutrition-mcp.com/): What Nutrition MCP is, how it works, install steps for Claude/ChatGPT/Cursor/VS Code, and examples.
-- [Tools reference](https://nutrition-mcp.com/tools): The full list of all 38 MCP tools (log_meal, lookup_barcode, start_meal_import, bulk_import_meals, get_nutrition_summary, log_weight, get_trends, and more) with descriptions and example prompts.
+- [Tools reference](https://nutrition-mcp.com/tools): The full list of all 36 MCP tools (log_meal, lookup_barcode, start_meal_import, bulk_import_meals, get_nutrition_summary, log_weight, get_trends, and more) with descriptions and example prompts.
 - [Alternatives overview](https://nutrition-mcp.com/alternatives): How Nutrition MCP compares to popular nutrition-tracking apps that have no MCP server.
 
 ## App comparisons

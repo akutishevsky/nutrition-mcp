@@ -63,4 +63,12 @@ export const CHROME_JA: ChromeCopy = {
         termsOfService: "利用規約",
         note: "無料のオープンソースです。栄養データはあくまで目安であり、医療アドバイスではありません。",
     },
+
+    consent: {
+        title: "【分析用Cookie】",
+        body: "同意いただいた場合のみ、Google Analytics と Microsoft Clarity で、どのページが役立ち、どこでつまずいているかを把握します。同意するまで何も読み込まれません。",
+        accept: "許可する",
+        reject: "拒否する",
+        settings: "Cookie設定",
+    },
 };

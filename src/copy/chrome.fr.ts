@@ -64,4 +64,12 @@ export const CHROME_FR: ChromeCopy = {
         termsOfService: "Conditions d'utilisation",
         note: "Gratuit et open source. Les valeurs nutritionnelles sont des estimations, pas des conseils médicaux.",
     },
+
+    consent: {
+        title: "Cookies de mesure d'audience.",
+        body: "Avec ton accord, Google Analytics et Microsoft Clarity nous montrent quelles pages sont utiles et où les gens bloquent. Rien n'est chargé tant que tu n'as pas accepté.",
+        accept: "Accepter",
+        reject: "Refuser",
+        settings: "Paramètres des cookies",
+    },
 };

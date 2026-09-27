@@ -73,6 +73,148 @@
     });
     syncTheme();
 
+    /* ---------- consent ---------- */
+    // The analytics loader itself is the inline <script data-analytics> in
+    // the page head (analyticsHead() in scripts/site-partials.ts): it reads
+    // the stored choice, stamps data-consent on <html> ("granted", "denied"
+    // or "ask" — "ask" is what shows the banner, in CSS) and exposes
+    // window.nmConsent. This block is only the UI: the banner's two buttons,
+    // the footer's "Cookie settings" button that reopens it, persisting a
+    // new choice, and deleting the analytics cookies whenever the effective
+    // choice is denied. No nmConsent means no loader on this page (the dev
+    // deploy, the login page, a depersonalized fork), so the controls hide.
+    function initConsent() {
+        var nm = window.nmConsent;
+        var openers = [].slice.call(
+            doc.querySelectorAll("[data-consent-open]"),
+        );
+        var banners = [].slice.call(doc.querySelectorAll(".consent"));
+        if (!nm) {
+            openers.concat(banners).forEach(function (el) {
+                el.hidden = true;
+            });
+            return;
+        }
+        // First-party cookies only: GA's _ga / _ga_<id> and Clarity's
+        // _clck / _clsk. They may have been set on any parent domain, so try
+        // host-only plus every suffix of the hostname down to the last two
+        // labels; the browser silently ignores the ones it can't match.
+        function sweepCookies() {
+            var names = [];
+            (doc.cookie || "").split(";").forEach(function (part) {
+                var n = part.split("=")[0].trim();
+                if (
+                    n === "_ga" ||
+                    n.indexOf("_ga_") === 0 ||
+                    n === "_clck" ||
+                    n === "_clsk"
+                )
+                    names.push(n);
+            });
+            if (!names.length) return;
+            var labels = location.hostname.split(".");
+            var domains = [""];
+            for (var i = 0; i <= labels.length - 2; i++)
+                domains.push("; domain=" + labels.slice(i).join("."));
+            names.forEach(function (n) {
+                domains.forEach(function (dm) {
+                    doc.cookie =
+                        n +
+                        "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/" +
+                        dm;
+                });
+            });
+        }
+        // Set while the banner was reopened from the footer: who opened it
+        // (focus goes back there) and the state to restore on Escape.
+        var reopened = null;
+        function closeReopened() {
+            doc.removeEventListener("keydown", onEscape, true);
+            root.removeAttribute("data-consent-reopen");
+            var opener = reopened && reopened.opener;
+            reopened = null;
+            return opener;
+        }
+        function onEscape(e) {
+            if (e.key !== "Escape" || !reopened) return;
+            // Another layer on top gets the Escape first. This listener is
+            // in the capture phase so it still sees an open disclosure: the
+            // disclosures' own bubble-phase handler, added at init, would
+            // otherwise run first and close it before this check.
+            if (
+                body.classList.contains("menu-open") ||
+                doc.querySelector(".lang-switch[open], .theme-switch[open]")
+            )
+                return;
+            root.setAttribute("data-consent", reopened.prev);
+            var opener = closeReopened();
+            if (opener) opener.focus();
+        }
+        function setChoice(choice) {
+            if (choice !== "granted" && choice !== "denied") return;
+            try {
+                localStorage.setItem(
+                    nm.key,
+                    JSON.stringify({ v: 1, choice: choice, at: Date.now() }),
+                );
+            } catch (e) {}
+            root.setAttribute("data-consent", choice);
+            var opener = closeReopened();
+            if (choice === "granted") {
+                nm.load();
+            } else if (nm.isLoaded()) {
+                // Withdrawal after the tags ran on this view: tell both to
+                // stop, delete what they set, and reload so neither script
+                // is left running in the page.
+                if (typeof window.gtag === "function")
+                    window.gtag("consent", "update", {
+                        analytics_storage: "denied",
+                    });
+                if (window.clarity) {
+                    window.clarity("consentv2", {
+                        ad_Storage: "denied",
+                        analytics_Storage: "denied",
+                    });
+                    window.clarity("consent", false);
+                }
+                sweepCookies();
+                location.reload();
+                return;
+            } else {
+                sweepCookies();
+            }
+            if (opener) opener.focus();
+        }
+        if (root.getAttribute("data-consent") === "denied") sweepCookies();
+        doc.querySelectorAll("[data-consent-choice]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                setChoice(btn.getAttribute("data-consent-choice"));
+            });
+        });
+        openers.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                if (!reopened) {
+                    reopened = {
+                        opener: btn,
+                        prev: root.getAttribute("data-consent") || "ask",
+                    };
+                    doc.addEventListener("keydown", onEscape, true);
+                } else {
+                    reopened.opener = btn;
+                }
+                // The strip normally sits at the top of the page; reopened
+                // from the footer it docks to the bottom edge instead.
+                root.setAttribute("data-consent-reopen", "");
+                root.setAttribute("data-consent", "ask");
+                var first = doc.querySelector(".consent [data-consent-choice]");
+                if (first) first.focus();
+            });
+        });
+    }
+    try {
+        initConsent();
+    } catch (e) {}
+
     /* ---------- header: compact on scroll + reading progress ---------- */
     var head = doc.getElementById("site-head");
     var ticking = false;

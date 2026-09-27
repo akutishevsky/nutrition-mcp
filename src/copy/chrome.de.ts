@@ -64,4 +64,12 @@ export const CHROME_DE: ChromeCopy = {
         termsOfService: "Nutzungsbedingungen",
         note: "Kostenlos und quelloffen. Ernährungswerte sind Schätzungen, kein medizinischer Rat.",
     },
+
+    consent: {
+        title: "Analyse-Cookies.",
+        body: "Mit deiner Erlaubnis zeigen uns Google Analytics und Microsoft Clarity, welche Seiten helfen und wo Leute hängen bleiben. Ohne deine Zustimmung wird nichts geladen.",
+        accept: "Akzeptieren",
+        reject: "Ablehnen",
+        settings: "Cookie-Einstellungen",
+    },
 };
