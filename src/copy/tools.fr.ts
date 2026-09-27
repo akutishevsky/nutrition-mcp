@@ -149,7 +149,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifie les détails d'un repas déjà enregistré — sa description, une macro, les fibres, le sucre, l'alcool ou la caféine, l'heure, ou les notes. C'est aussi comme ça qu'un manque est comblé : si un repas a été enregistré sans ses fibres ou son sucre, le serveur le signale et l'IA les renseigne ici.",
+                "Modifie les détails d'un repas déjà enregistré — sa description, une macro, les fibres, le sucre, l'alcool ou la caféine, l'heure, ou les notes. C'est aussi comme ça qu'un manque est comblé : si un repas a été enregistré sans ses fibres ou son sucre, le serveur le signale et l'IA les renseigne ici si tu es d'accord.",
             params: {
                 id: "UUID du repas à modifier",
                 description: "",

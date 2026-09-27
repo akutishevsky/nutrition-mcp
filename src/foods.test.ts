@@ -567,6 +567,9 @@ describe("formatFoodResult", () => {
         expect(text).toContain("not a zero");
         expect(text).toContain("log_meal");
         expect(text).not.toContain("no fiber or sugar figure");
+        // Conditional on a log: a lookup may only be a question (policy 2.D).
+        expect(text).toContain("If this product is logged");
+        expect(text).not.toContain("still pass");
     });
 
     test("both missing are named in one line", () => {

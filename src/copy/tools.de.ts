@@ -141,7 +141,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Ändere die Details einer bereits erfassten Mahlzeit — ihre Beschreibung, jeden Makro-, Ballaststoff-, Zucker-, Alkohol- oder Koffeinwert, die Uhrzeit oder Notizen. So wird auch eine Lücke nachträglich gefüllt: Ist eine Mahlzeit ohne Ballaststoffe oder Zucker erfasst worden, weist der Server darauf hin, und die KI trägt es hier nach.",
+                "Ändere die Details einer bereits erfassten Mahlzeit — ihre Beschreibung, jeden Makro-, Ballaststoff-, Zucker-, Alkohol- oder Koffeinwert, die Uhrzeit oder Notizen. So wird auch eine Lücke nachträglich gefüllt: Ist eine Mahlzeit ohne Ballaststoffe oder Zucker erfasst worden, weist der Server darauf hin, und die KI trägt es hier nach, sobald du zustimmst.",
             params: {
                 id: "UUID der zu aktualisierenden Mahlzeit",
                 description: "",

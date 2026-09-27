@@ -143,7 +143,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Wijzig de gegevens van een maaltijd die je al hebt gelogd — de omschrijving, een macro, vezels, suiker, alcohol of cafeïne, de tijd, of notities. Ook zo wordt een ontbrekend gegeven achteraf aangevuld: als een maaltijd zonder vezel- of suikerwaarde is gelogd, meldt de server dat en vult de AI het hier in.",
+                "Wijzig de gegevens van een maaltijd die je al hebt gelogd — de omschrijving, een macro, vezels, suiker, alcohol of cafeïne, de tijd, of notities. Ook zo wordt een ontbrekend gegeven achteraf aangevuld: als een maaltijd zonder vezel- of suikerwaarde is gelogd, meldt de server dat en vult de AI het hier in als je akkoord gaat.",
             params: {
                 id: "UUID van de te wijzigen maaltijd",
                 description: "",
