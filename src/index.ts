@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
-import { createOAuthRouter } from "./oauth.js";
+import {
+    createOAuthRouter,
+    logTokenCallAnsweredBeforeRouter,
+} from "./oauth.js";
 import {
     authenticateBearer,
     rateLimit,
@@ -9,6 +12,7 @@ import {
 } from "./middleware.js";
 import { handleMcp, closeMcpHandler } from "./mcp.js";
 import { startExportCleanup } from "./export.js";
+import { startOAuthCleanup } from "./oauth-cleanup.js";
 import {
     getLandingStats,
     getPatreonTokenStore,
@@ -79,11 +83,14 @@ app.use("*", async (c, next) => {
 // ones answered before the request reaches the OAuth router: the body-limit
 // 413 and the shutdown gate's 503 below. The router sets the same headers for
 // itself (it is also mounted on its own in tests); this covers the app-level
-// short circuits. Registered ahead of both so its after-next() runs on theirs.
+// short circuits. Registered ahead of both so its after-next() runs on theirs,
+// which is also where those two get their `[oauth] token …` line: the router
+// logs every call it sees, and these are the ones it never does.
 app.use("/token", async (c, next) => {
     await next();
     c.header("Cache-Control", "no-store");
     c.header("Pragma", "no-cache");
+    await logTokenCallAnsweredBeforeRouter(c);
 });
 
 // Body limit
@@ -446,6 +453,11 @@ if (import.meta.main) {
 
     // Periodically delete expired meal-export files from the storage bucket.
     startExportCleanup();
+
+    // Hourly: delete expired OAuth tokens and codes, and client registrations
+    // unused for a week (never those from before Phase B; see
+    // CLIENT_SWEEP_FLOOR_ISO).
+    startOAuthCleanup();
 
     // Best-effort, one-time: seed patreon_tokens from PATREON_ACCESS_TOKEN /
     // PATREON_REFRESH_TOKEN if set (see seedPatreonTokensFromEnv). Fired

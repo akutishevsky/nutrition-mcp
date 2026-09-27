@@ -51,7 +51,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 - **Hono** — HTTP framework
 - **MCP SDK** — Model Context Protocol over Streamable HTTP
 - **Supabase** — PostgreSQL database + user authentication
-- **OAuth 2.0** — authentication for Claude.ai and other MCP clients: per-client dynamic client registration (RFC 7591) with exact redirect-URI matching, mandatory PKCE (`S256`), token-endpoint client authentication (`none`, `client_secret_post`, `client_secret_basic`), codes and refresh tokens bound to the client they were issued to, and `iss` on every authorization response (RFC 9207)
+- **OAuth 2.0** — authentication for Claude.ai and other MCP clients: per-client dynamic client registration (RFC 7591) with exact redirect-URI matching, mandatory PKCE (`S256`), token-endpoint client authentication (`none`, `client_secret_post`, `client_secret_basic`), codes and refresh tokens bound to the client they were issued to, `iss` on every authorization response (RFC 9207), and client secrets and every newly issued access token, refresh token and code stored only as a SHA-256 hash (tokens issued before hashing are rehashed by a backfill migration). Access tokens last 24 hours; refresh tokens last 90 days from their last use and rotate on every refresh; expired tokens and never-used client registrations are swept hourly
 
 ## MCP Tools
 
