@@ -17,7 +17,7 @@ import type {
     OAuthStore,
 } from "./oauth-store.js";
 import { pkceS256 } from "./oauth-validate.js";
-import { hashSecret, storedFormsOf } from "./token-hash.js";
+import { hashSecret } from "./token-hash.js";
 import { authorizationServerMetadata } from "./discovery.js";
 import { _resetBuckets } from "./rate-limit.js";
 import { SITE_LOCALES } from "./routes.js";
@@ -48,8 +48,8 @@ test("nonce is hashed as lowercase hex SHA-256", () => {
 //
 // It keeps the same at-rest contract as the Supabase store (see OAuthStore):
 // codes, access tokens and refresh tokens are keyed by hashSecret(raw), and a
-// consume matches storedFormsOf(raw) — so a row a test seeds under a raw UUID
-// is a pre-hashing row, found only through the raw-lookup fallback.
+// consume matches that hash exactly — so a row a test seeds under a raw value
+// is never found.
 //
 // That contract is re-implemented here, so the hashing tests in this file
 // prove the router hands the store raw values and returns the raw one to the
@@ -100,14 +100,11 @@ function fakeStore(opts: { legacyRedirects?: string[] } = {}) {
             });
         },
         async consumeAuthCode(code) {
-            for (const key of storedFormsOf(code)) {
-                const rec = state.codes.get(key);
-                if (rec) {
-                    state.codes.delete(key);
-                    return rec;
-                }
-            }
-            return null;
+            const key = hashSecret(code);
+            const rec = state.codes.get(key);
+            if (!rec) return null;
+            state.codes.delete(key);
+            return rec;
         },
         async storeToken(token, userId, ttlSeconds) {
             state.tokens.set(hashSecret(token), { userId, ttlSeconds });
@@ -120,14 +117,11 @@ function fakeStore(opts: { legacyRedirects?: string[] } = {}) {
             });
         },
         async consumeRefreshToken(token) {
-            for (const key of storedFormsOf(token)) {
-                const rec = state.refresh.get(key);
-                if (rec) {
-                    state.refresh.delete(key);
-                    return { userId: rec.userId, clientId: rec.clientId };
-                }
-            }
-            return null;
+            const key = hashSecret(token);
+            const rec = state.refresh.get(key);
+            if (!rec) return null;
+            state.refresh.delete(key);
+            return { userId: rec.userId, clientId: rec.clientId };
         },
         dump: () => state,
     };
@@ -2410,11 +2404,17 @@ describe("POST /token", () => {
         const ip = "198.51.100.121";
         _resetBuckets();
         const { app, store } = buildTestApp();
-        // Pre-hashing rows: stored under the raw UUID, as every token was.
+        // UUIDs, as every pre-binding token was, stored under their hash as
+        // the backfill left them.
         const OLD = "3b241101-e2bb-4255-8caf-4136c566a962";
         const OLD_2 = "3b241101-e2bb-4255-8caf-4136c566a963";
-        store.dump().refresh.set(OLD, { userId: "user-9", clientId: null });
-        store.dump().refresh.set(OLD_2, { userId: "user-9", clientId: null });
+        store
+            .dump()
+            .refresh.set(hashSecret(OLD), { userId: "user-9", clientId: null });
+        store.dump().refresh.set(hashSecret(OLD_2), {
+            userId: "user-9",
+            clientId: null,
+        });
         const client = await registerClient(app, ip, {
             token_endpoint_auth_method: "none",
         });
@@ -2550,9 +2550,9 @@ describe("POST /token", () => {
         ).toBe(REFRESH_TOKEN_TTL_SECONDS);
     });
 
-    // TODO(oauth-hash-fallback): C2 drops the raw fallback; these two then
-    // become invalid_grant.
-    test("a pre-hashing (raw UUID) auth code still redeems through the fallback", async () => {
+    // Every row has been in hash form since the backfill, so a value stored
+    // raw is not a token any more: nothing looks it up in that form.
+    test("an auth code stored raw no longer redeems", async () => {
         const ip = "198.51.100.132";
         const { app, store, client, code } = await codeFor(ip, {
             token_endpoint_auth_method: "none",
@@ -2560,55 +2560,37 @@ describe("POST /token", () => {
         const codes = store.dump().codes;
         const row = codes.get(hashSecret(code))!;
         codes.delete(hashSecret(code));
-        const legacy = "9b2e5c1a-7d4f-4e3a-8c6b-1f0a2d3e4b5c";
-        codes.set(legacy, { ...row, code: legacy });
+        const raw = "9b2e5c1a-7d4f-4e3a-8c6b-1f0a2d3e4b5c";
+        codes.set(raw, { ...row, code: raw });
 
-        expect(
-            (
-                await redeem(app, ip, {
-                    code: legacy,
-                    client_id: client.client_id,
-                })
-            ).status,
-        ).toBe(200);
-        // Consumed like any other code.
-        expect(codes.has(legacy)).toBe(false);
         await expectError(
-            await redeem(app, ip, {
-                code: legacy,
-                client_id: client.client_id,
-            }),
+            await redeem(app, ip, { code: raw, client_id: client.client_id }),
             400,
             "invalid_grant",
         );
     });
 
-    test("a pre-hashing (raw UUID) refresh token still refreshes, and its successor is hashed", async () => {
+    test("a refresh token stored raw no longer refreshes", async () => {
         const ip = "198.51.100.133";
         _resetBuckets();
         const { app, store } = buildTestApp();
         const client = await registerClient(app, ip, {
             token_endpoint_auth_method: "none",
         });
-        const legacy = "c7d1f3a2-5b6e-4f8a-9d0c-2e4f6a8b0c1d";
-        store.dump().refresh.set(legacy, {
+        const raw = "c7d1f3a2-5b6e-4f8a-9d0c-2e4f6a8b0c1d";
+        store.dump().refresh.set(raw, {
             userId: "user-7",
             clientId: client.client_id,
         });
-        const res = await refresh(app, ip, {
-            refresh_token: legacy,
-            client_id: client.client_id,
-        });
-        expect(res.status).toBe(200);
-        const next = (await res.json()) as { refresh_token: string };
-        expect(store.dump().refresh.has(legacy)).toBe(false);
-        expect(
-            store.dump().refresh.get(hashSecret(next.refresh_token)),
-        ).toEqual({
-            userId: "user-7",
-            clientId: client.client_id,
-            ttlSeconds: REFRESH_TOKEN_TTL_SECONDS,
-        });
+        await expectError(
+            await refresh(app, ip, {
+                refresh_token: raw,
+                client_id: client.client_id,
+            }),
+            400,
+            "invalid_grant",
+        );
+        expect(store.dump().refresh.has(raw)).toBe(true);
     });
 
     // What storing hashes protects against: a leaked row must not be usable.
