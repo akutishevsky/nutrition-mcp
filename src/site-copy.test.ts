@@ -1,6 +1,8 @@
 import { test, expect } from "bun:test";
 import { INDEX } from "./copy/index.js";
 import { TOOLS, TOOLS_COPY } from "./copy/tools.js";
+import { chromeFor } from "./copy/chrome.js";
+import { PRIVACY, type LegalBlock } from "./copy/legal.js";
 import { SITE_LOCALES, type SiteLocale } from "./routes.js";
 
 // The public pages are the only place the product describes ITSELF, and they
@@ -408,4 +410,54 @@ test("the /tools get_trends copy does not promise per-macro extremes", () => {
     const prose = TOOLS_COPY.en!.tools.get_trends!.description;
     expect(prose).not.toContain("each macro");
     expect(prose).toContain("by calories");
+});
+
+// The privacy policy's "Website analytics" bullet tells a visitor how to
+// withdraw consent, by the name of the footer button that does it. That name
+// lives in chrome.<locale>.ts and the bullet in legal.<locale>.ts, so a rename
+// on either side leaves the policy pointing at a button that no longer exists
+// — in that language only. Asserted on the source data, not the generated
+// page, so it holds before a regeneration.
+const blockText = (b: LegalBlock) => (b.type === "p" ? [b.html] : b.items);
+
+test("every locale's privacy analytics text names its own Cookie settings button", () => {
+    const missing: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const doc = PRIVACY[locale];
+        if (!doc) {
+            missing.push(`${locale}: no privacy doc`);
+            continue;
+        }
+        const analytics = doc.sections
+            .flatMap((s) => s.blocks.flatMap(blockText))
+            .filter((t) => t.includes("Microsoft Clarity"));
+        const settings = chromeFor(locale).consent.settings;
+        if (!analytics.some((t) => t.includes(settings)))
+            missing.push(`${locale}: "${settings}"`);
+    }
+    expect(missing).toEqual([]);
+});
+
+// Before the consent banner the policy said, truthfully, that there was none
+// and that GA's IP anonymization was off. Both are false now and are the kind
+// of sentence a partial rewrite leaves behind in one locale.
+test("no legal source still claims there is no consent banner", async () => {
+    // Resolved against this file, not the cwd, and counted: a glob that
+    // matches nothing would otherwise pass without checking anything.
+    const glob = new Bun.Glob("copy/legal*.ts");
+    const stale: string[] = [];
+    let scanned = 0;
+    for await (const path of glob.scan({
+        cwd: import.meta.dir,
+        absolute: true,
+    })) {
+        scanned++;
+        const src = await Bun.file(path).text();
+        if (/no consent banner/i.test(src))
+            stale.push(`${path}: consent banner`);
+        if (/IP anonymi/i.test(src)) stale.push(`${path}: IP anonymization`);
+    }
+    // One file per locale, except that en and de share legal.ts.
+    expect(scanned).toBe(SITE_LOCALES.length - 1);
+    expect(stale).toEqual([]);
 });

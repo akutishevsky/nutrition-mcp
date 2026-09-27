@@ -40,7 +40,7 @@ export const PRIVACY_FR: LegalDoc = {
         "Comment Nutrition MCP traite tes données : ce que nous stockons, comment c'est utilisé, où ça se trouve, et comment supprimer ton compte et tout ce qu'il contient à tout moment.",
     ogDescription:
         "Comment Nutrition MCP traite tes données : ce que nous stockons, comment c'est utilisé, où ça se trouve, et comment supprimer ton compte et tout ce qu'il contient à tout moment.",
-    lastUpdated: "23 septembre 2026",
+    lastUpdated: "27 septembre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
         {
@@ -77,7 +77,7 @@ export const PRIVACY_FR: LegalDoc = {
                     "Deux types d'analyses existent bel et bien, et aucune ne touche au contenu de tes journaux :",
                 ),
                 ul([
-                    "<strong>Analyse du site.</strong> Ces pages chargent Google Analytics, qui nous fournit des statistiques de trafic agrégées — pages vues, référents, géographie approximative, type d'appareil. Cela tourne sur chaque page, y compris celle-ci, et il n'y a actuellement ni bandeau de consentement ni anonymisation d'IP, donc Google reçoit ton adresse IP dans le cadre de la mesure standard. Si tu préfères ne pas être mesuré, un bloqueur de traceurs ou les protections de type &laquo; ne pas suivre &raquo; de ton navigateur l'en empêcheront. Chaque page sauf celle de connexion charge aussi Microsoft Clarity, qui enregistre la façon dont les visiteurs utilisent le site — clics, touchers, défilement, mouvements de souris — sous forme de rediffusions de sessions et de cartes de chaleur, pour que nous voyions où les pages déroutent. Clarity masque ce que tu saisis dans les formulaires, reçoit ton adresse IP et les informations de ton navigateur de la même manière, et les mêmes bloqueurs l'arrêtent.",
+                    "<strong>Analyse du site.</strong> Avec ton consentement, ces pages chargent Google Analytics, qui nous fournit des statistiques de trafic agrégées — pages vues, référents, géographie approximative, type d'appareil —, et Microsoft Clarity, qui enregistre la façon dont les visiteurs utilisent le site — clics, touchers, défilement, mouvements de souris — sous forme de rediffusions de sessions et de cartes de chaleur, pour que nous voyions où les pages déroutent. Aucun des deux ne se charge tant que tu n'as pas accepté dans le bandeau cookies ; si tu refuses, aucun des deux ne se charge, et si ton navigateur envoie un signal Global Privacy Control, aucun des deux ne se charge sauf si tu acceptes toi-même depuis le pied de page. Accepter n'autorise que le stockage de mesure d'audience : le stockage publicitaire et Google Signals restent désactivés. Google reçoit ton adresse IP à chaque requête mais, selon Google, ne la journalise ni ne la conserve pour les visiteurs de l'UE, de Suisse ou du Royaume-Uni, et ne s'en sert que pour en déduire une localisation approximative. Clarity masque ce que tu saisis dans les formulaires et reçoit aussi ton adresse IP et les informations de ton navigateur. Aucun des deux ne tourne sur la page de connexion. Tu peux retirer ton consentement à tout moment via &laquo; Paramètres des cookies &raquo; dans le pied de page, ce qui supprime aussi les cookies de mesure d'audience déposés par ce site ; ton choix est conservé dans le stockage local de ton navigateur pendant 6 mois au maximum.",
                     "<strong>Télémétrie serveur.</strong> Chaque appel d'outil MCP écrit une ligne de télémétrie d'utilisation — quel outil a été exécuté, s'il a réussi, combien de temps il a pris, quelle révision du protocole MCP et quelle application d'IA (selon le nom et la version qu'elle indique) ont effectué l'appel — liée à ton identifiant de compte mais pas à ce que tu as enregistré. Nous l'utilisons pour repérer les outils lents ou défaillants. Elle n'est partagée avec personne, et elle est supprimée avec tout le reste quand tu supprimes ton compte.",
                 ]),
                 p(
@@ -129,7 +129,7 @@ export const TERMS_FR: LegalDoc = {
         "Les conditions qui régissent l'utilisation de Nutrition MCP — le traqueur nutritionnel gratuit et open source, et le serveur MCP distant pour Claude et ChatGPT. Conditions en langage clair couvrant les comptes, l'usage acceptable, tes données et la responsabilité.",
     ogDescription:
         "Les conditions qui régissent l'utilisation de Nutrition MCP — le traqueur nutritionnel gratuit et open source, et le serveur MCP distant pour Claude et ChatGPT.",
-    lastUpdated: "23 septembre 2026",
+    lastUpdated: "27 septembre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
         {
@@ -222,7 +222,7 @@ export const TERMS_FR: LegalDoc = {
                     "Le service dépend de tiers : Supabase pour la base de données, l'authentification et le stockage des exports, DigitalOcean pour l'hébergement, Open Food Facts pour les données de codes-barres, et l'assistant IA depuis lequel tu te connectes.",
                 ),
                 p(
-                    "Le site lui-même utilise aussi Google Analytics et Microsoft Clarity pour mesurer le trafic et l'usage des pages, Google Fonts et le CDN jsDelivr pour charger les polices et icônes, Google Sign-In si tu choisis cette méthode de connexion, et l'API GitHub pour afficher le nombre d'étoiles du projet. Charger une page effectue donc des requêtes vers ces services, qui peuvent voir ton adresse IP et ton navigateur.",
+                    "Le site lui-même utilise aussi, avec ton consentement, Google Analytics et Microsoft Clarity pour mesurer le trafic et l'usage des pages, Google Fonts et le CDN jsDelivr pour charger les polices et icônes, Google Sign-In si tu choisis cette méthode de connexion, et l'API GitHub pour afficher le nombre d'étoiles du projet. Charger une page effectue donc des requêtes vers Google Fonts et jsDelivr (et, sur la page d'accueil, vers GitHub), qui peuvent voir ton adresse IP et ton navigateur ; Google Analytics et Microsoft Clarity ne sont contactés qu'après que tu as accepté la mesure d'audience.",
                 ),
                 p(
                     "Leurs conditions et leur disponibilité leur sont propres, et nous n'en sommes pas responsables.",

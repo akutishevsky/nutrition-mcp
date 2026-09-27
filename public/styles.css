@@ -2343,6 +2343,140 @@ html.js .facts-unit {
 .footer-links a:hover {
     color: var(--ink);
 }
+/* "Cookie settings" is a <button> (it opens the consent banner, it goes
+   nowhere) that must read as one more footer link. Focus ring comes from
+   the shared button:focus-visible rule, same as the links'. */
+.footer-link-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+    padding: 0.3rem 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    font: inherit;
+    font-size: 0.88rem;
+    color: var(--ink-2);
+    text-align: inherit;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.footer-link-btn:hover {
+    color: var(--ink);
+}
+
+/* ---------- consent banner ---------- */
+/* The label's footnote: a strip in the normal flow above the sticky header
+   (nav() renders it there), so it pushes the page down instead of covering
+   any of it. Shown only while the head's loader has stamped
+   html[data-consent="ask"]; that happens before first paint, so the strip
+   is present from the first frame and nothing shifts. No card, no shadow:
+   small print on --bg-alt with a hairline under it, the run-in bold title
+   leading into the text the way the privacy page's run-in labels do.
+   Accept and Reject are deliberately the same button (equal weight, so
+   neither choice is the easier one). */
+.consent {
+    display: none;
+    background: var(--bg-alt);
+    color: var(--ink-2);
+    border-bottom: 1px solid var(--line);
+}
+html[data-consent="ask"] .consent:not([hidden]) {
+    display: block;
+}
+.consent-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0.6rem clamp(1rem, 4vw, 2.5rem);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem 1.5rem;
+}
+.consent-text {
+    flex: 1 1 auto;
+    margin: 0;
+    max-width: 78ch;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+.consent-title {
+    font-weight: 700;
+    color: var(--ink);
+}
+.consent-text a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.consent-actions {
+    flex: none;
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+.consent-btn {
+    padding: 0.4rem 1.05rem;
+    font-size: 0.84rem;
+    white-space: normal;
+    text-align: center;
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--ink);
+}
+.consent-btn:hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+/* Phones: text on top, the two buttons side by side under it. */
+@media (max-width: 640px) {
+    .consent-inner {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding-block: 0.55rem 0.6rem;
+    }
+    .consent-text {
+        font-size: 0.78rem;
+        line-height: 1.4;
+    }
+    .consent-actions {
+        flex: 1 1 100%;
+        margin-left: 0;
+    }
+    .consent-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-block: 0.3rem;
+        font-size: 0.8rem;
+    }
+}
+/* Reopened from the footer's "Cookie settings": the visitor is at the
+   bottom of the page, so the same strip docks to the bottom edge there,
+   with the label's heavy rule on top. z-index 32: above the /tools
+   category bar (30), below the mobile menu sheet (35) and the header (40). */
+html[data-consent-reopen] .consent {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 32;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-bottom: 0;
+    border-top: 3px solid var(--rule);
+    box-shadow: var(--shadow-float);
+}
+@media (prefers-reduced-motion: no-preference) {
+    html[data-consent-reopen] .consent {
+        animation: consent-dock 0.3s var(--ease-out) both;
+    }
+}
+@keyframes consent-dock {
+    from {
+        transform: translateY(100%);
+    }
+}
+@media print {
+    .consent {
+        display: none !important;
+    }
+}
 .footer-note {
     width: 100%;
     font-size: 0.8rem;

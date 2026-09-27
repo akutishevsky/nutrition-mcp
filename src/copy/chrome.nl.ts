@@ -64,4 +64,12 @@ export const CHROME_NL: ChromeCopy = {
         termsOfService: "Gebruiksvoorwaarden",
         note: "Gratis en open source. Voedingswaarden zijn schattingen, geen medisch advies.",
     },
+
+    consent: {
+        title: "Analytische cookies.",
+        body: "Met je toestemming laten Google Analytics en Microsoft Clarity ons zien welke pagina's helpen en waar mensen vastlopen. Er laadt niets tot je akkoord gaat.",
+        accept: "Accepteren",
+        reject: "Weigeren",
+        settings: "Cookie-instellingen",
+    },
 };
