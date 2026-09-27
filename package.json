@@ -2,7 +2,7 @@
     "name": "nutrition-mcp",
     "version": "1.27.2",
     "description": "A remote MCP server for personal nutrition tracking. Log meals, track macros, and review nutrition history through Claude.",
-    "author": "akutishevsky",
+    "author": "Anton Kutishevskyi",
     "license": "MIT",
     "homepage": "https://nutrition-mcp.com",
     "repository": {
