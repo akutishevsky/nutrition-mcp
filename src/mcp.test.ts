@@ -1473,7 +1473,8 @@ mock.module("./supabase.js", () => ({
     // The range readers behind get_nutrition_summary. They ignore the dates and
     // hand back whatever the test staged: the fixtures below already sit inside
     // the window they ask for, and filtering here would only re-implement the
-    // query under test.
+    // query under test. Paging, ordering and the count reconcile belong to the
+    // real reader, driven against a stubbed fetch in supabase-window.test.ts.
     getMealsInRange: async () => db.meals,
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.

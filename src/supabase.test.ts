@@ -7,6 +7,8 @@ import {
     preferredDrinkUnitFromProfile,
     timezoneFromProfile,
     fetchAllPages,
+    assertWindowComplete,
+    isUuid,
     exportArchivePath,
     exportStoragePaths,
     timezoneLevels,
@@ -534,6 +536,88 @@ describe("fetchAllPages", () => {
         const { fetchPage } = paged(rows);
         const result = await fetchAllPages(fetchPage, 5);
         expect(result.map((r) => r.id)).toEqual(rows.map((r) => r.id));
+    });
+});
+
+// ---------- Window readers (the #66 truncation, round two). The export readers
+// got .range() paging in #66, but the day and range readers did not: they sorted
+// logged_at ASC with no .range(), so past PostgREST's 1000-row cap they kept the
+// OLDEST rows, and a 365-day get_trends showed the latest 30 days as zeros.
+// src/supabase-window.test.ts drives the real paged reader; these pin the
+// reconcile rule and that every reader still routes through it. ----------
+
+describe("assertWindowComplete", () => {
+    test("equal counts pass", () => {
+        expect(() => assertWindowComplete("meals", 1400, 1400)).not.toThrow();
+    });
+
+    test("more rows than counted (a concurrent insert) pass", () => {
+        expect(() => assertWindowComplete("meals", 1401, 1400)).not.toThrow();
+    });
+
+    test("no count passes", () => {
+        expect(() => assertWindowComplete("meals", 3, null)).not.toThrow();
+    });
+
+    test("a shortfall throws", () => {
+        expect(() => assertWindowComplete("meals", 1000, 1400)).toThrow(
+            "result would be truncated",
+        );
+    });
+});
+
+/** One exported function's source, cut at the next top-level export. An
+ *  unbounded slice would reach into whatever is declared after it and pass
+ *  vacuously (getMealsByDate sits right above getMealsInRange). */
+function fnBody(src: string, name: string): string {
+    const start = src.indexOf(`export async function ${name}(`);
+    expect(start).toBeGreaterThan(-1);
+    const next = src.indexOf("\nexport ", start + 1);
+    return src.slice(start, next === -1 ? undefined : next);
+}
+
+describe("window readers route through the paged reader", () => {
+    test.each(["getMealsInRange", "getWaterInRange", "getWeightInRange"])(
+        "%s pages",
+        async (name) => {
+            const body = fnBody(
+                await Bun.file("./src/supabase.ts").text(),
+                name,
+            );
+            expect(body).toContain("selectLoggedWindow<");
+            expect(body).not.toContain(".from(");
+        },
+    );
+
+    test.each([
+        ["getMealsByDate", "getMealsInRange"],
+        ["getWaterByDate", "getWaterInRange"],
+        ["getWeightByDate", "getWeightInRange"],
+    ])("%s delegates to %s", async (name, target) => {
+        const body = fnBody(await Bun.file("./src/supabase.ts").text(), name!);
+        expect(body).toContain("InRange(");
+        expect(body).toContain(`return ${target}(`);
+        expect(body).not.toContain(".from(");
+    });
+});
+
+describe("isUuid", () => {
+    test.each([
+        "3f2b9c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e",
+        "3F2B9C1E-4D5A-4B6C-8D7E-9F0A1B2C3D4E",
+    ])("true for %s", (v) => {
+        expect(isUuid(v)).toBe(true);
+    });
+
+    test.each([
+        "m1",
+        "",
+        "abc",
+        "3f2b9c1e4d5a-4b6c-8d7e-9f0a1b2c3d4e",
+        "3f2b9c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e ",
+        "3f2b9c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e\n",
+    ])("false for %j", (v) => {
+        expect(isUuid(v)).toBe(false);
     });
 });
 
