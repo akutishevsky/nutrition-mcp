@@ -250,27 +250,33 @@ describe("window readers page past the 1000-row cap", () => {
         expect(requests).toHaveLength(1);
     });
 
-    // A backdated insert between pages shifts every later row forward by one,
-    // so the first row of page 2 is the last row of page 1 again. Summed
-    // twice, that meal would inflate a day's calories.
-    test("a row shifted across a page edge by a mid-read insert comes back once", async () => {
-        reset();
-        const before = expectedWindow("meals").map((r) => r.id);
-        afterFirstPage = () => {
-            tables.meals.push({
-                id: crypto.randomUUID(),
-                user_id: USER,
-                logged_at: "2026-01-01T00:00:00.000Z",
-            });
-        };
-        const rows = await getMealsInRange(
-            USER,
-            "2026-01-01",
-            "2026-02-28",
-            "UTC",
-        );
-        expect(rows.map((r) => r.id)).toEqual(before);
-    });
+    // k backdated inserts between pages shift every later row forward by k,
+    // so page 2 starts by replaying the last k rows of page 1. Summed twice,
+    // those meals would inflate a day's calories. k >= 2 (a bulk import) puts
+    // the twins out of adjacency, which a neighbour-only dedupe misses.
+    test.each([1, 3])(
+        "rows shifted across a page edge by %d mid-read insert(s) come back once",
+        async (k) => {
+            reset();
+            const before = expectedWindow("meals").map((r) => r.id);
+            afterFirstPage = () => {
+                for (let i = 0; i < k; i++) {
+                    tables.meals.push({
+                        id: crypto.randomUUID(),
+                        user_id: USER,
+                        logged_at: "2026-01-01T00:00:00.000Z",
+                    });
+                }
+            };
+            const rows = await getMealsInRange(
+                USER,
+                "2026-01-01",
+                "2026-02-28",
+                "UTC",
+            );
+            expect(rows.map((r) => r.id)).toEqual(before);
+        },
+    );
 
     test("getMealsByDate issues the same query as a one-day getMealsInRange", async () => {
         reset();

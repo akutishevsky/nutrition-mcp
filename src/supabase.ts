@@ -446,9 +446,10 @@ type LoggedTable = "meals" | "water_log" | "weight_log";
  * anchor at local noon, so many rows share one `logged_at`, and without a total
  * order ties straddling a page edge could be skipped or returned twice.
  * Offset paging can still return a row twice when a backdated insert lands
- * between pages and shifts later rows forward; the (logged_at, id) order puts
- * such a twin right next to itself, so it is dropped here, before any caller
- * sums a meal twice. The first page's exact count then catches a server whose
+ * between pages and shifts later rows forward — k inserts replay the last k
+ * rows of the previous page, so the twins are not adjacent once k >= 2 (a bulk
+ * import does exactly that). They are dropped here by id, keeping the first
+ * copy, before any caller sums a meal twice. The first page's exact count then catches a server whose
  * max-rows is below the page size, whose short first page would otherwise end
  * the loop looking complete.
  */
@@ -475,9 +476,12 @@ async function selectLoggedWindow<T extends { id: string }>(
         if (from === 0) expected = count ?? null;
         return (data as T[]) ?? [];
     });
-    const rows = fetched.filter(
-        (r, i) => i === 0 || r.id !== fetched[i - 1]!.id,
-    );
+    const seen = new Set<string>();
+    const rows = fetched.filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+    });
     assertWindowComplete(noun, rows.length, expected);
     return rows;
 }
