@@ -39,6 +39,11 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             one: "+ {n} kleinere Mahlzeit",
             other: "+ {n} kleinere Mahlzeiten",
         },
+        moreMealsAtLeast: {
+            one: "+ mindestens {n} kleinere Mahlzeit",
+            other: "+ mindestens {n} kleinere Mahlzeiten",
+        },
+        moreMealsMaybe: "+ möglicherweise weitere kleinere Mahlzeiten",
     },
     nutritionSummary: {
         title: "Ernährungsübersicht",

@@ -102,7 +102,7 @@ import {
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 import { formatMealSearchResults } from "./search.js";
-import { getWidgetHtml } from "./widgets.js";
+import { getWidgetHtml, MEAL_CONTRIBUTORS_META_KEY } from "./widgets.js";
 import {
     formatMg,
     formatMealFull,
@@ -480,6 +480,10 @@ export const MEAL_CONTRIBUTORS = z.object({
 });
 
 export type MealContributors = z.infer<typeof MEAL_CONTRIBUTORS>;
+
+// Defined in src/widgets.ts (so the side-effect-free widget harness can import
+// it too); re-exported here beside the MealContributors it carries.
+export { MEAL_CONTRIBUTORS_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -2490,10 +2494,14 @@ export function registerTools(
                 ),
                 // The top MEAL_BREAKDOWN_TOP_N meals per metric (their union,
                 // in logged order), not every meal in the window — see
-                // topMealBreakdown. meal_contributors carries the true count
-                // per metric, so "N more meals" stays right.
+                // topMealBreakdown. The true per-metric counts travel in the
+                // result's _meta under MEAL_CONTRIBUTORS_META_KEY, NOT here:
+                // this schema is frozen (pinned by src/output-schemas.frozen.json,
+                // checked by the "output schemas are frozen once deployed"
+                // tests in src/mcp.test.ts), because hosts validate
+                // structuredContent against a cached copy of it and every Zod
+                // object is additionalProperties:false.
                 meals: z.array(MEAL_BREAKDOWN_ITEM),
-                meal_contributors: MEAL_CONTRIBUTORS,
             }),
             // Link the tool to its dashboard UI (MCP Apps).
             ...uiMeta(SUMMARY_WIDGET_URI),
@@ -2554,7 +2562,9 @@ export function registerTools(
                                 },
                                 days: [],
                                 meals: [],
-                                meal_contributors:
+                            },
+                            _meta: {
+                                [MEAL_CONTRIBUTORS_META_KEY]:
                                     emptyMealContributors(alcohol),
                             },
                         };
@@ -2695,7 +2705,10 @@ export function registerTools(
                             days,
                             // Multi-day range → tag each meal with its date.
                             meals: breakdown.meals,
-                            meal_contributors: breakdown.contributors,
+                        },
+                        _meta: {
+                            [MEAL_CONTRIBUTORS_META_KEY]:
+                                breakdown.contributors,
                         },
                     };
                 },

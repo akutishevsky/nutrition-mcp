@@ -34,6 +34,11 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             one: "+ {n} kleinere maaltijd",
             other: "+ {n} kleinere maaltijden",
         },
+        moreMealsAtLeast: {
+            one: "+ {n} of meer kleinere maaltijden",
+            other: "+ {n} of meer kleinere maaltijden",
+        },
+        moreMealsMaybe: "+ mogelijk meer kleinere maaltijden",
     },
     nutritionSummary: {
         title: "Voedingsoverzicht",

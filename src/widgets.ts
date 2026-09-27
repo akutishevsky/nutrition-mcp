@@ -66,6 +66,23 @@ async function inlineTs(relPath: string): Promise<string> {
 // functions) by design — see the doc comment on WidgetStrings.
 const I18N_RE = /\/\*@i18n@\*\//g;
 
+/**
+ * Where get_nutrition_summary puts its MealContributors: the CallToolResult's
+ * `_meta`, never `structuredContent`. Hosts cache tools/list for an unknown
+ * (possibly multi-day) period and validate structuredContent against the
+ * CACHED outputSchema, and Zod 4 emits additionalProperties:false on every
+ * object — so a new structuredContent field fails the whole call ("must NOT
+ * have additional properties") for every client with a stale list, which was
+ * observed live on dev. `_meta` is not validated against outputSchema, is
+ * "not intended for model context", and MCP Apps hosts hand the view the full
+ * CallToolResult in ui/notifications/tool-result, so the widget still gets it
+ * (shared/bridge.js passes it to render as the second argument). The
+ * nutrition-summary template repeats this literal (it cannot import), so
+ * src/mcp.test.ts checks the assembled widget contains it. The
+ * domain prefix keeps it clear of the spec's reserved `_meta` names.
+ */
+export const MEAL_CONTRIBUTORS_META_KEY = "nutrition-mcp.com/meal-contributors";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",

@@ -33,6 +33,7 @@ import {
     MEAL_BREAKDOWN_ITEM,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS,
+    MEAL_CONTRIBUTORS_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
     MAX_CALORIES,
@@ -53,7 +54,12 @@ import {
     type VersionNegotiationMode,
 } from "@modelcontextprotocol/client";
 import { Hono } from "hono";
-import { McpServer, InMemoryTransport } from "@modelcontextprotocol/server";
+import {
+    McpServer,
+    InMemoryTransport,
+    type JsonSchemaType,
+} from "@modelcontextprotocol/server";
+import { AjvJsonSchemaValidator } from "@modelcontextprotocol/server/validators/ajv";
 import * as actualSupabase from "./supabase.js";
 
 // Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
@@ -1664,6 +1670,7 @@ interface ToolResult {
     content: { type: string; text: string }[];
     structuredContent?: Record<string, unknown>;
     isError?: boolean;
+    _meta?: Record<string, unknown>;
 }
 
 type CallTool = (
@@ -1690,6 +1697,13 @@ async function withTools(
         client.connect(clientTransport),
     ]);
     try {
+        // listTools arms the client's own check of every structuredContent
+        // against the ADVERTISED (strict, additionalProperties:false) JSON
+        // Schema, as a host does. Without it the only check is the server's
+        // Zod parse, which ignores unknown keys — so a handler that returned
+        // an extra field would pass every test here and fail in production
+        // for each host holding a cached tools/list.
+        await client.listTools();
         await run(
             (name, args = {}) =>
                 client.callTool({
@@ -3353,8 +3367,12 @@ describe("get_nutrition_summary bounds its meal breakdown", () => {
     type Row = Record<string, unknown> & { description: string };
     interface SummaryPayload {
         meals: Row[];
-        meal_contributors: Record<string, number | null>;
     }
+    /** The per-metric counts ride in the result's _meta, never in
+     *  structuredContent, whose schema is frozen (see the output-schema
+     *  freeze guard below). */
+    const contributorsOf = (r: ToolResult) =>
+        r._meta?.[MEAL_CONTRIBUTORS_META_KEY] as Record<string, number | null>;
 
     /** The widget's own mealList ranking: v > 0, descending, stable. */
     const topOf = (rows: Row[], key: string) =>
@@ -3410,11 +3428,14 @@ describe("get_nutrition_summary bounds its meal breakdown", () => {
                     METRICS.length * MEAL_BREAKDOWN_TOP_N,
                 );
                 expect(sc.meals.length).toBeGreaterThan(MEAL_BREAKDOWN_TOP_N);
-                expect(sc.meal_contributors.calories).toBe(186);
-                expect(sc.meal_contributors.caffeine_mg).toBe(31);
-                expect(sc.meal_contributors.alcohol_g).toBe(
-                    alcohol ? 19 : null,
-                );
+                expect(sc).not.toHaveProperty("meal_contributors");
+                const contributors = contributorsOf(r);
+                expect(() =>
+                    MEAL_CONTRIBUTORS.parse(contributors),
+                ).not.toThrow();
+                expect(contributors.calories).toBe(186);
+                expect(contributors.caffeine_mg).toBe(31);
+                expect(contributors.alcohol_g).toBe(alcohol ? 19 : null);
 
                 // What the full breakdown would have been, ranked the widget's
                 // way: every metric's top N survives the cut unchanged, and
@@ -3439,20 +3460,21 @@ describe("get_nutrition_summary bounds its meal breakdown", () => {
         }
     });
 
-    test("the empty path carries zero contributors", async () => {
+    test("the empty path carries zero contributors in _meta", async () => {
         for (const alcohol of ["us", null] as const) {
             await withTools(alcohol, async (call) => {
                 const r = await summarize(call);
                 const sc = r.structuredContent as unknown as SummaryPayload;
                 expect(sc.meals).toEqual([]);
-                expect(sc.meal_contributors).toEqual({
+                expect(sc).not.toHaveProperty("meal_contributors");
+                expect(contributorsOf(r)).toEqual({
                     calories: 0,
                     protein_g: 0,
                     carbs_g: 0,
                     fat_g: 0,
                     fiber_g: 0,
                     sugar_g: 0,
-                    alcohol_g: alcohol ? 0 : null,
+                    alcohol_g: alcohol ? expect.any(Number) : null,
                     caffeine_mg: 0,
                 });
             });
@@ -4624,6 +4646,18 @@ async function withHttpClient<T>(
     );
     await client.connect(transport);
     try {
+        // Same reason as withTools: arm the client's advertised-schema check
+        // before the first callTool. Lazily, so a test that counts requests
+        // or profile reads without calling a tool sees no extra tools/list.
+        const callTool = client.callTool.bind(client);
+        let armed = false;
+        client.callTool = (async (...args: Parameters<typeof callTool>) => {
+            if (!armed) {
+                armed = true;
+                await client.listTools();
+            }
+            return callTool(...args);
+        }) as typeof client.callTool;
         return await run(client);
     } finally {
         await client.close();
@@ -4845,6 +4879,36 @@ describe("/mcp serves one tool surface on both protocol eras", () => {
                 expect(sc.tz).toBe("Europe/Kyiv");
                 expect(sc.tz_configured).toBe(true);
                 expect(sc.import_tool_name).toBe("bulk_import_meals");
+            });
+        },
+    );
+
+    // The summary widget's "N more meals" counts ride in the result's _meta
+    // (the frozen outputSchema has no room for them), so _meta has to survive
+    // the wire on both legs — and the call has to pass the client's own
+    // outputSchema check, which listTools arms.
+    test.each(ERAS)(
+        "get_nutrition_summary's contributor counts survive in _meta (%p)",
+        async (mode) => {
+            db.meals = [meal()];
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                const r = await client.callTool({
+                    name: "get_nutrition_summary",
+                    arguments: {
+                        start_date: "2026-01-01",
+                        end_date: "2026-01-31",
+                    },
+                });
+                expect(r.isError).toBeFalsy();
+                expect(r.structuredContent).not.toHaveProperty(
+                    "meal_contributors",
+                );
+                expect(
+                    MEAL_CONTRIBUTORS.parse(
+                        r._meta?.[MEAL_CONTRIBUTORS_META_KEY],
+                    ).calories,
+                ).toBe(1);
             });
         },
     );
@@ -5316,5 +5380,145 @@ describe("/mcp records the negotiated era for the access log", () => {
         });
         expect(r.status).toBe(415);
         expect(seen).toEqual(["POST:-:-"]);
+    });
+});
+
+// ---------- output schemas are frozen once deployed ----------
+//
+// Hosts (claude.ai, Claude Desktop) cache tools/list for an unknown, possibly
+// multi-day period and validate every structuredContent against the CACHED
+// outputSchema. Zod 4 emits `additionalProperties: false` on every object, so
+// adding a structuredContent field — even an optional one — fails the whole
+// call ("Structured content does not match the tool's output schema: data must
+// NOT have additional properties") for every client still holding the old
+// list. That happened on dev when get_nutrition_summary grew
+// `meal_contributors`. Removing or narrowing a field breaks the same clients
+// the other way round. So an advertised outputSchema never changes once it
+// ships: new widget-only data goes in the CallToolResult's `_meta` (not
+// validated against outputSchema, and handed to MCP Apps views in full — see
+// MEAL_CONTRIBUTORS_META_KEY), and new model-facing data goes in `content`.
+//
+// src/output-schemas.frozen.json pins what production advertises, per tool
+// (null = no outputSchema). Changing it is a deliberate act that needs a
+// compatibility plan for stale host caches — not a snapshot refresh to make
+// this test pass. A new tool's schema is added the same way, and is frozen
+// from its first deploy. To rewrite the file after such a decision:
+//   UPDATE_OUTPUT_SCHEMAS=1 bun test src/mcp.test.ts -t "output schemas"
+// (which also runs prettier on the file, so format:check stays green).
+describe("output schemas are frozen once deployed", () => {
+    const FROZEN_PATH = new URL(
+        "./output-schemas.frozen.json",
+        import.meta.url,
+    );
+
+    async function advertised(
+        widgetsEnabled: boolean,
+        alcohol: "us" | "uk" | null,
+    ): Promise<Record<string, unknown>> {
+        const server = new McpServer(
+            { name: "t", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", widgetsEnabled, alcohol);
+        const [ct, st] = InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "c", version: "0.0.0" });
+        await Promise.all([server.connect(st), client.connect(ct)]);
+        const { tools } = await client.listTools();
+        await client.close();
+        await server.close();
+        const out: Record<string, unknown> = {};
+        for (const t of [...tools].sort((a, b) =>
+            a.name.localeCompare(b.name),
+        )) {
+            out[t.name] = t.outputSchema ?? null;
+        }
+        return out;
+    }
+
+    test("every tool's advertised outputSchema matches the frozen copy", async () => {
+        const current = await advertised(true, null);
+        if (process.env.UPDATE_OUTPUT_SCHEMAS === "1") {
+            await Bun.write(
+                FROZEN_PATH,
+                JSON.stringify(current, null, 4) + "\n",
+            );
+            // The committed copy is prettier-clean (CI's format:check).
+            await Bun.$`bunx prettier --write ${Bun.fileURLToPath(FROZEN_PATH)}`.quiet();
+        }
+        const frozen = (await Bun.file(FROZEN_PATH).json()) as Record<
+            string,
+            unknown
+        >;
+        // Same tool set, then each schema on its own so a failure names it.
+        expect(Object.keys(current)).toEqual(Object.keys(frozen));
+        for (const name of Object.keys(frozen)) {
+            expect(current[name], name).toEqual(frozen[name]);
+            // Key order too: compare the serialized form, whitespace aside.
+            expect(JSON.stringify(current[name]), name).toBe(
+                JSON.stringify(frozen[name]),
+            );
+        }
+        // The schema must not depend on per-user settings either: every
+        // user's host caches the same list shape.
+        for (const [w, a] of [
+            [true, "us"],
+            [false, null],
+            [false, "uk"],
+        ] as const) {
+            expect(JSON.stringify(await advertised(w, a))).toBe(
+                JSON.stringify(current),
+            );
+        }
+    });
+
+    // Compiles the committed frozen copy itself (not the live server's
+    // schema) with the SDK's own ajv provider — the JSON Schema 2020-12
+    // engine a host runs — so this holds even if the test above were skipped.
+    test("the summary validates against the frozen JSON, and the counts arrive in _meta", async () => {
+        db.meals = [meal(), meal({ id: "m-2", caffeine_mg: 80 })];
+        const frozen = (await Bun.file(FROZEN_PATH).json()) as Record<
+            string,
+            JsonSchemaType
+        >;
+        const validate = new AjvJsonSchemaValidator().getValidator(
+            frozen.get_nutrition_summary!,
+        );
+        for (const alcohol of ["us", null] as const) {
+            await withTools(alcohol, async (call) => {
+                const r = await call("get_nutrition_summary", {
+                    start_date: "2026-01-01",
+                    end_date: "2026-01-31",
+                });
+                expect(r.isError).toBeFalsy();
+                const result = validate(r.structuredContent);
+                expect(result.errorMessage).toBeUndefined();
+                expect(result.valid).toBe(true);
+                expect(r._meta?.[MEAL_CONTRIBUTORS_META_KEY]).toMatchObject({
+                    calories: 2,
+                    caffeine_mg: 1,
+                    alcohol_g: alcohol ? expect.any(Number) : null,
+                });
+            });
+        }
+        // The frozen schema really is strict: one extra field fails it, which
+        // is the live failure this guard exists for.
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-01-01",
+                end_date: "2026-01-31",
+            });
+            expect(
+                validate({ ...r.structuredContent, meal_contributors: {} })
+                    .valid,
+            ).toBe(false);
+        });
+    });
+
+    // The widget cannot import the key, so it carries the literal; a rename
+    // on the server would otherwise pass every server test while every host
+    // silently lost the exact counts.
+    test("the summary widget reads _meta under MEAL_CONTRIBUTORS_META_KEY", async () => {
+        const html = await getWidgetHtml("nutrition-summary");
+        expect(html).toContain(JSON.stringify(MEAL_CONTRIBUTORS_META_KEY));
     });
 });

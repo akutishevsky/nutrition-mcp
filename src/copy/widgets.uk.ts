@@ -33,7 +33,14 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         moreMeals: {
             one: "+ ще {n} менша страва",
             other: "+ ще {n} менших страв",
+            few: "+ ще {n} менші страви",
         },
+        moreMealsAtLeast: {
+            one: "+ ще щонайменше {n} менша страва",
+            other: "+ ще щонайменше {n} менших страв",
+            few: "+ ще щонайменше {n} менші страви",
+        },
+        moreMealsMaybe: "+ можливо, ще менші страви",
     },
     nutritionSummary: {
         title: "Підсумок харчування",

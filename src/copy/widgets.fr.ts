@@ -34,6 +34,11 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             one: "+ {n} repas plus petit",
             other: "+ {n} repas plus petits",
         },
+        moreMealsAtLeast: {
+            one: "+ au moins {n} repas plus petit",
+            other: "+ au moins {n} repas plus petits",
+        },
+        moreMealsMaybe: "+ peut-être d'autres repas plus petits",
     },
     nutritionSummary: {
         title: "Résumé nutritionnel",
