@@ -173,13 +173,16 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_meals_today: {
             description: "Zobacz każdy posiłek zapisany dzisiaj.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (domyślnie) — jeden wiersz na posiłek wraz z jego identyfikatorem — albo <code>full</code>, by dołączyć notatki i dokładne godziny",
+            },
             example: "Co dzisiaj zjadłem/am?",
         },
         get_meals_by_date: {
             description: "Zobacz wszystkie posiłki zapisane w konkretnym dniu.",
             params: {
                 date: "Data w formacie RRRR-MM-DD",
+                detail: "<code>compact</code> (domyślnie) — jeden wiersz na posiłek wraz z jego identyfikatorem — albo <code>full</code>, by dołączyć notatki i dokładne godziny",
             },
             example: "Pokaż mi wszystko, co zjadłem/am 4 lipca",
         },
@@ -190,6 +193,7 @@ export const TOOLS_PL: ToolsDoc = {
                 start_date: "Data początkowa (RRRR-MM-DD)",
                 end_date:
                     "Data końcowa (RRRR-MM-DD), najwyżej 31 dni łącznie z dniem początkowym",
+                detail: "<code>compact</code> (domyślnie) — jeden wiersz na posiłek wraz z jego identyfikatorem — albo <code>full</code>, by dołączyć notatki i dokładne godziny",
             },
             example: "Pokaż moje posiłki od poniedziałku do piątku",
         },

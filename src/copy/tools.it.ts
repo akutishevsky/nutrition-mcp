@@ -186,7 +186,9 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_meals_today: {
             description: "Vedi ogni pasto che hai registrato oggi.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (predefinito) per una riga per pasto con il suo id, oppure <code>full</code> per includere note e orari esatti",
+            },
             example: "Cosa ho mangiato oggi?",
         },
         get_meals_by_date: {
@@ -194,6 +196,7 @@ export const TOOLS_IT: ToolsDoc = {
                 "Vedi tutti i pasti che hai registrato in un giorno specifico.",
             params: {
                 date: "Data in formato AAAA-MM-GG",
+                detail: "<code>compact</code> (predefinito) per una riga per pasto con il suo id, oppure <code>full</code> per includere note e orari esatti",
             },
             example: "Mostrami tutto quello che ho mangiato il 4 luglio",
         },
@@ -204,6 +207,7 @@ export const TOOLS_IT: ToolsDoc = {
                 start_date: "Data di inizio (AAAA-MM-GG)",
                 end_date:
                     "Data di fine (AAAA-MM-GG), al massimo 31 giorni compreso il giorno di inizio",
+                detail: "<code>compact</code> (predefinito) per una riga per pasto con il suo id, oppure <code>full</code> per includere note e orari esatti",
             },
             example: "Elenca i miei pasti da lunedì a venerdì",
         },

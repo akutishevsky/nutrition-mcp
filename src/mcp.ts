@@ -102,7 +102,13 @@ import {
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 import { formatMealSearchResults } from "./search.js";
-import { getWidgetHtml } from "./widgets.js";
+import { getWidgetHtml, MEAL_CONTRIBUTORS_META_KEY } from "./widgets.js";
+import {
+    formatMg,
+    formatMealFull,
+    renderMealListing,
+    type AlcoholDisplay,
+} from "./meal-listing.js";
 
 // MCP Apps UI (https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/):
 // the get_nutrition_summary tool links to an HTML dashboard served as a ui://
@@ -180,13 +186,6 @@ Importing history from another app — when the user wants to bring in past meal
 3. Never log a backfill by calling log_meal in a loop. It is rate-limited per call, so a single week of meals would exhaust the budget; one bulk_import_meals call carries up to 50 rows for the same cost.
 4. Check get_profile before any sizeable import and offer set_timezone if the timezone is unset. Times without an explicit UTC offset are placed using the saved timezone, so correcting it afterwards moves every imported meal — onto an adjacent day for anything logged near midnight.
 5. Show the user what was resolved before treating an import as done: the dry run echoes back the date, time and meal type for every row, and a misread date column shows up there rather than in the totals. Re-sending the same rows is safe — the server recognises them and skips them — so a retry after a failure or a timeout never duplicates anything.`;
-
-// How alcohol should be rendered for the current user: the drink unit to gloss
-// grams with, or null when alcohol tracking is OFF. Null is the gate, not a
-// missing preference — an enabled user with no saved preference gets "us". See
-// the alcohol opt-in note on registerTools: alcohol is always STORED, and this
-// value decides only whether it is ever shown.
-type AlcoholDisplay = DrinkUnit | null;
 
 // ---------- Numeric bounds for the write tools ----------
 //
@@ -443,6 +442,92 @@ export function mealBreakdown(
         caffeine_mg:
             m.caffeine_mg == null ? null : Math.round(m.caffeine_mg * 10) / 10,
     }));
+}
+
+// How many meals the summary widget lists per metric. MUST equal `CAP` in
+// public/widgets/src/shared/macros.js (mealList): the server keeps exactly the
+// rows that list can show, so a larger CAP there would list fewer meals than it
+// claims room for, and a smaller one would ship rows nobody sees.
+export const MEAL_BREAKDOWN_TOP_N = 8;
+
+// The metrics a summary's meal list can be opened on, in MEAL_BREAKDOWN_ITEM's
+// field names.
+const BREAKDOWN_METRICS = [
+    "calories",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "fiber_g",
+    "sugar_g",
+    "alcohol_g",
+    "caffeine_mg",
+] as const;
+
+type BreakdownRow = ReturnType<typeof mealBreakdown>[number];
+
+// How many meals contributed to each metric over the whole window — the true
+// "N more meals" denominator once `meals` is cut to the top N. Alcohol is null
+// when tracking is off, like every other structured alcohol field.
+export const MEAL_CONTRIBUTORS = z.object({
+    calories: z.number(),
+    protein_g: z.number(),
+    carbs_g: z.number(),
+    fat_g: z.number(),
+    fiber_g: z.number(),
+    sugar_g: z.number(),
+    alcohol_g: z.number().nullable(),
+    caffeine_mg: z.number(),
+});
+
+export type MealContributors = z.infer<typeof MEAL_CONTRIBUTORS>;
+
+// Defined in src/widgets.ts (so the side-effect-free widget harness can import
+// it too); re-exported here beside the MealContributors it carries.
+export { MEAL_CONTRIBUTORS_META_KEY };
+
+/** Zero contributors, for a window with no meals at all. `.nullable()` is not
+ *  optional: the alcohol key is always present, null when tracking is off. */
+export function emptyMealContributors(
+    alcohol: AlcoholDisplay,
+): MealContributors {
+    return {
+        calories: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 0,
+        alcohol_g: alcohol ? 0 : null,
+        caffeine_mg: 0,
+    };
+}
+
+/**
+ * Bound a multi-day breakdown to what the summary widget can show: the
+ * order-preserving union of each metric's top MEAL_BREAKDOWN_TOP_N rows (by
+ * value, ties to the earlier row — the widget's own stable sort), so at most
+ * 8 metrics × N rows. A 186-meal month otherwise shipped ~47 KB of rows the
+ * widget never drew. `contributors` counts every row with a positive value,
+ * which is the widget's own `v > 0` filter.
+ */
+export function topMealBreakdown(
+    rows: BreakdownRow[],
+    alcohol: AlcoholDisplay,
+): { meals: BreakdownRow[]; contributors: MealContributors } {
+    const keep = new Set<number>();
+    const contributors = emptyMealContributors(alcohol);
+    for (const key of BREAKDOWN_METRICS) {
+        const ranked = rows
+            .map((row, i) => ({ i, v: row[key] ?? 0 }))
+            .filter((r) => r.v > 0)
+            .sort((a, b) => b.v - a.v || a.i - b.i);
+        if (key !== "alcohol_g" || alcohol) contributors[key] = ranked.length;
+        for (const r of ranked.slice(0, MEAL_BREAKDOWN_TOP_N)) keep.add(r.i);
+    }
+    return {
+        meals: rows.filter((_, i) => keep.has(i)),
+        contributors,
+    };
 }
 
 // Every goals / totals / averages payload in this file has the same shape, so
@@ -844,7 +929,9 @@ async function buildMealProgress(
         meals: mealBreakdown(meals, null, alcohol),
     };
 
-    return { progressSection, structuredContent };
+    // tz goes back to the caller so its confirmation prints the meal's time
+    // in the same zone this progress section bucketed it by.
+    return { progressSection, structuredContent, tz };
 }
 
 // Which way a target points. A floor is something to reach (calories, protein,
@@ -942,14 +1029,6 @@ const ALL_RECORDED: NutrientPresence = {
     alcohol_g: true,
     caffeine_mg: true,
 };
-
-// Caffeine is the one figure here rendered without decimals. A tenth of a
-// milligram is below the precision of any label, database or export, and
-// "95.5 mg" claims a measurement nobody made; the structured payloads keep the
-// sibling `* 10 / 10` rounding, but the model-facing text is whole milligrams.
-function formatMg(mg: number): string {
-    return `${Math.round(mg)} mg`;
-}
 
 // `present` says which of the post-launch nutrients these meals actually carry,
 // so a pre-feature day prints nothing for fiber rather than a made-up "0g".
@@ -1086,8 +1165,25 @@ export function formatGoals(
     return parts.join("\n");
 }
 
-function formatWeightEntry(entry: WeightEntry, unit: WeightUnit): string {
-    return `- ${formatWeight(entry.weight_g, unit)} at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""} [id: ${entry.id}]`;
+// Local wall-clock time of a stored instant: "HH:MM" inside a listing that
+// already names its day and zone, "YYYY-MM-DD HH:MM" in a one-off confirmation.
+// A raw UTC ISO string here put a Kyiv evening weigh-in on the wrong clock.
+function localTimeOf(iso: string, tz: string, withDate: boolean): string {
+    const local = formatLocalDateTime(iso, tz);
+    return withDate ? local.slice(0, 16) : local.slice(11, 16);
+}
+
+function timesAreLocal(tz: string): string {
+    return `Times are local (${tz}).`;
+}
+
+function formatWeightEntry(
+    entry: WeightEntry,
+    unit: WeightUnit,
+    tz: string,
+    withDate = false,
+): string {
+    return `- ${formatWeight(entry.weight_g, unit)} at ${localTimeOf(entry.logged_at, tz, withDate)}${entry.notes ? ` (${entry.notes})` : ""} [id: ${entry.id}]`;
 }
 
 // Shared `logged_at` description for every manual write tool. The three forms
@@ -1151,9 +1247,12 @@ function drinkUnitLabel(unit: DrinkUnit): string {
 async function resolveWriteTimestamp(
     userId: string,
     raw: string | undefined,
-): Promise<{ iso: string | undefined; note: string }> {
+): Promise<{ iso: string | undefined; note: string; tz: string }> {
     const profile = await getProfile(userId);
     const tz = timezoneFromProfile(profile);
+    // The zone a confirmation renders the stored instant in: the same one the
+    // read paths bucket by, UTC when none is set.
+    const displayTz = tz ?? "UTC";
     const unsetTzNote = (value: string) =>
         `${JSON.stringify(value)} carries no UTC offset and this account has no timezone set, so it was read as UTC. Set one with set_timezone.`;
 
@@ -1162,7 +1261,7 @@ async function resolveWriteTimestamp(
             tz === null
                 ? "\n\nNote: this account has no timezone set, so today's date is being read in UTC — set one with set_timezone."
                 : "";
-        return { iso: undefined, note };
+        return { iso: undefined, note, tz: displayTz };
     }
 
     let resolved;
@@ -1183,7 +1282,7 @@ async function resolveWriteTimestamp(
         resolved.usedProfileTimezone && tz === null
             ? `\n\nNote: ${unsetTzNote(raw)} Then re-check this entry.`
             : "";
-    return { iso: resolved.instant.toISOString(), note };
+    return { iso: resolved.instant.toISOString(), note, tz: displayTz };
 }
 
 // Resolve the unit to use when WRITING a weight value: an explicit unit wins,
@@ -1211,24 +1310,38 @@ function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
     );
 }
 
+// The one knob on the three meal listings (see src/meal-listing.ts). Compact is
+// the default because a listing is almost always read to find a meal or total
+// a day, and it keeps the id update_meal / delete_meal need. Not added to the
+// analytics args: it says nothing about how a tool is failing.
+const MEAL_DETAIL_FIELD = z
+    .enum(["compact", "full"])
+    .optional()
+    .describe(
+        'How much to return per meal. "compact" (default): one line each — local time, type, description, calories and nutrients, and the id update_meal/delete_meal take. "full": every field on its own line, including notes. Use "full" only when you need the notes or the user asks for everything.',
+    );
+
 // Longest window, in calendar days inclusive, get_meals_by_date_range will
-// list. Every meal comes back as full text, so an open range dumped the whole
-// diary into one response — the cap keeps the response proportionate to the
-// request. Truncation is no longer the reason: getMealsInRange pages through
+// list. Every meal comes back as a line of text, so an open range dumped the
+// whole diary into one response — the cap keeps the response proportionate to
+// the request, and renderMealListing's MEAL_LISTING_MAX_CHARS bounds what is
+// left. Row truncation is not the reason: getMealsInRange pages through
 // selectLoggedWindow and throws rather than return a partial window. A month
 // covers any "what did I eat" review; longer periods belong to the
 // aggregating tools the error names.
 export const MEALS_RANGE_MAX_DAYS = 31;
 
-// get_nutrition_summary: one text section per day plus every meal in
-// structuredContent, so a quarter is the most one call should carry; longer
+// get_nutrition_summary: one text section per day plus each metric's top meals
+// in structuredContent (topMealBreakdown), so a quarter is the most one call should carry; longer
 // periods belong to get_trends (up to 365 days, pre-aggregated).
 export const SUMMARY_RANGE_MAX_DAYS = 92;
 
 // The same guard for get_weight_by_date_range. Weight rows are one short line
 // each, so the bound is a year (366 so a leap year fits) rather than a month:
 // it keeps the listing proportionate and matches get_weight_trends' own
-// 365-day ceiling. Paging (selectLoggedWindow) handles the row count.
+// 365-day ceiling. Paging (selectLoggedWindow) handles the row count. No
+// character budget like MEAL_LISTING_MAX_CHARS: at most 366 short lines (a
+// weigh-in or two a day) stays proportionate on its own.
 export const WEIGHT_RANGE_MAX_DAYS = 366;
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -1303,32 +1416,11 @@ function notUuidText(kind: string, id: string, sources: string): string {
     return `No ${kind} found with id ${JSON.stringify(id.slice(0, 64))}: ids are UUIDs like "3f2b9c1e-…". Get one from ${sources}.`;
 }
 
+// The full per-field rendering, kept under its old two-argument name for the
+// unit tests that pin its suppression rules. tz "UTC" reproduces the old
+// instant; every tool passes the user's timezone to formatMealFull instead.
 export function formatMeal(meal: Meal, alcohol: AlcoholDisplay = null): string {
-    const parts = [
-        `ID: ${meal.id}`,
-        `Time: ${meal.logged_at}`,
-        meal.meal_type ? `Type: ${meal.meal_type}` : null,
-        `Description: ${meal.description}`,
-        meal.calories != null ? `Calories: ${meal.calories}` : null,
-        meal.protein_g != null ? `Protein: ${meal.protein_g}g` : null,
-        meal.carbs_g != null ? `Carbs: ${meal.carbs_g}g` : null,
-        meal.fat_g != null ? `Fat: ${meal.fat_g}g` : null,
-        meal.fiber_g != null ? `Fiber: ${meal.fiber_g}g` : null,
-        meal.sugar_g != null ? `Sugar: ${meal.sugar_g}g` : null,
-        // Opt-in (see formatProgress): a stored value stays hidden until the
-        // user turns alcohol tracking on.
-        alcohol && meal.alcohol_g != null
-            ? `Alcohol: ${formatAlcohol(meal.alcohol_g, alcohol)}`
-            : null,
-        // Not opt-in: a stored value is always echoed. The `!= null` is the
-        // only suppression, and it is per-meal — a sandwich shows no caffeine
-        // line, a measured 0 mg energy-free drink shows "Caffeine: 0 mg".
-        meal.caffeine_mg != null
-            ? `Caffeine: ${formatMg(meal.caffeine_mg)}`
-            : null,
-        meal.notes ? `Notes: ${meal.notes}` : null,
-    ];
-    return parts.filter(Boolean).join("\n");
+    return formatMealFull(meal, alcohol, "UTC");
 }
 
 // The one thing that keeps the alcohol opt-in from being a trapdoor. Alcohol
@@ -1561,11 +1653,13 @@ export function registerTools(
                         ...args,
                         logged_at: iso,
                     });
+                    // No colon yet: the zone is appended once tz is known,
+                    // because the Time line below is a local wall clock.
                     const header = deduplicated
-                        ? "Meal already logged (idempotent retry):"
-                        : "Meal logged:";
+                        ? "Meal already logged (idempotent retry)"
+                        : "Meal logged";
 
-                    const { progressSection, structuredContent } =
+                    const { progressSection, structuredContent, tz } =
                         await buildMealProgress(
                             userId,
                             meal,
@@ -1577,7 +1671,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${header}\n${formatMeal(meal, alcohol)}${progressSection}${alcoholHiddenNote(
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz)}${progressSection}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -1963,7 +2057,8 @@ export function registerTools(
         "get_meals_today",
         {
             title: "Get Today's Meals",
-            description: "Get all meals logged today",
+            description:
+                'Get all meals logged today, one compact line each with ids (detail: "full" adds notes).',
             annotations: {
                 title: "Get Today's Meals",
                 readOnlyHint: true,
@@ -1971,8 +2066,9 @@ export function registerTools(
                 idempotentHint: true,
                 openWorldHint: false,
             },
+            inputSchema: z.object({ detail: MEAL_DETAIL_FIELD }),
         },
-        async () => {
+        async ({ detail }) => {
             return withAnalytics(
                 "get_meals_today",
                 async () => {
@@ -1992,9 +2088,13 @@ export function registerTools(
                             ],
                         };
                     }
-                    const text = meals
-                        .map((m) => formatMeal(m, alcohol))
-                        .join("\n\n---\n\n");
+                    const { text } = renderMealListing({
+                        meals,
+                        tz,
+                        alcohol,
+                        detail: detail ?? "compact",
+                        grouped: false,
+                    });
                     return { content: [{ type: "text", text }] };
                 },
                 analytics,
@@ -2006,7 +2106,8 @@ export function registerTools(
         "get_meals_by_date",
         {
             title: "Get Meals by Date",
-            description: "Get all meals for a specific date",
+            description:
+                'Get all meals for a specific date, one compact line each with ids (detail: "full" adds notes).',
             annotations: {
                 title: "Get Meals by Date",
                 readOnlyHint: true,
@@ -2016,9 +2117,10 @@ export function registerTools(
             },
             inputSchema: z.object({
                 date: z.string().describe("Date in YYYY-MM-DD format"),
+                detail: MEAL_DETAIL_FIELD,
             }),
         },
-        async ({ date }) => {
+        async ({ date, detail }) => {
             return withAnalytics(
                 "get_meals_by_date",
                 async () => {
@@ -2035,9 +2137,13 @@ export function registerTools(
                             ],
                         };
                     }
-                    const text = meals
-                        .map((m) => formatMeal(m, alcohol))
-                        .join("\n\n---\n\n");
+                    const { text } = renderMealListing({
+                        meals,
+                        tz,
+                        alcohol,
+                        detail: detail ?? "compact",
+                        grouped: false,
+                    });
                     return { content: [{ type: "text", text }] };
                 },
                 analytics,
@@ -2050,7 +2156,7 @@ export function registerTools(
         "get_meals_by_date_range",
         {
             title: "Get Meals by Date Range",
-            description: `Get all meals between two dates (inclusive), grouped by day. Use this instead of multiple get_meals_by_date calls when you need meals for more than one day. The range can span at most ${MEALS_RANGE_MAX_DAYS} days; get_trends covers longer periods with daily totals instead of individual meals.`,
+            description: `Get all meals between two dates (inclusive), grouped by day, one compact line each with ids (detail: "full" adds notes). Use this instead of multiple get_meals_by_date calls when you need meals for more than one day. The range can span at most ${MEALS_RANGE_MAX_DAYS} days; get_trends covers longer periods with daily totals instead of individual meals. A long result is truncated at a day boundary with a note naming the start_date to call again with for the rest.`,
             annotations: {
                 title: "Get Meals by Date Range",
                 readOnlyHint: true,
@@ -2065,9 +2171,10 @@ export function registerTools(
                     .describe(
                         `End date (YYYY-MM-DD). The range spans at most ${MEALS_RANGE_MAX_DAYS} days, both ends included.`,
                     ),
+                detail: MEAL_DETAIL_FIELD,
             }),
         },
-        async ({ start_date, end_date }) => {
+        async ({ start_date, end_date, detail }) => {
             return withAnalytics(
                 "get_meals_by_date_range",
                 async () => {
@@ -2095,34 +2202,16 @@ export function registerTools(
                         };
                     }
 
-                    // Group by date for readability (local to user timezone)
-                    const byDate = new Map<string, Meal[]>();
-                    for (const meal of meals) {
-                        const date = dateInTz(meal.logged_at, tz);
-                        const existing = byDate.get(date) ?? [];
-                        existing.push(meal);
-                        byDate.set(date, existing);
-                    }
-
-                    const sections: string[] = [];
-                    for (const [date, dateMeals] of [
-                        ...byDate.entries(),
-                    ].sort()) {
-                        const header = `## ${date} (${dateMeals.length} meal${dateMeals.length === 1 ? "" : "s"})`;
-                        const formatted = dateMeals
-                            .map((m) => formatMeal(m, alcohol))
-                            .join("\n\n---\n\n");
-                        sections.push(`${header}\n\n${formatted}`);
-                    }
-
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: sections.join("\n\n===\n\n"),
-                            },
-                        ],
-                    };
+                    // Grouped by local day, and cut at a day boundary if
+                    // the month would outgrow MEAL_LISTING_MAX_CHARS.
+                    const { text } = renderMealListing({
+                        meals,
+                        tz,
+                        alcohol,
+                        detail: detail ?? "compact",
+                        grouped: true,
+                    });
+                    return { content: [{ type: "text", text }] };
                 },
                 analytics,
                 { start_date, end_date },
@@ -2403,6 +2492,15 @@ export function registerTools(
                         meal_count: z.number(),
                     }),
                 ),
+                // The top MEAL_BREAKDOWN_TOP_N meals per metric (their union,
+                // in logged order), not every meal in the window — see
+                // topMealBreakdown. The true per-metric counts travel in the
+                // result's _meta under MEAL_CONTRIBUTORS_META_KEY, NOT here:
+                // this schema is frozen (pinned by src/output-schemas.frozen.json,
+                // checked by the "output schemas are frozen once deployed"
+                // tests in src/mcp.test.ts), because hosts validate
+                // structuredContent against a cached copy of it and every Zod
+                // object is additionalProperties:false.
                 meals: z.array(MEAL_BREAKDOWN_ITEM),
             }),
             // Link the tool to its dashboard UI (MCP Apps).
@@ -2464,6 +2562,10 @@ export function registerTools(
                                 },
                                 days: [],
                                 meals: [],
+                            },
+                            _meta: {
+                                [MEAL_CONTRIBUTORS_META_KEY]:
+                                    emptyMealContributors(alcohol),
                             },
                         };
                     }
@@ -2564,6 +2666,11 @@ export function registerTools(
                         ? `\n\n(Averaged over the days that record each figure, not all ${days.length}: ${partial.join(", ")}.)`
                         : "";
 
+                    const breakdown = topMealBreakdown(
+                        mealBreakdown(meals, tz, alcohol),
+                        alcohol,
+                    );
+
                     const footer =
                         coverageNote +
                         loggedDayAverageNote(days.length, daysInRange) +
@@ -2597,7 +2704,11 @@ export function registerTools(
                             },
                             days,
                             // Multi-day range → tag each meal with its date.
-                            meals: mealBreakdown(meals, tz, alcohol),
+                            meals: breakdown.meals,
+                        },
+                        _meta: {
+                            [MEAL_CONTRIBUTORS_META_KEY]:
+                                breakdown.contributors,
                         },
                     };
                 },
@@ -2991,7 +3102,8 @@ export function registerTools(
         "delete_meal",
         {
             title: "Delete Meal",
-            description: "Delete a meal entry by ID",
+            description:
+                "Delete a meal entry by ID (ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals).",
             annotations: {
                 title: "Delete Meal",
                 readOnlyHint: false,
@@ -3052,7 +3164,7 @@ export function registerTools(
             // makes this the backfill path for a meal that went in without its
             // fiber or sugar — and what missingNutrientNote points the model at.
             description:
-                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to BACKFILL nutrition a meal was logged without: if a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg, estimate the value and pass just that field rather than telling the user the figure in prose. Meal ids come from get_meals_today, get_meals_by_date or search_meals.\n\n" +
+                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to BACKFILL nutrition a meal was logged without: if a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg, estimate the value and pass just that field rather than telling the user the figure in prose. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
                 NUTRIENT_COVERAGE,
             annotations: {
                 title: "Update Meal",
@@ -3137,7 +3249,7 @@ export function registerTools(
                         ...fields,
                         logged_at: iso,
                     });
-                    const { progressSection, structuredContent } =
+                    const { progressSection, structuredContent, tz } =
                         await buildMealProgress(
                             userId,
                             meal,
@@ -3148,7 +3260,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `Meal updated:\n${formatMeal(meal, alcohol)}${progressSection}${alcoholHiddenNote(
+                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz)}${progressSection}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -3207,7 +3319,7 @@ export function registerTools(
             return withAnalytics(
                 "log_water",
                 async () => {
-                    const { iso, note } = await resolveWriteTimestamp(
+                    const { iso, note, tz } = await resolveWriteTimestamp(
                         userId,
                         args.logged_at,
                     );
@@ -3222,7 +3334,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${prefix}: ${entry.amount_ml} ml at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
+                                text: `${prefix}: ${entry.amount_ml} ml at ${localTimeOf(entry.logged_at, tz, true)} (${tz})${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
                             },
                         ],
                     };
@@ -3269,13 +3381,13 @@ export function registerTools(
                     const total = sumWater(entries);
                     const lines = entries.map(
                         (e) =>
-                            `- ${e.amount_ml} ml at ${e.logged_at}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
+                            `- ${e.amount_ml} ml at ${localTimeOf(e.logged_at, tz, false)}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
                     );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Total: ${total} ml (${entries.length} entr${entries.length === 1 ? "y" : "ies"})\n\n${lines.join("\n")}`,
+                                text: `Total: ${total} ml (${entries.length} entr${entries.length === 1 ? "y" : "ies"}). ${timesAreLocal(tz)}\n\n${lines.join("\n")}`,
                             },
                         ],
                     };
@@ -3322,13 +3434,13 @@ export function registerTools(
                     const total = sumWater(entries);
                     const lines = entries.map(
                         (e) =>
-                            `- ${e.amount_ml} ml at ${e.logged_at}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
+                            `- ${e.amount_ml} ml at ${localTimeOf(e.logged_at, tz, false)}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
                     );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Total on ${date}: ${total} ml (${entries.length} entr${entries.length === 1 ? "y" : "ies"})\n\n${lines.join("\n")}`,
+                                text: `Total on ${date}: ${total} ml (${entries.length} entr${entries.length === 1 ? "y" : "ies"}). ${timesAreLocal(tz)}\n\n${lines.join("\n")}`,
                             },
                         ],
                     };
@@ -3448,7 +3560,7 @@ export function registerTools(
             return withAnalytics(
                 "log_weight",
                 async () => {
-                    const { iso, note } = await resolveWriteTimestamp(
+                    const { iso, note, tz } = await resolveWriteTimestamp(
                         userId,
                         args.logged_at,
                     );
@@ -3471,7 +3583,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${prefix}: ${formatWeight(entry.weight_g, unit)} at ${entry.logged_at}${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
+                                text: `${prefix}: ${formatWeight(entry.weight_g, unit)} at ${localTimeOf(entry.logged_at, tz, true)} (${tz})${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
                             },
                         ],
                     };
@@ -3520,13 +3632,13 @@ export function registerTools(
                         };
                     }
                     const lines = entries.map((e) =>
-                        formatWeightEntry(e, unit),
+                        formatWeightEntry(e, unit, tz),
                     );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Today (${entries.length} entr${entries.length === 1 ? "y" : "ies"}):\n\n${lines.join("\n")}`,
+                                text: `Today (${entries.length} entr${entries.length === 1 ? "y" : "ies"}). ${timesAreLocal(tz)}\n\n${lines.join("\n")}`,
                             },
                         ],
                     };
@@ -3575,13 +3687,13 @@ export function registerTools(
                         };
                     }
                     const lines = entries.map((e) =>
-                        formatWeightEntry(e, unit),
+                        formatWeightEntry(e, unit, tz),
                     );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `${date} (${entries.length} entr${entries.length === 1 ? "y" : "ies"}):\n\n${lines.join("\n")}`,
+                                text: `${date} (${entries.length} entr${entries.length === 1 ? "y" : "ies"}). ${timesAreLocal(tz)}\n\n${lines.join("\n")}`,
                             },
                         ],
                     };
@@ -3661,7 +3773,7 @@ export function registerTools(
                                 ? `## ${date}`
                                 : `## ${date} (avg ${formatWeight(avgG, unit)}, ${dayEntries.length} entries)`;
                         const formatted = dayEntries
-                            .map((e) => formatWeightEntry(e, unit))
+                            .map((e) => formatWeightEntry(e, unit, tz))
                             .join("\n");
                         sections.push(`${header}\n${formatted}`);
                     }
@@ -3670,7 +3782,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: sections.join("\n\n"),
+                                text: `${timesAreLocal(tz)}\n\n${sections.join("\n\n")}`,
                             },
                         ],
                     };
@@ -3873,7 +3985,7 @@ export function registerTools(
                         throw new ToolError(
                             notUuidText("weight entry", id, WEIGHT_ID_SOURCES),
                         );
-                    const { iso, note } = await resolveWriteTimestamp(
+                    const { iso, note, tz } = await resolveWriteTimestamp(
                         userId,
                         logged_at,
                     );
@@ -3905,7 +4017,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `Weight updated:\n${formatWeightEntry(entry, displayUnit)}${note}`,
+                                text: `Weight updated (${tz} time):\n${formatWeightEntry(entry, displayUnit, tz, true)}${note}`,
                             },
                         ],
                     };

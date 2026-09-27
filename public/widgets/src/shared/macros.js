@@ -483,6 +483,26 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // toggle's chart — between the header line and the strip, so the strip
         // opens with the same hairline that separates its own sections.
         divided: !!(opts && opts.divided),
+        // Per metric, how many meals contributed a positive amount. Sent by
+        // get_nutrition_summary in the CallToolResult's `_meta` (NOT in
+        // structuredContent: hosts validate that against a cached copy of the
+        // outputSchema, so it can never gain a field), because its `meals`
+        // array is bounded to the union of each metric's top CAP rows and so
+        // cannot count the rest. null means no counts arrived.
+        contributors:
+            opts && opts.contributors && typeof opts.contributors === "object"
+                ? opts.contributors
+                : null,
+        // True when `meals` may be a server-trimmed subset (nutrition-summary).
+        // Without `contributors` — a host that drops `_meta` — the count past
+        // CAP is then only a lower bound, and mealList says so. false (every
+        // other caller) means `meals` is complete and its rows are exact.
+        bounded: !!(opts && opts.bounded),
+        // How many meals the window really holds (nutrition-summary sums its
+        // days' meal_count), or null. Lets a bounded list that the server did
+        // NOT trim — every meal made some metric's top CAP — count exactly.
+        mealTotal:
+            opts && Number.isFinite(opts.mealTotal) ? opts.mealTotal : null,
     };
 }
 
@@ -504,7 +524,15 @@ function gridCols(n) {
 // the limits row included, not just calories and the three bars.
 //
 // `opts` is optional: { drinkUnit: "us" | "uk", calLabel: string,
-// divided: boolean }.
+// divided: boolean, contributors: { [metricKey]: number } | null,
+// bounded: boolean, mealTotal: number | null }.
+// `bounded` marks `meals` as a possibly server-trimmed subset
+// (nutrition-summary), `mealTotal` is how many meals the window really holds,
+// and `contributors` is the true per-metric count of meals with a positive
+// value that such a caller receives out of band (the result's `_meta`); the
+// breakdown's "N more meals" line counts against it instead of meals.length,
+// and, trimmed but without a count, says "N or more" (or, at exactly CAP
+// rows, "possibly more") rather than a number it cannot know.
 function macroPanel(vals, goal, wording, meals, opts) {
     const ctx = macroCtxOf(vals, goal, wording, meals, opts);
     // Stash it so the delegated toggle handler can build the breakdown on
@@ -573,7 +601,7 @@ let __macroCtx = null;
 
 // The list of meals that contributed a positive amount of one metric,
 // largest-first, capped so a long range stays readable.
-function mealList(m, meals) {
+function mealList(m, meals, ctx) {
     // A single meal's contribution is a fraction of the day's, so grams get a
     // tenth here even where the strip rounds them whole — a 3.4 g and a 3.1 g
     // meal must not both read "3" in a list sorted by that very figure.
@@ -590,9 +618,32 @@ function mealList(m, meals) {
         return `<div class="md-empty">${esc(tpl(T.macros.noMealsContributed, { label: macroLabel(m) }))}</div>`;
     }
 
+    // Must equal MEAL_BREAKDOWN_TOP_N in src/mcp.ts: get_nutrition_summary
+    // sends only the union of each metric's top N meals, so a larger CAP
+    // would list rows the server may have dropped.
     const CAP = 8;
     const shown = rows.slice(0, CAP);
-    const extra = rows.length - shown.length;
+    // Four cases for the "N more" line:
+    //   1. a true count arrived (nutrition-summary's `_meta`) — exact;
+    //   2. `meals` was trimmed server-side but no count arrived (a host that
+    //      drops `_meta`) and rows run past CAP — the rows beyond CAP are only
+    //      the ones some OTHER metric's top CAP kept, so the real number can
+    //      be larger: say "N or more";
+    //   3. the same, with exactly CAP rows — the commonest trim, where one set
+    //      of big meals leads every metric: nothing proves a meal is missing,
+    //      nothing proves none is, so say "possibly more" without a number;
+    //   4. otherwise `meals` is complete (or under CAP) — exact from the rows.
+    // "Trimmed" is `bounded` unless `mealTotal` shows every meal arrived.
+    const count = ctx && ctx.contributors ? ctx.contributors[m.key] : null;
+    // Number.isFinite, not a coercion: null (alcohol with tracking off) or a
+    // stray string is "no count", never 0.
+    const exact = Number.isFinite(count);
+    const trimmed =
+        !!(ctx && ctx.bounded) &&
+        !(ctx.mealTotal != null && ctx.mealTotal <= meals.length);
+    const lowerBound = !exact && trimmed && rows.length > CAP;
+    const maybeMore = !exact && trimmed && rows.length === CAP;
+    const extra = (exact ? count : rows.length) - shown.length;
     const items = shown
         .map(({ meal, v }) => {
             // Prefer a date tag for multi-day ranges, otherwise the meal type.
@@ -609,10 +660,16 @@ function mealList(m, meals) {
         </li>`;
         })
         .join("");
-    const more =
-        extra > 0
-            ? `<li class="md-more">${esc(plural(T.macros.moreMeals, extra))}</li>`
-            : "";
+    const more = maybeMore
+        ? `<li class="md-more">${esc(T.macros.moreMealsMaybe)}</li>`
+        : extra > 0
+          ? `<li class="md-more">${esc(
+                plural(
+                    lowerBound ? T.macros.moreMealsAtLeast : T.macros.moreMeals,
+                    extra,
+                ),
+            )}</li>`
+          : "";
     return `<ul class="md-list">${items}${more}</ul>`;
 }
 
@@ -623,7 +680,7 @@ function macroDetailBody(m, ctx) {
       <div class="md-head">
         <span class="md-title"><span class="dot" style="background:${m.color}"></span>${esc(tpl(T.macros.byMealTitle, { label: macroLabel(m) }))}</span>
         <button class="md-close" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">✕</button>
-      </div>${mealList(m, ctx.meals)}`;
+      </div>${mealList(m, ctx.meals, ctx)}`;
 }
 
 // Toggle the breakdown for the tapped tile. Tapping the open tile again (or its

@@ -34,6 +34,11 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             one: "他 {n} 件の少量の食事",
             other: "他 {n} 件の少量の食事",
         },
+        moreMealsAtLeast: {
+            one: "他 {n} 件以上の少量の食事",
+            other: "他 {n} 件以上の少量の食事",
+        },
+        moreMealsMaybe: "他にも少量の食事がある可能性",
     },
     nutritionSummary: {
         title: "栄養サマリー",

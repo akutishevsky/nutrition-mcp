@@ -189,13 +189,16 @@ export const TOOLS_FR: ToolsDoc = {
         get_meals_today: {
             description:
                 "Affiche tous les repas que tu as enregistrés aujourd'hui.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (par défaut) pour une ligne par repas avec son identifiant, ou <code>full</code> pour inclure les notes et les heures exactes",
+            },
             example: "Qu'est-ce que j'ai mangé aujourd'hui ?",
         },
         get_meals_by_date: {
             description: "Affiche tous les repas enregistrés un jour précis.",
             params: {
                 date: "Date au format AAAA-MM-JJ",
+                detail: "<code>compact</code> (par défaut) pour une ligne par repas avec son identifiant, ou <code>full</code> pour inclure les notes et les heures exactes",
             },
             example: "Montre-moi tout ce que j'ai mangé le 4 juillet",
         },
@@ -206,6 +209,7 @@ export const TOOLS_FR: ToolsDoc = {
                 start_date: "Date de début (AAAA-MM-JJ)",
                 end_date:
                     "Date de fin (AAAA-MM-JJ), au plus 31 jours, jour de début compris",
+                detail: "<code>compact</code> (par défaut) pour une ligne par repas avec son identifiant, ou <code>full</code> pour inclure les notes et les heures exactes",
             },
             example: "Liste mes repas du lundi au vendredi",
         },

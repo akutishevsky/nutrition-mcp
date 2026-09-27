@@ -36,9 +36,10 @@ import { WIDGET_STRINGS_UK } from "./widgets.uk.js";
 import { WIDGET_STRINGS_JA } from "./widgets.ja.js";
 
 /** A count-sensitive string, selected at render time via Intl.PluralRules.
- * Only "one"/"other" are carried (not "few"/"many"/"zero"): the widget's
- * pluralize() helper falls back to "other" for any category this 2-form
- * data doesn't have. A pragmatic simplification, consistent with the rest of
+ * "one"/"other" are always carried; "few"/"many" only where a string has
+ * been given them (so far the summary's "N more meals" lines in Polish and
+ * Ukrainian): the widget's plural() helper falls back to "other" for any
+ * category a value doesn't have. A pragmatic simplification, consistent with the rest of
  * this codebase's translations being AI-generated with no human review pass
  * — see the TRANSLATION_NOTICE in src/routes.ts. Every form still receives
  * the actual {n}, so the number itself is always correct even where the
@@ -46,6 +47,12 @@ import { WIDGET_STRINGS_JA } from "./widgets.ja.js";
 export interface PluralForms {
     one: string;
     other: string;
+    /** Optional CLDR categories for languages that need them — Polish and
+     *  Ukrainian put 2–4 in "few" ("3 posiłki", "3 страви"), which "other"
+     *  (their 5+ genitive) gets wrong. plural() uses a category when present
+     *  and falls back to "other" otherwise. */
+    few?: string;
+    many?: string;
 }
 
 export interface WidgetStrings {
@@ -105,6 +112,18 @@ export interface WidgetStrings {
         untitledMeal: string;
         /** The "+ N more" line at the end of a capped meal list. Placeholder: {n}. */
         moreMeals: PluralForms;
+        /**
+         * The same line when {n} is only a lower bound: the summary's meal
+         * list is trimmed server-side and the host dropped the true count
+         * (the tool result's `_meta`), so there may be more. Placeholder: {n}.
+         */
+        moreMealsAtLeast: PluralForms;
+        /**
+         * The same line with no number at all: the list shows exactly its cap
+         * of 8, the meals were trimmed server-side and the host dropped the
+         * true count, so there may or may not be more. No placeholder.
+         */
+        moreMealsMaybe: string;
     };
 
     /** templates/nutrition-summary.html's own top matter. */
@@ -417,6 +436,11 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             one: "+ {n} smaller meal",
             other: "+ {n} smaller meals",
         },
+        moreMealsAtLeast: {
+            one: "+ {n} or more smaller meals",
+            other: "+ {n} or more smaller meals",
+        },
+        moreMealsMaybe: "+ possibly more smaller meals",
     },
     nutritionSummary: {
         title: "Nutrition summary",

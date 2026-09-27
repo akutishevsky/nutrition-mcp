@@ -34,6 +34,11 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             one: "+ {n} pasto più piccolo",
             other: "+ {n} pasti più piccoli",
         },
+        moreMealsAtLeast: {
+            one: "+ almeno {n} pasto più piccolo",
+            other: "+ almeno {n} pasti più piccoli",
+        },
+        moreMealsMaybe: "+ forse altri pasti più piccoli",
     },
     nutritionSummary: {
         title: "Riepilogo nutrizionale",

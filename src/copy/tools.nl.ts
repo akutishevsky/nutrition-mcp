@@ -182,7 +182,9 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_meals_today: {
             description: "Bekijk alle maaltijden die je vandaag hebt gelogd.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (standaard) voor één regel per maaltijd met de id, of <code>full</code> om ook notities en exacte tijden op te nemen",
+            },
             example: "Wat heb ik vandaag gegeten?",
         },
         get_meals_by_date: {
@@ -190,6 +192,7 @@ export const TOOLS_NL: ToolsDoc = {
                 "Bekijk alle maaltijden die je op een specifieke dag hebt gelogd.",
             params: {
                 date: "Datum in JJJJ-MM-DD-formaat",
+                detail: "<code>compact</code> (standaard) voor één regel per maaltijd met de id, of <code>full</code> om ook notities en exacte tijden op te nemen",
             },
             example: "Laat me alles zien wat ik op 4 juli heb gegeten",
         },
@@ -200,6 +203,7 @@ export const TOOLS_NL: ToolsDoc = {
                 start_date: "Startdatum (JJJJ-MM-DD)",
                 end_date:
                     "Einddatum (JJJJ-MM-DD), hoogstens 31 dagen inclusief de startdag",
+                detail: "<code>compact</code> (standaard) voor één regel per maaltijd met de id, of <code>full</code> om ook notities en exacte tijden op te nemen",
             },
             example: "Toon mijn maaltijden van maandag tot vrijdag",
         },

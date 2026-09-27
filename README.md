@@ -62,9 +62,9 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `start_meal_import`        | Open the in-chat CSV importer: pick an export from another app, map its columns, preview, confirm                                                |
 | `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe                                              |
 | `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts (read from a photo or typed)                                         |
-| `get_meals_today`          | Get all meals logged today                                                                                                                       |
-| `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD)                                                                                                       |
-| `get_meals_by_date_range`  | Get meals between two dates (inclusive), up to 31 days per call                                                                                  |
+| `get_meals_today`          | Get all meals logged today, one compact line per meal with its id; `detail: "full"` adds notes                                                   |
+| `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD), one compact line per meal; `detail: "full"` adds notes                                               |
+| `get_meals_by_date_range`  | Get meals between two dates (inclusive), up to 31 days per call; one compact line per meal, `detail: "full"` adds notes                          |
 | `search_meals`             | Search past meals by keyword, grouped into recurring variations (counts, last logged, typical macros)                                            |
 | `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range, up to 92 days per call                                                                  |
 | `update_meal`              | Update any fields of an existing meal                                                                                                            |

@@ -10,7 +10,8 @@
 //     appCapabilities — NOT the MCP-core clientInfo / capabilities; strict hosts
 //     like MCP Inspector silently drop a malformed request), the required
 //     ui/notifications/initialized reply, and the ui/notifications/tool-result
-//     listener that renders structuredContent.
+//     listener that renders structuredContent (and hands render the result's
+//     `_meta` as a second argument).
 //   - height reporting (ui/notifications/size-changed) via a max-content measure
 //     plus a debounced ResizeObserver, so the host grows the iframe to fit.
 //   - theme handling (data-theme from the host context / notifications, plus the
@@ -26,8 +27,11 @@
 //   rootId?:  string   // element to render into (default "root")
 //   loading:  string   // innerHTML shown while awaiting the first tool result
 //   coerce:   (payload) => data | null   // pull the widget's data out of a payload
-//   render:   (data) => void             // paint the widget from coerced data
+//   render:   (data, meta) => void       // paint the widget from coerced data;
+//                                        // meta is the CallToolResult's `_meta`
+//                                        // object, or null when there is none
 //   sample:   any                        // fallback data for standalone preview
+//   sampleMeta?: object                  // `_meta` for that preview (default null)
 //   onReady?: (api) => void              // after the handshake; api documented below
 // }
 //
@@ -65,8 +69,8 @@ function initWidget(config) {
     // the footer is re-appended after every paint. Skipped when a widget
     // deliberately renders nothing (e.g. meal-logged with no goals) so an empty
     // widget stays empty and the host collapses it.
-    function paint(data) {
-        config.render(data);
+    function paint(data, meta) {
+        config.render(data, meta || null);
         painted = true;
         const el = root();
         if (!el || el.innerHTML.trim() === "") return;
@@ -79,10 +83,21 @@ function initWidget(config) {
             "font-size:11px;line-height:1.4;color:var(--text-dim);text-align:center;";
         el.appendChild(foot);
     }
-    function show(payload) {
+    // `meta` is the CallToolResult's `_meta`: the one channel a tool can use
+    // to hand the view something new without touching structuredContent,
+    // which hosts validate against a CACHED outputSchema (so a new field there
+    // fails the call for every client with a stale tools/list). The spec has
+    // the host forward the full result in ui/notifications/tool-result, but
+    // nothing guarantees `_meta` survives, so a template must treat it as
+    // optional. Only a plain object counts; anything else becomes null.
+    function metaOf(obj) {
+        const m = obj && typeof obj === "object" ? obj._meta : null;
+        return m && typeof m === "object" && !Array.isArray(m) ? m : null;
+    }
+    function show(payload, meta) {
         const data = config.coerce(payload);
         if (!data) return false;
-        paint(data);
+        paint(data, meta || null);
         return true;
     }
 
@@ -298,7 +313,7 @@ function initWidget(config) {
             const t = themeFrom(p);
             if (t) applyTheme(t);
             if (d.method.endsWith("tool-result")) {
-                show(p.structuredContent || p);
+                show(p.structuredContent || p, metaOf(p));
             }
             // A host REQUEST (it has an id) needs an answer: for
             // ui/resource-teardown the host SHOULD wait for one before tearing
@@ -321,7 +336,7 @@ function initWidget(config) {
         }
         const t = themeFrom(d);
         if (t) applyTheme(t);
-        show(d.structuredContent || d);
+        show(d.structuredContent || d, metaOf(d));
     });
 
     if (host) {
@@ -391,19 +406,38 @@ function initWidget(config) {
         try {
             if (window.openai) {
                 if (window.openai.theme) applyTheme(window.openai.theme);
-                if (window.openai.toolOutput) show(window.openai.toolOutput);
+                // toolResponseMetadata is the Apps SDK's name for `_meta`.
+                if (window.openai.toolOutput)
+                    show(
+                        window.openai.toolOutput,
+                        metaOf({ _meta: window.openai.toolResponseMetadata }),
+                    );
             }
             window.addEventListener("openai:set_globals", (e) => {
                 const g = e.detail?.globals || e.detail || {};
                 const t = themeFrom(g);
                 if (t) applyTheme(t);
-                if (g.toolOutput) show(g.toolOutput);
+                if (g.toolOutput)
+                    show(
+                        g.toolOutput,
+                        metaOf({
+                            _meta:
+                                g.toolResponseMetadata ||
+                                (window.openai &&
+                                    window.openai.toolResponseMetadata),
+                        }),
+                    );
             });
         } catch (_) {}
     } else {
         // Opened directly in a browser (no host) — render the sample so the
         // file is previewable on its own.
-        paint(window.__WIDGET_DATA__ || config.sample);
+        paint(
+            window.__WIDGET_DATA__ || config.sample,
+            window.__WIDGET_DATA__
+                ? metaOf({ _meta: window.__WIDGET_META__ })
+                : metaOf({ _meta: config.sampleMeta }),
+        );
         if (typeof config.onReady === "function") {
             try {
                 config.onReady(api);

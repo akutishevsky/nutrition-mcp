@@ -17,10 +17,16 @@
 //   ?maxHeight=600      impose hostContext.containerDimensions.maxHeight
 //   ?fail=1             answer tools/call with a JSON-RPC error
 //   ?drinkUnit=us       alcohol tracking ON for import-meals (default: off/null)
+//   ?noMeta=1           deliver the tool result WITHOUT its _meta, as a host that
+//                       drops it would (nutrition-summary then shows "N or more")
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
-import { getWidgetHtml, WIDGET_TEMPLATES } from "../src/widgets.js";
+import {
+    getWidgetHtml,
+    MEAL_CONTRIBUTORS_META_KEY,
+    WIDGET_TEMPLATES,
+} from "../src/widgets.js";
 import { runImport } from "../src/import.js";
 import type { MealInput, MealInsertResult } from "../src/supabase.js";
 
@@ -65,7 +71,8 @@ function indexPage(): string {
   <h1>MCP Apps widget harness</h1>
   <p>Pick a widget. Append query flags to simulate host behaviour:
      <code>?serverTools=0</code>, <code>?tools=0</code>, <code>?delay=3000</code>,
-     <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>.</p>
+     <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
+     <code>?noMeta=1</code>.</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -76,6 +83,11 @@ function hostPage(widget: string, params: URLSearchParams): string {
     const delay = Number(params.get("delay") ?? 0);
     const maxHeight = params.get("maxHeight");
     const failCalls = params.get("fail") === "1";
+    // A host that forwards structuredContent but not the result's _meta. The
+    // summary's per-metric meal counts travel ONLY in _meta (structuredContent
+    // is validated against a cached outputSchema and can never gain a field),
+    // so this is how the "N or more smaller meals" fallback is previewed.
+    const noMeta = params.get("noMeta") === "1";
     // The alcohol opt-in, as every tool that touches alcohol sends it:
     // "us"/"uk" when the user tracks alcohol, null when they do not. Default
     // null, because that is the default account state and the state the
@@ -207,6 +219,75 @@ function hostPage(widget: string, params: URLSearchParams): string {
     // Same rows with alcohol tracking OFF: null, not 0, everywhere.
     const mealsNoAlcohol = meals.map((m) => ({ ...m, alcohol_g: null }));
 
+    // The summary spans a week, so it gets more rows than the widget's CAP (8)
+    // — enough that its lists overflow and the "N more" line is on screen.
+    const extraSummaryMeals = [
+        ["Greek yogurt & honey", "breakfast", 240, 17, 30, 6, 0, 26],
+        ["Turkey wrap", "lunch", 480, 34, 44, 17, 5.1, 4.2],
+        ["Lentil soup", "dinner", 390, 22, 55, 8, 14.2, 6.8],
+        ["Apple", "snack", 95, 0.5, 25, 0.3, 4.4, 19],
+        ["Protein bar", "snack", 210, 20, 23, 7, 3, 6.5],
+        ["Beef stir-fry", "dinner", 610, 44, 48, 24, 5.6, 11.3],
+        ["Banana", "snack", 105, 1.3, 27, 0.4, 3.1, 14.4],
+    ] as const;
+    const summaryMeals = [
+        ...meals,
+        ...extraSummaryMeals.map(
+            ([
+                description,
+                meal_type,
+                calories,
+                protein_g,
+                carbs_g,
+                fat_g,
+                fiber_g,
+                sugar_g,
+            ]) => ({
+                description,
+                meal_type,
+                date: null,
+                calories,
+                protein_g,
+                carbs_g,
+                fat_g,
+                fiber_g,
+                sugar_g,
+                alcohol_g: 0,
+                caffeine_mg: null,
+            }),
+        ),
+    ].map((m, i) => ({ ...m, date: days[i % days.length]!.date }));
+    // What get_nutrition_summary sends in the result's _meta under
+    // MEAL_CONTRIBUTORS_META_KEY: per metric, how many meals had a value above
+    // zero. Two more meals than are listed contributed calories and the three
+    // macros — the server trimmed them, being outside every metric's top 8 —
+    // so the counts run past the rows exactly as a real trimmed payload does.
+    const TRIMMED = new Set(["calories", "protein_g", "carbs_g", "fat_g"]);
+    const summaryMeta = {
+        [MEAL_CONTRIBUTORS_META_KEY]: Object.fromEntries(
+            (
+                [
+                    "calories",
+                    "protein_g",
+                    "carbs_g",
+                    "fat_g",
+                    "fiber_g",
+                    "sugar_g",
+                    "alcohol_g",
+                    "caffeine_mg",
+                ] as const
+            ).map((k) => [
+                k,
+                summaryMeals.filter((m) => (m[k] ?? 0) > 0).length +
+                    (TRIMMED.has(k) ? 2 : 0),
+            ]),
+        ),
+    };
+    // Per-widget CallToolResult `_meta`, delivered beside structuredContent.
+    const METAS: Record<string, unknown> = {
+        "nutrition-summary": summaryMeta,
+    };
+
     const RESULTS: Record<string, unknown> = {
         "nutrition-summary": {
             start_date: "2026-07-09",
@@ -232,7 +313,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
                 water_ml: 1800,
             },
             days,
-            meals: meals.map((m, i) => ({ ...m, date: days[i]!.date })),
+            meals: summaryMeals,
         },
         "goal-progress": {
             date: "2026-07-15",
@@ -305,6 +386,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
     };
     // Probe and gallery paint their own UI; anything non-null will do.
     const toolResult = RESULTS[widget] ?? { probe: true };
+    const toolMeta = noMeta ? null : (METAS[widget] ?? null);
 
     return `<!doctype html>
 <html><head><meta charset="utf-8"><title>host: ${widget}</title>
@@ -317,7 +399,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
 </style></head>
 <body>
   <strong>${widget}</strong>
-  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
+  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""}${noMeta ? " noMeta=1" : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
   <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}"></iframe></div>
   <div style="margin-top:8px">
     <button onclick="hostRequest(1)">host req id=1</button>
@@ -334,6 +416,12 @@ const CFG = {
   fail: ${failCalls},
 };
 const TOOL_RESULT = ${JSON.stringify(toolResult)};
+// The result's _meta (null with ?noMeta=1 or for a widget that has none). The
+// spec has the host forward the whole CallToolResult, _meta included.
+const TOOL_META = ${JSON.stringify(toolMeta)};
+const toolResultParams = () => TOOL_META
+  ? { structuredContent: TOOL_RESULT, _meta: TOOL_META }
+  : { structuredContent: TOOL_RESULT };
 const frame = document.getElementById("frame");
 const logEl = document.getElementById("log");
 const log = (m) => { logEl.textContent += "\\n" + m; logEl.scrollTop = logEl.scrollHeight; };
@@ -386,7 +474,7 @@ window.addEventListener("message", (e) => {
     initialized = true;
     log("<- initialized; delivering tool-result");
     send({ jsonrpc: "2.0", method: "ui/notifications/tool-result",
-           params: { structuredContent: TOOL_RESULT } });
+           params: toolResultParams() });
     return;
   }
 
@@ -452,7 +540,7 @@ window.addEventListener("message", (e) => {
       }
       send({ jsonrpc: "2.0", id: d.id, result: {
         content: [{ type: "text", text: "harness canned result for " + name }],
-        structuredContent: TOOL_RESULT,
+        ...toolResultParams(),
       }});
       log("-> result for id " + d.id + (CFG.delay ? " after " + CFG.delay + "ms" : ""));
     }, CFG.delay);
