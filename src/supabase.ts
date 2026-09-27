@@ -1594,8 +1594,8 @@ export async function storeAuthCode(rec: AuthCodeRecord): Promise<void> {
 }
 
 export interface AuthCodeData {
-    // The at-rest form (the hash, or a pre-hashing raw UUID), not the value the
-    // client presented.
+    // The at-rest form (hashSecret of the code), not the value the client
+    // presented.
     code: string;
     redirect_uri: string;
     user_id: string;
