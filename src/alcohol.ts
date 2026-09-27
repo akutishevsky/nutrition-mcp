@@ -9,6 +9,8 @@
 // country's definition into the database; storing grams keeps the choice a
 // render-time concern.
 
+import { ToolError } from "./errors.js";
+
 export type DrinkUnit = "us" | "uk";
 
 export const DRINK_UNITS: readonly DrinkUnit[] = ["us", "uk"];
@@ -58,10 +60,10 @@ export function mlFromFlOz(flOz: number): number {
  */
 export function gramsFromDrink(volumeMl: number, abvPercent: number): number {
     if (!Number.isFinite(volumeMl) || volumeMl < 0) {
-        throw new Error(`Invalid drink volume (mL): ${volumeMl}`);
+        throw new ToolError(`Invalid drink volume (mL): ${volumeMl}`);
     }
     if (!Number.isFinite(abvPercent) || abvPercent < 0 || abvPercent > 100) {
-        throw new Error(
+        throw new ToolError(
             `Invalid ABV (expected a percentage between 0 and 100): ${abvPercent}`,
         );
     }

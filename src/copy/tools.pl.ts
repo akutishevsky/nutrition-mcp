@@ -330,10 +330,11 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_nutrition_summary: {
             description:
-                "Pobierz dzienne sumy odżywcze z zadanego zakresu dat jako interaktywny panel: kafelki makroskładników względem celów oraz podział dzień po dniu.",
+                "Pobierz dzienne sumy odżywcze z zadanego zakresu dat jako interaktywny panel: kafelki makroskładników względem celów oraz podział dzień po dniu. Jedno wywołanie obejmuje do 92 dni; dla dłuższych okresów trendy podają średnie kroczące.",
             params: {
                 start_date: "Data początkowa (RRRR-MM-DD)",
-                end_date: "Data końcowa (RRRR-MM-DD)",
+                end_date:
+                    "Data końcowa (RRRR-MM-DD), najwyżej 92 dni łącznie z dniem początkowym",
             },
             example: "Podsumuj mi ten ostatni tydzień",
         },

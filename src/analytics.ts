@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase.js";
 import { formatClientId } from "./client-id.js";
+import { newErrorRef, ToolError } from "./errors.js";
 
 interface AnalyticsRecord {
     user_id: string;
@@ -67,6 +68,18 @@ export function categorizeError(error: unknown): string {
 
     // ---- Tier 1: our own fixed message wording ----
 
+    // updateMeal / updateWeight (src/supabase.ts) pre-checks — a stale or
+    // wrong id, not a DB outage, so it shouldn't share supabase_error's bucket.
+    // First, and startsWith rather than includes: the not-found text echoes
+    // the caller's id, which could otherwise carry a later check's phrase
+    // ("not a real calendar date", "invalid timezone") and be misfiled.
+    if (
+        msg.startsWith("no meal found with id") ||
+        msg.startsWith("no weight entry found with id") ||
+        msg.startsWith("no water entry found with id")
+    )
+        return "record_not_found";
+
     // resolveWriteLoggedAt (src/tz.ts) and its unset-timezone re-throw
     // (src/mcp.ts) — both always carry one of these phrases regardless of
     // which parseLoggedAt failure reason produced them.
@@ -77,7 +90,8 @@ export function categorizeError(error: unknown): string {
     )
         return "invalid_date_format";
 
-    // assertDateRange (src/mcp.ts), behind the *_by_date_range listing tools.
+    // assertDateRange / assertCalendarDate (src/mcp.ts), behind every
+    // date-taking read tool.
     // Matched here rather than left to tier 3's "date" keyword because the
     // message echoes the caller's own value, which could carry "auth" or
     // "token" and be misfiled as auth_expired.
@@ -114,11 +128,6 @@ export function categorizeError(error: unknown): string {
     if (msg.includes("no weight unit given and no preference set"))
         return "missing_required_param";
 
-    // updateMeal / updateWeight (src/supabase.ts) pre-checks — a stale or
-    // wrong id, not a DB outage, so it shouldn't share supabase_error's bucket.
-    if (msg.includes("meal not found") || msg.includes("entry not found"))
-        return "record_not_found";
-
     // Deploy/env config problems, not user- or DB-caused. The only throw site
     // for the first is the single literal "Missing SUPABASE_URL or
     // SUPABASE_SECRET_KEY" (src/supabase.ts) — one substring check covers it.
@@ -138,6 +147,12 @@ export function categorizeError(error: unknown): string {
     )
         return "internal_asset_error";
 
+    // selectLoggedWindow / assertWindowComplete (src/supabase.ts): a range
+    // read came back short of its exact count. Must precede tier 2 — the
+    // message starts "Failed to get <noun>:" and would otherwise be
+    // supabase_error.
+    if (msg.includes("result would be truncated")) return "read_truncated";
+
     // export_all_data (src/export.ts / src/supabase.ts) — upload, signed-URL,
     // and row-count-mismatch failures.
     if (
@@ -148,6 +163,18 @@ export function categorizeError(error: unknown): string {
         return "export_error";
 
     // ---- Tier 2: every src/supabase.ts persistence throw ----
+
+    // Postgres refusing a value it was handed (a cast, a check constraint, an
+    // overflow) — the request needs to change, so it must not share
+    // supabase_error's "retry unchanged" advice. Checked before the generic
+    // prefix below, which these usually also carry.
+    if (
+        msg.includes("invalid input syntax") ||
+        msg.includes("violates check constraint") ||
+        msg.includes("out of range") ||
+        msg.includes("value too long")
+    )
+        return "db_rejected_value";
 
     // Every one follows "Failed to <verb> <noun>: <cause>" — match the prefix
     // generically rather than enumerating verbs, or a verb added later (as
@@ -186,6 +213,46 @@ export function categorizeError(error: unknown): string {
         return "network_error";
 
     return "unknown";
+}
+
+const TEMPORARY_CATEGORIES = new Set([
+    "supabase_error",
+    "read_truncated",
+    "unknown",
+    "network_error",
+]);
+// auth_expired belongs here, not with a "reconnect" message: the caller's
+// bearer is verified before any tool runs, so auth/JWT text inside a handler
+// comes from the server's own credentials, which reconnecting cannot fix.
+const CONFIG_CATEGORIES = new Set([
+    "service_misconfigured",
+    "internal_asset_error",
+    "auth_expired",
+]);
+
+/**
+ * The only text a thrown error may put in front of the model (policy 5.A).
+ * A ToolError was written for the caller and passes through verbatim;
+ * anything else is third-party or runtime text and is replaced wholesale by a
+ * category message plus `ref`, which matches the server-side `[analytics]`
+ * warn line carrying the raw text.
+ */
+export function userFacingError(
+    toolName: string,
+    error: unknown,
+    category: string,
+    ref: string,
+): string {
+    if (error instanceof ToolError) return error.message;
+    if (TEMPORARY_CATEGORIES.has(category))
+        return `${toolName} could not finish: the Nutrition server had a temporary problem reading or saving the user's data (ref ${ref}). Nothing about the request needs to change. Retry once; if this was a change (log, update or delete), first check with the matching read tool whether it already went through, so it is not recorded twice. If it fails again, tell the user the service is having trouble and to try again later.`;
+    if (category === "export_error")
+        return `${toolName} could not build or upload the archive (ref ${ref}). Try again in a few minutes; the user's data is unaffected.`;
+    if (category === "rate_limited")
+        return `${toolName} was rate-limited (ref ${ref}). Wait a minute before trying again.`;
+    if (CONFIG_CATEGORIES.has(category))
+        return `${toolName} is unavailable because of a server configuration problem (ref ${ref}). This is not caused by the request; tell the user the feature is temporarily unavailable.`;
+    return `${toolName} could not finish because the server rejected one of the values it was given (ref ${ref}). Check that dates are YYYY-MM-DD and that ids come from a listing tool such as get_meals_today, then retry.`;
 }
 
 function calculateDateRangeDays(
@@ -229,6 +296,10 @@ function persistAnalytics(record: AnalyticsRecord): void {
  * structured report rather than an error, so hosts don't drop the per-row
  * detail) must pass `options.outcome`, or their failures show up as successes in
  * tool_analytics.
+ *
+ * A thrown error becomes an isError result whose text comes from
+ * userFacingError: a ToolError verbatim, anything else a category message plus
+ * a ref that matches the `[analytics]` warn line.
  */
 export async function withAnalytics<T>(
     toolName: string,
@@ -280,13 +351,17 @@ export async function withAnalytics<T>(
     } catch (error) {
         const durationMs = Math.round(performance.now() - start);
         const errorCategory = categorizeError(error);
+        const ref = newErrorRef();
 
-        // The raw message never reaches tool_analytics (no column for it —
-        // error_category is the only stored signal), so this line is the
-        // only place a future "unknown" bucket is diagnosable from, and only
-        // for as long as the runtime log ring buffer retains it.
+        // The raw message reaches neither tool_analytics (no column for it)
+        // nor the model (userFacingError replaces it), so this line — joined
+        // to the model's text by `ref` — is the only place it is diagnosable
+        // from, for as long as the runtime log ring buffer retains it.
+        // JSON.stringify because Postgres/PostgREST/runtime text can carry
+        // caller-controlled bytes, newlines that would forge a log line
+        // included. No user id.
         console.warn(
-            `[analytics] ${toolName} error=${errorCategory} ${durationMs}ms user=${context.userId}: ${error instanceof Error ? error.message : String(error)}`,
+            `[analytics] ${toolName} error=${errorCategory} ref=${ref} ${durationMs}ms: ${JSON.stringify(error instanceof Error ? error.message : String(error))}`,
         );
 
         persistAnalytics({
@@ -306,7 +381,7 @@ export async function withAnalytics<T>(
             content: [
                 {
                     type: "text",
-                    text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+                    text: userFacingError(toolName, error, errorCategory, ref),
                 },
             ],
             isError: true,

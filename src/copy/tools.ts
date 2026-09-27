@@ -855,10 +855,11 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_nutrition_summary: {
             description:
-                "Get daily nutrition totals across a date range as an interactive dashboard: macro tiles vs. goals and a per-day breakdown.",
+                "Get daily nutrition totals across a date range as an interactive dashboard: macro tiles vs. goals and a per-day breakdown. One call covers up to 92 days; for longer stretches, trends give you rolling averages.",
             params: {
                 start_date: "Start date (YYYY-MM-DD)",
-                end_date: "End date (YYYY-MM-DD)",
+                end_date:
+                    "End date (YYYY-MM-DD), up to 92 days including the start",
             },
             example: "Give me a summary of this past week",
         },

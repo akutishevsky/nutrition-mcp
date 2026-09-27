@@ -66,7 +66,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD)                                                                                                       |
 | `get_meals_by_date_range`  | Get meals between two dates (inclusive), up to 31 days per call                                                                                  |
 | `search_meals`             | Search past meals by keyword, grouped into recurring variations (counts, last logged, typical macros)                                            |
-| `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range                                                                                          |
+| `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range, up to 92 days per call                                                                  |
 | `update_meal`              | Update any fields of an existing meal                                                                                                            |
 | `delete_meal`              | Delete a meal by ID                                                                                                                              |
 | `set_nutrition_goals`      | Set daily calorie, macro, fiber and water targets to reach, sugar/alcohol/caffeine limits to stay under, plus an optional target weight          |

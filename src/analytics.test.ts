@@ -1,5 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { categorizeError } from "./analytics.js";
+import { categorizeError, userFacingError } from "./analytics.js";
+import { ToolError } from "./errors.js";
+import { LoggedAtError } from "./tz.js";
 
 // Each case below is the literal (or representative) wording of a real throw
 // site, not an invented string — see the file/line noted in each comment.
@@ -74,8 +76,23 @@ describe("categorizeError", () => {
         ],
 
         // src/supabase.ts updateMeal / updateWeight not-found pre-checks
-        ["Failed to update meal: meal not found", "record_not_found"],
-        ["Failed to update weight: entry not found", "record_not_found"],
+        [
+            "No meal found with id 00000000-0000-4000-8000-000000000001.",
+            "record_not_found",
+        ],
+        [
+            "No weight entry found with id 00000000-0000-4000-8000-000000000003.",
+            "record_not_found",
+        ],
+        [
+            "No water entry found with id 00000000-0000-4000-8000-000000000002.",
+            "record_not_found",
+        ],
+        // The echoed id must not steer it into an earlier tier-1 bucket
+        [
+            'No meal found with id "not a real calendar date": ids are UUIDs like "3f2b9c1e-…". Get one from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.',
+            "record_not_found",
+        ],
 
         // src/supabase.ts / src/foods.ts missing config
         [
@@ -96,12 +113,37 @@ describe("categorizeError", () => {
         ["@include cycle: a.html -> b.html -> a.html", "internal_asset_error"],
         ["unknown widget: not-a-real-widget", "internal_asset_error"],
 
+        // src/supabase.ts assertWindowComplete (the paged range readers)
+        [
+            "Failed to get meals: fetched 1000 of 1400 rows — result would be truncated",
+            "read_truncated",
+        ],
+
         // src/export.ts / src/supabase.ts
         ["Failed to upload export: storage quota exceeded", "export_error"],
         ["Failed to create download link: unknown error", "export_error"],
         [
             "getAllMeals: fetched 5 meals but countMeals reported 10 — export would be truncated",
             "export_error",
+        ],
+
+        // Postgres refusing a value behind our "Failed to" prefix — the
+        // request has to change, so not supabase_error's "retry unchanged"
+        [
+            'Failed to delete meal: invalid input syntax for type uuid: "abc"',
+            "db_rejected_value",
+        ],
+        [
+            'Failed to insert meal: new row for relation "meals" violates check constraint "meals_fiber_g_check"',
+            "db_rejected_value",
+        ],
+        [
+            'Failed to update meal: value "99999999999" is out of range for type integer',
+            "db_rejected_value",
+        ],
+        [
+            "Failed to insert meal: value too long for type character varying(500)",
+            "db_rejected_value",
         ],
 
         // src/supabase.ts generic persistence failures — the regression case:
@@ -138,5 +180,127 @@ describe("categorizeError", () => {
         expect(categorizeError("plain string")).toBe("unknown");
         expect(categorizeError(42)).toBe("unknown");
         expect(categorizeError(new Error(""))).toBe("unknown");
+    });
+});
+
+describe("userFacingError", () => {
+    const REF = "abc12345";
+
+    test("a ToolError passes through verbatim, with no ref", () => {
+        const text = userFacingError(
+            "log_meal",
+            new ToolError("Swap the dates."),
+            "invalid_date_format",
+            REF,
+        );
+        expect(text).toBe("Swap the dates.");
+    });
+
+    test("a LoggedAtError is a ToolError, so it passes through too", () => {
+        const err = new LoggedAtError("logged_at is invalid (x).", false);
+        expect(err).toBeInstanceOf(ToolError);
+        expect(
+            userFacingError("log_meal", err, categorizeError(err), REF),
+        ).toBe("logged_at is invalid (x).");
+    });
+
+    // src/supabase.ts updateMeal's not-found pre-check: the only DB-layer
+    // throw whose text is meant for the model.
+    test("updateMeal's not-found ToolError passes through verbatim", () => {
+        const err = new ToolError(
+            "No meal found with id 00000000-0000-4000-8000-000000000001.",
+        );
+        expect(categorizeError(err)).toBe("record_not_found");
+        expect(
+            userFacingError("update_meal", err, categorizeError(err), REF),
+        ).toBe(err.message);
+    });
+
+    test("a Postgres uuid cast error is replaced, not echoed", () => {
+        const err = new Error(
+            'Failed to delete meal: invalid input syntax for type uuid: "abc"',
+        );
+        const text = userFacingError(
+            "delete_meal",
+            err,
+            categorizeError(err),
+            REF,
+        );
+        expect(text).toContain("delete_meal");
+        expect(text).toContain(`ref ${REF}`);
+        for (const leak of [
+            "invalid input syntax",
+            "uuid",
+            "Failed to",
+            "Postgres",
+            '"abc"',
+        ])
+            expect(text).not.toContain(leak);
+    });
+
+    test("a runtime RangeError is replaced, not echoed", () => {
+        const err = new RangeError("Invalid time value");
+        expect(categorizeError(err)).toBe("unknown");
+        const text = userFacingError("get_trends", err, "unknown", REF);
+        expect(text).not.toContain("Invalid time value");
+        expect(text).toContain(`ref ${REF}`);
+    });
+
+    test("a thrown non-Error value is replaced, not echoed", () => {
+        expect(userFacingError("t", "boom", "unknown", REF)).not.toContain(
+            "boom",
+        );
+    });
+
+    // Categories share wording by design: what differs is what the model
+    // should do next (retry, wait, report, change the request), not the
+    // bucket. So texts are identical within a group and distinct across them.
+    const GROUPS: Record<string, string[]> = {
+        temporary: [
+            "supabase_error",
+            "read_truncated",
+            "unknown",
+            "network_error",
+        ],
+        export: ["export_error"],
+        rateLimited: ["rate_limited"],
+        config: [
+            "service_misconfigured",
+            "internal_asset_error",
+            "auth_expired",
+        ],
+        rejectedValue: [
+            "db_rejected_value",
+            "invalid_date_format",
+            "date_range_too_long",
+            "invalid_timezone",
+            "invalid_numeric_value",
+            "invalid_param_value",
+            "missing_required_param",
+            "record_not_found",
+        ],
+    };
+    const RAW = 'Failed to get meals: relation "public.meals" does not exist';
+    const textFor = (category: string) =>
+        userFacingError("export_all_data", new Error(RAW), category, REF);
+
+    test.each(Object.entries(GROUPS))(
+        "every %s category gives one text, with the ref and no raw message",
+        (_group, categories) => {
+            const texts = categories.map(textFor);
+            for (const text of texts) {
+                expect(text).toBe(texts[0]!);
+                expect(text).toContain(`ref ${REF}`);
+                expect(text).toContain("export_all_data");
+                expect(text).not.toContain("relation");
+                expect(text).not.toContain("Failed to");
+                expect(text.startsWith("Error:")).toBe(false);
+            }
+        },
+    );
+
+    test("the groups' texts are pairwise distinct", () => {
+        const texts = Object.values(GROUPS).map((c) => textFor(c[0]!));
+        expect(new Set(texts).size).toBe(texts.length);
     });
 });

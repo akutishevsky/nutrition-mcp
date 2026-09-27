@@ -6,6 +6,7 @@ import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { escapeLikePattern, tokenizeQuery } from "./search.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 import { hashSecret } from "./token-hash.js";
+import { ToolError } from "./errors.js";
 
 let supabase: SupabaseClient;
 
@@ -316,19 +317,7 @@ export async function getMealsByDate(
     date: string,
     tz: string = "UTC",
 ): Promise<Meal[]> {
-    const startUtc = zonedDayStartUtc(date, tz);
-    const endUtc = zonedNextDayStartUtc(date, tz);
-
-    const { data, error } = await getSupabase()
-        .from("meals")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
-
-    if (error) throw new Error(`Failed to get meals: ${error.message}`);
-    return (data as Meal[]) ?? [];
+    return getMealsInRange(userId, date, date, tz);
 }
 
 export async function getMealsInRange(
@@ -340,16 +329,7 @@ export async function getMealsInRange(
     const startUtc = zonedDayStartUtc(startDate, tz);
     const endUtc = zonedNextDayStartUtc(endDate, tz);
 
-    const { data, error } = await getSupabase()
-        .from("meals")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
-
-    if (error) throw new Error(`Failed to get meals: ${error.message}`);
-    return (data as Meal[]) ?? [];
+    return selectLoggedWindow<Meal>("meals", "meals", userId, startUtc, endUtc);
 }
 
 /**
@@ -399,6 +379,13 @@ export async function existingIdempotencyKeys(
 const UUID_RE =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** A canonical 8-4-4-4-12 hex UUID, any case. The gate before any uuid-typed
+ *  `eq`/`in` filter: Postgres rejects a non-uuid with a cast error instead of
+ *  simply not matching. */
+export function isUuid(v: string): boolean {
+    return UUID_RE.test(v);
+}
+
 /**
  * Which of `ids` are meals this user already has. An export of this server's
  * own data carries each meal's id, so a re-import can recognize the meals it
@@ -411,7 +398,7 @@ export async function existingMealIds(
     userId: string,
     ids: string[],
 ): Promise<Set<string>> {
-    const uuids = ids.filter((id) => UUID_RE.test(id));
+    const uuids = ids.filter(isUuid);
     if (uuids.length === 0) return new Set();
 
     const { data, error } = await getSupabase()
@@ -446,6 +433,71 @@ export async function fetchAllPages<T>(
         if (page.length < pageSize) break;
     }
     return all;
+}
+
+type LoggedTable = "meals" | "water_log" | "weight_log";
+
+/**
+ * Every row with start <= logged_at < end, oldest first — the one path behind
+ * the day and range readers. Paged because an unbounded select caps at
+ * PostgREST's db-max-rows and kept the OLDEST 1000 rows (a 365-day get_trends
+ * showed the latest 30 days as zeros; the export readers got the same fix in
+ * #66). The `id` tie-break is required, not cosmetic: date-only imports all
+ * anchor at local noon, so many rows share one `logged_at`, and without a total
+ * order ties straddling a page edge could be skipped or returned twice.
+ * Offset paging can still return a row twice when a backdated insert lands
+ * between pages and shifts later rows forward — k inserts replay the last k
+ * rows of the previous page, so the twins are not adjacent once k >= 2 (a bulk
+ * import does exactly that). They are dropped here by id, keeping the first
+ * copy, before any caller sums a meal twice. The first page's exact count then catches a server whose
+ * max-rows is below the page size, whose short first page would otherwise end
+ * the loop looking complete.
+ */
+async function selectLoggedWindow<T extends { id: string }>(
+    table: LoggedTable,
+    noun: string,
+    userId: string,
+    startUtc: Date,
+    endUtc: Date,
+): Promise<T[]> {
+    let expected: number | null = null;
+    const fetched = await fetchAllPages<T>(async (from, to) => {
+        const { data, error, count } = await getSupabase()
+            .from(table)
+            .select("*", from === 0 ? { count: "exact" } : undefined)
+            .eq("user_id", userId)
+            .gte("logged_at", startUtc.toISOString())
+            .lt("logged_at", endUtc.toISOString())
+            .order("logged_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to);
+
+        if (error) throw new Error(`Failed to get ${noun}: ${error.message}`);
+        if (from === 0) expected = count ?? null;
+        return (data as T[]) ?? [];
+    });
+    const seen = new Set<string>();
+    const rows = fetched.filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+    });
+    assertWindowComplete(noun, rows.length, expected);
+    return rows;
+}
+
+/** Throws when a paged window read came back with fewer distinct rows than the
+ *  first page's exact count. More than expected is fine: a concurrent insert. */
+export function assertWindowComplete(
+    noun: string,
+    fetched: number,
+    expected: number | null,
+): void {
+    if (expected !== null && fetched < expected) {
+        throw new Error(
+            `Failed to get ${noun}: fetched ${fetched} of ${expected} rows — result would be truncated`,
+        );
+    }
 }
 
 /**
@@ -562,7 +614,7 @@ export async function updateMeal(
         .eq("user_id", userId)
         .maybeSingle();
     if (selErr) throw new Error(`Failed to update meal: ${selErr.message}`);
-    if (!existing) throw new Error("Failed to update meal: meal not found");
+    if (!existing) throw new ToolError(`No meal found with id ${id}.`);
 
     const update: Record<string, unknown> = {};
     if (fields.description !== undefined)
@@ -961,19 +1013,7 @@ export async function getWaterByDate(
     date: string,
     tz: string = "UTC",
 ): Promise<WaterEntry[]> {
-    const startUtc = zonedDayStartUtc(date, tz);
-    const endUtc = zonedNextDayStartUtc(date, tz);
-
-    const { data, error } = await getSupabase()
-        .from("water_log")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
-
-    if (error) throw new Error(`Failed to get water: ${error.message}`);
-    return (data as WaterEntry[]) ?? [];
+    return getWaterInRange(userId, date, date, tz);
 }
 
 export async function getWaterInRange(
@@ -985,16 +1025,13 @@ export async function getWaterInRange(
     const startUtc = zonedDayStartUtc(startDate, tz);
     const endUtc = zonedNextDayStartUtc(endDate, tz);
 
-    const { data, error } = await getSupabase()
-        .from("water_log")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
-
-    if (error) throw new Error(`Failed to get water: ${error.message}`);
-    return (data as WaterEntry[]) ?? [];
+    return selectLoggedWindow<WaterEntry>(
+        "water_log",
+        "water",
+        userId,
+        startUtc,
+        endUtc,
+    );
 }
 
 /**
@@ -1148,19 +1185,7 @@ export async function getWeightByDate(
     date: string,
     tz: string = "UTC",
 ): Promise<WeightEntry[]> {
-    const startUtc = zonedDayStartUtc(date, tz);
-    const endUtc = zonedNextDayStartUtc(date, tz);
-
-    const { data, error } = await getSupabase()
-        .from("weight_log")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
-
-    if (error) throw new Error(`Failed to get weight: ${error.message}`);
-    return (data as WeightEntry[]) ?? [];
+    return getWeightInRange(userId, date, date, tz);
 }
 
 export async function getWeightInRange(
@@ -1172,16 +1197,13 @@ export async function getWeightInRange(
     const startUtc = zonedDayStartUtc(startDate, tz);
     const endUtc = zonedNextDayStartUtc(endDate, tz);
 
-    const { data, error } = await getSupabase()
-        .from("weight_log")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("logged_at", startUtc.toISOString())
-        .lt("logged_at", endUtc.toISOString())
-        .order("logged_at", { ascending: true });
-
-    if (error) throw new Error(`Failed to get weight: ${error.message}`);
-    return (data as WeightEntry[]) ?? [];
+    return selectLoggedWindow<WeightEntry>(
+        "weight_log",
+        "weight",
+        userId,
+        startUtc,
+        endUtc,
+    );
 }
 
 /**
@@ -1278,7 +1300,7 @@ export async function updateWeight(
 
     if (error) throw new Error(`Failed to update weight: ${error.message}`);
     if (!data || data.length === 0)
-        throw new Error("Failed to update weight: entry not found");
+        throw new ToolError(`No weight entry found with id ${id}.`);
     return data[0] as WeightEntry;
 }
 

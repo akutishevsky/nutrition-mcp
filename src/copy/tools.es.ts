@@ -339,10 +339,11 @@ export const TOOLS_ES: ToolsDoc = {
         },
         get_nutrition_summary: {
             description:
-                "Obtén los totales diarios de nutrición en un rango de fechas como un panel interactivo: fichas de macros frente a objetivos y un desglose por día.",
+                "Obtén los totales diarios de nutrición en un rango de fechas como un panel interactivo: fichas de macros frente a objetivos y un desglose por día. Una llamada cubre hasta 92 días; para periodos más largos, las tendencias te dan medias móviles.",
             params: {
                 start_date: "Fecha de inicio (AAAA-MM-DD)",
-                end_date: "Fecha de fin (AAAA-MM-DD)",
+                end_date:
+                    "Fecha de fin (AAAA-MM-DD), como máximo 92 días contando el día de inicio",
             },
             example: "Dame un resumen de esta última semana",
         },

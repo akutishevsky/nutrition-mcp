@@ -1,3 +1,5 @@
+import { ToolError } from "./errors.js";
+
 export function validateTz(tz: string): boolean {
     try {
         // The TZ constructor throws RangeError on unknown identifiers.
@@ -179,7 +181,7 @@ export function zonedWallClockToUtc(
 function splitDate(date: string): [number, number, number] {
     const [y, m, d] = date.split("-").map(Number);
     if (y == null || m == null || d == null || Number.isNaN(y + m + d)) {
-        throw new Error(`Invalid date string: ${date}`);
+        throw new ToolError(`Invalid date string: ${date}`);
     }
     return [y, m, d];
 }
@@ -396,7 +398,7 @@ export function loggedAtFailureReason(
  * claim, so today's date logged in the morning is fine and only a genuinely
  * future *calendar day* is rejected. `nowMs` is injected for testability.
  */
-export class LoggedAtError extends Error {
+export class LoggedAtError extends ToolError {
     /** True when `tz` was actually used to place the value, i.e. it carried no
      *  offset. Lets the caller add "…and this account has no timezone set" only
      *  when the timezone is what made the value unusable — an unparseable
@@ -439,8 +441,8 @@ export function resolveWriteLoggedAt(
 /** Shift a local YYYY-MM-DD date by N days, returning YYYY-MM-DD. No TZ needed. */
 export function shiftLocalDate(date: string, days: number): string {
     const [y, m, d] = date.split("-").map(Number);
-    if (y == null || m == null || d == null) {
-        throw new Error(`Invalid date string: ${date}`);
+    if (y == null || m == null || d == null || Number.isNaN(y + m + d)) {
+        throw new ToolError(`Invalid date string: ${date}`);
     }
     const next = new Date(Date.UTC(y, m - 1, d));
     next.setUTCDate(next.getUTCDate() + days);
