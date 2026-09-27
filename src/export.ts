@@ -595,7 +595,6 @@ export function buildExportReadme(opts: {
         "  * our providers' own short-lived operational logs (including the sign-in provider's audit records) and their rolling backups, which age out on their own schedule;",
         "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes;",
         "  * internal bookkeeping: the de-duplication keys stored beside meals, water and weight entries, and the PKCE challenge of a pending sign-in.",
-        "For anything else, email the contact address in the privacy policy from your account address and you will get a copy within one month.",
         "",
     ].join("\n");
 }
