@@ -183,7 +183,7 @@ Meals from photos:
 Importing history from another app — when the user wants to bring in past meals from MyFitnessPal, Cronometer, Lose It!, MacroFactor or a similar export:
 1. If they have a FILE, call start_meal_import first and let them drive it. The importer reads and maps the file in the browser, so the rows never pass through you and cannot be mistranscribed, and it handles column mapping, batching and retries. Do not ask them to paste a file you could import properly.
 2. Call bulk_import_meals directly only when the importer is not an option: the data is already pasted into the conversation, the user cannot use the panel, or the importer reports that this client will not let it save. Then parse the rows yourself and follow that tool's description exactly — in particular, compute the row count and calorie total from the source text with real counting rather than by re-reading what you just wrote, and dry-run first.
-3. Never log a backfill by calling log_meal in a loop. It is rate-limited per call, so a single week of meals would exhaust the budget; one bulk_import_meals call carries up to 50 rows for the same cost.
+3. Never log a backfill by calling log_meal in a loop. One bulk_import_meals call carries up to ${MAX_ROWS_PER_CALL} rows, validates and reports on every row, supports a dry run, and recognises rows it has already written, so a failed batch can be re-sent safely; a loop of log_meal calls has none of that, and each call counts separately against the per-account rate limit.
 4. Check get_profile before any sizeable import and offer set_timezone if the timezone is unset. Times without an explicit UTC offset are placed using the saved timezone, so correcting it afterwards moves every imported meal — onto an adjacent day for anything logged near midnight.
 5. Show the user what was resolved before treating an import as done: the dry run echoes back the date, time and meal type for every row, and a misread date column shows up there rather than in the totals. Re-sending the same rows is safe — the server recognises them and skips them — so a retry after a failure or a timeout never duplicates anything.`;
 
@@ -1202,6 +1202,23 @@ const LOGGED_AT_FORMS =
 const LOGGED_AT_OMIT_IF_NOW =
     " The server knows the current time and the user's timezone, so there is no need to ask the user for it: for something that just happened, omit this field entirely and the server stamps the entry with the current time. Only supply it for an entry that happened at some other moment; get_current_time returns the user's local clock for working that moment out.";
 
+// What the derived "auto:" key really guarantees: it hashes the RESOLVED
+// logged_at, and an omitted logged_at resolves to the arrival instant (ms), so
+// replaying a "just now" call is a NEW entry. Deliberately not fixed with a
+// time bucket: that would silently merge two genuine identical entries (a
+// duplicate is visible and deletable; a lost entry is not), and it would break
+// the frozen auto: digest updatedMealIdempotencyKey recomputes.
+function idempotencyKeyDescription(
+    entry: string,
+    sameTimeAdvice: string,
+): string {
+    return (
+        `Optional key that makes a retry safe. Without one, the server derives a key from the ${entry}'s content and its resolved logged_at: replaying a call that carries an explicit logged_at returns the original ${entry} instead of adding another, but a call that omits logged_at is stamped with the moment it arrives, so replaying it adds a new ${entry}. ` +
+        `If a call that omits logged_at may need to be retried (for example after a timeout), pass any unique string here, such as a UUID, and send the same value on the retry. ` +
+        `Two genuinely separate ${entry}s with identical content and the same logged_at are also treated as one — ${sameTimeAdvice}. Never reuse a key for a different ${entry}.`
+    );
+}
+
 // The one rendering of "what time is it for this user", shared by
 // get_current_time and get_profile so the two can never disagree. The weekday
 // is there to make "last Monday" resolvable without a second round trip, and
@@ -1632,7 +1649,10 @@ export function registerTools(
                     .max(255)
                     .optional()
                     .describe(
-                        "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the meal content (including logged_at), so replaying the identical call returns the original meal instead of duplicating it. Pass a UUID only to force-override that behavior. Do NOT reuse a key for genuinely different meals.",
+                        idempotencyKeyDescription(
+                            "meal",
+                            "give each its own time or its own key",
+                        ),
                     ),
             }),
             outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
@@ -1656,7 +1676,7 @@ export function registerTools(
                     // No colon yet: the zone is appended once tz is known,
                     // because the Time line below is a local wall clock.
                     const header = deduplicated
-                        ? "Meal already logged (idempotent retry)"
+                        ? "Meal already logged — this matched an existing meal, so nothing new was added"
                         : "Meal logged";
 
                     const { progressSection, structuredContent, tz } =
@@ -1761,7 +1781,9 @@ export function registerTools(
         {
             title: "Bulk Import Meals",
             description:
-                "Import many past meals in one call, for backfilling history from a file the user exported from another app (MyFitnessPal, Cronometer, Lose It!, MacroFactor) or from a list they pasted. Parse the source yourself and map it to the row schema; the server validates every row and reports per-row results, so you can fix and re-send only the rows that failed. Prefer this over calling log_meal in a loop — log_meal is rate-limited per call, so a week of meals would exhaust the budget. Three rules matter for correctness. (1) Compute expected_row_count, and expected_total_kcal when every row has calories, FROM THE SOURCE FILE using deterministic tooling (a script, or counting the actual lines) — never by re-reading the JSON you just wrote, which would only compare your output against itself and catch nothing. (2) Call once with dry_run: true first whenever the rows came from parsing a CSV, a screenshot, or free text; check the resolved logged_at and meal_type echoed back for every row, show the user what will be imported, and only then call again with dry_run: false. Pass local times exactly as the file gives them and let the server apply the user's timezone; do not compute UTC offsets yourself, and do not guess a value you cannot find — omit the field and list the column in unmapped_columns instead. (3) Because those local times are placed using the user's saved timezone, check get_profile (which reports the saved timezone) before a large import: if it is unset the server falls back to UTC, and correcting it afterwards moves every imported meal — including onto adjacent days for anything logged near midnight. Offer set_timezone first. Maximum " +
+                "Import many past meals in one call, for backfilling history from a file the user exported from another app (MyFitnessPal, Cronometer, Lose It!, MacroFactor) or from a list they pasted. Parse the source yourself and map it to the row schema; the server validates every row and reports per-row results, so you can fix and re-send only the rows that failed. Prefer this over calling log_meal in a loop: one call writes up to " +
+                MAX_ROWS_PER_CALL +
+                " rows with per-row validation, a dry run and replay-safe keys, none of which a loop of log_meal calls has. Three rules matter for correctness. (1) Compute expected_row_count, and expected_total_kcal when every row has calories, FROM THE SOURCE FILE using deterministic tooling (a script, or counting the actual lines) — never by re-reading the JSON you just wrote, which would only compare your output against itself and catch nothing. (2) Call once with dry_run: true first whenever the rows came from parsing a CSV, a screenshot, or free text; check the resolved logged_at and meal_type echoed back for every row, show the user what will be imported, and only then call again with dry_run: false. Pass local times exactly as the file gives them and let the server apply the user's timezone; do not compute UTC offsets yourself, and do not guess a value you cannot find — omit the field and list the column in unmapped_columns instead. (3) Because those local times are placed using the user's saved timezone, check get_profile (which reports the saved timezone) before a large import: if it is unset the server falls back to UTC, and correcting it afterwards moves every imported meal — including onto adjacent days for anything logged near midnight. Offer set_timezone first. Maximum " +
                 MAX_ROWS_PER_CALL +
                 " rows per call: split larger files by date range, keeping all rows for one calendar date in the same call. If a single calendar date alone has more than " +
                 MAX_ROWS_PER_CALL +
@@ -3311,7 +3333,10 @@ export function registerTools(
                     .max(255)
                     .optional()
                     .describe(
-                        "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the entry content (including logged_at), so replaying the identical call returns the original entry instead of duplicating it. Pass a UUID only to force-override that behavior. Do NOT reuse a key for genuinely different sips.",
+                        idempotencyKeyDescription(
+                            "entry",
+                            "log them as one combined amount (two 250 ml glasses as 500 ml) or give each its own key",
+                        ),
                     ),
             }),
         },
@@ -3328,7 +3353,7 @@ export function registerTools(
                         logged_at: iso,
                     });
                     const prefix = deduplicated
-                        ? "Already logged (idempotent retry)"
+                        ? "Already logged — this matched an existing entry, so nothing new was added"
                         : "Water logged";
                     return {
                         content: [
@@ -3552,7 +3577,10 @@ export function registerTools(
                     .max(255)
                     .optional()
                     .describe(
-                        "Optional stable key for safe retries. You normally don't need to set this: when omitted, the server derives a stable key from the entry content (including logged_at), so replaying the identical call returns the original entry instead of duplicating it. Pass a UUID only to force-override that behavior.",
+                        idempotencyKeyDescription(
+                            "entry",
+                            "give each its own time or its own key",
+                        ),
                     ),
             }),
         },
@@ -3577,7 +3605,7 @@ export function registerTools(
                         idempotency_key: args.idempotency_key,
                     });
                     const prefix = deduplicated
-                        ? "Already logged (idempotent retry)"
+                        ? "Already logged — this matched an existing entry, so nothing new was added"
                         : "Weight logged";
                     return {
                         content: [
@@ -4252,7 +4280,7 @@ export function registerTools(
         {
             title: "Get Trends",
             description:
-                "Rolling 7/14/30-day averages, standard deviation, coefficient of variation, logging streaks, day-of-week breakdowns, and best/worst day for calories and each macro. Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today. Figures are estimates, not medical or dietary advice.",
+                "Rolling 7/14/30-day averages, standard deviation and coefficient of variation for calories, protein, carbs, fat, fiber, sugar, alcohol (when tracking is on), caffeine and water, with days within ±10% of each target or over each limit when goals are set; logging streaks; day-of-week calorie averages; and the best and worst day by calories (closest to and furthest from the calorie target when one is set, otherwise the lowest and highest). Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 title: "Get Trends",
                 readOnlyHint: true,
@@ -4604,7 +4632,7 @@ export function registerTools(
         {
             title: "Set Timezone",
             description:
-                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). This controls which calendar day meals and water are grouped into — e.g. a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and it is also how a logged_at with no UTC offset is placed on write, which is permanent: correcting the timezone later re-buckets nothing that is already stored. If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
+                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water and weight are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
             annotations: {
                 title: "Set Timezone",
                 readOnlyHint: false,

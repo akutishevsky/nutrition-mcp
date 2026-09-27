@@ -358,7 +358,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Medie mobili a 7/14/30 giorni, variabilità, serie di giorni consecutivi di registrazione, ripartizioni per giorno della settimana, e i tuoi giorni migliori e peggiori per calorie e ogni macro — pre-calcolati così l'IA può semplicemente raccontarli.",
+                "Medie mobili a 7/14/30 giorni, variabilità, serie di giorni consecutivi di registrazione, medie delle calorie per giorno della settimana, e i tuoi giorni migliori e peggiori in base alle calorie — pre-calcolati così l'IA può semplicemente raccontarli.",
             params: {
                 days: "Ampiezza della finestra in giorni (predefinito 30, massimo 365).",
             },

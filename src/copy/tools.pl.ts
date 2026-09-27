@@ -344,7 +344,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Kroczące średnie 7/14/30-dniowe, zmienność, serie kolejnych dni z wpisami, podział na dni tygodnia oraz Twoje najlepsze i najgorsze dni pod względem kalorii i każdego makroskładnika — policzone z góry, więc AI może po prostu je opisać.",
+                "Kroczące średnie 7/14/30-dniowe, zmienność, serie kolejnych dni z wpisami, średnie kalorie według dni tygodnia oraz Twoje najlepsze i najgorsze dni pod względem kalorii — policzone z góry, więc AI może po prostu je opisać.",
             params: {
                 days: "Długość okresu w dniach (domyślnie 30, maksymalnie 365).",
             },

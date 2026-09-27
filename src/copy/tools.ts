@@ -873,7 +873,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Rolling 7/14/30-day averages, variability, logging streaks, day-of-week breakdowns, and your best and worst days for calories and each macro — pre-computed so the AI can just narrate them.",
+                "Rolling 7/14/30-day averages, variability, logging streaks, day-of-week calorie averages, and your best and worst days by calories — pre-computed so the AI can just narrate them.",
             params: {
                 days: "Window size in days (default 30, max 365).",
             },

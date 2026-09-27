@@ -87,7 +87,11 @@ export async function signInWithGoogleIdToken(
 // resolved logged_at is part of the digest, so two genuinely separate but
 // otherwise-identical entries (logged at different times) get distinct keys and
 // are never wrongly merged. A retry replays the same args — including the same
-// logged_at — and therefore lands on the same key. The "auto:" prefix marks
+// logged_at — and therefore lands on the same key, when the caller sent
+// logged_at. An omitted logged_at resolves to the arrival instant below, so a
+// replay of such a call derives a new key; only a caller-supplied
+// idempotency_key makes it replay-safe (see idempotencyKeyDescription in
+// src/mcp.ts). The "auto:" prefix marks
 // server-derived keys, distinguishing them from client-supplied ones.
 //
 // The digest is POSITIONAL over whatever the caller passes, so the field list
@@ -253,7 +257,9 @@ export async function insertMeal(
             ? input
             : { ...input, calories: toStoredInteger(input.calories) };
 
-    // Resolve logged_at once so the digest and the persisted row agree.
+    // Resolve logged_at once so the digest and the persisted row agree — and,
+    // when omitted, this is the arrival time, so the derived key does not
+    // survive a retry.
     const loggedAt = meal.logged_at ?? new Date().toISOString();
     // Always populate the key: use the client's if given, otherwise derive a
     // stable one from the request content (see mealIdempotencyKey).
@@ -956,7 +962,9 @@ export async function insertWater(
 ): Promise<WaterInsertResult> {
     const sb = getSupabase();
 
-    // Resolve logged_at once so the digest and the persisted row agree.
+    // Resolve logged_at once so the digest and the persisted row agree — and,
+    // when omitted, this is the arrival time, so the derived key does not
+    // survive a retry.
     const loggedAt = input.logged_at ?? new Date().toISOString();
     // Always populate the key: use the client's if given, otherwise derive a
     // stable one from the request content (see deriveIdempotencyKey).
@@ -1128,7 +1136,9 @@ export async function insertWeight(
 ): Promise<WeightInsertResult> {
     const sb = getSupabase();
 
-    // Resolve logged_at once so the digest and the persisted row agree.
+    // Resolve logged_at once so the digest and the persisted row agree — and,
+    // when omitted, this is the arrival time, so the derived key does not
+    // survive a retry.
     const loggedAt = input.logged_at ?? new Date().toISOString();
     // Always populate the key: use the client's if given, otherwise derive a
     // stable one from the request content (see deriveIdempotencyKey).
