@@ -90,7 +90,8 @@ export function categorizeError(error: unknown): string {
     )
         return "invalid_date_format";
 
-    // assertDateRange (src/mcp.ts), behind the *_by_date_range listing tools.
+    // assertDateRange / assertCalendarDate (src/mcp.ts), behind every
+    // date-taking read tool.
     // Matched here rather than left to tier 3's "date" keyword because the
     // message echoes the caller's own value, which could carry "auth" or
     // "token" and be misfiled as auth_expired.

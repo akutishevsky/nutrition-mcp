@@ -43,6 +43,7 @@ import {
     countMeals,
     existingIdempotencyKeys,
     existingMealIds,
+    isUuid,
     type Meal,
     type NutritionGoals,
     type WaterEntry,
@@ -1212,16 +1213,22 @@ function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
 
 // Longest window, in calendar days inclusive, get_meals_by_date_range will
 // list. Every meal comes back as full text, so an open range dumped the whole
-// diary into one response, and the unpaged getMealsInRange read would also
-// hit PostgREST's 1000-row cap and truncate silently (the #66 failure mode)
-// long before a year was up. A month covers any "what did I eat" review;
-// longer periods belong to the aggregating tools the error names.
+// diary into one response — the cap keeps the response proportionate to the
+// request. Truncation is no longer the reason: getMealsInRange pages through
+// selectLoggedWindow and throws rather than return a partial window. A month
+// covers any "what did I eat" review; longer periods belong to the
+// aggregating tools the error names.
 export const MEALS_RANGE_MAX_DAYS = 31;
+
+// get_nutrition_summary: one text section per day plus every meal in
+// structuredContent, so a quarter is the most one call should carry; longer
+// periods belong to get_trends (up to 365 days, pre-aggregated).
+export const SUMMARY_RANGE_MAX_DAYS = 92;
 
 // The same guard for get_weight_by_date_range. Weight rows are one short line
 // each, so the bound is a year (366 so a leap year fits) rather than a month:
-// it only has to keep a daily weigh-in history well clear of the 1000-row cap
-// and match get_weight_trends' own 365-day ceiling.
+// it keeps the listing proportionate and matches get_weight_trends' own
+// 365-day ceiling. Paging (selectLoggedWindow) handles the row count.
 export const WEIGHT_RANGE_MAX_DAYS = 366;
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -1241,8 +1248,21 @@ function isCalendarDate(value: string): boolean {
     );
 }
 
-// Validate a start_date/end_date pair for a range-listing tool, throwing the
-// caller-facing message. Throwing (rather than returning text) is what routes
+// Reject anything but a real YYYY-MM-DD date with the caller-facing message.
+// Every date-taking read tool calls this (directly or via assertDateRange)
+// before the value reaches shiftLocalDate/zonedDayStartUtc, which roll
+// "2026-99-99" over to 2034 instead of failing. Matched in categorizeError
+// by "not a real calendar date" → invalid_date_format.
+function assertCalendarDate(name: string, value: string): void {
+    if (!isCalendarDate(value)) {
+        throw new ToolError(
+            `Invalid ${name} "${value}": not a real calendar date. Use YYYY-MM-DD, e.g. "2026-01-31".`,
+        );
+    }
+}
+
+// Validate a start_date/end_date pair for a range tool (the *_by_date_range
+// listings and get_nutrition_summary), throwing the caller-facing message. Throwing (rather than returning text) is what routes
 // the rejection through withAnalytics as a failure with an error category,
 // the same as every other bad-argument path here. The wording is matched in
 // categorizeError (src/analytics.ts): the over-limit message deliberately
@@ -1253,16 +1273,8 @@ function assertDateRange(
     maxDays: number,
     longerHint: string,
 ): void {
-    for (const [name, value] of [
-        ["start_date", start],
-        ["end_date", end],
-    ] as const) {
-        if (!isCalendarDate(value)) {
-            throw new ToolError(
-                `Invalid ${name} "${value}": not a real calendar date. Use YYYY-MM-DD, e.g. "2026-01-31".`,
-            );
-        }
-    }
+    assertCalendarDate("start_date", start);
+    assertCalendarDate("end_date", end);
     if (start > end) {
         throw new ToolError(
             `Invalid date range: start_date (${start}) is after end_date (${end}). Swap them.`,
@@ -1274,6 +1286,21 @@ function assertDateRange(
             `Date range too long: ${start} to ${end} spans ${days} days, and at most ${maxDays} days (inclusive) can be listed at once. ${longerHint}`,
         );
     }
+}
+
+// Where each kind of id can be read back from, named in the id params'
+// describes and in the not-a-uuid reply. Every tool listed prints ids.
+const MEAL_ID_SOURCES =
+    "get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals";
+const WATER_ID_SOURCES = "get_water_today or get_water_by_date";
+const WEIGHT_ID_SOURCES =
+    "get_weight_today, get_weight_by_date or get_weight_by_date_range";
+
+// A non-uuid id would otherwise reach Postgres and come back as a uuid cast
+// error. Echoed JSON-quoted and clipped: it is caller text. Worded like the
+// not-found messages so categorizeError files it as record_not_found.
+function notUuidText(kind: string, id: string, sources: string): string {
+    return `No ${kind} found with id ${JSON.stringify(id.slice(0, 64))}: ids are UUIDs like "3f2b9c1e-…". Get one from ${sources}.`;
 }
 
 export function formatMeal(meal: Meal, alcohol: AlcoholDisplay = null): string {
@@ -1989,6 +2016,7 @@ export function registerTools(
             return withAnalytics(
                 "get_meals_by_date",
                 async () => {
+                    assertCalendarDate("date", date);
                     const tz = await getUserTimezone(userId);
                     const meals = await getMealsByDate(userId, date, tz);
                     if (meals.length === 0) {
@@ -2311,8 +2339,7 @@ export function registerTools(
         "get_nutrition_summary",
         {
             title: "Get Nutrition Summary",
-            description:
-                "Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
+            description: `Get daily nutrition totals for a date range. Renders an interactive dashboard (macro tiles vs. goals and a per-day breakdown) in clients that support MCP Apps UI, and returns the same data as text elsewhere. The range can span at most ${SUMMARY_RANGE_MAX_DAYS} days; get_trends covers longer periods. Figures are estimates, not medical or dietary advice.`,
             annotations: {
                 title: "Get Nutrition Summary",
                 readOnlyHint: true,
@@ -2322,7 +2349,11 @@ export function registerTools(
             },
             inputSchema: z.object({
                 start_date: z.string().describe("Start date (YYYY-MM-DD)"),
-                end_date: z.string().describe("End date (YYYY-MM-DD)"),
+                end_date: z
+                    .string()
+                    .describe(
+                        `End date (YYYY-MM-DD). The range spans at most ${SUMMARY_RANGE_MAX_DAYS} days, both ends included.`,
+                    ),
             }),
             outputSchema: z.object({
                 start_date: z.string(),
@@ -2375,15 +2406,17 @@ export function registerTools(
             return withAnalytics(
                 "get_nutrition_summary",
                 async () => {
+                    assertDateRange(
+                        start_date,
+                        end_date,
+                        SUMMARY_RANGE_MAX_DAYS,
+                        "For a longer period use get_trends (rolling averages and streaks over up to 365 days), or split the range into quarterly calls.",
+                    );
                     // Sized with insights.ts's own arithmetic (the function
                     // buildDailyBuckets lays its buckets out with), so the two
-                    // tools cannot disagree about how long a window is. Clamped
-                    // because a reversed range would otherwise report 0 or less
-                    // days and make the note read as nonsense.
-                    const daysInRange = Math.max(
-                        1,
-                        dateDiffDays(start_date, end_date) + 1,
-                    );
+                    // tools cannot disagree about how long a window is.
+                    // assertDateRange above guarantees start <= end.
+                    const daysInRange = dateDiffDays(start_date, end_date) + 1;
                     const tz = await getUserTimezone(userId);
                     const locale = await getUserLocale(userId);
                     const [meals, water, goals] = await Promise.all([
@@ -2843,6 +2876,7 @@ export function registerTools(
             return withAnalytics(
                 "get_goal_progress",
                 async () => {
+                    if (date !== undefined) assertCalendarDate("date", date);
                     const profile = await getProfile(userId);
                     const tz = timezoneFromProfile(profile) ?? "UTC";
                     const targetDate = date ?? todayInTz(tz);
@@ -2960,13 +2994,33 @@ export function registerTools(
                 openWorldHint: false,
             },
             inputSchema: z.object({
-                id: z.string().describe("UUID of the meal to delete"),
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the meal to delete, from ${MEAL_ID_SOURCES}.`,
+                    ),
             }),
         },
         async ({ id }) => {
             return withAnalytics(
                 "delete_meal",
                 async () => {
+                    // Answered, not thrown: nothing with that id exists, the
+                    // same as a well-formed id that matches no row.
+                    if (!isUuid(id)) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: notUuidText(
+                                        "meal",
+                                        id,
+                                        MEAL_ID_SOURCES,
+                                    ),
+                                },
+                            ],
+                        };
+                    }
                     const deleted = await deleteMeal(userId, id);
                     return {
                         content: [
@@ -3002,7 +3056,11 @@ export function registerTools(
                 openWorldHint: false,
             },
             inputSchema: z.object({
-                id: z.string().describe("UUID of the meal to update"),
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the meal to update, from ${MEAL_ID_SOURCES}.`,
+                    ),
                 description: z.string().optional(),
                 meal_type: z
                     .enum(["breakfast", "lunch", "dinner", "snack"])
@@ -3060,6 +3118,11 @@ export function registerTools(
             return withAnalytics(
                 "update_meal",
                 async () => {
+                    // Before resolveWriteTimestamp, which reads the profile.
+                    if (!isUuid(id))
+                        throw new ToolError(
+                            notUuidText("meal", id, MEAL_ID_SOURCES),
+                        );
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         fields.logged_at,
@@ -3237,6 +3300,7 @@ export function registerTools(
             return withAnalytics(
                 "get_water_by_date",
                 async () => {
+                    assertCalendarDate("date", date);
                     const tz = await getUserTimezone(userId);
                     const entries = await getWaterByDate(userId, date, tz);
                     if (entries.length === 0) {
@@ -3282,13 +3346,33 @@ export function registerTools(
                 openWorldHint: false,
             },
             inputSchema: z.object({
-                id: z.string().describe("UUID of the water entry to delete"),
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the water entry to delete, from ${WATER_ID_SOURCES}.`,
+                    ),
             }),
         },
         async ({ id }) => {
             return withAnalytics(
                 "delete_water",
                 async () => {
+                    // Answered, not thrown: nothing with that id exists, the
+                    // same as a well-formed id that matches no row.
+                    if (!isUuid(id)) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: notUuidText(
+                                        "water entry",
+                                        id,
+                                        WATER_ID_SOURCES,
+                                    ),
+                                },
+                            ],
+                        };
+                    }
                     const deleted = await deleteWater(userId, id);
                     return {
                         content: [
@@ -3467,6 +3551,7 @@ export function registerTools(
             return withAnalytics(
                 "get_weight_by_date",
                 async () => {
+                    assertCalendarDate("date", date);
                     const [tz, weightPref] = await Promise.all([
                         getUserTimezone(userId),
                         getPreferredWeightUnit(userId),
@@ -3641,6 +3726,8 @@ export function registerTools(
             return withAnalytics(
                 "get_weight_trends",
                 async () => {
+                    if (end_date !== undefined)
+                        assertCalendarDate("end_date", end_date);
                     const profile = await getProfile(userId);
                     const tz = timezoneFromProfile(profile) ?? "UTC";
                     const unit =
@@ -3746,7 +3833,11 @@ export function registerTools(
                 openWorldHint: false,
             },
             inputSchema: z.object({
-                id: z.string().describe("UUID of the weight entry to update"),
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the weight entry to update, from ${WEIGHT_ID_SOURCES}.`,
+                    ),
                 weight: z.coerce
                     .number()
                     .positive()
@@ -3771,6 +3862,11 @@ export function registerTools(
             return withAnalytics(
                 "update_weight",
                 async () => {
+                    // Before resolveWriteTimestamp, which reads the profile.
+                    if (!isUuid(id))
+                        throw new ToolError(
+                            notUuidText("weight entry", id, WEIGHT_ID_SOURCES),
+                        );
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         logged_at,
@@ -3826,13 +3922,33 @@ export function registerTools(
                 openWorldHint: false,
             },
             inputSchema: z.object({
-                id: z.string().describe("UUID of the weight entry to delete"),
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the weight entry to delete, from ${WEIGHT_ID_SOURCES}.`,
+                    ),
             }),
         },
         async ({ id }) => {
             return withAnalytics(
                 "delete_weight",
                 async () => {
+                    // Answered, not thrown: nothing with that id exists, the
+                    // same as a well-formed id that matches no row.
+                    if (!isUuid(id)) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: notUuidText(
+                                        "weight entry",
+                                        id,
+                                        WEIGHT_ID_SOURCES,
+                                    ),
+                                },
+                            ],
+                        };
+                    }
                     const deleted = await deleteWeight(userId, id);
                     return {
                         content: [
@@ -4059,6 +4175,8 @@ export function registerTools(
             return withAnalytics(
                 "get_trends",
                 async () => {
+                    if (end_date !== undefined)
+                        assertCalendarDate("end_date", end_date);
                     const profile = await getProfile(userId);
                     const tz = timezoneFromProfile(profile) ?? "UTC";
                     const locale = localeFromProfile(profile) ?? "en";
@@ -4158,6 +4276,8 @@ export function registerTools(
             return withAnalytics(
                 "get_meal_patterns",
                 async () => {
+                    if (end_date !== undefined)
+                        assertCalendarDate("end_date", end_date);
                     const tz = await getUserTimezone(userId);
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;

@@ -32,6 +32,7 @@ import {
     gateAlcohol,
     handleMcp,
     MEALS_RANGE_MAX_DAYS,
+    SUMMARY_RANGE_MAX_DAYS,
     WEIGHT_RANGE_MAX_DAYS,
 } from "./mcp.js";
 import {
@@ -1449,6 +1450,9 @@ const db = {
     // a raw Postgres/PostgREST failure, or for the real updateMeal's not-found
     // ToolError, neither of which the stubs otherwise produce.
     failWith: null as Error | null,
+    // Every call to a delete stub, found or not: stays 0 when a tool refuses
+    // an id before it reaches the database.
+    deleteCalls: 0,
 };
 
 mock.module("./supabase.js", () => ({
@@ -1557,13 +1561,20 @@ mock.module("./supabase.js", () => ({
         } as WeightEntry;
     },
     deleteMeal: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
         if (db.failWith) throw db.failWith;
         const before = db.meals.length;
         db.meals = db.meals.filter((m) => m.id !== id);
         return db.meals.length < before;
     },
-    deleteWater: async (_userId: string, id: string) => db.rowIds.delete(id),
-    deleteWeight: async (_userId: string, id: string) => db.rowIds.delete(id),
+    deleteWater: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        return db.rowIds.delete(id);
+    },
+    deleteWeight: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        return db.rowIds.delete(id);
+    },
     countMeals: async () => db.meals.length,
     existingIdempotencyKeys: async () => new Set<string>(),
     existingMealIds: async (_userId: string, ids: string[]) =>
@@ -1607,6 +1618,7 @@ beforeEach(() => {
     db.accountWipes = 0;
     db.profileReads = [];
     db.failWith = null;
+    db.deleteCalls = 0;
 });
 
 interface ToolResult {
@@ -2754,6 +2766,72 @@ describe("delete tools distinguish deleted from not-found", () => {
     }
 });
 
+// ---------- id params are checked before the database ----------
+//
+// A non-uuid id used to reach Postgres and come back as a uuid cast error. The
+// delete tools answer it like any other missing row; the update tools throw a
+// ToolError, which categorizeError files as record_not_found.
+describe("id params are validated before the database", () => {
+    const rowFor = (tool: string) =>
+        db.analyticsRows.find((r) => r.tool_name === tool)!;
+
+    test.each([
+        ["delete_meal", "meal", "get_meals_today"],
+        ["delete_water", "water entry", "get_water_today"],
+        ["delete_weight", "weight entry", "get_weight_today"],
+    ])(
+        "%s answers a non-uuid id without touching the database",
+        async (tool, kind, source) => {
+            await withTools(null, async (call) => {
+                const r = await call(tool, { id: "not-a-uuid" });
+                expect(r.isError).toBeFalsy();
+                const text = textOf(r);
+                expect(
+                    text.startsWith(`No ${kind} found with id "not-a-uuid"`),
+                ).toBe(true);
+                expect(text).toContain("ids are UUIDs");
+                expect(text).toContain(source);
+            });
+            expect(db.deleteCalls).toBe(0);
+            // Nothing matched, as with a well-formed id that names no row:
+            // an answer, not a failure.
+            expect(rowFor(tool).success).toBe(true);
+        },
+    );
+
+    test("the echoed id is clipped to 64 characters", async () => {
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("delete_meal", { id: "x".repeat(200) }),
+            );
+            expect(text).toContain(`"${"x".repeat(64)}"`);
+            expect(text).not.toContain("x".repeat(65));
+        });
+    });
+
+    test.each([
+        ["update_meal", "meal", "mealUpdates"],
+        ["update_weight", "weight entry", "weightUpdates"],
+    ] as const)(
+        "%s refuses a non-uuid id as record_not_found",
+        async (tool, kind, updates) => {
+            await withTools(null, async (call) => {
+                const r = await call(tool, { id: "not-a-uuid", notes: "x" });
+                expect(r.isError).toBe(true);
+                expect(
+                    textOf(r).startsWith(
+                        `No ${kind} found with id "not-a-uuid"`,
+                    ),
+                ).toBe(true);
+            });
+            expect(db[updates]).toHaveLength(0);
+            // resolveWriteTimestamp reads the profile; the id check runs first.
+            expect(db.profileReads).toHaveLength(0);
+            expect(rowFor(tool).error_category).toBe("record_not_found");
+        },
+    );
+});
+
 // ---------- raw errors are sanitized at the exit ----------
 //
 // withAnalytics hands the model a ToolError's text verbatim and replaces every
@@ -2815,10 +2893,12 @@ describe("raw database errors never reach the model", () => {
 
 // ---------- range listings are bounded ----------
 //
-// get_meals_by_date_range returns every meal as full text from an unpaged read,
-// so an unbounded range dumped the whole diary and could truncate silently at
-// PostgREST's row cap. The guard runs inside withAnalytics, so each rejection
-// is an isError result with an analytics row, not a schema-level refusal.
+// get_meals_by_date_range returns every meal as full text, so an unbounded
+// range dumped the whole diary into one response; get_nutrition_summary has
+// the same guard at a quarter. The readers page, so the caps are about
+// response size, not truncation. The guard runs inside withAnalytics, so each
+// rejection is an isError result with an analytics row, not a schema-level
+// refusal.
 describe("date-range listings reject bad and oversized ranges", () => {
     const rowsFor = (tool: string) =>
         db.analyticsRows.filter((r) => r.tool_name === tool);
@@ -2838,8 +2918,8 @@ describe("date-range listings reject bad and oversized ranges", () => {
             expect(text).toContain("spans 32 days");
             expect(text).toContain(`at most ${MEALS_RANGE_MAX_DAYS} days`);
             expect(text).toContain("get_trends");
-            // Not get_nutrition_summary: it reads unpaged and would truncate a
-            // long range at PostgREST's row cap (#66).
+            // Not get_nutrition_summary: it is capped itself (at
+            // SUMMARY_RANGE_MAX_DAYS), so it is no route to a longer period.
             expect(text).not.toContain("get_nutrition_summary");
             expect(text).toContain("monthly calls");
         });
@@ -2914,6 +2994,100 @@ describe("date-range listings reject bad and oversized ranges", () => {
             );
             expect(textOf(over)).toContain("get_weight_trends");
         });
+    });
+
+    test("the summary cap is a quarter", () => {
+        expect(SUMMARY_RANGE_MAX_DAYS).toBe(92);
+    });
+
+    test("get_nutrition_summary refuses a range one day over its cap", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-01-01",
+                end_date: "2026-04-03",
+            });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain("spans 93 days");
+            expect(text).toContain(`at most ${SUMMARY_RANGE_MAX_DAYS} days`);
+            expect(text).toContain("get_trends");
+        });
+        const rows = rowsFor("get_nutrition_summary");
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.error_category).toBe("date_range_too_long");
+    });
+
+    test("get_nutrition_summary accepts exactly 92 days", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-01-01",
+                end_date: "2026-04-02",
+            });
+            expect(r.isError).toBeFalsy();
+        });
+        expect(rowsFor("get_nutrition_summary")[0]!.success).toBe(true);
+    });
+
+    test("get_nutrition_summary refuses a reversed range", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-02-01",
+                end_date: "2026-01-01",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("is after end_date");
+        });
+        expect(rowsFor("get_nutrition_summary")[0]!.error_category).toBe(
+            "invalid_date_format",
+        );
+    });
+
+    test("get_nutrition_summary refuses a non-calendar date", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-02-01",
+                end_date: "2026-02-30",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain(
+                `Invalid end_date "2026-02-30": not a real calendar date`,
+            );
+        });
+    });
+});
+
+// ---------- single dates are validated before they are read ----------
+//
+// shiftLocalDate and zonedDayStartUtc roll "2026-99-99" over to 2034 instead of
+// failing, and throw their own internal wording for "yesterday", so each
+// date-taking read tool checks its date first and answers with the
+// caller-facing message.
+describe("date params are real calendar dates", () => {
+    const rowFor = (tool: string) =>
+        db.analyticsRows.find((r) => r.tool_name === tool)!;
+
+    test.each([
+        ["get_trends", "end_date", "yesterday"],
+        ["get_meal_patterns", "end_date", "yesterday"],
+        ["get_weight_trends", "end_date", "yesterday"],
+        ["get_trends", "end_date", "2026-aa-01"],
+        ["get_meals_by_date", "date", "2026-99-99"],
+        ["get_goal_progress", "date", "2026-99-99"],
+        ["get_water_by_date", "date", "2026-99-99"],
+        ["get_weight_by_date", "date", "2026-99-99"],
+        ["get_meals_by_date", "date", "2026-02-30"],
+    ])("%s refuses %s %p", async (tool, param, bad) => {
+        await withTools(null, async (call) => {
+            const r = await call(tool, { [param]: bad });
+            expect(r.isError).toBe(true);
+            const text = textOf(r);
+            expect(text).toContain(
+                `Invalid ${param} "${bad}": not a real calendar date`,
+            );
+            expect(text).not.toContain("Invalid Date");
+            expect(text).not.toContain("Invalid date string");
+        });
+        expect(rowFor(tool).error_category).toBe("invalid_date_format");
     });
 });
 
