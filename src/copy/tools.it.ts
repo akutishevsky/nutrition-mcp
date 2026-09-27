@@ -213,7 +213,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Esporta tutto ciò che hai tracciato come un unico file ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv e un README.txt che spiega colonne e unità di misura — con lo stesso link privato, valido per 60 minuti. Per ora i pasti sono l'unica parte che può essere reimportata.",
+                "Esporta tutto ciò che il servizio conserva su di te come un unico file ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i record di utilizzo degli strumenti), connections.csv (le tue app di IA collegate, senza alcun token) e un README.txt che spiega le colonne, le unità di misura e ciò che non è incluso — con lo stesso link privato, valido per 60 minuti. Per ora i pasti sono l'unica parte che può essere reimportata.",
             params: {},
             example:
                 "Esporta tutti i miei dati — pasti, acqua, peso e obiettivi",

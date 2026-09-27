@@ -2427,7 +2427,7 @@ export const INDEX_NL: IndexDoc = {
             {
                 icon: "fa-solid fa-file-csv",
                 title: "Exporteer & bezit je gegevens",
-                body: "Neem alles wat je hier hebt — maaltijden, water, gewicht, doelen en profiel — mee als één ZIP met CSV-bestanden. Maaltijden zijn voorlopig het enige onderdeel dat je weer kunt importeren. Verwijder je account en gegevens wanneer je maar wilt.",
+                body: "Neem alles wat we over je bewaren — maaltijden, water, gewicht, doelen en profiel, plus je accountgegevens, gebruikstelemetrie en gekoppelde apps — mee als één ZIP met CSV-bestanden. Maaltijden zijn voorlopig het enige onderdeel dat je weer kunt importeren. Verwijder je account en gegevens wanneer je maar wilt.",
             },
         ],
     },

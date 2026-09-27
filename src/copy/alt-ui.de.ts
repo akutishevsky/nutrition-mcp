@@ -50,7 +50,7 @@ export const ALT_UI_DE: AltUiCopy = {
             },
             {
                 title: "Import &amp; Eigentum an deinen Daten",
-                body: "Importier deine Mahlzeiten-Historie aus dem CSV-Export einer anderen App — geparst in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit heraus: ein ZIP mit deinen Mahlzeiten, Wasser, Gewicht, Zielen und deinem Profil als CSV-Dateien. Mahlzeiten sind bisher der einzige Teil, der wieder importiert werden kann. Oder lösch dein Konto, genauso einfach.",
+                body: "Importier deine Mahlzeiten-Historie aus dem CSV-Export einer anderen App — geparst in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit heraus: ein ZIP mit deinen Mahlzeiten, Wasser, Gewicht, Zielen und deinem Profil, dazu deinem Kontodatensatz, der Nutzungs-Telemetrie und deinen verbundenen Apps, als CSV-Dateien. Mahlzeiten sind bisher der einzige Teil, der wieder importiert werden kann. Oder lösch dein Konto, genauso einfach.",
             },
             {
                 title: "Quelloffen &amp; kostenlos",

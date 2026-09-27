@@ -214,7 +214,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "記録したすべてのデータを1つのZIPとしてエクスポートします — meals.csv、water.csv、weight.csv、goals.csv、profile.csv、そして列と単位を説明するREADME.txt — 有効期限60分の同じプライベートリンクで提供されます。現時点で再インポートできるのは食事データのみです。",
+                "本サービスがあなたについて保存しているすべてのデータを1つのZIPとしてエクスポートします — meals.csv、water.csv、weight.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツール利用の記録）、connections.csv（接続中のAIアプリ、トークンは含みません）、そして列、単位、含まれない内容を説明するREADME.txt — 有効期限60分の同じプライベートリンクで提供されます。現時点で再インポートできるのは食事データのみです。",
             params: {},
             example:
                 "食事、水分、体重、目標など、すべてのデータをエクスポートして",

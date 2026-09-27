@@ -147,6 +147,9 @@ const ARCHIVE_FILES = [
     "weight.csv",
     "goals.csv",
     "profile.csv",
+    "account.csv",
+    "telemetry.csv",
+    "connections.csv",
     "README.txt",
 ];
 // The tables behind those CSVs, as the prose names them.

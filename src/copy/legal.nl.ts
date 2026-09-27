@@ -23,7 +23,7 @@ export const PRIVACY_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "Bij het registreren slaan we je <strong>e-mailadres</strong> en een veilig gehasht wachtwoord op via Supabase Auth. Meld je je in plaats daarvan aan met Google, dan vragen we Google alleen om je e-mailadres, en ontvangen we dat samen met de account-ID die Google voor jou gebruikt; Supabase Auth bewaart die zodat het je volgende aanmelding met Google herkent. Een Google-wachtwoord krijgen we nooit te zien. Accounts die zich vóór 27 september 2026 met Google hebben aangemeld, kunnen ook nog de naam en profielfoto bevatten die Google destijds meestuurde; niets in de dienst leest of toont die, en ze worden samen met je account verwijderd.",
+                    html: "Bij het registreren slaan we je <strong>e-mailadres</strong> en een veilig gehasht wachtwoord op via Supabase Auth. Meld je je in plaats daarvan aan met Google, dan vragen we Google alleen om je e-mailadres, en ontvangen we dat samen met de account-ID die Google voor jou gebruikt; Supabase Auth bewaart die zodat het je volgende aanmelding met Google herkent. Een Google-wachtwoord krijgen we nooit te zien. Accounts die zich vóór 27 september 2026 met Google hebben aangemeld, kunnen ook nog de naam en profielfoto bevatten die Google destijds meestuurde; niets in de dienst leest of toont die, behalve je gegevensexport, en ze worden samen met je account verwijderd.",
                 },
                 {
                     type: "p",
@@ -140,7 +140,7 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Inzage en overdraagbaarheid</strong> — vraag je AI-assistent om je gegevens te exporteren. Je krijgt een ZIP met CSV-bestanden met alles wat je hebt gelogd, je doelen en je instellingen. Voor al het andere wat we over je bewaren — het e-mailadres van je account, account- en aanmeldgegevens, en gebruikstelemetrie van tools — mail je ons vanaf het e-mailadres van je account, en dan sturen we je binnen een maand een kopie.",
+                        "<strong>Inzage en overdraagbaarheid</strong> — vraag je AI-assistent om je gegevens te exporteren. Je krijgt een ZIP met CSV-bestanden met alles wat we over je bewaren: je logs van maaltijden, water en gewicht, je doelen, je instellingen, je accountgegevens (e-mailadres, aanmeldmethoden en aanmelddata, en een eventuele naam of foto die Google meestuurde), je gebruikstelemetrie van tools, en de koppelingen die je AI-apps aangemeld houden — zonder de tokens zelf. Niet inbegrepen: de waarden die we om veiligheidsredenen alleen als eenrichtingshash bewaren (je wachtwoord en de tokens van je koppelingen), interne administratie zoals sleutels voor duplicaatdetectie, het runtime-logboek van de server, dat je account-ID niet bevat, en de eigen kortlevende logboeken en doorlopende back-ups van onze verwerkers. Wil je nog iets anders, mail ons dan vanaf het e-mailadres van je account, en dan antwoorden we binnen een maand.",
                         "<strong>Rectificatie</strong> — vraag je AI-assistent om een maaltijd-, water- of gewichtsregistratie te corrigeren of te verwijderen, of om je doelen en instellingen te wijzigen.",
                         "<strong>Gegevenswissing</strong> — vraag je AI-assistent om je account te verwijderen; daarmee verdwijnt alles in één keer.",
                         "<strong>Bezwaar en beperking van de verwerking</strong> — mail ons, dan antwoorden we binnen een maand.",
@@ -267,7 +267,7 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Je kunt op elk moment al je gegevens exporteren door je AI-assistent te vragen ze te exporteren. De export is een ZIP-archief met CSV-bestanden voor je maaltijden, water, gewicht, doelen en profielinstellingen; alcohol wordt meegenomen ongeacht of alcoholregistratie is ingeschakeld. De downloadlink die we teruggeven is privé en verloopt na 60 minuten.",
+                    html: "Je kunt op elk moment al je gegevens exporteren door je AI-assistent te vragen ze te exporteren. De export is een ZIP-archief met CSV-bestanden voor je maaltijden, water, gewicht, doelen, profielinstellingen, accountgegevens, gebruikstelemetrie van tools en gekoppelde AI-apps; alcohol wordt meegenomen ongeacht of alcoholregistratie is ingeschakeld. De downloadlink die we teruggeven is privé en verloopt na 60 minuten.",
                 },
                 {
                     type: "p",
