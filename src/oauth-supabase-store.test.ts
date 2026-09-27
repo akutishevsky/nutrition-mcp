@@ -30,18 +30,17 @@ const tables: Record<string, Row[]> = {
 const requests: { method: string; table: string; url: URL; body: unknown }[] =
     [];
 
-// Parses `in.(a,b)` / `in.("a","b")` into its values.
-function inList(filter: string | null): string[] | null {
-    const m = filter?.match(/^in\.\((.*)\)$/);
-    if (!m) return null;
-    return m[1]!.split(",").map((v) => v.replace(/^"(.*)"$/, "$1"));
+// Parses an `eq.<value>` filter.
+function eqValue(filter: string | null): string | null {
+    const m = filter?.match(/^eq\.(.*)$/);
+    return m ? m[1]! : null;
 }
 
 function matching(table: string, url: URL): Row[] {
     const column = table === "auth_codes" ? "code" : "token";
-    const values = inList(url.searchParams.get(column));
-    if (!values) throw new Error(`expected an in.(…) filter on ${column}`);
-    return tables[table]!.filter((r) => values.includes(r[column] as string));
+    const value = eqValue(url.searchParams.get(column));
+    if (value === null) throw new Error(`expected an eq. filter on ${column}`);
+    return tables[table]!.filter((r) => r[column] === value);
 }
 
 async function fakePostgrest(
@@ -116,24 +115,23 @@ describe("access tokens", () => {
             status: "valid",
             userId: USER,
         });
-        // A fresh token has no raw form to fall back to.
+        // Looked up by its hash alone.
         const lookup = requests.at(-1)!;
-        expect(inList(lookup.url.searchParams.get("token"))).toEqual([
+        expect(eqValue(lookup.url.searchParams.get("token"))).toBe(
             hashSecret(raw),
-        ]);
+        );
     });
 
-    test("a pre-hashing row stored as a raw UUID still resolves", async () => {
-        const legacy = crypto.randomUUID();
+    // Every row has been in hash form since the backfill; a raw row is not
+    // looked up at all.
+    test("a row stored as a raw UUID no longer resolves", async () => {
+        const raw = crypto.randomUUID();
         tables.oauth_tokens!.push({
-            token: legacy,
+            token: raw,
             user_id: USER,
             expires_at: FUTURE,
         });
-        expect(await getUserIdByToken(legacy)).toEqual({
-            status: "valid",
-            userId: USER,
-        });
+        expect(await getUserIdByToken(raw)).toEqual({ status: "invalid" });
     });
 
     test("a stored hash presented as the token does not match its own row", async () => {
@@ -159,21 +157,16 @@ describe("refresh tokens", () => {
         expect(await consumeRefreshToken(raw)).toBeNull();
     });
 
-    test("a pre-hashing raw UUID row is still consumed", async () => {
-        const legacy = crypto.randomUUID();
+    test("a row stored as a raw UUID is no longer consumed", async () => {
+        const raw = crypto.randomUUID();
         tables.refresh_tokens!.push({
-            token: legacy,
+            token: raw,
             user_id: USER,
             client_id: null,
             expires_at: FUTURE,
         });
-        expect(await consumeRefreshToken(legacy)).toEqual({
-            userId: USER,
-            clientId: null,
-        });
-        expect(tables.refresh_tokens!.some((r) => r.token === legacy)).toBe(
-            false,
-        );
+        expect(await consumeRefreshToken(raw)).toBeNull();
+        expect(tables.refresh_tokens!.some((r) => r.token === raw)).toBe(true);
     });
 });
 
@@ -196,10 +189,10 @@ describe("auth codes", () => {
         expect(await consumeAuthCode(raw)).toBeNull();
     });
 
-    test("a pre-hashing raw UUID code is still consumed", async () => {
-        const legacy = crypto.randomUUID();
+    test("a code stored as a raw UUID is no longer consumed", async () => {
+        const raw = crypto.randomUUID();
         tables.auth_codes!.push({
-            code: legacy,
+            code: raw,
             redirect_uri: "https://claude.ai/cb",
             user_id: USER,
             code_challenge: null,
@@ -207,6 +200,6 @@ describe("auth codes", () => {
             resource: null,
             expires_at: FUTURE,
         });
-        expect((await consumeAuthCode(legacy))?.user_id).toBe(USER);
+        expect(await consumeAuthCode(raw)).toBeNull();
     });
 });

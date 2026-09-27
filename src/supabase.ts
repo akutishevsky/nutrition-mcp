@@ -5,7 +5,7 @@ import { isWeightUnit, toStoredInteger, type WeightUnit } from "./units.js";
 import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { escapeLikePattern, tokenizeQuery } from "./search.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
-import { hashSecret, storedFormsOf } from "./token-hash.js";
+import { hashSecret } from "./token-hash.js";
 
 let supabase: SupabaseClient;
 
@@ -1417,8 +1417,9 @@ export async function deleteAllUserData(userId: string): Promise<void> {
 // in their existing `token` / `code` columns; the raw value only ever exists
 // in the response that hands it to the client. Every function here takes the
 // raw value and hashes it itself, so no caller can store or look one up in the
-// wrong form. Lookups match storedFormsOf(raw) — the hash, plus the raw value
-// for rows written before hashing until the backfill migration rewrites them.
+// wrong form. Lookups match hashSecret(raw) exactly: every row is in hash form
+// since the backfill (20260927120000_hash_oauth_secrets.sql), so a raw value —
+// or a stored hash presented as if it were the token — matches nothing.
 
 export async function storeToken(
     token: string,
@@ -1457,16 +1458,11 @@ const PGRST_NO_ROWS = "PGRST116";
 
 export async function getUserIdByToken(token: string): Promise<TokenLookup> {
     try {
-        // Two candidate values can match at most one row in practice (a
-        // fresh random token's hash never equals an old UUID), but limit(1)
-        // + maybeSingle keeps a duplicate from reading as an error — which
-        // would be "unavailable", not "invalid".
         const { data, error } = await getSupabase()
             .from("oauth_tokens")
             .select("user_id")
-            .in("token", storedFormsOf(token))
+            .eq("token", hashSecret(token))
             .gt("expires_at", new Date().toISOString())
-            .limit(1)
             .maybeSingle();
 
         // maybeSingle reports no row as data: null, so any error is a real
@@ -1615,13 +1611,11 @@ export async function consumeAuthCode(
     const now = new Date().toISOString();
 
     // delete … returning is what keeps a code single-use: two concurrent
-    // redemptions can't both get the row back. Not .single(): with two
-    // candidate forms, a (practically impossible) double match would be an
-    // error there, after both rows were already deleted.
+    // redemptions can't both get the row back.
     const { data, error } = await getSupabase()
         .from("auth_codes")
         .delete()
-        .in("code", storedFormsOf(code))
+        .eq("code", hashSecret(code))
         .gt("expires_at", now)
         .select();
 
@@ -1666,7 +1660,7 @@ export async function consumeRefreshToken(
     const { data, error } = await getSupabase()
         .from("refresh_tokens")
         .delete()
-        .in("token", storedFormsOf(token))
+        .eq("token", hashSecret(token))
         .gt("expires_at", new Date().toISOString())
         .select("user_id, client_id");
 

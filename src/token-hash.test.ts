@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { hashSecret, newOpaqueToken, storedFormsOf } from "./token-hash.js";
+import { hashSecret, newOpaqueToken } from "./token-hash.js";
 
 describe("hashSecret", () => {
     // Must equal Postgres encode(sha256(convert_to('abc','UTF8')),'hex') — the
@@ -35,35 +35,5 @@ describe("newOpaqueToken", () => {
     test("never repeats", () => {
         const seen = new Set(Array.from({ length: 1000 }, newOpaqueToken));
         expect(seen.size).toBe(1000);
-    });
-});
-
-describe("storedFormsOf", () => {
-    test("a new token is looked up by its hash only", () => {
-        const t = newOpaqueToken();
-        expect(storedFormsOf(t)).toEqual([hashSecret(t)]);
-    });
-
-    // TODO(oauth-hash-fallback): after the backfill, a UUID resolves by hash only.
-    test("a pre-hashing UUID is looked up by its hash and its raw value", () => {
-        const uuid = "0f8fad5b-d9cb-469f-a165-70867728950e";
-        expect(storedFormsOf(uuid)).toEqual([hashSecret(uuid), uuid]);
-    });
-
-    // Presenting a stored hash must never match its own row: that would make
-    // a leaked hash as good as the token it stands for.
-    test("a value already in hash form is never looked up raw", () => {
-        const stored = hashSecret(newOpaqueToken());
-        expect(storedFormsOf(stored)).toEqual([hashSecret(stored)]);
-    });
-
-    test("caller-controlled text never reaches the query raw", () => {
-        for (const v of [
-            'a,b"c)',
-            "",
-            "0F8FAD5B-D9CB-469F-A165-70867728950E",
-        ]) {
-            expect(storedFormsOf(v)).toEqual([hashSecret(v)]);
-        }
     });
 });
