@@ -31,6 +31,10 @@ import {
     TOTALS_ITEM,
     TRENDS_DAY_ITEM,
     MEAL_BREAKDOWN_ITEM,
+    MEAL_BREAKDOWN_TOP_N,
+    MEAL_CONTRIBUTORS,
+    topMealBreakdown,
+    emptyMealContributors,
     MAX_CALORIES,
     MAX_MACRO_G,
     MAX_ALCOHOL_G,
@@ -1227,6 +1231,26 @@ describe("structuredContent literals satisfy their schemas", () => {
                     .array(MEAL_BREAKDOWN_ITEM)
                     .parse(mealBreakdown([meal()], "UTC", alcohol)),
             ).not.toThrow();
+            const top = topMealBreakdown(
+                mealBreakdown(
+                    [meal(), meal({ caffeine_mg: 80 })],
+                    "UTC",
+                    alcohol,
+                ),
+                alcohol,
+            );
+            expect(() =>
+                MEAL_CONTRIBUTORS.parse(top.contributors),
+            ).not.toThrow();
+            expect(() =>
+                z.array(MEAL_BREAKDOWN_ITEM).parse(top.meals),
+            ).not.toThrow();
+            // The alcohol key is present either way: null when tracking is off.
+            expect(Object.keys(top.contributors)).toContain("alcohol_g");
+            expect(top.contributors.alcohol_g).toBe(alcohol ? 2 : null);
+            const empty = emptyMealContributors(alcohol);
+            expect(() => MEAL_CONTRIBUTORS.parse(empty)).not.toThrow();
+            expect(empty.alcohol_g).toBe(alcohol ? 0 : null);
         }
     });
 
@@ -1440,6 +1464,11 @@ const db = {
     goals: null as NutritionGoals | null,
     meals: [] as Meal[],
     water: [] as WaterEntry[],
+    // getWaterByDate's rows (get_water_today / _by_date and buildMealProgress);
+    // `water` above feeds the range reader.
+    waterByDate: [] as WaterEntry[],
+    // getWeightInRange's rows.
+    weights: [] as WeightEntry[],
     inserted: [] as Record<string, unknown>[],
     // Same capture as `inserted`, for the non-meal write paths. Each one
     // resolves logged_at independently, so each needs its own witness.
@@ -1486,7 +1515,7 @@ mock.module("./supabase.js", () => ({
     getUserTimezone: async () => db.profile?.timezone ?? "UTC",
     getNutritionGoals: async () => db.goals,
     getMealsByDate: async () => db.meals,
-    getWaterByDate: async () => [],
+    getWaterByDate: async () => db.waterByDate,
     // The range readers behind get_nutrition_summary. They ignore the dates and
     // hand back whatever the test staged: the fixtures below already sit inside
     // the window they ask for, and filtering here would only re-implement the
@@ -1498,7 +1527,7 @@ mock.module("./supabase.js", () => ({
     },
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.
-    getWeightInRange: async () => [],
+    getWeightInRange: async () => db.weights,
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
         db.inserted.push(input);
         const saved = storedMeal(input);
@@ -1615,6 +1644,8 @@ beforeEach(() => {
     db.goals = null;
     db.meals = [];
     db.water = [];
+    db.waterByDate = [];
+    db.weights = [];
     db.inserted = [];
     db.mealUpdates = [];
     db.waterInserted = [];
@@ -3092,6 +3123,340 @@ describe("date-range listings reject bad and oversized ranges", () => {
                 `Invalid end_date "2026-02-30": not a real calendar date`,
             );
         });
+    });
+});
+
+// ---------- meal listings are compact, local-time and bounded ----------
+//
+// A 30-day get_meals_by_date_range used to return ~257 KB: every meal as a
+// dozen lines with its raw UTC instant and full notes. The listings now default
+// to one line per meal (src/meal-listing.ts carries the unit tests); these
+// drive the real tools to prove the wiring, the schema and the descriptions.
+describe("meal listings are compact by default", () => {
+    const KYIV_ISO = "2026-01-15T19:05:00.000Z";
+
+    test("get_meals_today: one line with the id, local time, no note text", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.meals = [meal({ logged_at: KYIV_ISO, notes: "long note" })];
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_today");
+            expect(r.isError).toBeFalsy();
+            const text = textOf(r);
+            expect(text).toContain(`[id: ${MEAL_ID}]`);
+            expect(text).toContain("Times are local (Europe/Kyiv)");
+            expect(text).toContain("21:05");
+            expect(text).not.toContain("long note");
+            expect(text).not.toContain(KYIV_ISO);
+            expect(text).not.toContain("T19:05");
+
+            const full = textOf(
+                await call("get_meals_today", { detail: "full" }),
+            );
+            expect(full).toContain("Notes: long note");
+            expect(full).toContain("Time: 2026-01-15 21:05");
+            expect(full).not.toContain(KYIV_ISO);
+        });
+    });
+
+    // Pinned form: the v2 SDK answers an input-schema violation with an
+    // isError tool result naming the field (the same form the write-tool
+    // bounds above get), not a rejected callTool promise. The handler never
+    // runs, so no analytics row is written.
+    test("get_meals_by_date rejects an unknown detail at the schema", async () => {
+        db.meals = [meal()];
+        await withTools(null, async (call) => {
+            const r = await call("get_meals_by_date", {
+                date: "2026-07-26",
+                detail: "bogus",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("detail");
+        });
+        expect(
+            db.analyticsRows.filter((r) => r.tool_name === "get_meals_by_date"),
+        ).toHaveLength(0);
+    });
+
+    test("the range listing keeps its day headers in both modes", async () => {
+        db.meals = [meal({ logged_at: "2026-01-15T12:00:00.000Z" })];
+        await withTools(null, async (call) => {
+            for (const detail of [undefined, "compact", "full"]) {
+                const r = await call("get_meals_by_date_range", {
+                    start_date: "2026-01-01",
+                    end_date: "2026-01-31",
+                    ...(detail ? { detail } : {}),
+                });
+                expect(r.isError).toBeFalsy();
+                expect(textOf(r)).toContain("## 2026-01-15 (1 meal)");
+                expect(textOf(r)).toContain("Times are local (UTC)");
+            }
+        });
+    });
+
+    test("detail is not sent to analytics", async () => {
+        db.meals = [meal()];
+        await withTools(null, async (call) => {
+            await call("get_meals_by_date", {
+                date: "2026-07-26",
+                detail: "full",
+            });
+        });
+        const row = db.analyticsRows.find(
+            (r) => r.tool_name === "get_meals_by_date",
+        )!;
+        expect(JSON.stringify(row)).not.toContain("detail");
+    });
+
+    test("listTools shows detail on all three listings, and the id sources name the range tool", async () => {
+        const server = new McpServer(
+            { name: "t", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [ct, st] = InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "c", version: "0.0.0" });
+        await Promise.all([server.connect(st), client.connect(ct)]);
+        const { tools } = await client.listTools();
+        await client.close();
+        await server.close();
+
+        for (const name of [
+            "get_meals_today",
+            "get_meals_by_date",
+            "get_meals_by_date_range",
+        ]) {
+            const schema = tools.find((t) => t.name === name)?.inputSchema as {
+                properties?: Record<string, { enum?: string[] }>;
+                required?: string[];
+            };
+            expect(schema.properties?.detail?.enum).toEqual([
+                "compact",
+                "full",
+            ]);
+            expect(schema.required ?? []).not.toContain("detail");
+        }
+        for (const name of ["update_meal", "delete_meal"]) {
+            expect(tools.find((t) => t.name === name)?.description).toContain(
+                "get_meals_by_date_range",
+            );
+        }
+    });
+
+    test("get_water_today prints local HH:MM, not the stored instant", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.waterByDate = [
+            {
+                id: WATER_ID,
+                user_id: "u1",
+                amount_ml: 250,
+                logged_at: KYIV_ISO,
+                notes: null,
+                created_at: KYIV_ISO,
+                idempotency_key: null,
+            },
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_water_today"));
+            expect(text).toContain("Times are local (Europe/Kyiv)");
+            expect(text).toContain("- 250 ml at 21:05");
+            expect(text).not.toContain("T19:05");
+        });
+    });
+
+    test("get_weight_by_date_range prints local HH:MM, not the stored instant", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.weights = [
+            {
+                id: WEIGHT_ID,
+                user_id: "u1",
+                weight_g: 70_000,
+                logged_at: KYIV_ISO,
+                notes: null,
+                created_at: KYIV_ISO,
+                idempotency_key: null,
+            },
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_weight_by_date_range", {
+                    start_date: "2026-01-01",
+                    end_date: "2026-01-31",
+                }),
+            );
+            expect(text).toContain("Times are local (Europe/Kyiv)");
+            expect(text).toContain("## 2026-01-15");
+            expect(text).toContain("at 21:05");
+            expect(text).not.toContain("T19:05");
+        });
+    });
+
+    test("write confirmations show local time", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const logged = textOf(
+                await call("log_meal", {
+                    description: "Soup",
+                    meal_type: "dinner",
+                    logged_at: "2026-01-15T21:05",
+                }),
+            );
+            expect(logged).toContain("Time: 2026-01-15 21:05");
+            expect(logged).toContain("Meal logged (Europe/Kyiv time):");
+            expect(logged).not.toContain("T19:05");
+
+            const mealUpdated = textOf(
+                await call("update_meal", {
+                    id: MEAL_ID,
+                    logged_at: "2026-01-15T21:05",
+                }),
+            );
+            expect(mealUpdated).toContain("Meal updated (Europe/Kyiv time):");
+
+            const weight = textOf(
+                await call("log_weight", {
+                    weight: 70,
+                    unit: "kg",
+                    logged_at: "2026-01-15T21:05",
+                }),
+            );
+            expect(weight).toContain("at 2026-01-15 21:05 (Europe/Kyiv)");
+            expect(weight).not.toContain("T19:05");
+
+            const updated = textOf(
+                await call("update_weight", {
+                    id: WEIGHT_ID,
+                    logged_at: "2026-01-15T21:05",
+                }),
+            );
+            expect(updated).toContain("at 2026-01-15 21:05");
+            expect(updated).not.toContain("T19:05");
+        });
+    });
+});
+
+// ---------- the summary ships only the meals its widget can show ----------
+//
+// structuredContent.meals used to be one row per meal: 186 meals came to
+// ~47 KB, of which the widget draws the top MEAL_BREAKDOWN_TOP_N per metric.
+describe("get_nutrition_summary bounds its meal breakdown", () => {
+    const METRICS = [
+        "calories",
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "fiber_g",
+        "sugar_g",
+        "alcohol_g",
+        "caffeine_mg",
+    ] as const;
+
+    type Row = Record<string, unknown> & { description: string };
+    interface SummaryPayload {
+        meals: Row[];
+        meal_contributors: Record<string, number | null>;
+    }
+
+    /** The widget's own mealList ranking: v > 0, descending, stable. */
+    const topOf = (rows: Row[], key: string) =>
+        rows
+            .map((row) => ({ row, v: Number(row[key] ?? 0) || 0 }))
+            .filter((r) => r.v > 0)
+            .sort((a, b) => b.v - a.v)
+            .slice(0, MEAL_BREAKDOWN_TOP_N)
+            .map((r) => r.row.description);
+
+    // 31 days × 6 meals with metrics that peak on different meals, so the
+    // union is genuinely wider than any single metric's top 8.
+    function month(): Meal[] {
+        const out: Meal[] = [];
+        for (let d = 1; d <= 31; d++) {
+            for (let i = 0; i < 6; i++) {
+                const n = (d - 1) * 6 + i;
+                out.push(
+                    meal({
+                        id: `m-${n}`,
+                        logged_at: `2026-01-${String(d).padStart(2, "0")}T${String(6 + i * 2).padStart(2, "0")}:00:00.000Z`,
+                        description: `meal ${n}`,
+                        calories: 200 + ((n * 37) % 500),
+                        protein_g: (n * 13) % 60,
+                        carbs_g: (n * 29) % 90,
+                        fat_g: (n * 7) % 40,
+                        fiber_g: (n * 11) % 15,
+                        sugar_g: (n * 17) % 30,
+                        alcohol_g: n % 10 === 0 ? 14 : 0,
+                        caffeine_mg: i === 0 ? 50 + d : null,
+                    }),
+                );
+            }
+        }
+        return out;
+    }
+
+    const summarize = (call: CallTool) =>
+        call("get_nutrition_summary", {
+            start_date: "2026-01-01",
+            end_date: "2026-01-31",
+        });
+
+    test("a 186-meal month ships only the per-metric top N, with true counts", async () => {
+        const meals = month();
+        db.meals = meals;
+        for (const alcohol of ["us", null] as const) {
+            await withTools(alcohol, async (call) => {
+                const r = await summarize(call);
+                expect(r.isError).toBeFalsy();
+                const sc = r.structuredContent as unknown as SummaryPayload;
+                expect(sc.meals.length).toBeLessThanOrEqual(
+                    METRICS.length * MEAL_BREAKDOWN_TOP_N,
+                );
+                expect(sc.meals.length).toBeGreaterThan(MEAL_BREAKDOWN_TOP_N);
+                expect(sc.meal_contributors.calories).toBe(186);
+                expect(sc.meal_contributors.caffeine_mg).toBe(31);
+                expect(sc.meal_contributors.alcohol_g).toBe(
+                    alcohol ? 19 : null,
+                );
+
+                // What the full breakdown would have been, ranked the widget's
+                // way: every metric's top N survives the cut unchanged, and
+                // nothing outside every top N is shipped.
+                const all = mealBreakdown(meals, "UTC", alcohol) as Row[];
+                const tops = new Set<string>();
+                for (const key of METRICS) {
+                    const expected = topOf(all, key);
+                    expect(topOf(sc.meals, key)).toEqual(expected);
+                    for (const d of expected) tops.add(d);
+                }
+                for (const row of sc.meals) {
+                    expect(tops.has(row.description)).toBe(true);
+                }
+                expect(sc.meals.length).toBe(tops.size);
+                // Logged order is kept.
+                const order = sc.meals.map((m) =>
+                    Number(m.description.slice(5)),
+                );
+                expect([...order].sort((a, b) => a - b)).toEqual(order);
+            });
+        }
+    });
+
+    test("the empty path carries zero contributors", async () => {
+        for (const alcohol of ["us", null] as const) {
+            await withTools(alcohol, async (call) => {
+                const r = await summarize(call);
+                const sc = r.structuredContent as unknown as SummaryPayload;
+                expect(sc.meals).toEqual([]);
+                expect(sc.meal_contributors).toEqual({
+                    calories: 0,
+                    protein_g: 0,
+                    carbs_g: 0,
+                    fat_g: 0,
+                    fiber_g: 0,
+                    sugar_g: 0,
+                    alcohol_g: alcohol ? 0 : null,
+                    caffeine_mg: 0,
+                });
+            });
+        }
     });
 });
 

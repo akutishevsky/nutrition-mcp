@@ -189,13 +189,16 @@ export const TOOLS_JA: ToolsDoc = {
         },
         get_meals_today: {
             description: "今日記録したすべての食事を確認します。",
-            params: {},
+            params: {
+                detail: "<code>compact</code>（既定）は食事ごとにIDつきの1行、<code>full</code>はメモと正確な時刻も含めます",
+            },
             example: "今日は何を食べた？",
         },
         get_meals_by_date: {
             description: "特定の日に記録したすべての食事を確認します。",
             params: {
                 date: "YYYY-MM-DD形式の日付",
+                detail: "<code>compact</code>（既定）は食事ごとにIDつきの1行、<code>full</code>はメモと正確な時刻も含めます",
             },
             example: "7月4日に食べたものを全部見せて",
         },
@@ -205,6 +208,7 @@ export const TOOLS_JA: ToolsDoc = {
             params: {
                 start_date: "開始日（YYYY-MM-DD）",
                 end_date: "終了日（YYYY-MM-DD）、開始日を含めて最大31日間",
+                detail: "<code>compact</code>（既定）は食事ごとにIDつきの1行、<code>full</code>はメモと正確な時刻も含めます",
             },
             example: "月曜から金曜までの食事を一覧にして",
         },

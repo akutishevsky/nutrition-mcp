@@ -233,6 +233,24 @@ function hostPage(widget: string, params: URLSearchParams): string {
             },
             days,
             meals: meals.map((m, i) => ({ ...m, date: days[i]!.date })),
+            // What get_nutrition_summary's topMealBreakdown sends: per metric,
+            // how many meals had a value above zero. Every row here is sent, so
+            // the counts equal the rows'; bump one to preview a server that
+            // trimmed its breakdown to the top 8 ("N more meals").
+            meal_contributors: Object.fromEntries(
+                (
+                    [
+                        "calories",
+                        "protein_g",
+                        "carbs_g",
+                        "fat_g",
+                        "fiber_g",
+                        "sugar_g",
+                        "alcohol_g",
+                        "caffeine_mg",
+                    ] as const
+                ).map((k) => [k, meals.filter((m) => (m[k] ?? 0) > 0).length]),
+            ),
         },
         "goal-progress": {
             date: "2026-07-15",

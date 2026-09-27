@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { INDEX } from "./copy/index.js";
-import type { SiteLocale } from "./routes.js";
+import { TOOLS, TOOLS_COPY } from "./copy/tools.js";
+import { SITE_LOCALES, type SiteLocale } from "./routes.js";
 
 // The public pages are the only place the product describes ITSELF, and they
 // are the surface that goes stale first: a nutrient ships across the server,
@@ -359,4 +360,41 @@ test("the Nutrition Facts calorie row can wrap its odometer", async () => {
     // odometer ABOVE the label rather than below it — does not read as wrap.
     expect(blocks[0]![1]).toMatch(/flex-wrap:\s*wrap;/);
     expect(blocks[0]![1]).toMatch(/justify-content:\s*flex-end;/);
+});
+
+// scripts/gen-tools.ts renders `prose.params[p.name] ?? ""`, so a param added
+// to TOOLS but forgotten in one locale file renders as a bare name with no
+// description — silently, since ToolProse.params is a plain Record and no
+// typecheck notices a missing key. The English source leaves a few params
+// deliberately blank (self-explanatory update_meal fields); everywhere English
+// has prose, every locale must too, and every locale must at least carry the key.
+test("every /tools param has prose in every locale", () => {
+    const missing: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const doc = TOOLS_COPY[locale];
+        if (!doc) {
+            missing.push(`${locale}: no ToolsDoc`);
+            continue;
+        }
+        for (const tool of TOOLS) {
+            const prose = doc.tools[tool.name];
+            if (!prose) {
+                missing.push(`${locale}: ${tool.name}`);
+                continue;
+            }
+            for (const param of tool.params) {
+                const text = prose.params[param.name];
+                const english =
+                    TOOLS_COPY.en!.tools[tool.name]!.params[param.name];
+                if (typeof text !== "string") {
+                    missing.push(`${locale}: ${tool.name}.${param.name}`);
+                } else if (english && text.trim() === "") {
+                    missing.push(
+                        `${locale}: ${tool.name}.${param.name} (empty)`,
+                    );
+                }
+            }
+        }
+    }
+    expect(missing).toEqual([]);
 });

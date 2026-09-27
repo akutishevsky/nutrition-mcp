@@ -181,7 +181,9 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_meals_today: {
             description: "Sieh alle Mahlzeiten, die du heute erfasst hast.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ihrer ID oder <code>full</code>, um Notizen und genaue Uhrzeiten mitzuliefern",
+            },
             example: "Was habe ich heute gegessen?",
         },
         get_meals_by_date: {
@@ -189,6 +191,7 @@ export const TOOLS_DE: ToolsDoc = {
                 "Sieh alle Mahlzeiten, die du an einem bestimmten Tag erfasst hast.",
             params: {
                 date: "Datum im Format JJJJ-MM-TT",
+                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ihrer ID oder <code>full</code>, um Notizen und genaue Uhrzeiten mitzuliefern",
             },
             example: "Zeig mir alles, was ich am 4. Juli gegessen habe",
         },
@@ -199,6 +202,7 @@ export const TOOLS_DE: ToolsDoc = {
                 start_date: "Startdatum (JJJJ-MM-TT)",
                 end_date:
                     "Enddatum (JJJJ-MM-TT), höchstens 31 Tage einschließlich des Starttags",
+                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ihrer ID oder <code>full</code>, um Notizen und genaue Uhrzeiten mitzuliefern",
             },
             example: "List meine Mahlzeiten von Montag bis Freitag auf",
         },

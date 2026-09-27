@@ -182,7 +182,9 @@ export const TOOLS_ES: ToolsDoc = {
         },
         get_meals_today: {
             description: "Consulta todas las comidas que has registrado hoy.",
-            params: {},
+            params: {
+                detail: "<code>compact</code> (predeterminado) para una línea por comida con su id, o <code>full</code> para incluir las notas y las horas exactas",
+            },
             example: "¿Qué he comido hoy?",
         },
         get_meals_by_date: {
@@ -190,6 +192,7 @@ export const TOOLS_ES: ToolsDoc = {
                 "Consulta todas las comidas que registraste en un día concreto.",
             params: {
                 date: "Fecha en formato AAAA-MM-DD",
+                detail: "<code>compact</code> (predeterminado) para una línea por comida con su id, o <code>full</code> para incluir las notas y las horas exactas",
             },
             example: "Muéstrame todo lo que comí el 4 de julio",
         },
@@ -200,6 +203,7 @@ export const TOOLS_ES: ToolsDoc = {
                 start_date: "Fecha de inicio (AAAA-MM-DD)",
                 end_date:
                     "Fecha de fin (AAAA-MM-DD), como máximo 31 días contando el día de inicio",
+                detail: "<code>compact</code> (predeterminado) para una línea por comida con su id, o <code>full</code> para incluir las notas y las horas exactas",
             },
             example: "Lista mis comidas de lunes a viernes",
         },

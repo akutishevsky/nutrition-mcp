@@ -483,6 +483,12 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // toggle's chart — between the header line and the strip, so the strip
         // opens with the same hairline that separates its own sections.
         divided: !!(opts && opts.divided),
+        // Per metric, how many meals contributed a positive amount — sent by
+        // get_nutrition_summary as `meal_contributors`, because its `meals`
+        // array is bounded to the union of each metric's top CAP rows and so
+        // cannot count the rest. null (every other caller) means `meals` is
+        // complete and mealList counts its own rows.
+        contributors: opts && opts.contributors ? opts.contributors : null,
     };
 }
 
@@ -504,7 +510,10 @@ function gridCols(n) {
 // the limits row included, not just calories and the three bars.
 //
 // `opts` is optional: { drinkUnit: "us" | "uk", calLabel: string,
-// divided: boolean }.
+// divided: boolean, contributors: { [metricKey]: number } | null }.
+// `contributors` is the true per-metric count of meals with a positive value,
+// for a caller whose `meals` is a bounded subset (nutrition-summary); the
+// breakdown's "N more meals" line counts against it instead of meals.length.
 function macroPanel(vals, goal, wording, meals, opts) {
     const ctx = macroCtxOf(vals, goal, wording, meals, opts);
     // Stash it so the delegated toggle handler can build the breakdown on
@@ -573,7 +582,7 @@ let __macroCtx = null;
 
 // The list of meals that contributed a positive amount of one metric,
 // largest-first, capped so a long range stays readable.
-function mealList(m, meals) {
+function mealList(m, meals, ctx) {
     // A single meal's contribution is a fraction of the day's, so grams get a
     // tenth here even where the strip rounds them whole — a 3.4 g and a 3.1 g
     // meal must not both read "3" in a list sorted by that very figure.
@@ -590,9 +599,17 @@ function mealList(m, meals) {
         return `<div class="md-empty">${esc(tpl(T.macros.noMealsContributed, { label: macroLabel(m) }))}</div>`;
     }
 
+    // Must equal MEAL_BREAKDOWN_TOP_N in src/mcp.ts: get_nutrition_summary
+    // sends only the union of each metric's top N meals, so a larger CAP
+    // would list rows the server may have dropped.
     const CAP = 8;
     const shown = rows.slice(0, CAP);
-    const extra = rows.length - shown.length;
+    // A bounded payload carries the true count; otherwise meals is complete.
+    const total =
+        ctx && ctx.contributors && Number.isFinite(ctx.contributors[m.key])
+            ? ctx.contributors[m.key]
+            : rows.length;
+    const extra = total - shown.length;
     const items = shown
         .map(({ meal, v }) => {
             // Prefer a date tag for multi-day ranges, otherwise the meal type.
@@ -623,7 +640,7 @@ function macroDetailBody(m, ctx) {
       <div class="md-head">
         <span class="md-title"><span class="dot" style="background:${m.color}"></span>${esc(tpl(T.macros.byMealTitle, { label: macroLabel(m) }))}</span>
         <button class="md-close" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">✕</button>
-      </div>${mealList(m, ctx.meals)}`;
+      </div>${mealList(m, ctx.meals, ctx)}`;
 }
 
 // Toggle the breakdown for the tapped tile. Tapping the open tile again (or its
