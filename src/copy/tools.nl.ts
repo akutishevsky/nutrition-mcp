@@ -209,7 +209,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporteer alles wat je hebt bijgehouden als één ZIP-bestand — meals.csv, water.csv, weight.csv, goals.csv, profile.csv en een README.txt die de kolommen en eenheden uitlegt — met dezelfde privélink, 60 minuten geldig. Maaltijden zijn voorlopig het enige onderdeel dat je weer kunt importeren.",
+                "Exporteer alles wat de dienst over je bewaart als één ZIP-bestand — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (je aanmeldaccount), telemetry.csv (gebruiksgegevens van tools), connections.csv (je gekoppelde AI-apps, zonder tokens) en een README.txt die de kolommen, de eenheden en wat er niet in zit uitlegt — met dezelfde privélink, 60 minuten geldig. Maaltijden zijn voorlopig het enige onderdeel dat je weer kunt importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens — maaltijden, water, gewicht en doelen",

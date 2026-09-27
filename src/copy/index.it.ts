@@ -2334,7 +2334,7 @@ export const INDEX_IT: IndexDoc = {
             {
                 icon: "fa-solid fa-file-csv",
                 title: "Esporta e possiedi i tuoi dati",
-                body: "Porta via tutto ciò che hai qui — pasti, acqua, peso, obiettivi e profilo — come un unico ZIP di file CSV. Per ora, i pasti sono l'unica parte che può essere reimportata. Elimina il tuo account e i tuoi dati quando vuoi.",
+                body: "Porta via tutto ciò che conserviamo su di te — pasti, acqua, peso, obiettivi e profilo, oltre ai dati del tuo account, alla telemetria di utilizzo e alle app collegate — come un unico ZIP di file CSV. Per ora, i pasti sono l'unica parte che può essere reimportata. Elimina il tuo account e i tuoi dati quando vuoi.",
             },
         ],
     },

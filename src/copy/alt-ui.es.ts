@@ -44,7 +44,7 @@ export const ALT_UI_ES: AltUiCopy = {
             },
             {
                 title: "Importa &amp; controla tus datos",
-                body: "Importa tu historial de comidas desde la exportación CSV de otra app — analizada en tu navegador, no por la IA. Sácalo todo de nuevo cuando quieras: un ZIP con tus comidas, agua, peso, objetivos y perfil como archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. O elimina tu cuenta, con la misma facilidad.",
+                body: "Importa tu historial de comidas desde la exportación CSV de otra app — analizada en tu navegador, no por la IA. Sácalo todo de nuevo cuando quieras: un ZIP con tus comidas, agua, peso, objetivos y perfil, además del registro de tu cuenta, la telemetría de uso y las apps conectadas, como archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. O elimina tu cuenta, con la misma facilidad.",
             },
             {
                 title: "Código abierto &amp; gratis",

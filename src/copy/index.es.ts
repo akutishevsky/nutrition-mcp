@@ -2327,7 +2327,7 @@ export const INDEX_ES: IndexDoc = {
             {
                 icon: "fa-solid fa-file-csv",
                 title: "Exporta y sé dueño de tus datos",
-                body: "Llévate todo lo que tienes aquí (comidas, agua, peso, objetivos y perfil) como un único ZIP de archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. O elimina tu cuenta y tus datos, con la misma facilidad.",
+                body: "Llévate todo lo que almacenamos sobre ti (comidas, agua, peso, objetivos y perfil, además del registro de tu cuenta, la telemetría de uso y las apps conectadas) como un único ZIP de archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. O elimina tu cuenta y tus datos, con la misma facilidad.",
             },
         ],
     },

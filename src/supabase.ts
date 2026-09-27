@@ -1,4 +1,8 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+    createClient,
+    type SupabaseClient,
+    type User,
+} from "@supabase/supabase-js";
 import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
 import { isWeightUnit, toStoredInteger, type WeightUnit } from "./units.js";
@@ -36,18 +40,46 @@ export function getSupabase(): SupabaseClient {
 
 // ---------- Auth ----------
 
+// Supabase Auth only verifies the credential: access runs on this server's own
+// OAuth tokens. GoTrue has no verify-only call, so every successful sign-in
+// still creates an auth.sessions row and a refresh token that nothing uses,
+// and by default they never expire. End it at once — scope "local" makes
+// GoTrue delete just this session, its refresh tokens cascading with it (the
+// privacy policy says so). Not awaited, never throws: sign-in must not wait
+// on or fail because of it, and a missed one is caught by the project's
+// session time-box. Logs the status only, never the user.
+function discardAuthSession(
+    client: SupabaseClient,
+    session: { access_token: string } | null,
+): void {
+    if (!session) return; // signUp with email confirmation on returns none
+    client.auth.admin
+        .signOut(session.access_token, "local")
+        .then(({ error }) => {
+            if (error && error.status !== 404)
+                console.warn(
+                    `[auth] session-revoke-failed status=${error.status ?? "unknown"}`,
+                );
+        })
+        .catch(() =>
+            console.warn("[auth] session-revoke-failed status=network"),
+        );
+}
+
 export async function signUpUser(
     email: string,
     password: string,
 ): Promise<string> {
     // Use a throw-away client so the session never lands on the shared singleton.
-    const { data, error } = await buildClient().auth.signUp({
+    const client = buildClient();
+    const { data, error } = await client.auth.signUp({
         email,
         password,
     });
 
     if (error) throw new Error(error.message);
     if (!data.user) throw new Error("Sign-up failed");
+    discardAuthSession(client, data.session);
     return data.user.id;
 }
 
@@ -55,12 +87,14 @@ export async function signInUser(
     email: string,
     password: string,
 ): Promise<string> {
-    const { data, error } = await buildClient().auth.signInWithPassword({
+    const client = buildClient();
+    const { data, error } = await client.auth.signInWithPassword({
         email,
         password,
     });
 
     if (error) throw new Error(error.message);
+    discardAuthSession(client, data.session);
     return data.user.id;
 }
 
@@ -69,7 +103,8 @@ export async function signInWithGoogleIdToken(
     nonce: string,
 ): Promise<string> {
     // Use a throw-away client so the session never lands on the shared singleton.
-    const { data, error } = await buildClient().auth.signInWithIdToken({
+    const client = buildClient();
+    const { data, error } = await client.auth.signInWithIdToken({
         provider: "google",
         token: idToken,
         nonce,
@@ -77,6 +112,7 @@ export async function signInWithGoogleIdToken(
 
     if (error) throw new Error(error.message);
     if (!data.user) throw new Error("Google sign-in failed");
+    discardAuthSession(client, data.session);
     return data.user.id;
 }
 
@@ -1328,6 +1364,221 @@ export async function deleteWeight(
 
     if (error) throw new Error(`Failed to delete weight: ${error.message}`);
     return (data?.length ?? 0) > 0;
+}
+
+// ---------- Export-only readers (account, telemetry, connections) ----------
+
+/**
+ * Every row of `table` belonging to the user, paged past PostgREST's row cap
+ * and reconciled against the first page's exact count, throwing when short —
+ * the same contract as getAllMeals, for the export's non-log tables. `order`
+ * must be a total order (end on a unique column) or ties straddling a page
+ * edge could be skipped or repeated. A stable order does not stop offset
+ * paging from returning a row twice when a row is inserted between pages
+ * ahead of the current offset, so a table with a unique selected column
+ * passes it as `dedupeBy` and repeats are dropped (first copy kept) before
+ * the count is reconciled. tool_analytics needs this: withAnalytics stamps
+ * `invoked_at` when a call starts but inserts the row when it ends, so a
+ * parallel tool call finishing mid-export lands behind rows already paged.
+ */
+async function selectAllForUser<T>(
+    table: string,
+    columns: string,
+    noun: string,
+    userId: string,
+    order: string[],
+    dedupeBy?: keyof T,
+): Promise<T[]> {
+    let expected: number | null = null;
+    const paged = await fetchAllPages<T>(async (from, to) => {
+        let q = getSupabase()
+            .from(table)
+            .select(columns, from === 0 ? { count: "exact" } : undefined)
+            .eq("user_id", userId);
+        for (const column of order) q = q.order(column, { ascending: true });
+        const { data, error, count } = await q.range(from, to);
+        if (error) throw new Error(`Failed to get ${noun}: ${error.message}`);
+        if (from === 0) expected = count ?? null;
+        return (data as T[]) ?? [];
+    });
+    let rows = paged;
+    if (dedupeBy !== undefined) {
+        const seen = new Set<unknown>();
+        rows = paged.filter((r) => {
+            const key = r[dedupeBy];
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+    if (expected === null) {
+        throw new Error(
+            `Failed to get ${noun}: no row count came back — export would be truncated`,
+        );
+    }
+    if (rows.length < expected) {
+        throw new Error(
+            `Failed to get ${noun}: fetched ${rows.length} of ${expected} rows — export would be truncated`,
+        );
+    }
+    return rows;
+}
+
+/** One tool_analytics row, as the export reads it back. */
+export interface ToolAnalyticsRow {
+    id: string;
+    tool_name: string;
+    success: boolean;
+    duration_ms: number;
+    error_category: string | null;
+    date_range_days: number | null;
+    mcp_session_id: string | null;
+    protocol_era: string | null;
+    client_name: string | null;
+    invoked_at: string;
+    created_at: string | null;
+}
+
+/**
+ * Every tool-usage telemetry row recorded for the user, oldest first. A heavy
+ * user has thousands, so this pages and reconciles like getAllMeals.
+ * `tool_analytics.user_id` is varchar with no FK (it also holds the
+ * "[deleted]" sentinel); the uuid string compares equal to it as text.
+ */
+export async function getAllToolAnalytics(
+    userId: string,
+): Promise<ToolAnalyticsRow[]> {
+    return selectAllForUser<ToolAnalyticsRow>(
+        "tool_analytics",
+        "id, tool_name, success, duration_ms, error_category, date_range_days, mcp_session_id, protocol_era, client_name, invoked_at, created_at",
+        "telemetry",
+        userId,
+        ["invoked_at", "id"],
+        "id",
+    );
+}
+
+/**
+ * One OAuth grant held for the user: a live-or-not-yet-swept access token,
+ * refresh token or pending authorization code. Deliberately carries no
+ * `token` / `code` / `code_challenge`: those columns hold hashes of secrets
+ * (or a PKCE challenge), and nothing a user does with an export needs them.
+ */
+export interface OAuthGrantRow {
+    kind: "access_token" | "refresh_token" | "authorization_code";
+    client_id: string | null;
+    client_name: string | null;
+    redirect_uri: string | null;
+    created_at: string;
+    expires_at: string;
+}
+
+/**
+ * Every OAuth access token, refresh token and authorization code stored for
+ * the user, each table read in full and reconciled, plus the registered
+ * client_name for every client they name. Access tokens have no client_id
+ * column, so theirs is always null. Rows past expiry that the hourly sweep
+ * has not removed yet are included: they are still stored.
+ *
+ * Ordered by created_at then the secret's hash column. The hash is used only
+ * as a unique tie-break in ORDER BY and is never selected.
+ */
+export async function getAllOAuthGrants(
+    userId: string,
+): Promise<OAuthGrantRow[]> {
+    const [access, refresh, codes] = await Promise.all([
+        selectAllForUser<{ created_at: string; expires_at: string }>(
+            "oauth_tokens",
+            "created_at, expires_at",
+            "access tokens",
+            userId,
+            ["created_at", "token"],
+        ),
+        selectAllForUser<{
+            client_id: string | null;
+            created_at: string;
+            expires_at: string;
+        }>(
+            "refresh_tokens",
+            "client_id, created_at, expires_at",
+            "refresh tokens",
+            userId,
+            ["created_at", "token"],
+        ),
+        selectAllForUser<{
+            client_id: string | null;
+            redirect_uri: string;
+            created_at: string;
+            expires_at: string;
+        }>(
+            "auth_codes",
+            "client_id, redirect_uri, created_at, expires_at",
+            "authorization codes",
+            userId,
+            ["created_at", "code"],
+        ),
+    ]);
+
+    const clientIds = [
+        ...new Set(
+            [...refresh, ...codes]
+                .map((r) => r.client_id)
+                .filter((id): id is string => !!id),
+        ),
+    ];
+    const names = new Map<string, string | null>();
+    if (clientIds.length > 0) {
+        const { data, error } = await getSupabase()
+            .from("oauth_clients")
+            .select("client_id, client_name")
+            .in("client_id", clientIds);
+        if (error)
+            throw new Error(`Failed to get OAuth clients: ${error.message}`);
+        for (const r of data ?? [])
+            names.set(r.client_id as string, (r.client_name as string) ?? null);
+    }
+    const nameOf = (id: string | null) => (id ? (names.get(id) ?? null) : null);
+
+    return [
+        ...access.map((r): OAuthGrantRow => ({
+            kind: "access_token",
+            client_id: null,
+            client_name: null,
+            redirect_uri: null,
+            created_at: r.created_at,
+            expires_at: r.expires_at,
+        })),
+        ...refresh.map((r): OAuthGrantRow => ({
+            kind: "refresh_token",
+            client_id: r.client_id,
+            client_name: nameOf(r.client_id),
+            redirect_uri: null,
+            created_at: r.created_at,
+            expires_at: r.expires_at,
+        })),
+        ...codes.map((r): OAuthGrantRow => ({
+            kind: "authorization_code",
+            client_id: r.client_id,
+            client_name: nameOf(r.client_id),
+            redirect_uri: r.redirect_uri,
+            created_at: r.created_at,
+            expires_at: r.expires_at,
+        })),
+    ];
+}
+
+/**
+ * The user's Supabase Auth record (email, sign-in timestamps, identities and
+ * the profile claims a provider sent), via the service-role admin API. Null
+ * when Auth has no such user. The admin API never returns a password hash.
+ */
+export async function getAuthAccount(userId: string): Promise<User | null> {
+    const { data, error } = await getSupabase().auth.admin.getUserById(userId);
+    if (error) {
+        if (error.status === 404) return null;
+        throw new Error(`Failed to get account: ${error.message}`);
+    }
+    return data.user ?? null;
 }
 
 // ---------- Delete all user data ----------

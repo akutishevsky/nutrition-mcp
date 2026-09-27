@@ -173,7 +173,7 @@ let sweepRunning = false;
 
 /** Start the hourly OAuth cleanup sweep. Call once at server startup. */
 export function startOAuthCleanup(): void {
-    setInterval(() => {
+    const tick = () => {
         if (sweepRunning) return;
         sweepRunning = true;
         sweepOAuth()
@@ -185,5 +185,10 @@ export function startOAuthCleanup(): void {
             .finally(() => {
                 sweepRunning = false;
             });
-    }, SWEEP_INTERVAL_MS);
+    };
+    // Once at boot too: every deploy restarts the process and the interval
+    // with it, and the privacy policy promises expired tokens and codes are
+    // gone "within an hour".
+    tick();
+    setInterval(tick, SWEEP_INTERVAL_MS);
 }

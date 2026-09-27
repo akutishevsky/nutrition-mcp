@@ -1615,6 +1615,25 @@ describe("browser binding", () => {
         });
     });
 
+    // Directory policy 1.C: nothing reads the name or picture, and asking
+    // for them makes Supabase Auth store them.
+    test("Google sign-in requests only openid and email", async () => {
+        await withGoogleEnv(async () => {
+            const ip = "198.51.100.100";
+            const { app, client } = await setup(ip);
+            const browser = await openSession(app, ip, client.client_id);
+            const res = await startGoogle(
+                app,
+                ip,
+                browser.sessionId,
+                browser.cookie,
+            );
+            expect(res.status).toBe(302);
+            const google = new URL(res.headers.get("Location")!);
+            expect(google.searchParams.get("scope")).toBe("openid email");
+        });
+    });
+
     // The link-shaped entry point is gone: a GET with a session id — even
     // from the right browser — no longer reaches Google.
     test("GET /authorize/google no longer starts the Google leg", async () => {

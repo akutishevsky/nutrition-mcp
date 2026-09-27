@@ -199,7 +199,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co śledzisz, jako jeden plik ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv oraz README.txt z wyjaśnieniem kolumn i jednostek — pod tym samym prywatnym linkiem, ważnym przez 60 minut. Na razie tylko posiłki można zaimportować z powrotem.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, jako jeden plik ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (zapisy korzystania z narzędzi), connections.csv (Twoje połączone aplikacje AI, bez żadnych tokenów) oraz README.txt z wyjaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — pod tym samym prywatnym linkiem, ważnym przez 60 minut. Na razie tylko posiłki można zaimportować z powrotem.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",

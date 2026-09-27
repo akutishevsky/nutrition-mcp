@@ -4542,6 +4542,9 @@ describe("export_all_data is on the tool surface", () => {
             "weight.csv",
             "goals.csv",
             "profile.csv",
+            "account.csv",
+            "telemetry.csv",
+            "connections.csv",
             "README.txt",
         ]) {
             expect(desc, file).toContain(file);

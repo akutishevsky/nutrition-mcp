@@ -785,7 +785,7 @@ export const INDEX_DE: IndexDoc = {
             {
                 icon: "fa-solid fa-file-csv",
                 title: "Export & Eigentum an deinen Daten",
-                body: "Nimm alles mit, was du hier hast — Mahlzeiten, Wasser, Gewicht, Ziele und Profil — als ein ZIP mit CSV-Dateien. Mahlzeiten sind bisher der einzige Teil, der wieder importiert werden kann. Lösch dein Konto und deine Daten, wann immer du willst.",
+                body: "Nimm alles mit, was wir über dich speichern — Mahlzeiten, Wasser, Gewicht, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungs-Telemetrie und deine verbundenen Apps — als ein ZIP mit CSV-Dateien. Mahlzeiten sind bisher der einzige Teil, der wieder importiert werden kann. Lösch dein Konto und deine Daten, wann immer du willst.",
             },
         ],
     },

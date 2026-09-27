@@ -741,7 +741,7 @@ export const INDEX_PL: IndexDoc = {
             {
                 icon: "fa-solid fa-file-csv",
                 title: "Eksport i własność Twoich danych",
-                body: "Zabierz wszystko, co tu masz — posiłki, wodę, wagę, cele i profil — jako jeden ZIP z plikami CSV. Na razie tylko posiłki można zaimportować z powrotem. Usuń swoje konto i dane, kiedy tylko zechcesz.",
+                body: "Zabierz wszystko, co o Tobie przechowujemy — posiłki, wodę, wagę, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — jako jeden ZIP z plikami CSV. Na razie tylko posiłki można zaimportować z powrotem. Usuń swoje konto i dane, kiedy tylko zechcesz.",
             },
         ],
     },

@@ -529,6 +529,19 @@ describe("formatFoodResult", () => {
         expect(text).toContain("barcode 737628064502");
     });
 
+    // ODbL requires attribution wherever the data is shown.
+    test("credits Open Food Facts under the ODbL", () => {
+        const text = formatFoodResult(base);
+        expect(text).toContain(
+            "Source: Open Food Facts (barcode 737628064502)",
+        );
+        expect(text).toContain("© Open Food Facts contributors");
+        expect(text).toContain("Open Database License (ODbL)");
+        expect(text).toContain(
+            "https://opendatacommons.org/licenses/odbl/1-0/",
+        );
+    });
+
     test("includes Nutri-Score and NOVA when OFF has computed them", () => {
         const text = formatFoodResult(base);
         expect(text).toContain("Nutri-Score: B");
