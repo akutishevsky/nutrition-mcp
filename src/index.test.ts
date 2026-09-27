@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach } from "bun:test";
+import { test, expect, describe, afterEach, spyOn } from "bun:test";
 
 import { app, setShuttingDownForTest } from "./index.js";
 
@@ -150,6 +150,62 @@ describe("/token responses answered before the OAuth router", () => {
         expect(r.status).toBe(503);
         expect(r.headers.get("Cache-Control")).toBe("no-store");
         expect(r.headers.get("Pragma")).toBe("no-cache");
+    });
+});
+
+// One `[oauth] token …` line per /token call, the two app-level short circuits
+// included: the router never sees those, so index.ts logs them itself — and
+// must not add a second line for a call the router did log.
+describe("/token log line", () => {
+    async function tokenLines(init: RequestInit): Promise<string[]> {
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        const log = spyOn(console, "log").mockImplementation(() => {});
+        try {
+            await app.request("http://x/token", { method: "POST", ...init });
+            return [...warn.mock.calls, ...log.mock.calls]
+                .map((c) => String(c[0]))
+                .filter((l) => l.startsWith("[oauth] token "));
+        } finally {
+            warn.mockRestore();
+            log.mockRestore();
+        }
+    }
+
+    test("the body-limit 413 logs one line", async () => {
+        expect(
+            await tokenLines({
+                headers: {
+                    "content-type": "application/x-www-form-urlencoded",
+                    "content-length": String(2 * 1024 * 1024),
+                },
+                body: "grant_type=" + "a".repeat(2 * 1024 * 1024),
+            }),
+        ).toEqual([
+            "[oauth] token grant=unknown result=payload_too_large client=none",
+        ]);
+    });
+
+    test("the shutdown gate's 503 logs one line", async () => {
+        setShuttingDownForTest(true);
+        expect(
+            await tokenLines({
+                headers: {
+                    "content-type": "application/x-www-form-urlencoded",
+                },
+                body: "grant_type=refresh_token",
+            }),
+        ).toEqual([
+            "[oauth] token grant=unknown result=shutting_down client=none",
+        ]);
+    });
+
+    test("a call the router answers logs only the router's line", async () => {
+        const lines = await tokenLines({
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: "grant_type=password",
+        });
+        expect(lines).toHaveLength(1);
+        expect(lines[0]).toStartWith("[oauth] token grant=unsupported ");
     });
 });
 

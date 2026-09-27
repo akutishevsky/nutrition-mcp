@@ -5,6 +5,7 @@ import { isWeightUnit, toStoredInteger, type WeightUnit } from "./units.js";
 import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { escapeLikePattern, tokenizeQuery } from "./search.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
+import { hashSecret, storedFormsOf } from "./token-hash.js";
 
 let supabase: SupabaseClient;
 
@@ -1412,21 +1413,30 @@ export async function deleteAllUserData(userId: string): Promise<void> {
 
 // ---------- OAuth tokens ----------
 
+// Access tokens, refresh tokens and auth codes are stored as hashSecret(raw)
+// in their existing `token` / `code` columns; the raw value only ever exists
+// in the response that hands it to the client. Every function here takes the
+// raw value and hashes it itself, so no caller can store or look one up in the
+// wrong form. Lookups match storedFormsOf(raw) — the hash, plus the raw value
+// for rows written before hashing until the backfill migration rewrites them.
+
 export async function storeToken(
     token: string,
     userId: string,
-    ttlSeconds: number = 365 * 24 * 60 * 60,
+    ttlSeconds: number,
 ): Promise<void> {
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
 
-    const { error } = await getSupabase().from("oauth_tokens").upsert(
-        {
-            token,
-            user_id: userId,
-            expires_at: expiresAt,
-        },
-        { onConflict: "token" },
-    );
+    const { error } = await getSupabase()
+        .from("oauth_tokens")
+        .upsert(
+            {
+                token: hashSecret(token),
+                user_id: userId,
+                expires_at: expiresAt,
+            },
+            { onConflict: "token" },
+        );
 
     if (error) throw new Error(`Failed to store token: ${error.message}`);
 }
@@ -1447,18 +1457,21 @@ const PGRST_NO_ROWS = "PGRST116";
 
 export async function getUserIdByToken(token: string): Promise<TokenLookup> {
     try {
+        // Two candidate values can match at most one row in practice (a
+        // fresh random token's hash never equals an old UUID), but limit(1)
+        // + maybeSingle keeps a duplicate from reading as an error — which
+        // would be "unavailable", not "invalid".
         const { data, error } = await getSupabase()
             .from("oauth_tokens")
             .select("user_id")
-            .eq("token", token)
+            .in("token", storedFormsOf(token))
             .gt("expires_at", new Date().toISOString())
-            .single();
+            .limit(1)
+            .maybeSingle();
 
-        if (error) {
-            return error.code === PGRST_NO_ROWS
-                ? { status: "invalid" }
-                : { status: "unavailable" };
-        }
+        // maybeSingle reports no row as data: null, so any error is a real
+        // failure to find out.
+        if (error) return { status: "unavailable" };
         if (!data) return { status: "invalid" };
         return { status: "valid", userId: data.user_id as string };
     } catch {
@@ -1569,20 +1582,24 @@ export interface AuthCodeRecord {
 export async function storeAuthCode(rec: AuthCodeRecord): Promise<void> {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    const { error } = await getSupabase().from("auth_codes").insert({
-        code: rec.code,
-        redirect_uri: rec.redirectUri,
-        user_id: rec.userId,
-        code_challenge: rec.codeChallenge,
-        client_id: rec.clientId,
-        resource: rec.resource,
-        expires_at: expiresAt,
-    });
+    const { error } = await getSupabase()
+        .from("auth_codes")
+        .insert({
+            code: hashSecret(rec.code),
+            redirect_uri: rec.redirectUri,
+            user_id: rec.userId,
+            code_challenge: rec.codeChallenge,
+            client_id: rec.clientId,
+            resource: rec.resource,
+            expires_at: expiresAt,
+        });
 
     if (error) throw new Error(`Failed to store auth code: ${error.message}`);
 }
 
 export interface AuthCodeData {
+    // The at-rest form (the hash, or a pre-hashing raw UUID), not the value the
+    // client presented.
     code: string;
     redirect_uri: string;
     user_id: string;
@@ -1597,16 +1614,19 @@ export async function consumeAuthCode(
 ): Promise<AuthCodeData | null> {
     const now = new Date().toISOString();
 
+    // delete … returning is what keeps a code single-use: two concurrent
+    // redemptions can't both get the row back. Not .single(): with two
+    // candidate forms, a (practically impossible) double match would be an
+    // error there, after both rows were already deleted.
     const { data, error } = await getSupabase()
         .from("auth_codes")
         .delete()
-        .eq("code", code)
+        .in("code", storedFormsOf(code))
         .gt("expires_at", now)
-        .select()
-        .single();
+        .select();
 
-    if (error || !data) return null;
-    return data as AuthCodeData;
+    if (error || !data || data.length === 0) return null;
+    return data[0] as AuthCodeData;
 }
 
 // ---------- Refresh tokens ----------
@@ -1614,21 +1634,24 @@ export async function consumeAuthCode(
 // clientId is the OAuth client the token was issued to (refresh_tokens.client_id);
 // null only for a refresh that started from a pre-binding, null-client token
 // presented without any client credentials.
+// ttlSeconds is counted from now: each rotation gets a fresh lifetime
+// (sliding), while the token itself stays strictly single-use.
 export async function storeRefreshToken(
     token: string,
     userId: string,
     clientId: string | null,
+    ttlSeconds: number,
 ): Promise<void> {
-    const expiresAt = new Date(
-        Date.now() + 365 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
 
-    const { error } = await getSupabase().from("refresh_tokens").insert({
-        token,
-        user_id: userId,
-        client_id: clientId,
-        expires_at: expiresAt,
-    });
+    const { error } = await getSupabase()
+        .from("refresh_tokens")
+        .insert({
+            token: hashSecret(token),
+            user_id: userId,
+            client_id: clientId,
+            expires_at: expiresAt,
+        });
 
     if (error)
         throw new Error(`Failed to store refresh token: ${error.message}`);
@@ -1639,18 +1662,19 @@ export async function storeRefreshToken(
 export async function consumeRefreshToken(
     token: string,
 ): Promise<{ userId: string; clientId: string | null } | null> {
+    // Atomic single use, as in consumeAuthCode.
     const { data, error } = await getSupabase()
         .from("refresh_tokens")
         .delete()
-        .eq("token", token)
+        .in("token", storedFormsOf(token))
         .gt("expires_at", new Date().toISOString())
-        .select("user_id, client_id")
-        .single();
+        .select("user_id, client_id");
 
-    if (error || !data) return null;
+    const row = data?.[0];
+    if (error || !row) return null;
     return {
-        userId: data.user_id as string,
-        clientId: (data.client_id as string | null) ?? null,
+        userId: row.user_id as string,
+        clientId: (row.client_id as string | null) ?? null,
     };
 }
 
@@ -1797,6 +1821,101 @@ export async function touchOAuthClient(clientId: string): Promise<void> {
         console.error(
             `[oauth] failed to update client last_used_at: ${error.message}`,
         );
+}
+
+// ---------- OAuth cleanup (src/oauth-cleanup.ts drives these) ----------
+
+// Deletes every row of an OAuth token/code table whose expires_at has passed,
+// returning how many went. All three tables expire on the same column.
+export async function deleteExpiredOAuthRows(
+    table: "oauth_tokens" | "refresh_tokens" | "auth_codes",
+    nowIso: string,
+): Promise<number> {
+    const { count, error } = await getSupabase()
+        .from(table)
+        .delete({ count: "exact" })
+        .lt("expires_at", nowIso);
+    if (error)
+        throw new Error(`Failed to delete expired ${table}: ${error.message}`);
+    return count ?? 0;
+}
+
+// One page of registrations that never authenticated at /token and were
+// created inside the sweep window (see CLIENT_SWEEP_FLOOR_ISO in
+// src/oauth-cleanup.ts for why it has a lower bound), ordered by client_id so
+// the caller can page with afterId.
+export async function listUnusedOAuthClientIds(
+    window: { createdAtOrAfterIso: string; createdBeforeIso: string },
+    afterId: string | null,
+    limit: number,
+): Promise<string[]> {
+    let q = getSupabase()
+        .from("oauth_clients")
+        .select("client_id")
+        .is("last_used_at", null)
+        .gte("created_at", window.createdAtOrAfterIso)
+        .lt("created_at", window.createdBeforeIso);
+    if (afterId !== null) q = q.gt("client_id", afterId);
+    const { data, error } = await q.order("client_id").limit(limit);
+    if (error)
+        throw new Error(
+            `Failed to list unused OAuth clients: ${error.message}`,
+        );
+    return (data ?? []).map((r) => r.client_id as string);
+}
+
+// Which of these client ids a refresh token or an auth code still names. This
+// cannot see a pre-Phase-B refresh token, whose client_id is NULL; the sweep
+// window's floor keeps those clients out of the candidates instead.
+//
+// A short answer here would delete a client that holds a grant, so the rows
+// are reconciled against an exact count and the call throws when PostgREST's
+// row cap (1000 by default, #66) truncated them; the sweep then skips client
+// deletion for that run rather than guess.
+export async function oauthClientIdsWithGrants(
+    ids: string[],
+): Promise<Set<string>> {
+    const held = new Set<string>();
+    if (ids.length === 0) return held;
+    for (const table of ["refresh_tokens", "auth_codes"] as const) {
+        const { data, error, count } = await getSupabase()
+            .from(table)
+            .select("client_id", { count: "exact" })
+            .in("client_id", ids);
+        if (error)
+            throw new Error(
+                `Failed to check ${table} for OAuth clients: ${error.message}`,
+            );
+        const rows = data ?? [];
+        if (count === null || rows.length < count)
+            throw new Error(
+                `Checking ${table} for OAuth clients returned ${rows.length} of ${count ?? "?"} rows`,
+            );
+        for (const r of rows) held.add(r.client_id as string);
+    }
+    return held;
+}
+
+// Deletes these registrations, re-checking in the same statement that each is
+// still unused and inside the sweep window, so a client that authenticated
+// since it was listed survives. Returns how many rows went.
+export async function deleteUnusedOAuthClients(
+    ids: string[],
+    window: { createdAtOrAfterIso: string; createdBeforeIso: string },
+): Promise<number> {
+    if (ids.length === 0) return 0;
+    const { count, error } = await getSupabase()
+        .from("oauth_clients")
+        .delete({ count: "exact" })
+        .in("client_id", ids)
+        .is("last_used_at", null)
+        .gte("created_at", window.createdAtOrAfterIso)
+        .lt("created_at", window.createdBeforeIso);
+    if (error)
+        throw new Error(
+            `Failed to delete unused OAuth clients: ${error.message}`,
+        );
+    return count ?? 0;
 }
 
 // Is this exact string in the hand-reviewed snapshot of redirects the legacy

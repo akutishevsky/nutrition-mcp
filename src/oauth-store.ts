@@ -3,7 +3,7 @@
 // below; src/oauth.test.ts passes in-memory fakes instead, which is why that
 // test file never needs mock.module("./supabase.js") — a process-wide mock
 // there is exactly what broke middleware.test.ts on Linux CI once already.
-import crypto from "node:crypto";
+import { hashSecret } from "./token-hash.js";
 import {
     consumeAuthCode,
     consumeRefreshToken,
@@ -50,6 +50,11 @@ export interface OAuthStore {
     // response, and it must not throw.
     touchClient(clientId: string): Promise<void>;
     isLegacyRedirect(uri: string): Promise<boolean>;
+    // Tokens and codes cross this interface raw. The store owns their at-rest
+    // form: it writes only hashSecret(raw), and a consume or lookup matches
+    // storedFormsOf(raw) (src/token-hash.ts) — the hash, plus the raw value of
+    // a pre-hashing row until the backfill rewrites those. Both the Supabase
+    // store and the test fake keep this contract.
     storeAuthCode(rec: AuthCodeRecord): Promise<void>;
     consumeAuthCode(code: string): Promise<AuthCodeData | null>;
     storeToken(
@@ -61,6 +66,7 @@ export interface OAuthStore {
         token: string,
         userId: string,
         clientId: string | null,
+        ttlSeconds: number,
     ): Promise<void>;
     consumeRefreshToken(
         token: string,
@@ -72,13 +78,6 @@ export interface OAuthAuth {
     signIn(email: string, password: string): Promise<string>;
     signUp(email: string, password: string): Promise<string>;
     signInWithGoogleIdToken(idToken: string, rawNonce: string): Promise<string>;
-}
-
-// Lowercase sha256 hex — the at-rest form of a client secret (and, from Phase
-// C, of tokens and codes). Must agree with Postgres
-// encode(sha256(convert_to(x,'UTF8')),'hex') for the backfill to line up.
-export function sha256Hex(raw: string): string {
-    return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
 // The static OAUTH_CLIENT_ID / OAUTH_CLIENT_SECRET client every caller used
@@ -93,7 +92,7 @@ export function legacyClientFromEnv(): OAuthClient | null {
     if (!clientId || !clientSecret) return null;
     return {
         clientId,
-        secretHash: sha256Hex(clientSecret),
+        secretHash: hashSecret(clientSecret),
         authMethod: "client_secret_post",
         redirectUris: [],
         legacy: true,

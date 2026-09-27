@@ -1,9 +1,10 @@
-import { test, expect, describe } from "bun:test";
+import { test, expect, describe, spyOn } from "bun:test";
 import crypto from "node:crypto";
 import { Hono } from "hono";
 import {
     ACCESS_TOKEN_TTL_SECONDS,
     OAUTH_PATHS,
+    REFRESH_TOKEN_TTL_SECONDS,
     createOAuthRouter,
     renderLoginPage,
     type OAuthRouterDeps,
@@ -16,6 +17,7 @@ import type {
     OAuthStore,
 } from "./oauth-store.js";
 import { pkceS256 } from "./oauth-validate.js";
+import { hashSecret, storedFormsOf } from "./token-hash.js";
 import { authorizationServerMetadata } from "./discovery.js";
 import { _resetBuckets } from "./rate-limit.js";
 import { SITE_LOCALES } from "./routes.js";
@@ -43,12 +45,25 @@ test("nonce is hashed as lowercase hex SHA-256", () => {
 // In-memory OAuthStore. Plain Maps, not a mock: the router's behaviour against
 // it is what is under test, and dump() lets a test inspect what was stored —
 // e.g. that only a secret's hash ever reaches storage.
+//
+// It keeps the same at-rest contract as the Supabase store (see OAuthStore):
+// codes, access tokens and refresh tokens are keyed by hashSecret(raw), and a
+// consume matches storedFormsOf(raw) — so a row a test seeds under a raw UUID
+// is a pre-hashing row, found only through the raw-lookup fallback.
+//
+// That contract is re-implemented here, so the hashing tests in this file
+// prove the router hands the store raw values and returns the raw one to the
+// client — not that src/supabase.ts hashes. The real store functions are
+// pinned by src/oauth-supabase-store.test.ts.
 function fakeStore(opts: { legacyRedirects?: string[] } = {}) {
     const state = {
         clients: new Map<string, NewOAuthClient>(),
         codes: new Map<string, AuthCodeData>(),
         tokens: new Map<string, { userId: string; ttlSeconds: number }>(),
-        refresh: new Map<string, { userId: string; clientId: string | null }>(),
+        refresh: new Map<
+            string,
+            { userId: string; clientId: string | null; ttlSeconds?: number }
+        >(),
         // Client ids touchClient was called with, in order.
         touched: [] as string[],
     };
@@ -75,8 +90,8 @@ function fakeStore(opts: { legacyRedirects?: string[] } = {}) {
             return legacyRedirects.has(uri);
         },
         async storeAuthCode(rec) {
-            state.codes.set(rec.code, {
-                code: rec.code,
+            state.codes.set(hashSecret(rec.code), {
+                code: hashSecret(rec.code),
                 redirect_uri: rec.redirectUri,
                 user_id: rec.userId,
                 code_challenge: rec.codeChallenge,
@@ -85,20 +100,34 @@ function fakeStore(opts: { legacyRedirects?: string[] } = {}) {
             });
         },
         async consumeAuthCode(code) {
-            const rec = state.codes.get(code) ?? null;
-            state.codes.delete(code);
-            return rec;
+            for (const key of storedFormsOf(code)) {
+                const rec = state.codes.get(key);
+                if (rec) {
+                    state.codes.delete(key);
+                    return rec;
+                }
+            }
+            return null;
         },
         async storeToken(token, userId, ttlSeconds) {
-            state.tokens.set(token, { userId, ttlSeconds });
+            state.tokens.set(hashSecret(token), { userId, ttlSeconds });
         },
-        async storeRefreshToken(token, userId, clientId) {
-            state.refresh.set(token, { userId, clientId });
+        async storeRefreshToken(token, userId, clientId, ttlSeconds) {
+            state.refresh.set(hashSecret(token), {
+                userId,
+                clientId,
+                ttlSeconds,
+            });
         },
         async consumeRefreshToken(token) {
-            const rec = state.refresh.get(token) ?? null;
-            state.refresh.delete(token);
-            return rec;
+            for (const key of storedFormsOf(token)) {
+                const rec = state.refresh.get(key);
+                if (rec) {
+                    state.refresh.delete(key);
+                    return { userId: rec.userId, clientId: rec.clientId };
+                }
+            }
+            return null;
         },
         dump: () => state,
     };
@@ -222,6 +251,13 @@ function authorizePath(
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(all)) if (v !== undefined) q.set(k, v);
     return `/authorize?${q.toString()}`;
+}
+
+// The authorization code an /approve redirect carries — the only place the
+// raw code exists; the store holds just its hash.
+function codeFrom(approve: Response): string {
+    expect(approve.status).toBe(302);
+    return new URL(approve.headers.get("Location")!).searchParams.get("code")!;
 }
 
 function sessionIdFrom(html: string): string | undefined {
@@ -868,7 +904,7 @@ describe("legacy env client", () => {
 
     test("/token accepts the legacy client's id and secret", async () => {
         _resetBuckets();
-        const { app, store } = buildLegacyApp();
+        const { app } = buildLegacyApp();
         const ip = "198.51.100.44";
         const authorize = await fire(
             app,
@@ -877,18 +913,19 @@ describe("legacy env client", () => {
             ip,
         );
         const sessionId = sessionIdFrom(await authorize.text())!;
-        await postForm(
-            app,
-            "/approve",
-            ip,
-            {
-                session_id: sessionId,
-                email: "a@example.com",
-                password: "pw",
-            },
-            { cookie: bindingCookie(authorize) },
+        const code = codeFrom(
+            await postForm(
+                app,
+                "/approve",
+                ip,
+                {
+                    session_id: sessionId,
+                    email: "a@example.com",
+                    password: "pw",
+                },
+                { cookie: bindingCookie(authorize) },
+            ),
         );
-        const [code] = [...store.dump().codes.keys()];
         const res = await postForm(app, "/token", ip, {
             grant_type: "authorization_code",
             code: code!,
@@ -917,19 +954,19 @@ describe("legacy env client", () => {
                 }),
                 ip,
             );
-            const before = new Set(store.dump().codes.keys());
-            await postForm(
-                app,
-                "/approve",
-                ip,
-                {
-                    session_id: sessionIdFrom(await authorize.text())!,
-                    email: "a@example.com",
-                    password: "pw",
-                },
-                { cookie: bindingCookie(authorize) },
+            return codeFrom(
+                await postForm(
+                    app,
+                    "/approve",
+                    ip,
+                    {
+                        session_id: sessionIdFrom(await authorize.text())!,
+                        email: "a@example.com",
+                        password: "pw",
+                    },
+                    { cookie: bindingCookie(authorize) },
+                ),
             );
-            return [...store.dump().codes.keys()].find((k) => !before.has(k))!;
         }
         const grant = (c: string) => ({
             grant_type: "authorization_code",
@@ -966,26 +1003,26 @@ describe("legacy env client", () => {
     });
 
     // Runs authorize -> approve for the legacy client and returns the code.
-    async function legacyCode(app: Hono, store: FakeStore, ip: string) {
+    async function legacyCode(app: Hono, ip: string) {
         const authorize = await fire(
             app,
             "GET",
             authorizePath({ client_id: LEGACY_ID, redirect_uri: SNAPSHOT_URI }),
             ip,
         );
-        const before = new Set(store.dump().codes.keys());
-        await postForm(
-            app,
-            "/approve",
-            ip,
-            {
-                session_id: sessionIdFrom(await authorize.text())!,
-                email: "a@example.com",
-                password: "pw",
-            },
-            { cookie: bindingCookie(authorize) },
+        return codeFrom(
+            await postForm(
+                app,
+                "/approve",
+                ip,
+                {
+                    session_id: sessionIdFrom(await authorize.text())!,
+                    email: "a@example.com",
+                    password: "pw",
+                },
+                { cookie: bindingCookie(authorize) },
+            ),
         );
-        return [...store.dump().codes.keys()].find((k) => !before.has(k))!;
     }
 
     // The MCP SDK builds Basic as btoa(`${id}:${secret}`) with no
@@ -999,7 +1036,7 @@ describe("legacy env client", () => {
             "abc%zz",
         ].entries()) {
             _resetBuckets();
-            const { app, store } = buildLegacyApp(secret);
+            const { app } = buildLegacyApp(secret);
             const ip = `198.51.100.${46 + i}`;
             const res = await postForm(
                 app,
@@ -1007,7 +1044,7 @@ describe("legacy env client", () => {
                 ip,
                 {
                     grant_type: "authorization_code",
-                    code: await legacyCode(app, store, ip),
+                    code: await legacyCode(app, ip),
                     redirect_uri: SNAPSHOT_URI,
                     code_verifier: VERIFIER,
                 },
@@ -1026,11 +1063,11 @@ describe("legacy env client", () => {
     // /token accepted its secret with no client_id; kept until the sunset.
     test("/token: a legacy secret with no client_id is the legacy client", async () => {
         _resetBuckets();
-        const { app, store } = buildLegacyApp();
+        const { app } = buildLegacyApp();
         const ip = "198.51.100.49";
         const grant = async () => ({
             grant_type: "authorization_code",
-            code: await legacyCode(app, store, ip),
+            code: await legacyCode(app, ip),
             redirect_uri: SNAPSHOT_URI,
             code_verifier: VERIFIER,
         });
@@ -1726,7 +1763,7 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
     expect(code).toBeTruthy();
 
     // The code is bound to the client and challenge it was issued for.
-    const stored = store.dump().codes.get(code!)!;
+    const stored = store.dump().codes.get(hashSecret(code!))!;
     expect(stored.client_id).toBe(client.client_id);
     expect(stored.code_challenge).toBe(CHALLENGE);
     expect(stored.resource).toBeNull();
@@ -1751,11 +1788,13 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
     expect(pair.expires_in).toBe(ACCESS_TOKEN_TTL_SECONDS);
     expect(pair.access_token).toBeTruthy();
     expect(pair.refresh_token).toBeTruthy();
-    expect(store.dump().tokens.get(pair.access_token)?.userId).toBe("user-1");
-    // The refresh token is bound to the client that redeemed the code.
-    expect(store.dump().refresh.get(pair.refresh_token)?.clientId).toBe(
-        client.client_id,
+    expect(store.dump().tokens.get(hashSecret(pair.access_token))?.userId).toBe(
+        "user-1",
     );
+    // The refresh token is bound to the client that redeemed the code.
+    expect(
+        store.dump().refresh.get(hashSecret(pair.refresh_token))?.clientId,
+    ).toBe(client.client_id);
     expect(store.dump().touched).toContain(client.client_id);
 
     // A code is single-use.
@@ -1954,7 +1993,7 @@ describe("POST /token", () => {
         expect(res.headers.get("WWW-Authenticate")).toStartWith("Basic");
         await expectError(res, 401, "invalid_client");
         // Refused before the code was touched.
-        expect(store.dump().codes.has(code)).toBe(true);
+        expect(store.dump().codes.has(hashSecret(code))).toBe(true);
     });
 
     test("a malformed Basic header is 401 with WWW-Authenticate: Basic", async () => {
@@ -2142,7 +2181,7 @@ describe("POST /token", () => {
         const { app, store, client, code } = await codeFor(ip, {
             token_endpoint_auth_method: "none",
         });
-        store.dump().codes.get(code)!.client_id = null;
+        store.dump().codes.get(hashSecret(code))!.client_id = null;
         const res = await redeem(app, ip, {
             code,
             client_id: client.client_id,
@@ -2188,7 +2227,7 @@ describe("POST /token", () => {
         const { app, store, client, code } = await codeFor(ip, {
             token_endpoint_auth_method: "none",
         });
-        store.dump().codes.get(code)!.code_challenge = null;
+        store.dump().codes.get(hashSecret(code))!.code_challenge = null;
         await expectError(
             await redeem(app, ip, { code, client_id: client.client_id }),
             400,
@@ -2227,9 +2266,9 @@ describe("POST /token", () => {
             undefined,
             { resource: RESOURCE },
         );
-        expect(bound.store.dump().codes.get(bound.code)!.resource).toBe(
-            RESOURCE,
-        );
+        expect(
+            bound.store.dump().codes.get(hashSecret(bound.code))!.resource,
+        ).toBe(RESOURCE);
         // The bare origin is this server too, but not what was authorized.
         await expectError(
             await redeem(bound.app, ip, {
@@ -2371,38 +2410,38 @@ describe("POST /token", () => {
         const ip = "198.51.100.121";
         _resetBuckets();
         const { app, store } = buildTestApp();
-        store.dump().refresh.set("old-token", {
-            userId: "user-9",
-            clientId: null,
-        });
-        store.dump().refresh.set("old-token-2", {
-            userId: "user-9",
-            clientId: null,
-        });
+        // Pre-hashing rows: stored under the raw UUID, as every token was.
+        const OLD = "3b241101-e2bb-4255-8caf-4136c566a962";
+        const OLD_2 = "3b241101-e2bb-4255-8caf-4136c566a963";
+        store.dump().refresh.set(OLD, { userId: "user-9", clientId: null });
+        store.dump().refresh.set(OLD_2, { userId: "user-9", clientId: null });
         const client = await registerClient(app, ip, {
             token_endpoint_auth_method: "none",
         });
 
         const anonymous = await refresh(app, ip, {
-            refresh_token: "old-token",
+            refresh_token: OLD,
         });
         expect(anonymous.status).toBe(200);
         const anon = (await anonymous.json()) as { refresh_token: string };
         // Still unbound: nobody identified themselves.
-        expect(store.dump().refresh.get(anon.refresh_token)?.clientId).toBe(
-            null,
-        );
+        expect(
+            store.dump().refresh.get(hashSecret(anon.refresh_token))?.clientId,
+        ).toBe(null);
 
         const named = await refresh(app, ip, {
-            refresh_token: "old-token-2",
+            refresh_token: OLD_2,
             client_id: client.client_id,
         });
         expect(named.status).toBe(200);
         const next = (await named.json()) as { refresh_token: string };
         // The rotated token picks up the client that refreshed it.
-        expect(store.dump().refresh.get(next.refresh_token)).toEqual({
+        expect(
+            store.dump().refresh.get(hashSecret(next.refresh_token)),
+        ).toEqual({
             userId: "user-9",
             clientId: client.client_id,
+            ttlSeconds: REFRESH_TOKEN_TTL_SECONDS,
         });
     });
 
@@ -2446,6 +2485,282 @@ describe("POST /token", () => {
         );
     });
 
+    // ----- Phase C: hash at rest, lifetimes, the /token log line -----
+
+    test("codes, access tokens and refresh tokens are stored only as their hash", async () => {
+        const ip = "198.51.100.130";
+        const { app, store, client, code } = await codeFor(ip, {
+            token_endpoint_auth_method: "none",
+        });
+        expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        const codes = store.dump().codes;
+        expect(codes.has(code)).toBe(false);
+        expect(codes.get(hashSecret(code))?.code).toBe(hashSecret(code));
+
+        const res = await redeem(app, ip, {
+            code,
+            client_id: client.client_id,
+        });
+        expect(res.status).toBe(200);
+        const pair = (await res.json()) as {
+            access_token: string;
+            refresh_token: string;
+            expires_in: number;
+        };
+        for (const raw of [pair.access_token, pair.refresh_token]) {
+            expect(raw).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        }
+        const { tokens, refresh } = store.dump();
+        expect(tokens.has(pair.access_token)).toBe(false);
+        expect(refresh.has(pair.refresh_token)).toBe(false);
+        expect(tokens.get(hashSecret(pair.access_token))).toEqual({
+            userId: "user-1",
+            ttlSeconds: ACCESS_TOKEN_TTL_SECONDS,
+        });
+        expect(refresh.get(hashSecret(pair.refresh_token))).toEqual({
+            userId: "user-1",
+            clientId: client.client_id,
+            ttlSeconds: REFRESH_TOKEN_TTL_SECONDS,
+        });
+    });
+
+    test("an access token lasts 24 hours and a refresh token 90 days, renewed on every rotation", async () => {
+        expect(ACCESS_TOKEN_TTL_SECONDS).toBe(24 * 60 * 60);
+        expect(REFRESH_TOKEN_TTL_SECONDS).toBe(90 * 24 * 60 * 60);
+        const ip = "198.51.100.131";
+        const got = await tokensFor(ip, { token_endpoint_auth_method: "none" });
+        const res = await refresh(got.app, ip, {
+            refresh_token: got.refreshToken,
+            client_id: got.client.client_id,
+        });
+        expect(res.status).toBe(200);
+        const next = (await res.json()) as {
+            access_token: string;
+            refresh_token: string;
+            expires_in: number;
+        };
+        expect(next.expires_in).toBe(ACCESS_TOKEN_TTL_SECONDS);
+        const { tokens, refresh: refreshRows } = got.store.dump();
+        expect(tokens.get(hashSecret(next.access_token))?.ttlSeconds).toBe(
+            ACCESS_TOKEN_TTL_SECONDS,
+        );
+        // Sliding: the rotated token gets a fresh 90 days of its own.
+        expect(
+            refreshRows.get(hashSecret(next.refresh_token))?.ttlSeconds,
+        ).toBe(REFRESH_TOKEN_TTL_SECONDS);
+    });
+
+    // TODO(oauth-hash-fallback): C2 drops the raw fallback; these two then
+    // become invalid_grant.
+    test("a pre-hashing (raw UUID) auth code still redeems through the fallback", async () => {
+        const ip = "198.51.100.132";
+        const { app, store, client, code } = await codeFor(ip, {
+            token_endpoint_auth_method: "none",
+        });
+        const codes = store.dump().codes;
+        const row = codes.get(hashSecret(code))!;
+        codes.delete(hashSecret(code));
+        const legacy = "9b2e5c1a-7d4f-4e3a-8c6b-1f0a2d3e4b5c";
+        codes.set(legacy, { ...row, code: legacy });
+
+        expect(
+            (
+                await redeem(app, ip, {
+                    code: legacy,
+                    client_id: client.client_id,
+                })
+            ).status,
+        ).toBe(200);
+        // Consumed like any other code.
+        expect(codes.has(legacy)).toBe(false);
+        await expectError(
+            await redeem(app, ip, {
+                code: legacy,
+                client_id: client.client_id,
+            }),
+            400,
+            "invalid_grant",
+        );
+    });
+
+    test("a pre-hashing (raw UUID) refresh token still refreshes, and its successor is hashed", async () => {
+        const ip = "198.51.100.133";
+        _resetBuckets();
+        const { app, store } = buildTestApp();
+        const client = await registerClient(app, ip, {
+            token_endpoint_auth_method: "none",
+        });
+        const legacy = "c7d1f3a2-5b6e-4f8a-9d0c-2e4f6a8b0c1d";
+        store.dump().refresh.set(legacy, {
+            userId: "user-7",
+            clientId: client.client_id,
+        });
+        const res = await refresh(app, ip, {
+            refresh_token: legacy,
+            client_id: client.client_id,
+        });
+        expect(res.status).toBe(200);
+        const next = (await res.json()) as { refresh_token: string };
+        expect(store.dump().refresh.has(legacy)).toBe(false);
+        expect(
+            store.dump().refresh.get(hashSecret(next.refresh_token)),
+        ).toEqual({
+            userId: "user-7",
+            clientId: client.client_id,
+            ttlSeconds: REFRESH_TOKEN_TTL_SECONDS,
+        });
+    });
+
+    // What storing hashes protects against: a leaked row must not be usable.
+    test("presenting a stored hash is invalid_grant, for a code and a refresh token", async () => {
+        const ip = "198.51.100.134";
+        const got = await tokensFor(ip, { token_endpoint_auth_method: "none" });
+        await expectError(
+            await refresh(got.app, ip, {
+                refresh_token: hashSecret(got.refreshToken),
+                client_id: got.client.client_id,
+            }),
+            400,
+            "invalid_grant",
+        );
+        const again = await codeFor(
+            ip,
+            { token_endpoint_auth_method: "none" },
+            { app: got.app, store: got.store },
+        );
+        await expectError(
+            await redeem(got.app, ip, {
+                code: hashSecret(again.code),
+                client_id: again.client.client_id,
+            }),
+            400,
+            "invalid_grant",
+        );
+    });
+
+    // Every console line containing "[oauth] token grant=" that fn produced.
+    async function tokenLogLines(fn: () => unknown) {
+        const log = spyOn(console, "log").mockImplementation(() => {});
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            await fn();
+            return [...log.mock.calls, ...warn.mock.calls]
+                .map((args) => args.map(String).join(" "))
+                .filter((line) => line.includes("[oauth] token grant="));
+        } finally {
+            log.mockRestore();
+            warn.mockRestore();
+        }
+    }
+
+    test("every /token call logs exactly one line, never a token, code, secret or user id", async () => {
+        const ip = "198.51.100.135";
+        const pub = await codeFor(ip, { token_endpoint_auth_method: "none" });
+        const { app, store } = pub;
+        const conf = await codeFor(ip, {}, { app, store });
+        const id = pub.client.client_id;
+
+        let pair = { access_token: "", refresh_token: "" };
+        const cases: [string, () => Response | Promise<Response>][] = [
+            [
+                `[oauth] token grant=authorization_code result=ok client=${id}`,
+                async () => {
+                    const res = await redeem(app, ip, {
+                        code: pub.code,
+                        client_id: id,
+                    });
+                    pair = (await res.clone().json()) as typeof pair;
+                    return res;
+                },
+            ],
+            [
+                `[oauth] token grant=authorization_code result=invalid_grant client=${id}`,
+                () => redeem(app, ip, { code: pub.code, client_id: id }),
+            ],
+            [
+                `[oauth] token grant=refresh_token result=ok client=${id}`,
+                () =>
+                    refresh(app, ip, {
+                        refresh_token: pair.refresh_token,
+                        client_id: id,
+                    }),
+            ],
+            [
+                `[oauth] token grant=authorization_code result=invalid_client client=${conf.client.client_id}`,
+                () =>
+                    redeem(app, ip, {
+                        code: conf.code,
+                        client_id: conf.client.client_id,
+                        client_secret: "wrong",
+                    }),
+            ],
+            [
+                `[oauth] token grant=authorization_code result=invalid_grant client=${conf.client.client_id} reason=pkce_failed`,
+                () =>
+                    redeem(app, ip, {
+                        code: conf.code,
+                        client_id: conf.client.client_id,
+                        client_secret: conf.client.client_secret!,
+                        code_verifier: "x".repeat(43),
+                    }),
+            ],
+            [
+                "[oauth] token grant=missing result=invalid_request client=none",
+                () => postForm(app, "/token", ip, {}),
+            ],
+            [
+                // The caller's own grant_type text is never echoed.
+                "[oauth] token grant=unsupported result=unsupported_grant_type client=none",
+                () =>
+                    postForm(app, "/token", ip, { grant_type: "pass word\n" }),
+            ],
+        ];
+        const logged: string[] = [];
+        for (const [expected, call] of cases) {
+            const lines = await tokenLogLines(call);
+            expect(lines).toEqual([expected]);
+            logged.push(...lines);
+        }
+
+        const secrets = [
+            pub.code,
+            conf.code,
+            pair.access_token,
+            pair.refresh_token,
+            conf.client.client_secret!,
+            "user-1",
+        ];
+        expect(pair.refresh_token).toBeTruthy();
+        for (const line of logged) {
+            for (const secret of secrets) expect(line).not.toContain(secret);
+        }
+    });
+
+    test("a /token call that throws still logs one line, as server_error", async () => {
+        _resetBuckets();
+        const store = fakeStore();
+        store.storeToken = async () => {
+            throw new Error("database down");
+        };
+        const { app } = buildTestApp({ store });
+        const ip = "198.51.100.136";
+        const got = await codeFor(
+            ip,
+            { token_endpoint_auth_method: "none" },
+            { app, store },
+        );
+        const lines = await tokenLogLines(async () => {
+            const res = await redeem(app, ip, {
+                code: got.code,
+                client_id: got.client.client_id,
+            });
+            expect(res.status).toBe(500);
+        });
+        expect(lines).toEqual([
+            `[oauth] token grant=authorization_code result=server_error client=${got.client.client_id}`,
+        ]);
+    });
+
     test("a rate-limited /token answer is not cacheable either", async () => {
         _resetBuckets();
         const { app } = buildTestApp();
@@ -2456,6 +2771,13 @@ describe("POST /token", () => {
         } while (res.status !== 429);
         expect(res.headers.get("Cache-Control")).toBe("no-store");
         expect(res.headers.get("Pragma")).toBe("no-cache");
+        // The limiter answered before the handler ran, so the grant was never
+        // read — but the call still logs its one line.
+        expect(
+            await tokenLogLines(() => postForm(app, "/token", ip, {})),
+        ).toEqual([
+            "[oauth] token grant=unknown result=rate_limited client=none",
+        ]);
     });
 });
 
