@@ -16,6 +16,7 @@
  *     star-count fetch
  *   - Contact section, footer contact link
  *   - The support email embedded in the bulk-import widget
+ *   - The security.txt contact (the route 404s until you set your own)
  *   - Medium / YouTube footer links
  *   - The nutrition-mcp.com domain -> your-domain.com placeholder
  *     (install/MCP URL, canonical/OG tags, sitemap, robots)
@@ -262,6 +263,19 @@ const WIDGET_SUPPORT_RULE: Rule = {
     replace: '$1""',
 };
 
+/**
+ * The RFC 9116 security.txt contact (src/security-txt.ts). Blank the constant
+ * rather than deleting it: an empty contact makes the route answer 404, since a
+ * security.txt with no Contact line is invalid. That is also why the advisory
+ * and policy URLs beside it are left alone — nothing is served while the
+ * contact is empty, so they cannot point a reporter at the maintainer's repo.
+ */
+const SECURITY_TXT_RULE: Rule = {
+    name: "security.txt: contact email -> empty",
+    find: /(\/\* security-contact:start \*\/\s*\n\s*export const SECURITY_CONTACT = )"[^"]*"/,
+    replace: '$1""',
+};
+
 const altPageJobs = (
     await Array.fromAsync(
         new Bun.Glob("*.html").scan({ cwd: "public/alternatives" }),
@@ -464,6 +478,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     { path: "public/sitemap.xml", rules: [DOMAIN_RULE] },
     { path: "public/robots.txt", rules: [DOMAIN_RULE] },
     { path: "src/index.ts", rules: [GLAMA_RULE, ...CSP_RULES] },
+    { path: "src/security-txt.ts", rules: [SECURITY_TXT_RULE] },
     // The import widget is a source partial, not a served page, so it is not in
     // the HTML jobs above — but it does embed the maintainer's support address.
     {
@@ -528,5 +543,7 @@ console.log(
     "Left for you: swap in your own og.png / favicon.ico / apple-touch-icon.png, " +
         "adjust page copy (the privacy policy and terms still name Google Analytics " +
         "and Microsoft Clarity), and replace the " +
-        `${PLACEHOLDER_DOMAIN} placeholder with your real domain.`,
+        `${PLACEHOLDER_DOMAIN} placeholder with your real domain. ` +
+        "Set SECURITY_CONTACT in src/security-txt.ts (its advisory/policy URLs too) " +
+        "and rewrite SECURITY.md for your own deployment.",
 );

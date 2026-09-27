@@ -70,7 +70,12 @@ describe("the shutdown gate", () => {
 
     test("runs before the OAuth router and the landing page", async () => {
         setShuttingDownForTest(true);
-        for (const path of ["/", "/authorize", "/api/stats"]) {
+        for (const path of [
+            "/",
+            "/authorize",
+            "/api/stats",
+            "/.well-known/security.txt",
+        ]) {
             const r = await app.request(`http://x${path}`);
             expect({ path, status: r.status }).toEqual({ path, status: 503 });
             expect(r.headers.get("Retry-After")).toBe("1");
@@ -293,5 +298,35 @@ describe("Content-Security-Policy on the OAuth login flow", () => {
             expect(formAction).toContain("'self'");
             expect(formAction).toContain("https://accounts.google.com");
         }
+    });
+});
+
+describe("GET /.well-known/security.txt", () => {
+    test("serves the RFC 9116 file as plain text", async () => {
+        const r = await app.request("http://x/.well-known/security.txt");
+        expect(r.status).toBe(200);
+        expect(r.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
+        expect(r.headers.get("X-Content-Type-Options")).toBe("nosniff");
+        const body = await r.text();
+        expect(body).toContain("Contact: mailto:anton@nutrition-mcp.com\n");
+        const expires = body.match(/^Expires: (.+)$/m)![1]!;
+        expect(new Date(expires).getTime()).toBeGreaterThan(Date.now());
+    });
+
+    test("Canonical ignores a forged x-forwarded-host", async () => {
+        const r = await app.request("http://x/.well-known/security.txt", {
+            headers: { "x-forwarded-host": "evil.example" },
+        });
+        const body = await r.text();
+        expect(body).toContain(
+            "Canonical: https://nutrition-mcp.com/.well-known/security.txt\n",
+        );
+        expect(body).not.toContain("evil.example");
+    });
+
+    test("/security.txt redirects to the well-known path", async () => {
+        const r = await app.request("http://x/security.txt");
+        expect(r.status).toBe(301);
+        expect(r.headers.get("Location")).toBe("/.well-known/security.txt");
     });
 });

@@ -20,6 +20,7 @@ import {
 } from "./supabase.js";
 import { getRecentPosts } from "./patreon.js";
 import { registerDiscoveryRoutes } from "./discovery.js";
+import { registerSecurityTxtRoute } from "./security-txt.js";
 import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
 import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
@@ -200,6 +201,9 @@ app.use("*", async (c, next) => {
 // authorization-server documents, served at the root and at the path-folded
 // variants clients derive from the /mcp endpoint. See src/discovery.ts.
 registerDiscoveryRoutes(app);
+
+// RFC 9116 security contact (+ /security.txt redirect). See src/security-txt.ts.
+registerSecurityTxtRoute(app);
 
 // Glama connector ownership verification. Glama polls this file and matches the
 // maintainer email against the Glama account email to claim the listing.
