@@ -64,4 +64,12 @@ export const CHROME_IT: ChromeCopy = {
         termsOfService: "Termini di servizio",
         note: "Gratuito e open source. I valori nutrizionali sono stime, non consigli medici.",
     },
+
+    consent: {
+        title: "Cookie analitici",
+        body: "Con il tuo permesso usiamo Google Analytics e Microsoft Clarity per capire come vengono usate queste pagine, incluse registrazioni delle sessioni in cui tutto ciò che digiti viene oscurato. Non viene caricato nulla finché non accetti, e puoi cambiare idea in qualsiasi momento dal piè di pagina.",
+        accept: "Accetta analisi",
+        reject: "Rifiuta analisi",
+        settings: "Impostazioni cookie",
+    },
 };

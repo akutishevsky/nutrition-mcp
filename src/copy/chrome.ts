@@ -171,6 +171,22 @@ export interface ChromeCopy {
         /** The one-sentence tagline under the footer links. */
         note: string;
     };
+
+    /**
+     * The analytics consent banner and the footer's button that reopens it
+     * (scripts/site-partials.ts's footer()). All plain text, escaped at
+     * render. `body` is followed by a link to the privacy policy, labelled
+     * with `footer.privacyPolicy`. Keep `accept` and `reject` of comparable
+     * length: the two buttons are styled identically on purpose.
+     */
+    consent: {
+        title: string;
+        body: string;
+        accept: string;
+        reject: string;
+        /** Footer button label; the legal copy quotes it verbatim. */
+        settings: string;
+    };
 }
 
 export const CHROME_EN: ChromeCopy = {
@@ -236,6 +252,14 @@ export const CHROME_EN: ChromeCopy = {
         privacyPolicy: "Privacy Policy",
         termsOfService: "Terms of Service",
         note: "Free and open source. Nutrition figures are estimates, not medical advice.",
+    },
+
+    consent: {
+        title: "Analytics cookies",
+        body: "With your permission we use Google Analytics and Microsoft Clarity to see how these pages are used, including session recordings with anything you type masked. Nothing loads unless you accept, and you can change your mind any time from the footer.",
+        accept: "Accept analytics",
+        reject: "Reject analytics",
+        settings: "Cookie settings",
     },
 };
 

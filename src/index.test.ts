@@ -301,6 +301,71 @@ describe("Content-Security-Policy on the OAuth login flow", () => {
     });
 });
 
+// The public pages load Google Analytics and Microsoft Clarity only after the
+// consent banner's Accept, but the CSP is what lets them load at all — and a
+// host added here is one more place a page can send visitors' requests. These
+// pin the three directives the analytics hosts live in, token for token, so
+// widening or narrowing any of them is a deliberate edit (and a reminder that
+// a new tracker also touches the privacy policy in every locale).
+describe("Content-Security-Policy on the public site", () => {
+    async function directives() {
+        const r = await app.request("http://x/");
+        const csp = r.headers.get("Content-Security-Policy");
+        expect(csp).toBeTruthy();
+        return new Map(
+            csp!
+                .split(";")
+                .map((d) => d.trim().split(/\s+/))
+                .filter((parts) => parts[0])
+                .map((parts) => [parts[0]!, parts.slice(1)] as const),
+        );
+    }
+    const sorted = (xs: readonly string[] | undefined) =>
+        [...(xs ?? [])].sort();
+
+    test("script-src", async () => {
+        const d = await directives();
+        expect(sorted(d.get("script-src"))).toEqual(
+            sorted([
+                "'self'",
+                "'unsafe-inline'",
+                "https://www.googletagmanager.com",
+                "https://*.clarity.ms",
+            ]),
+        );
+    });
+
+    test("connect-src", async () => {
+        const d = await directives();
+        expect(sorted(d.get("connect-src"))).toEqual(
+            sorted([
+                "'self'",
+                "https://www.google-analytics.com",
+                "https://*.google-analytics.com",
+                "https://*.analytics.google.com",
+                "https://analytics.google.com",
+                "https://www.google.com",
+                "https://*.googletagmanager.com",
+                "https://api.github.com",
+                "https://*.clarity.ms",
+                "https://c.bing.com",
+            ]),
+        );
+    });
+
+    test("img-src", async () => {
+        const d = await directives();
+        expect(sorted(d.get("img-src"))).toEqual(
+            sorted([
+                "'self'",
+                "https://www.googletagmanager.com",
+                "https://*.clarity.ms",
+                "https://c.bing.com",
+            ]),
+        );
+    });
+});
+
 describe("GET /.well-known/security.txt", () => {
     test("serves the RFC 9116 file as plain text", async () => {
         const r = await app.request("http://x/.well-known/security.txt");

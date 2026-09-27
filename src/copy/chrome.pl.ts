@@ -66,4 +66,12 @@ export const CHROME_PL: ChromeCopy = {
         termsOfService: "Regulamin",
         note: "Darmowy i open source. Wartości odżywcze są szacunkowe, nie stanowią porady medycznej.",
     },
+
+    consent: {
+        title: "Analityczne pliki cookie",
+        body: "Za Twoją zgodą korzystamy z Google Analytics i Microsoft Clarity, aby sprawdzać, jak używane są te strony, w tym z nagrań sesji, w których wszystko, co wpisujesz, jest zamaskowane. Nic się nie wczyta, dopóki nie wyrazisz zgody, a decyzję możesz zmienić w każdej chwili w stopce.",
+        accept: "Akceptuj analitykę",
+        reject: "Odrzuć analitykę",
+        settings: "Ustawienia plików cookie",
+    },
 };

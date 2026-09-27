@@ -2343,6 +2343,118 @@ html.js .facts-unit {
 .footer-links a:hover {
     color: var(--ink);
 }
+/* "Cookie settings" is a <button> (it opens the consent banner, it goes
+   nowhere) that must read as one more footer link. Focus ring comes from
+   the shared button:focus-visible rule, same as the links'. */
+.footer-link-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+    padding: 0.3rem 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    font: inherit;
+    font-size: 0.88rem;
+    color: var(--ink-2);
+    text-align: inherit;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.footer-link-btn:hover {
+    color: var(--ink);
+}
+
+/* ---------- consent banner ---------- */
+/* Rendered by footer() on every page with analytics; shown only while the
+   head's loader has stamped html[data-consent="ask"] (no stored choice, no
+   GPC signal) or the footer button reopened it. z-index 32: above the
+   /tools category bar (30) and page content, below the mobile menu sheet
+   (35) and the header (40), so an open menu covers it. */
+.consent {
+    display: none;
+    position: fixed;
+    inset-inline: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 32;
+    max-width: 560px;
+    margin-inline: auto;
+    padding: 1rem 1.25rem 1.15rem;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--rule);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-float);
+}
+html[data-consent="ask"] .consent:not([hidden]) {
+    display: block;
+}
+.consent-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+}
+.consent-body {
+    margin: 0.4rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+}
+.consent-body a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.consent-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.95rem;
+}
+/* Accept and Reject are deliberately the same button: equal weight, so
+   neither choice is the easier one to make. Outlined in --ink, which reads
+   in both themes. Labels may wrap (German, Polish and Ukrainian run long at
+   360px), hence white-space: normal over .btn's nowrap. */
+.consent-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+    font-size: 0.95rem;
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--ink);
+}
+.consent-btn:hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+@media (max-width: 480px) {
+    .consent-actions {
+        flex-direction: column;
+    }
+    .consent-btn {
+        flex: none;
+    }
+}
+@media (prefers-reduced-motion: no-preference) {
+    html[data-consent="ask"] .consent:not([hidden]) {
+        animation: consent-in 0.45s var(--ease-out) both;
+    }
+}
+@keyframes consent-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+}
+@media print {
+    .consent {
+        display: none !important;
+    }
+}
 .footer-note {
     width: 100%;
     font-size: 0.8rem;

@@ -15,7 +15,7 @@ export const PRIVACY_NL: LegalDoc = {
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
     ogDescription:
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
-    lastUpdated: "23 september 2026",
+    lastUpdated: "27 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -65,7 +65,7 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Website-analyse.</strong> Deze pagina's laden Google Analytics, dat ons geaggregeerde verkeersstatistieken geeft — paginaweergaven, verwijzers, ruwe geografie, apparaattype. Het draait op elke pagina, ook deze, en er is momenteel geen toestemmingsbanner en geen IP-anonimisering, waardoor Google als onderdeel van de standaardmeting je IP-adres ontvangt. Wil je liever niet gemeten worden, dan houdt een tracker-blocker of de &bdquo;Do-Not-Track&rdquo;-instellingen van je browser dit tegen. Elke pagina behalve de inlogpagina laadt ook Microsoft Clarity, dat vastlegt hoe bezoekers de site gebruiken — klikken, tikken, scrollen, muisbewegingen — als sessie-opnames en heatmaps, zodat we zien waar de pagina's verwarren. Clarity maskeert wat je in formulieren typt, ontvangt je IP-adres en browsergegevens op dezelfde manier en wordt door dezelfde blockers tegengehouden.",
+                        "<strong>Website-analyse.</strong> Met je toestemming laden deze pagina's Google Analytics, dat ons geaggregeerde verkeersstatistieken geeft — paginaweergaven, verwijzers, ruwe geografie, apparaattype — en Microsoft Clarity, dat vastlegt hoe bezoekers de site gebruiken — klikken, tikken, scrollen, muisbewegingen — als sessie-opnames en heatmaps, zodat we zien waar de pagina's verwarren. Geen van beide wordt geladen voordat je in de cookiebanner akkoord gaat; als je weigert, wordt geen van beide geladen, en als je browser een Global Privacy Control-signaal stuurt, wordt geen van beide geladen tenzij je zelf via de footer akkoord gaat. Akkoord gaan staat alleen analyse-opslag toe: advertentie-opslag en Google Signals blijven uit. Google ontvangt bij elk verzoek je IP-adres, maar logt of bewaart het volgens Google niet voor bezoekers uit de EU, Zwitserland of het Verenigd Koninkrijk, en gebruikt het alleen om een globale locatie af te leiden. Clarity maskeert wat je in formulieren typt en ontvangt ook je IP-adres en browsergegevens. Op de inlogpagina draait geen van beide. Je kunt je toestemming altijd intrekken via &bdquo;Cookie-instellingen&rdquo; in de voettekst, waarmee ook de analysecookies worden verwijderd die deze site heeft geplaatst; je keuze wordt maximaal 6 maanden bewaard in de lokale opslag van je browser.",
                         "<strong>Servertelemetrie.</strong> Elke MCP-tool-aanroep schrijft één regel gebruikstelemetrie — welke tool het was, of de aanroep slaagde, hoe lang die duurde, welke MCP-protocolrevisie en welke AI-app (met de naam en versie die die opgeeft) de aanroep deden — gekoppeld aan je account-ID maar niet aan wat je hebt gelogd. We gebruiken dit om trage en kapotte tools op te sporen. Het wordt met niemand gedeeld en wordt samen met al het andere verwijderd zodra je je account verwijdert.",
                     ],
                 },
@@ -124,7 +124,7 @@ export const TERMS_NL: LegalDoc = {
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT. Begrijpelijke voorwaarden over accounts, toegestaan gebruik, je gegevens en aansprakelijkheid.",
     ogDescription:
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT.",
-    lastUpdated: "23 september 2026",
+    lastUpdated: "27 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -238,7 +238,7 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "De website zelf gebruikt ook Google Analytics en Microsoft Clarity om verkeer en het gebruik van de pagina's te meten, Google Fonts en het jsDelivr-CDN om lettertypen en iconen te laden, Google Sign-In als je voor die manier van inloggen kiest, en de GitHub API om het aantal sterren van het project te tonen. Het laden van een pagina doet dus verzoeken naar die diensten, die je IP-adres en browser kunnen zien.",
+                    html: "De website zelf gebruikt ook, met je toestemming, Google Analytics en Microsoft Clarity om verkeer en het gebruik van de pagina's te meten, Google Fonts en het jsDelivr-CDN om lettertypen en iconen te laden, Google Sign-In als je voor die manier van inloggen kiest, en de GitHub API om het aantal sterren van het project te tonen. Het laden van een pagina doet dus verzoeken naar Google Fonts en jsDelivr (en, op de startpagina, naar GitHub), die je IP-adres en browser kunnen zien; Google Analytics en Microsoft Clarity worden pas benaderd nadat je analyse hebt geaccepteerd.",
                 },
                 {
                     type: "p",

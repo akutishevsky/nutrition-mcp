@@ -61,7 +61,7 @@ const PRIVACY_EN: LegalDoc = {
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
     ogDescription:
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
-    lastUpdated: "September 23, 2026",
+    lastUpdated: "September 27, 2026",
     backToHome: "Back to home",
     sections: [
         {
@@ -98,7 +98,7 @@ const PRIVACY_EN: LegalDoc = {
                     "Two kinds of analytics do exist, and neither touches the content of your logs:",
                 ),
                 ul([
-                    "<strong>Website analytics.</strong> These pages load Google Analytics, which gives us aggregate traffic statistics — page views, referrers, rough geography, device type. It runs on every page, including this one, and there is currently no consent banner and no IP anonymization, so Google receives your IP address as part of the standard measurement. If you would rather not be measured, a tracker blocker or your browser's &ldquo;do not track&rdquo;-style protections will stop it. Every page except the sign-in page also loads Microsoft Clarity, which records how visitors use the site — clicks, taps, scrolling, mouse movement — as session replays and heatmaps, so we can see where the pages confuse people. Clarity masks what you type into forms, receives your IP address and browser details the same way, and is stopped by the same blockers.",
+                    "<strong>Website analytics.</strong> With your consent, these pages load Google Analytics, which gives us aggregate traffic statistics — page views, referrers, rough geography, device type — and Microsoft Clarity, which records how visitors use the site — clicks, taps, scrolling, mouse movement — as session replays and heatmaps, so we can see where the pages confuse people. Neither loads until you accept in the cookie banner; if you reject, neither loads at all, and if your browser sends a Global Privacy Control signal, neither loads unless you opt in yourself from the footer. Accepting grants analytics storage only: advertising storage and Google signals stay off. Google receives your IP address with each request but, according to Google, does not log or store it for visitors from the EU, Switzerland or the UK, and uses it only to derive an approximate location. Clarity masks what you type into forms and also receives your IP address and browser details. Neither runs on the sign-in page. You can withdraw at any time with &ldquo;Cookie settings&rdquo; in the footer, which also deletes the analytics cookies set on this site; your choice is kept in your browser's local storage for up to 6 months.",
                     "<strong>Server telemetry.</strong> Every MCP tool call writes one row of usage telemetry — which tool ran, whether it succeeded, how long it took, which MCP protocol revision and which AI app (by the name and version it reports) made the call — linked to your account id but not to what you logged. We use it to find slow and broken tools. It is not shared with anyone, and it is deleted along with everything else when you delete your account.",
                 ]),
                 p(
@@ -150,7 +150,7 @@ const TERMS_EN: LegalDoc = {
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT. Plain-language terms covering accounts, acceptable use, your data, and liability.",
     ogDescription:
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
-    lastUpdated: "September 23, 2026",
+    lastUpdated: "September 27, 2026",
     backToHome: "Back to home",
     sections: [
         {
@@ -243,7 +243,7 @@ const TERMS_EN: LegalDoc = {
                     "The service depends on third parties: Supabase for database, authentication, and export storage, DigitalOcean for hosting, Open Food Facts for barcode data, and whichever AI assistant you connect from.",
                 ),
                 p(
-                    "The website itself also uses Google Analytics and Microsoft Clarity to measure traffic and how the pages are used, Google Fonts and the jsDelivr CDN to load fonts and icons, Google Sign-In if you choose that way of logging in, and the GitHub API to show the project's star count. Loading a page therefore makes requests to those services, which can see your IP address and browser.",
+                    "The website itself also uses, with your consent, Google Analytics and Microsoft Clarity to measure traffic and how the pages are used, Google Fonts and the jsDelivr CDN to load fonts and icons, Google Sign-In if you choose that way of logging in, and the GitHub API to show the project's star count. Loading a page therefore makes requests to Google Fonts and jsDelivr (and, on the home page, GitHub), which can see your IP address and browser; Google Analytics and Microsoft Clarity are contacted only after you accept analytics.",
                 ),
                 p(
                     "Their terms and their availability are their own, and we are not responsible for them.",
@@ -331,7 +331,7 @@ const PRIVACY_DE: LegalDoc = {
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wie es genutzt wird, wo es liegt und wie du dein Konto samt allem darin jederzeit löschen kannst.",
     ogDescription:
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wie es genutzt wird, wo es liegt und wie du dein Konto samt allem darin jederzeit löschen kannst.",
-    lastUpdated: "23. September 2026",
+    lastUpdated: "27. September 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -368,7 +368,7 @@ const PRIVACY_DE: LegalDoc = {
                     "Es gibt zwei Arten von Analysen, und keine berührt den Inhalt deiner Einträge:",
                 ),
                 ul([
-                    "<strong>Website-Analyse.</strong> Diese Seiten laden Google Analytics, das uns aggregierte Traffic-Statistiken liefert — Seitenaufrufe, Referrer, grobe Geografie, Gerätetyp. Es läuft auf jeder Seite, auch dieser hier, und derzeit gibt es weder ein Consent-Banner noch eine IP-Anonymisierung, sodass Google im Rahmen der Standardmessung deine IP-Adresse erhält. Möchtest du nicht erfasst werden, verhindert das ein Tracker-Blocker oder die &bdquo;Do-Not-Track&ldquo;-Einstellungen deines Browsers. Jede Seite außer der Anmeldeseite lädt außerdem Microsoft Clarity, das aufzeichnet, wie Besucher die Website nutzen — Klicks, Tippen, Scrollen, Mausbewegungen — als Sitzungsaufzeichnungen und Heatmaps, damit wir sehen, wo die Seiten verwirren. Clarity maskiert, was du in Formulare eingibst, erhält deine IP-Adresse und Browserdaten auf dieselbe Weise und wird von denselben Blockern gestoppt.",
+                    "<strong>Website-Analyse.</strong> Mit deiner Einwilligung laden diese Seiten Google Analytics, das uns aggregierte Traffic-Statistiken liefert — Seitenaufrufe, Referrer, grobe Geografie, Gerätetyp —, und Microsoft Clarity, das aufzeichnet, wie Besucher die Website nutzen — Klicks, Tippen, Scrollen, Mausbewegungen — als Sitzungsaufzeichnungen und Heatmaps, damit wir sehen, wo die Seiten verwirren. Keines von beiden wird geladen, bevor du im Cookie-Banner zustimmst; lehnst du ab, wird keines von beiden geladen, und sendet dein Browser ein Global-Privacy-Control-Signal, wird keines von beiden geladen, es sei denn, du stimmst selbst über die Fußzeile zu. Deine Zustimmung erlaubt nur Analyse-Speicher: Werbe-Speicher und Google Signals bleiben aus. Google erhält bei jeder Anfrage deine IP-Adresse, protokolliert oder speichert sie nach eigenen Angaben für Besucher aus der EU, der Schweiz und dem Vereinigten Königreich aber nicht und nutzt sie nur, um einen ungefähren Standort abzuleiten. Clarity maskiert, was du in Formulare eingibst, und erhält ebenfalls deine IP-Adresse und Browserdaten. Auf der Anmeldeseite läuft keines von beiden. Du kannst deine Einwilligung jederzeit über &bdquo;Cookie-Einstellungen&ldquo; in der Fußzeile widerrufen, wodurch auch die auf dieser Website gesetzten Analyse-Cookies gelöscht werden; deine Wahl wird bis zu 6 Monate im lokalen Speicher deines Browsers aufbewahrt.",
                     "<strong>Server-Telemetrie.</strong> Jeder MCP-Tool-Aufruf schreibt eine Zeile Nutzungs-Telemetrie — welches Werkzeug ausgeführt wurde, ob es erfolgreich war, wie lange es dauerte, welche MCP-Protokollrevision und welche KI-App (mit dem Namen und der Version, die sie angibt) den Aufruf gemacht hat — verknüpft mit deiner Konto-ID, aber nicht mit dem, was du eingetragen hast. Wir nutzen sie, um langsame und defekte Werkzeuge zu finden. Sie wird mit niemandem geteilt und zusammen mit allem anderen gelöscht, wenn du dein Konto löschst.",
                 ]),
                 p(
@@ -420,7 +420,7 @@ const TERMS_DE: LegalDoc = {
         "Die Bedingungen für die Nutzung von Nutrition MCP — dem kostenlosen, quelloffenen Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT. Verständliche Bedingungen zu Konten, zulässiger Nutzung, deinen Daten und Haftung.",
     ogDescription:
         "Die Bedingungen für die Nutzung von Nutrition MCP — dem kostenlosen, quelloffenen Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT.",
-    lastUpdated: "23. September 2026",
+    lastUpdated: "27. September 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -515,7 +515,7 @@ const TERMS_DE: LegalDoc = {
                     "Der Dienst ist von Dritten abhängig: Supabase für Datenbank, Authentifizierung und Export-Speicherung, DigitalOcean für das Hosting, Open Food Facts für Barcode-Daten sowie den jeweiligen KI-Assistenten, mit dem du dich verbindest.",
                 ),
                 p(
-                    "Die Website selbst nutzt außerdem Google Analytics und Microsoft Clarity zur Messung des Traffics und der Seitennutzung, Google Fonts und das jsDelivr-CDN zum Laden von Schriftarten und Icons, Google Sign-In, falls du dich auf diesem Weg anmeldest, sowie die GitHub-API zur Anzeige der Star-Anzahl des Projekts. Das Laden einer Seite löst daher Anfragen an diese Dienste aus, die deine IP-Adresse und deinen Browser sehen können.",
+                    "Die Website selbst nutzt außerdem, mit deiner Einwilligung, Google Analytics und Microsoft Clarity zur Messung des Traffics und der Seitennutzung, Google Fonts und das jsDelivr-CDN zum Laden von Schriftarten und Icons, Google Sign-In, falls du dich auf diesem Weg anmeldest, sowie die GitHub-API zur Anzeige der Star-Anzahl des Projekts. Das Laden einer Seite löst daher Anfragen an Google Fonts und jsDelivr (und auf der Startseite an GitHub) aus, die deine IP-Adresse und deinen Browser sehen können; Google Analytics und Microsoft Clarity werden erst kontaktiert, nachdem du der Analyse zugestimmt hast.",
                 ),
                 p(
                     "Deren Bedingungen und Verfügbarkeit liegen in deren eigener Verantwortung, nicht in unserer.",

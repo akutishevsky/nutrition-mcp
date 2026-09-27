@@ -21,6 +21,11 @@
  * login attempt. Those five tokens must reach the written file untouched;
  * nothing below runs esc()/interpolation on them.
  *
+ * No analytics of any kind on this page: the head takes BASE_HEAD_ASSETS
+ * (no GA, no Clarity, no consent loader) and footer() is told
+ * `{ consent: false }`, so there is no banner and no "Cookie settings"
+ * button either — there would be nothing for them to control.
+ *
  * Re-run after editing src/copy/login.ts:
  *   bun run scripts/gen-login.ts
  * The generated .html files are the served artifacts — don't hand-edit them.
@@ -264,7 +269,7 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true })}
             </div>
         </main>
 
-${footer(locale)}
+${footer(locale, undefined, { consent: false })}
 
 ${SITE_SCRIPT}
     </body>

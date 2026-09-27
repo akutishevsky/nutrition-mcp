@@ -62,36 +62,134 @@ export function jsonLd(obj: unknown): string {
         .join("\n")}\n        </script>`;
 }
 
-/**
- * Microsoft Clarity (session replays + heatmaps), Microsoft's own install
- * snippet with the project id filled in. Kept out of BASE_HEAD_ASSETS because
- * the login page must not carry it: a replay of the sign-in form is exactly
- * the recording nobody should hold, masked inputs or not. Its hosts are in
- * the CSP in src/index.ts, and scripts/depersonalize.ts strips both.
- */
+/** Google Analytics 4 measurement id. */
+export const GA_MEASUREMENT_ID = "G-1K4HRB2R8X";
+/** Microsoft Clarity project id. */
 export const CLARITY_PROJECT_ID = "ykukhn1ofa";
-export const CLARITY = `        <script>
-            (function (c, l, a, r, i, t, y) {
-                c[a] =
-                    c[a] ||
-                    function () {
-                        (c[a].q = c[a].q || []).push(arguments);
-                    };
-                t = l.createElement(r);
-                t.async = 1;
-                t.src = "https://www.clarity.ms/tag/" + i;
-                y = l.getElementsByTagName(r)[0];
-                y.parentNode.insertBefore(t, y);
-            })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
+/**
+ * How long a stored consent choice (either one) stays valid before the
+ * banner asks again: about six months, per CNIL's FAQ (Q21). GA's own
+ * cookie_expires below is the same span in seconds, so `_ga` never outlives
+ * the choice that allowed it.
+ */
+export const CONSENT_MAX_AGE_DAYS = 182;
+
+/**
+ * The consent-gated analytics loader: Google Analytics 4 in basic Consent
+ * Mode v2 plus Microsoft Clarity (session replays + heatmaps). Nothing from
+ * Google or Microsoft is fetched until the visitor accepts in the banner
+ * (footer() renders it; public/site.js wires it): this inline script only
+ * queues the all-denied consent default, reads the stored choice from
+ * localStorage ("consent", `{ v: 1, choice, at }`, valid for
+ * CONSENT_MAX_AGE_DAYS), stamps `data-consent` on <html> — "granted",
+ * "denied" or "ask", which is what shows the banner — and calls load() when
+ * the stored choice is granted. A Global Privacy Control signal with nothing
+ * stored counts as denied without asking. Only analytics_storage is ever
+ * granted; the three ad_* signals stay denied for good.
+ *
+ * Clarity is Microsoft's own install snippet with the project id filled in,
+ * followed by its consentv2 call (capital-S keys, unlike gtag's). Kept out
+ * of BASE_HEAD_ASSETS because the login page must not carry it: a replay of
+ * the sign-in form is exactly the recording nobody should hold, masked
+ * inputs or not. Its hosts are in the CSP in src/index.ts, and
+ * scripts/depersonalize.ts strips the whole `<script data-analytics>`.
+ *
+ * A new tracker goes inside load(), never beside it, or it runs without
+ * consent. The body reads bare localStorage / navigator / Date on purpose,
+ * so src/consent.test.ts can run it with stubs; it must contain no `{{`
+ * and no backticks.
+ */
+export function analyticsHead(): string {
+    const maxAgeSeconds = CONSENT_MAX_AGE_DAYS * 86400;
+    return `        <script data-analytics>
+            (function (w, d) {
+                var KEY = "consent";
+                var MAX_AGE = ${CONSENT_MAX_AGE_DAYS} * 864e5;
+                var GA_ID = "${GA_MEASUREMENT_ID}";
+                var loaded = false;
+                w.dataLayer = w.dataLayer || [];
+                function gtag() {
+                    w.dataLayer.push(arguments);
+                }
+                w.gtag = gtag;
+                gtag("consent", "default", {
+                    ad_storage: "denied",
+                    ad_user_data: "denied",
+                    ad_personalization: "denied",
+                    analytics_storage: "denied",
+                });
+                function load() {
+                    if (loaded) return;
+                    loaded = true;
+                    gtag("consent", "update", { analytics_storage: "granted" });
+                    gtag("js", new Date());
+                    gtag("config", GA_ID, {
+                        allow_google_signals: false,
+                        allow_ad_personalization_signals: false,
+                        cookie_expires: ${maxAgeSeconds},
+                    });
+                    var s = d.createElement("script");
+                    s.async = true;
+                    s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+                    d.head.appendChild(s);
+                    (function (c, l, a, r, i, t, y) {
+                        c[a] =
+                            c[a] ||
+                            function () {
+                                (c[a].q = c[a].q || []).push(arguments);
+                            };
+                        t = l.createElement(r);
+                        t.async = 1;
+                        t.src = "https://www.clarity.ms/tag/" + i;
+                        y = l.getElementsByTagName(r)[0];
+                        y.parentNode.insertBefore(t, y);
+                    })(w, d, "clarity", "script", "${CLARITY_PROJECT_ID}");
+                    w.clarity("consentv2", {
+                        ad_Storage: "denied",
+                        analytics_Storage: "granted",
+                    });
+                }
+                var choice = null;
+                try {
+                    var r = JSON.parse(localStorage.getItem(KEY));
+                    var now = Date.now();
+                    if (
+                        r &&
+                        r.v === 1 &&
+                        (r.choice === "granted" || r.choice === "denied") &&
+                        typeof r.at === "number" &&
+                        r.at <= now &&
+                        now - r.at < MAX_AGE
+                    )
+                        choice = r.choice;
+                } catch (e) {}
+                try {
+                    if (!choice && navigator.globalPrivacyControl === true)
+                        choice = "denied";
+                } catch (e) {}
+                d.documentElement.setAttribute("data-consent", choice || "ask");
+                w.nmConsent = {
+                    load: load,
+                    isLoaded: function () {
+                        return loaded;
+                    },
+                    key: KEY,
+                    maxAge: MAX_AGE,
+                };
+                if (choice === "granted") load();
+            })(window, document);
         </script>`;
+}
 
 /**
  * Off when NOINDEX is set (the dev deploy), so testing there never lands in
  * the production GA property or Clarity project. Read at generation time,
  * which on DigitalOcean is the Docker build (`bun run gen:all`), so the
- * variable must be available at build time, not only at run time.
+ * variable must be available at build time, not only at run time. The
+ * snippet, the consent banner and the footer's "Cookie settings" button all
+ * key off this one flag, so they appear together or not at all.
  */
-const ANALYTICS_ENABLED = !process.env.NOINDEX;
+export const ANALYTICS_ENABLED = !process.env.NOINDEX;
 
 const STYLE_ASSETS = `        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -106,30 +204,20 @@ const STYLE_ASSETS = `        <link rel="preconnect" href="https://fonts.googlea
         />
         <link rel="stylesheet" href="/styles.css" />`;
 
-const GOOGLE_ANALYTICS = `        <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-1K4HRB2R8X"
-        ></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() {
-                dataLayer.push(arguments);
-            }
-            gtag("js", new Date());
-            gtag("config", "G-1K4HRB2R8X");
-        </script>`;
+/**
+ * The `<head>` assets with no analytics at all: fonts, icons, styles. The
+ * login page uses this — no GA, no Clarity, no consent banner there.
+ */
+export const BASE_HEAD_ASSETS = STYLE_ASSETS;
 
-/** The `<head>` assets every page shares, the login page included. */
-export const BASE_HEAD_ASSETS = ANALYTICS_ENABLED
-    ? `${STYLE_ASSETS}
-${GOOGLE_ANALYTICS}`
-    : STYLE_ASSETS;
-
-/** Every public page's `<head>` assets: the shared set plus Clarity. */
+/**
+ * Every public page's `<head>` assets (login excepted): the shared set plus
+ * the consent-gated analytics loader, when analytics are enabled.
+ */
 export const HEAD_ASSETS = ANALYTICS_ENABLED
-    ? `${BASE_HEAD_ASSETS}
-${CLARITY}`
-    : BASE_HEAD_ASSETS;
+    ? `${STYLE_ASSETS}
+${analyticsHead()}`
+    : STYLE_ASSETS;
 
 export const THEME_PREPAINT = `        <script>
             // Apply a saved theme override before paint to avoid a flash.
@@ -411,10 +499,29 @@ ${switcherItems}
  * page has a link in this footer (Tools, Alternatives, Privacy, Terms) —
  * that link gets aria-current="page", matching what every hand-authored
  * legal/tools page already did before it moved to a generator.
+ *
+ * With analytics enabled (and unless `opts.consent` is false — the login
+ * page, which carries no analytics), the footer also gets a "Cookie
+ * settings" button and the consent banner is emitted right after it.
+ * Both are driven by public/site.js against the `nmConsent` object that
+ * analyticsHead() defines; the banner shows only while <html> carries
+ * data-consent="ask". Each carries `data-analytics`, the hook
+ * scripts/depersonalize.ts strips them by. The banner's privacy link has
+ * `data-consent-link` ahead of its href so the aria-current replaceAll
+ * below never matches it.
  */
-export function footer(locale: SiteLocale, currentSuffix?: string): string {
+export function footer(
+    locale: SiteLocale,
+    currentSuffix?: string,
+    opts: { consent?: boolean } = {},
+): string {
     const p = (id: string) => pathFor(locale, id);
     const c = chromeFor(locale);
+    const consent = ANALYTICS_ENABLED && opts.consent !== false;
+    const settingsBtn = consent
+        ? `
+                    <button type="button" class="footer-link-btn" data-consent-open data-analytics>${esc(c.consent.settings)}</button>`
+        : "";
     const html = `        <footer class="footer">
             <div class="footer-inner">
                 <span class="footer-brand">
@@ -444,17 +551,31 @@ export function footer(locale: SiteLocale, currentSuffix?: string): string {
                     >
                     <a href="mailto:anton@nutrition-mcp.com">${esc(c.footer.contact)}</a>
                     <a href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a>
-                    <a href="${p("/terms")}">${esc(c.footer.termsOfService)}</a>
+                    <a href="${p("/terms")}">${esc(c.footer.termsOfService)}</a>${settingsBtn}
                 </nav>
                 <p class="footer-note">
                     ${esc(c.footer.note)}
                 </p>
             </div>
         </footer>`;
-    if (!currentSuffix) return html;
+    const banner = consent
+        ? `
+        <section class="consent" role="region" aria-labelledby="consent-title" data-analytics>
+            <h2 id="consent-title" class="consent-title">${esc(c.consent.title)}</h2>
+            <p class="consent-body">${esc(c.consent.body)} <a data-consent-link href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a></p>
+            <div class="consent-actions">
+                <button type="button" class="btn consent-btn" data-consent-choice="denied">${esc(c.consent.reject)}</button>
+                <button type="button" class="btn consent-btn" data-consent-choice="granted">${esc(c.consent.accept)}</button>
+            </div>
+        </section>
+`
+        : "";
+    if (!currentSuffix) return html + banner;
     const currentHref = p(currentSuffix);
-    return html.replaceAll(
-        `<a href="${currentHref}">`,
-        `<a href="${currentHref}" aria-current="page">`,
+    return (
+        html.replaceAll(
+            `<a href="${currentHref}">`,
+            `<a href="${currentHref}" aria-current="page">`,
+        ) + banner
     );
 }

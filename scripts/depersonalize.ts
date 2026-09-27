@@ -7,9 +7,11 @@
  *   bun run scripts/depersonalize.ts --dry    # report only, change nothing
  *
  * What it removes / neutralizes:
- *   - Google Analytics (gtag) from every public HTML page, and Microsoft
- *     Clarity from every one except login.html (which never carries it),
- *     plus both services' hosts in the CSP allow-list
+ *   - The consent-gated analytics (the `data-analytics` snippet that loads
+ *     Google Analytics and Microsoft Clarity after opt-in, the consent
+ *     banner and the footer "Cookie settings" button) from every public HTML
+ *     page except login.html (which never carries any of it), plus both
+ *     services' hosts in the CSP allow-list
  *   - The Glama connector-ownership route (embeds the maintainer's email)
  *   - Patreon "Support" section and hero button
  *   - GitHub repo links (nav, footer, "Star on GitHub" CTA) and the live
@@ -21,7 +23,7 @@
  *   - The nutrition-mcp.com domain -> your-domain.com placeholder
  *     (install/MCP URL, canonical/OG tags, sitemap, robots)
  *   - The "alternative to X" comparison pages under public/alternatives/
- *     (GA, Clarity, GitHub/contact links, domain)
+ *     (analytics + consent banner, GitHub/contact links, domain)
  *
  * It is tuned to the current markup. If a pattern stops matching after a
  * redesign, the run reports "0 matches" for that rule so you can spot it.
@@ -39,10 +41,11 @@
  *
  * It also rewrites only the generated output, never the sources, so
  * `bun run gen:all` puts everything back. Before regenerating, edit the
- * sources: HEAD_ASSETS in scripts/site-partials.ts (the GA measurement id and
- * CLARITY_PROJECT_ID — drop CLARITY from HEAD_ASSETS rather than blanking the
- * id), the GitHub/contact links in its nav()/footer(), SITE in
- * src/routes.ts, then re-run this script.
+ * sources: in scripts/site-partials.ts, either set ANALYTICS_ENABLED to false
+ * (drops the snippet, banner and settings button together) or swap in your
+ * own GA_MEASUREMENT_ID / CLARITY_PROJECT_ID — don't just blank an id, which
+ * leaves the loader and banner in place — plus the GitHub/contact links in
+ * its nav()/footer(); SITE in src/routes.ts; then re-run this script.
  */
 
 import { statSync } from "node:fs";
@@ -57,31 +60,37 @@ type Rule = {
     optional?: boolean;
 };
 
-/** Remove Google Analytics from any HTML page. */
-const GA_RULES: Rule[] = [
-    {
-        name: "GA loader <script>",
-        find: /[ \t]*<script\b[\s\S]*?googletagmanager[\s\S]*?<\/script>\n/,
-    },
-    {
-        name: "GA inline config <script>",
-        find: /[ \t]*<script>\s*window\.dataLayer[\s\S]*?<\/script>\n/,
-    },
-];
-
 /**
- * Remove Microsoft Clarity. Required rather than optional: every page but the
- * login page carries it (HEAD_ASSETS vs BASE_HEAD_ASSETS in
- * scripts/site-partials.ts), so the login jobs take GA_RULES alone and a 0×
- * anywhere else really does mean the snippet's markup drifted.
+ * Remove the consent-gated analytics. Everything analytics-related on a page
+ * is marked `data-analytics` by scripts/site-partials.ts, so these key on
+ * that marker rather than on vendor markup: the one inline snippet from
+ * analyticsHead() (Google Analytics and Microsoft Clarity both load from
+ * inside it, only after the visitor accepts), the consent banner footer()
+ * renders after `</footer>`, and the footer "Cookie settings" button.
+ * Required rather than optional: every page but the login page carries all
+ * three (login opts out via footer(..., { consent: false }) and uses the
+ * analytics-free BASE_HEAD_ASSETS), so the login jobs take none of these and
+ * a 0× anywhere else really does mean the markup drifted.
  */
-const CLARITY_RULE: Rule = {
-    name: "Microsoft Clarity <script>",
-    find: /[ \t]*<script>\s*\(function \(c, l, a, r, i, t, y\)[\s\S]*?<\/script>\n/,
+const ANALYTICS_SNIPPET_RULE: Rule = {
+    name: "analytics snippet <script data-analytics>",
+    find: /[ \t]*<script data-analytics>[\s\S]*?<\/script>\n/,
+};
+const CONSENT_BANNER_RULE: Rule = {
+    name: 'consent banner <section class="consent">',
+    find: /[ \t]*<section class="consent"[\s\S]*?<\/section>\n/,
+};
+const CONSENT_SETTINGS_RULE: Rule = {
+    name: "footer: Cookie settings button",
+    find: /[ \t]*<button[^>]*data-consent-open[\s\S]*?<\/button\s*>\n/,
 };
 
-/** Every analytics tag an ordinary public page carries. */
-const ANALYTICS_RULES: Rule[] = [...GA_RULES, CLARITY_RULE];
+/** Every analytics element an ordinary public page carries. */
+const ANALYTICS_RULES: Rule[] = [
+    ANALYTICS_SNIPPET_RULE,
+    CONSENT_BANNER_RULE,
+    CONSENT_SETTINGS_RULE,
+];
 
 /** Every link to the maintainer's GitHub repo (nav, footer, CTA button). */
 const GITHUB_LINKS_RULE: Rule = {
@@ -231,7 +240,7 @@ const DOMAIN_RULE: Rule = {
 };
 
 // The generated "alternative to X" comparison pages carry the same personal
-// bits as the landing page (GA, Clarity, GitHub links, contact mailto, the domain) but
+// bits as the landing page (analytics + consent banner, GitHub links, contact mailto, the domain) but
 // none of the Patreon/Medium/Contact-section markup, so they get a focused set.
 // They do still render the shared nav() chrome, though, which links to the
 // landing page's #support/#contact anchors — those need stripping here too.
@@ -295,7 +304,7 @@ const altPageJobs = (
 // asks for GITHUB_LINKS_RULE / DOMAIN_RULE etc.
 const RULES_BY_FILENAME: Record<string, Rule[]> = {
     "login.html": [
-        ...GA_RULES,
+        // No analytics rules: login carries no snippet, banner or button.
         NAV_SUPPORT_RULE,
         NAV_CONTACT_RULE,
         GITHUB_LINKS_RULE,
@@ -394,7 +403,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     {
         path: "public/login.html",
         rules: [
-            ...GA_RULES,
+            // No analytics rules: login carries no snippet, banner or button.
             NAV_SUPPORT_RULE,
             NAV_CONTACT_RULE,
             GITHUB_LINKS_RULE,
@@ -441,7 +450,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
             DOMAIN_RULE,
         ],
     },
-    // Tools reference page: GA + the nav/footer GitHub link, the footer contact
+    // Tools reference page: analytics + the nav/footer GitHub link, the footer contact
     // mailto, and the canonical/OG domain.
     {
         path: "public/tools.html",

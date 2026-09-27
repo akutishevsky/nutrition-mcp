@@ -64,4 +64,12 @@ export const CHROME_ES: ChromeCopy = {
         termsOfService: "Términos de servicio",
         note: "Gratis y de código abierto. Las cifras de nutrición son estimaciones, no son un consejo médico.",
     },
+
+    consent: {
+        title: "Cookies de analítica",
+        body: "Con tu permiso usamos Google Analytics y Microsoft Clarity para ver cómo se usan estas páginas, incluidas grabaciones de sesión en las que todo lo que escribes queda oculto. No se carga nada a menos que aceptes, y puedes cambiar de opinión en cualquier momento desde el pie de página.",
+        accept: "Aceptar analítica",
+        reject: "Rechazar analítica",
+        settings: "Configuración de cookies",
+    },
 };
