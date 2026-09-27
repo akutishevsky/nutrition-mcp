@@ -398,3 +398,14 @@ test("every /tools param has prose in every locale", () => {
     }
     expect(missing).toEqual([]);
 });
+
+// get_trends ranks best/worst day by calories only (computeTrends in
+// src/insights.ts); the /tools copy once promised extremes for "each macro".
+// Only English is asserted: the 8 locale lines were rewritten in the same
+// change and are checked by diff review, since a per-language phrase list
+// would pin wording rather than the claim.
+test("the /tools get_trends copy does not promise per-macro extremes", () => {
+    const prose = TOOLS_COPY.en!.tools.get_trends!.description;
+    expect(prose).not.toContain("each macro");
+    expect(prose).toContain("by calories");
+});

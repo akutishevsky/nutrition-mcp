@@ -354,7 +354,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungsbreite, Erfassungsserien, Aufschlüsselung nach Wochentag sowie deine besten und schlechtesten Tage für Kalorien und jeden Makro — vorberechnet, damit die KI sie nur noch erzählen muss.",
+                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungsbreite, Erfassungsserien, Kaloriendurchschnitte nach Wochentag sowie deine besten und schlechtesten Tage nach Kalorien — vorberechnet, damit die KI sie nur noch erzählen muss.",
             params: {
                 days: "Fenstergröße in Tagen (Standard 30, maximal 365).",
             },

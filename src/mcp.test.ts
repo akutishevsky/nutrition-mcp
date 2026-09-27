@@ -1496,6 +1496,9 @@ const db = {
     // Every call to a delete stub, found or not: stays 0 when a tool refuses
     // an id before it reaches the database.
     deleteCalls: 0,
+    // What the insert stubs report as `deduplicated`: true stands in for a
+    // write whose key matched an existing row.
+    dedupe: false,
 };
 
 mock.module("./supabase.js", () => ({
@@ -1538,7 +1541,7 @@ mock.module("./supabase.js", () => ({
         db.inserted.push(input);
         const saved = storedMeal(input);
         db.meals = [saved];
-        return { meal: saved, deduplicated: false };
+        return { meal: saved, deduplicated: db.dedupe };
     },
     updateMeal: async (
         _userId: string,
@@ -1565,7 +1568,7 @@ mock.module("./supabase.js", () => ({
                 created_at: "2026-08-07T00:00:00.000Z",
                 idempotency_key: null,
             } as WaterEntry,
-            deduplicated: false,
+            deduplicated: db.dedupe,
         };
     },
     insertWeight: async (_userId: string, input: Record<string, unknown>) => {
@@ -1582,7 +1585,7 @@ mock.module("./supabase.js", () => ({
                 created_at: "2026-08-07T00:00:00.000Z",
                 idempotency_key: null,
             } as WeightEntry,
-            deduplicated: false,
+            deduplicated: db.dedupe,
         };
     },
     updateWeight: async (
@@ -1664,6 +1667,7 @@ beforeEach(() => {
     db.profileReads = [];
     db.failWith = null;
     db.deleteCalls = 0;
+    db.dedupe = false;
 });
 
 interface ToolResult {
@@ -4809,6 +4813,90 @@ describe("tool text names no external tool", () => {
                         ).not.toMatch(WEB);
                     }
                 }
+            });
+        },
+    );
+});
+
+// Policy 2.B: descriptions must describe behaviour, not over-claim it. Each
+// assertion pins one claim that was once false: the derived idempotency key
+// only survives a replay that carries logged_at, the rate limit is per HTTP
+// request (not a "budget" a week of meals exhausts), get_trends ranks days by
+// calories only, and a timezone change regroups reads.
+describe("tool text makes only claims the code keeps", () => {
+    test.each(ERAS)(
+        "idempotency, rate-limit, trends and timezone text (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const instructions = client.getInstructions() ?? "";
+                expect(instructions).not.toMatch(/exhaust/i);
+                expect(instructions).toContain("omit logged_at");
+                expect(instructions).toContain("get_current_time");
+                const { tools } = await client.listTools();
+                const byName = new Map(tools.map((t) => [t.name, t]));
+                const keyDescription = (name: string) =>
+                    (
+                        (byName.get(name)!.inputSchema.properties ??
+                            {}) as Record<string, { description?: string }>
+                    ).idempotency_key?.description ?? "";
+                for (const name of ["log_meal", "log_water", "log_weight"]) {
+                    const d = keyDescription(name);
+                    expect(d, name).toContain("omits logged_at");
+                    expect(d, name).toContain("adds a new");
+                    expect(d, name).not.toContain(
+                        "You normally don't need to set this",
+                    );
+                }
+                expect(keyDescription("log_water")).toContain("500 ml");
+                expect(
+                    byName.get("bulk_import_meals")!.description ?? "",
+                ).not.toMatch(/exhaust/i);
+                const trends = byName.get("get_trends")!.description ?? "";
+                expect(trends).not.toMatch(/each macro/);
+                expect(trends).toContain("best and worst day by calories");
+                const tz = byName.get("set_timezone")!.description ?? "";
+                expect(tz).not.toContain("re-buckets nothing");
+                expect(tz).toContain("regroups existing entries");
+                for (const tool of tools) {
+                    expect(JSON.stringify(tool), tool.name).not.toContain(
+                        "idempotent retry",
+                    );
+                }
+            });
+        },
+    );
+});
+
+describe("dedupe headers do not claim a retry", () => {
+    const WRITES: [string, Record<string, unknown>, string][] = [
+        [
+            "log_meal",
+            { description: "Oatmeal", meal_type: "breakfast", calories: 300 },
+            "Meal logged",
+        ],
+        ["log_water", { amount_ml: 250 }, "Water logged"],
+        ["log_weight", { weight: 70, unit: "kg" }, "Weight logged"],
+    ];
+
+    test.each(WRITES)(
+        "%s says nothing new was added when the key matched",
+        async (name, args) => {
+            db.dedupe = true;
+            await withTools(null, async (call) => {
+                const text = textOf(await call(name, args));
+                expect(text).not.toContain("idempotent retry");
+                expect(text).toContain("nothing new was added");
+            });
+        },
+    );
+
+    test.each(WRITES)(
+        "%s keeps its plain header for a new entry",
+        async (name, args, header) => {
+            await withTools(null, async (call) => {
+                const text = textOf(await call(name, args));
+                expect(text).toContain(header);
+                expect(text).not.toContain("nothing new was added");
             });
         },
     );
