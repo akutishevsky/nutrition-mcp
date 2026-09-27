@@ -1,4 +1,12 @@
-import { test, expect, describe, mock, beforeEach, afterAll } from "bun:test";
+import {
+    test,
+    expect,
+    describe,
+    mock,
+    beforeEach,
+    afterAll,
+    spyOn,
+} from "bun:test";
 import { z } from "zod";
 import {
     formatGoalLine,
@@ -2888,6 +2896,37 @@ describe("raw database errors never reach the model", () => {
             expect(textOf(r)).toBe(`No meal found with id ${MEAL_ID}.`);
         });
         expect(rowFor("update_meal").error_category).toBe("record_not_found");
+    });
+
+    // Resources bypass withAnalytics, and the SDK forwards a thrown message to
+    // the client verbatim, so the weekly summary carries its own catch.
+    test("the weekly-summary resource hides the raw text behind a ref", async () => {
+        db.failWith = new Error(
+            'Failed to get meals: relation "public.meals" does not exist',
+        );
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            const message = await withHttpClient("u1", "legacy", (client) =>
+                client.readResource({ uri: "nutrition://weekly-summary" }).then(
+                    () => "resolved",
+                    (e: unknown) =>
+                        e instanceof Error ? e.message : String(e),
+                ),
+            );
+            expect(message).toContain("Couldn't build the weekly summary");
+            const ref = message.match(/\(ref ([0-9a-f]{8})\)/)?.[1];
+            expect(ref).toBeDefined();
+            expect(message).not.toContain("relation");
+            expect(message).not.toContain("Failed to");
+            const line = warn.mock.calls
+                .map((c) => String(c[0]))
+                .find((l) => l.startsWith("[resource] weekly-summary"));
+            expect(line).toBe(
+                `[resource] weekly-summary error ref=${ref}: ${JSON.stringify('Failed to get meals: relation "public.meals" does not exist')}`,
+            );
+        } finally {
+            warn.mockRestore();
+        }
     });
 });
 

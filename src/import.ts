@@ -1276,12 +1276,18 @@ export async function runImport(
                     ),
                 );
             } catch (e) {
+                // The driver's text is logged, not returned: it can carry
+                // Postgres internals the caller can't act on. JSON-escaped so
+                // it can't forge log lines; no user id.
+                console.warn(
+                    `[import] insert_failed line ${v.source_line}: ${JSON.stringify(e instanceof Error ? e.message : String(e))}`,
+                );
                 summary.failed++;
                 byIndex.set(v.index, {
                     ...resultRow(v, "failed", null),
                     error: {
                         code: "insert_failed",
-                        message: `Database write failed: ${e instanceof Error ? e.message : String(e)}`,
+                        message: "Database write failed for this row.",
                         suggested_fix:
                             "Re-call with this row; rows already imported will be skipped.",
                         retryable: true,

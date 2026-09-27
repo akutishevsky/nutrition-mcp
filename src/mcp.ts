@@ -54,7 +54,7 @@ import {
     withAnalytics,
     categorizeError,
 } from "./analytics.js";
-import { ToolError } from "./errors.js";
+import { ToolError, newErrorRef } from "./errors.js";
 import {
     todayInTz,
     validateTz,
@@ -1911,11 +1911,17 @@ export function registerTools(
                             category === "unknown"
                                 ? "external_api_error"
                                 : category;
+                        // The OFF message stays server-side: it is
+                        // third-party text, and the model can't act on it.
+                        // JSON-escaped so it can't forge log lines.
+                        console.warn(
+                            `[lookup_barcode] off-failure=${offFailure}: ${JSON.stringify(msg)}`,
+                        );
                         return {
                             content: [
                                 {
                                     type: "text",
-                                    text: `Couldn't reach Open Food Facts right now (${msg}). Estimate the macros from the product description or ask the user, then log the meal.`,
+                                    text: "Couldn't reach Open Food Facts right now. Estimate the macros from the product description or ask the user, then log the meal.",
                                 },
                             ],
                         };
@@ -4378,33 +4384,46 @@ export function registerTools(
             mimeType: "text/plain",
         },
         async (uri) => {
-            const tz = await getUserTimezone(userId);
-            const endDate = todayInTz(tz);
-            const startDate = shiftLocalDate(endDate, -6);
-            const [meals, water, goals] = await Promise.all([
-                getMealsInRange(userId, startDate, endDate, tz),
-                getWaterInRange(userId, startDate, endDate, tz),
-                getNutritionGoals(userId),
-            ]);
-            const buckets = buildDailyBuckets(
-                meals,
-                water,
-                startDate,
-                endDate,
-                tz,
-            );
-            return {
-                contents: [
-                    {
-                        uri: uri.href,
-                        mimeType: "text/plain",
-                        text: computeWeeklyDigest(
-                            gateAlcohol(buckets, alcohol),
-                            goals,
-                        ),
-                    },
-                ],
-            };
+            // Resources don't go through withAnalytics, and the SDK forwards a
+            // thrown message to the client verbatim, so this catch applies the
+            // same rule: raw text is logged under a ref, never returned.
+            try {
+                const tz = await getUserTimezone(userId);
+                const endDate = todayInTz(tz);
+                const startDate = shiftLocalDate(endDate, -6);
+                const [meals, water, goals] = await Promise.all([
+                    getMealsInRange(userId, startDate, endDate, tz),
+                    getWaterInRange(userId, startDate, endDate, tz),
+                    getNutritionGoals(userId),
+                ]);
+                const buckets = buildDailyBuckets(
+                    meals,
+                    water,
+                    startDate,
+                    endDate,
+                    tz,
+                );
+                return {
+                    contents: [
+                        {
+                            uri: uri.href,
+                            mimeType: "text/plain",
+                            text: computeWeeklyDigest(
+                                gateAlcohol(buckets, alcohol),
+                                goals,
+                            ),
+                        },
+                    ],
+                };
+            } catch (err) {
+                const ref = newErrorRef();
+                console.warn(
+                    `[resource] weekly-summary error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+                );
+                throw new Error(
+                    `Couldn't build the weekly summary right now (ref ${ref}); try again shortly or call get_trends.`,
+                );
+            }
         },
     );
 
