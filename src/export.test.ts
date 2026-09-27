@@ -634,7 +634,7 @@ test("profile.csv carries the chosen widget language", () => {
     expect(f.locale).toBe("uk");
 });
 
-test("README.txt says what the archive leaves out and how to get it", () => {
+test("README.txt says what the archive leaves out, with no email fallback", () => {
     const readme = buildExportReadme(README_OPTS);
     expect(readme).toContain("Not in this archive");
     expect(readme).toContain("everything the service stores about you");
@@ -642,7 +642,8 @@ test("README.txt says what the archive leaves out and how to get it", () => {
     expect(readme).toContain("does not contain your account id");
     expect(readme).toContain("rolling backups");
     expect(readme).toContain("internal bookkeeping");
-    expect(readme).toContain("within one month");
+    expect(readme).not.toContain("within one month");
+    expect(readme).not.toMatch(/email (us|the contact)/i);
     // The old wording sent people to email for data the archive now holds.
     expect(readme).not.toContain("your account email, account and sign-in");
 });
