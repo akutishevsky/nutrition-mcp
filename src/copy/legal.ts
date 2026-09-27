@@ -68,7 +68,7 @@ const PRIVACY_EN: LegalDoc = {
             heading: "What we collect",
             blocks: [
                 p(
-                    "When you register, we store your <strong>email address</strong> and a securely hashed password via Supabase Auth. If you sign in with Google instead, we receive your email address from Google and never see a password at all.",
+                    "When you register, we store your <strong>email address</strong> and a securely hashed password via Supabase Auth. If you sign in with Google instead, we ask Google only for your email address, and receive it together with Google's account identifier for you, which Supabase Auth keeps so it can recognise your next Google sign-in. We never see a Google password. Accounts that signed in with Google before September 27, 2026 may also still hold the name and profile picture Google sent back then; nothing in the service reads or shows them, and they are deleted with your account.",
                 ),
                 p("When you use the service, we store:"),
                 ul([
@@ -76,15 +76,15 @@ const PRIVACY_EN: LegalDoc = {
                     "<strong>Water logs</strong> — amount, notes, and timestamps.",
                     "<strong>Body weight logs</strong> — weight, notes, and timestamps. This is health data, and it is treated exactly like the rest of your logs.",
                     "<strong>Goals</strong> — your daily calorie, protein, carb, fat, fiber, sugar, alcohol, caffeine, and water targets, and your target weight.",
-                    "<strong>Profile settings</strong> — your IANA timezone, preferred weight unit, whether alcohol tracking is switched on and which standard drink it is shown in, and whether in-chat widgets are enabled.",
+                    "<strong>Profile settings</strong> — your IANA timezone, preferred weight unit, whether alcohol tracking is switched on and which standard drink it is shown in, whether in-chat widgets are enabled, and the language in-chat widgets are shown in.",
                     "<strong>Tool-usage telemetry</strong> — for each MCP tool call, which tool ran, whether it succeeded, how long it took, a coarse error category when it failed, the span in days of any date range you asked for, the MCP session id, which revision of the MCP protocol your AI app connected with, and the name and version that app reports for itself (for example &ldquo;claude-ai/1.0&rdquo;) when it sends them. It is linked to your account id. It never includes the content of your logs.",
-                    "<strong>Server request log</strong> — for each request to the server: the method, path, response status and response time, your IP address with its last part removed, and for MCP requests the protocol revision and the name and version your AI app reports. It is written to our hosting provider's runtime log, is not linked to your account id, and is kept only briefly: that log is a rolling buffer that overwrites older lines as new traffic arrives.",
+                    "<strong>Server runtime log</strong> — for each request to the server: the method, path, response status and response time, your IP address with its last part removed, and for MCP requests the protocol revision and the name and version your AI app reports. For each tool call it also records the tool's name, whether it succeeded, how long it took and, when it failed, a short reference code and the error message — which can repeat back a value your AI app sent, such as an invalid date. When your AI app signs in or renews its connection, it records the outcome, the random identifier your AI app was given when it registered with our sign-in service, and the site it asked to be sent back to (for example claude.ai). It is written to our hosting provider's runtime log, does not contain your account id or email address, and is kept only briefly: that log is a rolling buffer that overwrites older lines as new traffic arrives.",
                 ]),
                 p(
                     "<strong>Alcohol is health data too</strong>, and of a more sensitive kind than a calorie count, so it works differently from everything above. Alcohol tracking is off by default, and we only ever record alcohol when it comes from you — a drink you log, or a column in a file you import. Nothing infers it on your behalf. Switching the setting off does two things: the bulk importer stops reading the alcohol column out of files you upload, and everything else stops showing alcohol in the meals, goals, progress and widgets you see. It is not a delete switch. Alcohol you logged directly is still recorded whether the setting is on or off, anything already stored stays in the database, and all of it still appears in the meals file of any export you take. To actually remove an alcohol figure, delete the meal it belongs to, or delete your account.",
                 ),
                 p(
-                    "We also keep the OAuth access and refresh tokens and authorization codes that let your AI assistant stay connected to your account.",
+                    "We also keep the OAuth access and refresh tokens and authorization codes that let your AI assistant stay connected to your account; how long each one lasts is under &ldquo;How long we keep data&rdquo;. They are stored only as one-way hashes.",
                 ),
             ],
         },
@@ -93,6 +93,9 @@ const PRIVACY_EN: LegalDoc = {
             blocks: [
                 p(
                     "Your meal, water, weight, and goal data is used solely to provide the nutrition tracking service. We <strong>never sell it, never share it with third parties, and never use it for advertising</strong> or feed it into any ad or profiling system.",
+                ),
+                p(
+                    'When you or your AI assistant look up a barcode, our server sends only the barcode digits to <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — never your account, email or logs — and keeps the product data it returns in a shared cache that is not linked to any user.',
                 ),
                 p(
                     "Two kinds of analytics do exist, and neither touches the content of your logs:",
@@ -110,7 +113,7 @@ const PRIVACY_EN: LegalDoc = {
             heading: "Where it's stored",
             blocks: [
                 p(
-                    'All data is stored in <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL). Authentication is handled by Supabase Auth. The server is hosted on DigitalOcean.',
+                    'All data is stored in <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in the EU, in AWS&rsquo;s Ireland region (eu-west-1). Authentication and export storage are handled by Supabase in the same region. The server runs on DigitalOcean in Frankfurt, Germany.',
                 ),
             ],
         },
@@ -118,7 +121,10 @@ const PRIVACY_EN: LegalDoc = {
             heading: "How long we keep data",
             blocks: [
                 p(
-                    "Your meal, water and weight logs, goals, profile settings, and tool-usage telemetry are kept for as long as your account exists — none of them has a separate expiry date or a scheduled purge. When you delete your account, all of it is deleted immediately and irreversibly, as described below. The only traces left are the telemetry row for the deletion itself, which is recorded without your account id, the short-lived server request log described above, which never carries your account id, and our database provider's rolling backups, which age out on their own schedule.",
+                    "Your meal, water and weight logs, goals, profile settings, and tool-usage telemetry are kept for as long as your account exists — none of them has a separate expiry date or a scheduled purge. When you delete your account, all of it is deleted immediately and irreversibly, as described below. The only traces left are the telemetry row for the deletion itself, recorded without your account id; the short-lived server runtime log described above, which never carries your account id; our database provider's own operational logs, kept for a limited period (up to 7 days on our plan); and its rolling backups, which age out on their own schedule.",
+                ),
+                p(
+                    "Sign-in credentials are short-lived by design. The sign-in page's session lasts 10 minutes and is held in the server's memory; it is tied to your browser by a strictly necessary cookie that holds only a random value, expires after the same 10 minutes and is deleted when sign-in finishes. To check your password or Google sign-in we use Supabase Auth, which creates a Supabase sign-in session each time; we never use it and end it immediately. The one-time authorization code handed to your AI app expires after 10 minutes and is deleted as soon as it is used. A new access token is valid for 24 hours (one issued before September 27, 2026 keeps the lifetime it was issued with, up to a year); a refresh token is valid for 90 days, and it is deleted the moment it is used to get a new pair. Expired tokens and codes are deleted automatically within an hour. Deleting your account removes all of them immediately.",
                 ),
                 p(
                     "Export archives are short-lived. Each new export overwrites the previous one, and the file is deleted automatically once its 60-minute download link has expired — a cleanup runs every ten minutes, so an archive normally stays in storage for no more than about 70 minutes.",
@@ -130,6 +136,39 @@ const PRIVACY_EN: LegalDoc = {
             blocks: [
                 p(
                     "You can delete your account and all associated data at any time by asking your AI assistant to <strong>delete your account</strong> while connected to the Nutrition MCP server. This action is immediate and irreversible. It removes your meals, water and weight logs, goals, profile settings, any export archive still in storage, your tool-usage telemetry, your access tokens, and the account itself. That includes every alcohol figure you ever logged, whether or not alcohol tracking was switched on.",
+                ),
+            ],
+        },
+        {
+            heading: "Contact and your rights",
+            blocks: [
+                p(
+                    'Nutrition MCP is run by Anton Kutishevskyi, an individual developer, who is the controller of your personal data for this service. For anything about your data or this policy, email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                ),
+                p("Why we are allowed to process it:"),
+                ul([
+                    "<strong>Your account and logs</strong> — to provide the service you signed up for (performance of a contract). Meals, weight and alcohol are health data, so we process them on the basis of your explicit consent, which you give by logging them and can withdraw at any time by deleting the entries or your account.",
+                    "<strong>Tool-usage telemetry and the server runtime log</strong> — our legitimate interest in keeping the service working, fast and secure (finding broken tools, rate-limiting abuse). Neither contains the content of your logs.",
+                    "<strong>Website analytics</strong> — your consent, given in the cookie banner and withdrawable at any time with &ldquo;Cookie settings&rdquo; in the footer.",
+                ]),
+                p(
+                    "Your rights, and how to use them — most need no email at all:",
+                ),
+                ul([
+                    "<strong>Access and portability</strong> — ask your AI assistant to export your data. You get a ZIP of CSV files with everything you logged, your goals and your settings. For anything else we hold about you — your account email, account and sign-in records, and tool-usage telemetry — email us from your account address and we will send you a copy within one month.",
+                    "<strong>Rectification</strong> — ask your AI assistant to correct or delete any meal, water or weight entry, or to change your goals and settings.",
+                    "<strong>Erasure</strong> — ask your AI assistant to delete your account, which removes everything at once.",
+                    "<strong>Objection and restriction</strong> — email us, and we will answer within one month.",
+                    "<strong>Complaint</strong> — you can complain to the data protection authority where you live or work. We would appreciate the chance to fix it first.",
+                ]),
+                p(
+                    "Everything we store stays in the EU region named above. Whatever your AI assistant reads through the tools is sent to that assistant's provider, which may be outside the EU; that happens under your own agreement with them, not ours. Google and Microsoft (website analytics, Google Sign-In) and Google, jsDelivr and GitHub (the font, icon and star-count requests described above) are outside the EU too; where they receive personal data from outside the EU, they rely on the European Commission's standard contractual clauses or the EU–US Data Privacy Framework.",
+                ),
+                p(
+                    'The service is not meant for anyone under 16, and the <a href="/terms" data-legal-link="terms">Terms of Service</a> require you to be at least 16. If you believe someone younger has created an account, email us and we will delete it.',
+                ),
+                p(
+                    "If this policy changes, the date at the top changes with it.",
                 ),
             ],
         },
@@ -158,6 +197,9 @@ const TERMS_EN: LegalDoc = {
             blocks: [
                 p(
                     "These terms govern your use of Nutrition MCP (the &ldquo;service&rdquo;) — the website at nutrition-mcp.com and the remote MCP server at <strong>https://nutrition-mcp.com/mcp</strong>. By creating an account or connecting an AI assistant to the server, you agree to these terms. If you do not agree, please do not use the service.",
+                ),
+                p(
+                    "The service is run by Anton Kutishevskyi, an individual developer (&ldquo;we&rdquo;, &ldquo;us&rdquo;).",
                 ),
             ],
         },
@@ -243,6 +285,9 @@ const TERMS_EN: LegalDoc = {
                     "The service depends on third parties: Supabase for database, authentication, and export storage, DigitalOcean for hosting, Open Food Facts for barcode data, and whichever AI assistant you connect from.",
                 ),
                 p(
+                    'Barcode product data &copy; <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> contributors, available under the <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
+                ),
+                p(
                     "The website itself also uses, with your consent, Google Analytics and Microsoft Clarity to measure traffic and how the pages are used, Google Fonts and the jsDelivr CDN to load fonts and icons, Google Sign-In if you choose that way of logging in, and the GitHub API to show the project's star count. Loading a page therefore makes requests to Google Fonts and jsDelivr (and, on the home page, GitHub), which can see your IP address and browser; Google Analytics and Microsoft Clarity are contacted only after you accept analytics.",
                 ),
                 p(
@@ -305,7 +350,7 @@ const TERMS_EN: LegalDoc = {
             heading: "Contact",
             blocks: [
                 p(
-                    'Questions about these terms? Email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Questions about these terms or your data? Email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
                 ),
             ],
         },
@@ -338,7 +383,7 @@ const PRIVACY_DE: LegalDoc = {
             heading: "Was wir erfassen",
             blocks: [
                 p(
-                    "Bei der Registrierung speichern wir deine <strong>E-Mail-Adresse</strong> und ein sicher gehashtes Passwort über Supabase Auth. Meldest du dich stattdessen mit Google an, erhalten wir deine E-Mail-Adresse von Google und bekommen niemals ein Passwort zu sehen.",
+                    "Bei der Registrierung speichern wir deine <strong>E-Mail-Adresse</strong> und ein sicher gehashtes Passwort über Supabase Auth. Meldest du dich stattdessen mit Google an, fragen wir bei Google nur deine E-Mail-Adresse an und erhalten sie zusammen mit der Konto-Kennung, die Google für dich vergibt; Supabase Auth speichert diese, um deine nächste Google-Anmeldung wiederzuerkennen. Ein Google-Passwort bekommen wir niemals zu sehen. Bei Konten, die sich vor dem 27. September 2026 mit Google angemeldet haben, können außerdem noch der Name und das Profilbild gespeichert sein, die Google damals mitgeschickt hat; nichts im Dienst liest oder zeigt sie an, und sie werden mit deinem Konto gelöscht.",
                 ),
                 p("Bei der Nutzung des Dienstes speichern wir:"),
                 ul([
@@ -346,15 +391,15 @@ const PRIVACY_DE: LegalDoc = {
                     "<strong>Wasser-Einträge</strong> — Menge, Notizen und Zeitstempel.",
                     "<strong>Körpergewichts-Einträge</strong> — Gewicht, Notizen und Zeitstempel. Das sind Gesundheitsdaten und werden genauso behandelt wie alle anderen Einträge.",
                     "<strong>Ziele</strong> — deine täglichen Ziele für Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser sowie dein Zielgewicht.",
-                    "<strong>Profileinstellungen</strong> — deine IANA-Zeitzone, bevorzugte Gewichtseinheit, ob die Alkohol-Erfassung aktiviert ist und in welchem Standardgetränk sie angezeigt wird, sowie ob In-Chat-Widgets aktiviert sind.",
+                    "<strong>Profileinstellungen</strong> — deine IANA-Zeitzone, bevorzugte Gewichtseinheit, ob die Alkohol-Erfassung aktiviert ist und in welchem Standardgetränk sie angezeigt wird, ob In-Chat-Widgets aktiviert sind und in welcher Sprache In-Chat-Widgets angezeigt werden.",
                     "<strong>Nutzungs-Telemetrie der Werkzeuge</strong> — für jeden MCP-Tool-Aufruf, welches Werkzeug ausgeführt wurde, ob es erfolgreich war, wie lange es dauerte, eine grobe Fehlerkategorie bei einem Fehlschlag, die Länge in Tagen eines angefragten Datumsbereichs, die MCP-Sitzungs-ID, die Revision des MCP-Protokolls, mit der sich deine KI-App verbunden hat, sowie Namen und Version, die diese App für sich selbst angibt (zum Beispiel &bdquo;claude-ai/1.0&ldquo;), sofern sie diese sendet. Sie ist mit deiner Konto-ID verknüpft und enthält niemals den Inhalt deiner Einträge.",
-                    "<strong>Server-Anfrageprotokoll</strong> — für jede Anfrage an den Server: Methode, Pfad, Antwortstatus und Antwortzeit, deine IP-Adresse ohne ihren letzten Teil sowie bei MCP-Anfragen die Protokollrevision und Name und Version, die deine KI-App angibt. Es wird in das Laufzeitprotokoll unseres Hosting-Anbieters geschrieben, ist nicht mit deiner Konto-ID verknüpft und wird nur kurz aufbewahrt: Dieses Protokoll ist ein rollierender Puffer, der ältere Zeilen überschreibt, sobald neuer Traffic eintrifft.",
+                    "<strong>Server-Laufzeitprotokoll</strong> — für jede Anfrage an den Server: Methode, Pfad, Antwortstatus und Antwortzeit, deine IP-Adresse ohne ihren letzten Teil sowie bei MCP-Anfragen die Protokollrevision und Name und Version, die deine KI-App angibt. Für jeden Tool-Aufruf hält es außerdem den Namen des Werkzeugs fest, ob der Aufruf erfolgreich war, wie lange er dauerte und, bei einem Fehlschlag, einen kurzen Referenzcode und die Fehlermeldung — die einen Wert wiedergeben kann, den deine KI-App gesendet hat, etwa ein ungültiges Datum. Wenn sich deine KI-App anmeldet oder ihre Verbindung erneuert, hält es das Ergebnis fest, die zufällige Kennung, die deine KI-App bei ihrer Registrierung bei unserem Anmeldedienst erhalten hat, und die Website, zu der sie zurückgeleitet werden wollte (zum Beispiel claude.ai). Es wird in das Laufzeitprotokoll unseres Hosting-Anbieters geschrieben, enthält weder deine Konto-ID noch deine E-Mail-Adresse und wird nur kurz aufbewahrt: Dieses Protokoll ist ein rollierender Puffer, der ältere Zeilen überschreibt, sobald neuer Traffic eintrifft.",
                 ]),
                 p(
                     "<strong>Auch Alkohol ist ein Gesundheitsdatum</strong>, und zwar ein sensibleres als eine Kalorienzahl, daher funktioniert es anders als alles oben Genannte. Die Alkohol-Erfassung ist standardmäßig deaktiviert, und wir erfassen Alkohol ausschließlich, wenn er von dir stammt — ein von dir eingetragenes Getränk oder eine Spalte in einer importierten Datei. Nichts wird stellvertretend für dich abgeleitet. Das Deaktivieren der Einstellung bewirkt zwei Dinge: Der Massenimport liest die Alkoholspalte in hochgeladenen Dateien nicht mehr aus, und überall sonst wird Alkohol in den Mahlzeiten, Zielen, Fortschritten und Widgets, die du siehst, nicht mehr angezeigt. Es ist kein Löschschalter. Direkt von dir erfasster Alkohol bleibt unabhängig vom Zustand dieser Einstellung gespeichert, bereits Gespeichertes bleibt in der Datenbank, und all das erscheint weiterhin in der Mahlzeiten-Datei jedes Exports, den du erstellst. Um einen Alkoholwert tatsächlich zu entfernen, lösche die zugehörige Mahlzeit oder dein Konto.",
                 ),
                 p(
-                    "Außerdem speichern wir die OAuth-Zugriffs- und Refresh-Tokens sowie Autorisierungscodes, die deinem KI-Assistenten die dauerhafte Verbindung mit deinem Konto ermöglichen.",
+                    "Außerdem speichern wir die OAuth-Zugriffs- und Refresh-Tokens sowie Autorisierungscodes, die deinem KI-Assistenten die dauerhafte Verbindung mit deinem Konto ermöglichen; wie lange jedes davon gültig ist, steht unter &bdquo;Wie lange wir Daten aufbewahren&ldquo;. Sie werden ausschließlich als Einweg-Hashes gespeichert.",
                 ),
             ],
         },
@@ -363,6 +408,9 @@ const PRIVACY_DE: LegalDoc = {
             blocks: [
                 p(
                     "Deine Mahlzeiten-, Wasser-, Gewichts- und Zieldaten werden ausschließlich zur Bereitstellung des Ernährungs-Tracking-Dienstes verwendet. Wir <strong>verkaufen sie niemals, geben sie niemals an Dritte weiter und nutzen sie niemals für Werbung</strong> oder speisen sie in ein Werbe- oder Profiling-System ein.",
+                ),
+                p(
+                    'Wenn du oder dein KI-Assistent einen Barcode nachschlägt, sendet unser Server nur die Ziffern des Barcodes an <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — niemals dein Konto, deine E-Mail-Adresse oder deine Einträge — und legt die zurückgelieferten Produktdaten in einem gemeinsamen Cache ab, der mit keiner Nutzerin und keinem Nutzer verknüpft ist.',
                 ),
                 p(
                     "Es gibt zwei Arten von Analysen, und keine berührt den Inhalt deiner Einträge:",
@@ -380,7 +428,7 @@ const PRIVACY_DE: LegalDoc = {
             heading: "Wo es gespeichert wird",
             blocks: [
                 p(
-                    'Alle Daten werden bei <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) gespeichert. Die Authentifizierung erfolgt über Supabase Auth. Der Server wird bei DigitalOcean gehostet.',
+                    'Alle Daten werden bei <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in der EU gespeichert, in der AWS-Region Irland (eu-west-1). Authentifizierung und Export-Speicherung laufen ebenfalls über Supabase in derselben Region. Der Server läuft bei DigitalOcean in Frankfurt, Deutschland.',
                 ),
             ],
         },
@@ -388,7 +436,10 @@ const PRIVACY_DE: LegalDoc = {
             heading: "Wie lange wir Daten aufbewahren",
             blocks: [
                 p(
-                    "Deine Mahlzeiten-, Wasser- und Gewichts-Einträge, Ziele, Profileinstellungen und deine Nutzungs-Telemetrie werden so lange aufbewahrt, wie dein Konto besteht — für keine davon gibt es ein separates Ablaufdatum oder eine geplante Bereinigung. Wenn du dein Konto löschst, wird all das sofort und unumkehrbar gelöscht, wie unten beschrieben. Als einzige Spuren bleiben die Telemetrie-Zeile für die Löschung selbst, die ohne deine Konto-ID erfasst wird, das oben beschriebene kurzlebige Server-Anfrageprotokoll, das nie deine Konto-ID enthält, sowie die rollierenden Backups unseres Datenbankanbieters, die nach dessen eigenem Zeitplan auslaufen.",
+                    "Deine Mahlzeiten-, Wasser- und Gewichts-Einträge, Ziele, Profileinstellungen und deine Nutzungs-Telemetrie werden so lange aufbewahrt, wie dein Konto besteht — für keine davon gibt es ein separates Ablaufdatum oder eine geplante Bereinigung. Wenn du dein Konto löschst, wird all das sofort und unumkehrbar gelöscht, wie unten beschrieben. Als einzige Spuren bleiben die Telemetrie-Zeile für die Löschung selbst, die ohne deine Konto-ID erfasst wird; das oben beschriebene kurzlebige Server-Laufzeitprotokoll, das nie deine Konto-ID enthält; die eigenen Betriebsprotokolle unseres Datenbankanbieters, die für begrenzte Zeit aufbewahrt werden (in unserem Tarif bis zu 7 Tage); sowie dessen rollierende Backups, die nach eigenem Zeitplan auslaufen.",
+                ),
+                p(
+                    "Anmeldenachweise sind bewusst kurzlebig. Die Sitzung der Anmeldeseite dauert 10 Minuten und wird im Arbeitsspeicher des Servers gehalten; sie ist über ein technisch notwendiges Cookie an deinen Browser gebunden, das nur einen Zufallswert enthält, nach denselben 10 Minuten abläuft und gelöscht wird, sobald die Anmeldung abgeschlossen ist. Um dein Passwort oder deine Google-Anmeldung zu prüfen, nutzen wir Supabase Auth, das dabei jedes Mal eine Supabase-Anmeldesitzung anlegt; wir verwenden sie nie und beenden sie sofort. Der einmalige Autorisierungscode, den deine KI-App erhält, läuft nach 10 Minuten ab und wird gelöscht, sobald er verwendet wurde. Ein neues Zugriffstoken ist 24 Stunden gültig (ein vor dem 27. September 2026 ausgestelltes behält seine ursprüngliche Gültigkeitsdauer von bis zu einem Jahr); ein Refresh-Token ist 90 Tage gültig und wird in dem Moment gelöscht, in dem es zum Abruf eines neuen Paars verwendet wird. Abgelaufene Tokens und Codes werden innerhalb einer Stunde automatisch gelöscht. Wenn du dein Konto löschst, werden sie alle sofort entfernt.",
                 ),
                 p(
                     "Exportarchive sind kurzlebig. Jeder neue Export überschreibt den vorherigen, und die Datei wird automatisch gelöscht, sobald ihr 60-Minuten-Download-Link abgelaufen ist — eine Bereinigung läuft alle zehn Minuten, sodass ein Archiv normalerweise nicht länger als etwa 70 Minuten gespeichert bleibt.",
@@ -400,6 +451,39 @@ const PRIVACY_DE: LegalDoc = {
             blocks: [
                 p(
                     "Du kannst dein Konto und alle zugehörigen Daten jederzeit löschen, indem du deinen KI-Assistenten bittest, während er mit dem Nutrition-MCP-Server verbunden ist, <strong>dein Konto zu löschen</strong>. Diese Aktion erfolgt sofort und ist unumkehrbar. Sie entfernt deine Mahlzeiten-, Wasser- und Gewichts-Einträge, Ziele, Profileinstellungen, ein noch gespeichertes Exportarchiv, deine Nutzungs-Telemetrie, deine Zugriffstoken sowie das Konto selbst. Das schließt jeden jemals erfassten Alkoholwert ein, unabhängig davon, ob die Alkohol-Erfassung aktiviert war.",
+                ),
+            ],
+        },
+        {
+            heading: "Kontakt und deine Rechte",
+            blocks: [
+                p(
+                    'Nutrition MCP wird von Anton Kutishevskyi betrieben, einem Einzelentwickler, der für diesen Dienst der Verantwortliche für deine personenbezogenen Daten ist. Bei allen Fragen zu deinen Daten oder zu dieser Erklärung schreib eine E-Mail an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                ),
+                p("Auf welcher Grundlage wir sie verarbeiten dürfen:"),
+                ul([
+                    "<strong>Dein Konto und deine Einträge</strong> — zur Bereitstellung des Dienstes, für den du dich angemeldet hast (Vertragserfüllung). Mahlzeiten, Gewicht und Alkohol sind Gesundheitsdaten, daher verarbeiten wir sie auf Grundlage deiner ausdrücklichen Einwilligung, die du mit dem Eintragen erteilst und jederzeit widerrufen kannst, indem du die Einträge oder dein Konto löschst.",
+                    "<strong>Nutzungs-Telemetrie der Werkzeuge und das Server-Laufzeitprotokoll</strong> — unser berechtigtes Interesse daran, den Dienst funktionsfähig, schnell und sicher zu halten (defekte Werkzeuge finden, Missbrauch per Ratenbegrenzung eindämmen). Keines von beiden enthält den Inhalt deiner Einträge.",
+                    "<strong>Website-Analyse</strong> — deine Einwilligung, erteilt im Cookie-Banner und jederzeit widerrufbar über &bdquo;Cookie-Einstellungen&ldquo; in der Fußzeile.",
+                ]),
+                p(
+                    "Deine Rechte und wie du sie ausübst — für die meisten brauchst du gar keine E-Mail:",
+                ),
+                ul([
+                    "<strong>Auskunft und Datenübertragbarkeit</strong> — bitte deinen KI-Assistenten, deine Daten zu exportieren. Du erhältst ein ZIP mit CSV-Dateien, das alles enthält, was du eingetragen hast, dazu deine Ziele und Einstellungen. Für alles andere, was wir über dich gespeichert haben — deine Konto-E-Mail-Adresse, Konto- und Anmeldedatensätze sowie die Nutzungs-Telemetrie der Werkzeuge —, schreib uns eine E-Mail von der Adresse deines Kontos, und wir senden dir innerhalb eines Monats eine Kopie.",
+                    "<strong>Berichtigung</strong> — bitte deinen KI-Assistenten, einen Mahlzeiten-, Wasser- oder Gewichtseintrag zu korrigieren oder zu löschen oder deine Ziele und Einstellungen zu ändern.",
+                    "<strong>Löschung</strong> — bitte deinen KI-Assistenten, dein Konto zu löschen; damit wird alles auf einmal entfernt.",
+                    "<strong>Widerspruch und Einschränkung der Verarbeitung</strong> — schreib uns eine E-Mail, und wir antworten innerhalb eines Monats.",
+                    "<strong>Beschwerde</strong> — du kannst dich bei der Datenschutzaufsichtsbehörde an deinem Wohn- oder Arbeitsort beschweren. Wir würden uns freuen, wenn du uns vorher die Gelegenheit gibst, das Problem zu beheben.",
+                ]),
+                p(
+                    "Alles, was wir speichern, bleibt in der oben genannten EU-Region. Was dein KI-Assistent über die Werkzeuge abruft, wird an den Anbieter dieses Assistenten übermittelt, der seinen Sitz außerhalb der EU haben kann; das geschieht im Rahmen deiner eigenen Vereinbarung mit ihm, nicht unserer. Auch Google und Microsoft (Website-Analyse, Google Sign-In) sowie Google, jsDelivr und GitHub (die oben beschriebenen Abrufe von Schriftarten, Icons und der Star-Anzahl) sitzen außerhalb der EU; soweit sie personenbezogene Daten außerhalb der EU empfangen, stützen sie sich auf die Standardvertragsklauseln der Europäischen Kommission oder den EU-US-Datenschutzrahmen (EU–US Data Privacy Framework).",
+                ),
+                p(
+                    'Der Dienst ist nicht für Personen unter 16 Jahren gedacht, und die <a href="/terms" data-legal-link="terms">Nutzungsbedingungen</a> setzen voraus, dass du mindestens 16 bist. Wenn du glaubst, dass eine jüngere Person ein Konto erstellt hat, schreib uns eine E-Mail, und wir löschen es.',
+                ),
+                p(
+                    "Ändert sich diese Erklärung, ändert sich auch das Datum oben.",
                 ),
             ],
         },
@@ -428,6 +512,9 @@ const TERMS_DE: LegalDoc = {
             blocks: [
                 p(
                     "Diese Bedingungen regeln deine Nutzung von Nutrition MCP (der &bdquo;Dienst&ldquo;) — der Website unter nutrition-mcp.com und dem Remote-MCP-Server unter <strong>https://nutrition-mcp.com/mcp</strong>. Mit der Erstellung eines Kontos oder der Verbindung eines KI-Assistenten mit dem Server stimmst du diesen Bedingungen zu. Bist du nicht einverstanden, nutze den Dienst bitte nicht.",
+                ),
+                p(
+                    "Der Dienst wird von Anton Kutishevskyi betrieben, einem Einzelentwickler (&bdquo;wir&ldquo;, &bdquo;uns&ldquo;).",
                 ),
             ],
         },
@@ -515,6 +602,9 @@ const TERMS_DE: LegalDoc = {
                     "Der Dienst ist von Dritten abhängig: Supabase für Datenbank, Authentifizierung und Export-Speicherung, DigitalOcean für das Hosting, Open Food Facts für Barcode-Daten sowie den jeweiligen KI-Assistenten, mit dem du dich verbindest.",
                 ),
                 p(
+                    'Barcode-Produktdaten &copy; Mitwirkende von <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, verfügbar unter der <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
+                ),
+                p(
                     "Die Website selbst nutzt außerdem, mit deiner Einwilligung, Google Analytics und Microsoft Clarity zur Messung des Traffics und der Seitennutzung, Google Fonts und das jsDelivr-CDN zum Laden von Schriftarten und Icons, Google Sign-In, falls du dich auf diesem Weg anmeldest, sowie die GitHub-API zur Anzeige der Star-Anzahl des Projekts. Das Laden einer Seite löst daher Anfragen an Google Fonts und jsDelivr (und auf der Startseite an GitHub) aus, die deine IP-Adresse und deinen Browser sehen können; Google Analytics und Microsoft Clarity werden erst kontaktiert, nachdem du der Analyse zugestimmt hast.",
                 ),
                 p(
@@ -577,7 +667,7 @@ const TERMS_DE: LegalDoc = {
             heading: "Kontakt",
             blocks: [
                 p(
-                    'Fragen zu diesen Bedingungen? Schreib eine E-Mail an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Fragen zu diesen Bedingungen oder zu deinen Daten? Schreib eine E-Mail an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
                 ),
             ],
         },

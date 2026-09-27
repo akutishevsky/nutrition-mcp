@@ -47,7 +47,7 @@ export const PRIVACY_FR: LegalDoc = {
             heading: "Ce que nous collectons",
             blocks: [
                 p(
-                    "Lors de ton inscription, nous stockons ton <strong>adresse e-mail</strong> et un mot de passe hashé de façon sécurisée via Supabase Auth. Si tu te connectes avec Google à la place, nous recevons ton adresse e-mail depuis Google et ne voyons jamais de mot de passe.",
+                    "Lors de ton inscription, nous stockons ton <strong>adresse e-mail</strong> et un mot de passe hashé de façon sécurisée via Supabase Auth. Si tu te connectes avec Google à la place, nous ne demandons à Google que ton adresse e-mail, et nous la recevons accompagnée de l'identifiant de compte Google qui te correspond, que Supabase Auth conserve pour te reconnaître lors de ta prochaine connexion avec Google. Nous ne voyons jamais de mot de passe Google. Les comptes qui se sont connectés avec Google avant le 27 septembre 2026 peuvent aussi contenir encore le nom et la photo de profil que Google envoyait à l'époque ; rien dans le service ne les lit ni ne les affiche, et ils sont supprimés avec ton compte.",
                 ),
                 p("Lorsque tu utilises le service, nous stockons :"),
                 ul([
@@ -55,15 +55,15 @@ export const PRIVACY_FR: LegalDoc = {
                     "<strong>Journaux d'hydratation</strong> — quantité, notes et horodatages.",
                     "<strong>Journaux de poids corporel</strong> — poids, notes et horodatages. Ce sont des données de santé, traitées exactement comme le reste de tes journaux.",
                     "<strong>Objectifs</strong> — tes cibles quotidiennes de calories, protéines, glucides, lipides, fibres, sucre, alcool, caféine et eau, ainsi que ton poids cible.",
-                    "<strong>Réglages de profil</strong> — ton fuseau horaire IANA, ton unité de poids préférée, si le suivi de l'alcool est activé et dans quel verre standard il est affiché, ainsi que si les widgets dans le chat sont activés.",
+                    "<strong>Réglages de profil</strong> — ton fuseau horaire IANA, ton unité de poids préférée, si le suivi de l'alcool est activé et dans quel verre standard il est affiché, si les widgets dans le chat sont activés, ainsi que la langue dans laquelle ils s'affichent.",
                     "<strong>Télémétrie d'utilisation des outils</strong> — pour chaque appel d'outil MCP, quel outil a été exécuté, s'il a réussi, combien de temps il a pris, une catégorie d'erreur générale en cas d'échec, l'étendue en jours de toute plage de dates demandée, l'identifiant de session MCP, la révision du protocole MCP avec laquelle ton application d'IA s'est connectée, et le nom et la version sous lesquels cette application se présente (par exemple &laquo; claude-ai/1.0 &raquo;), lorsqu'elle les envoie. Elle est liée à ton identifiant de compte. Elle n'inclut jamais le contenu de tes journaux.",
-                    "<strong>Journal des requêtes du serveur</strong> — pour chaque requête adressée au serveur : la méthode, le chemin, le statut et le temps de réponse, ton adresse IP privée de sa dernière partie et, pour les requêtes MCP, la révision du protocole ainsi que le nom et la version qu'indique ton application d'IA. Il est écrit dans le journal d'exécution de notre hébergeur, n'est pas lié à ton identifiant de compte et n'est conservé que brièvement : ce journal est un tampon circulaire qui écrase les lignes les plus anciennes à mesure que du nouveau trafic arrive.",
+                    "<strong>Journal d'exécution du serveur</strong> — pour chaque requête adressée au serveur : la méthode, le chemin, le statut et le temps de réponse, ton adresse IP privée de sa dernière partie et, pour les requêtes MCP, la révision du protocole ainsi que le nom et la version qu'indique ton application d'IA. Pour chaque appel d'outil, il enregistre aussi le nom de l'outil, s'il a réussi, combien de temps il a pris et, en cas d'échec, un court code de référence et le message d'erreur — qui peut reprendre une valeur envoyée par ton application d'IA, comme une date invalide. Lorsque ton application d'IA se connecte ou renouvelle sa connexion, il enregistre le résultat, l'identifiant aléatoire attribué à ton application d'IA lors de son inscription auprès de notre service de connexion, et le site vers lequel elle a demandé à être redirigée (par exemple claude.ai). Il est écrit dans le journal d'exécution de notre hébergeur, ne contient ni ton identifiant de compte ni ton adresse e-mail, et n'est conservé que brièvement : ce journal est un tampon circulaire qui écrase les lignes les plus anciennes à mesure que du nouveau trafic arrive.",
                 ]),
                 p(
                     "<strong>L'alcool est lui aussi une donnée de santé</strong>, et d'une nature plus sensible qu'un nombre de calories, donc il fonctionne différemment de tout ce qui précède. Le suivi de l'alcool est désactivé par défaut, et nous n'enregistrons de l'alcool que lorsqu'il vient de toi — une boisson que tu enregistres, ou une colonne dans un fichier que tu importes. Rien n'est déduit en ton nom. Désactiver ce réglage fait deux choses : l'importateur en masse arrête de lire la colonne alcool dans les fichiers que tu téléverses, et partout ailleurs, l'alcool cesse d'apparaître dans les repas, objectifs, progressions et widgets que tu vois. Ce n'est pas un interrupteur de suppression. L'alcool que tu as enregistré directement reste enregistré, que le réglage soit activé ou non ; tout ce qui est déjà stocké reste dans la base de données, et tout cela continue d'apparaître dans le fichier des repas de tout export que tu effectues. Pour réellement retirer un chiffre d'alcool, supprime le repas auquel il appartient, ou supprime ton compte.",
                 ),
                 p(
-                    "Nous conservons également les jetons d'accès et de rafraîchissement OAuth ainsi que les codes d'autorisation qui permettent à ton assistant IA de rester connecté à ton compte.",
+                    "Nous conservons également les jetons d'accès et de rafraîchissement OAuth ainsi que les codes d'autorisation qui permettent à ton assistant IA de rester connecté à ton compte ; la durée de vie de chacun est indiquée dans la section &laquo; Combien de temps nous conservons les données &raquo;. Ils ne sont stockés que sous forme d'empreintes à sens unique (hachages).",
                 ),
             ],
         },
@@ -72,6 +72,9 @@ export const PRIVACY_FR: LegalDoc = {
             blocks: [
                 p(
                     "Tes données de repas, d'hydratation, de poids et d'objectifs sont utilisées uniquement pour fournir le service de suivi nutritionnel. Nous ne les <strong>vendons jamais, ne les partageons jamais avec des tiers, et ne les utilisons jamais à des fins publicitaires</strong>, ni ne les intégrons à un système de publicité ou de profilage.",
+                ),
+                p(
+                    'Quand toi ou ton assistant IA recherchez un code-barres, notre serveur n\'envoie que les chiffres du code-barres à <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — jamais ton compte, ton e-mail ni tes journaux — et conserve les données produit renvoyées dans un cache partagé qui n\'est lié à aucun utilisateur.',
                 ),
                 p(
                     "Deux types d'analyses existent bel et bien, et aucune ne touche au contenu de tes journaux :",
@@ -89,7 +92,7 @@ export const PRIVACY_FR: LegalDoc = {
             heading: "Où c'est stocké",
             blocks: [
                 p(
-                    'Toutes les données sont stockées chez <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL). L\'authentification est gérée par Supabase Auth. Le serveur est hébergé chez DigitalOcean.',
+                    'Toutes les données sont stockées chez <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) dans l\'UE, dans la région Irlande d\'AWS (eu-west-1). L\'authentification et le stockage des exports sont gérés par Supabase dans la même région. Le serveur tourne chez DigitalOcean à Francfort, en Allemagne.',
                 ),
             ],
         },
@@ -97,7 +100,10 @@ export const PRIVACY_FR: LegalDoc = {
             heading: "Combien de temps nous conservons les données",
             blocks: [
                 p(
-                    "Tes journaux de repas, d'hydratation et de poids, tes objectifs, tes réglages de profil et ta télémétrie d'utilisation des outils sont conservés tant que ton compte existe — aucun n'a de date d'expiration propre ni de purge programmée. Quand tu supprimes ton compte, tout cela est supprimé immédiatement et de manière irréversible, comme décrit ci-dessous. Les seules traces restantes sont la ligne de télémétrie de la suppression elle-même, enregistrée sans ton identifiant de compte, le journal des requêtes du serveur à courte durée de vie décrit plus haut, qui ne contient jamais ton identifiant de compte, et les sauvegardes tournantes de notre fournisseur de base de données, qui expirent selon leur propre calendrier.",
+                    "Tes journaux de repas, d'hydratation et de poids, tes objectifs, tes réglages de profil et ta télémétrie d'utilisation des outils sont conservés tant que ton compte existe — aucun n'a de date d'expiration propre ni de purge programmée. Quand tu supprimes ton compte, tout cela est supprimé immédiatement et de manière irréversible, comme décrit ci-dessous. Les seules traces restantes sont la ligne de télémétrie de la suppression elle-même, enregistrée sans ton identifiant de compte ; le journal d'exécution du serveur à courte durée de vie décrit plus haut, qui ne contient jamais ton identifiant de compte ; les journaux opérationnels propres à notre fournisseur de base de données, conservés pendant une durée limitée (7 jours au maximum avec notre offre) ; et ses sauvegardes tournantes, qui expirent selon leur propre calendrier.",
+                ),
+                p(
+                    "Les identifiants de connexion sont éphémères par conception. La session de la page de connexion dure 10 minutes et est conservée dans la mémoire du serveur ; elle est liée à ton navigateur par un cookie strictement nécessaire qui ne contient qu'une valeur aléatoire, expire au bout de ces mêmes 10 minutes et est supprimé à la fin de la connexion. Pour vérifier ton mot de passe ou ta connexion Google, nous utilisons Supabase Auth, qui crée à chaque fois une session de connexion Supabase ; nous ne l'utilisons jamais et y mettons fin immédiatement. Le code d'autorisation à usage unique remis à ton application d'IA expire au bout de 10 minutes et est supprimé dès qu'il est utilisé. Un nouveau jeton d'accès est valable 24 heures (un jeton émis avant le 27 septembre 2026 conserve la durée de vie avec laquelle il a été émis, jusqu'à un an) ; un jeton de rafraîchissement est valable 90 jours, et il est supprimé dès qu'il sert à obtenir une nouvelle paire de jetons. Les jetons et codes expirés sont supprimés automatiquement en moins d'une heure. Supprimer ton compte les supprime tous immédiatement.",
                 ),
                 p(
                     "Les archives d'export sont éphémères. Chaque nouvel export écrase le précédent, et le fichier est supprimé automatiquement dès que son lien de téléchargement de 60 minutes a expiré — un nettoyage s'exécute toutes les dix minutes, si bien qu'une archive ne reste normalement pas stockée plus d'environ 70 minutes.",
@@ -109,6 +115,39 @@ export const PRIVACY_FR: LegalDoc = {
             blocks: [
                 p(
                     "Tu peux supprimer ton compte et toutes les données associées à tout moment en demandant à ton assistant IA de <strong>supprimer ton compte</strong> pendant qu'il est connecté au serveur Nutrition MCP. Cette action est immédiate et irréversible. Elle supprime tes journaux de repas, d'hydratation et de poids, tes objectifs, tes réglages de profil, toute archive d'export encore stockée, ta télémétrie d'utilisation des outils, tes jetons d'accès, et le compte lui-même. Cela inclut chaque chiffre d'alcool que tu as jamais enregistré, que le suivi de l'alcool ait été activé ou non.",
+                ),
+            ],
+        },
+        {
+            heading: "Contact et tes droits",
+            blocks: [
+                p(
+                    'Nutrition MCP est exploité par Anton Kutishevskyi, développeur indépendant, qui est le responsable du traitement de tes données personnelles pour ce service. Pour toute question sur tes données ou sur cette politique, écris à <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                ),
+                p("Sur quelle base nous sommes autorisés à les traiter :"),
+                ul([
+                    "<strong>Ton compte et tes journaux</strong> — pour fournir le service auquel tu t'es inscrit (exécution d'un contrat). Les repas, le poids et l'alcool sont des données de santé ; nous les traitons donc sur la base de ton consentement explicite, que tu donnes en les enregistrant et que tu peux retirer à tout moment en supprimant les entrées ou ton compte.",
+                    "<strong>La télémétrie d'utilisation des outils et le journal d'exécution du serveur</strong> — notre intérêt légitime à maintenir le service fonctionnel, rapide et sécurisé (repérer les outils défaillants, contrer les abus en limitant le nombre de requêtes). Aucun des deux ne contient le contenu de tes journaux.",
+                    "<strong>L'analyse du site</strong> — ton consentement, donné dans le bandeau cookies et retirable à tout moment via &laquo; Paramètres des cookies &raquo; dans le pied de page.",
+                ]),
+                p(
+                    "Tes droits, et comment les exercer — la plupart ne nécessitent même pas d'e-mail :",
+                ),
+                ul([
+                    "<strong>Accès et portabilité</strong> — demande à ton assistant IA d'exporter tes données. Tu obtiens une archive ZIP de fichiers CSV contenant tout ce que tu as enregistré, tes objectifs et tes réglages. Pour toute autre donnée que nous détenons à ton sujet — l'adresse e-mail de ton compte, les enregistrements liés à ton compte et à tes connexions, et la télémétrie d'utilisation des outils — écris-nous depuis l'adresse de ton compte et nous t'en enverrons une copie dans un délai d'un mois.",
+                    "<strong>Rectification</strong> — demande à ton assistant IA de corriger ou de supprimer n'importe quelle entrée de repas, d'hydratation ou de poids, ou de modifier tes objectifs et tes réglages.",
+                    "<strong>Effacement</strong> — demande à ton assistant IA de supprimer ton compte, ce qui supprime tout en une seule fois.",
+                    "<strong>Opposition et limitation</strong> — écris-nous, et nous te répondrons dans un délai d'un mois.",
+                    "<strong>Réclamation</strong> — tu peux introduire une réclamation auprès de l'autorité de protection des données du pays où tu vis ou travailles. Nous aimerions toutefois avoir d'abord l'occasion de régler le problème.",
+                ]),
+                p(
+                    "Tout ce que nous stockons reste dans la région de l'UE mentionnée plus haut. Ce que ton assistant IA lit au moyen des outils est transmis au fournisseur de cet assistant, qui peut se trouver hors de l'UE ; cela relève de ton propre accord avec lui, et non d'un accord entre lui et nous. Google et Microsoft (analyse du site, Google Sign-In) ainsi que Google, jsDelivr et GitHub (les requêtes de polices, d'icônes et de nombre d'étoiles décrites plus haut) se trouvent eux aussi hors de l'UE ; lorsqu'ils reçoivent des données personnelles en dehors de l'UE, ils s'appuient sur les clauses contractuelles types de la Commission européenne ou sur le cadre de protection des données UE–États-Unis (EU–US Data Privacy Framework).",
+                ),
+                p(
+                    'Le service n\'est pas destiné aux personnes de moins de 16 ans, et les <a href="/terms" data-legal-link="terms">Conditions d\'utilisation</a> exigent que tu aies au moins 16 ans. Si tu penses qu\'une personne plus jeune a créé un compte, écris-nous et nous le supprimerons.',
+                ),
+                p(
+                    "Si cette politique change, la date en haut de page change avec elle.",
                 ),
             ],
         },
@@ -137,6 +176,9 @@ export const TERMS_FR: LegalDoc = {
             blocks: [
                 p(
                     "Ces conditions régissent ton utilisation de Nutrition MCP (le &laquo; service &raquo;) — le site web sur nutrition-mcp.com et le serveur MCP distant à l'adresse <strong>https://nutrition-mcp.com/mcp</strong>. En créant un compte ou en connectant un assistant IA au serveur, tu acceptes ces conditions. Si tu n'es pas d'accord, merci de ne pas utiliser le service.",
+                ),
+                p(
+                    "Le service est exploité par Anton Kutishevskyi, développeur indépendant (&laquo; nous &raquo;).",
                 ),
             ],
         },
@@ -222,6 +264,9 @@ export const TERMS_FR: LegalDoc = {
                     "Le service dépend de tiers : Supabase pour la base de données, l'authentification et le stockage des exports, DigitalOcean pour l'hébergement, Open Food Facts pour les données de codes-barres, et l'assistant IA depuis lequel tu te connectes.",
                 ),
                 p(
+                    'Données produit des codes-barres &copy; contributeurs d\'<a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, disponibles sous licence <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
+                ),
+                p(
                     "Le site lui-même utilise aussi, avec ton consentement, Google Analytics et Microsoft Clarity pour mesurer le trafic et l'usage des pages, Google Fonts et le CDN jsDelivr pour charger les polices et icônes, Google Sign-In si tu choisis cette méthode de connexion, et l'API GitHub pour afficher le nombre d'étoiles du projet. Charger une page effectue donc des requêtes vers Google Fonts et jsDelivr (et, sur la page d'accueil, vers GitHub), qui peuvent voir ton adresse IP et ton navigateur ; Google Analytics et Microsoft Clarity ne sont contactés qu'après que tu as accepté la mesure d'audience.",
                 ),
                 p(
@@ -284,7 +329,7 @@ export const TERMS_FR: LegalDoc = {
             heading: "Contact",
             blocks: [
                 p(
-                    'Des questions sur ces conditions ? Écris-nous à <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Des questions sur ces conditions ou sur tes données ? Écris-nous à <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
                 ),
             ],
         },

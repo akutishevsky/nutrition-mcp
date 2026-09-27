@@ -362,7 +362,7 @@ const WEIGHT_HEADER =
 const GOALS_HEADER =
     "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
 const PROFILE_HEADER =
-    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,created_at,updated_at";
+    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at";
 
 test("water.csv header names carry the unit and the zone", () => {
     expect(parseCsv(buildWaterCsv([], "UTC"))[0]).toEqual([
@@ -596,9 +596,25 @@ test("every profile value lands under its own header name", () => {
         // unset preference looks like, and the two are different facts.
         alcohol_tracking_enabled: "false",
         widgets_enabled: "true",
+        // Never ran set_language: empty, not a defaulted "en".
+        locale: "",
         created_at: "2026-01-02 15:30:00",
         updated_at: "2026-06-20 16:30:00",
     });
+});
+
+// The privacy policy says the export holds your settings; the widget
+// language is one of them.
+test("profile.csv carries the chosen widget language", () => {
+    const f = fieldsByName(buildProfileCsv(profile({ locale: "uk" }), "UTC"));
+    expect(f.locale).toBe("uk");
+});
+
+test("README.txt says what the archive leaves out and how to get it", () => {
+    const readme = buildExportReadme(README_OPTS);
+    expect(readme).toContain("Not in this archive");
+    expect(readme).toContain("tool-usage telemetry");
+    expect(readme).toContain("within one month");
 });
 
 test("profile.csv names the zone its own timestamps are rendered in", () => {

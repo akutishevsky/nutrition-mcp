@@ -36,18 +36,46 @@ export function getSupabase(): SupabaseClient {
 
 // ---------- Auth ----------
 
+// Supabase Auth only verifies the credential: access runs on this server's own
+// OAuth tokens. GoTrue has no verify-only call, so every successful sign-in
+// still creates an auth.sessions row and a refresh token that nothing uses,
+// and by default they never expire. End it at once — scope "local" makes
+// GoTrue delete just this session, its refresh tokens cascading with it (the
+// privacy policy says so). Not awaited, never throws: sign-in must not wait
+// on or fail because of it, and a missed one is caught by the project's
+// session time-box. Logs the status only, never the user.
+function discardAuthSession(
+    client: SupabaseClient,
+    session: { access_token: string } | null,
+): void {
+    if (!session) return; // signUp with email confirmation on returns none
+    client.auth.admin
+        .signOut(session.access_token, "local")
+        .then(({ error }) => {
+            if (error && error.status !== 404)
+                console.warn(
+                    `[auth] session-revoke-failed status=${error.status ?? "unknown"}`,
+                );
+        })
+        .catch(() =>
+            console.warn("[auth] session-revoke-failed status=network"),
+        );
+}
+
 export async function signUpUser(
     email: string,
     password: string,
 ): Promise<string> {
     // Use a throw-away client so the session never lands on the shared singleton.
-    const { data, error } = await buildClient().auth.signUp({
+    const client = buildClient();
+    const { data, error } = await client.auth.signUp({
         email,
         password,
     });
 
     if (error) throw new Error(error.message);
     if (!data.user) throw new Error("Sign-up failed");
+    discardAuthSession(client, data.session);
     return data.user.id;
 }
 
@@ -55,12 +83,14 @@ export async function signInUser(
     email: string,
     password: string,
 ): Promise<string> {
-    const { data, error } = await buildClient().auth.signInWithPassword({
+    const client = buildClient();
+    const { data, error } = await client.auth.signInWithPassword({
         email,
         password,
     });
 
     if (error) throw new Error(error.message);
+    discardAuthSession(client, data.session);
     return data.user.id;
 }
 
@@ -69,7 +99,8 @@ export async function signInWithGoogleIdToken(
     nonce: string,
 ): Promise<string> {
     // Use a throw-away client so the session never lands on the shared singleton.
-    const { data, error } = await buildClient().auth.signInWithIdToken({
+    const client = buildClient();
+    const { data, error } = await client.auth.signInWithIdToken({
         provider: "google",
         token: idToken,
         nonce,
@@ -77,6 +108,7 @@ export async function signInWithGoogleIdToken(
 
     if (error) throw new Error(error.message);
     if (!data.user) throw new Error("Google sign-in failed");
+    discardAuthSession(client, data.session);
     return data.user.id;
 }
 

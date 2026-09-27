@@ -251,6 +251,8 @@ const PROFILE_CSV_COLUMNS = [
     "preferred_drink_unit",
     "alcohol_tracking_enabled",
     "widgets_enabled",
+    // Raw, not defaulted: empty means set_language never ran (widgets use English).
+    "locale",
     "created_at",
     "updated_at",
 ] as const;
@@ -276,6 +278,7 @@ export function buildProfileCsv(profile: Profile | null, tz: string): string {
                 csvEscape(profile.preferred_drink_unit),
                 csvEscape(profile.alcohol_tracking_enabled),
                 csvEscape(profile.widgets_enabled),
+                csvEscape(profile.locale),
                 csvEscape(formatLocalDateTime(profile.created_at, tz)),
                 csvEscape(formatLocalDateTime(profile.updated_at, tz)),
             ].join(","),
@@ -338,7 +341,7 @@ export function buildExportReadme(opts: {
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
         "goals.csv    your current daily targets — one row, or a header alone if you have never set goals.",
-        "profile.csv  your settings: timezone, preferred units, and display toggles — one row, or a header alone if you have no profile yet.",
+        "profile.csv  your settings: timezone, preferred units, display toggles and widget language — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         "README.txt   this file.",
         "",
         "Units",
@@ -355,6 +358,10 @@ export function buildExportReadme(opts: {
         "------------",
         "Only meals.csv can be read back in. Hand it to start_meal_import (which parses it in your browser) or to bulk_import_meals; its column names are exactly the ones the importer expects, and re-importing the same file twice is a no-op rather than a set of duplicates.",
         "water.csv, weight.csv, goals.csv and profile.csv are export-only for now — there is no import path for them, so keep this archive if you want that history back.",
+        "",
+        "Not in this archive",
+        "-------------------",
+        "This archive holds what you logged, your goals and your settings. For anything else we hold about you — your account email, account and sign-in records, and tool-usage telemetry — email the contact address in the privacy policy from your account address and you will get a copy within one month.",
         "",
     ].join("\n");
 }
@@ -508,8 +515,10 @@ export async function sweepStaleExports(): Promise<void> {
             { limit: 1000 },
         );
         if (listErr) {
+            // Not the folder name: it is the user id, and the runtime log
+            // must not be linkable to an account (privacy policy).
             console.warn(
-                `Export sweep: failed to list ${folder.name}:`,
+                "Export sweep: failed to list a user folder:",
                 listErr.message,
             );
             continue;

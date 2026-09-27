@@ -24,6 +24,7 @@ A remote MCP server for personal nutrition tracking — log meals with calories,
 - [API Endpoints](#api-endpoints)
 - [Deploy](#deploy)
 - [Support & security](#support--security)
+- [Data sources](#data-sources)
 - [License](#license)
 
 ## Quick Start
@@ -37,6 +38,8 @@ https://nutrition-mcp.com/mcp
 **On Claude.ai:** Customize → Connectors → + → Add custom connector → paste the URL → Connect (see [Connect to Claude.ai](#connect-to-claudeai) below for the full walkthrough)
 
 On first connect you'll be asked to register with an email and password. Your data persists across reconnections.
+
+By connecting you agree to the [Terms of Service](https://nutrition-mcp.com/terms); how your data is handled is in the [Privacy Policy](https://nutrition-mcp.com/privacy).
 
 Switching from another tracker? See the [nutrition-app alternatives](https://nutrition-mcp.com/alternatives) — how it compares to [MyFitnessPal](https://nutrition-mcp.com/myfitnesspal-mcp), [Cronometer](https://nutrition-mcp.com/cronometer-mcp), [Lose It!](https://nutrition-mcp.com/lose-it-mcp), [MacroFactor](https://nutrition-mcp.com/macrofactor-mcp), [Yazio](https://nutrition-mcp.com/yazio-mcp), and [Lifesum](https://nutrition-mcp.com/lifesum-mcp). Bring your history with you: say "import my meals" and an importer opens in the chat, where you pick the CSV you exported from your old app, map its columns, and check what will be added before anything is saved. Exports from MyFitnessPal, Cronometer, Lose It! and MacroFactor are recognised automatically; any other CSV works by mapping its columns yourself. In clients that can't show in-chat panels, paste the export instead and the AI imports it for you. If your export has an alcohol column and you want it kept, turn alcohol tracking on before importing — the importer skips that column while tracking is off, and re-importing the same file later won't backfill it.
 
@@ -61,7 +64,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `log_meal`                 | Log a meal with description, type, calories, macros, fiber, total sugar, alcohol, caffeine (mg), notes — from text or a photo of your plate      |
 | `start_meal_import`        | Open the in-chat CSV importer: pick an export from another app, map its columns, preview, confirm                                                |
 | `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe                                              |
-| `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts (read from a photo or typed)                                         |
+| `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts (read from a photo or typed; data © OFF contributors, ODbL)          |
 | `get_meals_today`          | Get all meals logged today, one compact line per meal with its id; `detail: "full"` adds notes                                                   |
 | `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD), one compact line per meal; `detail: "full"` adds notes                                               |
 | `get_meals_by_date_range`  | Get meals between two dates (inclusive), up to 31 days per call; one compact line per meal, `detail: "full"` adds notes                          |
@@ -240,6 +243,10 @@ The project includes a `Dockerfile` for container-based deployment.
 - **Help, bugs, feature requests:** open a [GitHub issue](https://github.com/akutishevsky/nutrition-mcp/issues) or email anton@nutrition-mcp.com.
 - **Security vulnerabilities:** do **not** open a public issue. Report privately via [GitHub private vulnerability reporting](https://github.com/akutishevsky/nutrition-mcp/security/advisories/new) or email anton@nutrition-mcp.com — see [SECURITY.md](SECURITY.md). Machine-readable contact: https://nutrition-mcp.com/.well-known/security.txt
 - **Account deletion / your data:** the `delete_account` and `export_all_data` tools, or email the address above. See the [privacy policy](https://nutrition-mcp.com/privacy).
+
+## Data sources
+
+Barcode lookups (`lookup_barcode`) use product data from [Open Food Facts](https://world.openfoodfacts.org). Product data © Open Food Facts contributors, available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Every lookup result names Open Food Facts and the licence.
 
 ## License
 

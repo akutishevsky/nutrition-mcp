@@ -1099,7 +1099,9 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             `${getBaseUrl(c)}/auth/google/callback`,
         );
         googleUrl.searchParams.set("response_type", "code");
-        googleUrl.searchParams.set("scope", "openid email profile");
+        // email only: nothing reads name/picture, and requesting them makes
+        // Supabase Auth store them (directory policy 1.C).
+        googleUrl.searchParams.set("scope", "openid email");
         googleUrl.searchParams.set("state", sessionId);
         googleUrl.searchParams.set("nonce", hashedNonce);
         googleUrl.searchParams.set("prompt", "select_account");

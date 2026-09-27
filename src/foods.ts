@@ -414,6 +414,8 @@ export function formatFoodResult(
             `(Open Food Facts has no ${unknown.join(" or ")} figure for this product — that is missing data, not a zero. If this product is logged, estimate it from the ingredients and portion and pass the value to log_meal rather than omitting it.)`,
         );
     }
-    lines.push(`Source: Open Food Facts (barcode ${food.barcode})`);
+    lines.push(
+        `Source: Open Food Facts (barcode ${food.barcode}) — product data © Open Food Facts contributors, available under the Open Database License (ODbL): https://opendatacommons.org/licenses/odbl/1-0/`,
+    );
     return lines.join("\n");
 }

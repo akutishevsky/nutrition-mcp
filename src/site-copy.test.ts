@@ -2,7 +2,12 @@ import { test, expect } from "bun:test";
 import { INDEX } from "./copy/index.js";
 import { TOOLS, TOOLS_COPY } from "./copy/tools.js";
 import { chromeFor } from "./copy/chrome.js";
-import { PRIVACY, type LegalBlock } from "./copy/legal.js";
+import {
+    PRIVACY,
+    TERMS,
+    type LegalBlock,
+    type LegalDoc,
+} from "./copy/legal.js";
 import { SITE_LOCALES, type SiteLocale } from "./routes.js";
 
 // The public pages are the only place the product describes ITSELF, and they
@@ -460,4 +465,87 @@ test("no legal source still claims there is no consent banner", async () => {
     // One file per locale, except that en and de share legal.ts.
     expect(scanned).toBe(SITE_LOCALES.length - 1);
     expect(stale).toEqual([]);
+});
+
+// Translation is AI-generated per locale, so a locale can silently drop a
+// paragraph of the privacy policy — and a missing paragraph is a policy that
+// no longer matches the code in that language. Shape parity (sections,
+// blocks per section, items per list) is the only cross-locale check.
+const shape = (doc: LegalDoc) =>
+    doc.sections.map((s) =>
+        s.blocks.map((b) => (b.type === "p" ? "p" : `ul${b.items.length}`)),
+    );
+const allText = (doc: LegalDoc) =>
+    doc.sections.flatMap((s) => s.blocks.flatMap(blockText)).join("\n");
+
+test("every locale's privacy policy and terms have the English shape", () => {
+    const mismatched: string[] = [];
+    for (const [name, docs] of [
+        ["privacy", PRIVACY],
+        ["terms", TERMS],
+    ] as const) {
+        const en = shape(docs.en!);
+        for (const locale of SITE_LOCALES) {
+            const doc = docs[locale];
+            if (!doc) mismatched.push(`${locale} ${name}: missing`);
+            else if (JSON.stringify(shape(doc)) !== JSON.stringify(en))
+                mismatched.push(`${locale} ${name}`);
+        }
+    }
+    expect(mismatched).toEqual([]);
+});
+
+// The facts the directory review checks for: a contact, the hosting region,
+// the children clause's link to the terms, and the ODbL credit for Open Food
+// Facts. Language-neutral tokens, so they are asserted in every locale.
+test("every locale's privacy policy names the contact, region and terms; its terms credit OFF", () => {
+    const missing: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const privacy = allText(PRIVACY[locale]!);
+        for (const token of [
+            'href="mailto:anton@nutrition-mcp.com"',
+            "eu-west-1",
+            'data-legal-link="terms"',
+            "Anton Kutishevskyi",
+        ])
+            if (!privacy.includes(token))
+                missing.push(`${locale} privacy: ${token}`);
+        const terms = allText(TERMS[locale]!);
+        for (const token of [
+            "https://opendatacommons.org/licenses/odbl/1-0/",
+            "Open Database License (ODbL)",
+            "Anton Kutishevskyi",
+        ])
+            if (!terms.includes(token))
+                missing.push(`${locale} terms: ${token}`);
+    }
+    expect(missing).toEqual([]);
+});
+
+// The date at the top is the policy's promise of what changed when. Pinned
+// so a content change that forgets to move it shows up here: update this
+// list together with every lastUpdated.
+test("lastUpdated is the date of the last policy change in every locale", () => {
+    const dates = Object.fromEntries(
+        SITE_LOCALES.map((l) => [
+            l,
+            [PRIVACY[l]!.lastUpdated, TERMS[l]!.lastUpdated],
+        ]),
+    );
+    const expected: Record<SiteLocale, string> = {
+        en: "September 27, 2026",
+        de: "27. September 2026",
+        es: "27 de septiembre de 2026",
+        fr: "27 septembre 2026",
+        nl: "27 september 2026",
+        pl: "27 września 2026",
+        it: "27 settembre 2026",
+        uk: "27 вересня 2026 року",
+        ja: "2026年9月27日",
+    };
+    expect(dates).toEqual(
+        Object.fromEntries(
+            SITE_LOCALES.map((l) => [l, [expected[l], expected[l]]]),
+        ),
+    );
 });
