@@ -1,19 +1,38 @@
-import { test, expect } from "bun:test";
 import {
+    test,
+    expect,
+    describe,
+    beforeAll,
+    afterAll,
+    beforeEach,
+    spyOn,
+} from "bun:test";
+import {
+    buildAccountCsv,
+    buildConnectionsCsv,
     buildExportReadme,
     buildGoalsCsv,
     buildMealsCsv,
     buildProfileCsv,
+    buildTelemetryCsv,
     buildWaterCsv,
     buildWeightCsv,
     EXPORT_ARCHIVE_FILES,
 } from "./export.js";
+import type { User } from "@supabase/supabase-js";
 import type {
     Meal,
     NutritionGoals,
+    OAuthGrantRow,
     Profile,
+    ToolAnalyticsRow,
     WaterEntry,
     WeightEntry,
+} from "./supabase.js";
+import {
+    getAllOAuthGrants,
+    getAllToolAnalytics,
+    getAuthAccount,
 } from "./supabase.js";
 import { buildZip } from "./zip.js";
 
@@ -356,13 +375,13 @@ function profile(overrides: Partial<Profile> = {}): Profile {
     };
 }
 
-const WATER_HEADER = "id,logged_at,timezone,amount_ml,notes";
+const WATER_HEADER = "id,logged_at,timezone,amount_ml,notes,created_at";
 const WEIGHT_HEADER =
-    "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes";
+    "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes,created_at";
 const GOALS_HEADER =
     "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
 const PROFILE_HEADER =
-    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,created_at,updated_at";
+    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at";
 
 test("water.csv header names carry the unit and the zone", () => {
     expect(parseCsv(buildWaterCsv([], "UTC"))[0]).toEqual([
@@ -373,6 +392,8 @@ test("water.csv header names carry the unit and the zone", () => {
         // say so is how 500 ml is read back as 500 of something else.
         "amount_ml",
         "notes",
+        // When the entry was written, appended so earlier positions hold.
+        "created_at",
     ]);
     expect(buildWaterCsv([], "UTC")).toBe(WATER_HEADER);
 });
@@ -400,6 +421,7 @@ test("every water value lands under its own header name", () => {
         timezone: "UTC",
         amount_ml: "500",
         notes: "after the run",
+        created_at: "2026-06-20 14:30:05",
     });
 });
 
@@ -439,6 +461,7 @@ test("weight.csv header names both the stored grams and the readable value", () 
         "weight_display",
         "weight_unit",
         "notes",
+        "created_at",
     ]);
     expect(buildWeightCsv([], "UTC", "kg")).toBe(WEIGHT_HEADER);
 });
@@ -492,6 +515,7 @@ test("every weight value lands under its own header name", () => {
         weight_display: "75",
         weight_unit: "kg",
         notes: "before breakfast",
+        created_at: "2026-06-20 23:30:05",
     });
 });
 
@@ -596,9 +620,31 @@ test("every profile value lands under its own header name", () => {
         // unset preference looks like, and the two are different facts.
         alcohol_tracking_enabled: "false",
         widgets_enabled: "true",
+        // Never ran set_language: empty, not a defaulted "en".
+        locale: "",
         created_at: "2026-01-02 15:30:00",
         updated_at: "2026-06-20 16:30:00",
     });
+});
+
+// The privacy policy says the export holds your settings; the widget
+// language is one of them.
+test("profile.csv carries the chosen widget language", () => {
+    const f = fieldsByName(buildProfileCsv(profile({ locale: "uk" }), "UTC"));
+    expect(f.locale).toBe("uk");
+});
+
+test("README.txt says what the archive leaves out and how to get it", () => {
+    const readme = buildExportReadme(README_OPTS);
+    expect(readme).toContain("Not in this archive");
+    expect(readme).toContain("everything the service stores about you");
+    expect(readme).toContain("server runtime log");
+    expect(readme).toContain("does not contain your account id");
+    expect(readme).toContain("rolling backups");
+    expect(readme).toContain("internal bookkeeping");
+    expect(readme).toContain("within one month");
+    // The old wording sent people to email for data the archive now holds.
+    expect(readme).not.toContain("your account email, account and sign-in");
 });
 
 test("profile.csv names the zone its own timestamps are rendered in", () => {
@@ -630,7 +676,13 @@ const README_OPTS = {
     tz: "Europe/Berlin",
     tzConfigured: true,
     weightUnit: "kg" as const,
-    counts: { meals: 120, water: 45, weight: 12 },
+    counts: {
+        meals: 120,
+        water: 45,
+        weight: 12,
+        telemetry: 830,
+        connections: 3,
+    },
 };
 
 test("the README names every file in the archive", () => {
@@ -647,6 +699,8 @@ test("the README states when, in which zone, and that the zone was chosen", () =
     expect(readme).toContain("120 rows");
     expect(readme).toContain("45 rows");
     expect(readme).toContain("12 rows");
+    expect(readme).toContain("830 rows");
+    expect(readme).toContain("3 rows");
 });
 
 test("the README says outright when the zone defaulted to UTC", () => {
@@ -677,6 +731,516 @@ test("the README says only meals.csv can be re-imported", () => {
     expect(readme).toContain("start_meal_import");
     expect(readme).toContain("bulk_import_meals");
     expect(readme).toContain("export-only");
+});
+
+// ---------- account.csv, telemetry.csv, connections.csv ----------
+
+function authUser(overrides: Partial<User> = {}): User {
+    return {
+        id: "44444444-4444-4444-8444-444444444444",
+        aud: "authenticated",
+        role: "authenticated",
+        email: "someone@example.com",
+        created_at: "2026-01-02T14:30:00.000Z",
+        email_confirmed_at: "2026-01-02T14:31:00.000Z",
+        last_sign_in_at: "2026-06-20T14:30:00.000Z",
+        app_metadata: { provider: "email", providers: ["email", "google"] },
+        user_metadata: {
+            email: "someone@example.com",
+            name: "Some One",
+            full_name: "Some One",
+            picture: "https://example.com/p.jpg",
+            avatar_url: "https://example.com/a.jpg",
+        },
+        identities: [
+            {
+                id: "44444444-4444-4444-8444-444444444444",
+                identity_id: "55555555-5555-4555-8555-555555555555",
+                user_id: "44444444-4444-4444-8444-444444444444",
+                provider: "email",
+                identity_data: { email: "someone@example.com" },
+                created_at: "2026-01-02T14:30:00.000Z",
+                last_sign_in_at: "2026-01-02T14:30:00.000Z",
+            },
+            {
+                id: "109876543210987654321",
+                identity_id: "66666666-6666-4666-8666-666666666666",
+                user_id: "44444444-4444-4444-8444-444444444444",
+                provider: "google",
+                identity_data: {
+                    email: "someone@example.com",
+                    name: 'Some, "One"',
+                    picture: "https://example.com/g.jpg",
+                },
+                created_at: "2026-03-01T09:00:00.000Z",
+                last_sign_in_at: "2026-06-20T14:30:00.000Z",
+            },
+        ],
+        ...overrides,
+    } as User;
+}
+
+function telemetryRow(
+    overrides: Partial<ToolAnalyticsRow> = {},
+): ToolAnalyticsRow {
+    return {
+        id: "77777777-7777-4777-8777-777777777777",
+        tool_name: "log_meal",
+        success: false,
+        duration_ms: 142,
+        error_category: "validation_error",
+        date_range_days: null,
+        mcp_session_id: "sess-1",
+        protocol_era: "modern",
+        client_name: "claude-ai/1.0",
+        invoked_at: "2026-06-20T14:30:00.000Z",
+        created_at: "2026-06-20T14:30:01.000Z",
+        ...overrides,
+    };
+}
+
+function grant(overrides: Partial<OAuthGrantRow> = {}): OAuthGrantRow {
+    return {
+        kind: "refresh_token",
+        client_id: "client-abc",
+        client_name: "Claude",
+        redirect_uri: null,
+        created_at: "2026-06-20T14:30:00.000Z",
+        expires_at: "2026-09-18T14:30:00.000Z",
+        ...overrides,
+    };
+}
+
+// No column in the archive may be named after a secret. The export is a copy
+// of the user's data, not a set of credentials, and the token/code columns
+// hold hashes that are secrets-adjacent all the same.
+const SECRET_HEADER = /token$|^code|hash|secret|password|challenge|verifier/i;
+
+test("account.csv, telemetry.csv and connections.csv are header-only when empty", () => {
+    for (const csv of [
+        buildAccountCsv(null, "UTC"),
+        buildTelemetryCsv([], "UTC"),
+        buildConnectionsCsv([], "UTC"),
+    ]) {
+        const rows = parseCsv(csv);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.length).toBeGreaterThan(1);
+    }
+});
+
+test("no archive file has a token, hash or password column", () => {
+    const headers = [
+        buildMealsCsv([], "UTC"),
+        buildWaterCsv([], "UTC"),
+        buildWeightCsv([], "UTC", "kg"),
+        buildGoalsCsv(null, "UTC"),
+        buildProfileCsv(null, "UTC"),
+        buildAccountCsv(null, "UTC"),
+        buildTelemetryCsv([], "UTC"),
+        buildConnectionsCsv([], "UTC"),
+    ].flatMap((csv) => parseCsv(csv)[0]!);
+    for (const name of headers) expect(name).not.toMatch(SECRET_HEADER);
+});
+
+test("every account value lands under its own header name", () => {
+    const csv = buildAccountCsv(authUser(), "Europe/Berlin");
+    // One account row, then one row per sign-in identity.
+    expect(parseCsv(csv)).toHaveLength(4);
+    expect(fieldsByName(csv, 1)).toEqual({
+        record: "account",
+        user_id: "44444444-4444-4444-8444-444444444444",
+        email: "someone@example.com",
+        created_at: "2026-01-02 15:30:00",
+        email_confirmed_at: "2026-01-02 15:31:00",
+        last_sign_in_at: "2026-06-20 16:30:00",
+        timezone: "Europe/Berlin",
+        sign_in_methods: "email;google",
+        provider: "",
+        provider_account_id: "",
+        name: "Some One",
+        full_name: "Some One",
+        picture: "https://example.com/p.jpg",
+        avatar_url: "https://example.com/a.jpg",
+    });
+    expect(fieldsByName(csv, 3)).toEqual({
+        record: "identity",
+        user_id: "44444444-4444-4444-8444-444444444444",
+        email: "someone@example.com",
+        created_at: "2026-03-01 10:00:00",
+        email_confirmed_at: "",
+        last_sign_in_at: "2026-06-20 16:30:00",
+        timezone: "Europe/Berlin",
+        sign_in_methods: "",
+        provider: "google",
+        provider_account_id: "109876543210987654321",
+        // A claim that needs quoting survives the round trip.
+        name: 'Some, "One"',
+        full_name: "",
+        picture: "https://example.com/g.jpg",
+        avatar_url: "",
+    });
+});
+
+test("account.csv falls back to the identities when providers is absent", () => {
+    const f = fieldsByName(
+        buildAccountCsv(
+            authUser({ app_metadata: { provider: "email" } }),
+            "UTC",
+        ),
+    );
+    expect(f.sign_in_methods).toBe("email;google");
+});
+
+test("every telemetry value lands under its own header name", () => {
+    const f = fieldsByName(buildTelemetryCsv([telemetryRow()], "Asia/Tokyo"));
+    expect(f).toEqual({
+        id: "77777777-7777-4777-8777-777777777777",
+        invoked_at: "2026-06-20 23:30:00",
+        timezone: "Asia/Tokyo",
+        tool_name: "log_meal",
+        // false must read as the word, not an empty cell.
+        success: "false",
+        duration_ms: "142",
+        error_category: "validation_error",
+        date_range_days: "",
+        mcp_session_id: "sess-1",
+        protocol_era: "modern",
+        client_name: "claude-ai/1.0",
+        created_at: "2026-06-20 23:30:01",
+    });
+    expect(Object.keys(f)).not.toContain("user_id");
+});
+
+test("every connection value lands under its own header name", () => {
+    const csv = buildConnectionsCsv(
+        [
+            grant({
+                kind: "access_token",
+                client_id: null,
+                client_name: null,
+            }),
+            grant(),
+            grant({
+                kind: "authorization_code",
+                redirect_uri: "https://claude.ai/api/mcp/auth_callback",
+                expires_at: "2026-06-20T14:40:00.000Z",
+            }),
+        ],
+        "UTC",
+    );
+    expect(fieldsByName(csv, 1)).toEqual({
+        kind: "access_token",
+        client_id: "",
+        client_name: "",
+        redirect_uri: "",
+        created_at: "2026-06-20 14:30:00",
+        expires_at: "2026-09-18 14:30:00",
+        timezone: "UTC",
+    });
+    expect(fieldsByName(csv, 2)).toEqual({
+        kind: "refresh_token",
+        client_id: "client-abc",
+        client_name: "Claude",
+        redirect_uri: "",
+        created_at: "2026-06-20 14:30:00",
+        expires_at: "2026-09-18 14:30:00",
+        timezone: "UTC",
+    });
+    expect(fieldsByName(csv, 3).redirect_uri).toBe(
+        "https://claude.ai/api/mcp/auth_callback",
+    );
+});
+
+// ---------- The export-only readers, against a stubbed PostgREST ----------
+//
+// No mock.module (it is process-wide; see CLAUDE.md): the real readers run
+// against a stubbed global fetch, which supabase-js resolves at call time, the
+// same way src/supabase-window.test.ts drives the window readers. Any request
+// the stub does not recognise is refused, never passed through — Bun
+// auto-loads .env, so the client may point at a real project.
+
+describe("export-only readers", () => {
+    const USER = "11111111-1111-4111-8111-111111111111";
+    const OTHER = "22222222-2222-4222-8222-222222222222";
+    type Row = Record<string, unknown>;
+    let tables: Record<string, Row[]> = {};
+    let maxRows = 1000;
+    let authUsers: Record<string, unknown> = {};
+    // Runs once, right after the first page is served: a row landing mid-export.
+    let afterFirstPage: (() => void) | null = null;
+    const selects: { table: string; select: string }[] = [];
+
+    function refuse(why: string): never {
+        throw new Error(`export reader stub refused a request: ${why}`);
+    }
+
+    function inValues(filter: string): string[] {
+        const m = filter.match(/^in\.\((.*)\)$/);
+        if (!m) refuse(`in filter ${filter}`);
+        return m[1]!.split(",").map((v) => v.replace(/^"|"$/g, ""));
+    }
+
+    async function fake(
+        input: string | URL | Request,
+        init?: RequestInit,
+    ): Promise<Response> {
+        const req =
+            input instanceof Request
+                ? new Request(input, init)
+                : new Request(input.toString(), init);
+        const url = new URL(req.url);
+        if (req.method !== "GET") refuse(`${req.method} ${req.url}`);
+        const json = (body: unknown, status = 200, headers = {}) =>
+            new Response(JSON.stringify(body), {
+                status,
+                headers: { "content-type": "application/json", ...headers },
+            });
+
+        const admin = url.pathname.match(/^\/auth\/v1\/admin\/users\/(.+)$/);
+        if (admin) {
+            const user = authUsers[admin[1]!];
+            return user
+                ? json(user)
+                : json(
+                      {
+                          code: 404,
+                          error_code: "user_not_found",
+                          msg: "User not found",
+                      },
+                      404,
+                  );
+        }
+
+        const table = url.pathname.replace(/^\/rest\/v1\//, "");
+        if (!(table in tables)) refuse(req.url);
+        const q = url.searchParams;
+        const select = q.get("select") ?? "";
+        selects.push({ table, select });
+        const columns = select.split(",").map((c) => c.trim());
+        const project = (r: Row) =>
+            Object.fromEntries(columns.map((c) => [c, r[c]]));
+
+        if (table === "oauth_clients") {
+            const ids = inValues(q.get("client_id") ?? "");
+            return json(
+                tables[table]!.filter((r) =>
+                    ids.includes(r.client_id as string),
+                ).map(project),
+            );
+        }
+
+        const userId = q.get("user_id")?.replace(/^eq\./, "");
+        if (!userId || !q.has("offset") || !q.has("limit"))
+            refuse(`unbounded ${url.search}`);
+        const order = (q.get("order") ?? "")
+            .split(",")
+            .map((o) => o.replace(/\.asc$/, ""));
+        if (order.length < 2) refuse(`no total order: ${q.get("order")}`);
+        const matched = tables[table]!.filter((r) => r.user_id === userId).sort(
+            (a, b) => {
+                for (const c of order) {
+                    const x = String(a[c]);
+                    const y = String(b[c]);
+                    if (x !== y) return x < y ? -1 : 1;
+                }
+                return 0;
+            },
+        );
+        const offset = Number(q.get("offset"));
+        const limit = Number(q.get("limit"));
+        const page = matched.slice(offset, offset + Math.min(limit, maxRows));
+        const total = req.headers.get("prefer")?.includes("count=exact")
+            ? String(matched.length)
+            : "*";
+        if (offset === 0 && afterFirstPage) {
+            afterFirstPage();
+            afterFirstPage = null;
+        }
+        const range =
+            page.length === 0 ? "*" : `${offset}-${offset + page.length - 1}`;
+        return json(page.map(project), 200, {
+            "content-range": `${range}/${total}`,
+        });
+    }
+
+    const envBefore = {
+        url: process.env.SUPABASE_URL,
+        key: process.env.SUPABASE_SECRET_KEY,
+    };
+    let fetchSpy: ReturnType<typeof spyOn>;
+
+    beforeAll(() => {
+        process.env.SUPABASE_URL ??= "http://supabase.test";
+        process.env.SUPABASE_SECRET_KEY ??= "test-key";
+        fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
+            fake as typeof fetch,
+        );
+    });
+
+    afterAll(() => {
+        fetchSpy.mockRestore();
+        if (envBefore.url === undefined) delete process.env.SUPABASE_URL;
+        if (envBefore.key === undefined) delete process.env.SUPABASE_SECRET_KEY;
+    });
+
+    beforeEach(() => {
+        maxRows = 1000;
+        afterFirstPage = null;
+        selects.length = 0;
+        authUsers = {};
+        const telemetry: Row[] = [];
+        for (let i = 0; i < 2500; i++) {
+            telemetry.push({
+                id: crypto.randomUUID(),
+                // tool_analytics.user_id is varchar: the uuid as text.
+                user_id: USER,
+                tool_name: "log_meal",
+                success: true,
+                duration_ms: i,
+                error_category: null,
+                date_range_days: null,
+                mcp_session_id: null,
+                protocol_era: "modern",
+                client_name: null,
+                // Three rows per timestamp, so ties straddle page edges.
+                invoked_at: new Date(
+                    Date.UTC(2026, 0, 1, 0, Math.floor(i / 3)),
+                ).toISOString(),
+                created_at: null,
+            });
+        }
+        telemetry.push({
+            ...telemetry[0]!,
+            id: crypto.randomUUID(),
+            user_id: OTHER,
+        });
+        tables = {
+            tool_analytics: telemetry.sort(() => Math.random() - 0.5),
+            oauth_tokens: [
+                {
+                    token: "hash-a",
+                    user_id: USER,
+                    created_at: "2026-06-20T10:00:00.000Z",
+                    expires_at: "2026-06-21T10:00:00.000Z",
+                },
+                {
+                    token: "hash-other",
+                    user_id: OTHER,
+                    created_at: "2026-06-20T10:00:00.000Z",
+                    expires_at: "2026-06-21T10:00:00.000Z",
+                },
+            ],
+            refresh_tokens: [
+                {
+                    token: "hash-r1",
+                    user_id: USER,
+                    client_id: "client-abc",
+                    created_at: "2026-06-20T10:00:00.000Z",
+                    expires_at: "2026-09-18T10:00:00.000Z",
+                },
+                {
+                    token: "hash-r2",
+                    user_id: USER,
+                    client_id: null,
+                    created_at: "2026-05-01T10:00:00.000Z",
+                    expires_at: "2027-05-01T10:00:00.000Z",
+                },
+            ],
+            auth_codes: [
+                {
+                    code: "hash-c",
+                    user_id: USER,
+                    client_id: "client-abc",
+                    redirect_uri: "https://claude.ai/api/mcp/auth_callback",
+                    code_challenge: "challenge",
+                    created_at: "2026-06-20T10:00:00.000Z",
+                    expires_at: "2026-06-20T10:10:00.000Z",
+                },
+            ],
+            oauth_clients: [{ client_id: "client-abc", client_name: "Claude" }],
+        };
+    });
+
+    test("getAllToolAnalytics returns every row past the 1000-row cap, in order", async () => {
+        const rows = await getAllToolAnalytics(USER);
+        expect(rows).toHaveLength(2500);
+        expect(new Set(rows.map((r) => r.id)).size).toBe(2500);
+        for (let i = 1; i < rows.length; i++) {
+            const a = rows[i - 1]!;
+            const b = rows[i]!;
+            expect(
+                a.invoked_at < b.invoked_at ||
+                    (a.invoked_at === b.invoked_at && a.id < b.id),
+            ).toBe(true);
+        }
+        // user_id is not read back: it is the same on every row.
+        expect(Object.keys(rows[0]!)).not.toContain("user_id");
+    });
+
+    test("getAllToolAnalytics drops a row repeated by an insert between pages", async () => {
+        // withAnalytics stamps invoked_at when a call starts and inserts the
+        // row when it ends, so a parallel call can land ahead of the offset
+        // already paged, shifting the last row of page one onto page two.
+        afterFirstPage = () =>
+            tables.tool_analytics!.push({
+                ...tables.tool_analytics!.find((r) => r.user_id === USER)!,
+                id: "00000000-0000-4000-8000-000000000000",
+                invoked_at: "2025-12-31T23:59:00.000Z",
+            });
+        const rows = await getAllToolAnalytics(USER);
+        expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
+        expect(rows).toHaveLength(2500);
+    });
+
+    test("getAllToolAnalytics throws rather than export a truncated history", async () => {
+        // A server whose db-max-rows is below the page size: the short first
+        // page looks like the last one, and only the exact count catches it.
+        maxRows = 400;
+        await expect(getAllToolAnalytics(USER)).rejects.toThrow(
+            "export would be truncated",
+        );
+    });
+
+    test("getAllOAuthGrants lists every grant with its client and never reads a secret", async () => {
+        const grants = await getAllOAuthGrants(USER);
+        expect(grants.map((g) => g.kind)).toEqual([
+            "access_token",
+            "refresh_token",
+            "refresh_token",
+            "authorization_code",
+        ]);
+        expect(grants[0]!.client_id).toBeNull();
+        // Oldest first within a table.
+        expect(grants[1]!.client_id).toBeNull();
+        expect(grants[2]!).toMatchObject({
+            client_id: "client-abc",
+            client_name: "Claude",
+        });
+        expect(grants[3]!).toMatchObject({
+            client_name: "Claude",
+            redirect_uri: "https://claude.ai/api/mcp/auth_callback",
+        });
+        for (const g of grants)
+            for (const key of Object.keys(g))
+                expect(key).not.toMatch(SECRET_HEADER);
+        for (const { select } of selects)
+            expect(select).not.toMatch(
+                /token\b|\bcode\b|challenge|hash|secret/,
+            );
+    });
+
+    test("getAllOAuthGrants throws when a grant table comes back short", async () => {
+        maxRows = 1;
+        await expect(getAllOAuthGrants(USER)).rejects.toThrow(
+            "export would be truncated",
+        );
+    });
+
+    test("getAuthAccount returns the Auth user, or null when there is none", async () => {
+        authUsers[USER] = authUser({ id: USER });
+        expect((await getAuthAccount(USER))?.email).toBe("someone@example.com");
+        expect(await getAuthAccount(OTHER)).toBeNull();
+    });
 });
 
 // ---------- The archive ----------
@@ -733,6 +1297,9 @@ test("EXPORT_ARCHIVE_FILES is the archive's real, ordered file list", () => {
         "weight.csv",
         "goals.csv",
         "profile.csv",
+        "account.csv",
+        "telemetry.csv",
+        "connections.csv",
         "README.txt",
     ]);
 });
@@ -748,6 +1315,9 @@ test("an archive assembled from the builders reads back file for file", () => {
         "weight.csv": buildWeightCsv([weight()], tz, "kg"),
         "goals.csv": buildGoalsCsv(goals(), tz),
         "profile.csv": buildProfileCsv(profile(), tz),
+        "account.csv": buildAccountCsv(authUser(), tz),
+        "telemetry.csv": buildTelemetryCsv([telemetryRow()], tz),
+        "connections.csv": buildConnectionsCsv([grant()], tz),
         "README.txt": buildExportReadme(README_OPTS),
     };
     const entries = readZipEntries(
@@ -768,7 +1338,36 @@ test("an archive assembled from the builders reads back file for file", () => {
     // the one file in here that is re-importable quietly stops being so.
     expect(entries[0]!.content).toBe(buildMealsCsv([meal()], tz));
     // Every CSV in the archive carries its header even when its table is empty.
-    for (const csv of ["meals.csv", "water.csv", "weight.csv"] as const) {
+    for (const csv of [
+        "meals.csv",
+        "water.csv",
+        "weight.csv",
+        "account.csv",
+        "telemetry.csv",
+        "connections.csv",
+    ] as const) {
         expect(contents[csv]!.split("\n")[0]).not.toBe("");
     }
+});
+
+// A client's registered name is whatever its registrant typed; a spreadsheet
+// would run "=…" as a formula when the user opens their own export.
+test("connections.csv defuses a formula in client-chosen text", () => {
+    const f = fieldsByName(
+        buildConnectionsCsv(
+            [
+                {
+                    kind: "refresh_token",
+                    client_id: "c1",
+                    client_name: '=HYPERLINK("https://evil.example","x")',
+                    redirect_uri: "https://client.example/cb",
+                    created_at: "2026-09-27T10:00:00.000Z",
+                    expires_at: "2026-12-26T10:00:00.000Z",
+                },
+            ],
+            "UTC",
+        ),
+    );
+    expect(f.client_name!.startsWith("'=")).toBe(true);
+    expect(f.redirect_uri).toBe("https://client.example/cb");
 });

@@ -4488,7 +4488,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERY table this server tracks for the user — meals, water, weight, nutrition goals and profile settings — as a single ZIP archive (meals.csv, water.csv, weight.csv, goals.csv, profile.csv, plus a README.txt describing the columns and the units they are in) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; water, weight, goals and profile are export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
+                "Export EVERYTHING this server stores about the user — meals, water, weight, nutrition goals, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry and the AI-app connections (OAuth grants, without the tokens) — as a single ZIP archive (meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv, telemetry.csv, connections.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,
@@ -4501,7 +4501,7 @@ export function registerTools(
             return withAnalytics(
                 "export_all_data",
                 async () => {
-                    const { counts, goals, profile, url } =
+                    const { counts, goals, profile, account, url } =
                         await exportAllData(userId);
                     // No link means the account had nothing at all — not even a
                     // profile row — so there is no archive to hand over.
@@ -4516,7 +4516,7 @@ export function registerTools(
                         };
                     }
                     // Name every file's row count, zeros included: the archive
-                    // always ships all six files, so "0 weight entries" is what
+                    // always ships every file, so "0 weight entries" is what
                     // tells the user weight.csv is headers-only because they
                     // never logged weight — not because the export lost it.
                     const contents = [
@@ -4525,6 +4525,9 @@ export function registerTools(
                         `${counts.weight} weight ${counts.weight === 1 ? "entry" : "entries"}`,
                         goals ? "nutrition goals" : "no nutrition goals set",
                         profile ? "profile settings" : "no profile settings",
+                        account ? "account details" : "no account record",
+                        `${counts.telemetry} tool-usage telemetry ${counts.telemetry === 1 ? "row" : "rows"}`,
+                        `${counts.connections} app connection ${counts.connections === 1 ? "record" : "records"}`,
                     ].join(", ");
                     return {
                         content: [

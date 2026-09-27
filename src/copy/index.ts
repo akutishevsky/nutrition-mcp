@@ -2639,7 +2639,7 @@ const INDEX_EN: IndexDoc = {
             {
                 icon: "fa-solid fa-file-csv",
                 title: "Export & own your data",
-                body: "Take everything you have here — meals, water, weight, goals, and profile — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
+                body: "Take everything we store about you — meals, water, weight, goals, and profile, plus your account record, usage telemetry, and connected apps — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
             },
         ],
     },

@@ -274,6 +274,33 @@ function calculateDateRangeDays(
     );
 }
 
+/**
+ * One runtime-log line per tool call. Carries no user id, email or session
+ * id: the privacy policy promises the runtime log is not linked to an
+ * account; tool_analytics holds the per-user signal. An error message is
+ * capped and JSON.stringify'd, because Postgres/PostgREST/runtime text can
+ * carry caller-controlled bytes, newlines that would forge a log line
+ * included.
+ */
+export function analyticsLogLine(
+    toolName: string,
+    durationMs: number,
+    outcome:
+        | { kind: "success" }
+        | { kind: "reported-failure"; category: string }
+        | { kind: "error"; category: string; ref: string; message: string },
+): string {
+    const base = `[analytics] ${toolName}`;
+    switch (outcome.kind) {
+        case "success":
+            return `${base} success ${durationMs}ms`;
+        case "reported-failure":
+            return `${base} reported-failure=${outcome.category} ${durationMs}ms`;
+        case "error":
+            return `${base} error=${outcome.category} ref=${outcome.ref} ${durationMs}ms: ${JSON.stringify(outcome.message.slice(0, 500))}`;
+    }
+}
+
 function persistAnalytics(record: AnalyticsRecord): void {
     getSupabase()
         .from("tool_analytics")
@@ -324,11 +351,14 @@ export async function withAnalytics<T>(
 
         if (outcome.success) {
             console.log(
-                `[analytics] ${toolName} success ${durationMs}ms user=${context.userId}`,
+                analyticsLogLine(toolName, durationMs, { kind: "success" }),
             );
         } else {
             console.warn(
-                `[analytics] ${toolName} reported-failure=${outcome.errorCategory ?? "unknown"} ${durationMs}ms user=${context.userId}`,
+                analyticsLogLine(toolName, durationMs, {
+                    kind: "reported-failure",
+                    category: outcome.errorCategory ?? "unknown",
+                }),
             );
         }
 
@@ -357,11 +387,14 @@ export async function withAnalytics<T>(
         // nor the model (userFacingError replaces it), so this line — joined
         // to the model's text by `ref` — is the only place it is diagnosable
         // from, for as long as the runtime log ring buffer retains it.
-        // JSON.stringify because Postgres/PostgREST/runtime text can carry
-        // caller-controlled bytes, newlines that would forge a log line
-        // included. No user id.
+        // analyticsLogLine JSON-escapes and caps it; see there.
         console.warn(
-            `[analytics] ${toolName} error=${errorCategory} ref=${ref} ${durationMs}ms: ${JSON.stringify(error instanceof Error ? error.message : String(error))}`,
+            analyticsLogLine(toolName, durationMs, {
+                kind: "error",
+                category: errorCategory,
+                ref,
+                message: error instanceof Error ? error.message : String(error),
+            }),
         );
 
         persistAnalytics({

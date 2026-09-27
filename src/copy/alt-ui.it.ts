@@ -56,7 +56,7 @@ export const ALT_UI_IT: AltUiCopy = {
             },
             {
                 title: "Importa &amp; possiedi i tuoi dati",
-                body: "Importa il tuo storico pasti dall'esportazione CSV di un'altra app — analizzata nel tuo browser, non dall'IA. Riprenditi tutto quando vuoi: un unico ZIP con i tuoi pasti, acqua, peso, obiettivi e profilo come file CSV. Per ora, i pasti sono l'unica parte che può essere reimportata. Oppure elimina il tuo account, altrettanto facilmente.",
+                body: "Importa il tuo storico pasti dall'esportazione CSV di un'altra app — analizzata nel tuo browser, non dall'IA. Riprenditi tutto quando vuoi: un unico ZIP con i tuoi pasti, acqua, peso, obiettivi e profilo, oltre ai dati del tuo account, alla telemetria di utilizzo e alle app collegate, come file CSV. Per ora, i pasti sono l'unica parte che può essere reimportata. Oppure elimina il tuo account, altrettanto facilmente.",
             },
             {
                 title: "Open source &amp; gratuito",

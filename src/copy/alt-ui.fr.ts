@@ -44,7 +44,7 @@ export const ALT_UI_FR: AltUiCopy = {
             },
             {
                 title: "Import &amp; maîtrise de tes données",
-                body: "Importe ton historique de repas depuis l'export CSV d'une autre app — analysé dans ton navigateur, pas par l'IA. Ressors tout quand tu veux : un ZIP avec tes repas, ton eau, ton poids, tes objectifs et ton profil en fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Ou supprime ton compte, tout aussi facilement.",
+                body: "Importe ton historique de repas depuis l'export CSV d'une autre app — analysé dans ton navigateur, pas par l'IA. Ressors tout quand tu veux : un ZIP avec tes repas, ton eau, ton poids, tes objectifs et ton profil, ainsi que les données de ton compte, ta télémétrie d'utilisation et tes applications connectées, en fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Ou supprime ton compte, tout aussi facilement.",
             },
             {
                 title: "Open source &amp; gratuit",

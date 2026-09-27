@@ -29,10 +29,13 @@ revisit to add a logo or homepage/privacy links.
 ### B. Data Access _(= old "Scopes")_
 
 1. Sidebar → **Data Access** → **Add or remove scopes**.
-2. Add these three non-sensitive scopes (no Google verification review required):
+2. Add these two non-sensitive scopes (no Google verification review required):
     - `openid`
     - `.../auth/userinfo.email`
-    - `.../auth/userinfo.profile`
+
+    Do not add `userinfo.profile`: nothing reads the name or picture, and
+    requesting them makes Supabase Auth store them.
+
 3. **Update** → **Save**.
 
 ### C. Audience _(= old "Publishing status / Test users")_

@@ -13,17 +13,27 @@
  *     page except login.html (which never carries any of it), plus both
  *     services' hosts in the CSP allow-list
  *   - The Glama connector-ownership route (embeds the maintainer's email)
- *   - Patreon "Support" section and hero button
+ *   - Patreon "Support" section, hero button and FAQ donation sentence (every
+ *     locale); /terms' Patreon mention -> [YOUR DONATION PAGE]
  *   - GitHub repo links (nav, footer, "Star on GitHub" CTA) and the live
- *     star-count fetch
- *   - Contact section, footer contact link
+ *     star-count fetch; any repo URL left -> github.com/your-org/nutrition-mcp
+ *   - Contact section, footer contact link, inline prose mailtos (privacy,
+ *     terms, alternatives hub) -> plain text, the address -> your@email.com
+ *   - The maintainer's name (the /privacy and /terms operator sentences, all
+ *     locales) -> [YOUR NAME]
  *   - The support email embedded in the bulk-import widget
- *   - The security.txt contact (the route 404s until you set your own)
- *   - Medium / YouTube footer links
+ *   - The security.txt contact (the route 404s until you set your own) and
+ *     its advisory/policy repo URLs
+ *   - Medium / YouTube footer links on every page
  *   - The nutrition-mcp.com domain -> your-domain.com placeholder
  *     (install/MCP URL, canonical/OG tags, sitemap, robots)
  *   - The "alternative to X" comparison pages under public/alternatives/
  *     (analytics + consent banner, GitHub/contact links, domain)
+ *
+ * After every rule has run, a hard guard scans every processed file and
+ * everything else under public/ for the maintainer's name, email, GitHub
+ * handle, Patreon and Medium links and exits non-zero, naming file:line, on
+ * any residue — in --dry mode too.
  *
  * It is tuned to the current markup. If a pattern stops matching after a
  * redesign, the run reports "0 matches" for that rule so you can spot it.
@@ -37,7 +47,8 @@
  * page <title>/meta description wording, and the privacy policy and terms
  * prose in src/copy/legal*.ts, which still say the site runs Google
  * Analytics and Microsoft Clarity after both are stripped — rewrite them to
- * match whatever your deployment actually loads.
+ * match whatever your deployment actually loads. Filling in your own name,
+ * contact and links where this leaves placeholders is yours to do too.
  *
  * It also rewrites only the generated output, never the sources, so
  * `bun run gen:all` puts everything back. Before regenerating, edit the
@@ -108,12 +119,91 @@ const MAILTO_RULE: Rule = {
     find: /[ \t]*<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>[^<]*<\/a\s*>\n/g,
 };
 
-/** The one inline mailto in prose (hub "Request a comparison") -> plain text. */
-const HUB_MAILTO_RULE: Rule = {
-    name: "hub: inline 'Request a comparison' mailto -> text",
-    find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>\s*Request a comparison<\/a\s*>/,
-    replace: "Request a comparison",
-    optional: true, // hub-only; absent from the per-app pages
+/**
+ * Mailto links that sit mid-sentence (the /alternatives hub's "Request a
+ * comparison", the /privacy "Contact and your rights" paragraph, the /terms
+ * contact line) -> their label as plain text, in every locale. Told apart from
+ * the footer "Contact" link, which MAILTO_RULE deletes as a whole line, by
+ * (?!\n): a prose link is followed by more sentence text. Where the label is
+ * the address itself, EMAIL_TEXT_RULE then swaps it for a placeholder.
+ */
+const INLINE_MAILTO_RULE: Rule = {
+    name: "inline prose mailto -> plain text",
+    find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>\s*([^<]*?)\s*<\/a\s*>(?!\n)/g,
+    replace: "$1",
+    optional: true,
+};
+
+/**
+ * Global sweeps, run on every page after its page-specific rules (and before
+ * DOMAIN_RULE, so the address is still recognisable). They key on tokens that
+ * are identical in all 9 locales — the name is never transliterated, links are
+ * links — so no rule needs to know any language's wording. All optional: which
+ * page carries which token varies, and the residue guard at the end of this
+ * file is what actually proves nothing was left behind.
+ */
+const PERSONAL_SWEEP_RULES: Rule[] = [
+    INLINE_MAILTO_RULE,
+    {
+        // The operator sentences on /privacy and /terms ("run by Anton
+        // Kutishevskyi, an individual developer…") in every locale.
+        name: "maintainer name -> [YOUR NAME]",
+        find: /Anton Kutishevskyi/g,
+        replace: "[YOUR NAME]",
+        optional: true,
+    },
+    {
+        // Whatever an unwrapped inline mailto left as text.
+        name: "maintainer email text -> your@email.com",
+        find: /anton@nutrition-mcp\.com/g,
+        replace: "your@email.com",
+        optional: true,
+    },
+    {
+        // Footer "How I built this" — rendered by footer() on every page.
+        name: "footer: Medium article link",
+        find: /[ \t]*<a\b[^>]*?href="https:\/\/medium\.com\/[^"]*"[\s\S]*?<\/a\s*>\n/g,
+        optional: true,
+    },
+    {
+        // Footer "Demo" — a short on the maintainer's own channel.
+        name: "footer: YouTube demo link",
+        find: /[ \t]*<a\b[^>]*?href="https:\/\/(?:www\.)?youtube\.com\/[^"]*"[\s\S]*?<\/a\s*>\n/g,
+        optional: true,
+    },
+    {
+        // Any repo URL still standing (a prose mention a page rule unwrapped
+        // is plain text already; this catches one nobody wrote a rule for).
+        name: "GitHub repo URL -> your-org placeholder",
+        find: /https:\/\/github\.com\/akutishevsky\/nutrition-mcp/g,
+        replace: "https://github.com/your-org/nutrition-mcp",
+        optional: true,
+    },
+];
+
+/**
+ * The FAQ's "Donations on Patreon help cover server costs." sentence, in any
+ * locale: a sentence (it must start right after a "." or "。", which keeps it
+ * off the page script's "recent-Patreon-posts" comments) that names Patreon.
+ * Stays on one line and out of tags and JSON strings, so it only ever removes
+ * that one sentence from the answer text and its JSON-LD copy.
+ */
+const FAQ_PATREON_RULE: Rule = {
+    name: "FAQ Patreon donation sentence (any locale)",
+    find: /(?<=[.。])[ \t]?[^.。<>"\n]*\bPatreon\b[^.。<>"\n]*[.。]/g,
+    replace: "",
+};
+
+/**
+ * /terms says donations are taken on Patreon. Dropping that sentence would
+ * leave the next one ("they are a gift, not a purchase…", its own sentence in
+ * Japanese) pointing at nothing, so name a placeholder instead and let the new
+ * maintainer decide whether they take donations at all.
+ */
+const TERMS_PATREON_RULE: Rule = {
+    name: "terms: Patreon -> [YOUR DONATION PAGE]",
+    find: /\bPatreon\b/g,
+    replace: "[YOUR DONATION PAGE]",
 };
 
 /**
@@ -144,17 +234,7 @@ const LANDING_RULES: Rule[] = [
         find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>([^<]*)<\/a\s*>/,
         replace: "$1",
     },
-    {
-        // English-only: this sentence has no stable wrapper/class to key on
-        // in the other 8 locales' FAQ prose (different words, different
-        // order), so it can't be matched structurally. 0 matches on a
-        // translated public/{locale}/index.html is expected, not a warning
-        // sign — strip it by hand there if self-hosting a translated page.
-        name: "FAQ Patreon donation sentence",
-        find: /\s*Donations on Patreon\s+help cover server costs\./g,
-        replace: "",
-        optional: true,
-    },
+    FAQ_PATREON_RULE,
     NAV_SUPPORT_RULE,
     NAV_CONTACT_RULE,
     // Hero secondary "Support" button. Label captured rather than hardcoded
@@ -173,15 +253,7 @@ const LANDING_RULES: Rule[] = [
         name: "section: Contact",
         find: /[ \t]*<!-- Contact -->[\s\S]*?<\/section>\n/,
     },
-    // Footer social/contact links (Privacy stays).
-    {
-        name: "footer: Medium link",
-        find: /[ \t]*<a\b[^>]*?href="https:\/\/medium\.com[\s\S]*?<\/a\s*>\n/,
-    },
-    {
-        name: "footer: YouTube link",
-        find: /[ \t]*<a\b[^>]*?href="https:\/\/youtube\.com[\s\S]*?<\/a\s*>\n/,
-    },
+    // Footer contact link (Privacy stays; Medium/YouTube go in the sweep).
     {
         name: "footer: Contact (mailto) link",
         find: /[ \t]*<a href="mailto:anton@nutrition-mcp\.com">[^<]*<\/a>\n/,
@@ -251,9 +323,17 @@ const ALT_RULES: Rule[] = [
     GITHUB_LINKS_RULE,
     NAV_SUPPORT_RULE,
     NAV_CONTACT_RULE,
-    // Unwrap the inline prose mailto first, so the standalone-link rule below
-    // only sees the footer "Contact" links (and can't over-match across tags).
-    HUB_MAILTO_RULE,
+    {
+        // The hub's closing "Request a comparison." is nothing but a mailto
+        // link and its full stop, so unwrapping it (what INLINE_MAILTO_RULE
+        // does to prose mailtos) would leave a call to action with nowhere
+        // to go. Drop the link and its "." together, in every locale; the
+        // sentence before it already ends the note. Only the hub has it.
+        name: "alternatives hub: 'Request a comparison' mailto sentence",
+        find: /\s*<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>[^<]*<\/a\s*>\.(?=\s*<\/p>)/g,
+        optional: true,
+    },
+    // Footer "Contact" links.
     MAILTO_RULE,
     DOMAIN_RULE,
 ];
@@ -275,14 +355,19 @@ const WIDGET_SUPPORT_RULE: Rule = {
 /**
  * The RFC 9116 security.txt contact (src/security-txt.ts). Blank the constant
  * rather than deleting it: an empty contact makes the route answer 404, since a
- * security.txt with no Contact line is invalid. That is also why the advisory
- * and policy URLs beside it are left alone — nothing is served while the
- * contact is empty, so they cannot point a reporter at the maintainer's repo.
+ * security.txt with no Contact line is invalid. Nothing is served while the
+ * contact is empty, but the advisory and policy URLs beside it still name the
+ * maintainer's repo, so SECURITY_TXT_REPO_RULE points them at a placeholder.
  */
 const SECURITY_TXT_RULE: Rule = {
     name: "security.txt: contact email -> empty",
     find: /(\/\* security-contact:start \*\/\s*\n\s*export const SECURITY_CONTACT = )"[^"]*"/,
     replace: '$1""',
+};
+const SECURITY_TXT_REPO_RULE: Rule = {
+    name: "security.txt: advisory/policy repo URLs -> your-org placeholder",
+    find: /https:\/\/github\.com\/akutishevsky\/nutrition-mcp/g,
+    replace: "https://github.com/your-org/nutrition-mcp",
 };
 
 const altPageJobs = (
@@ -331,19 +416,14 @@ const RULES_BY_FILENAME: Record<string, Rule[]> = {
         // is followed by more sentence text — (?!\n) tells them apart so
         // this rule only fires on the prose one, and GITHUB_LINKS_RULE below
         // cleanly deletes the other two as whole lines instead of leaving
-        // dangling plain-text "GitHub". The mailto rule is scoped the same
-        // way, by anchor text: the prose link's visible text is the email
-        // address itself, unlike the footer's "Contact" label.
+        // dangling plain-text "GitHub". The prose contact mailto is
+        // unwrapped the same way by INLINE_MAILTO_RULE in the global sweep.
         {
             name: "terms: 'GitHub' prose link -> plain text",
             find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>(?!\n)/,
             replace: "GitHub",
         },
-        {
-            name: "terms: contact mailto -> placeholder address",
-            find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>anton@nutrition-mcp\.com<\/a\s*>/,
-            replace: "your@email.com",
-        },
+        TERMS_PATREON_RULE,
         // Sweeps the header icon-button GitHub link and the footer/mobile-menu
         // GitHub + Contact links the prose-scoped rules above deliberately
         // don't touch.
@@ -396,73 +476,14 @@ for (const entry of await Array.fromAsync(
 localeJobs.sort((a, b) => a.path.localeCompare(b.path));
 
 const JOBS: { path: string; rules: Rule[] }[] = [
-    {
-        path: "public/index.html",
-        rules: [...ANALYTICS_RULES, ...LANDING_RULES, DOMAIN_RULE],
-    },
-    {
-        path: "public/login.html",
-        rules: [
-            // No analytics rules: login carries no snippet, banner or button.
-            NAV_SUPPORT_RULE,
-            NAV_CONTACT_RULE,
-            GITHUB_LINKS_RULE,
-            MAILTO_RULE,
-            DOMAIN_RULE,
-        ],
-    },
-    {
-        path: "public/privacy.html",
-        rules: [
-            ...ANALYTICS_RULES,
-            NAV_SUPPORT_RULE,
-            NAV_CONTACT_RULE,
-            GITHUB_LINKS_RULE,
-            MAILTO_RULE,
-            DOMAIN_RULE,
-        ],
-    },
-    // Terms page. Its GitHub link and contact mailto sit mid-sentence, so the
-    // generic GITHUB_LINKS_RULE / MAILTO_RULE (which delete the whole anchor
-    // line) would leave dangling prose — unwrap them to text instead, scoped
-    // (via (?!\n) / exact anchor text) so they don't also swallow the
-    // footer/mobile-menu "GitHub"/"Contact" links, which the generic rules
-    // below handle instead. Both run before DOMAIN_RULE so the email goes
-    // before the domain sweep sees it.
-    {
-        path: "public/terms.html",
-        rules: [
-            ...ANALYTICS_RULES,
-            NAV_SUPPORT_RULE,
-            NAV_CONTACT_RULE,
-            {
-                name: "terms: 'GitHub' prose link -> plain text",
-                find: /<a\b[^>]*href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp"[^>]*>GitHub<\/a\s*>(?!\n)/,
-                replace: "GitHub",
-            },
-            {
-                name: "terms: contact mailto -> placeholder address",
-                find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>anton@nutrition-mcp\.com<\/a\s*>/,
-                replace: "your@email.com",
-            },
-            GITHUB_LINKS_RULE,
-            MAILTO_RULE,
-            DOMAIN_RULE,
-        ],
-    },
-    // Tools reference page: analytics + the nav/footer GitHub link, the footer contact
-    // mailto, and the canonical/OG domain.
-    {
-        path: "public/tools.html",
-        rules: [
-            ...ANALYTICS_RULES,
-            GITHUB_LINKS_RULE,
-            NAV_SUPPORT_RULE,
-            NAV_CONTACT_RULE,
-            MAILTO_RULE,
-            DOMAIN_RULE,
-        ],
-    },
+    // The English pages take the same rules as their locale mirrors.
+    ...[
+        "index.html",
+        "login.html",
+        "privacy.html",
+        "terms.html",
+        "tools.html",
+    ].map((f) => ({ path: `public/${f}`, rules: RULES_BY_FILENAME[f]! })),
     ...altPageJobs,
     ...localeJobs,
     // NB: no generator source is rewritten here — these HTML-tuned patterns
@@ -473,21 +494,15 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     // domain and repo to every crawler that reads it. Its GitHub reference is a
     // markdown link in prose, so GITHUB_LINKS_RULE (which deletes a whole <a>
     // line) is wrong here: swap the URL for a placeholder and keep the bullet.
-    {
-        path: "public/llms.txt",
-        rules: [
-            {
-                name: "llms.txt: GitHub repo URL -> placeholder",
-                find: /https:\/\/github\.com\/akutishevsky\/nutrition-mcp/g,
-                replace: "https://github.com/your-org/nutrition-mcp",
-            },
-            DOMAIN_RULE,
-        ],
-    },
+    // (The global sweep's repo-URL rule swaps the URL for a placeholder.)
+    { path: "public/llms.txt", rules: [DOMAIN_RULE] },
     { path: "public/sitemap.xml", rules: [DOMAIN_RULE] },
     { path: "public/robots.txt", rules: [DOMAIN_RULE] },
     { path: "src/index.ts", rules: [GLAMA_RULE, ...CSP_RULES] },
-    { path: "src/security-txt.ts", rules: [SECURITY_TXT_RULE] },
+    {
+        path: "src/security-txt.ts",
+        rules: [SECURITY_TXT_RULE, SECURITY_TXT_REPO_RULE],
+    },
     // The import widget is a source partial, not a served page, so it is not in
     // the HTML jobs above — but it does embed the maintainer's support address.
     {
@@ -497,6 +512,8 @@ const JOBS: { path: string; rules: Rule[] }[] = [
 ];
 
 let hadWarning = false;
+/** Every processed file's content after all rules, for the residue guard. */
+const processed: { path: string; text: string }[] = [];
 
 for (const job of JOBS) {
     const file = Bun.file(job.path);
@@ -533,10 +550,23 @@ for (const job of JOBS) {
     console.log(`\n${changed ? "edit" : "  ok"}  ${job.path}`);
     report.forEach((line) => console.log(line));
     if (changed && !DRY) await Bun.write(job.path, text);
+    processed.push({ path: job.path, text });
 }
 
-function rules(job: { rules: Rule[] }): Rule[] {
-    return job.rules;
+/**
+ * A job's rules plus, for every page a visitor or crawler reads (HTML and the
+ * .txt files), the global PERSONAL_SWEEP_RULES — inserted ahead of
+ * DOMAIN_RULE, so the email sweep still sees nutrition-mcp.com.
+ */
+function rules(job: { path: string; rules: Rule[] }): Rule[] {
+    if (!/\.(html|txt)$/.test(job.path)) return job.rules;
+    const at = job.rules.indexOf(DOMAIN_RULE);
+    if (at === -1) return [...job.rules, ...PERSONAL_SWEEP_RULES];
+    return [
+        ...job.rules.slice(0, at),
+        ...PERSONAL_SWEEP_RULES,
+        ...job.rules.slice(at),
+    ];
 }
 function flags(re: RegExp): string {
     return re.flags.includes("g") ? re.flags : re.flags + "g";
@@ -549,10 +579,65 @@ console.log(
             : ""),
 );
 console.log(
-    "Left for you: swap in your own og.png / favicon.ico / apple-touch-icon.png, " +
-        "adjust page copy (the privacy policy and terms still name Google Analytics " +
-        "and Microsoft Clarity), and replace the " +
-        `${PLACEHOLDER_DOMAIN} placeholder with your real domain. ` +
-        "Set SECURITY_CONTACT in src/security-txt.ts (its advisory/policy URLs too) " +
-        "and rewrite SECURITY.md for your own deployment.",
+    "Left for you: put in your own name, contact address and links — the privacy " +
+        "policy and terms now say [YOUR NAME] and your@email.com (and terms says " +
+        "[YOUR DONATION PAGE] where donations are mentioned), and the footer has " +
+        "no Contact, GitHub, Medium or Demo link until you add yours. Make those " +
+        "edits in the sources (src/copy/legal*.ts for all 9 locales, nav()/footer() " +
+        "in scripts/site-partials.ts), since `bun run gen:all` regenerates the pages " +
+        "from them and brings the maintainer's details back. Also swap in your own " +
+        "og.png / favicon.ico / apple-touch-icon.png, adjust page copy (the privacy " +
+        "policy and terms still name Google Analytics and Microsoft Clarity), and " +
+        `replace the ${PLACEHOLDER_DOMAIN} placeholder with your real domain and ` +
+        "github.com/your-org/nutrition-mcp with your repo. Set SECURITY_CONTACT in " +
+        "src/security-txt.ts and rewrite SECURITY.md for your own deployment.",
+);
+
+/**
+ * Hard guard: none of the maintainer's personal details may survive on any
+ * processed file. Scans the transformed content (so --dry checks exactly what
+ * a real run would write) and fails the run, naming file:line:token, on any
+ * residue — a redesign or new copy that slips past every rule above is caught
+ * here rather than shipped. The name is never transliterated in the current
+ * copy; the Cyrillic/Japanese spellings are here in case a translation starts.
+ */
+const PERSONAL_TOKENS: RegExp[] = [
+    /anton@/i,
+    /kutishevsk/i, // also catches the akutishevsky handle
+    /patreon\.com/i,
+    /medium\.com\/@/i,
+    /Y1EHbfimQ70/, // the maintainer's YouTube demo short
+    /\banton\b/i,
+    /Антон|Кутишевськ|Кутішевськ|アントン/,
+];
+// Everything under public/ is served (pages, site.js, styles.css, llms.txt…)
+// or, for public/widgets/src, inlined into a served widget — so the guard reads
+// all of it, not only the files a job above rewrote. A processed file is
+// checked in its transformed form (what a real run writes); every other file
+// as it stands on disk.
+const scanned = new Map(processed.map((p) => [p.path, p.text]));
+for (const f of await Array.fromAsync(
+    new Bun.Glob("public/**/*.{html,txt,xml,js,css,json,svg,md}").scan("."),
+)) {
+    if (!scanned.has(f)) scanned.set(f, await Bun.file(f).text());
+}
+const residue: string[] = [];
+for (const [path, text] of scanned) {
+    text.split("\n").forEach((line, i) => {
+        for (const token of PERSONAL_TOKENS) {
+            const m = line.match(token);
+            if (m) residue.push(`${path}:${i + 1}: ${m[0]}`);
+        }
+    });
+}
+if (residue.length > 0) {
+    console.error(
+        `\n✗ Personal info left after depersonalizing (${residue.length}):\n` +
+            residue.map((r) => `    ${r}`).join("\n") +
+            "\n  Add a rule for each, then re-run.",
+    );
+    process.exit(1);
+}
+console.log(
+    "\n✓ No personal info left in any processed file or under public/.",
 );

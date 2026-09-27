@@ -23,7 +23,7 @@ export const PRIVACY_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "Bij het registreren slaan we je <strong>e-mailadres</strong> en een veilig gehasht wachtwoord op via Supabase Auth. Meld je je in plaats daarvan aan met Google, dan ontvangen we je e-mailadres van Google en krijgen we nooit een wachtwoord te zien.",
+                    html: "Bij het registreren slaan we je <strong>e-mailadres</strong> en een veilig gehasht wachtwoord op via Supabase Auth. Meld je je in plaats daarvan aan met Google, dan vragen we Google alleen om je e-mailadres, en ontvangen we dat samen met de account-ID die Google voor jou gebruikt; Supabase Auth bewaart die zodat het je volgende aanmelding met Google herkent. Een Google-wachtwoord krijgen we nooit te zien. Accounts die zich vóór 27 september 2026 met Google hebben aangemeld, kunnen ook nog de naam en profielfoto bevatten die Google destijds meestuurde; niets in de dienst leest of toont die, behalve je gegevensexport, en ze worden samen met je account verwijderd.",
                 },
                 {
                     type: "p",
@@ -36,9 +36,9 @@ export const PRIVACY_NL: LegalDoc = {
                         "<strong>Waterregistraties</strong> — hoeveelheid, notities en tijdstempels.",
                         "<strong>Lichaamsgewichtregistraties</strong> — gewicht, notities en tijdstempels. Dit zijn gezondheidsgegevens en ze worden precies zo behandeld als de rest van je registraties.",
                         "<strong>Doelen</strong> — je dagelijkse doelen voor calorieën, eiwit, koolhydraten, vet, vezels, suiker, alcohol, cafeïne en water, en je streefgewicht.",
-                        "<strong>Profielinstellingen</strong> — je IANA-tijdzone, voorkeurseenheid voor gewicht, of alcoholregistratie is ingeschakeld en in welk standaardglas het wordt getoond, en of widgets in de chat zijn ingeschakeld.",
+                        "<strong>Profielinstellingen</strong> — je IANA-tijdzone, voorkeurseenheid voor gewicht, of alcoholregistratie is ingeschakeld en in welk standaardglas het wordt getoond, of widgets in de chat zijn ingeschakeld, en in welke taal die widgets worden weergegeven.",
                         "<strong>Gebruikstelemetrie van tools</strong> — voor elke aanroep van een MCP-tool: welke tool het was, of de aanroep slaagde, hoe lang die duurde, een grove foutcategorie bij een mislukking, de omvang in dagen van een opgevraagde datumreeks, de MCP-sessie-ID, met welke revisie van het MCP-protocol je AI-app verbinding maakte, en de naam en versie waarmee die app zichzelf aanduidt (bijvoorbeeld &bdquo;claude-ai/1.0&rdquo;), als die ze meestuurt. Dit is gekoppeld aan je account-ID en bevat nooit de inhoud van je registraties.",
-                        "<strong>Serververzoeklog</strong> — voor elk verzoek aan de server: de methode, het pad, de antwoordstatus en de antwoordtijd, je IP-adres zonder het laatste deel, en bij MCP-verzoeken de protocolrevisie en de naam en versie die je AI-app opgeeft. Dit wordt weggeschreven naar het runtimelog van onze hostingprovider, is niet gekoppeld aan je account-ID en wordt maar kort bewaard: dat log is een rollende buffer die oudere regels overschrijft zodra er nieuw verkeer binnenkomt.",
+                        "<strong>Serverruntimelog</strong> — voor elk verzoek aan de server: de methode, het pad, de antwoordstatus en de antwoordtijd, je IP-adres zonder het laatste deel, en bij MCP-verzoeken de protocolrevisie en de naam en versie die je AI-app opgeeft. Voor elke tool-aanroep legt het ook de naam van de tool vast, of de aanroep slaagde, hoe lang die duurde en, bij een mislukking, een korte referentiecode en de foutmelding — die een waarde kan herhalen die je AI-app heeft gestuurd, zoals een ongeldige datum. Wanneer je AI-app zich aanmeldt of zijn verbinding vernieuwt, legt het de uitkomst vast, de willekeurige identificatiecode die je AI-app kreeg toen die zich bij onze aanmelddienst registreerde, en de site waarnaar die teruggestuurd wilde worden (bijvoorbeeld claude.ai). Dit wordt weggeschreven naar het runtimelog van onze hostingprovider, bevat noch je account-ID noch je e-mailadres en wordt maar kort bewaard: dat log is een rollende buffer die oudere regels overschrijft zodra er nieuw verkeer binnenkomt.",
                     ],
                 },
                 {
@@ -47,7 +47,7 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "We bewaren ook de OAuth-toegangs- en refreshtokens en autorisatiecodes waarmee je AI-assistent verbonden kan blijven met je account.",
+                    html: "We bewaren ook de OAuth-toegangs- en refreshtokens en autorisatiecodes waarmee je AI-assistent verbonden kan blijven met je account; hoe lang elk daarvan geldig blijft, staat onder &bdquo;Hoe lang we gegevens bewaren&rdquo;. Ze worden alleen als eenrichtingshashes opgeslagen.",
                 },
             ],
         },
@@ -57,6 +57,10 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "p",
                     html: "Je maaltijd-, water-, gewichts- en doelgegevens worden uitsluitend gebruikt om de voedingstrackingdienst te leveren. We <strong>verkopen ze nooit, delen ze nooit met derden en gebruiken ze nooit voor advertenties</strong> of voeren ze nooit in een advertentie- of profileringssysteem in.",
+                },
+                {
+                    type: "p",
+                    html: 'Wanneer jij of je AI-assistent een barcode opzoekt, stuurt onze server alleen de cijfers van de barcode naar <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — nooit je account, e-mailadres of registraties — en bewaart de productgegevens die terugkomen in een gedeelde cache die aan geen enkele gebruiker is gekoppeld.',
                 },
                 {
                     type: "p",
@@ -80,7 +84,7 @@ export const PRIVACY_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: 'Alle gegevens worden opgeslagen bij <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL). Authenticatie wordt afgehandeld door Supabase Auth. De server wordt gehost bij DigitalOcean.',
+                    html: 'Alle gegevens worden opgeslagen bij <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in de EU, in de Ierse regio van AWS (eu-west-1). Authenticatie en exportopslag worden door Supabase in dezelfde regio afgehandeld. De server draait bij DigitalOcean in Frankfurt, Duitsland.',
                 },
             ],
         },
@@ -89,7 +93,11 @@ export const PRIVACY_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "Je maaltijd-, water- en gewichtsregistraties, doelen, profielinstellingen en gebruikstelemetrie worden bewaard zolang je account bestaat — geen daarvan heeft een eigen vervaldatum of een geplande opschoning. Wanneer je je account verwijdert, wordt dit alles direct en onomkeerbaar verwijderd, zoals hieronder beschreven. Het enige wat overblijft zijn de telemetrieregel van de verwijdering zelf, die zonder je account-ID wordt vastgelegd, het hierboven beschreven kortlevende serververzoeklog, dat nooit je account-ID bevat, en de rollende back-ups van onze databaseprovider, die volgens hun eigen schema verlopen.",
+                    html: "Je maaltijd-, water- en gewichtsregistraties, doelen, profielinstellingen en gebruikstelemetrie worden bewaard zolang je account bestaat — geen daarvan heeft een eigen vervaldatum of een geplande opschoning. Wanneer je je account verwijdert, wordt dit alles direct en onomkeerbaar verwijderd, zoals hieronder beschreven. Het enige wat overblijft zijn de telemetrieregel van de verwijdering zelf, die zonder je account-ID wordt vastgelegd; het hierboven beschreven kortlevende serverruntimelog, dat nooit je account-ID bevat; de eigen operationele logs van onze databaseprovider, die beperkte tijd worden bewaard (maximaal 7 dagen bij ons abonnement); en de rollende back-ups van die provider, die volgens hun eigen schema verlopen.",
+                },
+                {
+                    type: "p",
+                    html: "Inloggegevens zijn bewust kortlevend. De sessie van de inlogpagina duurt 10 minuten en wordt in het geheugen van de server bewaard; ze is aan je browser gekoppeld via een strikt noodzakelijke cookie die alleen een willekeurige waarde bevat, na dezelfde 10 minuten verloopt en wordt verwijderd zodra het inloggen is afgerond. Om je wachtwoord of je aanmelding met Google te controleren, gebruiken we Supabase Auth, dat daarbij telkens een Supabase-inlogsessie aanmaakt; we gebruiken die sessie nooit en beëindigen haar meteen. De eenmalige autorisatiecode die je AI-app krijgt, verloopt na 10 minuten en wordt verwijderd zodra die is gebruikt. Een nieuw toegangstoken is 24 uur geldig (een token dat vóór 27 september 2026 is uitgegeven, houdt de geldigheidsduur waarmee het is uitgegeven, tot maximaal een jaar); een refreshtoken is 90 dagen geldig en wordt verwijderd op het moment dat het wordt gebruikt om een nieuw paar op te halen. Verlopen tokens en codes worden binnen een uur automatisch verwijderd. Als je je account verwijdert, worden ze allemaal direct verwijderd.",
                 },
                 {
                     type: "p",
@@ -103,6 +111,53 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "p",
                     html: "Je kunt je account en alle bijbehorende gegevens op elk moment verwijderen door je AI-assistent te vragen om <strong>je account te verwijderen</strong> terwijl die verbonden is met de Nutrition MCP-server. Deze actie is direct en onomkeerbaar. Het verwijdert je maaltijd-, water- en gewichtsregistraties, doelen, profielinstellingen, een eventueel nog opgeslagen exportarchief, je gebruikstelemetrie, je toegangstokens en het account zelf. Dat omvat elk alcoholcijfer dat je ooit hebt gelogd, ongeacht of alcoholregistratie was ingeschakeld.",
+                },
+            ],
+        },
+        {
+            heading: "Contact en je rechten",
+            blocks: [
+                {
+                    type: "p",
+                    html: 'Nutrition MCP wordt gerund door Anton Kutishevskyi, een individuele ontwikkelaar, die voor deze dienst de verwerkingsverantwoordelijke is voor je persoonsgegevens. Voor alles over je gegevens of dit beleid kun je mailen naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                },
+                {
+                    type: "p",
+                    html: "Waarom we ze mogen verwerken:",
+                },
+                {
+                    type: "ul",
+                    items: [
+                        "<strong>Je account en registraties</strong> — om de dienst te leveren waarvoor je je hebt aangemeld (uitvoering van een overeenkomst). Maaltijden, gewicht en alcohol zijn gezondheidsgegevens, dus die verwerken we op basis van je uitdrukkelijke toestemming, die je geeft door ze te loggen en die je op elk moment kunt intrekken door de registraties of je account te verwijderen.",
+                        "<strong>Gebruikstelemetrie van tools en het serverruntimelog</strong> — ons gerechtvaardigd belang om de dienst werkend, snel en veilig te houden (kapotte tools opsporen, misbruik afremmen met snelheidslimieten). Geen van beide bevat de inhoud van je registraties.",
+                        "<strong>Website-analyse</strong> — je toestemming, gegeven in de cookiebanner en op elk moment in te trekken via &bdquo;Cookie-instellingen&rdquo; in de voettekst.",
+                    ],
+                },
+                {
+                    type: "p",
+                    html: "Je rechten, en hoe je ze uitoefent — voor de meeste hoef je niet eens te mailen:",
+                },
+                {
+                    type: "ul",
+                    items: [
+                        "<strong>Inzage en overdraagbaarheid</strong> — vraag je AI-assistent om je gegevens te exporteren. Je krijgt een ZIP met CSV-bestanden met alles wat we over je bewaren: je logs van maaltijden, water en gewicht, je doelen, je instellingen, je accountgegevens (e-mailadres, aanmeldmethoden en aanmelddata, en een eventuele naam of foto die Google meestuurde), je gebruikstelemetrie van tools, en de koppelingen die je AI-apps aangemeld houden — zonder de tokens zelf. Niet inbegrepen: de waarden die we om veiligheidsredenen alleen als eenrichtingshash bewaren (je wachtwoord en de tokens van je koppelingen), interne administratie zoals sleutels voor duplicaatdetectie, het runtime-logboek van de server, dat je account-ID niet bevat, en de eigen kortlevende logboeken en doorlopende back-ups van onze verwerkers. Wil je nog iets anders, mail ons dan vanaf het e-mailadres van je account, en dan antwoorden we binnen een maand.",
+                        "<strong>Rectificatie</strong> — vraag je AI-assistent om een maaltijd-, water- of gewichtsregistratie te corrigeren of te verwijderen, of om je doelen en instellingen te wijzigen.",
+                        "<strong>Gegevenswissing</strong> — vraag je AI-assistent om je account te verwijderen; daarmee verdwijnt alles in één keer.",
+                        "<strong>Bezwaar en beperking van de verwerking</strong> — mail ons, dan antwoorden we binnen een maand.",
+                        "<strong>Klacht</strong> — je kunt een klacht indienen bij de toezichthoudende autoriteit voor gegevensbescherming in het land waar je woont of werkt. We stellen het wel op prijs als we het eerst zelf mogen oplossen.",
+                    ],
+                },
+                {
+                    type: "p",
+                    html: "Alles wat we opslaan, blijft in de hierboven genoemde EU-regio. Wat je AI-assistent via de tools leest, wordt naar de aanbieder van die assistent gestuurd, die buiten de EU kan zitten; dat gebeurt op grond van je eigen overeenkomst met die aanbieder, niet de onze. Google en Microsoft (website-analyse, Google Sign-In) en Google, jsDelivr en GitHub (de hierboven beschreven verzoeken voor lettertypen, iconen en het aantal sterren) zitten ook buiten de EU; waar zij persoonsgegevens van buiten de EU ontvangen, baseren ze zich op de standaardcontractbepalingen van de Europese Commissie of op het EU-VS-kader voor gegevensbescherming (EU–US Data Privacy Framework).",
+                },
+                {
+                    type: "p",
+                    html: 'De dienst is niet bedoeld voor iemand onder de 16, en volgens de <a href="/terms" data-legal-link="terms">Gebruiksvoorwaarden</a> moet je minstens 16 jaar oud zijn. Denk je dat iemand die jonger is een account heeft aangemaakt, mail ons dan en we verwijderen het.',
+                },
+                {
+                    type: "p",
+                    html: "Als dit beleid verandert, verandert de datum bovenaan mee.",
                 },
             ],
         },
@@ -133,6 +188,10 @@ export const TERMS_NL: LegalDoc = {
                 {
                     type: "p",
                     html: "Deze voorwaarden regelen je gebruik van Nutrition MCP (de &bdquo;dienst&rdquo;) — de website op nutrition-mcp.com en de remote MCP-server op <strong>https://nutrition-mcp.com/mcp</strong>. Door een account aan te maken of een AI-assistent met de server te verbinden, ga je akkoord met deze voorwaarden. Ga je niet akkoord, gebruik de dienst dan niet.",
+                },
+                {
+                    type: "p",
+                    html: "De dienst wordt gerund door Anton Kutishevskyi, een individuele ontwikkelaar (&bdquo;we&rdquo;, &bdquo;ons&rdquo;).",
                 },
             ],
         },
@@ -208,7 +267,7 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Je kunt op elk moment al je gegevens exporteren door je AI-assistent te vragen ze te exporteren. De export is een ZIP-archief met CSV-bestanden voor je maaltijden, water, gewicht, doelen en profielinstellingen; alcohol wordt meegenomen ongeacht of alcoholregistratie is ingeschakeld. De downloadlink die we teruggeven is privé en verloopt na 60 minuten.",
+                    html: "Je kunt op elk moment al je gegevens exporteren door je AI-assistent te vragen ze te exporteren. De export is een ZIP-archief met CSV-bestanden voor je maaltijden, water, gewicht, doelen, profielinstellingen, accountgegevens, gebruikstelemetrie van tools en gekoppelde AI-apps; alcohol wordt meegenomen ongeacht of alcoholregistratie is ingeschakeld. De downloadlink die we teruggeven is privé en verloopt na 60 minuten.",
                 },
                 {
                     type: "p",
@@ -235,6 +294,10 @@ export const TERMS_NL: LegalDoc = {
                 {
                     type: "p",
                     html: "De dienst is afhankelijk van derden: Supabase voor database, authenticatie en exportopslag, DigitalOcean voor hosting, Open Food Facts voor barcodegegevens, en welke AI-assistent je ook gebruikt om te verbinden.",
+                },
+                {
+                    type: "p",
+                    html: 'Productgegevens bij barcodes &copy; bijdragers aan <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, beschikbaar onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
                 },
                 {
                     type: "p",
@@ -309,7 +372,7 @@ export const TERMS_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: 'Vragen over deze voorwaarden? Mail naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    html: 'Vragen over deze voorwaarden of je gegevens? Mail naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
                 },
             ],
         },

@@ -2425,7 +2425,7 @@ export const INDEX_FR: IndexDoc = {
             {
                 icon: "fa-solid fa-file-csv",
                 title: "Exporte et garde le contrôle de tes données",
-                body: "Récupère tout ce que tu as ici — repas, eau, poids, objectifs et profil — dans un seul ZIP de fichiers CSV. Les repas sont pour l'instant la seule partie qui peut être réimportée. Supprime ton compte et tes données quand tu veux.",
+                body: "Récupère tout ce que nous stockons à ton sujet — repas, eau, poids, objectifs et profil, ainsi que les données de ton compte, ta télémétrie d'utilisation et tes applications connectées — dans un seul ZIP de fichiers CSV. Les repas sont pour l'instant la seule partie qui peut être réimportée. Supprime ton compte et tes données quand tu veux.",
             },
         ],
     },

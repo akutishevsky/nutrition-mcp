@@ -1,5 +1,9 @@
 import { describe, test, expect } from "bun:test";
-import { categorizeError, userFacingError } from "./analytics.js";
+import {
+    analyticsLogLine,
+    categorizeError,
+    userFacingError,
+} from "./analytics.js";
 import { ToolError } from "./errors.js";
 import { LoggedAtError } from "./tz.js";
 
@@ -302,5 +306,58 @@ describe("userFacingError", () => {
     test("the groups' texts are pairwise distinct", () => {
         const texts = Object.values(GROUPS).map((c) => textFor(c[0]!));
         expect(new Set(texts).size).toBe(texts.length);
+    });
+});
+
+// The privacy policy says the runtime log is not linked to an account; these
+// lines are most of that log.
+describe("analyticsLogLine", () => {
+    const noUser = /user=|[0-9a-f]{8}-[0-9a-f]{4}-/;
+
+    test("success", () => {
+        const line = analyticsLogLine("log_meal", 12, { kind: "success" });
+        expect(line).toBe("[analytics] log_meal success 12ms");
+        expect(line).not.toMatch(noUser);
+    });
+
+    test("reported failure", () => {
+        const line = analyticsLogLine("bulk_import_meals", 40, {
+            kind: "reported-failure",
+            category: "validation",
+        });
+        expect(line).toContain("reported-failure=validation");
+        expect(line).not.toMatch(noUser);
+    });
+
+    test("error carries the ref and the JSON-quoted message", () => {
+        const line = analyticsLogLine("log_meal", 7, {
+            kind: "error",
+            category: "supabase_error",
+            ref: "abc12345",
+            message: 'bad "value"',
+        });
+        expect(line).toContain("error=supabase_error ref=abc12345 7ms");
+        expect(line).toContain(JSON.stringify('bad "value"'));
+        expect(line).not.toMatch(noUser);
+    });
+
+    test("a newline in the message cannot forge a second log line", () => {
+        const line = analyticsLogLine("log_meal", 7, {
+            kind: "error",
+            category: "unknown",
+            ref: "abc12345",
+            message: "first\n[analytics] forged success 1ms",
+        });
+        expect(line).not.toContain("\n");
+    });
+
+    test("a long message is capped", () => {
+        const line = analyticsLogLine("log_meal", 7, {
+            kind: "error",
+            category: "unknown",
+            ref: "abc12345",
+            message: "x".repeat(2000),
+        });
+        expect(line.length).toBeLessThan(600);
     });
 });
