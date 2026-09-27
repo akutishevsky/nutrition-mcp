@@ -401,15 +401,17 @@ export function formatFoodResult(
     }
     // "n/a" states the gap honestly but says nothing about what to do next,
     // which is how a lookup with no fiber figure turns into a meal with no
-    // fiber figure. The sibling error paths in mcp.ts all prescribe a fallback
+    // fiber figure. The sibling error paths in mcp.ts name a fallback
     // (estimate from the product description); the success path did not.
+    // Conditional on the product being logged at all: a lookup is often just
+    // a question about the product, and the note must not presume a write.
     const unknown = [
         food.fiber_g == null ? "fiber" : null,
         food.sugar_g == null ? "sugar" : null,
     ].filter(Boolean);
     if (unknown.length > 0) {
         lines.push(
-            `(Open Food Facts has no ${unknown.join(" or ")} figure for this product — that is missing data, not a zero. Estimate it from the ingredients and portion and still pass the value to log_meal.)`,
+            `(Open Food Facts has no ${unknown.join(" or ")} figure for this product — that is missing data, not a zero. If this product is logged, estimate it from the ingredients and portion and pass the value to log_meal rather than omitting it.)`,
         );
     }
     lines.push(`Source: Open Food Facts (barcode ${food.barcode})`);

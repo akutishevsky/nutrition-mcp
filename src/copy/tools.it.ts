@@ -147,7 +147,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifica i dettagli di un pasto già registrato — la sua descrizione, qualsiasi macro, fibre, zuccheri, alcol o caffeina, l'orario o le note. È anche il modo in cui si colma una lacuna: se un pasto è stato registrato senza fibre o zuccheri, il server lo segnala e l'IA li compila qui.",
+                "Modifica i dettagli di un pasto già registrato — la sua descrizione, qualsiasi macro, fibre, zuccheri, alcol o caffeina, l'orario o le note. È anche il modo in cui si colma una lacuna: se un pasto è stato registrato senza fibre o zuccheri, il server lo segnala e l'IA li compila qui se sei d'accordo.",
             params: {
                 id: "UUID del pasto da aggiornare",
                 description: "",

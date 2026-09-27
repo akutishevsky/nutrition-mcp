@@ -25,6 +25,8 @@ import {
     startImportPayload,
     alcoholHiddenNote,
     missingNutrientNote,
+    offUnreachableText,
+    offNotFoundText,
     registerTools,
     START_IMPORT_OUTPUT_SCHEMA,
     GOALS_ITEM,
@@ -1537,6 +1539,8 @@ mock.module("./supabase.js", () => ({
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.
     getWeightInRange: async () => db.weights,
+    // get_goal_progress's standing weight metric: the newest staged entry.
+    getLatestWeight: async () => db.weights.at(-1) ?? null,
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
         db.inserted.push(input);
         const saved = storedMeal(input);
@@ -1953,6 +1957,9 @@ describe("alcoholHiddenNote", () => {
         expect(note).toContain("Alcohol target saved");
         expect(note).toContain("set_alcohol_tracking");
         expect(note).toContain("not shown");
+        // Report-only and an offer: the user decides, the model doesn't flip it.
+        expect(note).toContain("The user can turn it on");
+        expect(note).not.toContain("Turn it on with");
     });
 });
 
@@ -2063,6 +2070,9 @@ describe("missingNutrientNote", () => {
         expect(note).toContain(MEAL_ID);
         // The sentence that stops the model "fixing" it by sending 0s blindly.
         expect(note).toContain("A missing value is not a zero");
+        // Policy 2.D: the backfill is offered, not directed.
+        expect(note).not.toContain("fill it in with update_meal");
+        expect(note).toContain("if they want it filled");
     });
 
     test("names only the field that is actually missing", () => {
@@ -4307,6 +4317,9 @@ describe("current-time disclosure", () => {
             // Knowing the time must not cost the caller the nudge to configure
             // a zone — UTC is a fallback, not the user's clock.
             expect(text).toContain("set_timezone");
+            // …but it is the user's setting to choose, not a call to make.
+            expect(text).not.toContain("Call set_");
+            expect(text).toContain("The user can");
         });
     });
 
@@ -4321,6 +4334,8 @@ describe("current-time disclosure", () => {
             expect(text).toContain("Timezone: not set (defaulting to UTC).");
             expectClockIn(text, "UTC", sampled);
             expect(text).toContain("set_timezone");
+            expect(text).not.toContain("Call set_");
+            expect(text).toContain("The user can");
         });
     });
 
@@ -4351,6 +4366,8 @@ describe("current-time disclosure", () => {
                 "Language: not set (defaulting to English).",
             );
             expect(text).toContain("set_language");
+            expect(text).not.toContain("Call set_");
+            expect(text).toContain("The user can");
         });
     });
 
@@ -4571,24 +4588,73 @@ describe("every tool carries directory-ready annotations", () => {
         await client.close();
         await server.close();
 
+        // destructiveHint is true exactly for tools that overwrite or remove a
+        // user record — "false" means "only additive updates" in the spec, so
+        // the update_* tools and set_nutrition_goals belong here. The five
+        // preference setters stay out on purpose: each replaces one visible
+        // preference that get_profile shows and the user can set back.
+        const DESTRUCTIVE = new Set([
+            "delete_meal",
+            "delete_water",
+            "delete_weight",
+            "delete_account",
+            "update_meal",
+            "update_weight",
+            "set_nutrition_goals",
+        ]);
+        const OPEN_WORLD = new Set(["lookup_barcode"]);
         expect(tools.length).toBe(36);
         for (const t of tools) {
             const a = t.annotations;
             expect(a?.title, t.name).toBeTruthy();
             expect(a?.title, t.name).toBe(t.title);
-            expect(typeof a?.readOnlyHint, t.name).toBe("boolean");
-            expect(typeof a?.destructiveHint, t.name).toBe("boolean");
+            // An omitted hint is absent in v2, not false, and clients then
+            // apply the spec default (openWorldHint defaults to true) — so
+            // presence is checked, not just the value.
+            for (const hint of [
+                "readOnlyHint",
+                "destructiveHint",
+                "idempotentHint",
+                "openWorldHint",
+            ] as const)
+                expect(typeof a?.[hint], `${t.name}.${hint}`).toBe("boolean");
             if (a?.readOnlyHint) expect(a.destructiveHint, t.name).toBe(false);
+            expect(a?.destructiveHint, t.name).toBe(DESTRUCTIVE.has(t.name));
+            expect(a?.openWorldHint, t.name).toBe(OPEN_WORLD.has(t.name));
         }
-        for (const name of [
-            "delete_meal",
-            "delete_water",
-            "delete_weight",
-            "delete_account",
-        ]) {
-            const a = tools.find((t) => t.name === name)?.annotations;
-            expect(a?.destructiveHint, name).toBe(true);
-        }
+    });
+
+    // The two import tools once omitted openWorldHint, which a client reads
+    // as the spec default `true` — wrong for both: neither reaches outside
+    // this server.
+    test("the import tools pin their full annotation objects", async () => {
+        const server = new McpServer(
+            { name: "t", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [ct, st] = InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "c", version: "0.0.0" });
+        await Promise.all([server.connect(st), client.connect(ct)]);
+        const { tools } = await client.listTools();
+        await client.close();
+        await server.close();
+
+        const byName = new Map(tools.map((t) => [t.name, t.annotations]));
+        expect(byName.get("start_meal_import")).toEqual({
+            title: "Import Meals from a File",
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        });
+        expect(byName.get("bulk_import_meals")).toEqual({
+            title: "Bulk Import Meals",
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        });
     });
 });
 
@@ -4816,6 +4882,117 @@ describe("tool text names no external tool", () => {
             });
         },
     );
+});
+
+// Policy 1.D and 2.D: tool text must not push the model to collect a location
+// the user never gave, nor to write something the user did not ask for. The
+// instructions and log_meal once asked for "the venue and city" of every
+// restaurant meal, and several strings told the model to backfill or log on
+// its own; each assertion pins one of those sites.
+describe("tool text leaves writes and location to the user", () => {
+    const LOCATION = "do not infer a location the user did not state";
+
+    test.each(ERAS)(
+        "instructions and descriptions offer rather than direct (%p)",
+        async (mode) => {
+            await withHttpClient("u1", mode, async (client) => {
+                const instructions = client.getInstructions() ?? "";
+                expect(instructions.length).toBeGreaterThan(0);
+                expect(instructions).not.toContain(
+                    "rather than mentioning it in prose",
+                );
+                expect(instructions).not.toContain("Podil");
+                expect(instructions).not.toMatch(/venue and city/);
+                expect(instructions).toContain(LOCATION);
+                expect(instructions).toContain(
+                    "offer to fill it in with update_meal",
+                );
+
+                const { tools } = await client.listTools();
+                const desc = (name: string) =>
+                    tools.find((t) => t.name === name)?.description ?? "";
+
+                const logMeal = desc("log_meal");
+                expect(logMeal).not.toMatch(/Podil|Kyiv/);
+                expect(logMeal).not.toContain("venue and city");
+                expect(logMeal).toContain(LOCATION);
+
+                expect(desc("search_meals")).toContain(
+                    "When the user has named the restaurant",
+                );
+
+                const updateMeal = desc("update_meal");
+                expect(updateMeal).not.toContain(
+                    "rather than telling the user",
+                );
+                expect(updateMeal).toContain("the user asks or agrees");
+
+                for (const tool of tools) {
+                    expect(tool.description ?? "", tool.name).not.toMatch(
+                        /\bCall set_/,
+                    );
+                    const props = (tool.inputSchema.properties ?? {}) as Record<
+                        string,
+                        { description?: string }
+                    >;
+                    for (const [key, prop] of Object.entries(props)) {
+                        expect(
+                            prop.description ?? "",
+                            `${tool.name}.${key}`,
+                        ).not.toMatch(/\bCall set_/);
+                    }
+                }
+            });
+        },
+    );
+
+    // A target weight with nothing logged is a fact to report, not a prompt
+    // to go log a weight the user never mentioned (policy 2.D).
+    test("get_goal_progress leaves logging a weight to the user", async () => {
+        db.goals = goals({ target_weight_g: 70000 });
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_goal_progress", { date: "2026-07-20" }),
+            );
+            expect(text).toContain("Weight: no entries yet (target");
+            expect(text).not.toContain("Log one with");
+            expect(text).toContain("The user can log one with log_weight.");
+        });
+    });
+
+    // An offset-less time on an account with no timezone: the note says what
+    // happened and what the user could do, not what the model should do next.
+    test("the unset-timezone note does not direct a follow-up write", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("log_meal", {
+                    description: "Oatmeal",
+                    meal_type: "breakfast",
+                    calories: 300,
+                    logged_at: "2026-07-20T08:30:00",
+                }),
+            );
+            expect(text).toContain("no timezone set");
+            expect(text).toContain("set_timezone");
+            expect(text).not.toContain("Then re-check this entry");
+        });
+    });
+});
+
+// A barcode lookup is often only a question about the product, so neither
+// fallback may presume the meal gets logged.
+describe("lookup_barcode fallbacks do not presume a log", () => {
+    test("unreachable and not-found texts stop short of a write", () => {
+        for (const text of [
+            offUnreachableText(),
+            offNotFoundText("5449000000996"),
+        ]) {
+            expect(text).not.toContain("log the meal");
+            expect(text).not.toMatch(/then log/);
+        }
+        expect(offNotFoundText("5449000000996")).toContain("5449000000996");
+    });
 });
 
 // Policy 2.B: descriptions must describe behaviour, not over-claim it. Each

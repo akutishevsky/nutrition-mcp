@@ -957,7 +957,7 @@ export function computeWeeklyDigest(
     if (!goals) {
         lines.push("");
         lines.push(
-            "(Tip: call set_nutrition_goals to get target-based coaching in future digests.)",
+            "(Tip: with daily targets set via set_nutrition_goals, future digests include target-based coaching.)",
         );
     }
 

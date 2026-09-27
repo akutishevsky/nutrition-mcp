@@ -168,15 +168,15 @@ Current time — some hosts put the current date and time in context and some do
 
 Recording a complete meal — this applies to every write path (log_meal, update_meal, a barcode lookup you then log, a meal you copied from search_meals), not just to photos.
 ${NUTRIENT_COVERAGE}
-When you notice after the fact that a meal went in without its fiber or sugar, do not leave it: fill it in with update_meal rather than mentioning it in prose.
+When a meal turns out to have gone in without its fiber or sugar, tell the user and offer to fill it in with update_meal; update the entry once they agree.
 
 Meals from photos:
 - A packaged product with a visible barcode: the digits printed under the barcode go to lookup_barcode.
-- For a plated or prepared meal, whether it came from a restaurant/takeout or was made at home changes the evidence available. For a restaurant, which restaurant and where (city, or neighbourhood for a chain) matters: chains usually publish per-item nutrition, and an independent restaurant's menu or ingredient list — if the user shares it or it is available to you — reveals butter, cream, oil and sugar a photo hides. Restaurant cooking is usually richer than the same dish made at home.
-- search_meals past logs (for the dish, and for the restaurant name) reveal variations and hidden ingredients (raisins vs banana, milk vs water, added honey or oil); search with short keywords in both the conversation language and English.
+- For a plated or prepared meal, whether it came from a restaurant/takeout or was made at home changes the evidence available. If the user names the restaurant, the name matters: chains usually publish per-item nutrition, and an independent restaurant's menu or ingredient list — if the user shares it or it is available to you — reveals butter, cream, oil and sugar a photo hides. Restaurant cooking is usually richer than the same dish made at home. Where the user ate is not needed for an estimate; do not infer a location the user did not state.
+- search_meals past logs (for the dish, and for the restaurant name when the user gave one) reveal variations and hidden ingredients (raisins vs banana, milk vs water, added honey or oil); search with short keywords in both the conversation language and English.
 - Portions are best expressed in household measures the user can verify at a glance (a glass, a handful, a tablespoon, half the plate) rather than grams, and for a restaurant serving, how much was actually eaten matters most.
 - Before log_meal, resolve the open questions — which variation or menu item each dish is, how much was eaten, and ingredients the photo cannot show (oil, butter, sugar, dressing, sauce, what a drink was made with) — and confirm the summarized meal with the user, unless they ask to just log it. A single obvious item may need one question; a full plate usually needs several.
-- The logged description carries the confirmed portions (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") and, for a restaurant meal, the venue and city (e.g. "Pad thai with chicken (1 plate, finished) at Thai Basil, Podil, Kyiv"), so future search_meals results are self-describing. Say plainly when a figure is an estimate rather than published nutrition, and note the source in notes.
+- The logged description carries the confirmed portions (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") and, for a restaurant meal the user named, the restaurant name as they gave it (e.g. "Pad thai with chicken (1 plate, finished) at Thai Basil"), so future search_meals results are self-describing. Add a neighbourhood or city only if the user stated it; do not infer a location the user did not state. Say plainly when a figure is an estimate rather than published nutrition, and note the source in notes.
 
 "Log my usual X" works the same way: search_meals, then confirm the variation and the amount before logging.
 
@@ -1271,12 +1271,12 @@ async function resolveWriteTimestamp(
     // read paths bucket by, UTC when none is set.
     const displayTz = tz ?? "UTC";
     const unsetTzNote = (value: string) =>
-        `${JSON.stringify(value)} carries no UTC offset and this account has no timezone set, so it was read as UTC. Set one with set_timezone.`;
+        `${JSON.stringify(value)} carries no UTC offset and this account has no timezone set, so it was read as UTC. The user can set one with set_timezone.`;
 
     if (raw === undefined) {
         const note =
             tz === null
-                ? "\n\nNote: this account has no timezone set, so today's date is being read in UTC — set one with set_timezone."
+                ? "\n\nNote: this account has no timezone set, so today's date is being read in UTC — the user can set one with set_timezone."
                 : "";
         return { iso: undefined, note, tz: displayTz };
     }
@@ -1297,7 +1297,7 @@ async function resolveWriteTimestamp(
 
     const note =
         resolved.usedProfileTimezone && tz === null
-            ? `\n\nNote: ${unsetTzNote(raw)} Then re-check this entry.`
+            ? `\n\nNote: ${unsetTzNote(raw)} If they do, this entry's time may need correcting.`
             : "";
     return { iso: resolved.instant.toISOString(), note, tz: displayTz };
 }
@@ -1460,13 +1460,16 @@ export function alcoholHiddenNote(
     subject: string,
 ): string {
     if (!carriedAlcohol || alcohol !== null) return "";
-    return `\n\n(${subject}, but alcohol tracking is off for this account so it is not shown. Turn it on with set_alcohol_tracking.)`;
+    return `\n\n(${subject}, but alcohol tracking is off for this account so it is not shown. The user can turn it on with set_alcohol_tracking if they want it shown.)`;
 }
 
 // Tool descriptions and SERVER_INSTRUCTIONS are advisory and are read once, at
 // the top of a session; this note lands in the model's context at the exact
 // moment it left a nutrient out, which is the only feedback in the loop. Same
-// report-only shape as alcoholHiddenNote above — it never writes anything.
+// report-only shape as alcoholHiddenNote above — it never writes anything, and
+// it points at an offer, not a write: the gap is mentioned to the user and
+// update_meal fills it only if they want it filled (directory policy 2.D — no
+// write the user did not ask for).
 //
 // Deliberately limited to fiber_g and sugar_g. Both are estimable for every
 // food that exists, so a NULL on a meal the model just wrote is an omission and
@@ -1485,7 +1488,20 @@ export function missingNutrientNote(meal: Meal): string {
         meal.sugar_g == null ? "sugar_g" : null,
     ].filter((f): f is string => f !== null);
     if (missing.length === 0) return "";
-    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. Estimate the value from the ingredients (0 where the food genuinely has none) and fill it in with update_meal, id ${meal.id}.)`;
+    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. Mention the gap to the user; if they want it filled, estimate the value from the ingredients (0 where the food genuinely has none) and update_meal can add it to id ${meal.id}.)`;
+}
+
+// lookup_barcode's two Open Food Facts fallbacks. A lookup is often only a
+// question about the product, so neither text presumes the meal gets logged:
+// they say what evidence is left, not what to write (directory policy 2.D).
+// No OFF error text is interpolated — it is third-party text the model can't
+// act on, and it stays in the server log.
+export function offUnreachableText(): string {
+    return "Couldn't reach Open Food Facts right now. Nutrition for this product would have to be estimated from the product description, or taken from the label if the user can share it.";
+}
+
+export function offNotFoundText(barcode: string): string {
+    return `No product found in Open Food Facts for barcode ${barcode}. The user may be able to say what the product is or share its label; otherwise nutrition would have to be estimated.`;
 }
 
 // `alcohol` is the whole alcohol opt-in, threaded once: the drink unit to render
@@ -1554,7 +1570,7 @@ export function registerTools(
                 // NUTRIENT_COVERAGE rather than restated, because
                 // SERVER_INSTRUCTIONS carries the same paragraph and many hosts
                 // surface only one of the two.
-                "Log a meal entry with nutritional information. It needs the quantity or portion eaten; if the user has not given it, ask before estimating calories and macros. For a barcode — typed, or the digits printed under it in a photo of the package — lookup_barcode returns the product's label data to scale to the amount eaten; if no product is found, estimate. For a branded product or chain item without a barcode, use the label or the published per-item nutrition where available; otherwise estimate from the ingredients and portion. For a photo of a plated or prepared meal, whether it is from a restaurant (which one, and where) or homemade determines the evidence: a chain's published nutrition, a menu or ingredient list if the user shares it or it is available to you, and past logs via search_meals, which surface variations and ingredients the photo cannot show. For a meal logged from a photo, call this tool only after the meal is confirmed: which variation each dish is, how much was eaten (in household measures such as a glass, a handful or a tablespoon rather than grams), and hidden ingredients like oil, sugar or sauce are resolved and the user has agreed to the summary — or has asked to just log it. Write the confirmed portions into the description (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing, and for a restaurant meal name the venue and city too (e.g. 'Pad thai with chicken (1 plate, finished) at Thai Basil, Podil, Kyiv').\n\n" +
+                "Log a meal entry with nutritional information. It needs the quantity or portion eaten; if the user has not given it, ask before estimating calories and macros. For a barcode — typed, or the digits printed under it in a photo of the package — lookup_barcode returns the product's label data to scale to the amount eaten; if no product is found, estimate. For a branded product or chain item without a barcode, use the label or the published per-item nutrition where available; otherwise estimate from the ingredients and portion. For a photo of a plated or prepared meal, whether it is from a restaurant (and which one, if the user says) or homemade determines the evidence: a chain's published nutrition, a menu or ingredient list if the user shares it or it is available to you, and past logs via search_meals, which surface variations and ingredients the photo cannot show. For a meal logged from a photo, call this tool only after the meal is confirmed: which variation each dish is, how much was eaten (in household measures such as a glass, a handful or a tablespoon rather than grams), and hidden ingredients like oil, sugar or sauce are resolved and the user has agreed to the summary — or has asked to just log it. Write the confirmed portions into the description (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing, and for a restaurant meal the user named, include the restaurant name as they gave it (e.g. 'Pad thai with chicken (1 plate, finished) at Thai Basil'). Include a neighbourhood or city only if the user stated it — do not infer a location the user did not state.\n\n" +
                 NUTRIENT_COVERAGE +
                 "\nPutting '180 mg caffeine' or '6 g fiber' in notes or in the description instead of in the field leaves it out of every total, goal and chart.",
             annotations: {
@@ -1744,6 +1760,7 @@ export function registerTools(
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
+                openWorldHint: false,
             },
             ...uiMeta(IMPORT_MEALS_WIDGET_URI),
         },
@@ -1765,7 +1782,7 @@ export function registerTools(
                           (tz === null
                               ? " Note: this account has no timezone set, so times will be read as UTC. Offer to set it first."
                               : "")
-                        : "This account has widgets turned off, so the importer cannot be shown. Ask the user to paste their export (or enable widgets with set_widget_display), then import it yourself with bulk_import_meals.";
+                        : "This account has widgets turned off, so the importer cannot be shown. The user can paste their export for bulk_import_meals instead, or turn widgets on with set_widget_display.";
                     return {
                         content: [{ type: "text" as const, text }],
                         structuredContent,
@@ -1842,6 +1859,7 @@ export function registerTools(
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
+                openWorldHint: false,
             },
             // ChatGPT's legacy Apps SDK path only lets a widget call tools
             // flagged widgetAccessible; without it the import-meals panel there
@@ -2037,7 +2055,7 @@ export function registerTools(
                             content: [
                                 {
                                     type: "text",
-                                    text: "Couldn't reach Open Food Facts right now. Estimate the macros from the product description or ask the user, then log the meal.",
+                                    text: offUnreachableText(),
                                 },
                             ],
                         };
@@ -2048,7 +2066,7 @@ export function registerTools(
                             content: [
                                 {
                                     type: "text",
-                                    text: `No product found in Open Food Facts for barcode ${normalized}. Ask the user what the product is, or estimate the macros, then log the meal.`,
+                                    text: offNotFoundText(normalized),
                                 },
                             ],
                         };
@@ -2246,7 +2264,7 @@ export function registerTools(
         {
             title: "Search Past Meals",
             description:
-                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Useful before logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil), and each difference between variations is a question for the user rather than something to pick silently. Also serves requests like 'log my usual breakfast': search, confirm the variation and the amount with the user, then log_meal. For a restaurant meal, search the restaurant name as well as the dish — a past visit to the same venue is stronger evidence than a generic estimate. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
+                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Useful before logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil), and each difference between variations is a question for the user rather than something to pick silently. Also serves requests like 'log my usual breakfast': search, confirm the variation and the amount with the user, then log_meal. When the user has named the restaurant, search its name as well as the dish — a past visit to the same venue is stronger evidence than a generic estimate. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
             annotations: {
                 title: "Search Past Meals",
                 readOnlyHint: true,
@@ -2749,7 +2767,9 @@ export function registerTools(
             annotations: {
                 title: "Set Nutrition Goals",
                 readOnlyHint: false,
-                destructiveHint: false,
+                // Overwrites a stored record with no undo — "false" would mean
+                // "only additive updates", which this is not.
+                destructiveHint: true,
                 idempotentHint: true,
                 openWorldHint: false,
             },
@@ -3057,7 +3077,7 @@ export function registerTools(
                             weightLine = `\nWeight: ${formatWeight(latestWeight.weight_g, unit)} (last logged ${loggedOn})`;
                         }
                     } else if (goals?.target_weight_g != null) {
-                        weightLine = `\nWeight: no entries yet (target ${formatWeight(goals.target_weight_g, unit)}). Log one with log_weight.`;
+                        weightLine = `\nWeight: no entries yet (target ${formatWeight(goals.target_weight_g, unit)}). The user can log one with log_weight.`;
                     }
 
                     const footer = goals
@@ -3184,14 +3204,18 @@ export function registerTools(
             title: "Update Meal",
             // Only the fields passed are written (see updateMeal), which is what
             // makes this the backfill path for a meal that went in without its
-            // fiber or sugar — and what missingNutrientNote points the model at.
+            // fiber or sugar — the path missingNutrientNote offers the user. The
+            // backfill runs only once the user asks or agrees: an unrequested
+            // write is what directory policy 2.D forbids.
             description:
-                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to BACKFILL nutrition a meal was logged without: if a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg, estimate the value and pass just that field rather than telling the user the figure in prose. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
+                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to backfill nutrition a meal was logged without: when a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg and the user asks or agrees to fill it in, estimate the value and pass just that field. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
                 NUTRIENT_COVERAGE,
             annotations: {
                 title: "Update Meal",
                 readOnlyHint: false,
-                destructiveHint: false,
+                // Overwrites a stored record with no undo — "false" would mean
+                // "only additive updates", which this is not.
+                destructiveHint: true,
                 idempotentHint: true,
                 openWorldHint: false,
             },
@@ -3974,7 +3998,9 @@ export function registerTools(
             annotations: {
                 title: "Update Weight Entry",
                 readOnlyHint: false,
-                destructiveHint: false,
+                // Overwrites a stored record with no undo — "false" would mean
+                // "only additive updates", which this is not.
+                destructiveHint: true,
                 idempotentHint: true,
                 openWorldHint: false,
             },
@@ -4520,7 +4546,7 @@ export function registerTools(
         {
             title: "Weekly Nutrition Summary",
             description:
-                "Rolling 7-day digest: logged-day count, daily averages vs targets, and the best/roughest day of the week. Good to pull at the start of a chat for proactive check-ins.",
+                "Rolling 7-day digest: logged-day count, daily averages vs targets, and the best/roughest day of the week.",
             mimeType: "text/plain",
         },
         async (uri) => {
@@ -4597,10 +4623,10 @@ export function registerTools(
 
                     const lines = [
                         tz === null
-                            ? `Timezone: not set (defaulting to UTC). ${formatClockLine("UTC")} Call set_timezone to configure one so 'today' matches the user's local calendar day.`
+                            ? `Timezone: not set (defaulting to UTC). ${formatClockLine("UTC")} The user can set one with set_timezone so 'today' matches their local calendar day.`
                             : `Timezone: ${tz}. ${formatClockLine(tz)}`,
                         locale === null
-                            ? "Language: not set (defaulting to English). Call set_language to configure one."
+                            ? "Language: not set (defaulting to English). The user can choose one with set_language."
                             : `Language: ${LOCALE_NAMES[locale as SiteLocale] ?? locale} (${locale}).`,
                         weightUnit
                             ? `Weight unit: ${weightUnit}.`
@@ -4610,7 +4636,7 @@ export function registerTools(
                             : "Widgets: disabled. Supported tools return text and data only.",
                         alcoholEnabled
                             ? `Alcohol tracking: enabled, displayed in grams alongside ${drinkUnitLabel(drinkUnit)}${preferredDrinkUnitFromProfile(profile) ? "" : " (the default — no preference saved)"}.`
-                            : "Alcohol tracking: disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so enable tracking before importing an export whose alcohol the user wants to keep. Enable it with set_alcohol_tracking.",
+                            : "Alcohol tracking: disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so tracking has to be on before importing an export whose alcohol the user wants to keep. The user can enable it with set_alcohol_tracking.",
                     ];
 
                     return {

@@ -135,7 +135,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Zmień szczegóły posiłku, który już zapisałeś/aś — jego opis, dowolny makroskładnik, błonnik, cukier, alkohol lub kofeinę, godzinę albo notatki. Tak też uzupełnia się brakujące dane: jeśli posiłek trafił do bazy bez błonnika czy cukru, serwer to sygnalizuje, a AI uzupełnia to tutaj.",
+                "Zmień szczegóły posiłku, który już zapisałeś/aś — jego opis, dowolny makroskładnik, błonnik, cukier, alkohol lub kofeinę, godzinę albo notatki. Tak też uzupełnia się brakujące dane: jeśli posiłek trafił do bazy bez błonnika czy cukru, serwer to sygnalizuje, a AI uzupełnia to tutaj, jeśli się zgodzisz.",
             params: {
                 id: "UUID posiłku do zaktualizowania",
                 description: "",
