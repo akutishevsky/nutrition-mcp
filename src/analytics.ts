@@ -67,6 +67,18 @@ export function categorizeError(error: unknown): string {
 
     // ---- Tier 1: our own fixed message wording ----
 
+    // updateMeal / updateWeight (src/supabase.ts) pre-checks — a stale or
+    // wrong id, not a DB outage, so it shouldn't share supabase_error's bucket.
+    // First, and startsWith rather than includes: the not-found text echoes
+    // the caller's id, which could otherwise carry a later check's phrase
+    // ("not a real calendar date", "invalid timezone") and be misfiled.
+    if (
+        msg.startsWith("no meal found with id") ||
+        msg.startsWith("no weight entry found with id") ||
+        msg.startsWith("no water entry found with id")
+    )
+        return "record_not_found";
+
     // resolveWriteLoggedAt (src/tz.ts) and its unset-timezone re-throw
     // (src/mcp.ts) — both always carry one of these phrases regardless of
     // which parseLoggedAt failure reason produced them.
@@ -113,11 +125,6 @@ export function categorizeError(error: unknown): string {
     // but its wording doesn't contain "missing" or "required".
     if (msg.includes("no weight unit given and no preference set"))
         return "missing_required_param";
-
-    // updateMeal / updateWeight (src/supabase.ts) pre-checks — a stale or
-    // wrong id, not a DB outage, so it shouldn't share supabase_error's bucket.
-    if (msg.includes("meal not found") || msg.includes("entry not found"))
-        return "record_not_found";
 
     // Deploy/env config problems, not user- or DB-caused. The only throw site
     // for the first is the single literal "Missing SUPABASE_URL or

@@ -6,6 +6,7 @@ import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { escapeLikePattern, tokenizeQuery } from "./search.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 import { hashSecret } from "./token-hash.js";
+import { ToolError } from "./errors.js";
 
 let supabase: SupabaseClient;
 
@@ -609,7 +610,7 @@ export async function updateMeal(
         .eq("user_id", userId)
         .maybeSingle();
     if (selErr) throw new Error(`Failed to update meal: ${selErr.message}`);
-    if (!existing) throw new Error("Failed to update meal: meal not found");
+    if (!existing) throw new ToolError(`No meal found with id ${id}.`);
 
     const update: Record<string, unknown> = {};
     if (fields.description !== undefined)
@@ -1295,7 +1296,7 @@ export async function updateWeight(
 
     if (error) throw new Error(`Failed to update weight: ${error.message}`);
     if (!data || data.length === 0)
-        throw new Error("Failed to update weight: entry not found");
+        throw new ToolError(`No weight entry found with id ${id}.`);
     return data[0] as WeightEntry;
 }
 

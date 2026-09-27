@@ -74,8 +74,23 @@ describe("categorizeError", () => {
         ],
 
         // src/supabase.ts updateMeal / updateWeight not-found pre-checks
-        ["Failed to update meal: meal not found", "record_not_found"],
-        ["Failed to update weight: entry not found", "record_not_found"],
+        [
+            "No meal found with id 00000000-0000-4000-8000-000000000001.",
+            "record_not_found",
+        ],
+        [
+            "No weight entry found with id 00000000-0000-4000-8000-000000000003.",
+            "record_not_found",
+        ],
+        [
+            "No water entry found with id 00000000-0000-4000-8000-000000000002.",
+            "record_not_found",
+        ],
+        // The echoed id must not steer it into an earlier tier-1 bucket
+        [
+            'No meal found with id "not a real calendar date": ids are UUIDs like "3f2b9c1e-…". Get one from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.',
+            "record_not_found",
+        ],
 
         // src/supabase.ts / src/foods.ts missing config
         [
