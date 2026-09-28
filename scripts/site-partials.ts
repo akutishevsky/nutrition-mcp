@@ -552,6 +552,7 @@ export function footer(
                 </span>
                 <nav class="footer-links" aria-label="${esc(c.landmarks.footer)}">
                     <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
+                    <a href="${p("/tools")}#troubleshooting">${esc(c.footer.troubleshooting)}</a>
                     <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
                     <a
                         href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"

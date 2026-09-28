@@ -427,4 +427,84 @@ export const TOOLS_IT: ToolsDoc = {
             example: "Elimina il mio account e tutti i miei dati",
         },
     },
+    troubleshooting: {
+        pillLabel: "Aiuto",
+        title: "Risoluzione dei problemi",
+        description:
+            "Qualcosa non funziona? La maggior parte dei problemi si risolve in fretta.",
+        items: {
+            "cannot-connect": {
+                question:
+                    "Il connettore non si collega, o continua a chiedermi di accedere",
+                answerHtml:
+                    "Rimuovi il connettore e aggiungilo di nuovo con esattamente <code>https://nutrition-mcp.com/mcp</code> — la parte <code>/mcp</code> è obbligatoria. In Claude, apri <strong>Customize</strong> → <strong>Connectors</strong>, disconnetti Nutrition e ricollegalo; in ChatGPT, usa <strong>Settings</strong> → <strong>Apps</strong>. Accedi con la stessa email e password, o con lo stesso account Google, che hai usato prima: i tuoi dati appartengono al tuo account, non alla connessione, quindi ricollegarti non ti fa perdere nulla. Una volta collegato, resta collegato finché lo usi almeno una volta ogni 90 giorni; se smette di funzionare, ricollegarlo allo stesso modo risolve il problema.",
+            },
+            "session-expired": {
+                question:
+                    'La pagina di accesso mostra {"error":"session_expired"}',
+                answerHtml:
+                    "La pagina di accesso è valida solo per 10 minuti e si azzera anche ogni volta che il server si riavvia per un aggiornamento. Torna alla pagina di accesso e ricaricala, oppure ricomincia il collegamento dalla tua app di IA, poi accedi senza lunghe pause. Se invece mostra <code>session_mismatch</code>, l'accesso è stato completato in un browser diverso da quello che l'ha aperto: ricomincia dalla tua app di IA e completalo in quello stesso browser.",
+            },
+            "cannot-sign-in": {
+                question:
+                    "Non riesco ad accedere, o ho dimenticato la password",
+                answerHtml:
+                    "Lo stesso modulo serve sia per accedere sia per creare nuovi account, quindi una password sbagliata per un'email esistente mostra un errore del servizio di accesso invece di un semplice \"password errata\". Controlla che l'email non contenga errori di battitura. Se hai creato l'account con <strong>Continua con Google</strong>, usa di nuovo quel pulsante. Non c'è ancora un modo per reimpostare la password da solo: scrivi a <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a> dall'indirizzo del tuo account e la reimposterò io.",
+            },
+            "history-missing": {
+                question: "Mi sono ricollegato e la mia cronologia è sparita",
+                answerHtml:
+                    "Ogni indirizzo email è un account separato, quindi accedere con un'email diversa ne apre uno vuoto — non è stato eliminato nulla. Disconnettiti e accedi di nuovo con l'indirizzo che hai usato all'inizio. Se non sei sicuro di quale fosse, scrivi a <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a>.",
+            },
+            "tools-not-used": {
+                question: "L'IA risponde ma non registra nulla",
+                answerHtml:
+                    'Assicurati che il connettore sia attivo per questa conversazione — in Claude, controlla il menu degli strumenti nella casella del messaggio — e chiedilo direttamente, per esempio "registra la mia colazione in Nutrition". Se la tua app chiede il permesso di usare uno strumento, approvalo.',
+            },
+            "wrong-day": {
+                question: "I miei pasti compaiono nel giorno sbagliato",
+                answerHtml:
+                    'I giorni vengono contati nel tuo fuso orario e, se non ne hai mai impostato uno, viene usato UTC. Chiedi "che fuso orario ho impostato?" (<a href="#get_profile"><code>get_profile</code></a>) e, se è sbagliato, "imposta il mio fuso orario su Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Da quel momento tutto ciò che hai registrato viene raggruppato per il tuo giorno locale, comprese le voci passate. L\'unica eccezione è una voce a cui hai dato un orario preciso mentre il fuso orario era sbagliato: mantiene il momento con cui è stata salvata, quindi può restare spostata di un\'ora o di un giorno — chiedi all\'IA di spostarla alla data e all\'ora giuste (<a href="#update_meal"><code>update_meal</code></a>). Imposta il fuso orario anche prima di importare la cronologia.',
+            },
+            "no-widgets": {
+                question: "Vedo solo testo, niente grafici né schede",
+                answerHtml:
+                    'Le schede visive richiedono un\'app che supporti i pannelli interattivi di MCP Apps, come Claude o ChatGPT; gli altri client ricevono le stesse informazioni come testo. Se hai disattivato i widget, chiedi di riattivarli (<a href="#set_widget_display"><code>set_widget_display</code></a>) e inizia una nuova conversazione — una chat aperta mantiene la vecchia impostazione finché non si ricollega. La piccola scheda che appare dopo aver registrato un pasto compare solo una volta impostati gli obiettivi giornalieri (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
+            },
+            "import-problems": {
+                question:
+                    "L'importatore non si apre, o dice che non può salvare",
+                answerHtml:
+                    "Il pannello dell'importatore richiede un'app che mostri pannelli interattivi e abbia i widget attivi. Se dice <em>Questo host non permette a questa vista di scrivere nel tuo registro</em>, o non compare affatto, chiedi all'IA di importare il file direttamente: allega o incolla il CSV e userà <a href=\"#bulk_import_meals\"><code>bulk_import_meals</code></a>, che controlla ogni riga e salta i duplicati, quindi reinviarlo è sicuro. Se usi il pannello dell'importatore e vuoi importare anche la colonna dell'alcol, attiva prima il tracciamento dell'alcol: il pannello salta quella colonna finché il tracciamento è disattivato, e reimportare in seguito non la compilerà.",
+            },
+            "rate-limited": {
+                question:
+                    'Vedo "Rate limit exceeded" o "Too many failed authentication attempts"',
+                answerHtml:
+                    "Ogni account può fare 60 richieste al minuto, e ogni chiamata a uno strumento conta come almeno una. Aspetta il numero di secondi indicato nel messaggio, poi continua. Per recuperare molti pasti passati, usa l'importatore invece di registrarli uno per uno. Le pagine di accesso consentono 30 richieste al minuto per rete. Dopo 20 tentativi di connessione rifiutati di fila dalla stessa rete — di solito un vecchio connettore scollegato che continua a riprovare — le connessioni da quella rete vengono sospese per 5 minuti, e le sospensioni ripetute si allungano fino a un massimo di un'ora. Rimuovere il vecchio connettore e aggiungerlo di nuovo ferma i tentativi.",
+            },
+            "barcode-not-found": {
+                question:
+                    "Un codice a barre non viene trovato, o i suoi valori sembrano sbagliati",
+                answerHtml:
+                    "I dati dei codici a barre provengono da Open Food Facts, un database collaborativo, quindi alcuni prodotti mancano e alcune schede non sono aggiornate. Assicurati che tutte le 8–14 cifre sotto il codice a barre siano state lette correttamente. Se il prodotto non c'è, l'IA può stimare i valori dal nome o da una foto dell'etichetta nutrizionale, e puoi correggere qualsiasi valore in seguito. Aggiungere il prodotto su openfoodfacts.org aiuta tutti. Open Food Facts non ha dati sulla caffeina, quindi la caffeina viene dall'etichetta o da quantità tipiche.",
+            },
+            "export-link": {
+                question:
+                    "Il link per scaricare la mia esportazione non funziona",
+                answerHtml:
+                    'I link di esportazione scadono dopo 60 minuti, e ogni nuova esportazione sostituisce il file precedente. Chiedi una nuova esportazione (<a href="#export_all_data"><code>export_all_data</code></a>) e scaricala subito. Se l\'esportazione indica 0 pasti quando ti aspettavi la tua cronologia, probabilmente hai effettuato l\'accesso con un\'altra email — vedi <a href="#history-missing">cronologia sparita</a>.',
+            },
+            "delete-account": {
+                question: "Come elimino il mio account?",
+                answerHtml:
+                    "Chiedi all'IA di eliminare il tuo account Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Ti chiederà di confermare, poi eliminerà definitivamente pasti, acqua, peso, obiettivi, impostazioni, il registro degli strumenti usati dalla tua app di IA, eventuali file di esportazione, i tuoi dati di accesso e l'account stesso. Non si può annullare, quindi esporta prima i tuoi dati se ne vuoi una copia. Poi rimuovi il connettore dalla tua app. Se in futuro accedi di nuovo con la stessa email, verrà creato un nuovo account vuoto.",
+            },
+            "report-a-problem": {
+                question: "Come segnalo un bug o un problema di sicurezza?",
+                answerHtml:
+                    'Segnala i bug su <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: indica quale app usi (Claude, ChatGPT, …), cosa hai chiesto, cosa è successo e più o meno quando. Non includere mai la tua password. Per favore non segnalare pubblicamente i problemi di sicurezza: segnalali in privato tramite la <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">segnalazione privata delle vulnerabilità di GitHub</a> o via email, come descritto nella <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">politica di sicurezza</a>. Per qualsiasi altra cosa, scrivi a <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+        },
+    },
 };

@@ -459,6 +459,26 @@ export const TOOLS: ToolIdentity[] = [
     },
 ];
 
+/** Troubleshooting entries on /tools, in display order. Each id is the
+ * <details> DOM id (deep-linkable as /tools#<id>), never translated;
+ * kebab-case so it can't collide with a tool id or CategoryId. */
+export const TROUBLESHOOTING_IDS = [
+    "cannot-connect",
+    "session-expired",
+    "cannot-sign-in",
+    "history-missing",
+    "tools-not-used",
+    "wrong-day",
+    "no-widgets",
+    "import-problems",
+    "rate-limited",
+    "barcode-not-found",
+    "export-link",
+    "delete-account",
+    "report-a-problem",
+] as const;
+export type TroubleshootingId = (typeof TROUBLESHOOTING_IDS)[number];
+
 // ----------------------------------------------------------------- prose
 
 /** One category's translatable copy — the jump-bar pill's short label,
@@ -493,6 +513,17 @@ export interface ToolProse {
      * by the generator. Present only when ToolIdentity.hasPhotoHint is
      * true for this tool. */
     photoHint?: string;
+}
+
+/** One entry of the /tools Troubleshooting section — see
+ * TROUBLESHOOTING_IDS for the ids and their order. */
+export interface TroubleshootingEntry {
+    /** <summary>, plain text (escaped). */
+    question: string;
+    /** Trusted HTML. Links only to #anchors, https:// or mailto: — never a
+     * site-relative "/…" path (plain data has no pathFor(), so a translated
+     * page would link back to English). */
+    answerHtml: string;
 }
 
 export interface ToolsDoc {
@@ -534,6 +565,19 @@ export interface ToolsDoc {
     };
     /** Keyed by ToolIdentity.name. */
     tools: Record<string, ToolProse>;
+    /** The Troubleshooting section at the bottom of the page, with its own
+     * jump-bar pill. `pillLabel`, `title` and `description` are plain text
+     * (escaped); each entry's `answerHtml` is trusted HTML. A `Record` so a
+     * locale missing an entry fails typecheck. The copy restates several
+     * constants from the code (rate limits, ban length, sign-in session and
+     * export-link lifetimes, refresh-token lifetime) — src/site-copy.test.ts
+     * pins them. */
+    troubleshooting: {
+        pillLabel: string;
+        title: string;
+        description: string;
+        items: Record<TroubleshootingId, TroubleshootingEntry>;
+    };
 }
 
 // ---------------------------------------------------------------- English
@@ -939,6 +983,80 @@ const TOOLS_EN: ToolsDoc = {
                 "Permanently delete your account and all associated data. This is irreversible — the AI always confirms with you first.",
             params: {},
             example: "Delete my account and all my data",
+        },
+    },
+    troubleshooting: {
+        pillLabel: "Help",
+        title: "Troubleshooting",
+        description: "Something not working? Most problems have a quick fix.",
+        items: {
+            "cannot-connect": {
+                question:
+                    "The connector won't connect, or keeps asking me to sign in",
+                answerHtml:
+                    "Remove the connector and add it again with exactly <code>https://nutrition-mcp.com/mcp</code> — the <code>/mcp</code> part is required. In Claude, open <strong>Customize</strong> → <strong>Connectors</strong>, disconnect Nutrition and connect it again; in ChatGPT, use <strong>Settings</strong> → <strong>Apps</strong>. Sign in with the same email and password, or the same Google account, you used before: your data belongs to your account, not to the connection, so reconnecting loses nothing. Once connected, it stays connected as long as you use it at least every 90 days; if it stops working, reconnecting the same way fixes it.",
+            },
+            "session-expired": {
+                question: 'The sign-in page shows {"error":"session_expired"}',
+                answerHtml:
+                    "The sign-in page is only valid for 10 minutes, and it also resets whenever the server restarts for an update. Go back to the sign-in page and reload it, or start connecting again from your AI app, then sign in without a long pause. If it shows <code>session_mismatch</code> instead, the sign-in was finished in a different browser from the one that opened it: start again from your AI app and finish in that same browser.",
+            },
+            "cannot-sign-in": {
+                question: "I can't sign in, or I forgot my password",
+                answerHtml:
+                    'The same form signs you in and creates new accounts, so a wrong password for an existing email shows an error from the sign-in service rather than a plain "wrong password". Check the email for typos. If you created your account with <strong>Continue with Google</strong>, use that button again. There is no self-service password reset yet: email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> from the address on your account and I will reset it.',
+            },
+            "history-missing": {
+                question: "I reconnected and my history is gone",
+                answerHtml:
+                    'Each email address is a separate account, so signing in with a different email starts an empty one — nothing was deleted. Disconnect and sign in again with the address you used originally. If you are not sure which one that was, email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+            "tools-not-used": {
+                question: "The AI answers but doesn't log anything",
+                answerHtml:
+                    'Make sure the connector is switched on for this conversation — in Claude, check the tools menu in the message box — and ask directly, for example "log my breakfast in Nutrition". If your app asks for permission to use a tool, approve it.',
+            },
+            "wrong-day": {
+                question: "My meals show up on the wrong day",
+                answerHtml:
+                    'Days are counted in your timezone, and if you have never set one, UTC is used. Ask "what timezone do I have set?" (<a href="#get_profile"><code>get_profile</code></a>) and, if it is wrong, "set my timezone to Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Everything you have logged is then grouped by your local day, past entries included. The one exception is an entry you gave a specific time of day while the timezone was wrong: it keeps the moment it was saved as, so it can still sit an hour or a day off — ask the AI to move it to the right date and time (<a href="#update_meal"><code>update_meal</code></a>). Set your timezone before importing history, too.',
+            },
+            "no-widgets": {
+                question: "I only see text, no charts or cards",
+                answerHtml:
+                    'The visual cards need an app that supports interactive MCP Apps panels, such as Claude or ChatGPT; other clients get the same information as text. If you turned widgets off, ask to turn them back on (<a href="#set_widget_display"><code>set_widget_display</code></a>) and start a new conversation — an open chat keeps its old setting until it reconnects. The small card after logging a meal only appears once you have set daily goals (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
+            },
+            "import-problems": {
+                question: "The importer won't open, or says it can't save",
+                answerHtml:
+                    'The importer panel needs an app that shows interactive panels and has widgets turned on. If it says <em>This host does not let this view write to your log</em>, or it does not appear at all, ask the AI to import the file itself: attach or paste the CSV and it will use <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, which checks every row and skips duplicates, so re-sending is safe. If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first — the panel skips that column while tracking is off, and re-importing later will not fill it in.',
+            },
+            "rate-limited": {
+                question:
+                    'I see "Rate limit exceeded" or "Too many failed authentication attempts"',
+                answerHtml:
+                    "Each account can make 60 requests a minute, and each tool call counts as at least one. Wait for the number of seconds the message gives, then carry on. For backfilling many meals, use the importer rather than logging them one by one. Sign-in pages allow 30 requests a minute per network. After 20 rejected connection attempts in a row from one network — usually an old, disconnected connector still retrying — connections from that network are paused for 5 minutes, and repeat pauses grow to at most an hour. Removing the old connector and adding it again stops the retries.",
+            },
+            "barcode-not-found": {
+                question: "A barcode isn't found, or its numbers look wrong",
+                answerHtml:
+                    "Barcode data comes from Open Food Facts, a community database, so some products are missing and some entries are out of date. Make sure all 8–14 digits under the barcode were read correctly. If the product is not there, the AI can estimate from the name or from a photo of the nutrition label, and you can correct any figure afterwards. Adding the product on openfoodfacts.org helps everyone. Open Food Facts has no caffeine data, so caffeine comes from the label or typical amounts.",
+            },
+            "export-link": {
+                question: "My export download link doesn't work",
+                answerHtml:
+                    'Export links expire after 60 minutes, and each new export replaces the previous file. Ask for a fresh export (<a href="#export_all_data"><code>export_all_data</code></a>) and download it right away. If the export reports 0 meals when you expected your history, you are probably signed in with a different email — see <a href="#history-missing">history is gone</a>.',
+            },
+            "delete-account": {
+                question: "How do I delete my account?",
+                answerHtml:
+                    'Ask the AI to delete your Nutrition MCP account (<a href="#delete_account"><code>delete_account</code></a>). It will ask you to confirm, then permanently delete your meals, water, weight, goals, settings, the record of which tools your AI app used, any export file, your sign-in and the account itself. This cannot be undone, so export your data first if you want a copy. Then remove the connector from your app. Signing in again with the same email later creates a new, empty account.',
+            },
+            "report-a-problem": {
+                question: "How do I report a bug or a security issue?",
+                answerHtml:
+                    'Report bugs on <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: say which app you use (Claude, ChatGPT, …), what you asked, what happened and roughly when. Never include your password. Please do not report security problems publicly: report them privately through <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">GitHub private vulnerability reporting</a> or by email, as the <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">security policy</a> describes. For anything else, email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
         },
     },
 };

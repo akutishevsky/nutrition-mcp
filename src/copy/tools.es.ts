@@ -423,4 +423,83 @@ export const TOOLS_ES: ToolsDoc = {
             example: "Elimina mi cuenta y todos mis datos",
         },
     },
+    troubleshooting: {
+        pillLabel: "Ayuda",
+        title: "Solución de problemas",
+        description:
+            "¿Algo no funciona? La mayoría de los problemas tienen una solución rápida.",
+        items: {
+            "cannot-connect": {
+                question:
+                    "El conector no se conecta o me pide iniciar sesión una y otra vez",
+                answerHtml:
+                    "Elimina el conector y vuelve a añadirlo con exactamente <code>https://nutrition-mcp.com/mcp</code>: la parte <code>/mcp</code> es obligatoria. En Claude, abre <strong>Customize</strong> → <strong>Connectors</strong>, desconecta Nutrition y vuelve a conectarlo; en ChatGPT, usa <strong>Settings</strong> → <strong>Apps</strong>. Inicia sesión con el mismo correo y la misma contraseña, o con la misma cuenta de Google, que usaste antes: tus datos pertenecen a tu cuenta, no a la conexión, así que reconectar no te hace perder nada. Una vez conectado, sigue conectado mientras lo uses al menos una vez cada 90 días; si deja de funcionar, reconectarlo de la misma manera lo soluciona.",
+            },
+            "session-expired": {
+                question:
+                    'La página de inicio de sesión muestra {"error":"session_expired"}',
+                answerHtml:
+                    "La página de inicio de sesión solo es válida durante 10 minutos, y además caduca cada vez que el servidor se reinicia por una actualización. Vuelve a la página de inicio de sesión y recárgala, o vuelve a iniciar la conexión desde tu app de IA, y luego inicia sesión sin hacer una pausa larga. Si en su lugar muestra <code>session_mismatch</code>, el inicio de sesión se completó en un navegador distinto del que lo abrió: empieza de nuevo desde tu app de IA y termina en ese mismo navegador.",
+            },
+            "cannot-sign-in": {
+                question: "No puedo iniciar sesión, u olvidé mi contraseña",
+                answerHtml:
+                    'El mismo formulario sirve para iniciar sesión y para crear cuentas nuevas, así que una contraseña incorrecta para un correo existente muestra un error del servicio de inicio de sesión en vez de un simple "contraseña incorrecta". Revisa que el correo no tenga errores. Si creaste tu cuenta con <strong>Continuar con Google</strong>, vuelve a usar ese botón. Todavía no hay forma de restablecer la contraseña por tu cuenta: escribe a <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> desde la dirección de tu cuenta y la restableceré.',
+            },
+            "history-missing": {
+                question: "Me reconecté y mi historial ha desaparecido",
+                answerHtml:
+                    'Cada dirección de correo es una cuenta distinta, así que iniciar sesión con otro correo abre una cuenta vacía: no se ha borrado nada. Desconecta y vuelve a iniciar sesión con la dirección que usaste originalmente. Si no estás seguro de cuál era, escribe a <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+            "tools-not-used": {
+                question: "La IA responde, pero no registra nada",
+                answerHtml:
+                    'Asegúrate de que el conector esté activado en esta conversación (en Claude, revisa el menú de herramientas del cuadro de mensaje) y pídelo directamente, por ejemplo "registra mi desayuno en Nutrition". Si tu app pide permiso para usar una herramienta, apruébalo.',
+            },
+            "wrong-day": {
+                question: "Mis comidas aparecen en el día equivocado",
+                answerHtml:
+                    'Los días se cuentan en tu zona horaria y, si nunca has configurado una, se usa UTC. Pregunta "¿qué zona horaria tengo configurada?" (<a href="#get_profile"><code>get_profile</code></a>) y, si es incorrecta, "configura mi zona horaria en Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). A partir de ahí, todo lo que hayas registrado se agrupa por tu día local, incluidas las entradas anteriores. La única excepción es una entrada a la que diste una hora concreta mientras la zona horaria era incorrecta: conserva el momento con el que se guardó, así que puede seguir desplazada una hora o un día; pide a la IA que la mueva a la fecha y hora correctas (<a href="#update_meal"><code>update_meal</code></a>). Configura también tu zona horaria antes de importar tu historial.',
+            },
+            "no-widgets": {
+                question: "Solo veo texto, sin gráficos ni tarjetas",
+                answerHtml:
+                    'Las tarjetas visuales necesitan una app compatible con los paneles interactivos de MCP Apps, como Claude o ChatGPT; otros clientes reciben la misma información como texto. Si desactivaste los widgets, pide que se vuelvan a activar (<a href="#set_widget_display"><code>set_widget_display</code></a>) y empieza una conversación nueva: un chat abierto mantiene su configuración anterior hasta que se reconecta. La pequeña tarjeta que aparece después de registrar una comida solo se muestra una vez que has definido objetivos diarios (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
+            },
+            "import-problems": {
+                question:
+                    "El importador no se abre, o dice que no puede guardar",
+                answerHtml:
+                    'El panel del importador necesita una app que muestre paneles interactivos y tenga los widgets activados. Si dice <em>Este host no permite que esta vista escriba en tu registro</em>, o no aparece en absoluto, pide a la IA que importe el archivo ella misma: adjunta o pega el CSV y usará <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, que revisa cada fila y omite los duplicados, así que volver a enviarlo es seguro. Si usas el panel del importador y quieres conservar una columna de alcohol, activa antes el seguimiento de alcohol: el panel omite esa columna mientras el seguimiento está desactivado, y reimportar más tarde no la rellenará.',
+            },
+            "rate-limited": {
+                question:
+                    'Veo "Rate limit exceeded" o "Too many failed authentication attempts"',
+                answerHtml:
+                    "Cada cuenta puede hacer 60 solicitudes por minuto, y cada llamada a una herramienta cuenta como al menos una. Espera los segundos que indica el mensaje y continúa. Para cargar muchas comidas antiguas, usa el importador en lugar de registrarlas una a una. Las páginas de inicio de sesión permiten 30 solicitudes por minuto por red. Tras 20 intentos de conexión rechazados seguidos desde una misma red (normalmente un conector antiguo y desconectado que sigue reintentando), las conexiones desde esa red se pausan durante 5 minutos, y las pausas repetidas se alargan hasta un máximo de una hora. Eliminar el conector antiguo y volver a añadirlo detiene los reintentos.",
+            },
+            "barcode-not-found": {
+                question:
+                    "No se encuentra un código de barras, o sus valores parecen incorrectos",
+                answerHtml:
+                    "Los datos de los códigos de barras provienen de Open Food Facts, una base de datos colaborativa, así que faltan algunos productos y algunas fichas están desactualizadas. Comprueba que se hayan leído correctamente los 8–14 dígitos que hay bajo el código de barras. Si el producto no está, la IA puede estimar sus valores a partir del nombre o de una foto de la etiqueta nutricional, y puedes corregir cualquier cifra después. Añadir el producto en openfoodfacts.org ayuda a todos. Open Food Facts no tiene datos de cafeína, así que la cafeína sale de la etiqueta o de cantidades típicas.",
+            },
+            "export-link": {
+                question: "El enlace de descarga de mi exportación no funciona",
+                answerHtml:
+                    'Los enlaces de exportación caducan a los 60 minutos, y cada nueva exportación reemplaza el archivo anterior. Pide una exportación nueva (<a href="#export_all_data"><code>export_all_data</code></a>) y descárgala enseguida. Si la exportación indica 0 comidas cuando esperabas ver tu historial, probablemente has iniciado sesión con otro correo: consulta <a href="#history-missing">el historial ha desaparecido</a>.',
+            },
+            "delete-account": {
+                question: "¿Cómo elimino mi cuenta?",
+                answerHtml:
+                    'Pide a la IA que elimine tu cuenta de Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). Te pedirá que lo confirmes y después eliminará de forma permanente tus comidas, agua, peso, objetivos, ajustes, el registro de qué herramientas usó tu app de IA, cualquier archivo de exportación, tus datos de acceso y la propia cuenta. Esto no se puede deshacer, así que exporta antes tus datos si quieres una copia. Después, elimina el conector de tu app. Si más adelante vuelves a iniciar sesión con el mismo correo, se creará una cuenta nueva y vacía.',
+            },
+            "report-a-problem": {
+                question:
+                    "¿Cómo informo de un error o de un problema de seguridad?",
+                answerHtml:
+                    'Informa de los errores en <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: indica qué app usas (Claude, ChatGPT, …), qué pediste, qué pasó y más o menos cuándo. Nunca incluyas tu contraseña. Por favor, no informes públicamente de problemas de seguridad: comunícalos de forma privada mediante el <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">informe privado de vulnerabilidades de GitHub</a> o por correo, como describe la <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">política de seguridad</a>. Para cualquier otra cosa, escribe a <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+        },
+    },
 };

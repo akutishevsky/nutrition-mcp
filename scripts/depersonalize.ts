@@ -433,6 +433,22 @@ const RULES_BY_FILENAME: Record<string, Rule[]> = {
     ],
     "tools.html": [
         ...ANALYTICS_RULES,
+        // The Troubleshooting section's prose links, in every locale — same
+        // reasoning as the terms.html prose rule: run before the generic
+        // sweeps so they can't gut a sentence. Required, not optional: every
+        // locale's section carries both, so a 0× means the markup changed.
+        // The mailto sits mid-sentence (never followed by a newline), which is
+        // what keeps these off the footer's own whole-line Contact link.
+        {
+            name: "tools: troubleshooting mailto -> your@email.com",
+            find: /<a\b[^>]*?href="mailto:anton@nutrition-mcp\.com"[^>]*>[^<]*<\/a\s*>(?!\n)/g,
+            replace: "your@email.com",
+        },
+        {
+            name: "tools: troubleshooting GitHub issues/security links -> text",
+            find: /<a\b[^>]*?href="https:\/\/github\.com\/akutishevsky\/nutrition-mcp\/(?:issues|security)[^"]*"[^>]*>([^<]*)<\/a\s*>/g,
+            replace: "$1",
+        },
         GITHUB_LINKS_RULE,
         NAV_SUPPORT_RULE,
         NAV_CONTACT_RULE,
