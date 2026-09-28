@@ -34,6 +34,7 @@ import {
     CATEGORY_META,
     TOOLS,
     TOOLS_COPY,
+    TROUBLESHOOTING_IDS,
     type BadgeKind,
     type CategoryId,
     type ToolIdentity,
@@ -463,12 +464,23 @@ const TOOLS_STYLE = `        <style>
             .cat-pill.active i {
                 color: inherit;
             }
+
+            /* ---- troubleshooting: the shared .faq accordion, full width
+               inside the tool-group column instead of the landing page's
+               centred 780px. Each entry is deep-linkable (/tools#<id>), so
+               it clears the sticky header + jump-bar like a section does. */
+            .ts-faq {
+                max-width: none;
+                margin: 0;
+            }
+            .ts-faq details {
+                scroll-margin-top: calc(var(--head-h) + 70px);
+            }
         </style>`;
 
 // Category jump-bar: highlights the pill for the section in view, and
-// keeps the active pill scrolled into view on narrow screens. Pure
-// behaviour, no translatable text — unchanged from the previous
-// hand-authored tools.html.
+// keeps the active pill scrolled into view on narrow screens; plus the
+// Troubleshooting deep-link opener. Pure behaviour, no translatable text.
 const SCROLLSPY_SCRIPT = `        <script>
             // Category jump-bar: highlight the pill for the section in view, and
             // keep the active pill scrolled into view on narrow screens.
@@ -520,6 +532,48 @@ const SCROLLSPY_SCRIPT = `        <script>
                     });
                 });
                 update();
+            })();
+
+            // Troubleshooting deep links: /tools#wrong-day opens that entry
+            // and brings it to the top, on load, on in-page hash changes, and
+            // on a click of a link to the hash already in the URL.
+            // Without JS the browser still scrolls to it, just closed.
+            (function () {
+                var reduce = window.matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                );
+                function openFromHash() {
+                    var id;
+                    try {
+                        id = decodeURIComponent(location.hash.slice(1));
+                    } catch (e) {
+                        return;
+                    }
+                    if (!id) return;
+                    var el = document.getElementById(id);
+                    if (!el || el.tagName !== "DETAILS") return;
+                    el.open = true;
+                    el.scrollIntoView({
+                        block: "start",
+                        behavior: reduce.matches ? "auto" : "smooth",
+                    });
+                }
+                if (document.readyState === "loading")
+                    document.addEventListener("DOMContentLoaded", openFromHash);
+                else openFromHash();
+                window.addEventListener("hashchange", openFromHash);
+                // A link to the hash already in the URL fires no hashchange,
+                // so an entry closed since arriving would stay closed.
+                document.addEventListener("click", function (e) {
+                    var a = e.target.closest && e.target.closest('a[href^="#"]');
+                    if (!a || a.getAttribute("href") !== location.hash) return;
+                    var target = document.getElementById(
+                        location.hash.slice(1),
+                    );
+                    if (!target || target.tagName !== "DETAILS") return;
+                    e.preventDefault();
+                    openFromHash();
+                });
             })();
         </script>`;
 
@@ -620,14 +674,50 @@ function renderCategorySection(id: CategoryId, doc: ToolsDoc): string {
                     </section>`;
 }
 
+// The Help pill after the category pills — same markup, so the scrollspy
+// picks it up and snaps to it at the bottom of the page.
+function renderTroubleshootingPill(doc: ToolsDoc): string {
+    return `<a class="cat-pill" href="#troubleshooting"
+                            ><i class="fa-solid fa-life-ring" aria-hidden="true"></i>
+                            ${esc(doc.troubleshooting.pillLabel)}</a
+                        >`;
+}
+
+// Rendered last, after every category. `answerHtml` is trusted HTML (see
+// TroubleshootingEntry); the question is plain text. No FAQPage JSON-LD:
+// this is support copy, not marketing, and the landing page owns that.
+function renderTroubleshootingSection(doc: ToolsDoc): string {
+    const t = doc.troubleshooting;
+    return `<section class="tool-group" data-reveal id="troubleshooting">
+                        <div class="tool-group-head">
+                            <span class="tool-group-icon"
+                                ><i class="fa-solid fa-life-ring" aria-hidden="true"></i
+                            ></span>
+                            <div>
+                                <h2>${esc(t.title)}</h2>
+                                <p>${esc(t.description)}</p>
+                            </div>
+                        </div>
+                        <div class="faq ts-faq">
+                            ${TROUBLESHOOTING_IDS.map(
+                                (id) => `<details id="${id}">
+                                <summary>${esc(t.items[id].question)}</summary>
+                                <p>${t.items[id].answerHtml}</p>
+                            </details>`,
+                            ).join("\n                            ")}
+                        </div>
+                    </section>`;
+}
+
 function renderDoc(doc: ToolsDoc, locale: SiteLocale): string {
     const suffix = "/tools";
     const title = `${esc(doc.meta.title)} — Nutrition MCP`;
     const url = `${SITE}${pathFor(locale, suffix)}`;
 
-    const pills = CATEGORIES.map((id) => renderCategoryPill(id, doc)).join(
-        "\n                        ",
-    );
+    const pills = [
+        ...CATEGORIES.map((id) => renderCategoryPill(id, doc)),
+        renderTroubleshootingPill(doc),
+    ].join("\n                        ");
     const sections = CATEGORIES.map((id) =>
         renderCategorySection(id, doc),
     ).join("\n\n                    ");
@@ -693,6 +783,8 @@ ${translationNotice(locale, suffix)}
             <div class="tools-main">
                 <div class="container">
                     ${sections}
+
+                    ${renderTroubleshootingSection(doc)}
                 </div>
             </div>
         </main>

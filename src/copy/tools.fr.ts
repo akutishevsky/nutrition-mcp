@@ -430,4 +430,85 @@ export const TOOLS_FR: ToolsDoc = {
             example: "Supprime mon compte et toutes mes données",
         },
     },
+    troubleshooting: {
+        pillLabel: "Aide",
+        title: "Dépannage",
+        description:
+            "Quelque chose ne marche pas ? La plupart des problèmes se règlent vite.",
+        items: {
+            "cannot-connect": {
+                question:
+                    "Le connecteur ne se connecte pas, ou me redemande sans cesse de me connecter",
+                answerHtml:
+                    "Supprime le connecteur et ajoute-le à nouveau avec exactement <code>https://nutrition-mcp.com/mcp</code> — la partie <code>/mcp</code> est indispensable. Dans Claude, ouvre <strong>Customize</strong> → <strong>Connectors</strong>, déconnecte Nutrition puis reconnecte-le ; dans ChatGPT, passe par <strong>Settings</strong> → <strong>Apps</strong>. Connecte-toi avec la même adresse e-mail et le même mot de passe, ou le même compte Google, qu'avant : tes données appartiennent à ton compte, pas à la connexion, donc te reconnecter ne te fait rien perdre. Une fois connecté, le connecteur le reste tant que tu l'utilises au moins une fois tous les 90 jours ; s'il cesse de fonctionner, le reconnecter de la même façon règle le problème.",
+            },
+            "session-expired": {
+                question:
+                    'La page de connexion affiche {"error":"session_expired"}',
+                answerHtml:
+                    "La page de connexion n'est valable que 10 minutes, et elle est aussi réinitialisée à chaque redémarrage du serveur pour une mise à jour. Retourne sur la page de connexion et recharge-la, ou relance la connexion depuis ton app d'IA, puis connecte-toi sans trop attendre. Si elle affiche plutôt <code>session_mismatch</code>, la connexion a été terminée dans un autre navigateur que celui qui l'avait ouverte : recommence depuis ton app d'IA et va jusqu'au bout dans ce même navigateur.",
+            },
+            "cannot-sign-in": {
+                question:
+                    "Je n'arrive pas à me connecter, ou j'ai oublié mon mot de passe",
+                answerHtml:
+                    "Le même formulaire te connecte et crée les nouveaux comptes, donc un mauvais mot de passe pour un e-mail existant affiche une erreur du service de connexion plutôt qu'un simple « mot de passe incorrect ». Vérifie qu'il n'y a pas de faute de frappe dans l'e-mail. Si tu as créé ton compte avec <strong>Continuer avec Google</strong>, utilise à nouveau ce bouton. Il n'y a pas encore de réinitialisation du mot de passe en libre-service : écris à <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a> depuis l'adresse de ton compte et je le réinitialiserai.",
+            },
+            "history-missing": {
+                question: "Après une reconnexion, mon historique a disparu",
+                answerHtml:
+                    "Chaque adresse e-mail est un compte distinct : te connecter avec un autre e-mail ouvre donc un compte vide — rien n'a été supprimé. Déconnecte le connecteur et reconnecte-toi avec l'adresse que tu utilisais au départ. Si tu ne sais plus laquelle c'était, écris à <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a>.",
+            },
+            "tools-not-used": {
+                question: "L'IA répond mais n'enregistre rien",
+                answerHtml:
+                    "Vérifie que le connecteur est activé pour cette conversation — dans Claude, regarde le menu des outils dans la zone de message — et demande-le directement, par exemple « enregistre mon petit-déjeuner dans Nutrition ». Si ton app demande l'autorisation d'utiliser un outil, accepte.",
+            },
+            "wrong-day": {
+                question: "Mes repas apparaissent au mauvais jour",
+                answerHtml:
+                    "Les jours sont comptés dans ton fuseau horaire ; si tu n'en as jamais défini, c'est l'UTC qui s'applique. Demande « quel fuseau horaire est configuré ? » (<a href=\"#get_profile\"><code>get_profile</code></a>) et, s'il est faux, « règle mon fuseau horaire sur Europe/Berlin » (<a href=\"#set_timezone\"><code>set_timezone</code></a>). Tout ce que tu as enregistré est alors regroupé selon ton jour local, entrées passées comprises. Seule exception : une entrée à laquelle tu as donné une heure précise pendant que le fuseau était faux garde l'instant auquel elle a été enregistrée, et peut donc rester décalée d'une heure ou d'un jour — demande à l'IA de la déplacer à la bonne date et à la bonne heure (<a href=\"#update_meal\"><code>update_meal</code></a>). Définis aussi ton fuseau horaire avant d'importer ton historique.",
+            },
+            "no-widgets": {
+                question: "Je ne vois que du texte, sans graphiques ni cartes",
+                answerHtml:
+                    "Les cartes visuelles nécessitent une app compatible avec les panneaux interactifs MCP Apps, comme Claude ou ChatGPT ; les autres clients reçoivent les mêmes informations sous forme de texte. Si tu as désactivé les widgets, demande à les réactiver (<a href=\"#set_widget_display\"><code>set_widget_display</code></a>) et ouvre une nouvelle conversation — un chat déjà ouvert garde l'ancien réglage jusqu'à sa reconnexion. La petite carte qui suit l'enregistrement d'un repas n'apparaît qu'une fois tes objectifs quotidiens définis (<a href=\"#set_nutrition_goals\"><code>set_nutrition_goals</code></a>).",
+            },
+            "import-problems": {
+                question:
+                    "L'importateur ne s'ouvre pas, ou dit qu'il ne peut pas enregistrer",
+                answerHtml:
+                    "Le panneau d'import nécessite une app qui affiche les panneaux interactifs, avec les widgets activés. S'il affiche <em>Cet hôte ne permet pas à cette vue d'écrire dans ton journal</em>, ou s'il n'apparaît pas du tout, demande à l'IA d'importer le fichier elle-même : joins ou colle le CSV et elle utilisera <a href=\"#bulk_import_meals\"><code>bulk_import_meals</code></a>, qui vérifie chaque ligne et ignore les doublons, donc le renvoyer est sans risque. Si tu utilises le panneau d'import et veux conserver une colonne d'alcool, active d'abord le suivi de l'alcool : le panneau ignore cette colonne tant que le suivi est désactivé, et un nouvel import plus tard ne la remplira pas.",
+            },
+            "rate-limited": {
+                question:
+                    "Je vois « Rate limit exceeded » ou « Too many failed authentication attempts »",
+                answerHtml:
+                    "Chaque compte peut faire 60 requêtes par minute, et chaque appel d'outil en compte au moins une. Attends le nombre de secondes indiqué dans le message, puis continue. Pour rattraper beaucoup de repas passés, utilise l'importateur plutôt que de les enregistrer un par un. Les pages de connexion acceptent 30 requêtes par minute par réseau. Après 20 tentatives de connexion refusées d'affilée depuis un même réseau — en général un ancien connecteur déconnecté qui réessaie encore — les connexions depuis ce réseau sont suspendues pendant 5 minutes, et les suspensions suivantes s'allongent jusqu'à une heure au maximum. Supprimer l'ancien connecteur puis l'ajouter à nouveau met fin à ces tentatives.",
+            },
+            "barcode-not-found": {
+                question:
+                    "Un code-barres est introuvable, ou ses valeurs semblent fausses",
+                answerHtml:
+                    "Les données des codes-barres viennent d'Open Food Facts, une base de données collaborative : certains produits y manquent et certaines fiches sont obsolètes. Vérifie que les 8 à 14 chiffres sous le code-barres ont tous été lus correctement. Si le produit n'y figure pas, l'IA peut faire une estimation à partir du nom ou d'une photo de l'étiquette nutritionnelle, et tu peux corriger n'importe quelle valeur ensuite. Ajouter le produit sur openfoodfacts.org aide tout le monde. Open Food Facts n'a pas de données sur la caféine : elle vient donc de l'étiquette ou de quantités typiques.",
+            },
+            "export-link": {
+                question:
+                    "Mon lien de téléchargement d'export ne fonctionne pas",
+                answerHtml:
+                    'Les liens d\'export expirent au bout de 60 minutes, et chaque nouvel export remplace le fichier précédent. Demande un nouvel export (<a href="#export_all_data"><code>export_all_data</code></a>) et télécharge-le tout de suite. Si l\'export indique 0 repas alors que tu attendais ton historique, tu utilises probablement une autre adresse e-mail pour te connecter — voir <a href="#history-missing">historique disparu</a>.',
+            },
+            "delete-account": {
+                question: "Comment supprimer mon compte ?",
+                answerHtml:
+                    "Demande à l'IA de supprimer ton compte Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Elle te demandera de confirmer, puis supprimera définitivement tes repas, ton eau, ton poids, tes objectifs, tes réglages, l'historique des outils utilisés par ton app d'IA, tout fichier d'export, tes identifiants de connexion et le compte lui-même. C'est irréversible : exporte d'abord tes données si tu veux en garder une copie. Retire ensuite le connecteur de ton app. Te reconnecter plus tard avec le même e-mail crée un nouveau compte, vide.",
+            },
+            "report-a-problem": {
+                question:
+                    "Comment signaler un bug ou un problème de sécurité ?",
+                answerHtml:
+                    'Signale les bugs sur <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a> : indique quelle app tu utilises (Claude, ChatGPT, …), ce que tu as demandé, ce qui s\'est passé et à peu près quand. N\'inclus jamais ton mot de passe. Merci de ne pas signaler publiquement les problèmes de sécurité : signale-les en privé via le <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">signalement privé de vulnérabilités de GitHub</a> ou par e-mail, comme le décrit la <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">politique de sécurité</a>. Pour tout le reste, écris à <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+        },
+    },
 };

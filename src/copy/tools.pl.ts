@@ -413,4 +413,82 @@ export const TOOLS_PL: ToolsDoc = {
             example: "Usuń moje konto i wszystkie moje dane",
         },
     },
+    troubleshooting: {
+        pillLabel: "Pomoc",
+        title: "Rozwiązywanie problemów",
+        description:
+            "Coś nie działa? Większość problemów da się szybko rozwiązać.",
+        items: {
+            "cannot-connect": {
+                question:
+                    "Konektor nie chce się połączyć albo ciągle prosi o zalogowanie",
+                answerHtml:
+                    "Usuń konektor i dodaj go ponownie, podając dokładnie <code>https://nutrition-mcp.com/mcp</code> — część <code>/mcp</code> jest wymagana. W Claude otwórz <strong>Customize</strong> → <strong>Connectors</strong>, rozłącz Nutrition i połącz go ponownie; w ChatGPT użyj <strong>Settings</strong> → <strong>Apps</strong>. Zaloguj się tym samym adresem e-mail i hasłem albo tym samym kontem Google co wcześniej: Twoje dane należą do Twojego konta, a nie do połączenia, więc ponowne połączenie niczego nie usuwa. Raz połączony konektor pozostaje połączony, dopóki korzystasz z niego co najmniej raz na 90 dni; jeśli przestanie działać, połącz go ponownie w ten sam sposób.",
+            },
+            "session-expired": {
+                question:
+                    'Strona logowania pokazuje {"error":"session_expired"}',
+                answerHtml:
+                    "Strona logowania jest ważna tylko przez 10 minut, a do tego resetuje się przy każdym restarcie serwera związanym z aktualizacją. Wróć na stronę logowania i odśwież ją albo zacznij łączenie od nowa w swojej aplikacji AI, a potem zaloguj się bez dłuższej przerwy. Jeśli zamiast tego widzisz <code>session_mismatch</code>, logowanie zostało dokończone w innej przeglądarce niż ta, w której się zaczęło: zacznij od nowa w swojej aplikacji AI i dokończ w tej samej przeglądarce.",
+            },
+            "cannot-sign-in": {
+                question: "Nie mogę się zalogować albo nie pamiętam hasła",
+                answerHtml:
+                    'Ten sam formularz służy do logowania i do zakładania nowych kont, więc błędne hasło do istniejącego adresu e-mail pokazuje komunikat usługi logowania zamiast zwykłego „nieprawidłowe hasło”. Sprawdź, czy w adresie e-mail nie ma literówki. Jeśli konto zostało założone przez <strong>Kontynuuj z Google</strong>, użyj ponownie tego przycisku. Samodzielnego resetowania hasła jeszcze nie ma: napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> z adresu przypisanego do konta, a zresetuję je.',
+            },
+            "history-missing": {
+                question: "Po ponownym połączeniu zniknęła moja historia",
+                answerHtml:
+                    'Każdy adres e-mail to osobne konto, więc zalogowanie się innym adresem otwiera puste konto — nic nie zostało usunięte. Rozłącz się i zaloguj ponownie adresem, którego używałeś/aś na początku. Jeśli nie masz pewności, który to był, napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+            "tools-not-used": {
+                question: "AI odpowiada, ale niczego nie zapisuje",
+                answerHtml:
+                    "Upewnij się, że konektor jest włączony w tej rozmowie — w Claude sprawdź menu narzędzi w polu wiadomości — i poproś wprost, na przykład „zapisz moje śniadanie w Nutrition”. Jeśli aplikacja poprosi o zgodę na użycie narzędzia, zatwierdź ją.",
+            },
+            "wrong-day": {
+                question: "Moje posiłki trafiają pod zły dzień",
+                answerHtml:
+                    'Dni są liczone w Twojej strefie czasowej, a jeśli nigdy jej nie ustawiłeś/aś, używany jest UTC. Zapytaj „jaką mam ustawioną strefę czasową?” (<a href="#get_profile"><code>get_profile</code></a>), a jeśli jest błędna, poproś „ustaw moją strefę czasową na Europe/Berlin” (<a href="#set_timezone"><code>set_timezone</code></a>). Wtedy wszystko, co zapisałeś/aś, jest grupowane według Twojego lokalnego dnia, łącznie z wcześniejszymi wpisami. Jedyny wyjątek to wpis, któremu podałeś/aś konkretną godzinę, gdy strefa czasowa była błędna: zachowuje on datę i godzinę, z jaką został wtedy zapisany, więc nadal może być przesunięty o godzinę lub dzień — poproś AI o przeniesienie go na właściwą datę i godzinę (<a href="#update_meal"><code>update_meal</code></a>). Strefę czasową ustaw też przed importem historii.',
+            },
+            "no-widgets": {
+                question: "Widzę tylko tekst, bez wykresów i kart",
+                answerHtml:
+                    'Karty wizualne wymagają aplikacji obsługującej interaktywne panele MCP Apps, takiej jak Claude lub ChatGPT; pozostałe aplikacje dostają te same informacje w formie tekstu. Jeśli wyłączyłeś/aś widżety, poproś o ich ponowne włączenie (<a href="#set_widget_display"><code>set_widget_display</code></a>) i zacznij nową rozmowę — otwarty czat zachowuje stare ustawienie, dopóki nie połączy się ponownie. Mała karta po zapisaniu posiłku pojawia się dopiero wtedy, gdy ustawisz dzienne cele (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
+            },
+            "import-problems": {
+                question:
+                    "Importer się nie otwiera albo pisze, że nie może zapisać",
+                answerHtml:
+                    'Panel importera wymaga aplikacji, która wyświetla interaktywne panele i ma włączone widżety. Jeśli pokazuje komunikat <em>Ta aplikacja nie pozwala temu widokowi zapisywać danych w Twoim dzienniku</em> albo w ogóle się nie pojawia, poproś AI o samodzielne zaimportowanie pliku: załącz lub wklej CSV, a AI użyje narzędzia <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, które sprawdza każdy wiersz i pomija duplikaty, więc ponowne wysłanie jest bezpieczne. Jeśli korzystasz z panelu importera i chcesz zachować kolumnę z alkoholem, najpierw włącz śledzenie alkoholu — panel pomija tę kolumnę, dopóki śledzenie jest wyłączone, a późniejszy ponowny import jej nie uzupełni.',
+            },
+            "rate-limited": {
+                question:
+                    "Widzę „Rate limit exceeded” albo „Too many failed authentication attempts”",
+                answerHtml:
+                    "Każde konto może wysłać 60 żądań na minutę, a każde wywołanie narzędzia liczy się jako co najmniej jedno. Odczekaj tyle sekund, ile podaje komunikat, i kontynuuj. Do uzupełniania wielu wcześniejszych posiłków używaj importera zamiast zapisywać je jeden po drugim. Strony logowania przyjmują 30 żądań na minutę z jednej sieci. Po 20 odrzuconych z rzędu próbach połączenia z jednej sieci — zwykle to stary, odłączony konektor, który wciąż ponawia próby — połączenia z tej sieci są wstrzymywane na 5 minut, a kolejne blokady wydłużają się maksymalnie do godziny. Usunięcie starego konektora i dodanie go ponownie kończy te próby.",
+            },
+            "barcode-not-found": {
+                question:
+                    "Kod kreskowy nie zostaje znaleziony albo jego wartości wyglądają na błędne",
+                answerHtml:
+                    "Dane kodów kreskowych pochodzą z Open Food Facts, społecznościowej bazy danych, więc niektórych produktów brakuje, a niektóre wpisy są nieaktualne. Upewnij się, że wszystkie cyfry pod kodem kreskowym (od 8 do 14) zostały odczytane poprawnie. Jeśli produktu nie ma w bazie, AI może oszacować wartości na podstawie nazwy albo zdjęcia etykiety z wartościami odżywczymi, a Ty możesz później poprawić dowolną liczbę. Dodanie produktu na openfoodfacts.org pomaga wszystkim. Open Food Facts nie ma danych o kofeinie, więc kofeina pochodzi z etykiety albo z typowych ilości.",
+            },
+            "export-link": {
+                question: "Link do pobrania eksportu nie działa",
+                answerHtml:
+                    'Linki do eksportu wygasają po 60 minutach, a każdy nowy eksport zastępuje poprzedni plik. Poproś o nowy eksport (<a href="#export_all_data"><code>export_all_data</code></a>) i pobierz go od razu. Jeśli eksport pokazuje 0 posiłków, a powinna tam być Twoja historia, prawdopodobnie logujesz się innym adresem e-mail — zobacz <a href="#history-missing">zniknęła historia</a>.',
+            },
+            "delete-account": {
+                question: "Jak usunąć konto?",
+                answerHtml:
+                    'Poproś AI o usunięcie Twojego konta Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). AI poprosi o potwierdzenie, a następnie trwale usunie Twoje posiłki, wodę, wagę, cele, ustawienia, zapis tego, z jakich narzędzi korzystała Twoja aplikacja AI, ewentualny plik eksportu, dane logowania i samo konto. Tego nie da się cofnąć, więc jeśli chcesz mieć kopię, najpierw wyeksportuj dane. Potem usuń konektor ze swojej aplikacji. Ponowne zalogowanie się w przyszłości tym samym adresem e-mail utworzy nowe, puste konto.',
+            },
+            "report-a-problem": {
+                question: "Jak zgłosić błąd lub problem z bezpieczeństwem?",
+                answerHtml:
+                    'Błędy zgłaszaj w <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: napisz, z jakiej aplikacji korzystasz (Claude, ChatGPT, …), o co prosiłeś/aś, co się stało i mniej więcej kiedy. Nigdy nie podawaj swojego hasła. Nie zgłaszaj problemów z bezpieczeństwem publicznie: zgłoś je prywatnie przez <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">prywatne zgłaszanie podatności w GitHubie</a> albo e-mailem, zgodnie z <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">polityką bezpieczeństwa</a>. We wszystkich innych sprawach napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+        },
+    },
 };

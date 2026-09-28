@@ -424,4 +424,84 @@ export const TOOLS_DE: ToolsDoc = {
             example: "Lösch mein Konto und alle meine Daten",
         },
     },
+    troubleshooting: {
+        pillLabel: "Hilfe",
+        title: "Fehlerbehebung",
+        description:
+            "Etwas funktioniert nicht? Für die meisten Probleme gibt es eine schnelle Lösung.",
+        items: {
+            "cannot-connect": {
+                question:
+                    "Der Connector verbindet sich nicht oder fragt immer wieder nach der Anmeldung",
+                answerHtml:
+                    "Entferne den Connector und füge ihn mit genau <code>https://nutrition-mcp.com/mcp</code> erneut hinzu — der Teil <code>/mcp</code> ist Pflicht. In Claude öffnest du <strong>Customize</strong> → <strong>Connectors</strong>, trennst Nutrition und verbindest es neu; in ChatGPT gehst du über <strong>Settings</strong> → <strong>Apps</strong>. Melde dich mit derselben E-Mail-Adresse und demselben Passwort oder demselben Google-Konto an wie zuvor: Deine Daten gehören zu deinem Konto, nicht zur Verbindung, deshalb geht beim erneuten Verbinden nichts verloren. Einmal verbunden, bleibt die Verbindung bestehen, solange du sie mindestens alle 90 Tage nutzt; funktioniert sie nicht mehr, hilft es, dich auf dieselbe Weise neu zu verbinden.",
+            },
+            "session-expired": {
+                question: 'Die Anmeldeseite zeigt {"error":"session_expired"}',
+                answerHtml:
+                    "Die Anmeldeseite ist nur 10 Minuten gültig und wird außerdem zurückgesetzt, wenn der Server für ein Update neu startet. Geh zurück zur Anmeldeseite und lade sie neu, oder starte die Verbindung erneut in deiner KI-App, und melde dich dann ohne lange Pause an. Steht dort stattdessen <code>session_mismatch</code>, wurde die Anmeldung in einem anderen Browser abgeschlossen als dem, in dem sie begonnen hat: Starte erneut in deiner KI-App und schließ die Anmeldung im selben Browser ab.",
+            },
+            "cannot-sign-in": {
+                question:
+                    "Ich kann mich nicht anmelden oder habe mein Passwort vergessen",
+                answerHtml:
+                    'Dasselbe Formular meldet dich an und legt neue Konten an. Ein falsches Passwort für eine bereits registrierte E-Mail-Adresse zeigt deshalb eine Fehlermeldung des Anmeldedienstes statt eines einfachen „Falsches Passwort". Prüf die E-Mail-Adresse auf Tippfehler. Hast du dein Konto mit <strong>Weiter mit Google</strong> erstellt, nutz wieder diesen Button. Selbst zurücksetzen kannst du dein Passwort noch nicht: Schreib von der Adresse deines Kontos an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dann setze ich es für dich zurück.',
+            },
+            "history-missing": {
+                question:
+                    "Ich habe mich neu verbunden und mein Verlauf ist weg",
+                answerHtml:
+                    'Jede E-Mail-Adresse ist ein eigenes Konto. Meldest du dich mit einer anderen E-Mail-Adresse an, beginnt ein leeres Konto — gelöscht wurde nichts. Trenn die Verbindung und melde dich mit der Adresse an, die du ursprünglich verwendet hast. Wenn du nicht sicher bist, welche das war, schreib an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+            "tools-not-used": {
+                question: "Die KI antwortet, erfasst aber nichts",
+                answerHtml:
+                    'Stell sicher, dass der Connector für diese Unterhaltung eingeschaltet ist — in Claude findest du das im Werkzeug-Menü im Eingabefeld — und frag direkt, zum Beispiel „erfasse mein Frühstück in Nutrition". Fragt deine App nach der Erlaubnis, ein Werkzeug zu verwenden, stimm zu.',
+            },
+            "wrong-day": {
+                question: "Meine Mahlzeiten landen am falschen Tag",
+                answerHtml:
+                    'Tage werden in deiner Zeitzone gezählt, und wenn du nie eine festgelegt hast, gilt UTC. Frag „welche Zeitzone habe ich eingestellt?" (<a href="#get_profile"><code>get_profile</code></a>) und, falls sie falsch ist, „stell meine Zeitzone auf Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Danach wird alles, was du erfasst hast, nach deinem lokalen Tag gruppiert, auch ältere Einträge. Die einzige Ausnahme ist ein Eintrag, dem du eine bestimmte Uhrzeit gegeben hast, während die Zeitzone falsch war: Er behält den Zeitpunkt, mit dem er gespeichert wurde, und kann deshalb weiterhin eine Stunde oder einen Tag danebenliegen — bitte die KI, ihn auf das richtige Datum und die richtige Uhrzeit zu verschieben (<a href="#update_meal"><code>update_meal</code></a>). Leg deine Zeitzone auch fest, bevor du deinen Verlauf importierst.',
+            },
+            "no-widgets": {
+                question: "Ich sehe nur Text, keine Diagramme oder Karten",
+                answerHtml:
+                    'Die visuellen Karten brauchen eine App, die interaktive MCP-Apps-Panels unterstützt, etwa Claude oder ChatGPT; andere Clients bekommen dieselben Informationen als Text. Hast du die Widgets ausgeschaltet, bitte darum, sie wieder einzuschalten (<a href="#set_widget_display"><code>set_widget_display</code></a>), und starte eine neue Unterhaltung — ein offener Chat behält die alte Einstellung, bis er sich neu verbindet. Die kleine Karte nach dem Erfassen einer Mahlzeit erscheint erst, wenn du Tagesziele festgelegt hast (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
+            },
+            "import-problems": {
+                question:
+                    "Der Importer öffnet sich nicht oder meldet, dass er nicht speichern kann",
+                answerHtml:
+                    'Das Importer-Panel braucht eine App, die interaktive Panels anzeigt, und eingeschaltete Widgets. Steht dort <em>Dieser Host erlaubt dieser Ansicht nicht, in dein Protokoll zu schreiben</em>, oder erscheint es gar nicht, bitte die KI, die Datei selbst zu importieren: Häng die CSV an oder füge sie ein, dann nutzt sie <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>. Das prüft jede Zeile und überspringt Duplikate, erneutes Senden ist also sicher. Nutzt du das Importer-Panel und soll eine Alkohol-Spalte übernommen werden, schalte vorher die Alkohol-Erfassung ein — das Panel überspringt diese Spalte, solange die Erfassung aus ist, und ein späterer erneuter Import füllt sie nicht nach.',
+            },
+            "rate-limited": {
+                question:
+                    'Ich sehe „Rate limit exceeded" oder „Too many failed authentication attempts"',
+                answerHtml:
+                    "Jedes Konto kann 60 Anfragen pro Minute stellen, und jeder Werkzeugaufruf zählt als mindestens eine. Warte die Anzahl Sekunden ab, die die Meldung nennt, und mach dann weiter. Willst du viele Mahlzeiten nachtragen, nutz den Importer, statt sie einzeln zu erfassen. Die Anmeldeseiten erlauben 30 Anfragen pro Minute und Netzwerk. Nach 20 abgelehnten Verbindungsversuchen in Folge aus einem Netzwerk — meist ein alter, getrennter Connector, der es immer noch versucht — werden Verbindungen aus diesem Netzwerk für 5 Minuten pausiert, und weitere Pausen werden länger, bis höchstens eine Stunde. Entfernst du den alten Connector und fügst ihn neu hinzu, hören die Versuche auf.",
+            },
+            "barcode-not-found": {
+                question:
+                    "Ein Barcode wird nicht gefunden oder seine Werte wirken falsch",
+                answerHtml:
+                    "Barcode-Daten stammen von Open Food Facts, einer Community-Datenbank, daher fehlen manche Produkte und manche Einträge sind veraltet. Prüf, ob alle 8–14 Ziffern unter dem Barcode richtig gelesen wurden. Ist das Produkt nicht dabei, kann die KI anhand des Namens oder eines Fotos der Nährwerttabelle schätzen, und du kannst jeden Wert danach korrigieren. Das Produkt auf openfoodfacts.org einzutragen, hilft allen. Open Food Facts hat keine Koffeindaten, deshalb kommt Koffein vom Etikett oder aus typischen Mengen.",
+            },
+            "export-link": {
+                question: "Mein Export-Downloadlink funktioniert nicht",
+                answerHtml:
+                    'Export-Links laufen nach 60 Minuten ab, und jeder neue Export ersetzt die vorherige Datei. Fordere einen neuen Export an (<a href="#export_all_data"><code>export_all_data</code></a>) und lade ihn sofort herunter. Meldet der Export 0 Mahlzeiten, obwohl du deinen Verlauf erwartet hast, bist du wahrscheinlich mit einer anderen E-Mail-Adresse angemeldet — siehe <a href="#history-missing">Verlauf ist weg</a>.',
+            },
+            "delete-account": {
+                question: "Wie lösche ich mein Konto?",
+                answerHtml:
+                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie fragt dich nach einer Bestätigung und löscht dann dauerhaft deine Mahlzeiten, Wasser, Gewicht, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen, exportiere deine Daten also vorher, wenn du eine Kopie willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, entsteht ein neues, leeres Konto.',
+            },
+            "report-a-problem": {
+                question:
+                    "Wie melde ich einen Fehler oder ein Sicherheitsproblem?",
+                answerHtml:
+                    'Melde Fehler über <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: Schreib, welche App du nutzt (Claude, ChatGPT, …), was du gefragt hast, was passiert ist und ungefähr wann. Gib nie dein Passwort an. Bitte melde Sicherheitsprobleme nicht öffentlich, sondern privat über die <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">private Schwachstellenmeldung auf GitHub</a> oder per E-Mail, wie es die <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">Sicherheitsrichtlinie</a> beschreibt. Für alles andere schreib an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+        },
+    },
 };

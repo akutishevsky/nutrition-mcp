@@ -161,6 +161,9 @@ export interface ChromeCopy {
 
     footer: {
         tools: string;
+        /** Links to /tools#troubleshooting; the same words as that
+         * section's title (ToolsDoc.troubleshooting.title). */
+        troubleshooting: string;
         alternatives: string;
         howIBuiltThis: string;
         demo: string;
@@ -249,6 +252,7 @@ export const CHROME_EN: ChromeCopy = {
 
     footer: {
         tools: "Tools",
+        troubleshooting: "Troubleshooting",
         alternatives: "Alternatives",
         howIBuiltThis: "How I built this",
         demo: "Demo",
