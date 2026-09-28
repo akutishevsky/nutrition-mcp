@@ -424,4 +424,83 @@ export const TOOLS_NL: ToolsDoc = {
             example: "Verwijder mijn account en al mijn gegevens",
         },
     },
+    troubleshooting: {
+        pillLabel: "Hulp",
+        title: "Problemen oplossen",
+        description:
+            "Werkt er iets niet? Voor de meeste problemen is er een snelle oplossing.",
+        items: {
+            "cannot-connect": {
+                question:
+                    "De connector maakt geen verbinding of vraagt steeds opnieuw om in te loggen",
+                answerHtml:
+                    "Verwijder de connector en voeg hem opnieuw toe met precies <code>https://nutrition-mcp.com/mcp</code> — het deel <code>/mcp</code> is verplicht. Open in Claude <strong>Customize</strong> → <strong>Connectors</strong>, verbreek de verbinding met Nutrition en maak opnieuw verbinding; in ChatGPT ga je naar <strong>Settings</strong> → <strong>Apps</strong>. Log in met hetzelfde e-mailadres en wachtwoord, of hetzelfde Google-account, als eerder: je gegevens horen bij je account, niet bij de verbinding, dus bij opnieuw verbinden gaat er niets verloren. Eenmaal verbonden blijft de verbinding actief zolang je hem minstens elke 90 dagen gebruikt; werkt hij niet meer, dan lost opnieuw verbinden op dezelfde manier het op.",
+            },
+            "session-expired": {
+                question: 'De inlogpagina toont {"error":"session_expired"}',
+                answerHtml:
+                    "De inlogpagina is maar 10 minuten geldig en wordt ook gereset wanneer de server voor een update herstart. Ga terug naar de inlogpagina en laad hem opnieuw, of begin opnieuw met verbinden vanuit je AI-app, en log daarna in zonder lang te wachten. Staat er in plaats daarvan <code>session_mismatch</code>, dan is het inloggen afgerond in een andere browser dan de browser waarin het begon: begin opnieuw vanuit je AI-app en rond het af in diezelfde browser.",
+            },
+            "cannot-sign-in": {
+                question:
+                    "Ik kan niet inloggen, of ik ben mijn wachtwoord vergeten",
+                answerHtml:
+                    'Hetzelfde formulier logt je in en maakt nieuwe accounts aan, dus een verkeerd wachtwoord voor een bestaand e-mailadres geeft een foutmelding van de inlogdienst in plaats van een simpel "verkeerd wachtwoord". Controleer het e-mailadres op typfouten. Heb je je account aangemaakt met <strong>Doorgaan met Google</strong>, gebruik dan weer die knop. Zelf je wachtwoord resetten kan nog niet: mail vanaf het adres van je account naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dan reset ik het voor je.',
+            },
+            "history-missing": {
+                question:
+                    "Ik heb opnieuw verbinding gemaakt en mijn geschiedenis is weg",
+                answerHtml:
+                    'Elk e-mailadres is een apart account, dus als je inlogt met een ander e-mailadres, begin je met een leeg account — er is niets verwijderd. Verbreek de verbinding en log opnieuw in met het adres dat je oorspronkelijk gebruikte. Weet je niet zeker welk adres dat was, mail dan naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+            "tools-not-used": {
+                question: "De AI antwoordt, maar logt niets",
+                answerHtml:
+                    'Controleer of de connector voor dit gesprek aanstaat — in Claude zie je dat in het toolsmenu in het berichtvak — en vraag het rechtstreeks, bijvoorbeeld "log mijn ontbijt in Nutrition". Vraagt je app om toestemming om een tool te gebruiken, geef die dan.',
+            },
+            "wrong-day": {
+                question: "Mijn maaltijden staan op de verkeerde dag",
+                answerHtml:
+                    'Dagen worden geteld in jouw tijdzone, en als je er nooit een hebt ingesteld, wordt UTC gebruikt. Vraag "welke tijdzone heb ik ingesteld?" (<a href="#get_profile"><code>get_profile</code></a>) en, als die niet klopt, "stel mijn tijdzone in op Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Alles wat je hebt gelogd wordt dan gegroepeerd per lokale dag, oudere items inbegrepen. De enige uitzondering is een item waaraan je een specifiek tijdstip gaf terwijl de tijdzone verkeerd stond: dat behoudt het moment waarmee het is opgeslagen, dus het kan nog steeds een uur of een dag verschoven zijn — vraag de AI om het naar de juiste datum en tijd te verplaatsen (<a href="#update_meal"><code>update_meal</code></a>). Stel je tijdzone ook in voordat je je geschiedenis importeert.',
+            },
+            "no-widgets": {
+                question: "Ik zie alleen tekst, geen grafieken of kaarten",
+                answerHtml:
+                    'De visuele kaarten hebben een app nodig die interactieve MCP Apps-panelen ondersteunt, zoals Claude of ChatGPT; andere clients krijgen dezelfde informatie als tekst. Heb je de widgets uitgezet, vraag dan om ze weer aan te zetten (<a href="#set_widget_display"><code>set_widget_display</code></a>) en begin een nieuw gesprek — een open chat houdt zijn oude instelling tot hij opnieuw verbinding maakt. De kleine kaart na het loggen van een maaltijd verschijnt pas als je dagdoelen hebt ingesteld (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
+            },
+            "import-problems": {
+                question:
+                    "De importer opent niet, of zegt dat hij niet kan opslaan",
+                answerHtml:
+                    'Het importerpaneel heeft een app nodig die interactieve panelen toont en waarin widgets aanstaan. Staat er <em>Deze host staat dit venster niet toe om in je logboek te schrijven</em>, of verschijnt het paneel helemaal niet, vraag de AI dan om het bestand zelf te importeren: voeg de CSV toe of plak hem, en de AI gebruikt <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, dat elke rij controleert en duplicaten overslaat, dus opnieuw versturen is veilig. Gebruik je het importerpaneel en wil je een alcoholkolom meenemen, zet alcoholregistratie dan eerst aan — het paneel slaat die kolom over zolang registratie uitstaat, en later opnieuw importeren vult die niet alsnog in.',
+            },
+            "rate-limited": {
+                question:
+                    'Ik zie "Rate limit exceeded" of "Too many failed authentication attempts"',
+                answerHtml:
+                    "Elk account kan 60 verzoeken per minuut doen, en elke toolaanroep telt als minstens één. Wacht het aantal seconden dat de melding noemt en ga dan verder. Wil je veel maaltijden achteraf toevoegen, gebruik dan de importer in plaats van ze één voor één te loggen. Inlogpagina's staan 30 verzoeken per minuut per netwerk toe. Na 20 geweigerde verbindingspogingen op rij vanaf één netwerk — meestal een oude, losgekoppelde connector die het blijft proberen — worden verbindingen vanaf dat netwerk 5 minuten gepauzeerd, en herhaalde pauzes lopen op tot hooguit een uur. De oude connector verwijderen en opnieuw toevoegen stopt de pogingen.",
+            },
+            "barcode-not-found": {
+                question:
+                    "Een barcode wordt niet gevonden, of de waarden lijken niet te kloppen",
+                answerHtml:
+                    "Barcodegegevens komen van Open Food Facts, een communitydatabase, dus sommige producten ontbreken en sommige gegevens zijn verouderd. Controleer of alle 8–14 cijfers onder de barcode goed zijn gelezen. Staat het product er niet in, dan kan de AI een schatting maken op basis van de naam of een foto van het voedingsetiket, en je kunt elk getal achteraf corrigeren. Het product toevoegen op openfoodfacts.org helpt iedereen. Open Food Facts heeft geen cafeïnegegevens, dus cafeïne komt van het etiket of uit gangbare hoeveelheden.",
+            },
+            "export-link": {
+                question: "Mijn downloadlink voor de export werkt niet",
+                answerHtml:
+                    'Exportlinks verlopen na 60 minuten, en elke nieuwe export vervangt het vorige bestand. Vraag een nieuwe export aan (<a href="#export_all_data"><code>export_all_data</code></a>) en download hem meteen. Meldt de export 0 maaltijden terwijl je je geschiedenis verwachtte, dan ben je waarschijnlijk ingelogd met een ander e-mailadres — zie <a href="#history-missing">geschiedenis is weg</a>.',
+            },
+            "delete-account": {
+                question: "Hoe verwijder ik mijn account?",
+                answerHtml:
+                    'Vraag de AI om je Nutrition MCP-account te verwijderen (<a href="#delete_account"><code>delete_account</code></a>). Die vraagt je om te bevestigen en verwijdert daarna definitief je maaltijden, water, gewicht, doelen, instellingen, het overzicht van welke tools je AI-app heeft gebruikt, een eventueel exportbestand, je inloggegevens en het account zelf. Dit is niet terug te draaien, dus exporteer je gegevens eerst als je een kopie wilt. Verwijder daarna de connector uit je app. Log je later opnieuw in met hetzelfde e-mailadres, dan ontstaat er een nieuw, leeg account.',
+            },
+            "report-a-problem": {
+                question: "Hoe meld ik een bug of een beveiligingsprobleem?",
+                answerHtml:
+                    'Meld bugs via <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: vermeld welke app je gebruikt (Claude, ChatGPT, …), wat je vroeg, wat er gebeurde en ongeveer wanneer. Zet er nooit je wachtwoord bij. Meld beveiligingsproblemen alsjeblieft niet openbaar, maar privé via <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">GitHubs privémelding van kwetsbaarheden</a> of per e-mail, zoals het <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">beveiligingsbeleid</a> beschrijft. Voor al het andere mail je naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+            },
+        },
+    },
 };

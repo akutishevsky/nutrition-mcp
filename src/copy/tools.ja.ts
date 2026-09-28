@@ -419,4 +419,68 @@ export const TOOLS_JA: ToolsDoc = {
             example: "アカウントとすべてのデータを削除して",
         },
     },
+    troubleshooting: {
+        pillLabel: "ヘルプ",
+        title: "トラブルシューティング",
+        description:
+            "うまく動かないときは？ほとんどの問題はすぐに解決できます。",
+        items: {
+            "cannot-connect": {
+                question:
+                    "コネクタが接続できない、または何度もサインインを求められる",
+                answerHtml: `コネクタを削除し、<code>https://nutrition-mcp.com/mcp</code>を正確に指定して追加し直してください — <code>/mcp</code>の部分は必須です。Claudeでは<strong>Customize</strong> → <strong>Connectors</strong>を開き、Nutritionを切断してから再接続します。ChatGPTでは<strong>Settings</strong> → <strong>Apps</strong>を使います。以前と同じメールアドレスとパスワード、または同じGoogleアカウントでサインインしてください。データは接続ではなくアカウントに紐づいているため、再接続しても何も失われません。一度接続すれば、少なくとも90日に1回使っている限り接続は維持されます。動かなくなった場合も、同じ手順で再接続すれば直ります。`,
+            },
+            "session-expired": {
+                question:
+                    'サインインページに{"error":"session_expired"}と表示される',
+                answerHtml: `サインインページの有効期間は10分だけで、アップデートのためにサーバーが再起動したときにもリセットされます。サインインページに戻って再読み込みするか、AIアプリから接続をやり直し、間を空けずにサインインしてください。代わりに<code>session_mismatch</code>と表示される場合は、サインインを開始したブラウザとは別のブラウザで完了しようとしています。AIアプリからやり直し、同じブラウザで最後まで進めてください。`,
+            },
+            "cannot-sign-in": {
+                question: "サインインできない、またはパスワードを忘れた",
+                answerHtml: `同じフォームでサインインと新規アカウント作成の両方を行うため、既存のメールアドレスでパスワードを間違えると、単なる「パスワードが違います」ではなく、サインインサービスからのエラーが表示されます。メールアドレスに入力ミスがないか確認してください。アカウントを<strong>Googleで続行</strong>で作成した場合は、もう一度そのボタンを使ってください。パスワードをご自身でリセットする機能はまだありません。アカウントのメールアドレスから<a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>にメールをいただければ、こちらでリセットします。`,
+            },
+            "history-missing": {
+                question: "再接続したら履歴が消えた",
+                answerHtml: `メールアドレスごとに別のアカウントになるため、別のメールアドレスでサインインすると空のアカウントが新しく始まります — 何も削除されていません。一度切断し、最初に使ったメールアドレスでサインインし直してください。どのアドレスだったか分からない場合は、<a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>までメールしてください。`,
+            },
+            "tools-not-used": {
+                question: "AIは返答するが、何も記録されない",
+                answerHtml: `この会話でコネクタがオンになっているか確認してください（Claudeではメッセージ入力欄のツールメニューで確認できます）。そのうえで、「Nutritionに朝食を記録して」のように直接頼んでください。アプリからツールの使用許可を求められたら、許可してください。`,
+            },
+            "wrong-day": {
+                question: "食事が違う日に表示される",
+                answerHtml: `日付はあなたのタイムゾーンで区切られ、一度も設定していない場合はUTCが使われます。「私のタイムゾーンは何に設定されている？」と聞き（<a href="#get_profile"><code>get_profile</code></a>）、間違っていれば「タイムゾーンをEurope/Berlinに設定して」と頼んでください（<a href="#set_timezone"><code>set_timezone</code></a>）。これで、過去の記録も含め、記録したものはすべて現地の日付でまとめられます。唯一の例外は、タイムゾーンが間違っていた間に時刻を指定して記録したエントリです。保存されている日時がそのまま残るため、1時間や1日ずれたままになることがあります — AIに正しい日付と時刻へ移動するよう頼んでください（<a href="#update_meal"><code>update_meal</code></a>）。履歴をインポートする前にも、タイムゾーンを設定しておきましょう。`,
+            },
+            "no-widgets": {
+                question: "テキストだけで、グラフやカードが表示されない",
+                answerHtml: `ビジュアルカードの表示には、ClaudeやChatGPTのように、インタラクティブなMCP Appsパネルに対応したアプリが必要です。その他のクライアントでは、同じ情報がテキストで届きます。ウィジェットをオフにした場合は、オンに戻すよう頼み（<a href="#set_widget_display"><code>set_widget_display</code></a>）、新しい会話を始めてください — 開いているチャットは再接続するまで古い設定のままです。食事を記録した後の小さなカードは、1日の目標を設定して初めて表示されます（<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>）。`,
+            },
+            "import-problems": {
+                question:
+                    "インポーターが開かない、または保存できないと表示される",
+                answerHtml: `インポーターパネルには、インタラクティブなパネルを表示でき、ウィジェットがオンになっているアプリが必要です。<em>このホストではこの画面から記録を書き込めません</em>と表示される場合や、パネルがまったく表示されない場合は、AIにファイルを直接インポートするよう頼んでください。CSVを添付するか貼り付ければ、AIが<a href="#bulk_import_meals"><code>bulk_import_meals</code></a>を使います。このツールはすべての行をチェックして重複をスキップするので、再送しても安全です。インポーターパネルでアルコール列も取り込みたい場合は、先にアルコール記録をオンにしてください。記録がオフの間、パネルはその列をスキップし、後から再インポートしてもその列は埋まりません。`,
+            },
+            "rate-limited": {
+                question:
+                    "「Rate limit exceeded」または「Too many failed authentication attempts」と表示される",
+                answerHtml: `1つのアカウントにつき1分あたり60リクエストまで送信でき、ツール呼び出しは1回につき少なくとも1リクエストとしてカウントされます。メッセージに示された秒数だけ待ってから続けてください。多くの食事をさかのぼって記録するときは、1件ずつ記録するのではなくインポーターを使ってください。サインインページは、1つのネットワークにつき1分あたり30リクエストまでです。1つのネットワークから20回連続で接続が拒否されると（たいていは、切断済みの古いコネクタが再試行を続けているのが原因です）、そのネットワークからの接続は5分間停止され、繰り返すたびに停止時間は最長1時間まで延びます。古いコネクタを削除して追加し直せば、再試行は止まります。`,
+            },
+            "barcode-not-found": {
+                question: "バーコードが見つからない、または数値がおかしい",
+                answerHtml: `バーコードのデータは、コミュニティが運営するデータベースOpen Food Factsから取得しているため、登録されていない商品や情報が古い商品もあります。バーコードの下の8–14桁の数字がすべて正しく読み取られているか確認してください。商品が見つからない場合も、AIは商品名や栄養成分表示の写真から推定でき、どの数値も後から修正できます。openfoodfacts.orgに商品を登録すると、みんなの役に立ちます。Open Food Factsにはカフェインのデータがないため、カフェインは表示ラベルや一般的な含有量から判断します。`,
+            },
+            "export-link": {
+                question: "エクスポートのダウンロードリンクが使えない",
+                answerHtml: `エクスポートのリンクは60分で期限切れになり、新しくエクスポートするたびに以前のファイルは置き換えられます。新しいエクスポートを頼み（<a href="#export_all_data"><code>export_all_data</code></a>）、すぐにダウンロードしてください。エクスポートで食事が0件と表示され、記録があるはずの場合は、別のメールアドレスでサインインしている可能性があります（<a href="#history-missing">履歴が消えた場合</a>を参照）。`,
+            },
+            "delete-account": {
+                question: "アカウントを削除するには？",
+                answerHtml: `AIにNutrition MCPのアカウントを削除するよう頼んでください（<a href="#delete_account"><code>delete_account</code></a>）。確認を求められた後、食事、水分、体重、目標、設定、AIアプリが使用したツールの記録、エクスポートファイル（ある場合）、サインイン情報、そしてアカウント自体が完全に削除されます。これは取り消せないため、コピーを残したい場合は先にデータをエクスポートしてください。その後、アプリからコネクタを削除してください。後で同じメールアドレスでサインインし直すと、新しい空のアカウントが作成されます。`,
+            },
+            "report-a-problem": {
+                question: "バグやセキュリティの問題を報告するには？",
+                answerHtml: `バグは<a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>で報告してください。使っているアプリ（Claude、ChatGPTなど）、何を頼んだか、何が起きたか、おおよその日時を書いてください。パスワードは絶対に含めないでください。セキュリティの問題は公開の場で報告せず、<a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">セキュリティポリシー</a>に記載のとおり、<a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">GitHubの非公開脆弱性報告</a>またはメールで非公開に報告してください。その他のことは<a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>までメールしてください。`,
+            },
+        },
+    },
 };

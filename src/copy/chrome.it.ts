@@ -55,6 +55,7 @@ export const CHROME_IT: ChromeCopy = {
 
     footer: {
         tools: "Strumenti",
+        troubleshooting: "Risoluzione dei problemi",
         alternatives: "Alternative",
         howIBuiltThis: "Come l'ho costruito",
         demo: "Demo",

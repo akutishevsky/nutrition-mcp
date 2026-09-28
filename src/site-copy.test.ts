@@ -1,6 +1,13 @@
 import { test, expect } from "bun:test";
 import { INDEX } from "./copy/index.js";
-import { TOOLS, TOOLS_COPY } from "./copy/tools.js";
+import {
+    CATEGORIES,
+    TOOLS,
+    TOOLS_COPY,
+    TROUBLESHOOTING_IDS,
+    type ToolsDoc,
+    type TroubleshootingId,
+} from "./copy/tools.js";
 import { chromeFor } from "./copy/chrome.js";
 import {
     PRIVACY,
@@ -8,7 +15,7 @@ import {
     type LegalBlock,
     type LegalDoc,
 } from "./copy/legal.js";
-import { SITE_LOCALES, type SiteLocale } from "./routes.js";
+import { SITE_LOCALES, pathFor, type SiteLocale } from "./routes.js";
 
 // The public pages are the only place the product describes ITSELF, and they
 // are the surface that goes stale first: a nutrient ships across the server,
@@ -551,4 +558,193 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
             SITE_LOCALES.map((l) => [l, [expected[l], expected[l]]]),
         ),
     );
+});
+
+// ------------------------------------------------ /tools troubleshooting
+
+const troubleshootingLocales = Object.entries(TOOLS_COPY) as [
+    SiteLocale,
+    ToolsDoc,
+][];
+
+// gen-tools.ts writes one page per TOOLS_COPY entry; the section is the last
+// thing on it, with its own jump-bar pill, and its entries are in id order.
+test("every locale's /tools renders the Troubleshooting section last, in order", async () => {
+    for (const [locale] of troubleshootingLocales) {
+        const path =
+            locale === "en"
+                ? "./public/tools.html"
+                : `./public/${locale}/tools.html`;
+        const html = normalize(await Bun.file(path).text());
+        expect(html, `${path}: section`).toContain('id="troubleshooting"');
+        expect(html, `${path}: Help pill`).toMatch(
+            /<a class="cat-pill" href="#troubleshooting"/,
+        );
+        const ids = [...html.matchAll(/<details id="([^"]+)"/g)]
+            .map((m) => m[1])
+            .filter((id) =>
+                (TROUBLESHOOTING_IDS as readonly string[]).includes(id!),
+            );
+        expect(ids, `${path}: entry order`).toEqual([...TROUBLESHOOTING_IDS]);
+        const lastCategory = CATEGORIES[CATEGORIES.length - 1]!;
+        expect(
+            html.indexOf('id="troubleshooting"'),
+            `${path}: section comes after the last category`,
+        ).toBeGreaterThan(html.indexOf(`id="${lastCategory}"`));
+    }
+});
+
+// The footer (site-partials.ts footer(), on every page from all five
+// generators) links to the section in its own locale, under the section's
+// own title — so a stale page from a generator that wasn't re-run fails here.
+test("every page's footer links to its locale's Troubleshooting section", async () => {
+    for (const [locale, doc] of troubleshootingLocales)
+        expect(chromeFor(locale).footer.troubleshooting, locale).toBe(
+            doc.troubleshooting.title,
+        );
+    let pages = 0;
+    for await (const file of new Bun.Glob("public/**/*.html").scan(".")) {
+        if (file.startsWith("public/widgets/")) continue;
+        const html = await Bun.file(file).text();
+        if (!html.includes('<footer class="footer">')) continue;
+        const locale =
+            SITE_LOCALES.find(
+                (l) => l !== "en" && file.startsWith(`public/${l}/`),
+            ) ?? "en";
+        expect(html, file).toContain(
+            `<a href="${pathFor(locale, "/tools")}#troubleshooting">${chromeFor(locale).footer.troubleshooting}</a>`,
+        );
+        pages++;
+    }
+    expect(pages).toBeGreaterThan(SITE_LOCALES.length * 5);
+});
+
+const answerHrefs = (doc: ToolsDoc) =>
+    TROUBLESHOOTING_IDS.flatMap((id) =>
+        [
+            ...doc.troubleshooting.items[id].answerHtml.matchAll(
+                /href="([^"]*)"/g,
+            ),
+        ].map((m) => ({ id, href: m[1]! })),
+    );
+
+// answerHtml is plain data with no pathFor(): a "/privacy" link would send a
+// German reader to the English page.
+test("troubleshooting answers link only to #anchors, https:// or mailto:", () => {
+    const bad: string[] = [];
+    for (const [locale, doc] of troubleshootingLocales)
+        for (const { id, href } of answerHrefs(doc))
+            if (!/^(#|https:\/\/|mailto:)/.test(href) || href.startsWith("/"))
+                bad.push(`${locale} ${id}: ${href}`);
+    expect(bad).toEqual([]);
+});
+
+test("troubleshooting #anchors resolve and ids collide with nothing", () => {
+    const toolNames = new Set(TOOLS.map((t) => t.name));
+    const targets = new Set<string>([...toolNames, ...TROUBLESHOOTING_IDS]);
+    const dangling: string[] = [];
+    for (const [locale, doc] of troubleshootingLocales)
+        for (const { id, href } of answerHrefs(doc))
+            if (href.startsWith("#") && !targets.has(href.slice(1)))
+                dangling.push(`${locale} ${id}: ${href}`);
+    expect(dangling).toEqual([]);
+    for (const id of [...TROUBLESHOOTING_IDS, "troubleshooting"]) {
+        expect(toolNames.has(id), `${id} is also a tool name`).toBe(false);
+        expect(
+            (CATEGORIES as string[]).includes(id),
+            `${id} is also a category id`,
+        ).toBe(false);
+    }
+});
+
+// The copy restates limits from the code. Each value is scraped from its
+// source, so changing a constant fails here until all 9 locale files say so.
+const scrape = async (path: string, re: RegExp): Promise<string> => {
+    const m = re.exec(await Bun.file(path).text());
+    if (!m?.[1]) throw new Error(`${path}: ${re} matched nothing`);
+    return m[1];
+};
+const LIMIT = await scrape(
+    "./src/rate-limit.ts",
+    /const LIMIT_PER_WINDOW = (\d+);/,
+);
+const AUTH_LIMIT = await scrape(
+    "./src/rate-limit.ts",
+    /const AUTH_LIMIT_PER_WINDOW = (\d+);/,
+);
+const STRIKES = await scrape(
+    "./src/rate-limit.ts",
+    /const BAN_STRIKE_THRESHOLD = (\d+);/,
+);
+const BANS = (
+    await scrape(
+        "./src/rate-limit.ts",
+        /const BAN_DURATIONS_MS = \[([\d,\s]+)\]\.map\(\(m\) => m \* 60_000\);/,
+    )
+)
+    .split(",")
+    .map((n) => n.trim())
+    .filter(Boolean);
+const SESSION_MIN = await scrape(
+    "./src/oauth.ts",
+    /const SESSION_TTL_MS = (\d+) \* 60 \* 1000;/,
+);
+const REFRESH_DAYS = await scrape(
+    "./src/oauth.ts",
+    /const REFRESH_TOKEN_TTL_SECONDS = (\d+) \* 24 \* 60 \* 60;/,
+);
+const EXPORT_MIN = await scrape(
+    "./src/export.ts",
+    /const EXPORT_TTL_SECONDS = 60 \* (\d+);/,
+);
+const FIRST_BAN = BANS[0]!;
+const LAST_BAN = BANS[BANS.length - 1]!;
+
+// Which numbers each entry must carry, in every language.
+const PINNED_DIGITS: Partial<Record<TroubleshootingId, string[]>> = {
+    "cannot-connect": [REFRESH_DAYS],
+    "session-expired": [SESSION_MIN],
+    "rate-limited": [LIMIT, AUTH_LIMIT, STRIKES, FIRST_BAN],
+    "export-link": [EXPORT_MIN],
+};
+
+test("the English troubleshooting copy states the limits in the code", () => {
+    const items = TOOLS_COPY.en!.troubleshooting.items;
+    const capText = LAST_BAN === "60" ? "an hour" : `${LAST_BAN} minutes`;
+    const expected: [TroubleshootingId, string][] = [
+        ["cannot-connect", `at least every ${REFRESH_DAYS} days`],
+        ["session-expired", `${SESSION_MIN} minutes`],
+        ["rate-limited", `${LIMIT} requests a minute`],
+        ["rate-limited", `${AUTH_LIMIT} requests a minute`],
+        ["rate-limited", `${STRIKES} rejected connection attempts`],
+        ["rate-limited", `${FIRST_BAN} minutes`],
+        ["rate-limited", `at most ${capText}`],
+        ["export-link", `${EXPORT_MIN} minutes`],
+    ];
+    for (const [id, phrase] of expected)
+        expect(items[id].answerHtml, `${id}`).toContain(phrase);
+});
+
+test("the ban cap is still the hour every locale's prose names", () => {
+    // PINNED_DIGITS can't pin the cap: every locale writes it as "an hour" in
+    // words. A different last BAN_DURATIONS_MS entry means rewriting that
+    // phrase in all 9 tools*.ts files (and README), not just English.
+    expect(LAST_BAN, "update 'at most an hour' in every locale").toBe("60");
+});
+
+test("every locale's troubleshooting copy carries the same numbers", () => {
+    const missing: string[] = [];
+    for (const [locale, doc] of troubleshootingLocales)
+        for (const [id, digits] of Object.entries(PINNED_DIGITS) as [
+            TroubleshootingId,
+            string[],
+        ][])
+            for (const d of digits)
+                if (
+                    !new RegExp(`(?<!\\d)${d}(?!\\d)`).test(
+                        doc.troubleshooting.items[id].answerHtml,
+                    )
+                )
+                    missing.push(`${locale} ${id}: ${d}`);
+    expect(missing).toEqual([]);
 });

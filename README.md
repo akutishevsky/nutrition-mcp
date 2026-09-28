@@ -21,6 +21,7 @@ A remote MCP server for personal nutrition tracking — log meals with calories,
 - [Development](#development)
     - [Testing and quality](#testing-and-quality)
 - [Connect to Claude.ai](#connect-to-claudeai)
+- [Troubleshooting](#troubleshooting)
 - [API Endpoints](#api-endpoints)
 - [Deploy](#deploy)
 - [Support & security](#support--security)
@@ -37,7 +38,7 @@ https://nutrition-mcp.com/mcp
 
 **On Claude.ai:** Customize → Connectors → + → Add custom connector → paste the URL → Connect (see [Connect to Claude.ai](#connect-to-claudeai) below for the full walkthrough)
 
-On first connect you'll be asked to register with an email and password. Your data persists across reconnections.
+On first connect you'll be asked to register with an email and password. Your data persists across reconnections. Trouble connecting? See [Troubleshooting](#troubleshooting).
 
 By connecting you agree to the [Terms of Service](https://nutrition-mcp.com/terms); how your data is handled is in the [Privacy Policy](https://nutrition-mcp.com/privacy).
 
@@ -210,6 +211,24 @@ For in-chat widget development (`public/widgets/`), `bun run harness` starts a l
     - **Remote MCP Server URL**: `https://nutrition-mcp.com/mcp`
 5. Click **Connect** — sign in or register when prompted
 6. After signing in, Claude can use your nutrition tools. If you reconnect later, sign in with the same email and password to keep your data.
+
+## Troubleshooting
+
+The full version, in 9 languages, is at [nutrition-mcp.com/tools#troubleshooting](https://nutrition-mcp.com/tools#troubleshooting). In short:
+
+- **Won't connect, or keeps asking to sign in:** remove the connector and add it again with exactly `https://nutrition-mcp.com/mcp`, then sign in with the same email and password (or Google account) as before — your data belongs to the account, not the connection. It stays connected as long as you use it at least every 90 days.
+- **`{"error":"session_expired"}` on the sign-in page:** the page is valid for 10 minutes and resets when the server restarts; reload it or start connecting again. `session_mismatch` means sign-in was finished in a different browser from the one that opened it.
+- **Can't sign in / forgot password:** the same form signs in and signs up, so a wrong password shows the sign-in service's error. If you signed up with Google, use **Continue with Google**. There is no self-service reset yet — email anton@nutrition-mcp.com from your account's address.
+- **History gone after reconnecting:** each email is a separate account; sign in with the one you used originally.
+- **The AI answers but doesn't log:** check the connector is enabled for the conversation, ask explicitly, and approve tool permission prompts.
+- **Meals on the wrong day:** days follow your timezone (UTC until you set one). Set it with `set_timezone`; past entries regroup, but one given a specific time while the timezone was wrong keeps that moment — fix it with `update_meal`.
+- **No charts or cards:** widgets need a host that supports MCP Apps; after `set_widget_display`, start a new conversation. The meal-logged card only appears once goals are set.
+- **Importer won't open or can't save:** ask the AI to import the file itself with `bulk_import_meals` (duplicates are skipped, so re-sending is safe). If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first; the panel skips it while tracking is off.
+- **"Rate limit exceeded" / "Too many failed authentication attempts":** 60 requests a minute per account, 30 a minute per network on the sign-in pages. After 20 rejected connection attempts in a row, a network is paused for 5 minutes, growing to at most an hour — usually an old connector retrying; remove and re-add it.
+- **Barcode not found or wrong:** data comes from Open Food Facts (8–14 digits, no caffeine data); the AI can estimate from the name or a label photo.
+- **Export link doesn't work:** links expire after 60 minutes and each export replaces the last; ask for a fresh one. An export reporting 0 meals when you expected history usually means you signed in with a different email.
+- **Deleting your account:** `delete_account` permanently removes everything after you confirm; export first if you want a copy.
+- **Reporting a problem:** bugs on [GitHub Issues](https://github.com/akutishevsky/nutrition-mcp/issues) (never include your password); security issues privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## API Endpoints
 
