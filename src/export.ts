@@ -594,7 +594,8 @@ export function buildExportReadme(opts: {
         "  * the server runtime log — a short rolling buffer of requests that does not contain your account id or email, so it cannot be looked up by account;",
         "  * our providers' own short-lived operational logs (including the sign-in provider's audit records) and their rolling backups, which age out on their own schedule;",
         "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes;",
-        "  * internal bookkeeping: the de-duplication keys stored beside meals, water and weight entries, and the PKCE challenge of a pending sign-in.",
+        "  * internal bookkeeping: the de-duplication keys stored beside meals, water and weight entries, and the PKCE challenge of a pending sign-in;",
+        "  * a sign-in session record at our sign-in provider (IP address and browser), if one was ever left behind after sign-in; it is deleted with your account.",
         "",
     ].join("\n");
 }
