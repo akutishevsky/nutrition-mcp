@@ -1004,7 +1004,7 @@ const TOOLS_EN: ToolsDoc = {
             "cannot-sign-in": {
                 question: "I can't sign in, or I forgot my password",
                 answerHtml:
-                    'The same form signs you in and creates new accounts, so a wrong password for an existing email shows an error from the sign-in service rather than a plain "wrong password". Check the email for typos. If you created your account with <strong>Continue with Google</strong>, use that button again. There is no self-service password reset yet: email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> from the address on your account and I will reset it.',
+                    'Use <strong>Sign in</strong> for an account you already have: a wrong email or password there shows "Wrong email or password" and never creates a new account. <strong>Create account</strong> is only for your first visit. Check the email for typos. If you created your account with <strong>Continue with Google</strong>, use that button again. There is no self-service password reset yet: email <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> from the address on your account and I will reset it.',
             },
             "history-missing": {
                 question: "I reconnected and my history is gone",
