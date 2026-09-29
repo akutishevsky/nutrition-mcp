@@ -7,7 +7,8 @@ export const LOGIN_PL: LoginDoc = {
     dividerText: "albo użyj e-maila",
     emailLabel: "E-mail",
     passwordLabel: "Hasło",
-    continueButton: "Kontynuuj",
+    signInButton: "Zaloguj się",
+    createAccountButton: "Załóż konto",
     // {terms}/{privacy} stand mid-sentence after "akceptujesz", so both link
     // texts are in the accusative — Polish inflects them there, and the
     // nominative "Polityka prywatności" would read as a grammatical error.
@@ -16,7 +17,7 @@ export const LOGIN_PL: LoginDoc = {
     termsLinkText: "Regulamin",
     privacyLinkText: "Politykę prywatności",
     newHereNote:
-        "Pierwszy raz? Po prostu podaj e-mail i hasło — konto utworzy się automatycznie.",
+        "Pierwszy raz? Podaj e-mail i hasło, a potem wybierz „Załóż konto”.",
     afterConnectNote:
         "Po udanym połączeniu w Twoim kliencie zapisz hasło w bezpiecznym miejscu i zamknij tę kartę przeglądarki.",
 };
@@ -25,6 +26,16 @@ export const LOGIN_ERRORS_PL: LoginErrors = {
     googleCancelled:
         "Logowanie przez Google zostało anulowane. Spróbuj ponownie.",
     googleFailed: "Logowanie przez Google nie powiodło się. Spróbuj ponownie.",
+    invalidCredentials: "Nieprawidłowy e-mail lub hasło.",
+    signInFailed:
+        "Logowanie chwilowo nie działa. Spróbuj ponownie za kilka minut.",
+    weakPassword:
+        "To hasło jest za słabe. Wybierz dłuższe, łączące litery, cyfry i symbole.",
+    passwordTooLong:
+        "To hasło jest za długie. Wybierz takie, które ma najwyżej 72 znaki.",
+    emailInvalid:
+        "Ten adres e-mail jest nieprawidłowy. Sprawdź, czy nie ma w nim literówki.",
+    signUpFailed: "Nie udało się założyć konta. Spróbuj ponownie później.",
 };
 
 export const LOGIN_CLIENT_NOTICE_PL: LoginClientNotice = {

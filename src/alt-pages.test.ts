@@ -459,7 +459,8 @@ test("every locale has a built login page, in its own language", async () => {
             doc.dividerText,
             doc.emailLabel,
             doc.passwordLabel,
-            doc.continueButton,
+            doc.signInButton,
+            doc.createAccountButton,
             doc.termsLinkText,
             doc.privacyLinkText,
             doc.newHereNote,
@@ -468,6 +469,13 @@ test("every locale has a built login page, in its own language", async () => {
             expect(`${path} [${line}]: ${html.includes(line)}`).toBe(
                 `${path} [${line}]: true`,
             );
+        }
+        // Both email actions are their own submit button; src/oauth.ts
+        // reads `action` to decide whether a sign-up is allowed at all.
+        for (const action of ["signin", "signup"]) {
+            expect(
+                `${path} [${action}]: ${html.includes(`name="action" value="${action}"`)}`,
+            ).toBe(`${path} [${action}]: true`);
         }
         // And not the English original underneath it: a page that renders
         // its own strings AND keeps English ones is a half-regenerated

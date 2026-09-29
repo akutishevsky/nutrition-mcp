@@ -1,5 +1,6 @@
 import { test, expect, beforeAll, afterAll, afterEach, spyOn } from "bun:test";
 import { signInUser, signInWithGoogleIdToken, signUpUser } from "./supabase.js";
+import { SignInError, SignUpError } from "./auth-errors.js";
 
 // Supabase Auth only verifies the credential; every sign-in still makes
 // GoTrue create a session nothing uses, so supabase.ts ends it at once. The
@@ -10,6 +11,8 @@ import { signInUser, signInWithGoogleIdToken, signUpUser } from "./supabase.js";
 const USER_ID = "3f0c9a52-6c1e-4d0a-9b1f-2a7d8e5c4b10";
 let logoutStatus = 204;
 let signupReturnsSession = true;
+// When set, the password grant and /signup answer with this GoTrue error.
+let authFailure: { status: number; code: string } | null = null;
 const calls: { path: string; search: string; auth: string | null }[] = [];
 
 function session(accessToken: string) {
@@ -43,6 +46,20 @@ async function fakeGoTrue(
         search: url.search,
         auth: req.headers.get("authorization"),
     });
+    if (
+        authFailure &&
+        (url.pathname === "/auth/v1/signup" ||
+            url.searchParams.get("grant_type") === "password")
+    ) {
+        return json(
+            {
+                code: authFailure.status,
+                error_code: authFailure.code,
+                msg: "GoTrue says something about a@example.com",
+            },
+            authFailure.status,
+        );
+    }
     switch (url.pathname) {
         case "/auth/v1/token":
             return json(
@@ -85,6 +102,7 @@ afterEach(() => {
     calls.length = 0;
     logoutStatus = 204;
     signupReturnsSession = true;
+    authFailure = null;
 });
 
 // The revoke is fire-and-forget, so wait for it to be sent.
@@ -132,9 +150,62 @@ test("a failed revoke neither fails the sign-in nor logs the user", async () => 
     }
 });
 
-test("a sign-up that returns no session sends no logout", async () => {
+// No session on sign-up means Supabase is holding the account for email
+// confirmation. There is no confirmation flow yet, so it must not come back
+// as a user id (that would issue a code for an unproven address), and there
+// is no session to revoke.
+test("a sign-up that returns no session is refused and sends no logout", async () => {
     signupReturnsSession = false;
-    expect(await signUpUser("a@example.com", "pw")).toBe(USER_ID);
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    try {
+        const err = await signUpUser("a@example.com", "pw").catch((e) => e);
+        expect(err).toBeInstanceOf(SignUpError);
+        expect((err as SignUpError).code).toBe("other");
+        expect(warn.mock.calls.map((c) => c.join(" "))).toEqual([
+            "[auth] sign-up-unconfirmed",
+        ]);
+    } finally {
+        warn.mockRestore();
+    }
     await Bun.sleep(20);
     expect(calls.filter((c) => c.path === "/auth/v1/logout")).toEqual([]);
 });
+
+// /approve picks its message from these codes alone, so the mapping from
+// GoTrue's error_code is what decides what the user reads — and the message
+// (which may quote the address) must not survive into the thrown error.
+test.each([
+    [400, "invalid_credentials", "invalid_credentials"],
+    [429, "over_request_rate_limit", "rate_limited"],
+    [400, "email_not_confirmed", "other"],
+    [500, "unexpected_failure", "other"],
+] as const)(
+    "a sign-in refused with %i %s throws SignInError(%s)",
+    async (status, code, expected) => {
+        authFailure = { status, code };
+        const err = await signInUser("a@example.com", "pw").catch((e) => e);
+        expect(err).toBeInstanceOf(SignInError);
+        expect((err as SignInError).code).toBe(expected);
+        expect((err as Error).message).not.toContain("a@example.com");
+    },
+);
+
+test.each([
+    [422, "user_already_exists", "user_exists"],
+    [422, "email_exists", "user_exists"],
+    [422, "weak_password", "weak_password"],
+    [400, "email_address_invalid", "email_invalid"],
+    [400, "validation_failed", "other"],
+    [429, "over_request_rate_limit", "rate_limited"],
+    [429, "over_email_send_rate_limit", "rate_limited"],
+    [422, "signup_disabled", "other"],
+] as const)(
+    "a sign-up refused with %i %s throws SignUpError(%s)",
+    async (status, code, expected) => {
+        authFailure = { status, code };
+        const err = await signUpUser("a@example.com", "pw").catch((e) => e);
+        expect(err).toBeInstanceOf(SignUpError);
+        expect((err as SignUpError).code).toBe(expected);
+        expect((err as Error).message).not.toContain("a@example.com");
+    },
+);
