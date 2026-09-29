@@ -11,6 +11,12 @@ import { escapeLikePattern, tokenizeQuery } from "./search.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 import { hashSecret } from "./token-hash.js";
 import { ToolError } from "./errors.js";
+import {
+    SignInError,
+    SignUpError,
+    signInErrorCode,
+    signUpErrorCode,
+} from "./auth-errors.js";
 
 let supabase: SupabaseClient;
 
@@ -77,8 +83,19 @@ export async function signUpUser(
         password,
     });
 
-    if (error) throw new Error(error.message);
-    if (!data.user) throw new Error("Sign-up failed");
+    // Only the code leaves this function: some GoTrue messages quote the
+    // address, and none of them is shown to the user (src/auth-errors.ts).
+    if (error) throw new SignUpError(signUpErrorCode(error.code));
+    if (!data.user) throw new SignUpError("other");
+    // No session means Supabase is holding the account for email
+    // confirmation (Confirm email on). This server has no confirmation flow
+    // yet, so it must not hand out an authorization code for an address
+    // nobody has proved they own: refuse, and log it so the setting gets
+    // noticed.
+    if (!data.session) {
+        console.warn("[auth] sign-up-unconfirmed");
+        throw new SignUpError("other");
+    }
     discardAuthSession(client, data.session);
     return data.user.id;
 }
@@ -93,7 +110,7 @@ export async function signInUser(
         password,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) throw new SignInError(signInErrorCode(error.code));
     discardAuthSession(client, data.session);
     return data.user.id;
 }

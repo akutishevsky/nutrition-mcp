@@ -449,7 +449,7 @@ export const TOOLS_IT: ToolsDoc = {
                 question:
                     "Non riesco ad accedere, o ho dimenticato la password",
                 answerHtml:
-                    "Lo stesso modulo serve sia per accedere sia per creare nuovi account, quindi una password sbagliata per un'email esistente mostra un errore del servizio di accesso invece di un semplice \"password errata\". Controlla che l'email non contenga errori di battitura. Se hai creato l'account con <strong>Continua con Google</strong>, usa di nuovo quel pulsante. Non c'è ancora un modo per reimpostare la password da solo: scrivi a <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a> dall'indirizzo del tuo account e la reimposterò io.",
+                    "Usa <strong>Accedi</strong> per un account che hai già: un'email o una password sbagliate mostrano \"Email o password errate\" e non creano mai un nuovo account. <strong>Crea account</strong> serve solo alla prima visita. Controlla che l'email non contenga errori di battitura. Se hai creato l'account con <strong>Continua con Google</strong>, usa di nuovo quel pulsante. Non c'è ancora un modo per reimpostare la password da solo: scrivi a <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a> dall'indirizzo del tuo account e la reimposterò io.",
             },
             "history-missing": {
                 question: "Mi sono ricollegato e la mia cronologia è sparita",

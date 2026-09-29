@@ -89,6 +89,19 @@ const LOGIN_STYLE = `        <style>
             body.auth .auth-btn {
                 border-radius: 10px;
             }
+            /* Sign in / Create account, stacked rather than side by side so
+               long translated labels never squeeze at 375px. The wrapper
+               carries the gap .auth-btn's own margin-top gave the single
+               button before. */
+            .auth-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 0.55rem;
+                margin-top: 0.4rem;
+            }
+            .auth-actions .auth-btn {
+                margin-top: 0;
+            }
             /* Lighter and centred than the base .translation-notice box
                (public/styles.css) — the auth-card already has its own
                border/background, so the full callout treatment reads as a
@@ -252,14 +265,28 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true, consent: false })}
                                     autocomplete="current-password"
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                name="action"
-                                value="login"
-                                class="auth-btn auth-btn-secondary"
-                            >
-                                ${esc(doc.continueButton)}
-                            </button>
+                            <!-- Two submits of one form, posting action=signin or
+                                 action=signup: sign-up is an explicit choice, never
+                                 what a failed sign-in falls back to. Sign in comes
+                                 first so Enter triggers it. -->
+                            <div class="auth-actions">
+                                <button
+                                    type="submit"
+                                    name="action"
+                                    value="signin"
+                                    class="auth-btn"
+                                >
+                                    ${esc(doc.signInButton)}
+                                </button>
+                                <button
+                                    type="submit"
+                                    name="action"
+                                    value="signup"
+                                    class="auth-btn auth-btn-secondary"
+                                >
+                                    ${esc(doc.createAccountButton)}
+                                </button>
+                            </div>
                             <p class="auth-note">${consent}</p>
                             <p class="auth-note">${esc(doc.newHereNote)}</p>
                             <p class="auth-note">${esc(doc.afterConnectNote)}</p>

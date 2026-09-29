@@ -72,7 +72,9 @@ export interface OAuthStore {
     ): Promise<{ userId: string; clientId: string | null } | null>;
 }
 
-// Each resolves to the Supabase user id, or throws with a user-facing message.
+// Each resolves to the Supabase user id. signIn throws a SignInError and
+// signUp a SignUpError (src/auth-errors.ts), whose `code` picks the login
+// page's translated message; signInWithGoogleIdToken throws a plain Error.
 export interface OAuthAuth {
     signIn(email: string, password: string): Promise<string>;
     signUp(email: string, password: string): Promise<string>;

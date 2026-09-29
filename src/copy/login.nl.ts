@@ -7,13 +7,14 @@ export const LOGIN_NL: LoginDoc = {
     dividerText: "of gebruik e-mail",
     emailLabel: "E-mail",
     passwordLabel: "Wachtwoord",
-    continueButton: "Doorgaan",
+    signInButton: "Inloggen",
+    createAccountButton: "Account aanmaken",
     consentNote:
         "Als je doorgaat, bevestig je dat je minstens 16 jaar oud bent en ga je akkoord met de {terms} en het {privacy}.",
     termsLinkText: "Gebruiksvoorwaarden",
     privacyLinkText: "Privacybeleid",
     newHereNote:
-        "Nieuw hier? Vul gewoon je e-mailadres en een wachtwoord in — je account wordt automatisch aangemaakt.",
+        "Nieuw hier? Vul je e-mailadres en een wachtwoord in en kies dan ‘Account aanmaken’.",
     afterConnectNote:
         "Als de verbinding in je client is gelukt, bewaar je wachtwoord dan op een veilige plek en sluit dit browsertabblad.",
 };
@@ -21,6 +22,16 @@ export const LOGIN_NL: LoginDoc = {
 export const LOGIN_ERRORS_NL: LoginErrors = {
     googleCancelled: "Inloggen met Google is geannuleerd. Probeer het opnieuw.",
     googleFailed: "Inloggen met Google is mislukt. Probeer het opnieuw.",
+    invalidCredentials: "Verkeerd e-mailadres of wachtwoord.",
+    signInFailed:
+        "Inloggen werkt op dit moment niet. Probeer het over een paar minuten opnieuw.",
+    weakPassword:
+        "Dat wachtwoord is te zwak. Kies een langer wachtwoord met een mix van letters, cijfers en symbolen.",
+    passwordTooLong:
+        "Dat wachtwoord is te lang. Kies er een van hoogstens 72 tekens.",
+    emailInvalid: "Dat e-mailadres is ongeldig. Controleer het op typfouten.",
+    signUpFailed:
+        "We konden je account niet aanmaken. Probeer het later opnieuw.",
 };
 
 export const LOGIN_CLIENT_NOTICE_NL: LoginClientNotice = {

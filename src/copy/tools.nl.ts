@@ -445,7 +445,7 @@ export const TOOLS_NL: ToolsDoc = {
                 question:
                     "Ik kan niet inloggen, of ik ben mijn wachtwoord vergeten",
                 answerHtml:
-                    'Hetzelfde formulier logt je in en maakt nieuwe accounts aan, dus een verkeerd wachtwoord voor een bestaand e-mailadres geeft een foutmelding van de inlogdienst in plaats van een simpel "verkeerd wachtwoord". Controleer het e-mailadres op typfouten. Heb je je account aangemaakt met <strong>Doorgaan met Google</strong>, gebruik dan weer die knop. Zelf je wachtwoord resetten kan nog niet: mail vanaf het adres van je account naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dan reset ik het voor je.',
+                    'Gebruik <strong>Inloggen</strong> voor een account dat je al hebt: een verkeerd e-mailadres of wachtwoord geeft daar "Verkeerd e-mailadres of wachtwoord" en maakt nooit een nieuw account aan. <strong>Account aanmaken</strong> is alleen voor je eerste bezoek. Controleer het e-mailadres op typfouten. Heb je je account aangemaakt met <strong>Doorgaan met Google</strong>, gebruik dan weer die knop. Zelf je wachtwoord resetten kan nog niet: mail vanaf het adres van je account naar <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dan reset ik het voor je.',
             },
             "history-missing": {
                 question:

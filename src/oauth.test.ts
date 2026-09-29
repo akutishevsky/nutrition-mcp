@@ -21,6 +21,8 @@ import { hashSecret } from "./token-hash.js";
 import { authorizationServerMetadata } from "./discovery.js";
 import { _resetBuckets } from "./rate-limit.js";
 import { SITE_LOCALES } from "./routes.js";
+import { SignInError, SignUpError } from "./auth-errors.js";
+import { LOGIN_ERRORS } from "./copy/login.js";
 
 // No env client is set up here: createOAuthRouter() no longer requires one,
 // and every test below registers its own client through POST /register. The
@@ -1850,6 +1852,293 @@ test("register -> authorize -> approve -> token -> refresh", async () => {
     expect(((await stale.json()) as { error: string }).error).toBe(
         "invalid_grant",
     );
+});
+
+// ---------- POST /approve: explicit sign-up (brief 11) ----------
+
+describe("POST /approve sign-in and sign-up", () => {
+    const EN = LOGIN_ERRORS.en;
+    // Supabase's own wording for the failures below. None of it may reach
+    // the page: it is untranslated, and "already registered" would confirm
+    // that an address has an account.
+    const SUPABASE_TEXT = [
+        "Invalid login credentials",
+        "User already registered",
+        "Password should be",
+        "sign-in failed",
+        "sign-up failed",
+    ];
+
+    // A fake whose accounts are a Map of email -> password, answering the
+    // way GoTrue does with Confirm email off. `signUpFails` forces a
+    // sign-up refusal; `signInFails` forces a non-credentials sign-in error.
+    function accountsAuth(
+        opts: {
+            accounts?: Record<string, string>;
+            signUpFails?: SignUpError;
+            signInFails?: SignInError;
+        } = {},
+    ) {
+        const accounts = new Map(Object.entries(opts.accounts ?? {}));
+        const calls = { signIn: 0, signUp: 0 };
+        const auth: OAuthAuth = {
+            signIn: async (email, password) => {
+                calls.signIn++;
+                if (opts.signInFails) throw opts.signInFails;
+                if (accounts.get(email) !== password) {
+                    throw new SignInError("invalid_credentials");
+                }
+                return `user:${email}`;
+            },
+            signUp: async (email, password) => {
+                calls.signUp++;
+                if (opts.signUpFails) throw opts.signUpFails;
+                if (accounts.has(email)) throw new SignUpError("user_exists");
+                accounts.set(email, password);
+                return `user:${email}`;
+            },
+            signInWithGoogleIdToken: async () => "user-google",
+        };
+        return { auth, calls, accounts };
+    }
+
+    async function submit(
+        auth: OAuthAuth,
+        fields: { email: string; password: string; action?: string },
+        query: Record<string, string> = {},
+    ) {
+        _resetBuckets();
+        const { app, store } = buildTestApp({ auth });
+        const ip = "198.51.100.90";
+        const client = await registerClient(app, ip, {
+            token_endpoint_auth_method: "none",
+        });
+        const authorize = await fire(
+            app,
+            "GET",
+            authorizePath({ client_id: client.client_id, ...query }),
+            ip,
+        );
+        expect(authorize.status).toBe(200);
+        const res = await postForm(
+            app,
+            "/approve",
+            ip,
+            {
+                session_id: sessionIdFrom(await authorize.text())!,
+                ...fields,
+            },
+            { cookie: bindingCookie(authorize) },
+        );
+        return { res, store };
+    }
+
+    async function expectRefused(
+        res: Response,
+        store: FakeStore,
+        message: string,
+    ) {
+        expect(res.status).toBe(400);
+        expect(res.headers.get("Location")).toBeNull();
+        expect(store.dump().codes.size).toBe(0);
+        const html = await res.text();
+        expect(html).toContain(message);
+        for (const text of SUPABASE_TEXT) expect(html).not.toContain(text);
+    }
+
+    test("a wrong password on Sign in never signs up and says so generically", async () => {
+        const { auth, calls, accounts } = accountsAuth({
+            accounts: { "a@example.com": "right-pw" },
+        });
+        const { res, store } = await submit(auth, {
+            email: "a@example.com",
+            password: "wrong-pw",
+            action: "signin",
+        });
+        await expectRefused(res, store, EN.invalidCredentials);
+        expect(calls.signUp).toBe(0);
+        expect(accounts.get("a@example.com")).toBe("right-pw");
+    });
+
+    // The regression itself: an unknown address on Sign in used to become
+    // an account with whatever password was typed.
+    test("an unknown address on Sign in creates no account", async () => {
+        const { auth, calls, accounts } = accountsAuth();
+        const { res, store } = await submit(auth, {
+            email: "new@example.com",
+            password: "pw-123456",
+            action: "signin",
+        });
+        await expectRefused(res, store, EN.invalidCredentials);
+        expect(calls.signUp).toBe(0);
+        expect(accounts.size).toBe(0);
+    });
+
+    // Old cached login pages post action=login, and a missing or unknown
+    // action must never be read as a sign-up.
+    for (const action of ["login", "", "SIGNUP", undefined]) {
+        test(`action=${JSON.stringify(action)} is treated as Sign in`, async () => {
+            const { auth, calls } = accountsAuth();
+            const { res, store } = await submit(auth, {
+                email: "new@example.com",
+                password: "pw-123456",
+                ...(action === undefined ? {} : { action }),
+            });
+            await expectRefused(res, store, EN.invalidCredentials);
+            expect(calls.signUp).toBe(0);
+        });
+    }
+
+    test("the right password on Sign in finishes authorization", async () => {
+        const { auth } = accountsAuth({
+            accounts: { "a@example.com": "right-pw" },
+        });
+        const { res, store } = await submit(auth, {
+            email: "a@example.com",
+            password: "right-pw",
+            action: "signin",
+        });
+        expect(res.status).toBe(302);
+        expect(codeFrom(res)).toBeTruthy();
+        expect([...store.dump().codes.values()][0]!.user_id).toBe(
+            "user:a@example.com",
+        );
+    });
+
+    test("Create account for a new address creates it and finishes authorization", async () => {
+        const { auth, calls, accounts } = accountsAuth();
+        const { res } = await submit(auth, {
+            email: "new@example.com",
+            password: "pw-123456",
+            action: "signup",
+        });
+        expect(res.status).toBe(302);
+        expect(calls).toEqual({ signIn: 1, signUp: 1 });
+        expect(accounts.get("new@example.com")).toBe("pw-123456");
+    });
+
+    test("Create account with an existing account's right password just signs in", async () => {
+        const { auth, calls } = accountsAuth({
+            accounts: { "a@example.com": "right-pw" },
+        });
+        const { res } = await submit(auth, {
+            email: "a@example.com",
+            password: "right-pw",
+            action: "signup",
+        });
+        expect(res.status).toBe(302);
+        expect(calls.signUp).toBe(0);
+    });
+
+    test("Create account with an existing account's wrong password reads as a wrong password", async () => {
+        const { auth, accounts } = accountsAuth({
+            accounts: { "a@example.com": "right-pw" },
+        });
+        const { res, store } = await submit(auth, {
+            email: "a@example.com",
+            password: "wrong-pw",
+            action: "signup",
+        });
+        await expectRefused(res, store, EN.invalidCredentials);
+        expect(accounts.get("a@example.com")).toBe("right-pw");
+    });
+
+    for (const [code, message] of [
+        ["weak_password", EN.weakPassword],
+        ["email_invalid", EN.emailInvalid],
+        ["rate_limited", EN.signInFailed],
+        ["other", EN.signUpFailed],
+    ] as const) {
+        test(`a sign-up refused as ${code} shows its own message`, async () => {
+            const { auth } = accountsAuth({
+                signUpFails: new SignUpError(code),
+            });
+            const { res, store } = await submit(auth, {
+                email: "new@example.com",
+                password: "pw-123456",
+                action: "signup",
+            });
+            await expectRefused(res, store, message);
+        });
+    }
+
+    // GoTrue refuses a password over bcrypt's 72 bytes with the same
+    // validation_failed a malformed email gets, so /approve checks it first
+    // and names the right field. Counted in bytes: 25 three-byte characters
+    // are 75 bytes.
+    for (const password of ["x".repeat(73), "€".repeat(25)]) {
+        test(`Create account with a ${Buffer.byteLength(password)}-byte password asks for a shorter one without calling sign-up`, async () => {
+            const { auth, calls } = accountsAuth();
+            const { res, store } = await submit(auth, {
+                email: "new@example.com",
+                password,
+                action: "signup",
+            });
+            await expectRefused(res, store, EN.passwordTooLong);
+            expect(calls.signUp).toBe(0);
+        });
+    }
+
+    test("a 72-byte password still signs up", async () => {
+        const { auth } = accountsAuth();
+        const { res } = await submit(auth, {
+            email: "new@example.com",
+            password: "x".repeat(72),
+            action: "signup",
+        });
+        expect(res.status).toBe(302);
+    });
+
+    // A sign-in that couldn't be judged (a 429, an outage) says so on both
+    // buttons, and Create account doesn't take it as "no such account".
+    for (const action of ["signin", "signup"]) {
+        test(`a sign-in that fails for another reason on ${action} is signInFailed, never a sign-up`, async () => {
+            const { auth, calls } = accountsAuth({
+                signInFails: new SignInError("rate_limited"),
+            });
+            const { res, store } = await submit(auth, {
+                email: "new@example.com",
+                password: "pw-123456",
+                action,
+            });
+            await expectRefused(res, store, EN.signInFailed);
+            expect(calls.signUp).toBe(0);
+        });
+    }
+
+    // Anything that isn't one of our typed errors (a bug, a thrown string)
+    // still shows only translated text.
+    test("an untyped error never leaks its message", async () => {
+        const auth: OAuthAuth = {
+            signIn: async () => {
+                throw new Error("Invalid login credentials");
+            },
+            signUp: async () => {
+                throw new Error("User already registered");
+            },
+            signInWithGoogleIdToken: async () => "user-google",
+        };
+        const { res, store } = await submit(auth, {
+            email: "a@example.com",
+            password: "pw-123456",
+            action: "signup",
+        });
+        await expectRefused(res, store, EN.signInFailed);
+    });
+
+    test("the message is in the session's locale", async () => {
+        const { auth } = accountsAuth();
+        const { res, store } = await submit(
+            auth,
+            {
+                email: "new@example.com",
+                password: "pw-123456",
+                action: "signin",
+            },
+            { locale: "de" },
+        );
+        await expectRefused(res, store, LOGIN_ERRORS.de.invalidCredentials);
+    });
 });
 
 // ---------- POST /token (Phase B) ----------

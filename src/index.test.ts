@@ -301,6 +301,50 @@ describe("Content-Security-Policy on the OAuth login flow", () => {
     });
 });
 
+// HSTS pins browsers to https for a year, so it must only go out on a request
+// that actually arrived over https — via the proxy's x-forwarded-proto (DO and
+// Cloudflare terminate TLS), or the URL's own scheme with no proxy. A plain
+// http://localhost dev server must never send it: it would pin the developer's
+// browser to an https localhost that isn't there. /health is the cheapest
+// route (no database), and the header comes from the app-wide middleware, so
+// what holds there holds everywhere.
+describe("Strict-Transport-Security", () => {
+    const HSTS = "max-age=31536000; includeSubDomains";
+
+    test("is sent on a request forwarded as https", async () => {
+        const r = await app.request("http://x/health", {
+            headers: { "x-forwarded-proto": "https" },
+        });
+        expect(r.headers.get("Strict-Transport-Security")).toBe(HSTS);
+    });
+
+    test("is sent on a direct https request", async () => {
+        const r = await app.request("https://x/health");
+        expect(r.headers.get("Strict-Transport-Security")).toBe(HSTS);
+    });
+
+    test("is sent on the login flow's error responses too", async () => {
+        const r = await app.request("http://x/authorize", {
+            headers: { "x-forwarded-proto": "https" },
+        });
+        expect(r.status).toBe(400);
+        expect(r.headers.get("Strict-Transport-Security")).toBe(HSTS);
+    });
+
+    test("is absent on plain http", async () => {
+        const r = await app.request("http://localhost/health");
+        expect(r.headers.get("Strict-Transport-Security")).toBeNull();
+    });
+
+    // The proxy's word wins over the URL, exactly as getBaseUrl reads it.
+    test("is absent when the proxy says the client used http", async () => {
+        const r = await app.request("https://x/health", {
+            headers: { "x-forwarded-proto": "http" },
+        });
+        expect(r.headers.get("Strict-Transport-Security")).toBeNull();
+    });
+});
+
 // The public pages load Google Analytics and Microsoft Clarity only after the
 // consent banner's Accept, but the CSP is what lets them load at all — and a
 // host added here is one more place a page can send visitors' requests. These

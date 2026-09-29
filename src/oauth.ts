@@ -26,6 +26,12 @@ import {
 } from "./oauth-validate.js";
 import { hashSecret, newOpaqueToken } from "./token-hash.js";
 import { getBaseUrl } from "./url.js";
+import {
+    SignInError,
+    SignUpError,
+    type SignInErrorCode,
+    type SignUpErrorCode,
+} from "./auth-errors.js";
 import { issuerFor } from "./discovery.js";
 import { rateLimitAuth } from "./middleware.js";
 import {
@@ -381,7 +387,7 @@ export async function renderLoginPage(
         : "";
     // Every replacement is passed as a function: a string replacement expands
     // "$'", "$&" and "$`" patterns, and the notice and error carry text the
-    // caller controls (a registered host, a Supabase error message), which
+    // caller controls (a registered host), which
     // could otherwise splice copies of the template into the page.
     const notice = renderClientNotice(session);
     const switcher = await renderLangSwitcher(session, locale);
@@ -392,6 +398,34 @@ export async function renderLoginPage(
         .replaceAll("{{CLIENT_NOTICE}}", () => notice)
         .replaceAll("{{LANG_SWITCHER}}", () => switcher)
         .replaceAll("{{TRANSLATION_NOTICE}}", () => translation);
+}
+
+// bcrypt's limit, which GoTrue enforces on sign-up but reports as the same
+// validation_failed a malformed email gets — so it is checked here, where
+// the message can say which field is wrong.
+export const MAX_PASSWORD_BYTES = 72;
+
+// The login page's message for a refused Create account. user_exists means
+// the address has an account and the password was wrong (sign-in with it
+// already failed), so it reads exactly like a wrong password on Sign in.
+function signUpMessage(
+    err: unknown,
+    errors: (typeof LOGIN_ERRORS)[keyof typeof LOGIN_ERRORS],
+): string {
+    const code: SignUpErrorCode =
+        err instanceof SignUpError ? err.code : "other";
+    switch (code) {
+        case "user_exists":
+            return errors.invalidCredentials;
+        case "weak_password":
+            return errors.weakPassword;
+        case "email_invalid":
+            return errors.emailInvalid;
+        case "rate_limited":
+            return errors.signInFailed;
+        case "other":
+            return errors.signUpFailed;
+    }
 }
 
 // Mint an authorization code for the now-authenticated user and redirect back to
@@ -1007,13 +1041,18 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         return c.html(await renderLoginPage(sessionId, session));
     });
 
-    // Login/register endpoint — user submits email + password
+    // Email + password: the form's two submit buttons post action=signin or
+    // action=signup (anything else counts as signin). Sign-up is explicit and
+    // never a fallback: until brief 11, any failed sign-in silently created
+    // an account with the typed email and password, so a mistyped password
+    // became a sign-up attempt, and Supabase's raw "User already registered"
+    // both confused the user and confirmed the address had an account.
     oauth.post("/approve", async (c) => {
         const body = await c.req.parseBody();
         const sessionId = body.session_id as string;
         const email = (body.email as string)?.trim().toLowerCase();
         const password = body.password as string;
-        const action = body.action as string;
+        const action = body.action === "signup" ? "signup" : "signin";
 
         if (!sessionId || !email || !password) {
             return c.json({ error: "invalid_request" }, 400);
@@ -1028,21 +1067,36 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             return sessionMismatch(c, "approve");
         }
 
-        let userId: string;
-        try {
-            // Try sign-in first; if user doesn't exist, sign them up
-            try {
-                userId = await auth.signIn(email, password);
-            } catch {
-                userId = await auth.signUp(email, password);
-            }
-        } catch (err: unknown) {
-            const message =
-                err instanceof Error ? err.message : "Authentication failed";
-            return c.html(
+        // Only translated LOGIN_ERRORS text is ever shown here, picked by the
+        // error's code; Supabase's own message never reaches the page.
+        const errors = LOGIN_ERRORS[entry.session.locale];
+        const refuse = async (message: string) =>
+            c.html(
                 await renderLoginPage(sessionId, entry.session, message),
                 400,
             );
+
+        let userId: string;
+        try {
+            userId = await auth.signIn(email, password);
+        } catch (err: unknown) {
+            const code: SignInErrorCode =
+                err instanceof SignInError ? err.code : "other";
+            if (code !== "invalid_credentials") {
+                return refuse(errors.signInFailed);
+            }
+            // A wrong password on Sign in is just that. Create account signs
+            // in first, so the right password for an existing account simply
+            // connects; only a credentials failure goes on to sign up.
+            if (action === "signin") return refuse(errors.invalidCredentials);
+            if (Buffer.byteLength(password, "utf8") > MAX_PASSWORD_BYTES) {
+                return refuse(errors.passwordTooLong);
+            }
+            try {
+                userId = await auth.signUp(email, password);
+            } catch (err: unknown) {
+                return refuse(signUpMessage(err, errors));
+            }
         }
 
         return finishAuthorization(c, store, sessionId, entry.session, userId);

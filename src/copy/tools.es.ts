@@ -444,7 +444,7 @@ export const TOOLS_ES: ToolsDoc = {
             "cannot-sign-in": {
                 question: "No puedo iniciar sesión, u olvidé mi contraseña",
                 answerHtml:
-                    'El mismo formulario sirve para iniciar sesión y para crear cuentas nuevas, así que una contraseña incorrecta para un correo existente muestra un error del servicio de inicio de sesión en vez de un simple "contraseña incorrecta". Revisa que el correo no tenga errores. Si creaste tu cuenta con <strong>Continuar con Google</strong>, vuelve a usar ese botón. Todavía no hay forma de restablecer la contraseña por tu cuenta: escribe a <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> desde la dirección de tu cuenta y la restableceré.',
+                    'Usa <strong>Iniciar sesión</strong> para una cuenta que ya tienes: un correo o una contraseña incorrectos muestran "Correo o contraseña incorrectos" y nunca crean una cuenta nueva. <strong>Crear cuenta</strong> es solo para tu primera visita. Revisa que el correo no tenga errores. Si creaste tu cuenta con <strong>Continuar con Google</strong>, vuelve a usar ese botón. Todavía no hay forma de restablecer la contraseña por tu cuenta: escribe a <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> desde la dirección de tu cuenta y la restableceré.',
             },
             "history-missing": {
                 question: "Me reconecté y mi historial ha desaparecido",

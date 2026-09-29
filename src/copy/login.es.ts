@@ -7,13 +7,14 @@ export const LOGIN_ES: LoginDoc = {
     dividerText: "o usa tu correo",
     emailLabel: "Correo electrónico",
     passwordLabel: "Contraseña",
-    continueButton: "Continuar",
+    signInButton: "Iniciar sesión",
+    createAccountButton: "Crear cuenta",
     consentNote:
         "Al continuar confirmas que tienes al menos 16 años y aceptas los {terms} y la {privacy}.",
     termsLinkText: "Términos de servicio",
     privacyLinkText: "Política de privacidad",
     newHereNote:
-        "¿Primera vez por aquí? Escribe tu correo y una contraseña — la cuenta se creará automáticamente.",
+        "¿Primera vez por aquí? Escribe tu correo y una contraseña y elige «Crear cuenta».",
     afterConnectNote:
         "Cuando la conexión se haya completado en tu cliente, guarda tu contraseña en un lugar seguro y cierra esta pestaña del navegador.",
 };
@@ -22,6 +23,17 @@ export const LOGIN_ERRORS_ES: LoginErrors = {
     googleCancelled:
         "Se canceló el inicio de sesión con Google. Inténtalo de nuevo.",
     googleFailed: "El inicio de sesión con Google falló. Inténtalo de nuevo.",
+    invalidCredentials: "Correo o contraseña incorrectos.",
+    signInFailed:
+        "El inicio de sesión no funciona ahora mismo. Inténtalo de nuevo en unos minutos.",
+    weakPassword:
+        "Esa contraseña es demasiado débil. Elige una más larga que combine letras, números y símbolos.",
+    passwordTooLong:
+        "Esa contraseña es demasiado larga. Elige una de 72 caracteres como máximo.",
+    emailInvalid:
+        "Esa dirección de correo no es válida. Revisa que no tenga errores.",
+    signUpFailed:
+        "No hemos podido crear tu cuenta. Inténtalo de nuevo más tarde.",
 };
 
 export const LOGIN_CLIENT_NOTICE_ES: LoginClientNotice = {
