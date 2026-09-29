@@ -10,7 +10,7 @@ export const LOGIN_NL: LoginDoc = {
     signInButton: "Inloggen",
     createAccountButton: "Account aanmaken",
     consentNote:
-        "Als je doorgaat, bevestig je dat je minstens 16 jaar oud bent en ga je akkoord met de {terms} en het {privacy}.",
+        "Als je doorgaat, bevestig je dat je minstens 16 jaar oud bent, ga je akkoord met de {terms} en het {privacy} en geef je ons toestemming om de maaltijden, het gewicht en de alcohol die je logt op te slaan, wat gezondheidsgegevens zijn.",
     termsLinkText: "Gebruiksvoorwaarden",
     privacyLinkText: "Privacybeleid",
     newHereNote:

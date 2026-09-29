@@ -10,7 +10,7 @@ export const LOGIN_ES: LoginDoc = {
     signInButton: "Iniciar sesión",
     createAccountButton: "Crear cuenta",
     consentNote:
-        "Al continuar confirmas que tienes al menos 16 años y aceptas los {terms} y la {privacy}.",
+        "Al continuar confirmas que tienes al menos 16 años, aceptas los {terms} y la {privacy}, y consientes que almacenemos las comidas, el peso y el alcohol que registres, que son datos de salud.",
     termsLinkText: "Términos de servicio",
     privacyLinkText: "Política de privacidad",
     newHereNote:

@@ -532,3 +532,48 @@ test("every locale's Google sign-in errors are translated", () => {
         }
     }
 });
+
+// Cloudflare Email Obfuscation (on at DigitalOcean's managed Cloudflare, with
+// no way to switch it off) rewrites every address outside an email_off region
+// into a script-only link. One pair wrapping the whole <body> keeps the
+// contact address readable without JavaScript; see EMAIL_OFF_OPEN in
+// scripts/site-partials.ts. Walks every generated page on disk, login
+// template included, not just PAGE_ROUTES.
+test("every generated page wraps its body in one email_off pair, with every address inside", async () => {
+    const glob = new Bun.Glob("public/**/*.html");
+    const pages: string[] = [];
+    for await (const path of glob.scan(".")) {
+        if (path.startsWith("public/widgets/")) continue;
+        pages.push(path);
+    }
+    expect(pages.length).toBeGreaterThan(0);
+    const OPEN = "<!--email_off-->";
+    const CLOSE = "<!--/email_off-->";
+    for (const path of pages) {
+        const html = await Bun.file(path).text();
+        const count = (needle: string) => html.split(needle).length - 1;
+        expect({ path, open: count(OPEN), close: count(CLOSE) }).toEqual({
+            path,
+            open: 1,
+            close: 1,
+        });
+        const open = html.indexOf(OPEN);
+        const close = html.indexOf(CLOSE);
+        // Directly inside <body> (its opening tag and the generator banner
+        // may precede it) and closing right before </body>.
+        expect(open).toBeGreaterThan(html.indexOf("<body"));
+        expect(html.slice(close + CLOSE.length).trim()).toMatch(
+            /^<\/body>\s*<\/html>$/,
+        );
+        const address =
+            /mailto:|[\w.+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b/gi;
+        for (const m of html.matchAll(address)) {
+            const at = m.index ?? -1;
+            expect({
+                path,
+                match: m[0],
+                inside: at > open && at < close,
+            }).toEqual({ path, match: m[0], inside: true });
+        }
+    }
+});

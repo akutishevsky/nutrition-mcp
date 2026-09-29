@@ -13,6 +13,9 @@ import {
     exportStoragePaths,
     timezoneLevels,
     TZ_LEVEL_THRESHOLDS,
+    TZ_MIN_PROFILES,
+    publicLandingStats,
+    type RawLandingStats,
     seedPatreonTokensFromEnv,
     type Meal,
     type MealInput,
@@ -696,6 +699,124 @@ describe("timezoneLevels", () => {
             junk: undefined as unknown as number,
         });
         expect(Object.keys(levels)).toEqual(["real"]);
+    });
+});
+
+describe("publicLandingStats", () => {
+    // The k-anonymity boundary for /api/stats (brief 13): a timezone held by
+    // fewer than TZ_MIN_PROFILES profiles must not leave the server in any
+    // form, whichever version of public_landing_stats() the DB is running.
+
+    function raw(
+        counts: Record<string, number> | undefined,
+        list: string[],
+    ): RawLandingStats {
+        return {
+            food_logs: 10,
+            total_calories: 5000,
+            total_protein_g: 1,
+            total_carbs_g: 2,
+            total_fat_g: 3,
+            timezones: list.length,
+            timezone_list: list,
+            ...(counts === undefined ? {} : { timezone_counts: counts }),
+        };
+    }
+
+    test("the threshold is three", () => {
+        // The privacy policy states the number; changing it means changing
+        // the policy in every locale and the SQL function.
+        expect(TZ_MIN_PROFILES).toBe(3);
+    });
+
+    test("no timezone below the threshold survives, in the list or the levels", () => {
+        // What a DB still on the pre-brief-13 function returns: every
+        // timezone, lone profiles included.
+        const stats = publicLandingStats(
+            raw(
+                {
+                    "Europe/Berlin": 38,
+                    "America/New_York": 3,
+                    "Europe/Kyiv": 2,
+                    "Pacific/Apia": 1,
+                },
+                [
+                    "America/New_York",
+                    "Europe/Berlin",
+                    "Europe/Kyiv",
+                    "Pacific/Apia",
+                ],
+            ),
+        );
+        expect(stats.timezone_list).toEqual([
+            "America/New_York",
+            "Europe/Berlin",
+        ]);
+        expect(Object.keys(stats.timezone_levels).sort()).toEqual([
+            "America/New_York",
+            "Europe/Berlin",
+        ]);
+    });
+
+    test("exact counts are never served", () => {
+        const stats = publicLandingStats(
+            raw({ "Europe/Berlin": 38 }, ["Europe/Berlin"]),
+        );
+        expect("timezone_counts" in stats).toBe(false);
+        expect(stats.timezone_levels["Europe/Berlin"]).toBe(
+            TZ_LEVEL_THRESHOLDS.length + 1,
+        );
+    });
+
+    test("levels are shares of the published timezones only", () => {
+        // Same answer whether the DB or the server dropped the small ones.
+        const unfiltered = publicLandingStats(
+            raw({ a: 90, b: 10, lone: 1, pair: 2 }, ["a", "b", "lone", "pair"]),
+        );
+        const filtered = publicLandingStats(raw({ a: 90, b: 10 }, ["a", "b"]));
+        expect(unfiltered).toEqual({ ...filtered, timezones: 4 });
+        expect(filtered.timezone_levels).toEqual(
+            timezoneLevels({ a: 90, b: 10 }),
+        );
+    });
+
+    test("no counts serves an empty list, never an unfiltered one", () => {
+        for (const counts of [undefined, {}]) {
+            const stats = publicLandingStats(
+                raw(counts, ["Europe/Berlin", "Pacific/Apia"]),
+            );
+            expect(stats.timezone_list).toEqual([]);
+            expect(stats.timezone_levels).toEqual({});
+        }
+    });
+
+    test("a listed timezone missing from the counts is dropped", () => {
+        const stats = publicLandingStats(
+            raw({ "Europe/Berlin": 5 }, ["Europe/Berlin", "Pacific/Apia"]),
+        );
+        expect(stats.timezone_list).toEqual(["Europe/Berlin"]);
+    });
+
+    test("malformed counts are dropped, not treated as large", () => {
+        const stats = publicLandingStats(
+            raw(
+                {
+                    real: 10,
+                    junk: "99" as unknown as number,
+                    missing: undefined as unknown as number,
+                },
+                ["junk", "missing", "real"],
+            ),
+        );
+        expect(stats.timezone_list).toEqual(["real"]);
+        expect(Object.keys(stats.timezone_levels)).toEqual(["real"]);
+    });
+
+    test("the site-wide timezone count and the totals pass through", () => {
+        const stats = publicLandingStats(raw({ a: 3, b: 1 }, ["a", "b"]));
+        expect(stats.timezones).toBe(2);
+        expect(stats.food_logs).toBe(10);
+        expect(stats.total_calories).toBe(5000);
     });
 });
 

@@ -23,6 +23,8 @@ import {
     HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
+    EMAIL_OFF_OPEN,
+    EMAIL_OFF_CLOSE,
 } from "./site-partials.js";
 import {
     PRIVACY,
@@ -218,6 +220,7 @@ ${LEGAL_STYLE}
     </head>
     <body class="auth">
 ${generatedBanner("scripts/gen-legal.ts")}
+${EMAIL_OFF_OPEN}
 ${THEME_PREPAINT}
 
 ${nav(locale, suffix, suffix)}
@@ -248,6 +251,7 @@ ${sections}
 ${footer(locale, suffix)}
 
 ${SITE_SCRIPT}
+${EMAIL_OFF_CLOSE}
     </body>
 </html>
 `;
