@@ -642,6 +642,7 @@ test("README.txt says what the archive leaves out, with no email fallback", () =
     expect(readme).toContain("does not contain your account id");
     expect(readme).toContain("rolling backups");
     expect(readme).toContain("internal bookkeeping");
+    expect(readme).toContain("sign-in session record");
     expect(readme).not.toContain("within one month");
     expect(readme).not.toMatch(/email (us|the contact)/i);
     // The old wording sent people to email for data the archive now holds.
