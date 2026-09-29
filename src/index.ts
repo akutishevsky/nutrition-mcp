@@ -25,6 +25,7 @@ import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
 import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
 import { createTtlCache } from "./ttl-cache.js";
+import { isHttpsRequest } from "./url.js";
 
 const app = new Hono();
 
@@ -73,6 +74,19 @@ app.use("*", async (c, next) => {
         );
     }
     c.header("Referrer-Policy", "no-referrer");
+    // HSTS, so a later plain-http visit (or a downgrade on hostile Wi-Fi)
+    // never reaches the login page unencrypted. Only on a request that came
+    // over https: a browser honours it only there anyway, and sending it to
+    // a plain-http localhost would pin the dev machine to https. No
+    // `preload` — that needs every subdomain on https for good, and is a
+    // separate decision. If Cloudflare's dashboard HSTS is ever switched on,
+    // it must send this same value.
+    if (isHttpsRequest(c)) {
+        c.header(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains",
+        );
+    }
     // Set on non-production deploys (the dev app) so search engines never
     // index them. A header rather than a robots.txt Disallow: a crawler that
     // is barred from fetching a page never sees its noindex, and can still
