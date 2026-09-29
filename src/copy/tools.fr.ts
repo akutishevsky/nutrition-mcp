@@ -452,7 +452,7 @@ export const TOOLS_FR: ToolsDoc = {
                 question:
                     "Je n'arrive pas à me connecter, ou j'ai oublié mon mot de passe",
                 answerHtml:
-                    "Le même formulaire te connecte et crée les nouveaux comptes, donc un mauvais mot de passe pour un e-mail existant affiche une erreur du service de connexion plutôt qu'un simple « mot de passe incorrect ». Vérifie qu'il n'y a pas de faute de frappe dans l'e-mail. Si tu as créé ton compte avec <strong>Continuer avec Google</strong>, utilise à nouveau ce bouton. Il n'y a pas encore de réinitialisation du mot de passe en libre-service : écris à <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a> depuis l'adresse de ton compte et je le réinitialiserai.",
+                    "Utilise <strong>Se connecter</strong> pour un compte que tu as déjà : un e-mail ou un mot de passe incorrect y affiche « E-mail ou mot de passe incorrect » et ne crée jamais de nouveau compte. <strong>Créer un compte</strong> ne sert qu'à ta première visite. Vérifie qu'il n'y a pas de faute de frappe dans l'e-mail. Si tu as créé ton compte avec <strong>Continuer avec Google</strong>, utilise à nouveau ce bouton. Il n'y a pas encore de réinitialisation du mot de passe en libre-service : écris à <a href=\"mailto:anton@nutrition-mcp.com\">anton@nutrition-mcp.com</a> depuis l'adresse de ton compte et je le réinitialiserai.",
             },
             "history-missing": {
                 question: "Après une reconnexion, mon historique a disparu",

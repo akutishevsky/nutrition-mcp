@@ -434,7 +434,7 @@ export const TOOLS_PL: ToolsDoc = {
             "cannot-sign-in": {
                 question: "Nie mogę się zalogować albo nie pamiętam hasła",
                 answerHtml:
-                    'Ten sam formularz służy do logowania i do zakładania nowych kont, więc błędne hasło do istniejącego adresu e-mail pokazuje komunikat usługi logowania zamiast zwykłego „nieprawidłowe hasło”. Sprawdź, czy w adresie e-mail nie ma literówki. Jeśli konto zostało założone przez <strong>Kontynuuj z Google</strong>, użyj ponownie tego przycisku. Samodzielnego resetowania hasła jeszcze nie ma: napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> z adresu przypisanego do konta, a zresetuję je.',
+                    'Użyj <strong>Zaloguj się</strong> do konta, które już masz: błędny e-mail lub hasło pokazuje tam „Nieprawidłowy e-mail lub hasło” i nigdy nie zakłada nowego konta. <strong>Załóż konto</strong> służy tylko przy pierwszej wizycie. Sprawdź, czy w adresie e-mail nie ma literówki. Jeśli konto zostało założone przez <strong>Kontynuuj z Google</strong>, użyj ponownie tego przycisku. Samodzielnego resetowania hasła jeszcze nie ma: napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a> z adresu przypisanego do konta, a zresetuję je.',
             },
             "history-missing": {
                 question: "Po ponownym połączeniu zniknęła moja historia",

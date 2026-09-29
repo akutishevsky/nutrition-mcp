@@ -70,7 +70,11 @@ export interface LoginDoc {
     dividerText: string;
     emailLabel: string;
     passwordLabel: string;
-    continueButton: string;
+    /** The email form's two submit buttons: `action=signin` and
+     * `action=signup` on POST /approve. Sign-up is explicit — a failed
+     * sign-in never creates an account (see src/oauth.ts). */
+    signInButton: string;
+    createAccountButton: string;
     /** "By continuing you confirm..." — {terms}/{privacy} are replaced with
      * the localized link text for Terms of Service / Privacy Policy by the
      * generator; keep both placeholders in the sentence. */
@@ -82,18 +86,27 @@ export interface LoginDoc {
 }
 
 /**
- * The two hardcoded Google-flow error strings from src/oauth.ts are
- * translated here too (a small, fully controlled set) — but an error
- * surfaced from Supabase Auth itself (e.g. "Invalid login credentials") is
- * NOT: it's third-party response text with no stable error code to key a
- * translation table on, and guessing at its wording would silently break
- * the moment Supabase changes it. Those errors stay in English across
- * every locale; translating them reliably would need a real error-code
- * mapping layer, which is out of scope for translating the page copy.
+ * Every error the login page shows. The password ones are picked by the
+ * stable `code` on src/auth-errors.ts's SignInError / SignUpError, never by
+ * Supabase's message text, which is never rendered: it is untranslated
+ * third-party wording, and on the sign-in path it would say whether an
+ * address has an account.
+ *
+ * - invalidCredentials: a wrong email or password, on either button.
+ * - signInFailed: sign-in could not be attempted (rate limit, outage).
+ * - weakPassword / passwordTooLong / emailInvalid / signUpFailed: Create
+ *   account refused. passwordTooLong is checked in /approve itself, since
+ *   GoTrue reports it as the same validation_failed a malformed email gets.
  */
 export interface LoginErrors {
     googleCancelled: string;
     googleFailed: string;
+    invalidCredentials: string;
+    signInFailed: string;
+    weakPassword: string;
+    passwordTooLong: string;
+    emailInvalid: string;
+    signUpFailed: string;
 }
 
 /**
@@ -124,13 +137,14 @@ const EN: LoginDoc = {
     dividerText: "or use email",
     emailLabel: "Email",
     passwordLabel: "Password",
-    continueButton: "Continue",
+    signInButton: "Sign in",
+    createAccountButton: "Create account",
     consentNote:
         "By continuing you confirm you're at least 16 and agree to the {terms} and {privacy}.",
     termsLinkText: "Terms of Service",
     privacyLinkText: "Privacy Policy",
     newHereNote:
-        "New here? Just enter your email and password — an account will be created automatically.",
+        "New here? Enter your email and a password, then choose Create account.",
     afterConnectNote:
         "After successful connection in your client, save your password somewhere and close this browser tab.",
 };
@@ -151,6 +165,16 @@ export const LOGIN_ERRORS: Record<SiteLocale, LoginErrors> = {
     en: {
         googleCancelled: "Google sign-in was cancelled. Please try again.",
         googleFailed: "Google sign-in failed. Please try again.",
+        invalidCredentials: "Wrong email or password.",
+        signInFailed:
+            "Sign-in isn't working right now. Please try again in a few minutes.",
+        weakPassword:
+            "That password is too weak. Choose a longer one that mixes letters, numbers and symbols.",
+        passwordTooLong:
+            "That password is too long. Choose one of 72 characters or fewer.",
+        emailInvalid: "That email address isn't valid. Check it for typos.",
+        signUpFailed:
+            "We couldn't create your account. Please try again later.",
     },
     de: LOGIN_ERRORS_DE,
     es: LOGIN_ERRORS_ES,

@@ -445,7 +445,7 @@ export const TOOLS_DE: ToolsDoc = {
                 question:
                     "Ich kann mich nicht anmelden oder habe mein Passwort vergessen",
                 answerHtml:
-                    'Dasselbe Formular meldet dich an und legt neue Konten an. Ein falsches Passwort für eine bereits registrierte E-Mail-Adresse zeigt deshalb eine Fehlermeldung des Anmeldedienstes statt eines einfachen „Falsches Passwort". Prüf die E-Mail-Adresse auf Tippfehler. Hast du dein Konto mit <strong>Weiter mit Google</strong> erstellt, nutz wieder diesen Button. Selbst zurücksetzen kannst du dein Passwort noch nicht: Schreib von der Adresse deines Kontos an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dann setze ich es für dich zurück.',
+                    'Nutz <strong>Anmelden</strong> für ein Konto, das du schon hast: Eine falsche E-Mail-Adresse oder ein falsches Passwort zeigt dort „Falsche E-Mail-Adresse oder falsches Passwort“ und legt nie ein neues Konto an. <strong>Konto erstellen</strong> ist nur für deinen ersten Besuch. Prüf die E-Mail-Adresse auf Tippfehler. Hast du dein Konto mit <strong>Weiter mit Google</strong> erstellt, nutz wieder diesen Button. Selbst zurücksetzen kannst du dein Passwort noch nicht: Schreib von der Adresse deines Kontos an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dann setze ich es für dich zurück.',
             },
             "history-missing": {
                 question:
