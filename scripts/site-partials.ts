@@ -230,6 +230,20 @@ export const THEME_PREPAINT = `        <script>
             })();
         </script>`;
 
+/**
+ * Cloudflare Email Obfuscation opt-out. DigitalOcean fronts the app with its
+ * managed Cloudflare, which has Email Obfuscation on and no dashboard to turn
+ * it off: it rewrites every `mailto:` and bare address in served HTML to
+ * `/cdn-cgi/l/email-protection#…`, which only a script decodes — so the
+ * contact address in the privacy policy, terms and footer was unreadable
+ * without JavaScript. Cloudflare leaves anything between these two comments
+ * alone. Every generator wraps its whole `<body>` contents in one pair
+ * (`src/alt-pages.test.ts` pins exactly one pair per page, with every
+ * `mailto:` inside it).
+ */
+export const EMAIL_OFF_OPEN = `        <!--email_off-->`;
+export const EMAIL_OFF_CLOSE = `        <!--/email_off-->`;
+
 // Theme toggle, menu, reveals and copy buttons all live in /site.js.
 export const SITE_SCRIPT = `        <script src="/site.js" defer></script>`;
 

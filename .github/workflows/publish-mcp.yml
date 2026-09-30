@@ -32,6 +32,11 @@ jobs:
             - name: Install dependencies
               run: bun install --frozen-lockfile
 
+            # Some tests read the generated public/ pages (gitignored), so
+            # build them first, as ci.yml does.
+            - name: Generate public/ pages
+              run: bun run gen:all
+
             - name: Run tests
               run: bun test
 

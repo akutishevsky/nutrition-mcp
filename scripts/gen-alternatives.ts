@@ -44,6 +44,8 @@ import {
     HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
+    EMAIL_OFF_OPEN,
+    EMAIL_OFF_CLOSE,
 } from "./site-partials.js";
 
 // The structural, non-translatable fields only. Every piece of prose about
@@ -339,6 +341,7 @@ ${HEAD_ASSETS}
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-alternatives.ts")}
+${EMAIL_OFF_OPEN}
 ${THEME_PREPAINT}
 ${nav(locale, `/${app.slug}`)}
 
@@ -525,6 +528,7 @@ ${disclaimerBand(ui.disclaimerAppHtml.replaceAll("{app}", esc(app.name)))}
 ${footer(locale)}
 
 ${SITE_SCRIPT}
+${EMAIL_OFF_CLOSE}
     </body>
 </html>
 `;
@@ -598,6 +602,7 @@ ${HEAD_ASSETS}
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-alternatives.ts")}
+${EMAIL_OFF_OPEN}
 ${THEME_PREPAINT}
 ${nav(locale, "/alternatives", "/alternatives")}
 
@@ -697,6 +702,7 @@ ${disclaimerBand(ui.disclaimerHubHtml.replace("{apps}", APPS.map((a) => esc(a.na
 ${footer(locale, "/alternatives")}
 
 ${SITE_SCRIPT}
+${EMAIL_OFF_CLOSE}
     </body>
 </html>
 `;
