@@ -15,7 +15,7 @@ export const PRIVACY_NL: LegalDoc = {
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
     ogDescription:
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
-    lastUpdated: "27 september 2026",
+    lastUpdated: "29 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -56,7 +56,11 @@ export const PRIVACY_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "Je maaltijd-, water-, gewichts- en doelgegevens worden uitsluitend gebruikt om de voedingstrackingdienst te leveren. We <strong>verkopen ze nooit, delen ze nooit met derden en gebruiken ze nooit voor advertenties</strong> of voeren ze nooit in een advertentie- of profileringssysteem in.",
+                    html: "Je maaltijd-, water-, gewichts- en doelgegevens worden uitsluitend gebruikt om de voedingstrackingdienst te leveren en, in anonieme geaggregeerde vorm, voor de openbare statistieken op de startpagina. We <strong>verkopen ze nooit, delen ze nooit met derden en gebruiken ze nooit voor advertenties</strong> of voeren ze nooit in een advertentie- of profileringssysteem in.",
+                },
+                {
+                    type: "p",
+                    html: "De startpagina en de openbare statistiekenfeed erachter tonen anonieme totalen over de hele site — hoeveel maaltijden er zijn gelogd, hun calorieën en macro's, het gelogde water en het netto gewichtsverlies over alle accounts samen — en de tijdzones die in profielen zijn ingesteld, die de startpagina als wereldkaart weergeeft. Een tijdzone verschijnt pas op de kaart zodra minstens drie profielen die gebruiken, en geen enkel getal is aan een persoon gekoppeld.",
                 },
                 {
                     type: "p",
@@ -84,7 +88,7 @@ export const PRIVACY_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: 'Alle gegevens worden opgeslagen bij <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in de EU, in de Ierse regio van AWS (eu-west-1). Authenticatie en exportopslag worden door Supabase in dezelfde regio afgehandeld. De server draait bij DigitalOcean in Frankfurt, Duitsland.',
+                    html: 'Alle gegevens worden opgeslagen bij <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in de EU, in de Ierse regio van AWS (eu-west-1). Authenticatie en exportopslag worden door Supabase in dezelfde regio afgehandeld. De server draait bij DigitalOcean in Frankfurt, Duitsland. Verzoeken aan de site en de server lopen via het netwerk van Cloudflare (dat onze hostingprovider gebruikt), dat de verbinding ontsleutelt en daardoor alles wat naar of van de dienst wordt verstuurd onderweg verwerkt, inclusief je IP-adres, en een strikt noodzakelijke cookie voor botbescherming kan plaatsen (<code>__cf_bm</code>, 30 minuten).',
                 },
             ],
         },
@@ -97,7 +101,7 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Inloggegevens zijn bewust kortlevend. De sessie van de inlogpagina duurt 10 minuten en wordt in het geheugen van de server bewaard; ze is aan je browser gekoppeld via een strikt noodzakelijke cookie die alleen een willekeurige waarde bevat, na dezelfde 10 minuten verloopt en wordt verwijderd zodra het inloggen is afgerond. Om je wachtwoord of je aanmelding met Google te controleren, gebruiken we Supabase Auth, dat daarbij telkens een Supabase-inlogsessie aanmaakt; we gebruiken die sessie nooit en beëindigen haar meteen. De eenmalige autorisatiecode die je AI-app krijgt, verloopt na 10 minuten en wordt verwijderd zodra die is gebruikt. Een nieuw toegangstoken is 24 uur geldig (een token dat vóór 27 september 2026 is uitgegeven, houdt de geldigheidsduur waarmee het is uitgegeven, tot maximaal een jaar); een refreshtoken is 90 dagen geldig en wordt verwijderd op het moment dat het wordt gebruikt om een nieuw paar op te halen. Verlopen tokens en codes worden binnen een uur automatisch verwijderd. Als je je account verwijdert, worden ze allemaal direct verwijderd.",
+                    html: "Inloggegevens zijn bewust kortlevend. De sessie van de inlogpagina duurt 10 minuten en wordt in het geheugen van de server bewaard; ze is aan je browser gekoppeld via een strikt noodzakelijke cookie die alleen een willekeurige waarde bevat, na dezelfde 10 minuten verloopt en wordt verwijderd zodra het inloggen is afgerond. Om je wachtwoord of je aanmelding met Google te controleren, gebruiken we Supabase Auth, dat daarbij telkens een Supabase-inlogsessie aanmaakt; we gebruiken die sessie nooit en beëindigen haar meteen. De eenmalige autorisatiecode die je AI-app krijgt, verloopt na 10 minuten en wordt verwijderd zodra die is gebruikt. Een toegangstoken is 24 uur geldig (de paar tokens die tot en met 27 september 2026 zijn uitgegeven, verlopen uiterlijk op 6 oktober 2026); een refreshtoken is 90 dagen geldig en wordt verwijderd op het moment dat het wordt gebruikt om een nieuw paar op te halen. Verlopen tokens en codes worden binnen een uur automatisch verwijderd. Als je je account verwijdert, worden ze allemaal direct verwijderd.",
                 },
                 {
                     type: "p",
@@ -128,7 +132,7 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Je account en registraties</strong> — om de dienst te leveren waarvoor je je hebt aangemeld (uitvoering van een overeenkomst). Maaltijden, gewicht en alcohol zijn gezondheidsgegevens, dus die verwerken we op basis van je uitdrukkelijke toestemming, die je geeft door ze te loggen en die je op elk moment kunt intrekken door de registraties of je account te verwijderen.",
+                        "<strong>Je account en registraties</strong> — om de dienst te leveren waarvoor je je hebt aangemeld (uitvoering van een overeenkomst). Maaltijden, gewicht en alcohol zijn gezondheidsgegevens, dus die verwerken we op basis van je uitdrukkelijke toestemming, die je geeft wanneer je je account aanmaakt en telkens wanneer je inlogt (voor een app die al was gekoppeld voordat de inlogpagina om deze toestemming vroeg, door de registraties te loggen tot je de volgende keer inlogt), en die je op elk moment kunt intrekken door de registraties of je account te verwijderen.",
                         "<strong>Gebruikstelemetrie van tools en het serverruntimelog</strong> — ons gerechtvaardigd belang om de dienst werkend, snel en veilig te houden (kapotte tools opsporen, misbruik afremmen met snelheidslimieten). Geen van beide bevat de inhoud van je registraties.",
                         "<strong>Website-analyse</strong> — je toestemming, gegeven in de cookiebanner en op elk moment in te trekken via &bdquo;Cookie-instellingen&rdquo; in de voettekst.",
                     ],
@@ -149,7 +153,7 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Alles wat we opslaan, blijft in de hierboven genoemde EU-regio. Wat je AI-assistent via de tools leest, wordt naar de aanbieder van die assistent gestuurd, die buiten de EU kan zitten; dat gebeurt op grond van je eigen overeenkomst met die aanbieder, niet de onze. Google en Microsoft (website-analyse, Google Sign-In) en Google, jsDelivr en GitHub (de hierboven beschreven verzoeken voor lettertypen, iconen en het aantal sterren) zitten ook buiten de EU; waar zij persoonsgegevens van buiten de EU ontvangen, baseren ze zich op de standaardcontractbepalingen van de Europese Commissie of op het EU-VS-kader voor gegevensbescherming (EU–US Data Privacy Framework).",
+                    html: "Alles wat we opslaan, blijft in de hierboven genoemde EU-regio. Wat je AI-assistent via de tools leest, wordt naar de aanbieder van die assistent gestuurd, die buiten de EU kan zitten; dat gebeurt op grond van je eigen overeenkomst met die aanbieder, niet de onze. Cloudflare (het netwerk waar elk verzoek doorheen gaat), Google en Microsoft (website-analyse, Google Sign-In) en Google, jsDelivr en GitHub (de hierboven beschreven verzoeken voor lettertypen, iconen en het aantal sterren) zitten ook buiten de EU; waar zij persoonsgegevens van buiten de EU ontvangen, baseren ze zich op de standaardcontractbepalingen van de Europese Commissie of op het EU-VS-kader voor gegevensbescherming (EU–US Data Privacy Framework).",
                 },
                 {
                     type: "p",
@@ -179,7 +183,7 @@ export const TERMS_NL: LegalDoc = {
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT. Begrijpelijke voorwaarden over accounts, toegestaan gebruik, je gegevens en aansprakelijkheid.",
     ogDescription:
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT.",
-    lastUpdated: "27 september 2026",
+    lastUpdated: "29 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -210,6 +214,10 @@ export const TERMS_NL: LegalDoc = {
                 {
                     type: "p",
                     html: "Je moet minstens 16 jaar oud zijn om de dienst te gebruiken. We controleren de leeftijd niet, dus door een account aan te maken bevestig je dat je aan die eis voldoet. Je bent verantwoordelijk voor het vertrouwelijk houden van je inloggegevens en voor alle activiteit die onder je account plaatsvindt. Geef alsjeblieft een e-mailadres op waar je daadwerkelijk toegang toe hebt — het is de enige manier om je toegang te herstellen.",
+                },
+                {
+                    type: "p",
+                    html: "Je mag de dienst alleen gebruiken waar je AI-aanbieder die ondersteunt en waar de toepasselijke sanctie- en exportcontrolewetgeving dat toestaat.",
                 },
             ],
         },
@@ -293,7 +301,7 @@ export const TERMS_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "De dienst is afhankelijk van derden: Supabase voor database, authenticatie en exportopslag, DigitalOcean voor hosting, Open Food Facts voor barcodegegevens, en welke AI-assistent je ook gebruikt om te verbinden.",
+                    html: "De dienst is afhankelijk van derden: Supabase voor database, authenticatie en exportopslag, DigitalOcean voor hosting, Cloudflare (via onze hostingprovider) voor het netwerk waar elk verzoek doorheen gaat, Open Food Facts voor barcodegegevens, en welke AI-assistent je ook gebruikt om te verbinden.",
                 },
                 {
                     type: "p",

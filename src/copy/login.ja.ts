@@ -10,7 +10,7 @@ export const LOGIN_JA: LoginDoc = {
     signInButton: "サインイン",
     createAccountButton: "アカウントを作成",
     consentNote:
-        "続行すると、16歳以上であることを確認し、{terms}と{privacy}に同意したことになります。",
+        "続行することで、16歳以上であることを確認し、{terms}と{privacy}に同意し、あなたが記録する食事、体重、アルコール（健康データにあたります）を当社が保存することに同意します。",
     termsLinkText: "利用規約",
     privacyLinkText: "プライバシーポリシー",
     newHereNote:

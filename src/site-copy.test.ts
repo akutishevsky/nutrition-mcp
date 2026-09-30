@@ -15,6 +15,7 @@ import {
     type LegalBlock,
     type LegalDoc,
 } from "./copy/legal.js";
+import { LOGIN } from "./copy/login.js";
 import { SITE_LOCALES, pathFor, type SiteLocale } from "./routes.js";
 
 // The public pages are the only place the product describes ITSELF, and they
@@ -543,21 +544,132 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
         ]),
     );
     const expected: Record<SiteLocale, string> = {
-        en: "September 27, 2026",
-        de: "27. September 2026",
-        es: "27 de septiembre de 2026",
-        fr: "27 septembre 2026",
-        nl: "27 september 2026",
-        pl: "27 września 2026",
-        it: "27 settembre 2026",
-        uk: "27 вересня 2026 року",
-        ja: "2026年9月27日",
+        en: "September 29, 2026",
+        de: "29. September 2026",
+        es: "29 de septiembre de 2026",
+        fr: "29 septembre 2026",
+        nl: "29 september 2026",
+        pl: "29 września 2026",
+        it: "29 settembre 2026",
+        uk: "29 вересня 2026 року",
+        ja: "2026年9月29日",
     };
     expect(dates).toEqual(
         Object.fromEntries(
             SITE_LOCALES.map((l) => [l, [expected[l], expected[l]]]),
         ),
     );
+});
+
+// Brief 13: the disclosures a directory review checks for, pinned per locale
+// so a translation that drops one fails here rather than in review. Each
+// keyword is a phrase from that locale's own translation. `oldCarveOut` is
+// the pre-brief-13 "access tokens issued earlier keep up to a year" wording,
+// which stopped being true once the last of those tokens expired.
+const BRIEF13: Record<
+    SiteLocale,
+    {
+        healthConsent: string;
+        regions: string;
+        aggregateStats: string;
+        oldCarveOut: string;
+    }
+> = {
+    en: {
+        healthConsent: "health data",
+        regions: "sanctions",
+        aggregateStats: "at least three",
+        oldCarveOut: "up to a year",
+    },
+    de: {
+        healthConsent: "Gesundheitsdaten",
+        regions: "Sanktions- und Exportkontrollgesetze",
+        aggregateStats: "mindestens drei Profile",
+        oldCarveOut: "bis zu einem Jahr",
+    },
+    es: {
+        healthConsent: "que son datos de salud",
+        regions: "leyes de sanciones y de control de exportaciones",
+        aggregateStats: "al menos tres perfiles",
+        oldCarveOut: "de hasta un año",
+    },
+    fr: {
+        healthConsent: "données de santé",
+        regions: "sanctions et de contrôle des exportations",
+        aggregateStats: "au moins trois profils",
+        oldCarveOut: "jusqu'à un an",
+    },
+    nl: {
+        healthConsent: "gezondheidsgegevens",
+        regions: "sanctie- en exportcontrolewetgeving",
+        aggregateStats: "minstens drie profielen",
+        oldCarveOut: "tot maximaal een jaar",
+    },
+    pl: {
+        healthConsent: "danymi dotyczącymi zdrowia",
+        regions: "sankcji i kontroli eksportu",
+        aggregateStats: "co najmniej trzy profile",
+        oldCarveOut: "nie dłuższy niż rok",
+    },
+    it: {
+        healthConsent: "che sono dati sanitari",
+        regions: "in materia di sanzioni e di controllo delle esportazioni",
+        aggregateStats: "almeno tre profili",
+        oldCarveOut: "fino a un anno",
+    },
+    uk: {
+        healthConsent: "даєш згоду на те, щоб ми зберігали",
+        regions: "санкції та експортний контроль",
+        aggregateStats: "щонайменше три профілі",
+        oldCarveOut: "зберігає строк дії, з яким його видали",
+    },
+    ja: {
+        healthConsent: "健康データにあたります",
+        regions: "制裁および輸出管理",
+        aggregateStats: "少なくとも3つのプロフィール",
+        oldCarveOut: "最長1年",
+    },
+};
+
+test("every locale's privacy policy names Cloudflare and its __cf_bm cookie, and drops the year-long token carve-out", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const privacy = allText(PRIVACY[locale]!);
+        for (const token of ["Cloudflare", "__cf_bm"])
+            if (!privacy.includes(token))
+                problems.push(`${locale}: missing ${token}`);
+        if (privacy.includes(BRIEF13[locale].oldCarveOut))
+            problems.push(
+                `${locale}: still has "${BRIEF13[locale].oldCarveOut}"`,
+            );
+    }
+    expect(problems).toEqual([]);
+});
+
+test("every locale's privacy policy discloses the home page's aggregate stats threshold", () => {
+    const missing = SITE_LOCALES.filter(
+        (l) => !allText(PRIVACY[l]!).includes(BRIEF13[l].aggregateStats),
+    );
+    expect(missing).toEqual([]);
+});
+
+test("every locale's terms restrict use to supported regions and sanctions law", () => {
+    const missing = SITE_LOCALES.filter(
+        (l) => !allText(TERMS[l]!).includes(BRIEF13[l].regions),
+    );
+    expect(missing).toEqual([]);
+});
+
+test("every locale's login consent note names health data and keeps both links", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const note = LOGIN[locale].consentNote;
+        if (!note.includes(BRIEF13[locale].healthConsent))
+            problems.push(`${locale}: no health-data consent`);
+        for (const token of ["{terms}", "{privacy}"])
+            if (!note.includes(token)) problems.push(`${locale}: no ${token}`);
+    }
+    expect(problems).toEqual([]);
 });
 
 // ------------------------------------------------ /tools troubleshooting

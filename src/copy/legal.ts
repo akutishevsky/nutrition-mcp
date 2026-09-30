@@ -61,7 +61,7 @@ const PRIVACY_EN: LegalDoc = {
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
     ogDescription:
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
-    lastUpdated: "September 27, 2026",
+    lastUpdated: "September 29, 2026",
     backToHome: "Back to home",
     sections: [
         {
@@ -92,7 +92,10 @@ const PRIVACY_EN: LegalDoc = {
             heading: "How we use it",
             blocks: [
                 p(
-                    "Your meal, water, weight, and goal data is used solely to provide the nutrition tracking service. We <strong>never sell it, never share it with third parties, and never use it for advertising</strong> or feed it into any ad or profiling system.",
+                    "Your meal, water, weight, and goal data is used solely to provide the nutrition tracking service and, in anonymous aggregate form, the public statistics on the home page. We <strong>never sell it, never share it with third parties, and never use it for advertising</strong> or feed it into any ad or profiling system.",
+                ),
+                p(
+                    "The home page and the public statistics feed behind it show anonymous site-wide totals — how many meals have been logged, their calories and macros, the water logged and the net weight lost across all accounts — and the timezones set in profiles, which the home page draws as a world map. A timezone appears on the map only once at least three profiles use it, and no figure is linked to a person.",
                 ),
                 p(
                     'When you or your AI assistant look up a barcode, our server sends only the barcode digits to <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — never your account, email or logs — and keeps the product data it returns in a shared cache that is not linked to any user.',
@@ -113,7 +116,7 @@ const PRIVACY_EN: LegalDoc = {
             heading: "Where it's stored",
             blocks: [
                 p(
-                    'All data is stored in <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in the EU, in AWS&rsquo;s Ireland region (eu-west-1). Authentication and export storage are handled by Supabase in the same region. The server runs on DigitalOcean in Frankfurt, Germany.',
+                    'All data is stored in <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in the EU, in AWS&rsquo;s Ireland region (eu-west-1). Authentication and export storage are handled by Supabase in the same region. The server runs on DigitalOcean in Frankfurt, Germany. Requests to the site and the server pass through Cloudflare&rsquo;s network (used by our hosting provider), which decrypts the connection and so handles everything sent to and from the service in transit, including your IP address, and may set a strictly necessary bot-protection cookie (<code>__cf_bm</code>, 30 minutes).',
                 ),
             ],
         },
@@ -124,7 +127,7 @@ const PRIVACY_EN: LegalDoc = {
                     "Your meal, water and weight logs, goals, profile settings, and tool-usage telemetry are kept for as long as your account exists — none of them has a separate expiry date or a scheduled purge. When you delete your account, all of it is deleted immediately and irreversibly, as described below. The only traces left are the telemetry row for the deletion itself, recorded without your account id; the short-lived server runtime log described above, which never carries your account id; our database provider's own operational logs, kept for a limited period (up to 7 days on our plan); and its rolling backups, which age out on their own schedule.",
                 ),
                 p(
-                    "Sign-in credentials are short-lived by design. The sign-in page's session lasts 10 minutes and is held in the server's memory; it is tied to your browser by a strictly necessary cookie that holds only a random value, expires after the same 10 minutes and is deleted when sign-in finishes. To check your password or Google sign-in we use Supabase Auth, which creates a Supabase sign-in session each time; we never use it and end it immediately. The one-time authorization code handed to your AI app expires after 10 minutes and is deleted as soon as it is used. A new access token is valid for 24 hours (one issued before September 27, 2026 keeps the lifetime it was issued with, up to a year); a refresh token is valid for 90 days, and it is deleted the moment it is used to get a new pair. Expired tokens and codes are deleted automatically within an hour. Deleting your account removes all of them immediately.",
+                    "Sign-in credentials are short-lived by design. The sign-in page's session lasts 10 minutes and is held in the server's memory; it is tied to your browser by a strictly necessary cookie that holds only a random value, expires after the same 10 minutes and is deleted when sign-in finishes. To check your password or Google sign-in we use Supabase Auth, which creates a Supabase sign-in session each time; we never use it and end it immediately. The one-time authorization code handed to your AI app expires after 10 minutes and is deleted as soon as it is used. An access token is valid for 24 hours (the few issued on or before September 27, 2026 expire no later than October 6, 2026); a refresh token is valid for 90 days, and it is deleted the moment it is used to get a new pair. Expired tokens and codes are deleted automatically within an hour. Deleting your account removes all of them immediately.",
                 ),
                 p(
                     "Export archives are short-lived. Each new export overwrites the previous one, and the file is deleted automatically once its 60-minute download link has expired — a cleanup runs every ten minutes, so an archive normally stays in storage for no more than about 70 minutes.",
@@ -147,7 +150,7 @@ const PRIVACY_EN: LegalDoc = {
                 ),
                 p("Why we are allowed to process it:"),
                 ul([
-                    "<strong>Your account and logs</strong> — to provide the service you signed up for (performance of a contract). Meals, weight and alcohol are health data, so we process them on the basis of your explicit consent, which you give by logging them and can withdraw at any time by deleting the entries or your account.",
+                    "<strong>Your account and logs</strong> — to provide the service you signed up for (performance of a contract). Meals, weight and alcohol are health data, so we process them on the basis of your explicit consent, given when you create your account and each time you sign in (for an app connected before the sign-in page asked for this consent, by logging the entries until you next sign in), which you can withdraw at any time by deleting the entries or your account.",
                     "<strong>Tool-usage telemetry and the server runtime log</strong> — our legitimate interest in keeping the service working, fast and secure (finding broken tools, rate-limiting abuse). Neither contains the content of your logs.",
                     "<strong>Website analytics</strong> — your consent, given in the cookie banner and withdrawable at any time with &ldquo;Cookie settings&rdquo; in the footer.",
                 ]),
@@ -162,7 +165,7 @@ const PRIVACY_EN: LegalDoc = {
                     "<strong>Complaint</strong> — you can complain to the data protection authority where you live or work. We would appreciate the chance to fix it first.",
                 ]),
                 p(
-                    "Everything we store stays in the EU region named above. Whatever your AI assistant reads through the tools is sent to that assistant's provider, which may be outside the EU; that happens under your own agreement with them, not ours. Google and Microsoft (website analytics, Google Sign-In) and Google, jsDelivr and GitHub (the font, icon and star-count requests described above) are outside the EU too; where they receive personal data from outside the EU, they rely on the European Commission's standard contractual clauses or the EU–US Data Privacy Framework.",
+                    "Everything we store stays in the EU region named above. Whatever your AI assistant reads through the tools is sent to that assistant's provider, which may be outside the EU; that happens under your own agreement with them, not ours. Cloudflare (the network every request passes through), Google and Microsoft (website analytics, Google Sign-In) and Google, jsDelivr and GitHub (the font, icon and star-count requests described above) are outside the EU too; where they receive personal data from outside the EU, they rely on the European Commission's standard contractual clauses or the EU–US Data Privacy Framework.",
                 ),
                 p(
                     'The service is not meant for anyone under 16, and the <a href="/terms" data-legal-link="terms">Terms of Service</a> require you to be at least 16. If you believe someone younger has created an account, email us and we will delete it.',
@@ -189,7 +192,7 @@ const TERMS_EN: LegalDoc = {
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT. Plain-language terms covering accounts, acceptable use, your data, and liability.",
     ogDescription:
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
-    lastUpdated: "September 27, 2026",
+    lastUpdated: "September 29, 2026",
     backToHome: "Back to home",
     sections: [
         {
@@ -216,6 +219,9 @@ const TERMS_EN: LegalDoc = {
             blocks: [
                 p(
                     "You must be at least 16 years old to use the service. We do not verify age, so by creating an account you confirm you meet that requirement. You are responsible for keeping your login credentials confidential and for all activity that happens under your account. Please provide an email address you actually control — it is the only way to recover access.",
+                ),
+                p(
+                    "You may use the service only where your AI provider supports it and where applicable sanctions and export-control laws allow.",
                 ),
             ],
         },
@@ -282,7 +288,7 @@ const TERMS_EN: LegalDoc = {
             heading: "Third-party services",
             blocks: [
                 p(
-                    "The service depends on third parties: Supabase for database, authentication, and export storage, DigitalOcean for hosting, Open Food Facts for barcode data, and whichever AI assistant you connect from.",
+                    "The service depends on third parties: Supabase for database, authentication, and export storage, DigitalOcean for hosting, Cloudflare (through our hosting provider) for the network every request passes through, Open Food Facts for barcode data, and whichever AI assistant you connect from.",
                 ),
                 p(
                     'Barcode product data &copy; <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> contributors, available under the <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
@@ -376,7 +382,7 @@ const PRIVACY_DE: LegalDoc = {
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wie es genutzt wird, wo es liegt und wie du dein Konto samt allem darin jederzeit löschen kannst.",
     ogDescription:
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wie es genutzt wird, wo es liegt und wie du dein Konto samt allem darin jederzeit löschen kannst.",
-    lastUpdated: "27. September 2026",
+    lastUpdated: "29. September 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -407,7 +413,10 @@ const PRIVACY_DE: LegalDoc = {
             heading: "Wie wir es nutzen",
             blocks: [
                 p(
-                    "Deine Mahlzeiten-, Wasser-, Gewichts- und Zieldaten werden ausschließlich zur Bereitstellung des Ernährungs-Tracking-Dienstes verwendet. Wir <strong>verkaufen sie niemals, geben sie niemals an Dritte weiter und nutzen sie niemals für Werbung</strong> oder speisen sie in ein Werbe- oder Profiling-System ein.",
+                    "Deine Mahlzeiten-, Wasser-, Gewichts- und Zieldaten werden ausschließlich zur Bereitstellung des Ernährungs-Tracking-Dienstes und, in anonymer zusammengefasster Form, für die öffentlichen Statistiken auf der Startseite verwendet. Wir <strong>verkaufen sie niemals, geben sie niemals an Dritte weiter und nutzen sie niemals für Werbung</strong> oder speisen sie in ein Werbe- oder Profiling-System ein.",
+                ),
+                p(
+                    "Die Startseite und der öffentliche Statistik-Feed dahinter zeigen anonyme Gesamtwerte über alle Konten hinweg — wie viele Mahlzeiten erfasst wurden, ihre Kalorien und Makronährstoffe, das erfasste Wasser und das insgesamt verlorene Nettogewicht — sowie die in den Profilen eingestellten Zeitzonen, die die Startseite als Weltkarte darstellt. Eine Zeitzone erscheint erst auf der Karte, wenn mindestens drei Profile sie nutzen, und keine Zahl ist mit einer Person verknüpft.",
                 ),
                 p(
                     'Wenn du oder dein KI-Assistent einen Barcode nachschlägt, sendet unser Server nur die Ziffern des Barcodes an <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — niemals dein Konto, deine E-Mail-Adresse oder deine Einträge — und legt die zurückgelieferten Produktdaten in einem gemeinsamen Cache ab, der mit keiner Nutzerin und keinem Nutzer verknüpft ist.',
@@ -428,7 +437,7 @@ const PRIVACY_DE: LegalDoc = {
             heading: "Wo es gespeichert wird",
             blocks: [
                 p(
-                    'Alle Daten werden bei <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in der EU gespeichert, in der AWS-Region Irland (eu-west-1). Authentifizierung und Export-Speicherung laufen ebenfalls über Supabase in derselben Region. Der Server läuft bei DigitalOcean in Frankfurt, Deutschland.',
+                    'Alle Daten werden bei <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) in der EU gespeichert, in der AWS-Region Irland (eu-west-1). Authentifizierung und Export-Speicherung laufen ebenfalls über Supabase in derselben Region. Der Server läuft bei DigitalOcean in Frankfurt, Deutschland. Anfragen an die Website und den Server laufen über das Netzwerk von Cloudflare (das unser Hosting-Anbieter nutzt), das die Verbindung entschlüsselt und daher alles, was an den Dienst gesendet wird oder von ihm kommt, während der Übertragung verarbeitet, einschließlich deiner IP-Adresse, und ein technisch notwendiges Cookie zum Schutz vor Bots setzen kann (<code>__cf_bm</code>, 30 Minuten).',
                 ),
             ],
         },
@@ -439,7 +448,7 @@ const PRIVACY_DE: LegalDoc = {
                     "Deine Mahlzeiten-, Wasser- und Gewichts-Einträge, Ziele, Profileinstellungen und deine Nutzungs-Telemetrie werden so lange aufbewahrt, wie dein Konto besteht — für keine davon gibt es ein separates Ablaufdatum oder eine geplante Bereinigung. Wenn du dein Konto löschst, wird all das sofort und unumkehrbar gelöscht, wie unten beschrieben. Als einzige Spuren bleiben die Telemetrie-Zeile für die Löschung selbst, die ohne deine Konto-ID erfasst wird; das oben beschriebene kurzlebige Server-Laufzeitprotokoll, das nie deine Konto-ID enthält; die eigenen Betriebsprotokolle unseres Datenbankanbieters, die für begrenzte Zeit aufbewahrt werden (in unserem Tarif bis zu 7 Tage); sowie dessen rollierende Backups, die nach eigenem Zeitplan auslaufen.",
                 ),
                 p(
-                    "Anmeldenachweise sind bewusst kurzlebig. Die Sitzung der Anmeldeseite dauert 10 Minuten und wird im Arbeitsspeicher des Servers gehalten; sie ist über ein technisch notwendiges Cookie an deinen Browser gebunden, das nur einen Zufallswert enthält, nach denselben 10 Minuten abläuft und gelöscht wird, sobald die Anmeldung abgeschlossen ist. Um dein Passwort oder deine Google-Anmeldung zu prüfen, nutzen wir Supabase Auth, das dabei jedes Mal eine Supabase-Anmeldesitzung anlegt; wir verwenden sie nie und beenden sie sofort. Der einmalige Autorisierungscode, den deine KI-App erhält, läuft nach 10 Minuten ab und wird gelöscht, sobald er verwendet wurde. Ein neues Zugriffstoken ist 24 Stunden gültig (ein vor dem 27. September 2026 ausgestelltes behält seine ursprüngliche Gültigkeitsdauer von bis zu einem Jahr); ein Refresh-Token ist 90 Tage gültig und wird in dem Moment gelöscht, in dem es zum Abruf eines neuen Paars verwendet wird. Abgelaufene Tokens und Codes werden innerhalb einer Stunde automatisch gelöscht. Wenn du dein Konto löschst, werden sie alle sofort entfernt.",
+                    "Anmeldenachweise sind bewusst kurzlebig. Die Sitzung der Anmeldeseite dauert 10 Minuten und wird im Arbeitsspeicher des Servers gehalten; sie ist über ein technisch notwendiges Cookie an deinen Browser gebunden, das nur einen Zufallswert enthält, nach denselben 10 Minuten abläuft und gelöscht wird, sobald die Anmeldung abgeschlossen ist. Um dein Passwort oder deine Google-Anmeldung zu prüfen, nutzen wir Supabase Auth, das dabei jedes Mal eine Supabase-Anmeldesitzung anlegt; wir verwenden sie nie und beenden sie sofort. Der einmalige Autorisierungscode, den deine KI-App erhält, läuft nach 10 Minuten ab und wird gelöscht, sobald er verwendet wurde. Ein Zugriffstoken ist 24 Stunden gültig (die wenigen bis einschließlich 27. September 2026 ausgestellten laufen spätestens am 6. Oktober 2026 ab); ein Refresh-Token ist 90 Tage gültig und wird in dem Moment gelöscht, in dem es zum Abruf eines neuen Paars verwendet wird. Abgelaufene Tokens und Codes werden innerhalb einer Stunde automatisch gelöscht. Wenn du dein Konto löschst, werden sie alle sofort entfernt.",
                 ),
                 p(
                     "Exportarchive sind kurzlebig. Jeder neue Export überschreibt den vorherigen, und die Datei wird automatisch gelöscht, sobald ihr 60-Minuten-Download-Link abgelaufen ist — eine Bereinigung läuft alle zehn Minuten, sodass ein Archiv normalerweise nicht länger als etwa 70 Minuten gespeichert bleibt.",
@@ -462,7 +471,7 @@ const PRIVACY_DE: LegalDoc = {
                 ),
                 p("Auf welcher Grundlage wir sie verarbeiten dürfen:"),
                 ul([
-                    "<strong>Dein Konto und deine Einträge</strong> — zur Bereitstellung des Dienstes, für den du dich angemeldet hast (Vertragserfüllung). Mahlzeiten, Gewicht und Alkohol sind Gesundheitsdaten, daher verarbeiten wir sie auf Grundlage deiner ausdrücklichen Einwilligung, die du mit dem Eintragen erteilst und jederzeit widerrufen kannst, indem du die Einträge oder dein Konto löschst.",
+                    "<strong>Dein Konto und deine Einträge</strong> — zur Bereitstellung des Dienstes, für den du dich angemeldet hast (Vertragserfüllung). Mahlzeiten, Gewicht und Alkohol sind Gesundheitsdaten, daher verarbeiten wir sie auf Grundlage deiner ausdrücklichen Einwilligung, die du bei der Kontoerstellung und bei jeder Anmeldung erteilst (bei einer App, die verbunden wurde, bevor die Anmeldeseite nach dieser Einwilligung fragte, durch das Eintragen bis zu deiner nächsten Anmeldung) und jederzeit widerrufen kannst, indem du die Einträge oder dein Konto löschst.",
                     "<strong>Nutzungs-Telemetrie der Werkzeuge und das Server-Laufzeitprotokoll</strong> — unser berechtigtes Interesse daran, den Dienst funktionsfähig, schnell und sicher zu halten (defekte Werkzeuge finden, Missbrauch per Ratenbegrenzung eindämmen). Keines von beiden enthält den Inhalt deiner Einträge.",
                     "<strong>Website-Analyse</strong> — deine Einwilligung, erteilt im Cookie-Banner und jederzeit widerrufbar über &bdquo;Cookie-Einstellungen&ldquo; in der Fußzeile.",
                 ]),
@@ -477,7 +486,7 @@ const PRIVACY_DE: LegalDoc = {
                     "<strong>Beschwerde</strong> — du kannst dich bei der Datenschutzaufsichtsbehörde an deinem Wohn- oder Arbeitsort beschweren. Wir würden uns freuen, wenn du uns vorher die Gelegenheit gibst, das Problem zu beheben.",
                 ]),
                 p(
-                    "Alles, was wir speichern, bleibt in der oben genannten EU-Region. Was dein KI-Assistent über die Werkzeuge abruft, wird an den Anbieter dieses Assistenten übermittelt, der seinen Sitz außerhalb der EU haben kann; das geschieht im Rahmen deiner eigenen Vereinbarung mit ihm, nicht unserer. Auch Google und Microsoft (Website-Analyse, Google Sign-In) sowie Google, jsDelivr und GitHub (die oben beschriebenen Abrufe von Schriftarten, Icons und der Star-Anzahl) sitzen außerhalb der EU; soweit sie personenbezogene Daten außerhalb der EU empfangen, stützen sie sich auf die Standardvertragsklauseln der Europäischen Kommission oder den EU-US-Datenschutzrahmen (EU–US Data Privacy Framework).",
+                    "Alles, was wir speichern, bleibt in der oben genannten EU-Region. Was dein KI-Assistent über die Werkzeuge abruft, wird an den Anbieter dieses Assistenten übermittelt, der seinen Sitz außerhalb der EU haben kann; das geschieht im Rahmen deiner eigenen Vereinbarung mit ihm, nicht unserer. Auch Cloudflare (das Netzwerk, über das jede Anfrage läuft), Google und Microsoft (Website-Analyse, Google Sign-In) sowie Google, jsDelivr und GitHub (die oben beschriebenen Abrufe von Schriftarten, Icons und der Star-Anzahl) sitzen außerhalb der EU; soweit sie personenbezogene Daten außerhalb der EU empfangen, stützen sie sich auf die Standardvertragsklauseln der Europäischen Kommission oder den EU-US-Datenschutzrahmen (EU–US Data Privacy Framework).",
                 ),
                 p(
                     'Der Dienst ist nicht für Personen unter 16 Jahren gedacht, und die <a href="/terms" data-legal-link="terms">Nutzungsbedingungen</a> setzen voraus, dass du mindestens 16 bist. Wenn du glaubst, dass eine jüngere Person ein Konto erstellt hat, schreib uns eine E-Mail, und wir löschen es.',
@@ -504,7 +513,7 @@ const TERMS_DE: LegalDoc = {
         "Die Bedingungen für die Nutzung von Nutrition MCP — dem kostenlosen, quelloffenen Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT. Verständliche Bedingungen zu Konten, zulässiger Nutzung, deinen Daten und Haftung.",
     ogDescription:
         "Die Bedingungen für die Nutzung von Nutrition MCP — dem kostenlosen, quelloffenen Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT.",
-    lastUpdated: "27. September 2026",
+    lastUpdated: "29. September 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -531,6 +540,9 @@ const TERMS_DE: LegalDoc = {
             blocks: [
                 p(
                     "Du musst mindestens 16 Jahre alt sein, um den Dienst zu nutzen. Wir überprüfen das Alter nicht, daher bestätigst du diese Voraussetzung mit der Kontoerstellung. Du bist dafür verantwortlich, deine Anmeldedaten vertraulich zu behandeln, sowie für alle Aktivitäten unter deinem Konto. Bitte gib eine E-Mail-Adresse an, auf die du tatsächlich Zugriff hast — sie ist der einzige Weg, den Zugang wiederherzustellen.",
+                ),
+                p(
+                    "Du darfst den Dienst nur dort nutzen, wo dein KI-Anbieter ihn unterstützt und wo geltende Sanktions- und Exportkontrollgesetze es erlauben.",
                 ),
             ],
         },
@@ -599,7 +611,7 @@ const TERMS_DE: LegalDoc = {
             heading: "Dienste Dritter",
             blocks: [
                 p(
-                    "Der Dienst ist von Dritten abhängig: Supabase für Datenbank, Authentifizierung und Export-Speicherung, DigitalOcean für das Hosting, Open Food Facts für Barcode-Daten sowie den jeweiligen KI-Assistenten, mit dem du dich verbindest.",
+                    "Der Dienst ist von Dritten abhängig: Supabase für Datenbank, Authentifizierung und Export-Speicherung, DigitalOcean für das Hosting, Cloudflare (über unseren Hosting-Anbieter) für das Netzwerk, über das jede Anfrage läuft, Open Food Facts für Barcode-Daten sowie den jeweiligen KI-Assistenten, mit dem du dich verbindest.",
                 ),
                 p(
                     'Barcode-Produktdaten &copy; Mitwirkende von <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, verfügbar unter der <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',

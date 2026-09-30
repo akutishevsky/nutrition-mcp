@@ -41,6 +41,8 @@ import {
     BASE_HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
+    EMAIL_OFF_OPEN,
+    EMAIL_OFF_CLOSE,
 } from "./site-partials.js";
 import { LOGIN, type LoginDoc } from "../src/copy/login.js";
 
@@ -188,6 +190,7 @@ ${LOGIN_STYLE}
     </head>
     <body class="auth">
 ${generatedBanner("scripts/gen-login.ts")}
+${EMAIL_OFF_OPEN}
 ${THEME_PREPAINT}
 
 ${nav(locale, "", undefined, { dynamicSwitcher: true, consent: false })}
@@ -207,6 +210,13 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true, consent: false })}
                         {{TRANSLATION_NOTICE}}
 
                         {{ERROR}}
+
+                        <!-- Above both sign-in forms, so it is on screen before
+                             either submit: this line is the explicit Art. 9
+                             consent the privacy policy's legal basis names
+                             ("each time you sign in"), for Google and email
+                             alike. -->
+                        <p class="auth-note">${consent}</p>
 
                         <!-- A POST form, not a link: POST /authorize/google
                              is the only way into the Google leg, so it always
@@ -287,7 +297,6 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true, consent: false })}
                                     ${esc(doc.createAccountButton)}
                                 </button>
                             </div>
-                            <p class="auth-note">${consent}</p>
                             <p class="auth-note">${esc(doc.newHereNote)}</p>
                             <p class="auth-note">${esc(doc.afterConnectNote)}</p>
                         </form>
@@ -299,6 +308,7 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true, consent: false })}
 ${footer(locale, undefined, { consent: false })}
 
 ${SITE_SCRIPT}
+${EMAIL_OFF_CLOSE}
     </body>
 </html>
 `;

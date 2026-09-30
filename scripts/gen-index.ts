@@ -24,6 +24,8 @@ import {
     HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
+    EMAIL_OFF_OPEN,
+    EMAIL_OFF_CLOSE,
 } from "./site-partials.js";
 import { INDEX, type FaqEntry, type IndexDoc } from "../src/copy/index.js";
 
@@ -204,6 +206,7 @@ ${HEAD_ASSETS}
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-index.ts")}
+${EMAIL_OFF_OPEN}
 ${THEME_PREPAINT}
 
 ${nav(locale, suffix)}
@@ -753,6 +756,7 @@ ${footer(locale)}
             ${LANDING_SCRIPT}
         </script>
 ${SITE_SCRIPT}
+${EMAIL_OFF_CLOSE}
     </body>
 </html>
 `;

@@ -27,6 +27,8 @@ import {
     HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
+    EMAIL_OFF_OPEN,
+    EMAIL_OFF_CLOSE,
 } from "./site-partials.js";
 import {
     BADGE_META,
@@ -746,6 +748,7 @@ ${TOOLS_STYLE}
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-tools.ts")}
+${EMAIL_OFF_OPEN}
 ${THEME_PREPAINT}
 
 ${nav(locale, suffix, suffix)}
@@ -793,6 +796,7 @@ ${footer(locale, suffix)}
 
 ${SCROLLSPY_SCRIPT}
 ${SITE_SCRIPT}
+${EMAIL_OFF_CLOSE}
     </body>
 </html>
 `;

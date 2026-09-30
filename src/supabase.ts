@@ -1980,47 +1980,54 @@ export interface LandingStats {
     total_protein_g: number;
     total_carbs_g: number;
     total_fat_g: number;
+    // Every distinct timezone in use, counted once. A single site-wide number
+    // that names no timezone, so it is not held to TZ_MIN_PROFILES; it can be
+    // larger than timezone_list is long.
     timezones: number;
-    // IANA names of every distinct timezone in use — drives the landing-page
-    // world map. Aggregate-only; no per-user data.
+    // IANA names of the timezones at least TZ_MIN_PROFILES profiles use —
+    // drives the landing-page world map. Aggregate-only; no per-user data.
     //
     // Expect this near-empty for a while after 2026-08-15: the
     // nullable_profile_timezone migration (#99) reset every profile's
     // timezone to NULL, and public_landing_stats() filters both this and
     // timezone_counts to `where timezone is not null`, so a nulled profile
     // drops out of the map entirely until its user calls set_timezone again.
-    // Not a map bug — see buildMap() in public/index.html for the visible
-    // symptom.
+    // The threshold empties it further. Not a map bug — see buildMap() in the
+    // landing script (scripts/gen-index.ts) for the visible symptom.
     timezone_list: string[];
-    // IANA name -> 1..5, that timezone's share of all profiles. Sizes each dot
-    // on the world map. Levels, never counts: see timezoneLevels().
+    // IANA name -> 1..5, that timezone's share of the profiles in published
+    // timezones. Sizes each dot on the world map. Levels, never counts: see
+    // timezoneLevels().
     timezone_levels: Record<string, number>;
 }
 
 // What the SQL function actually returns. `timezone_counts` is exact and stays
 // inside the process — it is bucketed before anything is served.
-interface RawLandingStats extends Omit<LandingStats, "timezone_levels"> {
+export interface RawLandingStats extends Omit<LandingStats, "timezone_levels"> {
     timezone_counts?: Record<string, number>;
 }
 
-// Share of all profiles at which a timezone moves up a level. Geometric, not
-// evenly spaced, because the real distribution is long-tailed: at 273 profiles
-// the largest timezone held 14% while 27 timezones held one profile each. Even
-// cuts would drop ~80% of dots into level 1 and the map would show no gradient
-// at all. Doubling at each step keeps every bucket populated.
-export const TZ_LEVEL_THRESHOLDS = [0.01, 0.02, 0.04, 0.08] as const;
+// Fewest profiles a timezone needs before /api/stats names it (brief 13). The
+// privacy policy promises it: a timezone held by one or two profiles is a fact
+// about one or two people. public_landing_stats() applies the same threshold
+// (20260929130000_landing_stats_k_anonymity.sql); publicLandingStats() applies
+// it again so a DB still on the older function can't leak through.
+export const TZ_MIN_PROFILES = 3;
 
-// The level whose radius matches the single size every dot used to be drawn at.
-// Used only when the DB has no counts to bucket — see getLandingStats.
-export const LEGACY_TZ_LEVEL = 3;
+// Share of the profiles in published (>= TZ_MIN_PROFILES) timezones at which a
+// timezone moves up a level. Geometric, not evenly spaced, because the real
+// distribution is long-tailed: at 273 profiles, before the threshold existed,
+// the largest timezone held 14% while 27 timezones held one profile each. Even
+// cuts would drop most dots into level 1 and the map would show no gradient at
+// all. Doubling at each step keeps every bucket populated.
+export const TZ_LEVEL_THRESHOLDS = [0.01, 0.02, 0.04, 0.08] as const;
 
 // Buckets exact per-timezone counts into 1..5 by share of the total.
 //
-// This is the privacy boundary for the world map. /api/stats is public and
-// unauthenticated, and most timezones have a single profile — publishing the
-// counts would amount to "exactly one person uses this app in Pacific/Apia".
-// A level only narrows a timezone to a range, and the widest range (level 1)
-// is also the one nearly every small timezone lands in.
+// Half of the privacy boundary for the world map (TZ_MIN_PROFILES is the
+// other). /api/stats is public and unauthenticated, so exact counts are never
+// served: a level only narrows a timezone to a range. Pure over whatever it is
+// given — publicLandingStats() decides which timezones reach it.
 export function timezoneLevels(
     counts: Record<string, number>,
 ): Record<string, number> {
@@ -2041,25 +2048,42 @@ export function timezoneLevels(
     return levels;
 }
 
+// Turns the SQL function's output into what /api/stats serves: drops the exact
+// counts and every timezone with fewer than TZ_MIN_PROFILES profiles, from both
+// the list and the levels.
+//
+// Levels are shares of the *published* timezones' profiles, not of all
+// profiles. The newer SQL function no longer returns the suppressed counts, so
+// this is the only total both it and the older function can produce — the map
+// looks the same whichever side filtered.
+//
+// No counts at all (an empty object, or the key missing from a function older
+// than 20260808120000_landing_stats_timezone_counts.sql, long since applied) serves an
+// empty list: without counts nothing proves a timezone clears the threshold,
+// and an unfiltered list is exactly the leak this exists to stop. The map then
+// renders its land grid with no dots.
+export function publicLandingStats(raw: RawLandingStats): LandingStats {
+    const { timezone_counts, timezone_list, ...rest } = raw;
+    const shared: Record<string, number> = {};
+    for (const [tz, n] of Object.entries(timezone_counts ?? {})) {
+        if (typeof n === "number" && n >= TZ_MIN_PROFILES) shared[tz] = n;
+    }
+    return {
+        ...rest,
+        timezone_list: (timezone_list ?? []).filter((tz) =>
+            Object.hasOwn(shared, tz),
+        ),
+        timezone_levels: timezoneLevels(shared),
+    };
+}
+
 // Aggregate-only totals for the public landing page. Backed by the
 // `public_landing_stats` SQL function so the whole thing is one round trip and
 // the database does the summing. Never returns per-user rows.
 export async function getLandingStats(): Promise<LandingStats> {
     const { data, error } = await getSupabase().rpc("public_landing_stats");
     if (error) throw new Error(`Failed to get landing stats: ${error.message}`);
-    const { timezone_counts, ...rest } = data as RawLandingStats;
-    const timezone_levels = timezoneLevels(timezone_counts ?? {});
-    // Deploy-order safety. The app and the database ship separately, so this
-    // code can be live before the migration that adds `timezone_counts` has
-    // run. Without a fallback the map would render its land grid and not a
-    // single active dot; instead every timezone gets the level whose radius is
-    // the size they were all drawn at before, which looks exactly like today.
-    if (Object.keys(timezone_levels).length === 0) {
-        for (const tz of rest.timezone_list ?? []) {
-            timezone_levels[tz] = LEGACY_TZ_LEVEL;
-        }
-    }
-    return { ...rest, timezone_levels };
+    return publicLandingStats(data as RawLandingStats);
 }
 
 // ---------- OAuth clients ----------
