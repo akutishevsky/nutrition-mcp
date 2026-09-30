@@ -1171,10 +1171,16 @@ export async function runImport(
             !v.resolved.logged_at_used_row_timezone,
     ).length;
     if (!deps.tzConfigured && tzDependent > 0) {
+        // The remedy differs by path. After a real import, re-importing is the
+        // wrong fix: the idempotency key hashes the resolved instant, so the
+        // same rows resolved in a new timezone get new keys and land twice.
         warnings.push(
-            `Your timezone is not set, so ${tzDependent} row(s) without an explicit UTC offset were placed using UTC. ` +
-                `If you set a different timezone later, those meals will move — by the offset for times of day, and to an adjacent day for anything logged near midnight. ` +
-                `Set your timezone first and re-import for accurate results.`,
+            dryRun
+                ? `Your timezone is not set, so ${tzDependent} row(s) without an explicit UTC offset would be placed using UTC. ` +
+                      `Set your timezone (set_timezone) and repeat this dry run before importing.`
+                : `Your timezone is not set, so ${tzDependent} row(s) without an explicit UTC offset were placed using UTC. ` +
+                      `Changing the timezone later moves them — by the offset for times of day, and to an adjacent day for anything logged near midnight. ` +
+                      `Re-importing them after a timezone change can add them a second time, so delete these rows first if they need to move.`,
         );
     }
 

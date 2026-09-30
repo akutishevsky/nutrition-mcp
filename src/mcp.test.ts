@@ -3430,6 +3430,20 @@ describe("get_nutrition_summary bounds its meal breakdown", () => {
             end_date: "2026-01-31",
         });
 
+    test("a long meal description is clipped in structuredContent.meals, like a listing", async () => {
+        const long = "x".repeat(500);
+        db.meals = [
+            meal({ description: long, logged_at: "2026-01-10T12:00:00Z" }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await summarize(call);
+            expect(r.isError).toBeFalsy();
+            const sc = r.structuredContent as unknown as SummaryPayload;
+            expect(sc.meals).toHaveLength(1);
+            expect(sc.meals[0]!.description).toBe(`${"x".repeat(200)}…`);
+        });
+    });
+
     test("a 186-meal month ships only the per-metric top N, with true counts", async () => {
         const meals = month();
         db.meals = meals;
@@ -5037,6 +5051,23 @@ describe("tool text makes only claims the code keeps", () => {
                 const tz = byName.get("set_timezone")!.description ?? "";
                 expect(tz).not.toContain("re-buckets nothing");
                 expect(tz).toContain("regroups existing entries");
+                // An import retry dedupes only while the timezone is
+                // unchanged: the key hashes the instant the row resolves to.
+                expect(instructions).toContain(
+                    "as long as the timezone hasn't changed",
+                );
+                expect(instructions).not.toContain("never duplicates");
+                // Scoped to this service, so they don't attract calls meant
+                // for another connector (policy 2.C).
+                expect(
+                    byName.get("get_current_time")!.description ?? "",
+                ).toContain("nutrition tracker");
+                const del = byName.get("delete_account")!;
+                expect(del.title).toBe("Delete Nutrition Account");
+                expect(del.annotations?.title).toBe("Delete Nutrition Account");
+                expect(del.description ?? "").toContain(
+                    "Nutrition MCP account",
+                );
                 for (const tool of tools) {
                     expect(JSON.stringify(tool), tool.name).not.toContain(
                         "idempotent retry",

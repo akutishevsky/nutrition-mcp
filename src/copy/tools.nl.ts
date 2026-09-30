@@ -125,7 +125,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         bulk_import_meals: {
             description:
-                "Voeg in één keer een reeks eerdere maaltijden toe — tot 50 tegelijk — in plaats van ze één voor één te loggen. De importer hierboven schrijft via deze tool, en de AI kan hem ook rechtstreeks gebruiken voor maaltijdgegevens die je in de chat hebt geplakt. Elke regel wordt eerst gecontroleerd en wat niet klopt wordt regel voor regel gerapporteerd, dus dezelfde regels opnieuw versturen is veilig en levert geen dubbele registraties op.",
+                "Voeg in één keer een reeks eerdere maaltijden toe — tot 50 tegelijk — in plaats van ze één voor één te loggen. De importer hierboven schrijft via deze tool, en de AI kan hem ook rechtstreeks gebruiken voor maaltijdgegevens die je in de chat hebt geplakt. Elke regel wordt eerst gecontroleerd en wat niet klopt wordt regel voor regel gerapporteerd, dus dezelfde regels opnieuw versturen is veilig en levert geen dubbele registraties op, zolang je tijdzone intussen niet is gewijzigd.",
             params: {
                 meals: "De regels om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke regel kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
                 expected_row_count:
@@ -419,7 +419,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Verwijder je account en alle bijbehorende gegevens permanent. Dit is onomkeerbaar — de AI vraagt altijd eerst om jouw bevestiging.",
+                "Verwijder permanent je Nutrition MCP-account en alle gegevens die het over je bewaart. Dit is onomkeerbaar — de AI vraagt altijd eerst om jouw bevestiging.",
             params: {},
             example: "Verwijder mijn account en al mijn gegevens",
         },
@@ -461,7 +461,7 @@ export const TOOLS_NL: ToolsDoc = {
             "wrong-day": {
                 question: "Mijn maaltijden staan op de verkeerde dag",
                 answerHtml:
-                    'Dagen worden geteld in jouw tijdzone, en als je er nooit een hebt ingesteld, wordt UTC gebruikt. Vraag "welke tijdzone heb ik ingesteld?" (<a href="#get_profile"><code>get_profile</code></a>) en, als die niet klopt, "stel mijn tijdzone in op Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Alles wat je hebt gelogd wordt dan gegroepeerd per lokale dag, oudere items inbegrepen. De enige uitzondering is een item waaraan je een specifiek tijdstip gaf terwijl de tijdzone verkeerd stond: dat behoudt het moment waarmee het is opgeslagen, dus het kan nog steeds een uur of een dag verschoven zijn — vraag de AI om het naar de juiste datum en tijd te verplaatsen (<a href="#update_meal"><code>update_meal</code></a>). Stel je tijdzone ook in voordat je je geschiedenis importeert.',
+                    'Dagen worden geteld in jouw tijdzone, en als je er nooit een hebt ingesteld, wordt UTC gebruikt. Vraag "welke tijdzone heb ik ingesteld?" (<a href="#get_profile"><code>get_profile</code></a>) en, als die niet klopt, "stel mijn tijdzone in op Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Alles wat je hebt gelogd wordt dan gegroepeerd per lokale dag, oudere items inbegrepen. De enige uitzondering is een item waaraan je een specifiek tijdstip gaf terwijl de tijdzone verkeerd stond: dat behoudt het moment waarmee het is opgeslagen, dus het kan nog steeds een uur of een dag verschoven zijn — vraag de AI om het naar de juiste datum en tijd te verplaatsen (<a href="#update_meal"><code>update_meal</code></a>). Stel je tijdzone ook in voordat je je geschiedenis importeert: geïmporteerde maaltijden behouden het moment waarop ze zijn geplaatst, en als je het bestand van een andere app na het wijzigen van je tijdzone opnieuw importeert, worden ze een tweede keer toegevoegd. Een export van Nutrition MCP wordt herkend en niet dubbel toegevoegd.',
             },
             "no-widgets": {
                 question: "Ik zie alleen tekst, geen grafieken of kaarten",
@@ -472,7 +472,7 @@ export const TOOLS_NL: ToolsDoc = {
                 question:
                     "De importer opent niet, of zegt dat hij niet kan opslaan",
                 answerHtml:
-                    'Het importerpaneel heeft een app nodig die interactieve panelen toont en waarin widgets aanstaan. Staat er <em>Deze host staat dit venster niet toe om in je logboek te schrijven</em>, of verschijnt het paneel helemaal niet, vraag de AI dan om het bestand zelf te importeren: voeg de CSV toe of plak hem, en de AI gebruikt <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, dat elke rij controleert en duplicaten overslaat, dus opnieuw versturen is veilig. Gebruik je het importerpaneel en wil je een alcoholkolom meenemen, zet alcoholregistratie dan eerst aan — het paneel slaat die kolom over zolang registratie uitstaat, en later opnieuw importeren vult die niet alsnog in.',
+                    'Het importerpaneel heeft een app nodig die interactieve panelen toont en waarin widgets aanstaan. Staat er <em>Deze host staat dit venster niet toe om in je logboek te schrijven</em>, of verschijnt het paneel helemaal niet, vraag de AI dan om het bestand zelf te importeren: voeg de CSV toe of plak hem, en de AI gebruikt <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, dat elke rij controleert en duplicaten overslaat, dus opnieuw versturen is veilig zolang je tijdzone intussen niet is gewijzigd. Stel je tijdzone in vóór de eerste import: als je het bestand van een andere app na een wijziging opnieuw importeert, worden de rijen nogmaals toegevoegd. Gebruik je het importerpaneel en wil je een alcoholkolom meenemen, zet alcoholregistratie dan eerst aan — het paneel slaat die kolom over zolang registratie uitstaat, en later opnieuw importeren vult die niet alsnog in.',
             },
             "rate-limited": {
                 question:

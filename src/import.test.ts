@@ -1018,6 +1018,36 @@ test("runImport warns when an unconfigured timezone placed the rows", async () =
     expect(warning).toMatch(/near midnight/);
 });
 
+test("the no-timezone remedy differs between a dry run and a real import", async () => {
+    // Re-importing after set_timezone is the wrong fix once rows are written:
+    // the idempotency key hashes the resolved instant, so the same rows placed
+    // in a new timezone get new keys and are inserted a second time. Only a
+    // dry run may say "set it and try again".
+    const rows = [row({ source_line: 2, logged_at: "2026-01-15" })];
+
+    const dry = await runImport(
+        args(rows, { dry_run: true }),
+        makeStore({ tzConfigured: false }).deps,
+    );
+    const dryWarning = dry.warnings.find((w) => /timezone is not set/.test(w));
+    expect(dryWarning).toContain("1 row(s)");
+    expect(dryWarning).toContain("would be placed using UTC");
+    expect(dryWarning).toContain("repeat this dry run before importing");
+
+    const real = await runImport(
+        args(rows),
+        makeStore({ tzConfigured: false }).deps,
+    );
+    const realWarning = real.warnings.find((w) =>
+        /timezone is not set/.test(w),
+    );
+    expect(realWarning).toContain("were placed using UTC");
+    expect(realWarning).toContain("add them a second time");
+    expect(realWarning).not.toMatch(/re-import for accurate results/);
+    expect(realWarning).not.toMatch(/repeat this dry run/);
+    expect(realWarning).not.toBe(dryWarning);
+});
+
 test("rows carrying their own offset do not trigger the timezone warning", async () => {
     // An explicit offset names an absolute instant, so the profile timezone is
     // irrelevant to where it lands.

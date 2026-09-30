@@ -939,6 +939,13 @@
                 const r = S.result;
                 r.chunks++;
                 if (sc.dry_run) {
+                    // A dry run that passes is followed at once by the real
+                    // write of the same rows, which reports its own warnings
+                    // and row errors. Keeping the dry run's too would count
+                    // every failed row twice and show dry-run-only advice
+                    // ("repeat this dry run") after the rows were written.
+                    // Only a failed dry run, where the flow stops, keeps them.
+                    if (sc.status !== "failed") return;
                     for (const w of sc.warnings || []) {
                         if (r.warnings.indexOf(w) === -1) r.warnings.push(w);
                     }

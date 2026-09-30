@@ -132,7 +132,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         bulk_import_meals: {
             description:
-                "Ajoute un lot de repas passés en une seule fois — jusqu'à 50 à la fois — plutôt que de les enregistrer un par un. L'importateur ci-dessus passe par cet outil, et l'IA peut aussi l'utiliser directement pour des données de repas que tu as collées dans le chat. Chaque ligne est d'abord vérifiée et tout ce qui ne convient pas est signalé ligne par ligne, donc renvoyer les mêmes lignes est sans risque et ne dupliquera pas ce qui est déjà enregistré.",
+                "Ajoute un lot de repas passés en une seule fois — jusqu'à 50 à la fois — plutôt que de les enregistrer un par un. L'importateur ci-dessus passe par cet outil, et l'IA peut aussi l'utiliser directement pour des données de repas que tu as collées dans le chat. Chaque ligne est d'abord vérifiée et tout ce qui ne convient pas est signalé ligne par ligne, donc renvoyer les mêmes lignes est sans risque et ne dupliquera pas ce qui est déjà enregistré, tant que ton fuseau horaire n'a pas changé entre-temps.",
             params: {
                 meals: "Les lignes à importer, dans l'ordre du fichier source (1 à 50 par appel). Chaque ligne peut porter une heure, un type de repas, une description, des notes et les mêmes chiffres qu'un repas enregistré : <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (sucres totaux), <code>alcohol_g</code> (grammes d'éthanol pur) et <code>caffeine_mg</code> (milligrammes, pas grammes)",
                 expected_row_count:
@@ -425,7 +425,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Supprime définitivement ton compte et toutes les données associées. C'est irréversible — l'IA te demande toujours confirmation avant.",
+                "Supprime définitivement ton compte Nutrition MCP et toutes les données qu'il conserve sur toi. C'est irréversible — l'IA te demande toujours confirmation avant.",
             params: {},
             example: "Supprime mon compte et toutes mes données",
         },
@@ -467,7 +467,7 @@ export const TOOLS_FR: ToolsDoc = {
             "wrong-day": {
                 question: "Mes repas apparaissent au mauvais jour",
                 answerHtml:
-                    "Les jours sont comptés dans ton fuseau horaire ; si tu n'en as jamais défini, c'est l'UTC qui s'applique. Demande « quel fuseau horaire est configuré ? » (<a href=\"#get_profile\"><code>get_profile</code></a>) et, s'il est faux, « règle mon fuseau horaire sur Europe/Berlin » (<a href=\"#set_timezone\"><code>set_timezone</code></a>). Tout ce que tu as enregistré est alors regroupé selon ton jour local, entrées passées comprises. Seule exception : une entrée à laquelle tu as donné une heure précise pendant que le fuseau était faux garde l'instant auquel elle a été enregistrée, et peut donc rester décalée d'une heure ou d'un jour — demande à l'IA de la déplacer à la bonne date et à la bonne heure (<a href=\"#update_meal\"><code>update_meal</code></a>). Définis aussi ton fuseau horaire avant d'importer ton historique.",
+                    "Les jours sont comptés dans ton fuseau horaire ; si tu n'en as jamais défini, c'est l'UTC qui s'applique. Demande « quel fuseau horaire est configuré ? » (<a href=\"#get_profile\"><code>get_profile</code></a>) et, s'il est faux, « règle mon fuseau horaire sur Europe/Berlin » (<a href=\"#set_timezone\"><code>set_timezone</code></a>). Tout ce que tu as enregistré est alors regroupé selon ton jour local, entrées passées comprises. Seule exception : une entrée à laquelle tu as donné une heure précise pendant que le fuseau était faux garde l'instant auquel elle a été enregistrée, et peut donc rester décalée d'une heure ou d'un jour — demande à l'IA de la déplacer à la bonne date et à la bonne heure (<a href=\"#update_meal\"><code>update_meal</code></a>). Définis aussi ton fuseau horaire avant d'importer ton historique : les repas importés gardent l'instant auquel ils ont été placés, et importer à nouveau le fichier d'une autre app après avoir changé de fuseau les ajoute une seconde fois. Un export Nutrition MCP est reconnu et n'est pas dupliqué.",
             },
             "no-widgets": {
                 question: "Je ne vois que du texte, sans graphiques ni cartes",
@@ -478,7 +478,7 @@ export const TOOLS_FR: ToolsDoc = {
                 question:
                     "L'importateur ne s'ouvre pas, ou dit qu'il ne peut pas enregistrer",
                 answerHtml:
-                    "Le panneau d'import nécessite une app qui affiche les panneaux interactifs, avec les widgets activés. S'il affiche <em>Cet hôte ne permet pas à cette vue d'écrire dans ton journal</em>, ou s'il n'apparaît pas du tout, demande à l'IA d'importer le fichier elle-même : joins ou colle le CSV et elle utilisera <a href=\"#bulk_import_meals\"><code>bulk_import_meals</code></a>, qui vérifie chaque ligne et ignore les doublons, donc le renvoyer est sans risque. Si tu utilises le panneau d'import et veux conserver une colonne d'alcool, active d'abord le suivi de l'alcool : le panneau ignore cette colonne tant que le suivi est désactivé, et un nouvel import plus tard ne la remplira pas.",
+                    "Le panneau d'import nécessite une app qui affiche les panneaux interactifs, avec les widgets activés. S'il affiche <em>Cet hôte ne permet pas à cette vue d'écrire dans ton journal</em>, ou s'il n'apparaît pas du tout, demande à l'IA d'importer le fichier elle-même : joins ou colle le CSV et elle utilisera <a href=\"#bulk_import_meals\"><code>bulk_import_meals</code></a>, qui vérifie chaque ligne et ignore les doublons, donc le renvoyer est sans risque tant que ton fuseau horaire n'a pas changé entre-temps. Définis ton fuseau horaire avant le premier import : réimporter le fichier d'une autre app après un changement ajoute les lignes une nouvelle fois. Si tu utilises le panneau d'import et veux conserver une colonne d'alcool, active d'abord le suivi de l'alcool : le panneau ignore cette colonne tant que le suivi est désactivé, et un nouvel import plus tard ne la remplira pas.",
             },
             "rate-limited": {
                 question:
