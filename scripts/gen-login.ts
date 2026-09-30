@@ -153,6 +153,11 @@ const LOGIN_STYLE = `        <style>
             .auth-google-form {
                 margin: 0;
             }
+            /* The consent line sits above the Google button, not inside a
+               form, so it needs the same gap below it as the notices above. */
+            .auth-card .auth-consent {
+                margin-bottom: 1.1rem;
+            }
         </style>`;
 
 function renderDoc(doc: LoginDoc, locale: SiteLocale): string {
@@ -216,7 +221,7 @@ ${nav(locale, "", undefined, { dynamicSwitcher: true, consent: false })}
                              consent the privacy policy's legal basis names
                              ("each time you sign in"), for Google and email
                              alike. -->
-                        <p class="auth-note">${consent}</p>
+                        <p class="auth-note auth-consent">${consent}</p>
 
                         <!-- A POST form, not a link: POST /authorize/google
                              is the only way into the Google leg, so it always
