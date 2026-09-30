@@ -127,7 +127,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         bulk_import_meals: {
             description:
-                "Añade un lote de comidas pasadas de una sola vez (hasta 50 a la vez) en lugar de registrarlas una por una. El importador de arriba escribe a través de esta herramienta, y la IA puede usarla directamente para datos de comidas que hayas pegado en el chat. Cada fila se comprueba primero y lo que no encaje se informa fila por fila, así que reenviar las mismas filas es seguro y no duplicará lo ya registrado.",
+                "Añade un lote de comidas pasadas de una sola vez (hasta 50 a la vez) en lugar de registrarlas una por una. El importador de arriba escribe a través de esta herramienta, y la IA puede usarla directamente para datos de comidas que hayas pegado en el chat. Cada fila se comprueba primero y lo que no encaje se informa fila por fila, así que reenviar las mismas filas es seguro y no duplicará lo ya registrado, siempre que tu zona horaria no haya cambiado entretanto.",
             params: {
                 meals: "Las filas a importar, en el orden del archivo de origen (1–50 por llamada). Cada fila puede llevar una hora, tipo de comida, descripción, notas y las mismas cifras que una comida registrada: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (azúcares totales), <code>alcohol_g</code> (gramos de etanol puro) y <code>caffeine_mg</code> (miligramos, no gramos)",
                 expected_row_count:
@@ -418,7 +418,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Elimina tu cuenta y todos los datos asociados de forma permanente. Esto es irreversible: la IA siempre te lo confirma antes.",
+                "Elimina de forma permanente tu cuenta de Nutrition MCP y todos los datos que guarda sobre ti. Esto es irreversible: la IA siempre te lo confirma antes.",
             params: {},
             example: "Elimina mi cuenta y todos mis datos",
         },
@@ -459,7 +459,7 @@ export const TOOLS_ES: ToolsDoc = {
             "wrong-day": {
                 question: "Mis comidas aparecen en el día equivocado",
                 answerHtml:
-                    'Los días se cuentan en tu zona horaria y, si nunca has configurado una, se usa UTC. Pregunta "¿qué zona horaria tengo configurada?" (<a href="#get_profile"><code>get_profile</code></a>) y, si es incorrecta, "configura mi zona horaria en Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). A partir de ahí, todo lo que hayas registrado se agrupa por tu día local, incluidas las entradas anteriores. La única excepción es una entrada a la que diste una hora concreta mientras la zona horaria era incorrecta: conserva el momento con el que se guardó, así que puede seguir desplazada una hora o un día; pide a la IA que la mueva a la fecha y hora correctas (<a href="#update_meal"><code>update_meal</code></a>). Configura también tu zona horaria antes de importar tu historial.',
+                    'Los días se cuentan en tu zona horaria y, si nunca has configurado una, se usa UTC. Pregunta "¿qué zona horaria tengo configurada?" (<a href="#get_profile"><code>get_profile</code></a>) y, si es incorrecta, "configura mi zona horaria en Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). A partir de ahí, todo lo que hayas registrado se agrupa por tu día local, incluidas las entradas anteriores. La única excepción es una entrada a la que diste una hora concreta mientras la zona horaria era incorrecta: conserva el momento con el que se guardó, así que puede seguir desplazada una hora o un día; pide a la IA que la mueva a la fecha y hora correctas (<a href="#update_meal"><code>update_meal</code></a>). Configura también tu zona horaria antes de importar tu historial: las comidas importadas conservan el momento que se les asignó al importarlas, y volver a importar el archivo de otra app tras cambiar la zona horaria las añade por segunda vez. Una exportación de Nutrition MCP se reconoce y no se duplica.',
             },
             "no-widgets": {
                 question: "Solo veo texto, sin gráficos ni tarjetas",
@@ -470,7 +470,7 @@ export const TOOLS_ES: ToolsDoc = {
                 question:
                     "El importador no se abre, o dice que no puede guardar",
                 answerHtml:
-                    'El panel del importador necesita una app que muestre paneles interactivos y tenga los widgets activados. Si dice <em>Este host no permite que esta vista escriba en tu registro</em>, o no aparece en absoluto, pide a la IA que importe el archivo ella misma: adjunta o pega el CSV y usará <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, que revisa cada fila y omite los duplicados, así que volver a enviarlo es seguro. Si usas el panel del importador y quieres conservar una columna de alcohol, activa antes el seguimiento de alcohol: el panel omite esa columna mientras el seguimiento está desactivado, y reimportar más tarde no la rellenará.',
+                    'El panel del importador necesita una app que muestre paneles interactivos y tenga los widgets activados. Si dice <em>Este host no permite que esta vista escriba en tu registro</em>, o no aparece en absoluto, pide a la IA que importe el archivo ella misma: adjunta o pega el CSV y usará <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, que revisa cada fila y omite los duplicados, así que volver a enviarlo es seguro siempre que tu zona horaria no haya cambiado entretanto. Configura tu zona horaria antes de la primera importación: reimportar el archivo de otra app tras un cambio vuelve a añadir las filas. Si usas el panel del importador y quieres conservar una columna de alcohol, activa antes el seguimiento de alcohol: el panel omite esa columna mientras el seguimiento está desactivado, y reimportar más tarde no la rellenará.',
             },
             "rate-limited": {
                 question:

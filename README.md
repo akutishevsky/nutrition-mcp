@@ -64,7 +64,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `log_meal`                 | Log a meal with description, type, calories, macros, fiber, total sugar, alcohol, caffeine (mg), notes — from text or a photo of your plate      |
 | `start_meal_import`        | Open the in-chat CSV importer: pick an export from another app, map its columns, preview, confirm                                                |
-| `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe                                              |
+| `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe while the timezone is unchanged              |
 | `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts (read from a photo or typed; data © OFF contributors, ODbL)          |
 | `get_meals_today`          | Get all meals logged today, one compact line per meal with its id; `detail: "full"` adds notes                                                   |
 | `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD), one compact line per meal; `detail: "full"` adds notes                                               |
@@ -97,7 +97,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_current_time`         | Get the current date and time in the user's timezone, plus the UTC instant — for hosts with no clock in context                                  |
 | `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default                                                     |
 | `set_alcohol_tracking`     | Turn alcohol tracking on or off (off by default) and choose US standard drinks or UK units; turning it off hides alcohol rather than deleting it |
-| `delete_account`           | Permanently delete account and all associated data                                                                                               |
+| `delete_account`           | Permanently delete the user's Nutrition MCP account and all data it stores about them                                                            |
 
 ## MCP Resources
 
@@ -221,9 +221,9 @@ The full version, in 9 languages, is at [nutrition-mcp.com/tools#troubleshooting
 - **Can't sign in / forgot password:** use **Sign in** for an existing account — a wrong email or password shows "Wrong email or password" and never creates a new account; **Create account** is only for a first visit. If you signed up with Google, use **Continue with Google**. There is no self-service reset yet — email anton@nutrition-mcp.com from your account's address.
 - **History gone after reconnecting:** each email is a separate account; sign in with the one you used originally.
 - **The AI answers but doesn't log:** check the connector is enabled for the conversation, ask explicitly, and approve tool permission prompts.
-- **Meals on the wrong day:** days follow your timezone (UTC until you set one). Set it with `set_timezone`; past entries regroup, but one given a specific time while the timezone was wrong keeps that moment — fix it with `update_meal`.
+- **Meals on the wrong day:** days follow your timezone (UTC until you set one). Set it with `set_timezone`; past entries regroup, but one given a specific time while the timezone was wrong keeps that moment — fix it with `update_meal`. Set it before importing history: re-importing another app's file after a timezone change adds the rows again (a Nutrition MCP export is recognized and not duplicated).
 - **No charts or cards:** widgets need a host that supports MCP Apps; after `set_widget_display`, start a new conversation. The meal-logged card only appears once goals are set.
-- **Importer won't open or can't save:** ask the AI to import the file itself with `bulk_import_meals` (duplicates are skipped, so re-sending is safe). If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first; the panel skips it while tracking is off.
+- **Importer won't open or can't save:** ask the AI to import the file itself with `bulk_import_meals` (duplicates are skipped, so re-sending is safe as long as your timezone hasn't changed in between; set it before the first import). If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first; the panel skips it while tracking is off.
 - **"Rate limit exceeded" / "Too many failed authentication attempts":** 60 requests a minute per account, 30 a minute per network on the sign-in pages. After 20 rejected connection attempts in a row, a network is paused for 5 minutes, growing to at most an hour — usually an old connector retrying; remove and re-add it.
 - **Barcode not found or wrong:** data comes from Open Food Facts (8–14 digits, no caffeine data); the AI can estimate from the name or a label photo.
 - **Export link doesn't work:** links expire after 60 minutes and each export replaces the last; ask for a fresh one. An export reporting 0 meals when you expected history usually means you signed in with a different email.

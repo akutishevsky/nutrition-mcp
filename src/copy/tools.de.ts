@@ -124,7 +124,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         bulk_import_meals: {
             description:
-                "Füge eine Reihe vergangener Mahlzeiten auf einmal hinzu — bis zu 50 pro Aufruf — statt sie einzeln zu erfassen. Der Importer oben schreibt darüber, und die KI kann es direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird zuerst geprüft, und alles, was nicht passt, wird zeilenweise gemeldet, sodass ein erneutes Senden derselben Zeilen sicher ist und nichts verdoppelt, was bereits erfasst ist.",
+                "Füge eine Reihe vergangener Mahlzeiten auf einmal hinzu — bis zu 50 pro Aufruf — statt sie einzeln zu erfassen. Der Importer oben schreibt darüber, und die KI kann es direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird zuerst geprüft, und alles, was nicht passt, wird zeilenweise gemeldet, sodass ein erneutes Senden derselben Zeilen sicher ist und nichts verdoppelt, was bereits erfasst ist — solange sich deine Zeitzone zwischendurch nicht geändert hat.",
             params: {
                 meals: "Die zu importierenden Zeilen, in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann eine Uhrzeit, einen Mahlzeitentyp, eine Beschreibung, Notizen und dieselben Zahlen wie eine erfasste Mahlzeit tragen: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
                 expected_row_count:
@@ -419,7 +419,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Lösch dein Konto und alle zugehörigen Daten dauerhaft. Das ist unumkehrbar — die KI bestätigt immer zuerst mit dir.",
+                "Lösch dein Nutrition-MCP-Konto und alle Daten, die es über dich speichert, dauerhaft. Das ist unumkehrbar — die KI bestätigt immer zuerst mit dir.",
             params: {},
             example: "Lösch mein Konto und alle meine Daten",
         },
@@ -461,7 +461,7 @@ export const TOOLS_DE: ToolsDoc = {
             "wrong-day": {
                 question: "Meine Mahlzeiten landen am falschen Tag",
                 answerHtml:
-                    'Tage werden in deiner Zeitzone gezählt, und wenn du nie eine festgelegt hast, gilt UTC. Frag „welche Zeitzone habe ich eingestellt?" (<a href="#get_profile"><code>get_profile</code></a>) und, falls sie falsch ist, „stell meine Zeitzone auf Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Danach wird alles, was du erfasst hast, nach deinem lokalen Tag gruppiert, auch ältere Einträge. Die einzige Ausnahme ist ein Eintrag, dem du eine bestimmte Uhrzeit gegeben hast, während die Zeitzone falsch war: Er behält den Zeitpunkt, mit dem er gespeichert wurde, und kann deshalb weiterhin eine Stunde oder einen Tag danebenliegen — bitte die KI, ihn auf das richtige Datum und die richtige Uhrzeit zu verschieben (<a href="#update_meal"><code>update_meal</code></a>). Leg deine Zeitzone auch fest, bevor du deinen Verlauf importierst.',
+                    'Tage werden in deiner Zeitzone gezählt, und wenn du nie eine festgelegt hast, gilt UTC. Frag „welche Zeitzone habe ich eingestellt?" (<a href="#get_profile"><code>get_profile</code></a>) und, falls sie falsch ist, „stell meine Zeitzone auf Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Danach wird alles, was du erfasst hast, nach deinem lokalen Tag gruppiert, auch ältere Einträge. Die einzige Ausnahme ist ein Eintrag, dem du eine bestimmte Uhrzeit gegeben hast, während die Zeitzone falsch war: Er behält den Zeitpunkt, mit dem er gespeichert wurde, und kann deshalb weiterhin eine Stunde oder einen Tag danebenliegen — bitte die KI, ihn auf das richtige Datum und die richtige Uhrzeit zu verschieben (<a href="#update_meal"><code>update_meal</code></a>). Leg deine Zeitzone auch fest, bevor du deinen Verlauf importierst: Importierte Mahlzeiten behalten den Zeitpunkt, mit dem sie gespeichert wurden, und importierst du die Datei einer anderen App nach einer Änderung der Zeitzone noch einmal, werden sie ein zweites Mal hinzugefügt. Ein Nutrition-MCP-Export wird erkannt und nicht verdoppelt.',
             },
             "no-widgets": {
                 question: "Ich sehe nur Text, keine Diagramme oder Karten",
@@ -472,7 +472,7 @@ export const TOOLS_DE: ToolsDoc = {
                 question:
                     "Der Importer öffnet sich nicht oder meldet, dass er nicht speichern kann",
                 answerHtml:
-                    'Das Importer-Panel braucht eine App, die interaktive Panels anzeigt, und eingeschaltete Widgets. Steht dort <em>Dieser Host erlaubt dieser Ansicht nicht, in dein Protokoll zu schreiben</em>, oder erscheint es gar nicht, bitte die KI, die Datei selbst zu importieren: Häng die CSV an oder füge sie ein, dann nutzt sie <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>. Das prüft jede Zeile und überspringt Duplikate, erneutes Senden ist also sicher. Nutzt du das Importer-Panel und soll eine Alkohol-Spalte übernommen werden, schalte vorher die Alkohol-Erfassung ein — das Panel überspringt diese Spalte, solange die Erfassung aus ist, und ein späterer erneuter Import füllt sie nicht nach.',
+                    'Das Importer-Panel braucht eine App, die interaktive Panels anzeigt, und eingeschaltete Widgets. Steht dort <em>Dieser Host erlaubt dieser Ansicht nicht, in dein Protokoll zu schreiben</em>, oder erscheint es gar nicht, bitte die KI, die Datei selbst zu importieren: Häng die CSV an oder füge sie ein, dann nutzt sie <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>. Das prüft jede Zeile und überspringt Duplikate, erneutes Senden ist also sicher, solange sich deine Zeitzone zwischendurch nicht geändert hat. Leg deine Zeitzone vor dem ersten Import fest: Importierst du die Datei einer anderen App nach einer Änderung erneut, werden die Zeilen noch einmal hinzugefügt. Nutzt du das Importer-Panel und soll eine Alkohol-Spalte übernommen werden, schalte vorher die Alkohol-Erfassung ein — das Panel überspringt diese Spalte, solange die Erfassung aus ist, und ein späterer erneuter Import füllt sie nicht nach.',
             },
             "rate-limited": {
                 question:

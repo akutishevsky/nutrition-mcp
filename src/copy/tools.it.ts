@@ -130,7 +130,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         bulk_import_meals: {
             description:
-                "Aggiunge un lotto di pasti passati in un'unica volta — fino a 50 alla volta — invece di registrarli uno per uno. L'importatore qui sopra scrive attraverso questo strumento, e l'IA può usarlo direttamente per dati di pasti che hai incollato in chat. Ogni riga viene controllata prima, e tutto ciò che non va bene viene segnalato riga per riga, quindi rinviare le stesse righe è sicuro e non duplica ciò che è già stato registrato.",
+                "Aggiunge un lotto di pasti passati in un'unica volta — fino a 50 alla volta — invece di registrarli uno per uno. L'importatore qui sopra scrive attraverso questo strumento, e l'IA può usarlo direttamente per dati di pasti che hai incollato in chat. Ogni riga viene controllata prima, e tutto ciò che non va bene viene segnalato riga per riga, quindi rinviare le stesse righe è sicuro e non duplica ciò che è già stato registrato, a patto che nel frattempo il fuso orario non sia cambiato.",
             params: {
                 meals: "Le righe da importare, nell'ordine del file di origine (1–50 per chiamata). Ogni riga può contenere un orario, il tipo di pasto, una descrizione, note e gli stessi valori di un pasto registrato: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (zuccheri totali), <code>alcohol_g</code> (grammi di etanolo puro) e <code>caffeine_mg</code> (milligrammi, non grammi)",
                 expected_row_count:
@@ -422,7 +422,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Elimina permanentemente il tuo account e tutti i dati associati. È irreversibile — l'IA conferma sempre con te prima.",
+                "Elimina permanentemente il tuo account Nutrition MCP e tutti i dati che conserva su di te. È irreversibile — l'IA conferma sempre con te prima.",
             params: {},
             example: "Elimina il mio account e tutti i miei dati",
         },
@@ -464,7 +464,7 @@ export const TOOLS_IT: ToolsDoc = {
             "wrong-day": {
                 question: "I miei pasti compaiono nel giorno sbagliato",
                 answerHtml:
-                    'I giorni vengono contati nel tuo fuso orario e, se non ne hai mai impostato uno, viene usato UTC. Chiedi "che fuso orario ho impostato?" (<a href="#get_profile"><code>get_profile</code></a>) e, se è sbagliato, "imposta il mio fuso orario su Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Da quel momento tutto ciò che hai registrato viene raggruppato per il tuo giorno locale, comprese le voci passate. L\'unica eccezione è una voce a cui hai dato un orario preciso mentre il fuso orario era sbagliato: mantiene il momento con cui è stata salvata, quindi può restare spostata di un\'ora o di un giorno — chiedi all\'IA di spostarla alla data e all\'ora giuste (<a href="#update_meal"><code>update_meal</code></a>). Imposta il fuso orario anche prima di importare la cronologia.',
+                    'I giorni vengono contati nel tuo fuso orario e, se non ne hai mai impostato uno, viene usato UTC. Chiedi "che fuso orario ho impostato?" (<a href="#get_profile"><code>get_profile</code></a>) e, se è sbagliato, "imposta il mio fuso orario su Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Da quel momento tutto ciò che hai registrato viene raggruppato per il tuo giorno locale, comprese le voci passate. L\'unica eccezione è una voce a cui hai dato un orario preciso mentre il fuso orario era sbagliato: mantiene il momento con cui è stata salvata, quindi può restare spostata di un\'ora o di un giorno — chiedi all\'IA di spostarla alla data e all\'ora giuste (<a href="#update_meal"><code>update_meal</code></a>). Imposta il fuso orario anche prima di importare la cronologia: i pasti importati mantengono il momento a cui sono stati collocati, e importare di nuovo il file di un\'altra app dopo aver cambiato fuso orario li aggiunge una seconda volta. Un\'esportazione di Nutrition MCP viene riconosciuta e non viene duplicata.',
             },
             "no-widgets": {
                 question: "Vedo solo testo, niente grafici né schede",
@@ -475,7 +475,7 @@ export const TOOLS_IT: ToolsDoc = {
                 question:
                     "L'importatore non si apre, o dice che non può salvare",
                 answerHtml:
-                    "Il pannello dell'importatore richiede un'app che mostri pannelli interattivi e abbia i widget attivi. Se dice <em>Questo host non permette a questa vista di scrivere nel tuo registro</em>, o non compare affatto, chiedi all'IA di importare il file direttamente: allega o incolla il CSV e userà <a href=\"#bulk_import_meals\"><code>bulk_import_meals</code></a>, che controlla ogni riga e salta i duplicati, quindi reinviarlo è sicuro. Se usi il pannello dell'importatore e vuoi importare anche la colonna dell'alcol, attiva prima il tracciamento dell'alcol: il pannello salta quella colonna finché il tracciamento è disattivato, e reimportare in seguito non la compilerà.",
+                    "Il pannello dell'importatore richiede un'app che mostri pannelli interattivi e abbia i widget attivi. Se dice <em>Questo host non permette a questa vista di scrivere nel tuo registro</em>, o non compare affatto, chiedi all'IA di importare il file direttamente: allega o incolla il CSV e userà <a href=\"#bulk_import_meals\"><code>bulk_import_meals</code></a>, che controlla ogni riga e salta i duplicati, quindi reinviarlo è sicuro, a patto che nel frattempo il fuso orario non sia cambiato. Imposta il fuso orario prima di importare per la prima volta: reimportare il file di un'altra app dopo averlo cambiato aggiunge di nuovo le righe. Se usi il pannello dell'importatore e vuoi importare anche la colonna dell'alcol, attiva prima il tracciamento dell'alcol: il pannello salta quella colonna finché il tracciamento è disattivato, e reimportare in seguito non la compilerà.",
             },
             "rate-limited": {
                 question:
