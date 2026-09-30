@@ -39,7 +39,8 @@ export const MEAL_LISTING_MAX_CHARS = 40_000;
 
 export type MealDetail = "compact" | "full";
 
-// Compact mode only, and never below 200: a description is what the user said
+// Compact listings and structured meal breakdowns only (full mode never
+// clips), and never below 200: a description is what the user said
 // they ate, and cutting it short loses the thing a later update_meal needs to
 // match. Code points, not UTF-16 units, so an emoji is never split in half.
 const DESCRIPTION_CLIP = 200;
