@@ -39,7 +39,8 @@ export const MEAL_LISTING_MAX_CHARS = 40_000;
 
 export type MealDetail = "compact" | "full";
 
-// Compact mode only, and never below 200: a description is what the user said
+// Compact listings and structured meal breakdowns only (full mode never
+// clips), and never below 200: a description is what the user said
 // they ate, and cutting it short loses the thing a later update_meal needs to
 // match. Code points, not UTF-16 units, so an emoji is never split in half.
 const DESCRIPTION_CLIP = 200;
@@ -47,6 +48,15 @@ const DESCRIPTION_CLIP = 200;
 function clip(text: string, max: number): string {
     const chars = Array.from(text);
     return chars.length > max ? `${chars.slice(0, max).join("")}…` : text;
+}
+
+/** A meal description as one line, clipped at DESCRIPTION_CLIP code points:
+ *  what a compact listing shows, and what every structured meal breakdown
+ *  (mealBreakdown: summary, meal progress, daily view) carries, since the
+ *  model reads those too. A pasted multi-line
+ *  description would otherwise break the "one meal per line" shape. */
+export function clipDescription(text: string): string {
+    return clip(text.replace(/\s*[\r\n]+\s*/g, " "), DESCRIPTION_CLIP);
 }
 
 /** Every field on its own line, notes included, time as local
@@ -113,12 +123,7 @@ export function formatMealCompact(
         meal.notes ? "notes" : null,
     ].filter(Boolean);
     const type = meal.meal_type ? ` ${meal.meal_type}` : "";
-    // One line means one line: a pasted multi-line description would otherwise
-    // break the "one meal per line" shape the header promises.
-    const description = clip(
-        meal.description.replace(/\s*[\r\n]+\s*/g, " "),
-        DESCRIPTION_CLIP,
-    );
+    const description = clipDescription(meal.description);
     return `- ${time}${type} — ${description}${parts.length ? ` · ${parts.join(" · ")}` : ""} [id: ${meal.id}]`;
 }
 

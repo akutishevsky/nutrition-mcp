@@ -104,6 +104,7 @@ import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 import { formatMealSearchResults } from "./search.js";
 import { getWidgetHtml, MEAL_CONTRIBUTORS_META_KEY } from "./widgets.js";
 import {
+    clipDescription,
     formatMg,
     formatMealFull,
     renderMealListing,
@@ -183,9 +184,9 @@ Meals from photos:
 Importing history from another app — when the user wants to bring in past meals from MyFitnessPal, Cronometer, Lose It!, MacroFactor or a similar export:
 1. If they have a FILE, call start_meal_import first and let them drive it. The importer reads and maps the file in the browser, so the rows never pass through you and cannot be mistranscribed, and it handles column mapping, batching and retries. Do not ask them to paste a file you could import properly.
 2. Call bulk_import_meals directly only when the importer is not an option: the data is already pasted into the conversation, the user cannot use the panel, or the importer reports that this client will not let it save. Then parse the rows yourself and follow that tool's description exactly — in particular, compute the row count and calorie total from the source text with real counting rather than by re-reading what you just wrote, and dry-run first.
-3. Never log a backfill by calling log_meal in a loop. One bulk_import_meals call carries up to ${MAX_ROWS_PER_CALL} rows, validates and reports on every row, supports a dry run, and recognises rows it has already written, so a failed batch can be re-sent safely; a loop of log_meal calls has none of that, and each call counts separately against the per-account rate limit.
+3. Never log a backfill by calling log_meal in a loop. One bulk_import_meals call carries up to ${MAX_ROWS_PER_CALL} rows, validates and reports on every row, supports a dry run, and recognises rows it has already written, so a failed batch can be re-sent safely while the timezone is unchanged (see step 5); a loop of log_meal calls has none of that, and each call counts separately against the per-account rate limit.
 4. Check get_profile before any sizeable import and offer set_timezone if the timezone is unset. Times without an explicit UTC offset are placed using the saved timezone, so correcting it afterwards moves every imported meal — onto an adjacent day for anything logged near midnight.
-5. Show the user what was resolved before treating an import as done: the dry run echoes back the date, time and meal type for every row, and a misread date column shows up there rather than in the totals. Re-sending the same rows is safe — the server recognises them and skips them — so a retry after a failure or a timeout never duplicates anything.`;
+5. Show the user what was resolved before treating an import as done: the dry run echoes back the date, time and meal type for every row, and a misread date column shows up there rather than in the totals. Re-sending the same rows is safe as long as the timezone hasn't changed in between — the server recognises them and skips them, so a retry after a failure or a timeout doesn't duplicate anything. Set the timezone before the first import, not between attempts.`;
 
 // ---------- Numeric bounds for the write tools ----------
 //
@@ -429,7 +430,7 @@ export function mealBreakdown(
     alcohol: AlcoholDisplay,
 ) {
     return meals.map((m) => ({
-        description: m.description,
+        description: clipDescription(m.description),
         meal_type: m.meal_type ?? null,
         date: dateTz ? dateInTz(m.logged_at, dateTz) : null,
         calories: Math.round(m.calories ?? 0),
@@ -1800,7 +1801,7 @@ export function registerTools(
             description:
                 "Import many past meals in one call, for backfilling history from a file the user exported from another app (MyFitnessPal, Cronometer, Lose It!, MacroFactor) or from a list they pasted. Parse the source yourself and map it to the row schema; the server validates every row and reports per-row results, so you can fix and re-send only the rows that failed. Prefer this over calling log_meal in a loop: one call writes up to " +
                 MAX_ROWS_PER_CALL +
-                " rows with per-row validation, a dry run and replay-safe keys, none of which a loop of log_meal calls has. Three rules matter for correctness. (1) Compute expected_row_count, and expected_total_kcal when every row has calories, FROM THE SOURCE FILE using deterministic tooling (a script, or counting the actual lines) — never by re-reading the JSON you just wrote, which would only compare your output against itself and catch nothing. (2) Call once with dry_run: true first whenever the rows came from parsing a CSV, a screenshot, or free text; check the resolved logged_at and meal_type echoed back for every row, show the user what will be imported, and only then call again with dry_run: false. Pass local times exactly as the file gives them and let the server apply the user's timezone; do not compute UTC offsets yourself, and do not guess a value you cannot find — omit the field and list the column in unmapped_columns instead. (3) Because those local times are placed using the user's saved timezone, check get_profile (which reports the saved timezone) before a large import: if it is unset the server falls back to UTC, and correcting it afterwards moves every imported meal — including onto adjacent days for anything logged near midnight. Offer set_timezone first. Maximum " +
+                " rows with per-row validation, a dry run and keys that make a replay a no-op while the saved timezone is unchanged, none of which a loop of log_meal calls has. Three rules matter for correctness. (1) Compute expected_row_count, and expected_total_kcal when every row has calories, FROM THE SOURCE FILE using deterministic tooling (a script, or counting the actual lines) — never by re-reading the JSON you just wrote, which would only compare your output against itself and catch nothing. (2) Call once with dry_run: true first whenever the rows came from parsing a CSV, a screenshot, or free text; check the resolved logged_at and meal_type echoed back for every row, show the user what will be imported, and only then call again with dry_run: false. Pass local times exactly as the file gives them and let the server apply the user's timezone; do not compute UTC offsets yourself, and do not guess a value you cannot find — omit the field and list the column in unmapped_columns instead. (3) Because those local times are placed using the user's saved timezone, check get_profile (which reports the saved timezone) before a large import: if it is unset the server falls back to UTC, and correcting it afterwards moves every imported meal — including onto adjacent days for anything logged near midnight — and re-sending rows that were already written after a timezone change inserts them a second time. Offer set_timezone before the first real call. Maximum " +
                 MAX_ROWS_PER_CALL +
                 " rows per call: split larger files by date range, keeping all rows for one calendar date in the same call. If a single calendar date alone has more than " +
                 MAX_ROWS_PER_CALL +
@@ -4756,7 +4757,7 @@ export function registerTools(
         {
             title: "Get Current Time",
             description:
-                "Get the current date and time in the user's timezone, plus the UTC instant. Call this whenever you need to know what time it is for this user — to resolve 'today', 'this morning', 'an hour ago' or 'last Monday' into a real timestamp — instead of asking the user or guessing. Not needed to log something that is happening now: omit logged_at and the server stamps the current time itself.",
+                "Get the current date and time in the user's timezone as saved in this nutrition tracker, plus the UTC instant. Use it to resolve 'today', 'this morning', 'an hour ago' or 'last Monday' into a timestamp for entries logged here, instead of asking the user or guessing. Not needed to log something that is happening now: omit logged_at and the server stamps the current time itself.",
             annotations: {
                 title: "Get Current Time",
                 readOnlyHint: true,
@@ -4793,11 +4794,11 @@ export function registerTools(
     server.registerTool(
         "delete_account",
         {
-            title: "Delete Account",
+            title: "Delete Nutrition Account",
             description:
-                "Permanently delete the user's account and all associated data (meals, tokens, auth). This action is irreversible. Always confirm with the user before calling this tool.",
+                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, goals, settings, exports, usage records and sign-in tokens). Irreversible. Always confirm with the user before calling this tool.",
             annotations: {
-                title: "Delete Account",
+                title: "Delete Nutrition Account",
                 readOnlyHint: false,
                 destructiveHint: true,
                 idempotentHint: false,

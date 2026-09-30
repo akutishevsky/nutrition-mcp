@@ -699,7 +699,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         bulk_import_meals: {
             description:
-                "Add a batch of past meals in one go — up to 50 at a time — instead of logging them one by one. The importer above writes through this, and the AI can use it directly for meal data you've pasted into the chat. Every row is checked first and anything that doesn't fit is reported row by row, so re-sending the same rows is safe and won't duplicate what's already logged.",
+                "Add a batch of past meals in one go — up to 50 at a time — instead of logging them one by one. The importer above writes through this, and the AI can use it directly for meal data you've pasted into the chat. Every row is checked first and anything that doesn't fit is reported row by row, so re-sending the same rows is safe and won't duplicate what's already logged, as long as your timezone hasn't changed in between.",
             params: {
                 meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
                 expected_row_count:
@@ -980,7 +980,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Permanently delete your account and all associated data. This is irreversible — the AI always confirms with you first.",
+                "Permanently delete your Nutrition MCP account and all the data it stores about you. This is irreversible — the AI always confirms with you first.",
             params: {},
             example: "Delete my account and all my data",
         },
@@ -1019,7 +1019,7 @@ const TOOLS_EN: ToolsDoc = {
             "wrong-day": {
                 question: "My meals show up on the wrong day",
                 answerHtml:
-                    'Days are counted in your timezone, and if you have never set one, UTC is used. Ask "what timezone do I have set?" (<a href="#get_profile"><code>get_profile</code></a>) and, if it is wrong, "set my timezone to Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Everything you have logged is then grouped by your local day, past entries included. The one exception is an entry you gave a specific time of day while the timezone was wrong: it keeps the moment it was saved as, so it can still sit an hour or a day off — ask the AI to move it to the right date and time (<a href="#update_meal"><code>update_meal</code></a>). Set your timezone before importing history, too.',
+                    'Days are counted in your timezone, and if you have never set one, UTC is used. Ask "what timezone do I have set?" (<a href="#get_profile"><code>get_profile</code></a>) and, if it is wrong, "set my timezone to Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Everything you have logged is then grouped by your local day, past entries included. The one exception is an entry you gave a specific time of day while the timezone was wrong: it keeps the moment it was saved as, so it can still sit an hour or a day off — ask the AI to move it to the right date and time (<a href="#update_meal"><code>update_meal</code></a>). Set your timezone before importing history, too: imported meals keep the moment they were placed at, and importing another app\'s file again after changing the timezone adds them a second time. A Nutrition MCP export is recognized and not duplicated.',
             },
             "no-widgets": {
                 question: "I only see text, no charts or cards",
@@ -1029,7 +1029,7 @@ const TOOLS_EN: ToolsDoc = {
             "import-problems": {
                 question: "The importer won't open, or says it can't save",
                 answerHtml:
-                    'The importer panel needs an app that shows interactive panels and has widgets turned on. If it says <em>This host does not let this view write to your log</em>, or it does not appear at all, ask the AI to import the file itself: attach or paste the CSV and it will use <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, which checks every row and skips duplicates, so re-sending is safe. If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first — the panel skips that column while tracking is off, and re-importing later will not fill it in.',
+                    'The importer panel needs an app that shows interactive panels and has widgets turned on. If it says <em>This host does not let this view write to your log</em>, or it does not appear at all, ask the AI to import the file itself: attach or paste the CSV and it will use <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, which checks every row and skips duplicates, so re-sending is safe as long as your timezone has not changed in between. Set your timezone before the first import: re-importing another app\'s file after a change adds the rows again. If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first — the panel skips that column while tracking is off, and re-importing later will not fill it in.',
             },
             "rate-limited": {
                 question:

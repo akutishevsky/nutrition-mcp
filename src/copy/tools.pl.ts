@@ -118,7 +118,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         bulk_import_meals: {
             description:
-                "Dodaj naraz partię wcześniejszych posiłków — do 50 na raz — zamiast zapisywać je jeden po drugim. Powyższy importer korzysta właśnie z tego narzędzia, a AI może użyć go bezpośrednio dla danych posiłków wklejonych do czatu. Każdy wiersz jest najpierw sprawdzany, a to, co się nie zgadza, jest zgłaszane wiersz po wierszu, więc ponowne wysłanie tych samych wierszy jest bezpieczne i nie zduplikuje tego, co już zapisano.",
+                "Dodaj naraz partię wcześniejszych posiłków — do 50 na raz — zamiast zapisywać je jeden po drugim. Powyższy importer korzysta właśnie z tego narzędzia, a AI może użyć go bezpośrednio dla danych posiłków wklejonych do czatu. Każdy wiersz jest najpierw sprawdzany, a to, co się nie zgadza, jest zgłaszane wiersz po wierszu, więc ponowne wysłanie tych samych wierszy jest bezpieczne i nie zduplikuje tego, co już zapisano, o ile w międzyczasie nie zmieniła się Twoja strefa czasowa.",
             params: {
                 meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki oraz te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
                 expected_row_count:
@@ -408,7 +408,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Trwale usuń swoje konto i wszystkie powiązane dane. To działanie jest nieodwracalne — AI zawsze najpierw potwierdza to z Tobą.",
+                "Trwale usuń swoje konto Nutrition MCP i wszystkie dane, które usługa o Tobie przechowuje. To działanie jest nieodwracalne — AI zawsze najpierw potwierdza to z Tobą.",
             params: {},
             example: "Usuń moje konto i wszystkie moje dane",
         },
@@ -449,7 +449,7 @@ export const TOOLS_PL: ToolsDoc = {
             "wrong-day": {
                 question: "Moje posiłki trafiają pod zły dzień",
                 answerHtml:
-                    'Dni są liczone w Twojej strefie czasowej, a jeśli nigdy jej nie ustawiłeś/aś, używany jest UTC. Zapytaj „jaką mam ustawioną strefę czasową?” (<a href="#get_profile"><code>get_profile</code></a>), a jeśli jest błędna, poproś „ustaw moją strefę czasową na Europe/Berlin” (<a href="#set_timezone"><code>set_timezone</code></a>). Wtedy wszystko, co zapisałeś/aś, jest grupowane według Twojego lokalnego dnia, łącznie z wcześniejszymi wpisami. Jedyny wyjątek to wpis, któremu podałeś/aś konkretną godzinę, gdy strefa czasowa była błędna: zachowuje on datę i godzinę, z jaką został wtedy zapisany, więc nadal może być przesunięty o godzinę lub dzień — poproś AI o przeniesienie go na właściwą datę i godzinę (<a href="#update_meal"><code>update_meal</code></a>). Strefę czasową ustaw też przed importem historii.',
+                    'Dni są liczone w Twojej strefie czasowej, a jeśli nigdy jej nie ustawiłeś/aś, używany jest UTC. Zapytaj „jaką mam ustawioną strefę czasową?” (<a href="#get_profile"><code>get_profile</code></a>), a jeśli jest błędna, poproś „ustaw moją strefę czasową na Europe/Berlin” (<a href="#set_timezone"><code>set_timezone</code></a>). Wtedy wszystko, co zapisałeś/aś, jest grupowane według Twojego lokalnego dnia, łącznie z wcześniejszymi wpisami. Jedyny wyjątek to wpis, któremu podałeś/aś konkretną godzinę, gdy strefa czasowa była błędna: zachowuje on datę i godzinę, z jaką został wtedy zapisany, więc nadal może być przesunięty o godzinę lub dzień — poproś AI o przeniesienie go na właściwą datę i godzinę (<a href="#update_meal"><code>update_meal</code></a>). Strefę czasową ustaw też przed importem historii: zaimportowane posiłki zachowują datę i godzinę, z jaką zostały zapisane, a ponowny import pliku z innej aplikacji po zmianie strefy czasowej doda je po raz drugi. Eksport z Nutrition MCP zostanie rozpoznany i nie utworzy duplikatów.',
             },
             "no-widgets": {
                 question: "Widzę tylko tekst, bez wykresów i kart",
@@ -460,7 +460,7 @@ export const TOOLS_PL: ToolsDoc = {
                 question:
                     "Importer się nie otwiera albo pisze, że nie może zapisać",
                 answerHtml:
-                    'Panel importera wymaga aplikacji, która wyświetla interaktywne panele i ma włączone widżety. Jeśli pokazuje komunikat <em>Ta aplikacja nie pozwala temu widokowi zapisywać danych w Twoim dzienniku</em> albo w ogóle się nie pojawia, poproś AI o samodzielne zaimportowanie pliku: załącz lub wklej CSV, a AI użyje narzędzia <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, które sprawdza każdy wiersz i pomija duplikaty, więc ponowne wysłanie jest bezpieczne. Jeśli korzystasz z panelu importera i chcesz zachować kolumnę z alkoholem, najpierw włącz śledzenie alkoholu — panel pomija tę kolumnę, dopóki śledzenie jest wyłączone, a późniejszy ponowny import jej nie uzupełni.',
+                    'Panel importera wymaga aplikacji, która wyświetla interaktywne panele i ma włączone widżety. Jeśli pokazuje komunikat <em>Ta aplikacja nie pozwala temu widokowi zapisywać danych w Twoim dzienniku</em> albo w ogóle się nie pojawia, poproś AI o samodzielne zaimportowanie pliku: załącz lub wklej CSV, a AI użyje narzędzia <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>, które sprawdza każdy wiersz i pomija duplikaty, więc ponowne wysłanie jest bezpieczne, o ile w międzyczasie nie zmieniła się Twoja strefa czasowa. Strefę czasową ustaw przed pierwszym importem: ponowny import pliku z innej aplikacji po jej zmianie doda wiersze jeszcze raz. Jeśli korzystasz z panelu importera i chcesz zachować kolumnę z alkoholem, najpierw włącz śledzenie alkoholu — panel pomija tę kolumnę, dopóki śledzenie jest wyłączone, a późniejszy ponowny import jej nie uzupełni.',
             },
             "rate-limited": {
                 question:
