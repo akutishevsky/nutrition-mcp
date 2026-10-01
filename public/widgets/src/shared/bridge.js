@@ -25,7 +25,10 @@
 //   name:     string   // appInfo.name announced to the host
 //   version?: string   // appInfo.version (default "1.0.0")
 //   rootId?:  string   // element to render into (default "root")
-//   loading:  string   // innerHTML shown while awaiting the first tool result
+//   loading:  string | (strings) => string
+//                      // innerHTML shown while awaiting the first tool result;
+//                      // a function gets the WIDGET_STRINGS entry for the
+//                      // browser language (no payload locale exists yet)
 //   coerce:   (payload) => data | null   // pull the widget's data out of a payload
 //   render:   (data, meta) => void       // paint the widget from coerced data;
 //                                        // meta is the CallToolResult's `_meta`
@@ -46,6 +49,17 @@
 function initWidget(config) {
     const rootId = config.rootId || "root";
     const root = () => document.getElementById(rootId);
+    // Strings for text painted before any payload (the loading line, the
+    // connect-failure notice): no structuredContent.locale exists yet, so
+    // the browser language stands in. Read-only — the ambient T is left for
+    // render() to set from the payload via setLocale().
+    const preloadStrings = () => {
+        let lang = null;
+        try {
+            lang = navigator.language;
+        } catch (_) {}
+        return WIDGET_STRINGS[pickLocale(null, lang)] || WIDGET_STRINGS.en;
+    };
 
     function applyTheme(theme) {
         if (theme === "light" || theme === "dark") {
@@ -75,8 +89,8 @@ function initWidget(config) {
         const el = root();
         if (!el || el.innerHTML.trim() === "") return;
         const foot = document.createElement("div");
-        foot.textContent =
-            "You can enable or disable these widgets anytime — just ask to update your settings.";
+        // render() has just called setLocale(), so T is this payload's locale.
+        foot.textContent = T.bridge.settingsFooter;
         foot.style.cssText =
             "margin-top:14px;padding-top:10px;" +
             "border-top:1px solid var(--panel-border);" +
@@ -341,7 +355,10 @@ function initWidget(config) {
 
     if (host) {
         // Brief loading state until the host delivers the tool result.
-        root().innerHTML = config.loading;
+        root().innerHTML =
+            typeof config.loading === "function"
+                ? config.loading(preloadStrings())
+                : config.loading;
 
         // Announce the app so the host starts delivering tool data.
         // Field names MUST match the McpUiInitializeRequest schema exactly
@@ -396,7 +413,7 @@ function initWidget(config) {
                 if (el && !painted) {
                     el.innerHTML =
                         '<div class="empty"><div class="big">⚠</div><div>' +
-                        "This view could not connect to its host." +
+                        esc(preloadStrings().bridge.connectFailed) +
                         "</div></div>";
                 }
             });

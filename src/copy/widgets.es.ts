@@ -21,6 +21,15 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         limitPrefix: "límite",
         ofPrefix: "de",
         drinkLabels: { us: "bebidas EE. UU.", uk: "unidades RU" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            ml: "ml",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
+        },
         noneLogged: "nada registrado",
         caloriesToday: "Calorías de hoy",
         caloriesOn: "Calorías · {date}",
@@ -39,6 +48,11 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
             other: "+ al menos {n} comidas más pequeñas",
         },
         moreMealsMaybe: "+ quizá más comidas más pequeñas",
+    },
+    bridge: {
+        settingsFooter:
+            "Puedes activar o desactivar estos widgets en cualquier momento: solo pide que se actualice tu configuración.",
+        connectFailed: "Esta vista no pudo conectarse con su host.",
     },
     nutritionSummary: {
         title: "Resumen nutricional",
@@ -71,6 +85,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         ],
     },
     goalProgress: {
+        loading: "Cargando el progreso de tu meta…",
         title: "Progreso de la meta",
         empty: "No hay progreso de meta que mostrar.",
         nothingLoggedFor: "Aún no se ha registrado nada para {date}.",
@@ -96,6 +111,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         addedKcal: "+{kcal} kcal",
     },
     trends: {
+        loading: "Cargando tus tendencias…",
         title: "Tendencias",
         empty: "Aún no se registraron comidas ni agua en este rango.",
         avgUnder: "por debajo",
@@ -106,6 +122,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         avgAllDays: "prom. de {range} días · todos los días",
     },
     weightTrends: {
+        loading: "Cargando la evolución de tu peso…",
         title: "Peso",
         empty: "Aún no se registró peso en este rango.",
         rangeEmpty:
@@ -124,6 +141,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         noTarget: "Sin meta establecida",
     },
     importMeals: {
+        loading: "Preparando la importación…",
         stepFile: "Archivo",
         stepMap: "Asignar columnas",
         stepPreview: "Vista previa",
@@ -202,22 +220,38 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
             other: "{n} comidas para importar",
         },
         kcalTotal: "{kcal} kcal en total",
-        rowsSkipped: "{n} filas omitidas",
+        rowsSkipped: {
+            one: "{n} fila omitida",
+            other: "{n} filas omitidas",
+        },
         batchCount: { one: "{n} lote", other: "{n} lotes" },
         datesReadAs: "Fechas leídas como {format}; energía {conversion}.",
         energyConvertedNote: "convertida de kJ a kcal",
         energyReadAsKcal: "leída como kcal",
-        badDatesWarning:
-            "{n} fila(s) se omitieron porque su fecha no se pudo leer como {format}{sample}. Vuelve atrás y establece el formato de fecha que coincida con tu archivo.",
+        badDatesWarning: {
+            one: "{n} fila se omitió porque su fecha no se pudo leer como {format}{sample}. Vuelve atrás y establece el formato de fecha que coincida con tu archivo.",
+            other: "{n} filas se omitieron porque su fecha no se pudo leer como {format}{sample}. Vuelve atrás y establece el formato de fecha que coincida con tu archivo.",
+        },
         badDateSample: " (p. ej. línea {line}: {value})",
-        noTimeWarning:
-            "{n} fila(s) tienen fecha pero no hora — se registrarán al mediodía.",
+        noTimeWarning: {
+            one: "{n} fila tiene fecha pero no hora — se registrará al mediodía.",
+            other: "{n} filas tienen fecha pero no hora — se registrarán al mediodía.",
+        },
         splitDatesCount: {
             one: "{n} fecha tiene",
             other: "{n} fechas tienen",
         },
         splitDatesWarning:
             " más de {max} comidas (p. ej. {date}); fue necesario dividir la importación en varios lotes. Si esa fecha contiene dos entradas con exactamente el mismo alimento, tipo de comida y macros, una de ellas podría omitirse como duplicada en lugar de importarse.",
+        tableAbbr: {
+            protein_g: "P",
+            carbs_g: "Carb",
+            fat_g: "G",
+            fiber_g: "Fib",
+            sugar_g: "Azúc",
+            alcohol_g: "Alc",
+            caffeine_mg: "Caf",
+        },
         tableLine: "Línea",
         tableWhen: "Cuándo",
         tableMeal: "Comida",
@@ -225,20 +259,44 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         tableProblem: "Problema",
         noNameFallback: "(sin nombre — se etiquetará por comida)",
         showingRows: "Mostrando {shown} de {total} filas",
-        checkingRows: "Comprobando {n} filas…",
-        importingRows: "Importando {n} filas…",
+        checkingRows: {
+            one: "Comprobando {n} fila…",
+            other: "Comprobando {n} filas…",
+        },
+        importingRows: {
+            one: "Importando {n} fila…",
+            other: "Importando {n} filas…",
+        },
         batchProgress: "{label} (lote {done} de {total})",
         rowsRange: "Filas {a}–{b}: {msg}",
         preflightFailed: "La verificación previa falló.",
-        rowsWouldFail: "{n} fila(s) fallarían, p. ej. línea {line}: {message}",
+        rowsWouldFail: {
+            one: "{n} fila fallaría, p. ej. línea {line}: {message}",
+            other: "{n} filas fallarían, p. ej. línea {line}: {message}",
+        },
         importingEllipsis: "Importando…",
-        importButton: "Importar {n} comidas",
+        importButton: {
+            one: "Importar {n} comida",
+            other: "Importar {n} comidas",
+        },
         backToMapping: "Volver a la asignación",
         importCompleteHeading: "Importación completa",
-        resultMealsImported: "{n} comidas importadas",
-        resultAlreadyLogged: ", {n} ya registradas",
-        resultFailed: ", {n} fallidas",
-        resultSkipped: ", {n} omitidas",
+        resultMealsImported: {
+            one: "{n} comida importada",
+            other: "{n} comidas importadas",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} ya registrada",
+            other: ", {n} ya registradas",
+        },
+        resultFailed: {
+            one: ", {n} fallida",
+            other: ", {n} fallidas",
+        },
+        resultSkipped: {
+            one: ", {n} omitida",
+            other: ", {n} omitidas",
+        },
         restartButton: "Importar otro archivo",
         couldNotReadFile: "No se pudo leer ese archivo: {msg}",
         noDataRows: "No se encontraron filas de datos en ese archivo.",

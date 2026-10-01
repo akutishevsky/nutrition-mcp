@@ -21,6 +21,15 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         limitPrefix: "limite",
         ofPrefix: "sur",
         drinkLabels: { us: "verres US", uk: "unités UK" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            ml: "ml",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
+        },
         noneLogged: "aucun enregistré",
         caloriesToday: "Calories aujourd'hui",
         caloriesOn: "Calories · {date}",
@@ -40,9 +49,14 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         },
         moreMealsMaybe: "+ peut-être d'autres repas plus petits",
     },
+    bridge: {
+        settingsFooter:
+            "Tu peux activer ou désactiver ces widgets à tout moment — il suffit de demander à modifier tes paramètres.",
+        connectFailed: "Cette vue n'a pas pu se connecter à son hôte.",
+    },
     nutritionSummary: {
         title: "Résumé nutritionnel",
-        loading: "Chargement de votre résumé nutritionnel…",
+        loading: "Chargement de ton résumé nutritionnel…",
         empty: "Aucun repas ni eau enregistré sur cette période.",
         caloriesPerDay: "Calories / jour",
         chartAriaLabel: "Calories par jour sur la période sélectionnée",
@@ -71,6 +85,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         ],
     },
     goalProgress: {
+        loading: "Chargement de la progression de ton objectif…",
         title: "Progression de l'objectif",
         empty: "Aucune progression d'objectif à afficher.",
         nothingLoggedFor: "Rien d'enregistré pour le {date}.",
@@ -96,6 +111,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         addedKcal: "+{kcal} kcal",
     },
     trends: {
+        loading: "Chargement de tes tendances…",
         title: "Tendances",
         empty: "Aucun repas ni eau enregistré sur cette période pour l'instant.",
         avgUnder: "en dessous",
@@ -106,6 +122,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         avgAllDays: "Moy. {range} jours · tous les jours",
     },
     weightTrends: {
+        loading: "Chargement de l'évolution de ton poids…",
         title: "Poids",
         empty: "Aucun poids enregistré sur cette période pour l'instant.",
         rangeEmpty:
@@ -124,6 +141,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         noTarget: "Aucun objectif défini",
     },
     importMeals: {
+        loading: "Préparation de l'import…",
         stepFile: "Fichier",
         stepMap: "Associer les colonnes",
         stepPreview: "Aperçu",
@@ -202,22 +220,38 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             other: "{n} repas à importer",
         },
         kcalTotal: "{kcal} kcal au total",
-        rowsSkipped: "{n} lignes ignorées",
+        rowsSkipped: {
+            one: "{n} ligne ignorée",
+            other: "{n} lignes ignorées",
+        },
         batchCount: { one: "{n} lot", other: "{n} lots" },
         datesReadAs: "Dates lues comme {format} ; énergie {conversion}.",
         energyConvertedNote: "converti de kJ en kcal",
         energyReadAsKcal: "lu en kcal",
-        badDatesWarning:
-            "{n} ligne(s) ont été ignorées car leur date n'a pas pu être lue comme {format}{sample}. Reviens en arrière et choisis le format de date correspondant à ton fichier.",
+        badDatesWarning: {
+            one: "{n} ligne a été ignorée car sa date n'a pas pu être lue comme {format}{sample}. Reviens en arrière et choisis le format de date correspondant à ton fichier.",
+            other: "{n} lignes ont été ignorées car leur date n'a pas pu être lue comme {format}{sample}. Reviens en arrière et choisis le format de date correspondant à ton fichier.",
+        },
         badDateSample: " (ex. ligne {line} : {value})",
-        noTimeWarning:
-            "{n} ligne(s) ont une date mais pas d'heure — elles seront enregistrées à midi.",
+        noTimeWarning: {
+            one: "{n} ligne a une date mais pas d'heure — elle sera enregistrée à midi.",
+            other: "{n} lignes ont une date mais pas d'heure — elles seront enregistrées à midi.",
+        },
         splitDatesCount: {
             one: "{n} date compte",
             other: "{n} dates comptent",
         },
         splitDatesWarning:
             " plus de {max} repas (ex. {date}), l'import a donc dû être réparti sur plusieurs lots. Si cette date contient deux entrées avec exactement le même aliment, le même type de repas et les mêmes macros, l'une d'elles pourrait être ignorée comme doublon plutôt qu'importée.",
+        tableAbbr: {
+            protein_g: "P",
+            carbs_g: "G",
+            fat_g: "L",
+            fiber_g: "Fib",
+            sugar_g: "Suc",
+            alcohol_g: "Alc",
+            caffeine_mg: "Caf",
+        },
         tableLine: "Ligne",
         tableWhen: "Quand",
         tableMeal: "Repas",
@@ -225,21 +259,44 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         tableProblem: "Problème",
         noNameFallback: "(pas de nom — sera étiqueté par type de repas)",
         showingRows: "Affichage de {shown} sur {total} lignes",
-        checkingRows: "Vérification de {n} lignes…",
-        importingRows: "Import de {n} lignes…",
+        checkingRows: {
+            one: "Vérification de {n} ligne…",
+            other: "Vérification de {n} lignes…",
+        },
+        importingRows: {
+            one: "Import de {n} ligne…",
+            other: "Import de {n} lignes…",
+        },
         batchProgress: "{label} (lot {done} sur {total})",
         rowsRange: "Lignes {a}–{b} : {msg}",
         preflightFailed: "La vérification préalable a échoué.",
-        rowsWouldFail:
-            "{n} ligne(s) échoueraient, ex. ligne {line} : {message}",
+        rowsWouldFail: {
+            one: "{n} ligne échouerait, ex. ligne {line} : {message}",
+            other: "{n} lignes échoueraient, ex. ligne {line} : {message}",
+        },
         importingEllipsis: "Import en cours…",
-        importButton: "Importer {n} repas",
+        importButton: {
+            one: "Importer {n} repas",
+            other: "Importer {n} repas",
+        },
         backToMapping: "Retour à l'association",
         importCompleteHeading: "Import terminé",
-        resultMealsImported: "{n} repas importés",
-        resultAlreadyLogged: ", {n} déjà enregistrés",
-        resultFailed: ", {n} échoués",
-        resultSkipped: ", {n} ignorés",
+        resultMealsImported: {
+            one: "{n} repas importé",
+            other: "{n} repas importés",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} déjà enregistré",
+            other: ", {n} déjà enregistrés",
+        },
+        resultFailed: {
+            one: ", {n} en échec",
+            other: ", {n} en échec",
+        },
+        resultSkipped: {
+            one: ", {n} ignoré",
+            other: ", {n} ignorés",
+        },
         restartButton: "Importer un autre fichier",
         couldNotReadFile: "Impossible de lire ce fichier : {msg}",
         noDataRows: "Aucune ligne de données trouvée dans ce fichier.",

@@ -238,7 +238,7 @@
             function weightRow(w) {
                 const cur = w?.current;
                 const tgt = w?.target;
-                const unit = esc(w?.unit || "kg");
+                const unit = esc(weightUnit(w?.unit || "kg"));
                 const hasCur = cur != null;
                 const hasTgt = tgt != null;
 
@@ -313,7 +313,7 @@
                 const segL = Math.min(pc, pt);
                 const segW = Math.abs(pc - pt);
                 const num = atTarget
-                    ? `${fmt(cur, 1)}<span class="wsub"> ${unit} · at target</span>`
+                    ? `${fmt(cur, 1)}<span class="wsub"> ${unit} · ${esc(T.goalProgress.atTarget)}</span>`
                     : `${fmt(cur, 1)}<span class="wsub"> → ${fmt(tgt, 1)} ${unit}</span>`;
 
                 return `
@@ -414,8 +414,12 @@
 
             initWidget({
                 name: "goal-progress-widget",
-                loading:
-                    '<div class="empty"><div class="big">🎯</div><div>Loading your goal progress…</div></div>',
+                // A function: bridge.js calls it with the strings for the
+                // browser language, since the payload's locale isn't known yet.
+                loading: (strings) =>
+                    '<div class="empty"><div class="big">🎯</div><div>' +
+                    esc(strings.goalProgress.loading) +
+                    "</div></div>",
                 coerce,
                 render,
                 sample: SAMPLE,

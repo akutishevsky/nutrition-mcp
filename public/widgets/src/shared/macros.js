@@ -43,6 +43,24 @@
 // recorded none of it is indistinguishable from a 0. The cell is earned by a
 // value above zero or by a goal of the user's own, which is the same rule the
 // carbs disclosure used when fiber and sugar lived inside it.
+// The unit glyph a MACROS entry's `unit` code renders as in the widget's
+// language ("kcal" -> "ккал" in uk). The code itself stays the stable key the
+// logic compares against (see mealList); only what is printed is translated.
+// Falls back to the code for a dictionary without the entry.
+function unitLabel(m) {
+    const units = T.macros && T.macros.units;
+    return (units && units[m.unit]) || m.unit;
+}
+
+// Always exactly one decimal, in the widget locale's separator ("2,5" in de),
+// so a figure never carries a point beside comma-formatted neighbours.
+function oneDecimal(x) {
+    return Number(x).toLocaleString(undefined, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    });
+}
+
 const MACROS = [
     {
         key: "calories",
@@ -214,20 +232,20 @@ function macroBits(m, vals, goal, wording) {
         targetStr = T.macros.noGoalSet;
         deltaStr = "";
         goalLine = targetStr;
-        center2 = `<div class="ru">${m.unit}</div>`;
+        center2 = `<div class="ru">${esc(unitLabel(m))}</div>`;
     } else {
         const delta = target - val;
         if (delta < 0) {
-            deltaStr = `${fmt(-delta, m.decimals)} ${m.unit} ${overWord}`;
+            deltaStr = `${fmt(-delta, m.decimals)} ${esc(unitLabel(m))} ${overWord}`;
         } else if (delta === 0 && ceiling) {
             // "0 g under" would be read as room left; exactly at a limit is
             // its own state.
             deltaStr = T.macros.atLimit;
             atLimit = true;
         } else {
-            deltaStr = `${fmt(delta, m.decimals)} ${m.unit} ${underWord}`;
+            deltaStr = `${fmt(delta, m.decimals)} ${esc(unitLabel(m))} ${underWord}`;
         }
-        targetStr = `${ceiling ? T.macros.limitPrefix : T.macros.ofPrefix} ${fmt(target, m.decimals)} ${m.unit}`;
+        targetStr = `${ceiling ? T.macros.limitPrefix : T.macros.ofPrefix} ${fmt(target, m.decimals)} ${esc(unitLabel(m))}`;
         goalLine = `${targetStr} · ${deltaStr}`;
         center2 = `<div class="rp" style="color:${pctColor}">${Math.round(pct)}%</div>`;
     }
@@ -262,7 +280,7 @@ function ringMarkup(m, b) {
             ? b.center2
             : `<div class="rv">${fmt(b.val, m.decimals)}</div>${b.center2}`;
     return `
-      <div class="ring" style="--c:${m.color};--p:${b.frac.toFixed(4)}" role="img" aria-label="${esc(macroLabel(m))} ${fmt(b.val, m.decimals)} ${m.unit}">
+      <div class="ring" style="--c:${m.color};--p:${b.frac.toFixed(4)}" role="img" aria-label="${esc(macroLabel(m))} ${fmt(b.val, m.decimals)} ${esc(unitLabel(m))}">
         <div class="ring-track"></div>
         <div class="ring-arc"></div>
         ${cap}
@@ -307,7 +325,7 @@ function tileLabel(m, b) {
     // "·" separates value from goal visually; screen readers either skip it or
     // announce "middle dot", so the spoken name uses a comma.
     const state = b.goalLine.replace(" · ", ", ");
-    return `${macroLabel(m)} ${fmt(b.val, m.decimals)} ${m.unit}, ${state}. ${T.macros.showMealsContributed}`;
+    return `${macroLabel(m)} ${fmt(b.val, m.decimals)} ${unitLabel(m)}, ${state}. ${T.macros.showMealsContributed}`;
 }
 
 // When a tile has something to disclose it is also a button that toggles its
@@ -377,8 +395,8 @@ function macroBarTile(m, ctx, interactive) {
     // b.pct, not b.target — a floor goal of 0 is "no goal set" (see macroCal).
     const num =
         b.pct != null
-            ? `${fmt(b.val, m.decimals)}<span class="msub">/${fmt(b.target, m.decimals)}<span class="munit"> ${m.unit}</span></span>`
-            : `${fmt(b.val, m.decimals)}<span class="msub"> ${m.unit}</span>`;
+            ? `${fmt(b.val, m.decimals)}<span class="msub">/${fmt(b.target, m.decimals)}<span class="munit"> ${esc(unitLabel(m))}</span></span>`
+            : `${fmt(b.val, m.decimals)}<span class="msub"> ${esc(unitLabel(m))}</span>`;
     return macroTile(m, b, num, b.deltaStr || b.targetStr, interactive);
 }
 
@@ -410,14 +428,15 @@ function macroLimit(m, ctx, interactive) {
     // caffeine's milligrams are the one unit here that cannot be guessed — so
     // it is spelled out beside the figure only when there is no limit to
     // carry it.
-    const unit = b.pct == null ? `<span class="msub"> ${m.unit}</span>` : "";
+    const unit =
+        b.pct == null ? `<span class="msub"> ${esc(unitLabel(m))}</span>` : "";
     const num =
         b.val > 0
             ? `${fmt(b.val, m.decimals)}${unit}`
             : `<span class="mnone">${esc(T.macros.noneLogged)}</span>`;
     let cap = b.targetStr;
     if (b.val > 0 && m.gloss === "drinks") {
-        const drinks = (b.val / DRINK_GRAMS[ctx.drinkUnit]).toFixed(1);
+        const drinks = oneDecimal(b.val / DRINK_GRAMS[ctx.drinkUnit]);
         cap = `${drinks} ${T.macros.drinkLabels[ctx.drinkUnit]} · ${cap}`;
     }
     // The limit itself is the caption; BY HOW MUCH joins it only when that is
@@ -439,12 +458,13 @@ function macroWater(m, ctx) {
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
     // Always a tenth, not fmt()'s — fmt round-trips through Number(), so a
     // round 2 L would print "2" beside a "2.5 L" goal.
-    const L = (ml) => (ml / 1000).toFixed(1);
+    const L = (ml) => oneDecimal(ml / 1000);
+    const unitL = esc(unitLabel({ unit: "L" }));
     // b.pct, not b.target — a floor goal of 0 is "no goal set" (see macroCal).
     const num =
         b.pct != null
-            ? `${L(b.val)}<span class="wsub">/${L(b.target)} L</span>`
-            : `${L(b.val)}<span class="wsub"> L</span>`;
+            ? `${L(b.val)}<span class="wsub">/${L(b.target)} ${unitL}</span>`
+            : `${L(b.val)}<span class="wsub"> ${unitL}</span>`;
     return `
       <div class="wrow psec">
         <span class="wlab"><span class="dot" style="background:${m.color}"></span>${esc(macroLabel(m))}</span>
@@ -654,7 +674,7 @@ function mealList(m, meals, ctx) {
                   : "";
             return `
         <li class="md-row">
-          <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(m.unit)}</span></span>
+          <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(unitLabel(m))}</span></span>
           <span class="md-name">${esc(meal.description || T.macros.untitledMeal)}</span>
           ${sub ? `<span class="md-sub">${sub}</span>` : ""}
         </li>`;

@@ -21,6 +21,15 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         limitPrefix: "上限",
         ofPrefix: "目標",
         drinkLabels: { us: "US基準の杯数", uk: "UK基準のユニット" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            ml: "ml",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
+        },
         noneLogged: "記録なし",
         caloriesToday: "本日のカロリー",
         caloriesOn: "{date}のカロリー",
@@ -39,6 +48,11 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             other: "他 {n} 件以上の少量の食事",
         },
         moreMealsMaybe: "他にも少量の食事がある可能性",
+    },
+    bridge: {
+        settingsFooter:
+            "これらのウィジェットはいつでも有効・無効を切り替えられます。設定の変更を頼むだけでOKです。",
+        connectFailed: "この画面はホストに接続できませんでした。",
     },
     nutritionSummary: {
         title: "栄養サマリー",
@@ -71,6 +85,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         ],
     },
     goalProgress: {
+        loading: "目標の進捗を読み込み中…",
         title: "目標の進捗",
         empty: "表示できる目標の進捗はありません。",
         nothingLoggedFor: "{date}の記録はまだありません。",
@@ -96,6 +111,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         addedKcal: "+{kcal} kcal",
     },
     trends: {
+        loading: "トレンドを読み込み中…",
         title: "トレンド",
         empty: "この期間にはまだ食事や水分の記録がありません。",
         avgUnder: "不足",
@@ -106,6 +122,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         avgAllDays: "{range}日平均・全日",
     },
     weightTrends: {
+        loading: "体重の推移を読み込み中…",
         title: "体重",
         empty: "この期間にはまだ体重の記録がありません。",
         rangeEmpty:
@@ -124,6 +141,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         noTarget: "目標未設定",
     },
     importMeals: {
+        loading: "インポートを準備中…",
         stepFile: "ファイル",
         stepMap: "列の対応付け",
         stepPreview: "プレビュー",
@@ -202,22 +220,38 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             other: "インポート対象：{n} 件の食事",
         },
         kcalTotal: "合計 {kcal} kcal",
-        rowsSkipped: "{n} 行をスキップ",
+        rowsSkipped: {
+            one: "{n} 行をスキップ",
+            other: "{n} 行をスキップ",
+        },
         batchCount: { one: "{n} バッチ", other: "{n} バッチ" },
         datesReadAs: "日付は{format}として読み取り、エネルギーは{conversion}。",
         energyConvertedNote: "kJからkcalに変換",
         energyReadAsKcal: "kcalとして読み取り",
-        badDatesWarning:
-            "{n} 件の行は、日付を{format}として読み取れなかったためスキップされました{sample}。戻ってファイルに合った日付形式を設定してください。",
+        badDatesWarning: {
+            one: "{n} 件の行は、日付を{format}として読み取れなかったためスキップされました{sample}。戻ってファイルに合った日付形式を設定してください。",
+            other: "{n} 件の行は、日付を{format}として読み取れなかったためスキップされました{sample}。戻ってファイルに合った日付形式を設定してください。",
+        },
         badDateSample: "（例：{line}行目：{value}）",
-        noTimeWarning:
-            "{n} 件の行には日付はありますが時刻がないため、正午として記録されます。",
+        noTimeWarning: {
+            one: "{n} 件の行には日付はありますが時刻がないため、正午として記録されます。",
+            other: "{n} 件の行には日付はありますが時刻がないため、正午として記録されます。",
+        },
         splitDatesCount: {
             one: "{n}件の日付で",
             other: "{n}件の日付で",
         },
         splitDatesWarning:
             "、{max}件を超える食事（例：{date}）があったため、複数のインポートバッチに分割されました。同じ日に食品名・食事の種類・栄養素がすべて同一の記録が2件ある場合、片方が重複としてスキップされ、インポートされないことがあります。",
+        tableAbbr: {
+            protein_g: "P",
+            carbs_g: "C",
+            fat_g: "F",
+            fiber_g: "繊維",
+            sugar_g: "糖質",
+            alcohol_g: "アルコール",
+            caffeine_mg: "カフェイン",
+        },
         tableLine: "行",
         tableWhen: "日時",
         tableMeal: "食事",
@@ -225,21 +259,44 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         tableProblem: "問題",
         noNameFallback: "（名前なし — 食事の種類でラベル付けされます）",
         showingRows: "{total}行中{shown}行を表示",
-        checkingRows: "{n}行を確認中…",
-        importingRows: "{n}行をインポート中…",
+        checkingRows: {
+            one: "{n}行を確認中…",
+            other: "{n}行を確認中…",
+        },
+        importingRows: {
+            one: "{n}行をインポート中…",
+            other: "{n}行をインポート中…",
+        },
         batchProgress: "{label}（バッチ {done}/{total}）",
         rowsRange: "{a}〜{b}行目：{msg}",
         preflightFailed: "事前チェックに失敗しました。",
-        rowsWouldFail:
-            "{n} 件の行が失敗する見込みです（例：{line}行目：{message}）",
+        rowsWouldFail: {
+            one: "{n} 件の行が失敗する見込みです（例：{line}行目：{message}）",
+            other: "{n} 件の行が失敗する見込みです（例：{line}行目：{message}）",
+        },
         importingEllipsis: "インポート中…",
-        importButton: "{n}件の食事をインポート",
+        importButton: {
+            one: "{n}件の食事をインポート",
+            other: "{n}件の食事をインポート",
+        },
         backToMapping: "対応付けに戻る",
         importCompleteHeading: "インポート完了",
-        resultMealsImported: "{n}件の食事をインポート",
-        resultAlreadyLogged: "、{n}件は記録済み",
-        resultFailed: "、{n}件が失敗",
-        resultSkipped: "、{n}件をスキップ",
+        resultMealsImported: {
+            one: "{n}件の食事をインポート",
+            other: "{n}件の食事をインポート",
+        },
+        resultAlreadyLogged: {
+            one: "、{n}件は記録済み",
+            other: "、{n}件は記録済み",
+        },
+        resultFailed: {
+            one: "、{n}件が失敗",
+            other: "、{n}件が失敗",
+        },
+        resultSkipped: {
+            one: "、{n}件をスキップ",
+            other: "、{n}件をスキップ",
+        },
         restartButton: "別のファイルをインポート",
         couldNotReadFile: "ファイルを読み込めませんでした：{msg}",
         noDataRows: "そのファイルにデータ行が見つかりませんでした。",

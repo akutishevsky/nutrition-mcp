@@ -24,6 +24,15 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         limitPrefix: "Limit",
         ofPrefix: "von",
         drinkLabels: { us: "US-Drinks", uk: "UK-Einheiten" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            ml: "ml",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
+        },
         noneLogged: "nichts protokolliert",
         caloriesToday: "Kalorien heute",
         caloriesOn: "Kalorien · {date}",
@@ -44,6 +53,12 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             other: "+ mindestens {n} kleinere Mahlzeiten",
         },
         moreMealsMaybe: "+ möglicherweise weitere kleinere Mahlzeiten",
+    },
+    bridge: {
+        settingsFooter:
+            "Du kannst diese Widgets jederzeit ein- oder ausschalten — sag einfach Bescheid, wenn du deine Einstellungen ändern möchtest.",
+        connectFailed:
+            "Diese Ansicht konnte keine Verbindung zu ihrem Host herstellen.",
     },
     nutritionSummary: {
         title: "Ernährungsübersicht",
@@ -76,6 +91,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         ],
     },
     goalProgress: {
+        loading: "Zielfortschritt wird geladen…",
         title: "Zielfortschritt",
         empty: "Kein Zielfortschritt anzuzeigen.",
         nothingLoggedFor: "Für {date} noch nichts protokolliert.",
@@ -101,6 +117,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         addedKcal: "+{kcal} kcal",
     },
     trends: {
+        loading: "Trends werden geladen…",
         title: "Trends",
         empty: "In diesem Zeitraum wurden noch keine Mahlzeiten oder kein Wasser protokolliert.",
         avgUnder: "unter",
@@ -111,6 +128,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         avgAllDays: "{range}-Tage-Ø · alle Tage",
     },
     weightTrends: {
+        loading: "Gewichtsverlauf wird geladen…",
         title: "Gewicht",
         empty: "In diesem Zeitraum wurde noch kein Gewicht protokolliert.",
         rangeEmpty:
@@ -129,6 +147,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         noTarget: "Kein Ziel festgelegt",
     },
     importMeals: {
+        loading: "Import wird vorbereitet…",
         stepFile: "Datei",
         stepMap: "Spalten zuordnen",
         stepPreview: "Vorschau",
@@ -207,22 +226,38 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             other: "{n} Mahlzeiten zu importieren",
         },
         kcalTotal: "{kcal} kcal insgesamt",
-        rowsSkipped: "{n} Zeilen übersprungen",
+        rowsSkipped: {
+            one: "{n} Zeile übersprungen",
+            other: "{n} Zeilen übersprungen",
+        },
         batchCount: { one: "{n} Stapel", other: "{n} Stapel" },
         datesReadAs: "Datumswerte gelesen als {format}; Energie {conversion}.",
         energyConvertedNote: "von kJ in kcal umgerechnet",
         energyReadAsKcal: "als kcal gelesen",
-        badDatesWarning:
-            "{n} Zeile(n) wurden übersprungen, weil das Datum nicht als {format} gelesen werden konnte{sample}. Geh zurück und stell das Datumsformat ein, das zu deiner Datei passt.",
+        badDatesWarning: {
+            one: "{n} Zeile wurde übersprungen, weil ihr Datum nicht als {format} gelesen werden konnte{sample}. Geh zurück und stell das Datumsformat ein, das zu deiner Datei passt.",
+            other: "{n} Zeilen wurden übersprungen, weil das Datum nicht als {format} gelesen werden konnte{sample}. Geh zurück und stell das Datumsformat ein, das zu deiner Datei passt.",
+        },
         badDateSample: " (z. B. Zeile {line}: {value})",
-        noTimeWarning:
-            "{n} Zeile(n) haben ein Datum, aber keine Uhrzeit — sie werden für die Mittagszeit protokolliert.",
+        noTimeWarning: {
+            one: "{n} Zeile hat ein Datum, aber keine Uhrzeit — sie wird um 12 Uhr mittags protokolliert.",
+            other: "{n} Zeilen haben ein Datum, aber keine Uhrzeit — sie werden um 12 Uhr mittags protokolliert.",
+        },
         splitDatesCount: {
             one: "{n} Datum hat",
             other: "{n} Datumswerte haben",
         },
         splitDatesWarning:
             " mehr als {max} Mahlzeiten (z. B. {date}); daher musste der Import auf mehrere Import-Stapel aufgeteilt werden. Enthält dieses Datum zwei Einträge mit exakt demselben Lebensmittel, derselben Mahlzeitenart und denselben Makros, kann einer davon als Duplikat übersprungen statt importiert werden.",
+        tableAbbr: {
+            protein_g: "EW",
+            carbs_g: "KH",
+            fat_g: "F",
+            fiber_g: "Bal",
+            sugar_g: "Zucker",
+            alcohol_g: "Alk",
+            caffeine_mg: "Koff",
+        },
         tableLine: "Zeile",
         tableWhen: "Wann",
         tableMeal: "Mahlzeit",
@@ -230,21 +265,44 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         tableProblem: "Problem",
         noNameFallback: "(kein Name — wird nach Mahlzeit benannt)",
         showingRows: "Zeigt {shown} von {total} Zeilen",
-        checkingRows: "{n} Zeilen werden geprüft…",
-        importingRows: "{n} Zeilen werden importiert…",
+        checkingRows: {
+            one: "{n} Zeile wird geprüft…",
+            other: "{n} Zeilen werden geprüft…",
+        },
+        importingRows: {
+            one: "{n} Zeile wird importiert…",
+            other: "{n} Zeilen werden importiert…",
+        },
         batchProgress: "{label} (Stapel {done} von {total})",
         rowsRange: "Zeilen {a}–{b}: {msg}",
         preflightFailed: "Vorabprüfung fehlgeschlagen.",
-        rowsWouldFail:
-            "{n} Zeile(n) würden fehlschlagen, z. B. Zeile {line}: {message}",
+        rowsWouldFail: {
+            one: "{n} Zeile würde fehlschlagen, z. B. Zeile {line}: {message}",
+            other: "{n} Zeilen würden fehlschlagen, z. B. Zeile {line}: {message}",
+        },
         importingEllipsis: "Wird importiert…",
-        importButton: "{n} Mahlzeiten importieren",
+        importButton: {
+            one: "{n} Mahlzeit importieren",
+            other: "{n} Mahlzeiten importieren",
+        },
         backToMapping: "Zurück zur Zuordnung",
         importCompleteHeading: "Import abgeschlossen",
-        resultMealsImported: "{n} Mahlzeiten importiert",
-        resultAlreadyLogged: ", {n} bereits protokolliert",
-        resultFailed: ", {n} fehlgeschlagen",
-        resultSkipped: ", {n} übersprungen",
+        resultMealsImported: {
+            one: "{n} Mahlzeit importiert",
+            other: "{n} Mahlzeiten importiert",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} bereits protokolliert",
+            other: ", {n} bereits protokolliert",
+        },
+        resultFailed: {
+            one: ", {n} fehlgeschlagen",
+            other: ", {n} fehlgeschlagen",
+        },
+        resultSkipped: {
+            one: ", {n} übersprungen",
+            other: ", {n} übersprungen",
+        },
         restartButton: "Weitere Datei importieren",
         couldNotReadFile: "Diese Datei konnte nicht gelesen werden: {msg}",
         noDataRows: "Keine Datenzeilen in dieser Datei gefunden.",

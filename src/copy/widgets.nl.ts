@@ -21,6 +21,15 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         limitPrefix: "limiet",
         ofPrefix: "van",
         drinkLabels: { us: "VS-drankjes", uk: "VK-eenheden" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            ml: "ml",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
+        },
         noneLogged: "niets gelogd",
         caloriesToday: "Calorieën vandaag",
         caloriesOn: "Calorieën · {date}",
@@ -39,6 +48,11 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             other: "+ {n} of meer kleinere maaltijden",
         },
         moreMealsMaybe: "+ mogelijk meer kleinere maaltijden",
+    },
+    bridge: {
+        settingsFooter:
+            "Je kunt deze widgets altijd in- of uitschakelen — vraag gewoon om je instellingen aan te passen.",
+        connectFailed: "Deze weergave kon geen verbinding maken met de host.",
     },
     nutritionSummary: {
         title: "Voedingsoverzicht",
@@ -71,6 +85,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         ],
     },
     goalProgress: {
+        loading: "Je doelvoortgang wordt geladen…",
         title: "Doelvoortgang",
         empty: "Geen doelvoortgang om te tonen.",
         nothingLoggedFor: "Nog niets gelogd voor {date}.",
@@ -96,6 +111,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         addedKcal: "+{kcal} kcal",
     },
     trends: {
+        loading: "Je trends worden geladen…",
         title: "Trends",
         empty: "Nog geen maaltijden of water gelogd in deze periode.",
         avgUnder: "onder",
@@ -106,6 +122,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         avgAllDays: "{range}-daags gem. · alle dagen",
     },
     weightTrends: {
+        loading: "Je gewichtsverloop wordt geladen…",
         title: "Gewicht",
         empty: "Nog geen gewicht gelogd in deze periode.",
         rangeEmpty:
@@ -124,6 +141,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         noTarget: "Geen doel ingesteld",
     },
     importMeals: {
+        loading: "Import wordt voorbereid…",
         stepFile: "Bestand",
         stepMap: "Kolommen koppelen",
         stepPreview: "Voorbeeld",
@@ -202,22 +220,38 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             other: "{n} maaltijden om te importeren",
         },
         kcalTotal: "{kcal} kcal totaal",
-        rowsSkipped: "{n} rijen overgeslagen",
+        rowsSkipped: {
+            one: "{n} rij overgeslagen",
+            other: "{n} rijen overgeslagen",
+        },
         batchCount: { one: "{n} batch", other: "{n} batches" },
         datesReadAs: "Datums gelezen als {format}; energie {conversion}.",
         energyConvertedNote: "omgerekend van kJ naar kcal",
         energyReadAsKcal: "gelezen als kcal",
-        badDatesWarning:
-            "{n} rij(en) zijn overgeslagen omdat de datum niet als {format} kon worden gelezen{sample}. Ga terug en stel het datumformaat in dat bij je bestand past.",
+        badDatesWarning: {
+            one: "{n} rij is overgeslagen omdat de datum niet als {format} kon worden gelezen{sample}. Ga terug en stel het datumformaat in dat bij je bestand past.",
+            other: "{n} rijen zijn overgeslagen omdat de datum niet als {format} kon worden gelezen{sample}. Ga terug en stel het datumformaat in dat bij je bestand past.",
+        },
         badDateSample: " (bijv. regel {line}: {value})",
-        noTimeWarning:
-            "{n} rij(en) hebben een datum maar geen tijd — deze worden op het middaguur gelogd.",
+        noTimeWarning: {
+            one: "{n} rij heeft een datum maar geen tijd — deze wordt op het middaguur gelogd.",
+            other: "{n} rijen hebben een datum maar geen tijd — deze worden op het middaguur gelogd.",
+        },
         splitDatesCount: {
             one: "{n} datum heeft",
             other: "{n} datums hebben",
         },
         splitDatesWarning:
             " meer dan {max} maaltijden (bijv. {date}); de import moest daarom worden opgesplitst over meerdere importbatches. Als die datum twee items bevat met exact hetzelfde voedingsmiddel, dezelfde maaltijdsoort en dezelfde macro's, kan een van beide als duplicaat worden overgeslagen in plaats van geïmporteerd.",
+        tableAbbr: {
+            protein_g: "E",
+            carbs_g: "K",
+            fat_g: "V",
+            fiber_g: "Vezels",
+            sugar_g: "Suiker",
+            alcohol_g: "Alc",
+            caffeine_mg: "Caf",
+        },
         tableLine: "Regel",
         tableWhen: "Wanneer",
         tableMeal: "Maaltijd",
@@ -225,21 +259,44 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         tableProblem: "Probleem",
         noNameFallback: "(geen naam — wordt benoemd naar maaltijd)",
         showingRows: "{shown} van {total} rijen weergegeven",
-        checkingRows: "{n} rijen worden gecontroleerd…",
-        importingRows: "{n} rijen worden geïmporteerd…",
+        checkingRows: {
+            one: "{n} rij wordt gecontroleerd…",
+            other: "{n} rijen worden gecontroleerd…",
+        },
+        importingRows: {
+            one: "{n} rij wordt geïmporteerd…",
+            other: "{n} rijen worden geïmporteerd…",
+        },
         batchProgress: "{label} (batch {done} van {total})",
         rowsRange: "Rijen {a}–{b}: {msg}",
         preflightFailed: "Voorafcontrole mislukt.",
-        rowsWouldFail:
-            "{n} rij(en) zouden mislukken, bijv. regel {line}: {message}",
+        rowsWouldFail: {
+            one: "{n} rij zou mislukken, bijv. regel {line}: {message}",
+            other: "{n} rijen zouden mislukken, bijv. regel {line}: {message}",
+        },
         importingEllipsis: "Bezig met importeren…",
-        importButton: "{n} maaltijden importeren",
+        importButton: {
+            one: "{n} maaltijd importeren",
+            other: "{n} maaltijden importeren",
+        },
         backToMapping: "Terug naar koppelen",
         importCompleteHeading: "Import voltooid",
-        resultMealsImported: "{n} maaltijden geïmporteerd",
-        resultAlreadyLogged: ", {n} al gelogd",
-        resultFailed: ", {n} mislukt",
-        resultSkipped: ", {n} overgeslagen",
+        resultMealsImported: {
+            one: "{n} maaltijd geïmporteerd",
+            other: "{n} maaltijden geïmporteerd",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} al gelogd",
+            other: ", {n} al gelogd",
+        },
+        resultFailed: {
+            one: ", {n} mislukt",
+            other: ", {n} mislukt",
+        },
+        resultSkipped: {
+            one: ", {n} overgeslagen",
+            other: ", {n} overgeslagen",
+        },
         restartButton: "Nog een bestand importeren",
         couldNotReadFile: "Kon dat bestand niet lezen: {msg}",
         noDataRows: "Geen datarijen gevonden in dat bestand.",

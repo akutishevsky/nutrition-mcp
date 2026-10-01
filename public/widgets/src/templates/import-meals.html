@@ -503,6 +503,22 @@
                 );
             }
 
+            // A preview-table nutrient header: the short translated
+            // abbreviation, with the full label as its tooltip. Caffeine is
+            // the one column in milligrams, so its header names the unit.
+            function nutrientTh(key) {
+                const abbr =
+                    T.importMeals.tableAbbr[key] +
+                    (key === "caffeine_mg" ? " " + T.macros.units.mg : "");
+                return (
+                    '<th class="num" title="' +
+                    esc(T.macros.labels[key]) +
+                    '">' +
+                    esc(abbr) +
+                    "</th>"
+                );
+            }
+
             // ---- step 1: file ------------------------------------------------
             async function loadFile(file) {
                 S.fileName = file.name;
@@ -843,11 +859,11 @@
                     };
                     if (everyHasKcal) args.expected_total_kcal = kcal;
 
-                    S.progress.label = tpl(
+                    S.progress.label = plural(
                         i === 0
                             ? T.importMeals.checkingRows
                             : T.importMeals.importingRows,
-                        { n: rows.length },
+                        rows.length,
                     );
                     render();
 
@@ -1287,13 +1303,13 @@
                 // put ethanol on screen. Caffeine has no such gate; it is
                 // filtered by the data alone.
                 const extra = [
-                    ["fiber_g", "Fib"],
-                    ["sugar_g", "Sug"],
-                    ["alcohol_g", "Alc", true],
-                    ["caffeine_mg", "Caf mg"],
+                    ["fiber_g"],
+                    ["sugar_g"],
+                    ["alcohol_g", true],
+                    ["caffeine_mg"],
                 ].filter(
                     (c) =>
-                        (!c[2] || alcoholTracked()) &&
+                        (!c[1] || alcoholTracked()) &&
                         S.rows.some((r) => r[c[0]] !== undefined),
                 );
                 return (
@@ -1314,9 +1330,7 @@
                     (S.skipped
                         ? "<span>" +
                           boldCount(
-                              tpl(T.importMeals.rowsSkipped, {
-                                  n: S.skipped,
-                              }),
+                              plural(T.importMeals.rowsSkipped, S.skipped),
                           ) +
                           "</span>"
                         : "") +
@@ -1341,22 +1355,25 @@
                     (S.badDates
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
                           esc(
-                              tpl(T.importMeals.badDatesWarning, {
-                                  n: S.badDates,
-                                  format: dateFormatLabel(S.dateFormat),
-                                  sample: S.badDateSample
-                                      ? tpl(T.importMeals.badDateSample, {
-                                            line: S.badDateSample.line,
-                                            value: S.badDateSample.value,
-                                        })
-                                      : "",
-                              }),
+                              plural(
+                                  T.importMeals.badDatesWarning,
+                                  S.badDates,
+                                  {
+                                      format: dateFormatLabel(S.dateFormat),
+                                      sample: S.badDateSample
+                                          ? tpl(T.importMeals.badDateSample, {
+                                                line: S.badDateSample.line,
+                                                value: S.badDateSample.value,
+                                            })
+                                          : "",
+                                  },
+                              ),
                           ) +
                           "</span></div>"
                         : "") +
                     (noTime
                         ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(tpl(T.importMeals.noTimeWarning, { n: noTime })) +
+                          esc(plural(T.importMeals.noTimeWarning, noTime)) +
                           "</span></div>"
                         : "") +
                     // A calendar date with more than max_rows_per_call rows on
@@ -1390,9 +1407,12 @@
                     "</th><th class='wide'>" +
                     esc(T.importMeals.tableFood) +
                     "</th>" +
-                    '<th class="num">kcal</th><th class="num">P</th><th class="num">C</th><th class="num">F</th>' +
-                    extra
-                        .map((c) => '<th class="num">' + c[1] + "</th>")
+                    '<th class="num">' +
+                    esc(T.macros.units.kcal) +
+                    "</th>" +
+                    ["protein_g", "carbs_g", "fat_g"]
+                        .concat(extra.map((c) => c[0]))
+                        .map(nutrientTh)
                         .join("") +
                     "</tr></thead><tbody>" +
                     shown
@@ -1469,11 +1489,14 @@
                     (S.result && S.result.rowErrors.length && !S.busy
                         ? '<div class="notice notice-error"><span>✕</span><span>' +
                           esc(
-                              tpl(T.importMeals.rowsWouldFail, {
-                                  n: S.result.rowErrors.length,
-                                  line: S.result.rowErrors[0].line,
-                                  message: S.result.rowErrors[0].message,
-                              }),
+                              plural(
+                                  T.importMeals.rowsWouldFail,
+                                  S.result.rowErrors.length,
+                                  {
+                                      line: S.result.rowErrors[0].line,
+                                      message: S.result.rowErrors[0].message,
+                                  },
+                              ),
                           ) +
                           "</span></div>"
                         : "") +
@@ -1484,9 +1507,7 @@
                     esc(
                         S.busy
                             ? T.importMeals.importingEllipsis
-                            : tpl(T.importMeals.importButton, {
-                                  n: S.rows.length,
-                              }),
+                            : plural(T.importMeals.importButton, S.rows.length),
                     ) +
                     "</button>" +
                     '<button class="btn" id="backToMap"' +
@@ -1507,15 +1528,16 @@
                 const ok = r.failed === 0 && !r.chunkErrors.length;
                 const tail =
                     (r.deduplicated
-                        ? tpl(T.importMeals.resultAlreadyLogged, {
-                              n: r.deduplicated,
-                          })
+                        ? plural(
+                              T.importMeals.resultAlreadyLogged,
+                              r.deduplicated,
+                          )
                         : "") +
                     (r.failed
-                        ? tpl(T.importMeals.resultFailed, { n: r.failed })
+                        ? plural(T.importMeals.resultFailed, r.failed)
                         : "") +
                     (S.skipped
-                        ? tpl(T.importMeals.resultSkipped, { n: S.skipped })
+                        ? plural(T.importMeals.resultSkipped, S.skipped)
                         : "");
                 return (
                     '<section class="card"><h3>' +
@@ -1527,9 +1549,7 @@
                     (ok ? "✓" : "!") +
                     "</span><span>" +
                     boldCount(
-                        tpl(T.importMeals.resultMealsImported, {
-                            n: r.created,
-                        }),
+                        plural(T.importMeals.resultMealsImported, r.created),
                     ) +
                     esc(tail) +
                     ".</span></div>" +
@@ -1677,8 +1697,12 @@
 
             initWidget({
                 name: "import-meals-widget",
-                loading:
-                    '<div class="empty"><div class="big">📥</div><div>Preparing import…</div></div>',
+                // A function: bridge.js calls it with the strings for the
+                // browser language, since the payload's locale isn't known yet.
+                loading: (strings) =>
+                    '<div class="empty"><div class="big">📥</div><div>' +
+                    esc(strings.importMeals.loading) +
+                    "</div></div>",
                 coerce: (payload) => {
                     if (!payload || typeof payload !== "object") return null;
                     // start_meal_import's own payload, or a wrapper round it.

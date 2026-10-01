@@ -21,6 +21,15 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         limitPrefix: "limite",
         ofPrefix: "di",
         drinkLabels: { us: "drink USA", uk: "unità UK" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            ml: "ml",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
+        },
         noneLogged: "nessuno registrato",
         caloriesToday: "Calorie di oggi",
         caloriesOn: "Calorie · {date}",
@@ -39,6 +48,11 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             other: "+ almeno {n} pasti più piccoli",
         },
         moreMealsMaybe: "+ forse altri pasti più piccoli",
+    },
+    bridge: {
+        settingsFooter:
+            "Puoi attivare o disattivare questi widget in qualsiasi momento: basta chiedere di aggiornare le impostazioni.",
+        connectFailed: "Questa vista non è riuscita a connettersi all'host.",
     },
     nutritionSummary: {
         title: "Riepilogo nutrizionale",
@@ -71,6 +85,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         ],
     },
     goalProgress: {
+        loading: "Caricamento dei progressi verso l'obiettivo…",
         title: "Progressi verso l'obiettivo",
         empty: "Nessun progresso da mostrare.",
         nothingLoggedFor: "Ancora nulla registrato per {date}.",
@@ -96,6 +111,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         addedKcal: "+{kcal} kcal",
     },
     trends: {
+        loading: "Caricamento dell'andamento…",
         title: "Andamento",
         empty: "Ancora nessun pasto o acqua registrati in questo periodo.",
         avgUnder: "sotto",
@@ -106,6 +122,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         avgAllDays: "media {range} giorni · tutti i giorni",
     },
     weightTrends: {
+        loading: "Caricamento dell'andamento del peso…",
         title: "Peso",
         empty: "Ancora nessun peso registrato in questo periodo.",
         rangeEmpty:
@@ -124,6 +141,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         noTarget: "Nessun obiettivo impostato",
     },
     importMeals: {
+        loading: "Preparazione dell'importazione…",
         stepFile: "File",
         stepMap: "Mappa colonne",
         stepPreview: "Anteprima",
@@ -202,22 +220,38 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             other: "{n} pasti da importare",
         },
         kcalTotal: "{kcal} kcal totali",
-        rowsSkipped: "{n} righe saltate",
+        rowsSkipped: {
+            one: "{n} riga saltata",
+            other: "{n} righe saltate",
+        },
         batchCount: { one: "{n} lotto", other: "{n} lotti" },
         datesReadAs: "Date lette come {format}; energia {conversion}.",
         energyConvertedNote: "convertita da kJ a kcal",
         energyReadAsKcal: "letta come kcal",
-        badDatesWarning:
-            "{n} riga/righe sono state saltate perché la loro data non poteva essere letta come {format}{sample}. Torna indietro e imposta il formato data corrispondente al tuo file.",
+        badDatesWarning: {
+            one: "{n} riga è stata saltata perché la sua data non poteva essere letta come {format}{sample}. Torna indietro e imposta il formato data corrispondente al tuo file.",
+            other: "{n} righe sono state saltate perché la loro data non poteva essere letta come {format}{sample}. Torna indietro e imposta il formato data corrispondente al tuo file.",
+        },
         badDateSample: " (es. riga {line}: {value})",
-        noTimeWarning:
-            "{n} riga/righe hanno una data ma nessun orario — verranno registrate a mezzogiorno.",
+        noTimeWarning: {
+            one: "{n} riga ha una data ma nessun orario — verrà registrata a mezzogiorno.",
+            other: "{n} righe hanno una data ma nessun orario — verranno registrate a mezzogiorno.",
+        },
         splitDatesCount: {
             one: "{n} data ha",
             other: "{n} date hanno",
         },
         splitDatesWarning:
             " più di {max} pasti (es. {date}); l'importazione ha quindi dovuto essere suddivisa su più lotti separati. Se quella data contiene due voci con lo stesso identico alimento, tipo di pasto e macronutrienti, una di esse potrebbe essere saltata come duplicato invece di essere importata.",
+        tableAbbr: {
+            protein_g: "P",
+            carbs_g: "C",
+            fat_g: "G",
+            fiber_g: "Fib",
+            sugar_g: "Zucc",
+            alcohol_g: "Alc",
+            caffeine_mg: "Caff",
+        },
         tableLine: "Riga",
         tableWhen: "Quando",
         tableMeal: "Pasto",
@@ -225,21 +259,44 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         tableProblem: "Problema",
         noNameFallback: "(nessun nome — verrà etichettato in base al pasto)",
         showingRows: "Visualizzazione di {shown} righe su {total}",
-        checkingRows: "Controllo di {n} righe…",
-        importingRows: "Importazione di {n} righe…",
+        checkingRows: {
+            one: "Controllo di {n} riga…",
+            other: "Controllo di {n} righe…",
+        },
+        importingRows: {
+            one: "Importazione di {n} riga…",
+            other: "Importazione di {n} righe…",
+        },
         batchProgress: "{label} (lotto {done} di {total})",
         rowsRange: "Righe {a}–{b}: {msg}",
         preflightFailed: "Il controllo preliminare non è riuscito.",
-        rowsWouldFail:
-            "{n} riga/righe non andrebbero a buon fine, es. riga {line}: {message}",
+        rowsWouldFail: {
+            one: "{n} riga non andrebbe a buon fine, es. riga {line}: {message}",
+            other: "{n} righe non andrebbero a buon fine, es. riga {line}: {message}",
+        },
         importingEllipsis: "Importazione in corso…",
-        importButton: "Importa {n} pasti",
+        importButton: {
+            one: "Importa {n} pasto",
+            other: "Importa {n} pasti",
+        },
         backToMapping: "Torna alla mappatura",
         importCompleteHeading: "Importazione completata",
-        resultMealsImported: "{n} pasti importati",
-        resultAlreadyLogged: ", {n} già registrati",
-        resultFailed: ", {n} non riusciti",
-        resultSkipped: ", {n} saltati",
+        resultMealsImported: {
+            one: "{n} pasto importato",
+            other: "{n} pasti importati",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} già registrato",
+            other: ", {n} già registrati",
+        },
+        resultFailed: {
+            one: ", {n} non riuscito",
+            other: ", {n} non riusciti",
+        },
+        resultSkipped: {
+            one: ", {n} saltato",
+            other: ", {n} saltati",
+        },
         restartButton: "Importa un altro file",
         couldNotReadFile: "Impossibile leggere il file: {msg}",
         noDataRows: "Nessuna riga di dati trovata in quel file.",
