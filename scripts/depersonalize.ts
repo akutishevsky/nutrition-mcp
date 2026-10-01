@@ -27,12 +27,17 @@
  *   - Medium / YouTube footer links on every page
  *   - The nutrition-mcp.com domain -> your-domain.com placeholder
  *     (install/MCP URL, canonical/OG tags, sitemap, robots)
+ *   - The Claude directory listing (the landing page's "Add to Claude"
+ *     button, the /alternatives install steps and FAQ, llms.txt) ->
+ *     claude.ai/directory/your-listing placeholder, since that listing
+ *     connects to the maintainer's server
  *   - The "alternative to X" comparison pages under public/alternatives/
  *     (analytics + consent banner, GitHub/contact links, domain)
  *
  * After every rule has run, a hard guard scans every processed file and
  * everything else under public/ for the maintainer's name, email, GitHub
- * handle, Patreon and Medium links and exits non-zero, naming file:line, on
+ * handle, Patreon and Medium links and Claude directory listing and exits
+ * non-zero, naming file:line, on
  * any residue — in --dry mode too.
  *
  * It is tuned to the current markup. If a pattern stops matching after a
@@ -169,6 +174,17 @@ const PERSONAL_SWEEP_RULES: Rule[] = [
         // Footer "Demo" — a short on the maintainer's own channel.
         name: "footer: YouTube demo link",
         find: /[ \t]*<a\b[^>]*?href="https:\/\/(?:www\.)?youtube\.com\/[^"]*"[\s\S]*?<\/a\s*>\n/g,
+        optional: true,
+    },
+    {
+        // The landing page's "Add to Claude" button, the /alternatives install
+        // steps and FAQ (JSON-LD included) and llms.txt link the maintainer's
+        // Claude directory listing, which connects to the maintainer's server,
+        // not the fork's. The domain sweep can't see it (no ".com" follows the
+        // slug), so swap it for a placeholder like the domain itself.
+        name: "Claude directory listing -> your-listing placeholder",
+        find: /https:\/\/claude\.ai\/directory\/nutrition-mcp\b/g,
+        replace: "https://claude.ai/directory/your-listing",
         optional: true,
     },
     {
@@ -605,7 +621,12 @@ console.log(
         "og.png / favicon.ico / apple-touch-icon.png, adjust page copy (the privacy " +
         "policy and terms still name Google Analytics and Microsoft Clarity), and " +
         `replace the ${PLACEHOLDER_DOMAIN} placeholder with your real domain and ` +
-        "github.com/your-org/nutrition-mcp with your repo. Set SECURITY_CONTACT in " +
+        "github.com/your-org/nutrition-mcp with your repo. The Claude install " +
+        "button and steps now point at claude.ai/directory/your-listing: put in " +
+        "your own listing if you have one (CLAUDE_DIRECTORY_URL in " +
+        "scripts/gen-index.ts plus src/copy/index*.ts, alt-ui*.ts and " +
+        "public/llms.txt), or rework that tab around the custom-connector steps " +
+        "if you don't. Set SECURITY_CONTACT in " +
         "src/security-txt.ts and rewrite SECURITY.md for your own deployment.",
 );
 
@@ -623,6 +644,7 @@ const PERSONAL_TOKENS: RegExp[] = [
     /patreon\.com/i,
     /medium\.com\/@/i,
     /Y1EHbfimQ70/, // the maintainer's YouTube demo short
+    /claude\.ai\/directory\/nutrition-mcp\b/, // the maintainer's directory listing
     /\banton\b/i,
     /Антон|Кутишевськ|Кутішевськ|アントン/,
 ];
