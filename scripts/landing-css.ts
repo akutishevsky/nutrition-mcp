@@ -103,7 +103,7 @@ ${themeHostCss()}
 .lp-install { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: clamp(32px, 5vw, 72px); align-items: start; }
 .lp-install h2 { margin: 0 0 16px; }
 .lp-install .nm-sub { margin: 0 0 24px; }
-@media (min-width: 900px) { .lp-sticky { position: sticky; top: 110px; } }
+@media (min-width: 900px) { .lp-install { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } .lp-sticky { position: sticky; top: 110px; } }
 .lp-url { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; font-family: var(--mono); font-size: 14px; box-shadow: var(--shadow); max-width: 400px; }
 .lp-url > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lp-url .nm-icon-btn { margin-left: auto; }
@@ -119,7 +119,7 @@ ${themeHostCss()}
 #itab-claude:focus-visible ~ .lp-seg label[for="itab-claude"],
 #itab-chatgpt:focus-visible ~ .lp-seg label[for="itab-chatgpt"],
 #itab-other:focus-visible ~ .lp-seg label[for="itab-other"] { outline: 2px solid var(--acc); outline-offset: 2px; }
-.lp-panel { display: none; padding: 24px 18px 18px; font-size: 15px; color: var(--ink2); }
+.lp-panel { display: none; padding: 24px 8px 14px; font-size: 15px; color: var(--ink2); }
 #itab-claude:checked ~ .lp-panel-claude,
 #itab-chatgpt:checked ~ .lp-panel-chatgpt,
 #itab-other:checked ~ .lp-panel-other { display: block; }
@@ -132,6 +132,7 @@ ${themeHostCss()}
 .lp-steps li::before { content: counter(lp-step); width: 28px; height: 28px; border-radius: 50%; background: var(--acc-soft); color: var(--acc-txt); display: grid; place-items: center; font-size: 13px; font-weight: 800; }
 .lp-steps strong { color: var(--ink); }
 .lp-panel-note { margin: 16px 0 0; font-size: 14px; color: var(--ink3); }
+.lp-panel-note code { white-space: nowrap; }
 .lp-panel pre { margin: 0; padding: 18px 20px; background: var(--cta-bg); color: var(--cta-ink); border-radius: 20px; font-family: var(--mono); font-size: 13px; line-height: 1.6; overflow: auto; }
 .lp-panel-other .lp-panel-note { margin-top: 14px; color: var(--ink2); }
 
