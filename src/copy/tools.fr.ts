@@ -24,7 +24,9 @@ export const TOOLS_FR: ToolsDoc = {
     },
     hero: {
         eyebrow: "Référence",
-        title: "Tout ce que ton IA peut faire",
+        titleBeforeEm: "Tout ce que ton IA peut ",
+        titleEm: "faire",
+        titleAfterEm: "",
         lead: "Tu n'appelles jamais ces outils directement — tu parles simplement, et l'assistant choisit le bon outil. Voici l'ensemble complet exposé par le serveur Nutrition MCP, avec ce que fait chacun et une phrase qui le déclenche.",
         countBold: "36 outils",
         countTail: "répartis en 7 catégories",
@@ -87,6 +89,7 @@ export const TOOLS_FR: ToolsDoc = {
         requiredLabel: "requis",
         optionalLabel: "facultatif",
         trySayingLabel: "Essaie de dire",
+        categoriesLabel: "Catégories d'outils",
     },
     tools: {
         log_meal: {
@@ -253,7 +256,7 @@ export const TOOLS_FR: ToolsDoc = {
             description:
                 "Enregistre une mesure de poids corporel en kg ou en lb. Plusieurs pesées par jour ne posent aucun problème, et le serveur la stocke de façon canonique pour que ta préférence d'unité ne déforme jamais le chiffre.",
             params: {
-                weight: "Valeur du poids corporel, dans `unit` (&gt; 0).",
+                weight: "Valeur du poids corporel, en <code>unit</code> (&gt; 0).",
             },
             example: "Enregistre mon poids — 74,2 kg ce matin",
         },
@@ -262,7 +265,7 @@ export const TOOLS_FR: ToolsDoc = {
                 "Corrige une pesée existante — la valeur, l'horodatage, ou ses notes.",
             params: {
                 id: "UUID de la pesée à modifier",
-                weight: "Nouvelle valeur du poids, dans `unit`.",
+                weight: "Nouvelle valeur du poids, en <code>unit</code>.",
                 logged_at: "Horodatage ISO 8601",
                 notes: "",
             },
@@ -435,6 +438,7 @@ export const TOOLS_FR: ToolsDoc = {
         title: "Dépannage",
         description:
             "Quelque chose ne marche pas ? La plupart des problèmes se règlent vite.",
+        stillStuck: "Toujours bloqué ?",
         items: {
             "cannot-connect": {
                 question:

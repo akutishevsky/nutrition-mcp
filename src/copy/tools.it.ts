@@ -21,7 +21,9 @@ export const TOOLS_IT: ToolsDoc = {
     },
     hero: {
         eyebrow: "Guida di riferimento",
-        title: "Tutto quello che la tua IA può fare",
+        titleBeforeEm: "Tutto quello che la tua IA può ",
+        titleEm: "fare",
+        titleAfterEm: "",
         lead: "Non li chiami mai direttamente — parli e basta, e l'assistente sceglie lo strumento giusto. Ecco l'elenco completo che il server Nutrition MCP mette a disposizione, con cosa fa ciascuno e una frase che lo attiva.",
         countBold: "36 strumenti",
         countTail: "in 7 aree",
@@ -85,6 +87,7 @@ export const TOOLS_IT: ToolsDoc = {
         requiredLabel: "obbligatorio",
         optionalLabel: "opzionale",
         trySayingLabel: "Prova a dire",
+        categoriesLabel: "Categorie di strumenti",
     },
     tools: {
         log_meal: {
@@ -250,7 +253,7 @@ export const TOOLS_IT: ToolsDoc = {
             description:
                 "Registra una misurazione del peso corporeo in kg o lb. Più pesate nello stesso giorno vanno bene, e il server le memorizza in modo canonico così la tua unità preferita non distorce mai il numero.",
             params: {
-                weight: "Valore del peso corporeo, in `unit` (> 0).",
+                weight: "Valore del peso corporeo, in <code>unit</code> (&gt; 0).",
             },
             example: "Registra il mio peso — 74,2 kg stamattina",
         },
@@ -259,7 +262,7 @@ export const TOOLS_IT: ToolsDoc = {
                 "Corregge una pesata esistente — il valore, l'orario o le sue note.",
             params: {
                 id: "UUID della voce di peso da aggiornare",
-                weight: "Nuovo valore del peso, in `unit`.",
+                weight: "Nuovo valore del peso, in <code>unit</code>.",
                 logged_at: "Timestamp ISO 8601",
                 notes: "",
             },
@@ -432,6 +435,7 @@ export const TOOLS_IT: ToolsDoc = {
         title: "Risoluzione dei problemi",
         description:
             "Qualcosa non funziona? La maggior parte dei problemi si risolve in fretta.",
+        stillStuck: "Hai ancora problemi?",
         items: {
             "cannot-connect": {
                 question:

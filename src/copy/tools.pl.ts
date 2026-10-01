@@ -10,7 +10,9 @@ export const TOOLS_PL: ToolsDoc = {
     },
     hero: {
         eyebrow: "Dokumentacja",
-        title: "Wszystko, co potrafi Twój AI",
+        titleBeforeEm: "Wszystko, co ",
+        titleEm: "potrafi",
+        titleAfterEm: " Twój AI",
         lead: "Nigdy nie wywołujesz tych narzędzi bezpośrednio — po prostu mówisz, a asystent sam wybiera właściwe. Oto pełny zestaw udostępniany przez serwer Nutrition MCP, wraz z opisem działania i przykładowym poleceniem, które je uruchamia.",
         countBold: "36 narzędzi",
         countTail: "w 7 obszarach",
@@ -73,6 +75,7 @@ export const TOOLS_PL: ToolsDoc = {
         requiredLabel: "wymagane",
         optionalLabel: "opcjonalne",
         trySayingLabel: "Spróbuj powiedzieć",
+        categoriesLabel: "Kategorie narzędzi",
     },
     tools: {
         log_meal: {
@@ -236,7 +239,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Zapisz pomiar masy ciała w kg lub lb. Kilka ważeń dziennie nie jest problemem, a serwer przechowuje wartość w jednej, wewnętrznej jednostce, więc Twoja preferencja jednostki nigdy nie zniekształca liczby.",
             params: {
-                weight: "Wartość masy ciała, w jednostce `unit` (&gt; 0).",
+                weight: "Wartość masy ciała, w jednostce <code>unit</code> (&gt; 0).",
             },
             example: "Zapisz moją wagę — 74,2 kg dziś rano",
         },
@@ -245,7 +248,7 @@ export const TOOLS_PL: ToolsDoc = {
                 "Popraw istniejące ważenie — wartość, znacznik czasu albo notatki.",
             params: {
                 id: "UUID wpisu wagi do zaktualizowania",
-                weight: "Nowa wartość wagi, w jednostce `unit`.",
+                weight: "Nowa wartość wagi, w jednostce <code>unit</code>.",
                 logged_at: "Znacznik czasu w formacie ISO 8601",
                 notes: "",
             },
@@ -418,6 +421,7 @@ export const TOOLS_PL: ToolsDoc = {
         title: "Rozwiązywanie problemów",
         description:
             "Coś nie działa? Większość problemów da się szybko rozwiązać.",
+        stillStuck: "Nadal masz problem?",
         items: {
             "cannot-connect": {
                 question:

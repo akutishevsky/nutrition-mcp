@@ -14,7 +14,9 @@ export const TOOLS_DE: ToolsDoc = {
     },
     hero: {
         eyebrow: "Referenz",
-        title: "Alles, was deine KI kann",
+        titleBeforeEm: "Alles, was deine KI ",
+        titleEm: "kann",
+        titleAfterEm: "",
         lead: "Du rufst diese Werkzeuge nie selbst auf — du sprichst einfach, und der Assistent wählt das richtige Werkzeug. Hier ist die vollständige Liste, die der Nutrition-MCP-Server bereitstellt, mit dem, was jedes tut, und einem Satz, der es auslöst.",
         countBold: "36 Werkzeuge",
         countTail: "in 7 Bereichen",
@@ -79,6 +81,7 @@ export const TOOLS_DE: ToolsDoc = {
         requiredLabel: "erforderlich",
         optionalLabel: "optional",
         trySayingLabel: "Probier zu sagen",
+        categoriesLabel: "Werkzeugkategorien",
     },
     tools: {
         log_meal: {
@@ -247,7 +250,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Erfasse eine Körpergewichts-Messung in kg oder lb. Mehrere Wiegungen pro Tag sind kein Problem, und der Server speichert es kanonisch, sodass deine Einheiten-Einstellung die Zahl nie verfälscht.",
             params: {
-                weight: "Körpergewichtswert, in `unit` (&gt; 0).",
+                weight: "Körpergewichtswert, in <code>unit</code> (&gt; 0).",
             },
             example: "Erfasse mein Gewicht — heute Morgen 74,2 kg",
         },
@@ -256,7 +259,7 @@ export const TOOLS_DE: ToolsDoc = {
                 "Korrigiere eine bestehende Wiegung — den Wert, den Zeitstempel oder ihre Notizen.",
             params: {
                 id: "UUID des zu aktualisierenden Gewichts-Eintrags",
-                weight: "Neuer Gewichtswert, in `unit`.",
+                weight: "Neuer Gewichtswert, in <code>unit</code>.",
                 logged_at: "ISO-8601-Zeitstempel",
                 notes: "",
             },
@@ -429,6 +432,7 @@ export const TOOLS_DE: ToolsDoc = {
         title: "Fehlerbehebung",
         description:
             "Etwas funktioniert nicht? Für die meisten Probleme gibt es eine schnelle Lösung.",
+        stillStuck: "Immer noch Probleme?",
         items: {
             "cannot-connect": {
                 question:

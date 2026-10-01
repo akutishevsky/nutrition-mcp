@@ -28,7 +28,9 @@ export const TOOLS_JA: ToolsDoc = {
     },
     hero: {
         eyebrow: "リファレンス",
-        title: "あなたのAIができること、すべて",
+        titleBeforeEm: "あなたのAIが",
+        titleEm: "できる",
+        titleAfterEm: "こと、すべて",
         lead: "これらのツールを直接呼び出すことはありません — ただ話しかけるだけで、アシスタントが適切なツールを選びます。Nutrition MCPサーバーが公開する全ツールと、それぞれの機能、呼び出すきっかけとなるフレーズをまとめました。",
         countBold: "36個のツール",
         countTail: "7つの分野にわたる",
@@ -90,6 +92,7 @@ export const TOOLS_JA: ToolsDoc = {
         requiredLabel: "必須",
         optionalLabel: "任意",
         trySayingLabel: "こう話しかけてみましょう",
+        categoriesLabel: "ツールのカテゴリー",
     },
     tools: {
         log_meal: {
@@ -250,7 +253,7 @@ export const TOOLS_JA: ToolsDoc = {
             description:
                 "体重測定値をkgまたはlbで記録します。1日に複数回記録しても問題なく、サーバーが正規の形式で保存するため、単位の設定によって数値が歪むことはありません。",
             params: {
-                weight: "`unit`単位での体重の値（&gt; 0）。",
+                weight: "<code>unit</code>単位での体重の値（&gt; 0）。",
             },
             example: "体重を記録して — 今朝は74.2kg",
         },
@@ -259,7 +262,7 @@ export const TOOLS_JA: ToolsDoc = {
                 "既存の体重記録 — 数値、タイムスタンプ、メモ — を修正します。",
             params: {
                 id: "更新する体重記録のUUID",
-                weight: "`unit`単位での新しい体重の値。",
+                weight: "<code>unit</code>単位での新しい体重の値。",
                 logged_at: "ISO 8601形式のタイムスタンプ",
                 notes: "",
             },
@@ -424,6 +427,7 @@ export const TOOLS_JA: ToolsDoc = {
         title: "トラブルシューティング",
         description:
             "うまく動かないときは？ほとんどの問題はすぐに解決できます。",
+        stillStuck: "それでも解決しない場合は？",
         items: {
             "cannot-connect": {
                 question:

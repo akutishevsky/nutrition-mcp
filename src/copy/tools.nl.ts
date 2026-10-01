@@ -16,7 +16,9 @@ export const TOOLS_NL: ToolsDoc = {
     },
     hero: {
         eyebrow: "Referentie",
-        title: "Alles wat je AI kan doen",
+        titleBeforeEm: "Alles wat je AI kan ",
+        titleEm: "doen",
+        titleAfterEm: "",
         lead: "Je roept deze tools nooit rechtstreeks aan — je praat gewoon, en de assistent kiest de juiste tool. Hier is de volledige set die de Nutrition MCP-server aanbiedt, met wat elke tool doet en een zin die hem activeert.",
         countBold: "36 tools",
         countTail: "verdeeld over 7 categorieën",
@@ -80,6 +82,7 @@ export const TOOLS_NL: ToolsDoc = {
         requiredLabel: "vereist",
         optionalLabel: "optioneel",
         trySayingLabel: "Probeer te zeggen",
+        categoriesLabel: "Toolcategorieën",
     },
     tools: {
         log_meal: {
@@ -248,7 +251,7 @@ export const TOOLS_NL: ToolsDoc = {
             description:
                 "Leg een lichaamsgewicht vast in kg of lb. Meerdere weegmomenten per dag kan gewoon, en de server slaat het canoniek op zodat je eenheidvoorkeur het cijfer nooit vertekent.",
             params: {
-                weight: "Lichaamsgewicht, in `unit` (&gt; 0).",
+                weight: "Lichaamsgewicht, in <code>unit</code> (&gt; 0).",
             },
             example: "Log mijn gewicht — 74,2 kg vanmorgen",
         },
@@ -257,7 +260,7 @@ export const TOOLS_NL: ToolsDoc = {
                 "Corrigeer een bestaand weegmoment — de waarde, het tijdstip of de notities.",
             params: {
                 id: "UUID van het te wijzigen gewicht",
-                weight: "Nieuwe gewichtswaarde, in `unit`.",
+                weight: "Nieuwe gewichtswaarde, in <code>unit</code>.",
                 logged_at: "ISO 8601-tijdstempel",
                 notes: "",
             },
@@ -429,6 +432,7 @@ export const TOOLS_NL: ToolsDoc = {
         title: "Problemen oplossen",
         description:
             "Werkt er iets niet? Voor de meeste problemen is er een snelle oplossing.",
+        stillStuck: "Kom je er nog steeds niet uit?",
         items: {
             "cannot-connect": {
                 question:

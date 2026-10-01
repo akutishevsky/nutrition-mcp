@@ -15,7 +15,9 @@ export const TOOLS_UK: ToolsDoc = {
     },
     hero: {
         eyebrow: "Довідник",
-        title: "Усе, що вміє твій ШІ",
+        titleBeforeEm: "Усе, що ",
+        titleEm: "вміє",
+        titleAfterEm: " твій ШІ",
         lead: "Ти ніколи не викликаєш ці інструменти напряму — просто говориш, а асистент сам обирає потрібний. Ось повний набір, який надає сервер Nutrition MCP: що робить кожен інструмент і фраза, яка його запускає.",
         countBold: "36 інструментів",
         countTail: "у 7 категоріях",
@@ -79,6 +81,7 @@ export const TOOLS_UK: ToolsDoc = {
         requiredLabel: "обов'язковий",
         optionalLabel: "необов'язковий",
         trySayingLabel: "Спробуй сказати",
+        categoriesLabel: "Категорії інструментів",
     },
     tools: {
         log_meal: {
@@ -243,7 +246,7 @@ export const TOOLS_UK: ToolsDoc = {
             description:
                 "Запиши вимірювання ваги тіла в кг або фунтах. Кілька зважувань на день — це нормально, а сервер зберігає значення в канонічному вигляді, тож твоя обрана одиниця виміру ніколи не спотворює число.",
             params: {
-                weight: "Значення ваги тіла, в `unit` (&gt; 0).",
+                weight: "Значення ваги тіла, в <code>unit</code> (&gt; 0).",
             },
             example: "Запиши мою вагу — 74.2 кг цього ранку",
         },
@@ -252,7 +255,7 @@ export const TOOLS_UK: ToolsDoc = {
                 "Виправ наявне зважування — значення, час запису або нотатки.",
             params: {
                 id: "UUID запису ваги для оновлення",
-                weight: "Нове значення ваги, в `unit`.",
+                weight: "Нове значення ваги, в <code>unit</code>.",
                 logged_at: "Часова мітка у форматі ISO 8601",
                 notes: "",
             },
@@ -423,6 +426,7 @@ export const TOOLS_UK: ToolsDoc = {
         pillLabel: "Допомога",
         title: "Усунення проблем",
         description: "Щось не працює? Більшість проблем вирішуються швидко.",
+        stillStuck: "Досі не виходить?",
         items: {
             "cannot-connect": {
                 question:

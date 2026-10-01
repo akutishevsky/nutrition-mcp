@@ -19,7 +19,9 @@ export const TOOLS_ES: ToolsDoc = {
     },
     hero: {
         eyebrow: "Referencia",
-        title: "Todo lo que tu IA puede hacer",
+        titleBeforeEm: "Todo lo que tu IA puede ",
+        titleEm: "hacer",
+        titleAfterEm: "",
         lead: "Nunca llamas a estas herramientas directamente: tú solo hablas, y el asistente elige la herramienta correcta. Aquí tienes el conjunto completo que expone el servidor Nutrition MCP, con lo que hace cada una y una frase que la activa.",
         countBold: "36 herramientas",
         countTail: "en 7 áreas",
@@ -82,6 +84,7 @@ export const TOOLS_ES: ToolsDoc = {
         requiredLabel: "obligatorio",
         optionalLabel: "opcional",
         trySayingLabel: "Prueba a decir",
+        categoriesLabel: "Categorías de herramientas",
     },
     tools: {
         log_meal: {
@@ -245,7 +248,7 @@ export const TOOLS_ES: ToolsDoc = {
             description:
                 "Registra una medición de peso corporal en kg o lb. Puedes tener varios pesajes al día sin problema, y el servidor lo guarda de forma canónica para que tu preferencia de unidad nunca distorsione el número.",
             params: {
-                weight: "Valor del peso corporal, en `unit` (&gt; 0).",
+                weight: "Valor del peso corporal, en <code>unit</code> (&gt; 0).",
             },
             example: "Registra mi peso: 74,2 kg esta mañana",
         },
@@ -254,7 +257,7 @@ export const TOOLS_ES: ToolsDoc = {
                 "Corrige un pesaje existente: el valor, la marca de tiempo o sus notas.",
             params: {
                 id: "UUID de la entrada de peso a actualizar",
-                weight: "Nuevo valor de peso, en `unit`.",
+                weight: "Nuevo valor de peso, en <code>unit</code>.",
                 logged_at: "Marca de tiempo ISO 8601",
                 notes: "",
             },
@@ -428,6 +431,7 @@ export const TOOLS_ES: ToolsDoc = {
         title: "Solución de problemas",
         description:
             "¿Algo no funciona? La mayoría de los problemas tienen una solución rápida.",
+        stillStuck: "¿Sigues sin solucionarlo?",
         items: {
             "cannot-connect": {
                 question:

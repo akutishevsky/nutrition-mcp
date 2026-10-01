@@ -47,11 +47,11 @@ export type CategoryId =
     | "insights-trends"
     | "settings-account";
 
-/** Badge ("chip") kinds shown in a tool card's header. Two kinds can
- * share a CSS class but carry different text — "log" and "import" both
- * render as chip-log, "view" and "export" both render as chip-view — see
- * BADGE_META for that structural wiring and ToolsDoc.badges for the
- * (locale-translatable) label text, kept once here rather than per tool. */
+/** Badge ("chip") kinds shown in a tool card's header. Whether a kind
+ * renders accent or grey is decided in scripts/gen-tools.ts
+ * (ACCENT_BADGES), the optional icon in BADGE_META below, and the
+ * (locale-translatable) label text in ToolsDoc.badges, kept once there
+ * rather than per tool. */
 export type BadgeKind =
     | "log"
     | "import"
@@ -63,19 +63,19 @@ export type BadgeKind =
     | "remove"
     | "widget";
 
-/** CSS class + optional Font Awesome icon per badge kind — structural,
- * identical across every locale, so it lives beside TOOLS rather than
- * inside ToolsDoc. */
-export const BADGE_META: Record<BadgeKind, { cls: string; icon?: string }> = {
-    log: { cls: "chip-log" },
-    import: { cls: "chip-log" },
-    edit: { cls: "chip-edit" },
-    setting: { cls: "chip-setting" },
-    lookup: { cls: "chip-lookup" },
-    view: { cls: "chip-view" },
-    export: { cls: "chip-view" },
-    remove: { cls: "chip-remove" },
-    widget: { cls: "chip-widget", icon: "fa-solid fa-table-cells-large" },
+/** Optional Font Awesome icon per badge kind — structural, identical
+ * across every locale, so it lives beside TOOLS rather than inside
+ * ToolsDoc. */
+export const BADGE_META: Record<BadgeKind, { icon?: string }> = {
+    log: {},
+    import: {},
+    edit: {},
+    setting: {},
+    lookup: {},
+    view: {},
+    export: {},
+    remove: {},
+    widget: { icon: "fa-solid fa-table-cells-large" },
 };
 
 /** The 7 categories in page order, and each one's Font Awesome icon class
@@ -95,10 +95,10 @@ export const CATEGORIES: CategoryId[] = [
 export const CATEGORY_META: Record<CategoryId, { icon: string }> = {
     "logging-food-meals": { icon: "fa-solid fa-utensils" },
     "reviewing-your-meals": { icon: "fa-solid fa-clock-rotate-left" },
-    water: { icon: "fa-solid fa-droplet" },
+    water: { icon: "fa-solid fa-glass-water" },
     weight: { icon: "fa-solid fa-weight-scale" },
     "goals-progress": { icon: "fa-solid fa-bullseye" },
-    "insights-trends": { icon: "fa-solid fa-chart-line" },
+    "insights-trends": { icon: "fa-solid fa-chart-area" },
     "settings-account": { icon: "fa-solid fa-gear" },
 };
 
@@ -537,8 +537,16 @@ export interface ToolsDoc {
         ogDescription: string;
     };
     hero: {
+        /** The pill above the h1 reads "{eyebrow} · {countBold}
+         * {countTail}" — the " · " separator is the generator's. */
         eyebrow: string;
-        title: string;
+        /** The h1, split around its accent word the same way
+         * IndexDoc.hero is ("Everything your AI can " + <em>"do"</em> +
+         * ""), so all three stay plain text (escaped) and each locale picks
+         * its own accented word. Either outer part may be "". */
+        titleBeforeEm: string;
+        titleEm: string;
+        titleAfterEm: string;
         lead: string;
         /** The bold "N tools" lead-in of the hero's count pill. */
         countBold: string;
@@ -562,6 +570,8 @@ export interface ToolsDoc {
         optionalLabel: string;
         /** The label above each card's example prompt. */
         trySayingLabel: string;
+        /** aria-label of the sticky category-chip <nav>. */
+        categoriesLabel: string;
     };
     /** Keyed by ToolIdentity.name. */
     tools: Record<string, ToolProse>;
@@ -576,6 +586,9 @@ export interface ToolsDoc {
         pillLabel: string;
         title: string;
         description: string;
+        /** Plain text (escaped) in the section's intro column; the
+         * generator follows it with the contact mailto link. */
+        stillStuck: string;
         items: Record<TroubleshootingId, TroubleshootingEntry>;
     };
 }
@@ -592,7 +605,9 @@ const TOOLS_EN: ToolsDoc = {
     },
     hero: {
         eyebrow: "Reference",
-        title: "Everything your AI can do",
+        titleBeforeEm: "Everything your AI can ",
+        titleEm: "do",
+        titleAfterEm: "",
         lead: "You never call these directly — you just talk, and the assistant picks the right tool. Here's the full set the Nutrition MCP server exposes, with what each one does and a phrase that triggers it.",
         countBold: "36 tools",
         countTail: "across 7 areas",
@@ -655,6 +670,7 @@ const TOOLS_EN: ToolsDoc = {
         requiredLabel: "required",
         optionalLabel: "optional",
         trySayingLabel: "Try saying",
+        categoriesLabel: "Tool categories",
     },
     tools: {
         log_meal: {
@@ -814,7 +830,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Record a body-weight measurement in kg or lb. Multiple weigh-ins per day are fine, and the server stores it canonically so your unit preference never distorts the number.",
             params: {
-                weight: "Body weight value, in `unit` (&gt; 0).",
+                weight: "Body weight value, in <code>unit</code> (&gt; 0).",
             },
             example: "Log my weight — 74.2 kg this morning",
         },
@@ -823,7 +839,7 @@ const TOOLS_EN: ToolsDoc = {
                 "Correct an existing weigh-in — the value, the timestamp, or its notes.",
             params: {
                 id: "UUID of the weight entry to update",
-                weight: "New weight value, in `unit`.",
+                weight: "New weight value, in <code>unit</code>.",
                 logged_at: "ISO 8601 timestamp",
                 notes: "",
             },
@@ -989,6 +1005,7 @@ const TOOLS_EN: ToolsDoc = {
         pillLabel: "Help",
         title: "Troubleshooting",
         description: "Something not working? Most problems have a quick fix.",
+        stillStuck: "Still stuck?",
         items: {
             "cannot-connect": {
                 question:
