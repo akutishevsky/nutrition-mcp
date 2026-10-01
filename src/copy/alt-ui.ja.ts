@@ -71,15 +71,13 @@ export const ALT_UI_JA: AltUiCopy = {
         switchSub:
             "OAuth 2.0（PKCE対応）をサポートするMCPクライアントであればどれでも利用できます。初回接続時に、Googleアカウントまたはメールアドレスとパスワードでアカウントを作成します。",
         installSteps: [
-            "<strong>Claude</strong>（Webまたはデスクトップ版）を開き、<strong>カスタマイズ</strong> → <strong>コネクタ</strong>をクリックします。",
-            "<strong>+</strong>をクリックし、<strong>カスタムコネクタを追加</strong>を選んで、<strong>Nutrition</strong>のような名前を付けます。",
-            "{copyUrl}を<strong>リモートMCPサーバーURL</strong>欄に貼り付け、<strong>追加</strong>をクリックします。",
-            "<strong>接続</strong>をクリックしてサインインし、食べたものを話しかけるだけで記録を始められます。",
+            '<a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Claudeディレクトリ内のNutrition MCP</a>を開きます。',
+            "<strong>接続</strong>をクリックし、Googleまたはメールアドレスとパスワードでサインインします。",
+            "食べたものを話しかけるだけで記録を始められます。",
         ],
         installNoteTemplate:
             "ChatGPTや他のクライアントを使っていますか？{link}ではChatGPT、Cursor、VS Code、Claude Codeなどをまとめて解説しています。",
         installLinkText: "詳細なインストールガイド",
-        copyUrlAriaLabel: "サーバーURLをコピー",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "{app} &amp; MCPに関する質問",
@@ -88,7 +86,7 @@ export const ALT_UI_JA: AltUiCopy = {
             mcpA: "いいえ。{app}はModel Context Protocol（MCP）サーバーを提供していないため、Claude、ChatGPT、その他のAIアシスタントに接続する公式な方法はありません。Nutrition MCPは、最初からMCPサーバーとして構築された無料・オープンソースの代替ツールで、食事やマクロ栄養素をAIの中で直接記録できます。",
             connectQ: "{app}をClaudeに接続するにはどうすればいいですか？",
             connectA:
-                "{app}には公式のClaude用コネクタはありません。{app}にはMCPサーバーも公開MCP連携もないためです。最も近い選択肢がNutrition MCPという無料のMCPサーバーです：Claudeにカスタムコネクタとしてhttps://nutrition-mcp.com/mcpを追加し、サインインすれば、会話するだけで記録を始められます。",
+                "{app}には公式のClaude用コネクタはありません。{app}にはMCPサーバーも公開MCP連携もないためです。最も近い選択肢が、Claudeディレクトリに掲載されている無料のMCPサーバー、Nutrition MCPです：https://claude.ai/directory/nutrition-mcpで開き、「接続」をクリックしてサインインすれば、会話するだけで記録を始められます。",
             goodAltQ: "Nutrition MCPは{app}の良い代替になりますか？",
             goodAltA:
                 "別のアプリを開いたり食品データベースを検索したりせずに、カロリー、マクロ栄養素——食物繊維、総糖質、カフェインを含む——、水分、体重を記録したいなら、はいそうです。データベースをタップして探す代わりに、食べたものを普段の言葉で説明したり、写真を送ったり、バーコードをスキャンしたりするだけで、AIが記録してくれます——完全に無料でオープンソースです。",

@@ -2184,17 +2184,12 @@ export const INDEX_UK: IndexDoc = {
         title: `Підключись менш ніж за хвилину`,
         sub: `Працює з будь-яким MCP-клієнтом, що підтримує OAuth 2.0 з PKCE. При першому підключенні ти створюєш акаунт через Google або через email і пароль; заходь так само, щоб зберегти свої дані.`,
         claude: {
+            cta: `Додати в Claude`,
             steps: [
-                `Відкрий <strong>Claude</strong> (у браузері чи застосунку) і натисни <strong>Customize</strong> у верхньому лівому куті.`,
-                `Натисни <strong>Connectors</strong>.`,
-                `Натисни <strong>+</strong>, а тоді <strong>Add custom connector</strong>.`,
-                `Дай йому назву, наприклад <strong>Nutrition</strong>.`,
-                `Встав <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Копіювати URL сервера"><i class="fa-solid fa-copy"></i></button></span> у поле <strong>Remote MCP server URL</strong>.`,
-                `Натисни <strong>Add</strong>.`,
-                `Натисни <strong>Connect</strong> — відкриється сторінка входу; продовж через Google або увійди через email і пароль.`,
+                `На сторінці каталогу натисни <strong>Connect</strong>, а тоді продовж через Google або увійди через email і пароль.`,
                 `Готово. Усе запрацює одразу і автоматично з'явиться в застосунках для iOS та Android.`,
             ],
-            note: `Працює на будь-якому плані Claude. Безкоштовний план дозволяє підключити один MCP-сервер одночасно.`,
+            note: `Працює на будь-якому плані Claude, зокрема на безкоштовному. Щоб додати його вручну, скористайся Customize → Connectors → Add custom connector з адресою https://nutrition-mcp.com/mcp.`,
         },
         chatgpt: {
             steps: [

@@ -111,7 +111,14 @@ export interface IndexDoc {
         eyebrow: string;
         title: string;
         sub: string;
-        claude: { steps: string[]; note: string };
+        claude: {
+            /** Plain-text label of the button linking to the Claude directory
+             * listing (CLAUDE_DIRECTORY_URL in scripts/gen-index.ts); the steps
+             * that follow pick up on the directory page it opens. */
+            cta: string;
+            steps: string[];
+            note: string;
+        };
         chatgpt: { steps: string[] };
         other: { note: string };
         /** The third install-tab's visible label ("Other agents") — was
@@ -2502,17 +2509,12 @@ const INDEX_EN: IndexDoc = {
         title: "Connect in under a minute",
         sub: "Works with any MCP client that supports OAuth 2.0 with PKCE. On first connect you create an account with Google or an email and password; sign in the same way to keep your data.",
         claude: {
+            cta: "Add to Claude",
             steps: [
-                "Open <strong>Claude</strong> (web or desktop) and click <strong>Customize</strong> in the top-left corner.",
-                "Click <strong>Connectors</strong>.",
-                "Click <strong>+</strong>, then <strong>Add custom connector</strong>.",
-                "Give it a name, for example <strong>Nutrition</strong>.",
-                'Paste <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copy server URL"><i class="fa-solid fa-copy"></i></button></span> into the <strong>Remote MCP server URL</strong> field.',
-                "Click <strong>Add</strong>.",
-                "Click <strong>Connect</strong> — the login page opens; continue with Google or sign in with an email and password.",
+                "On the directory page, click <strong>Connect</strong>, then continue with Google or sign in with an email and password.",
                 "Done. It works right away and shows up in your iOS and Android apps automatically.",
             ],
-            note: "Works on every Claude plan. The free plan allows one connected MCP server at a time.",
+            note: "Works on every Claude plan, the free one included. To add it by hand instead, use Customize → Connectors → Add custom connector with https://nutrition-mcp.com/mcp.",
         },
         chatgpt: {
             steps: [

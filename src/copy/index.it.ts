@@ -2196,17 +2196,12 @@ export const INDEX_IT: IndexDoc = {
         title: "Connettiti in meno di un minuto",
         sub: "Funziona con qualsiasi client MCP che supporti OAuth 2.0 con PKCE. Al primo collegamento crei un account con Google oppure con email e password; accedi allo stesso modo per ritrovare i tuoi dati.",
         claude: {
+            cta: "Aggiungi a Claude",
             steps: [
-                "Apri <strong>Claude</strong> (versione web o desktop) e clicca su <strong>Customize</strong> in alto a sinistra.",
-                "Clicca su <strong>Connectors</strong>.",
-                "Clicca su <strong>+</strong>, poi su <strong>Add custom connector</strong>.",
-                "Dagli un nome, ad esempio <strong>Nutrition</strong>.",
-                'Incolla <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copia l\'URL del server"><i class="fa-solid fa-copy"></i></button></span> nel campo <strong>Remote MCP server URL</strong>.',
-                "Clicca su <strong>Add</strong>.",
-                "Clicca su <strong>Connect</strong> — si apre la pagina di accesso; continua con Google oppure accedi con email e password.",
+                "Nella pagina della directory clicca su <strong>Connect</strong>, poi continua con Google oppure accedi con email e password.",
                 "Fatto. Funziona subito e compare automaticamente anche nelle tue app iOS e Android.",
             ],
-            note: "Funziona con ogni piano Claude. Il piano gratuito consente un solo server MCP connesso alla volta.",
+            note: "Funziona con ogni piano Claude, incluso quello gratuito. Per aggiungerlo a mano, usa Customize → Connectors → Add custom connector con https://nutrition-mcp.com/mcp.",
         },
         chatgpt: {
             steps: [

@@ -36,7 +36,7 @@ Already hosted and ready to use — just connect it to your MCP client:
 https://nutrition-mcp.com/mcp
 ```
 
-**On Claude.ai:** Customize → Connectors → + → Add custom connector → paste the URL → Connect (see [Connect to Claude.ai](#connect-to-claudeai) below for the full walkthrough)
+**On Claude.ai:** open [Nutrition MCP in the Claude directory](https://claude.ai/directory/nutrition-mcp) and click **Connect** (see [Connect to Claude.ai](#connect-to-claudeai) below)
 
 On first connect, sign in with Google or enter an email and password and choose **Create account**. Your data persists across reconnections. Trouble connecting? See [Troubleshooting](#troubleshooting).
 
@@ -203,14 +203,12 @@ For in-chat widget development (`public/widgets/`), `bun run harness` starts a l
 
 ## Connect to Claude.ai
 
-1. Open [Claude.ai](https://claude.ai) and click **Customize**
-2. Click **Connectors**, then the **+** button
-3. Click **Add custom connector**
-4. Fill in:
-    - **Name**: Nutrition Tracker
-    - **Remote MCP Server URL**: `https://nutrition-mcp.com/mcp`
-5. Click **Connect** — sign in or register when prompted
-6. After signing in, Claude can use your nutrition tools. If you reconnect later, sign in with the same email and password to keep your data.
+1. Open [Nutrition MCP in the Claude directory](https://claude.ai/directory/nutrition-mcp)
+2. Click **Connect**
+3. Sign in or register when prompted
+4. Done — Claude can now use your nutrition tools
+
+Alternatively, add `https://nutrition-mcp.com/mcp` as a custom connector under **Customize → Connectors**. If you reconnect later, sign in with the same email and password to keep your data.
 
 ## Troubleshooting
 

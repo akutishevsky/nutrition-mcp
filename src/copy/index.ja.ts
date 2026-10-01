@@ -2252,17 +2252,12 @@ export const INDEX_JA: IndexDoc = {
         title: "1分足らずで接続完了",
         sub: "OAuth 2.0（PKCE対応）をサポートするMCPクライアントならどれでも使えます。初回接続時にGoogleまたはメールアドレスとパスワードでアカウントを作成し、同じ方法でサインインすればデータを引き継げます。",
         claude: {
+            cta: "Claudeに追加",
             steps: [
-                "<strong>Claude</strong>（Webまたはデスクトップ版）を開き、左上の<strong>カスタマイズ</strong>をクリックします。",
-                "<strong>コネクタ</strong>をクリックします。",
-                "<strong>+</strong>をクリックし、<strong>カスタムコネクタを追加</strong>を選択します。",
-                "名前を付けます（例:<strong>Nutrition</strong>）。",
-                '<strong>リモートMCPサーバーURL</strong>欄に<span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="サーバーURLをコピー"><i class="fa-solid fa-copy"></i></button></span>を貼り付けます。',
-                "<strong>追加</strong>をクリックします。",
-                "<strong>接続</strong>をクリックすると、ログインページが開きます。Googleで続行するか、メールアドレスとパスワードでサインインしてください。",
+                "ディレクトリのページで<strong>接続</strong>をクリックし、Googleで続行するか、メールアドレスとパスワードでサインインしてください。",
                 "完了です。すぐに使えるようになり、iOS・Androidアプリにも自動的に反映されます。",
             ],
-            note: "すべてのClaudeプランで利用できます。無料プランでは同時に接続できるMCPサーバーは1つまでです。",
+            note: "無料プランを含むすべてのClaudeプランで利用できます。手動で追加する場合は、「カスタマイズ」→「コネクタ」→「カスタムコネクタを追加」から https://nutrition-mcp.com/mcp を追加してください。",
         },
         chatgpt: {
             steps: [
