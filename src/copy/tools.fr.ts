@@ -16,9 +16,9 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_FR: ToolsDoc = {
     meta: {
-        title: "Référence des outils : les 36 outils",
+        title: "36 outils : calories, macros, eau et poids",
         description:
-            "Les 36 outils que le serveur Nutrition MCP donne à ton IA — enregistrer des repas, scanner des codes-barres, importer ton historique depuis une autre app, suivre l'eau et le poids, définir des objectifs et consulter les tendances. Référence complète avec descriptions et exemples de formulations.",
+            "Les 36 outils Nutrition MCP pour Claude, ChatGPT et d'autres IA : repas, codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau et du poids.",
         ogDescription:
             "Les 36 outils que le serveur Nutrition MCP donne à ton IA, dont un importateur CSV pour ton historique venu d'une autre app — avec descriptions et exemples de formulations.",
     },
@@ -27,7 +27,7 @@ export const TOOLS_FR: ToolsDoc = {
         titleBeforeEm: "Tout ce que ton IA peut ",
         titleEm: "faire",
         titleAfterEm: "",
-        lead: "Tu n'appelles jamais ces outils directement — tu parles simplement, et l'assistant choisit le bon outil. Voici l'ensemble complet exposé par le serveur Nutrition MCP, avec ce que fait chacun et une phrase qui le déclenche.",
+        lead: "Tu n'appelles jamais ces outils directement — tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP expose pour les repas, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
         countBold: "36 outils",
         countTail: "répartis en 7 catégories",
     },
@@ -46,12 +46,12 @@ export const TOOLS_FR: ToolsDoc = {
         },
         water: {
             pillLabel: "Eau",
-            title: "Eau",
+            title: "Suivi de l'eau",
             description: "Suis ton hydratation en plus de tes repas.",
         },
         weight: {
             pillLabel: "Poids",
-            title: "Poids",
+            title: "Suivi du poids",
             description:
                 "Enregistre tes pesées, consulte-les et observe la tendance vers ton objectif.",
         },
@@ -121,7 +121,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Récupère les valeurs nutritionnelles d'un produit emballé depuis Open Food Facts à partir de son code-barres (EAN/UPC de 8 à 14 chiffres). Tu peux taper les chiffres ou les lire sur une photo de l'emballage ; le résultat peut ensuite être enregistré, ajusté à la quantité que tu as mangée.",
+                "Récupère les valeurs nutritionnelles de l'étiquette d'un produit emballé depuis Open Food Facts à partir de son code-barres (EAN/UPC de 8 à 14 chiffres), ainsi que son Nutri-Score et son groupe de transformation NOVA quand Open Food Facts les a. Tu peux taper les chiffres ou les lire sur une photo de l'emballage ; le résultat peut ensuite être enregistré, ajusté à la quantité que tu as mangée.",
             params: {},
             example: "Scanne ce code-barres : 3017620422003",
             photoHint:
@@ -129,7 +129,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Ouvre un importateur dans le chat pour récupérer ton historique depuis une autre app — choisis le fichier exporté depuis MyFitnessPal, Cronometer, Lose It! ou MacroFactor, associe ses colonnes aux calories, macros, fibres, sucre et caféine — plus l'alcool si tu as activé son suivi — et vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et importer le même fichier à nouveau ne crée pas de doublons.",
+                "Ouvre un importateur dans le chat pour récupérer ton historique depuis une autre app — choisis le CSV exporté depuis MyFitnessPal, Cronometer, Lose It!, MacroFactor ou une autre app de suivi, associe ses colonnes aux calories, macros, fibres, sucre et caféine — plus l'alcool si tu as activé son suivi — et vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et importer le même fichier à nouveau ne crée pas de doublons.",
             params: {},
             example: "Importe mon historique de repas depuis MyFitnessPal",
         },
@@ -218,7 +218,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporte tout ce que le service stocke à ton sujet dans un seul ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes applications d'IA connectées, sans aucun jeton), et un README.txt expliquant les colonnes, les unités et ce qui n'est pas inclus — avec le même lien privé, valable 60 minutes. Les repas sont pour l'instant la seule partie qui peut être réimportée.",
+                "Exporte tout ce que le service stocke à ton sujet dans un seul ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes applications d'IA connectées, sans aucun jeton), et un README.txt expliquant les colonnes, les unités et ce qui n'est pas inclus — et te renvoie un lien de téléchargement privé, valable 60 minutes. Les repas sont pour l'instant la seule partie qui peut être réimportée.",
             params: {},
             example:
                 "Exporte toutes mes données — repas, eau, poids et objectifs",
@@ -332,7 +332,7 @@ export const TOOLS_FR: ToolsDoc = {
                 daily_alcohol_g:
                     "Limite quotidienne d'alcool en grammes d'<b>éthanol pur</b>, un maximum à ne pas dépasser. Un verre standard américain fait 14 g, une unité britannique 7,9 g. Null pour effacer.",
                 daily_caffeine_mg:
-                    "Limite quotidienne de caféine en <b>milligrammes</b>, un maximum à ne pas dépasser. Le plafond de l'EFSA et de la FDA pour un adulte en bonne santé est de 400 mg par jour (environ quatre cafés filtre), et 200 mg pendant la grossesse. 0 est une limite réelle signifiant aucune caféine du tout. Null pour effacer.",
+                    "Limite quotidienne de caféine en <b>milligrammes</b>, un maximum à ne pas dépasser. L'EFSA et la FDA fixent le plafond pour un adulte en bonne santé à 400 mg par jour (environ quatre cafés filtre) ; le chiffre de l'EFSA pour la grossesse est de 200 mg. 0 est une limite réelle signifiant aucune caféine du tout. Null pour effacer.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -395,7 +395,7 @@ export const TOOLS_FR: ToolsDoc = {
             description:
                 "Définis la langue de l'interface pour les widgets interactifs dans le chat — les tableaux de bord et graphiques, pas ce que l'IA t'écrit.",
             params: {
-                locale: "Code ISO 639-1, par exemple <code>de</code>, <code>uk</code>. Langues prises en charge : anglais, allemand, espagnol, français, néerlandais, polonais, italien, ukrainien.",
+                locale: "Code ISO 639-1, par exemple <code>de</code>, <code>ja</code>. Langues prises en charge : anglais, allemand, espagnol, français, néerlandais, polonais, italien, ukrainien, japonais.",
             },
             example: "Affiche mes widgets en allemand",
         },
@@ -428,7 +428,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Supprime définitivement ton compte Nutrition MCP et toutes les données qu'il conserve sur toi. C'est irréversible — l'IA te demande toujours confirmation avant.",
+                "Supprime définitivement ton compte Nutrition MCP et toutes les données qu'il conserve sur toi. C'est irréversible : l'outil ne fait rien sans confirmation explicite, et l'IA est invitée à vérifier avec toi avant de l'envoyer.",
             params: {},
             example: "Supprime mon compte et toutes mes données",
         },

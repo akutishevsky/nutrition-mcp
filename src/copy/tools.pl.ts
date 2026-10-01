@@ -2,9 +2,9 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "Katalog narzędzi: wszystkie 36 narzędzi",
+        title: "36 narzędzi: kalorie, makroskładniki, woda i waga",
         description:
-            "Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI — zapisuj posiłki, skanuj kody kreskowe, importuj historię z innej aplikacji, śledź wodę i wagę, ustawiaj cele i przeglądaj trendy. Pełny opis wraz z przykładowymi poleceniami.",
+            "Wszystkie 36 narzędzi Nutrition MCP dla Claude i ChatGPT: zapisuj posiłki, skanuj kody kreskowe, importuj CSV z MyFitnessPal lub Cronometer, śledź wodę i wagę.",
         ogDescription:
             "Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV do przenoszenia historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
     },
@@ -13,7 +13,7 @@ export const TOOLS_PL: ToolsDoc = {
         titleBeforeEm: "Wszystko, co ",
         titleEm: "potrafi",
         titleAfterEm: " Twój AI",
-        lead: "Nigdy nie wywołujesz tych narzędzi bezpośrednio — po prostu mówisz, a asystent sam wybiera właściwe. Oto pełny zestaw udostępniany przez serwer Nutrition MCP, wraz z opisem działania i przykładowym poleceniem, które je uruchamia.",
+        lead: "Nigdy nie wywołujesz tych narzędzi bezpośrednio — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam wybiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków, kalorii i makroskładników, wody i wagi, wraz z opisem działania i przykładowym poleceniem, które je uruchamia.",
         countBold: "36 narzędzi",
         countTail: "w 7 obszarach",
     },
@@ -32,12 +32,12 @@ export const TOOLS_PL: ToolsDoc = {
         },
         water: {
             pillLabel: "Woda",
-            title: "Woda",
+            title: "Śledzenie wody",
             description: "Śledź nawodnienie razem z jedzeniem.",
         },
         weight: {
             pillLabel: "Waga",
-            title: "Waga",
+            title: "Śledzenie wagi",
             description:
                 "Zapisuj ważenia, przeglądaj je i obserwuj trend w kierunku celu.",
         },
@@ -107,7 +107,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Pobierz z Open Food Facts dane odżywcze z etykiety produktu paczkowanego na podstawie kodu kreskowego (8–14 cyfr EAN/UPC). Możesz wpisać cyfry albo odczytać je ze zdjęcia opakowania; wynik można potem zapisać, przeliczony na zjedzoną ilość.",
+                "Pobierz z Open Food Facts dane odżywcze z etykiety produktu paczkowanego na podstawie kodu kreskowego (8–14 cyfr EAN/UPC), a także jego Nutri-Score i grupę przetworzenia NOVA, jeśli Open Food Facts je podaje. Możesz wpisać cyfry albo odczytać je ze zdjęcia opakowania; wynik można potem zapisać, przeliczony na zjedzoną ilość.",
             params: {},
             example: "Zeskanuj ten kod kreskowy: 3017620422003",
             photoHint:
@@ -115,7 +115,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik wyeksportowany z MyFitnessPal, Cronometer, Lose It! lub MacroFactor, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukru i kofeiny — a także alkoholu, jeśli włączyłeś/aś jego śledzenie — i sprawdź, co zostanie dodane, zanim potwierdzisz. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane przed zaakceptowaniem podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
+                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik CSV wyeksportowany z MyFitnessPal, Cronometer, Lose It!, MacroFactor lub innego trackera, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukru i kofeiny — a także alkoholu, jeśli włączyłeś/aś jego śledzenie — i sprawdź, co zostanie dodane, zanim potwierdzisz. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane przed zaakceptowaniem podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
             params: {},
             example: "Zaimportuj moją historię posiłków z MyFitnessPal",
         },
@@ -202,7 +202,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, jako jeden plik ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (zapisy korzystania z narzędzi), connections.csv (Twoje połączone aplikacje AI, bez żadnych tokenów) oraz README.txt z wyjaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — pod tym samym prywatnym linkiem, ważnym przez 60 minut. Na razie tylko posiłki można zaimportować z powrotem.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, jako jeden plik ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (zapisy korzystania z narzędzi), connections.csv (Twoje połączone aplikacje AI, bez żadnych tokenów) oraz README.txt z wyjaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie tylko posiłki można zaimportować z powrotem.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",
@@ -316,7 +316,7 @@ export const TOOLS_PL: ToolsDoc = {
                 daily_alcohol_g:
                     "Dzienny limit alkoholu w gramach <b>czystego etanolu</b>, maksimum, którego nie należy przekraczać. Jeden standardowy drink w USA to 14 g, jedna jednostka brytyjska to 7,9 g. Null, aby wyczyścić.",
                 daily_caffeine_mg:
-                    "Dzienny limit kofeiny w <b>miligramach</b>, maksimum, którego nie należy przekraczać. Górna granica EFSA i FDA dla zdrowych dorosłych to 400 mg dziennie (mniej więcej cztery parzone kawy), a 200 mg w ciąży. 0 to realny limit oznaczający całkowity brak. Null, aby wyczyścić.",
+                    "Dzienny limit kofeiny w <b>miligramach</b>, maksimum, którego nie należy przekraczać. EFSA i FDA wyznaczają górną granicę dla zdrowych dorosłych na 400 mg dziennie (mniej więcej cztery parzone kawy); wartość EFSA dla kobiet w ciąży to 200 mg. 0 to realny limit oznaczający całkowity brak. Null, aby wyczyścić.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -379,7 +379,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Ustaw język interfejsu widżetów w czacie — paneli i wykresów, nie treści, które pisze do Ciebie AI.",
             params: {
-                locale: "Kod ISO 639-1, np. <code>de</code>, <code>uk</code>. Obsługiwane języki: angielski, niemiecki, hiszpański, francuski, niderlandzki, polski, włoski, ukraiński.",
+                locale: "Kod ISO 639-1, np. <code>de</code>, <code>ja</code>. Obsługiwane języki: angielski, niemiecki, hiszpański, francuski, niderlandzki, polski, włoski, ukraiński, japoński.",
             },
             example: "Pokazuj moje widżety po niemiecku",
         },
@@ -411,7 +411,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Trwale usuń swoje konto Nutrition MCP i wszystkie dane, które usługa o Tobie przechowuje. To działanie jest nieodwracalne — AI zawsze najpierw potwierdza to z Tobą.",
+                "Trwale usuń swoje konto Nutrition MCP i wszystkie dane, które usługa o Tobie przechowuje. To działanie jest nieodwracalne, więc narzędzie nic nie robi bez wyraźnego potwierdzenia, a AI jest proszone, by przed jego wysłaniem zapytać Cię o zgodę.",
             params: {},
             example: "Usuń moje konto i wszystkie moje dane",
         },

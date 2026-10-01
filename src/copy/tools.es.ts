@@ -11,9 +11,9 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_ES: ToolsDoc = {
     meta: {
-        title: "Referencia de herramientas: las 36 herramientas",
+        title: "36 herramientas: calorías, macros, agua y peso",
         description:
-            "Las 36 herramientas que el servidor Nutrition MCP le da a tu IA: registra comidas, escanea códigos de barras, importa tu historial desde otra app, controla el agua y el peso, define objetivos y revisa tendencias. Referencia completa con descripciones y frases de ejemplo.",
+            "Las 36 herramientas de Nutrition MCP para Claude y ChatGPT: registra comidas, escanea códigos de barras, importa CSV de MyFitnessPal y controla agua y peso.",
         ogDescription:
             "Las 36 herramientas que el servidor Nutrition MCP le da a tu IA, incluido un importador CSV para tu historial desde otra app, con descripciones y frases de ejemplo.",
     },
@@ -22,7 +22,7 @@ export const TOOLS_ES: ToolsDoc = {
         titleBeforeEm: "Todo lo que tu IA puede ",
         titleEm: "hacer",
         titleAfterEm: "",
-        lead: "Nunca llamas a estas herramientas directamente: tú solo hablas, y el asistente elige la herramienta correcta. Aquí tienes el conjunto completo que expone el servidor Nutrition MCP, con lo que hace cada una y una frase que la activa.",
+        lead: "Nunca llamas a estas herramientas directamente: solo hablas con Claude, ChatGPT u otro cliente MCP, y este elige la herramienta correcta. Aquí tienes todas las herramientas que expone el servidor Nutrition MCP para comidas, calorías y macros, agua y peso, con lo que hace cada una y una frase que la activa.",
         countBold: "36 herramientas",
         countTail: "en 7 áreas",
     },
@@ -41,12 +41,12 @@ export const TOOLS_ES: ToolsDoc = {
         },
         water: {
             pillLabel: "Agua",
-            title: "Agua",
+            title: "Registro de agua",
             description: "Controla la hidratación junto con tu comida.",
         },
         weight: {
             pillLabel: "Peso",
-            title: "Peso",
+            title: "Control de peso",
             description:
                 "Registra tus pesajes, revísalos y observa la tendencia hacia tu objetivo.",
         },
@@ -116,7 +116,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Obtiene la información nutricional de un producto envasado desde Open Food Facts a partir de su código de barras (EAN/UPC de 8 a 14 dígitos). Puedes escribir los dígitos o leerlos de una foto del envase; el resultado luego se puede registrar, ajustado a la cantidad que comiste.",
+                "Obtiene la información nutricional de la etiqueta de un producto envasado desde Open Food Facts a partir de su código de barras (EAN/UPC de 8 a 14 dígitos), además de su Nutri-Score y su grupo de procesamiento NOVA cuando Open Food Facts los tiene. Puedes escribir los dígitos o leerlos de una foto del envase; el resultado luego se puede registrar, ajustado a la cantidad que comiste.",
             params: {},
             example: "Escanea este código de barras: 3017620422003",
             photoHint:
@@ -124,7 +124,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Abre un importador en el chat para traer tu historial desde otra app: elige el archivo que exportaste de MyFitnessPal, Cronometer, Lose It! o MacroFactor, empareja sus columnas con calorías, macros, fibra, azúcar y cafeína (además de alcohol si has activado su seguimiento) y revisa qué se añadirá antes de confirmar. El archivo se lee en tu navegador, no se guarda nada hasta que apruebas la vista previa, y volver a importar el mismo archivo no crea duplicados.",
+                "Abre un importador en el chat para traer tu historial desde otra app: elige el CSV que exportaste de MyFitnessPal, Cronometer, Lose It!, MacroFactor u otra app de seguimiento, empareja sus columnas con calorías, macros, fibra, azúcar y cafeína (además de alcohol si has activado su seguimiento) y revisa qué se añadirá antes de confirmar. El archivo se lee en tu navegador, no se guarda nada hasta que apruebas la vista previa, y volver a importar el mismo archivo no crea duplicados.",
             params: {},
             example: "Importa mi historial de comidas desde MyFitnessPal",
         },
@@ -212,7 +212,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporta todo lo que el servicio almacena sobre ti en un único ZIP: meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas, sin ningún token) y un README.txt que explica las columnas, las unidades y lo que no se incluye, con el mismo enlace privado, válido durante 60 minutos. Por ahora, las comidas son la única parte que se puede volver a importar.",
+                "Exporta todo lo que el servicio almacena sobre ti en un único ZIP: meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas, sin ningún token) y un README.txt que explica las columnas, las unidades y lo que no se incluye, y te devuelve un enlace de descarga privado, válido durante 60 minutos. Por ahora, las comidas son la única parte que se puede volver a importar.",
             params: {},
             example: "Exporta todos mis datos: comidas, agua, peso y objetivos",
         },
@@ -325,7 +325,7 @@ export const TOOLS_ES: ToolsDoc = {
                 daily_alcohol_g:
                     "Límite diario de alcohol en gramos de <b>etanol puro</b>, un máximo a no superar. Una bebida estándar de EE. UU. son 14 g; una unidad del Reino Unido, 7,9 g. Null para borrarlo.",
                 daily_caffeine_mg:
-                    "Límite diario de cafeína en <b>miligramos</b>, un máximo a no superar. El límite de la EFSA y la FDA para adultos sanos es de 400 mg al día (aproximadamente cuatro cafés de filtro), y 200 mg durante el embarazo. 0 es un límite real que significa ninguna cantidad. Null para borrarlo.",
+                    "Límite diario de cafeína en <b>miligramos</b>, un máximo a no superar. La EFSA y la FDA sitúan el límite para adultos sanos en 400 mg al día (aproximadamente cuatro cafés de filtro); la cifra de la EFSA para el embarazo es de 200 mg. 0 es un límite real que significa ninguna cantidad. Null para borrarlo.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -388,7 +388,7 @@ export const TOOLS_ES: ToolsDoc = {
             description:
                 "Define el idioma de la interfaz para los widgets del chat: los paneles y gráficos, no lo que la IA te responde por escrito.",
             params: {
-                locale: "Código ISO 639-1, p. ej. <code>de</code>, <code>uk</code>. Compatibles: inglés, alemán, español, francés, neerlandés, polaco, italiano y ucraniano.",
+                locale: "Código ISO 639-1, p. ej. <code>de</code>, <code>ja</code>. Compatibles: inglés, alemán, español, francés, neerlandés, polaco, italiano, ucraniano y japonés.",
             },
             example: "Muéstrame los widgets en alemán",
         },
@@ -421,7 +421,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Elimina de forma permanente tu cuenta de Nutrition MCP y todos los datos que guarda sobre ti. Esto es irreversible: la IA siempre te lo confirma antes.",
+                "Elimina de forma permanente tu cuenta de Nutrition MCP y todos los datos que guarda sobre ti. Es irreversible, así que la herramienta no hace nada sin una confirmación explícita, y se pide a la IA que lo compruebe contigo antes de enviarla.",
             params: {},
             example: "Elimina mi cuenta y todos mis datos",
         },

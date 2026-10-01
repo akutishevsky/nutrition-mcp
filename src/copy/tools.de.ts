@@ -6,9 +6,9 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "Werkzeug-Referenz: Alle 36 Werkzeuge",
+        title: "36 Werkzeuge für Kalorien, Makros & Gewicht",
         description:
-            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt — Mahlzeiten erfassen, Barcodes scannen, deine Historie aus einer anderen App importieren, Wasser und Gewicht verfolgen, Ziele festlegen und Trends auswerten. Vollständige Referenz mit Beschreibungen und Beispielsätzen.",
+            "Alle 36 Werkzeuge für Claude und ChatGPT: Mahlzeiten erfassen, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser und Gewicht tracken.",
         ogDescription:
             "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt, inklusive eines CSV-Importers für deine Historie aus einer anderen App — mit Beschreibungen und Beispielsätzen.",
     },
@@ -17,7 +17,7 @@ export const TOOLS_DE: ToolsDoc = {
         titleBeforeEm: "Alles, was deine KI ",
         titleEm: "kann",
         titleAfterEm: "",
-        lead: "Du rufst diese Werkzeuge nie selbst auf — du sprichst einfach, und der Assistent wählt das richtige Werkzeug. Hier ist die vollständige Liste, die der Nutrition-MCP-Server bereitstellt, mit dem, was jedes tut, und einem Satz, der es auslöst.",
+        lead: "Du rufst diese Werkzeuge nie selbst auf — du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und er wählt das richtige Werkzeug. Hier ist jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt, mit dem, was es tut, und einem Satz, der es auslöst.",
         countBold: "36 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
@@ -36,13 +36,13 @@ export const TOOLS_DE: ToolsDoc = {
         },
         water: {
             pillLabel: "Wasser",
-            title: "Wasser",
+            title: "Wasser-Tracking",
             description:
                 "Verfolge deine Flüssigkeitszufuhr neben deinem Essen.",
         },
         weight: {
             pillLabel: "Gewicht",
-            title: "Gewicht",
+            title: "Gewichts-Tracking",
             description:
                 "Erfasse Wiegungen, sieh sie dir an und beobachte den Trend zu deinem Ziel.",
         },
@@ -113,7 +113,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Ruf die Nährwertangaben eines verpackten Produkts anhand seines Barcodes (8–14-stelliger EAN/UPC) von Open Food Facts ab. Du kannst die Ziffern eintippen oder sie von einem Foto der Verpackung ablesen lassen; das Ergebnis kann dann erfasst werden, skaliert auf die gegessene Menge.",
+                "Ruf die Nährwertangaben eines verpackten Produkts anhand seines Barcodes (8–14-stelliger EAN/UPC) von Open Food Facts ab, dazu den Nutri-Score und die NOVA-Verarbeitungsgruppe, sofern Open Food Facts sie hat. Du kannst die Ziffern eintippen oder sie von einem Foto der Verpackung ablesen lassen; das Ergebnis kann dann erfasst werden, skaliert auf die gegessene Menge.",
             params: {},
             example: "Scanne diesen Barcode: 3017620422003",
             photoHint:
@@ -121,7 +121,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Öffne einen Importer im Chat, um deine Historie aus einer anderen App zu übernehmen — wähl die Datei, die du aus MyFitnessPal, Cronometer, Lose It! oder MacroFactor exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Zucker und Koffein zu — plus Alkohol, falls du die Alkohol-Erfassung aktiviert hast — und sieh dir an, was hinzugefügt wird, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, nichts wird gespeichert, bis du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
+                "Öffne einen Importer im Chat, um deine Historie aus einer anderen App zu übernehmen — wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Zucker und Koffein zu — plus Alkohol, falls du die Alkohol-Erfassung aktiviert hast — und sieh dir an, was hinzugefügt wird, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, nichts wird gespeichert, bis du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
             params: {},
             example: "Importiere meine Mahlzeiten-Historie aus MyFitnessPal",
         },
@@ -211,7 +211,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als ein einziges ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Nutzungsdatensätze der Werkzeuge), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die die Spalten, die Einheiten und das, was nicht enthalten ist, erklärt — mit demselben privaten Link, 60 Minuten gültig. Mahlzeiten sind bisher der einzige Teil, der sich zurück importieren lässt.",
+                "Exportiere alles, was der Dienst über dich speichert, als ein einziges ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Nutzungsdatensätze der Werkzeuge), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die die Spalten, die Einheiten und das, was nicht enthalten ist, erklärt — und erhalte einen privaten Download-Link, 60 Minuten gültig. Mahlzeiten sind bisher der einzige Teil, der sich zurück importieren lässt.",
             params: {},
             example:
                 "Exportier alle meine Daten — Mahlzeiten, Wasser, Gewicht und Ziele",
@@ -326,7 +326,7 @@ export const TOOLS_DE: ToolsDoc = {
                 daily_alcohol_g:
                     "Tägliches Alkohol-Limit in Gramm <b>reinen Alkohols</b>, ein Maximum, das unterschritten werden soll. Ein US-Standard-Drink sind 14 g, eine UK-Einheit 7,9 g. Null zum Löschen.",
                 daily_caffeine_mg:
-                    "Tägliches Koffein-Limit in <b>Milligramm</b>, ein Maximum, das unterschritten werden soll. Die EFSA- und FDA-Obergrenze für gesunde Erwachsene liegt bei 400 mg pro Tag (etwa vier gebrühte Kaffees) und bei 200 mg in der Schwangerschaft. 0 ist ein echtes Limit und bedeutet gar keins. Null zum Löschen.",
+                    "Tägliches Koffein-Limit in <b>Milligramm</b>, ein Maximum, das unterschritten werden soll. EFSA und FDA setzen die Obergrenze für gesunde Erwachsene bei 400 mg pro Tag an (etwa vier gebrühte Kaffees); der EFSA-Wert für die Schwangerschaft liegt bei 200 mg. 0 ist ein echtes Limit und bedeutet gar keins. Null zum Löschen.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -389,7 +389,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Leg die Sprache der In-Chat-Widgets fest — die Dashboards und Diagramme, nicht das, was die KI dir zurückschreibt.",
             params: {
-                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>uk</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch.",
+                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>ja</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch, Japanisch.",
             },
             example: "Zeig meine Widgets auf Deutsch an",
         },
@@ -422,7 +422,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Lösch dein Nutrition-MCP-Konto und alle Daten, die es über dich speichert, dauerhaft. Das ist unumkehrbar — die KI bestätigt immer zuerst mit dir.",
+                "Lösch dein Nutrition-MCP-Konto und alle Daten, die es über dich speichert, dauerhaft. Das ist unumkehrbar, deshalb tut das Werkzeug ohne ausdrückliche Bestätigung nichts, und die KI wird gebeten, vorher bei dir nachzufragen.",
             params: {},
             example: "Lösch mein Konto und alle meine Daten",
         },

@@ -8,9 +8,9 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "Toolreferentie: alle 36 tools",
+        title: "36 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 36 tools die de Nutrition MCP-server aan je AI geeft — maaltijden loggen, barcodes scannen, je geschiedenis uit een andere app importeren, water en gewicht bijhouden, doelen instellen en trends bekijken. Volledige referentie met beschrijvingen en voorbeeldzinnen.",
+            "Alle 36 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water en gewicht bijhouden.",
         ogDescription:
             "Alle 36 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer voor je geschiedenis uit een andere app — met beschrijvingen en voorbeeldzinnen.",
     },
@@ -19,7 +19,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleBeforeEm: "Alles wat je AI kan ",
         titleEm: "doen",
         titleAfterEm: "",
-        lead: "Je roept deze tools nooit rechtstreeks aan — je praat gewoon, en de assistent kiest de juiste tool. Hier is de volledige set die de Nutrition MCP-server aanbiedt, met wat elke tool doet en een zin die hem activeert.",
+        lead: "Je roept deze tools nooit rechtstreeks aan — je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hier is elke tool die de Nutrition MCP-server aanbiedt voor maaltijden, calorieën en macro's, water en gewicht, met wat elke tool doet en een zin die hem activeert.",
         countBold: "36 tools",
         countTail: "verdeeld over 7 categorieën",
     },
@@ -38,12 +38,12 @@ export const TOOLS_NL: ToolsDoc = {
         },
         water: {
             pillLabel: "Water",
-            title: "Water",
+            title: "Water bijhouden",
             description: "Houd je hydratatie bij naast je eten.",
         },
         weight: {
             pillLabel: "Gewicht",
-            title: "Gewicht",
+            title: "Gewicht bijhouden",
             description:
                 "Log weegmomenten, bekijk ze terug en volg de trend richting je streefgewicht.",
         },
@@ -114,7 +114,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Haal de labelvoeding van een verpakt product op bij Open Food Facts via de barcode (8–14 cijfers, EAN/UPC). Je kunt de cijfers typen of ze van een foto van de verpakking laten aflezen; het resultaat kan daarna gelogd worden, geschaald naar hoeveel je hebt gegeten.",
+                "Haal de labelvoeding van een verpakt product op bij Open Food Facts via de barcode (8–14 cijfers, EAN/UPC), plus de Nutri-Score en de NOVA-verwerkingsgroep als Open Food Facts die heeft. Je kunt de cijfers typen of ze van een foto van de verpakking laten aflezen; het resultaat kan daarna gelogd worden, geschaald naar hoeveel je hebt gegeten.",
             params: {},
             example: "Scan deze barcode: 3017620422003",
             photoHint:
@@ -122,7 +122,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open een importer in de chat om je geschiedenis over te zetten uit een andere app — kies het bestand dat je hebt geëxporteerd uit MyFitnessPal, Cronometer, Lose It! of MacroFactor, koppel de kolommen aan calorieën, macro's, vezels, suiker en cafeïne — plus alcohol als je alcoholregistratie hebt aangezet — en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je de preview goedkeurt, en hetzelfde bestand nog eens importeren levert geen dubbele regels op.",
+                "Open een importer in de chat om je geschiedenis over te zetten uit een andere app — kies de CSV die je hebt geëxporteerd uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker, koppel de kolommen aan calorieën, macro's, vezels, suiker en cafeïne — plus alcohol als je alcoholregistratie hebt aangezet — en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je de preview goedkeurt, en hetzelfde bestand nog eens importeren levert geen dubbele regels op.",
             params: {},
             example: "Importeer mijn maaltijdgeschiedenis uit MyFitnessPal",
         },
@@ -212,7 +212,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporteer alles wat de dienst over je bewaart als één ZIP-bestand — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (je aanmeldaccount), telemetry.csv (gebruiksgegevens van tools), connections.csv (je gekoppelde AI-apps, zonder tokens) en een README.txt die de kolommen, de eenheden en wat er niet in zit uitlegt — met dezelfde privélink, 60 minuten geldig. Maaltijden zijn voorlopig het enige onderdeel dat je weer kunt importeren.",
+                "Exporteer alles wat de dienst over je bewaart als één ZIP-bestand — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (je aanmeldaccount), telemetry.csv (gebruiksgegevens van tools), connections.csv (je gekoppelde AI-apps, zonder tokens) en een README.txt die de kolommen, de eenheden en wat er niet in zit uitlegt — en geeft je een privédownloadlink terug, 60 minuten geldig. Maaltijden zijn voorlopig het enige onderdeel dat je weer kunt importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens — maaltijden, water, gewicht en doelen",
@@ -327,7 +327,7 @@ export const TOOLS_NL: ToolsDoc = {
                 daily_alcohol_g:
                     "Dagelijkse alcohollimiet in gram <b>zuivere ethanol</b>, een maximum om onder te blijven. Eén Amerikaans standaardglas is 14 g, één Britse eenheid 7,9 g. Null om te wissen.",
                 daily_caffeine_mg:
-                    "Dagelijkse cafeïnelimiet in <b>milligram</b>, een maximum om onder te blijven. De grens van EFSA en FDA voor gezonde volwassenen is 400 mg per dag (ongeveer vier gezette koffies), en 200 mg tijdens de zwangerschap. 0 is een geldige limiet die inhoudt: helemaal geen. Null om te wissen.",
+                    "Dagelijkse cafeïnelimiet in <b>milligram</b>, een maximum om onder te blijven. EFSA en de FDA leggen de grens voor gezonde volwassenen op 400 mg per dag (ongeveer vier gezette koffies); het cijfer van EFSA voor de zwangerschap is 200 mg. 0 is een geldige limiet die inhoudt: helemaal geen. Null om te wissen.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -390,7 +390,7 @@ export const TOOLS_NL: ToolsDoc = {
             description:
                 "Stel de taal in voor de widgets in de chat — de dashboards en grafieken, niet wat de AI aan je terugschrijft.",
             params: {
-                locale: "ISO 639-1-code, bijv. <code>de</code>, <code>uk</code>. Ondersteund: Engels, Duits, Spaans, Frans, Nederlands, Pools, Italiaans en Oekraïens.",
+                locale: "ISO 639-1-code, bijv. <code>de</code>, <code>ja</code>. Ondersteund: Engels, Duits, Spaans, Frans, Nederlands, Pools, Italiaans, Oekraïens en Japans.",
             },
             example: "Zet mijn widgets in het Duits",
         },
@@ -422,7 +422,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Verwijder permanent je Nutrition MCP-account en alle gegevens die het over je bewaart. Dit is onomkeerbaar — de AI vraagt altijd eerst om jouw bevestiging.",
+                "Verwijder permanent je Nutrition MCP-account en alle gegevens die het over je bewaart. Dit is onomkeerbaar, dus de tool doet niets zonder een uitdrukkelijke bevestiging, en de AI wordt gevraagd eerst bij jou na te gaan of je dat wilt voordat hij die verstuurt.",
             params: {},
             example: "Verwijder mijn account en al mijn gegevens",
         },

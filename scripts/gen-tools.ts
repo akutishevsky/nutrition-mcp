@@ -22,12 +22,13 @@
  * The generated .html files are the served artifacts — don't hand-edit them.
  */
 
-import { HTML_LANG, pathFor, type SiteLocale } from "../src/routes.js";
+import { HTML_LANG, pathFor, urlFor, type SiteLocale } from "../src/routes.js";
 import {
     SITE,
     esc,
     footer,
     generatedBanner,
+    jsonLd,
     localeHead,
     nav,
     translationNotice,
@@ -38,6 +39,7 @@ import {
     EMAIL_OFF_OPEN,
     EMAIL_OFF_CLOSE,
     ICON_LINKS,
+    OG_IMAGE_META,
 } from "./site-partials.js";
 import {
     BADGE_META,
@@ -1006,6 +1008,26 @@ function renderDoc(doc: ToolsDoc, locale: SiteLocale): string {
     const suffix = "/tools";
     const title = `${esc(doc.meta.title)} — Nutrition MCP`;
     const url = `${SITE}${pathFor(locale, suffix)}`;
+    // BreadcrumbList only — no FAQPage for troubleshooting (Google limited
+    // FAQ rich results to government/health sites in Aug 2023).
+    const breadcrumb = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Nutrition MCP",
+                item: urlFor(locale, ""),
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: doc.meta.title,
+                item: url,
+            },
+        ],
+    };
 
     const chips = [
         ...CATEGORIES.map((id) =>
@@ -1045,7 +1067,13 @@ ${ICON_LINKS}
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="${url}" />
-        <meta property="og:image" content="${SITE}/og.png" />
+${OG_IMAGE_META}
+        <meta name="twitter:title" content="${title}" />
+        <meta
+            name="twitter:description"
+            content="${esc(doc.meta.ogDescription)}"
+        />
+${jsonLd(breadcrumb)}
 ${HEAD_ASSETS}
 ${TOOLS_STYLE}
     </head>

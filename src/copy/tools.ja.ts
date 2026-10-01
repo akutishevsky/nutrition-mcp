@@ -20,9 +20,9 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_JA: ToolsDoc = {
     meta: {
-        title: "ツールリファレンス：36個の全ツール",
+        title: "カロリー計算・PFC・水分・体重管理の全36ツール",
         description:
-            "Nutrition MCPサーバーがあなたのAIに提供する36個すべてのツール — 食事の記録、バーコードのスキャン、他のアプリからの履歴インポート、水分と体重の記録、目標の設定、トレンドの確認。説明と例文つきの完全なリファレンスです。",
+            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全36ツール。食事記録、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重の記録に対応。",
         ogDescription:
             "Nutrition MCPサーバーがあなたのAIに提供する36個のツール。他のアプリからの履歴用CSVインポーターを含み、説明と例文つき。",
     },
@@ -31,7 +31,7 @@ export const TOOLS_JA: ToolsDoc = {
         titleBeforeEm: "あなたのAIが",
         titleEm: "できる",
         titleAfterEm: "こと、すべて",
-        lead: "これらのツールを直接呼び出すことはありません — ただ話しかけるだけで、アシスタントが適切なツールを選びます。Nutrition MCPサーバーが公開する全ツールと、それぞれの機能、呼び出すきっかけとなるフレーズをまとめました。",
+        lead: "これらのツールを直接呼び出すことはありません — Claude、ChatGPTなどのMCPクライアントに話しかけるだけで、AIが適切なツールを選びます。Nutrition MCPサーバーが公開する、食事、カロリーとPFC、水分、体重に関する全ツールと、それぞれの機能、呼び出すきっかけとなるフレーズをまとめました。",
         countBold: "36個のツール",
         countTail: "7つの分野にわたる",
     },
@@ -50,12 +50,12 @@ export const TOOLS_JA: ToolsDoc = {
         },
         water: {
             pillLabel: "水分",
-            title: "水分",
+            title: "水分記録",
             description: "食事と合わせて水分摂取量を記録します。",
         },
         weight: {
             pillLabel: "体重",
-            title: "体重",
+            title: "体重管理",
             description: "体重を記録・確認し、目標に向かう推移を見守ります。",
         },
         "goals-progress": {
@@ -122,7 +122,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "バーコード（8〜14桁のEAN/UPC）から、パッケージ商品の栄養成分をOpen Food Factsで検索します。数字を入力するか、パッケージの写真から読み取らせることができます。結果はそのまま、実際に食べた量に換算して記録できます。",
+                "バーコード（8〜14桁のEAN/UPC）から、パッケージ商品の栄養成分表示をOpen Food Factsで検索します。Open Food Factsに登録があれば、Nutri-ScoreとNOVA分類（加工度のグループ）も取得します。数字を入力するか、パッケージの写真から読み取らせることができます。結果はそのまま、実際に食べた量に換算して記録できます。",
             params: {},
             example: "このバーコードをスキャンして：3017620422003",
             photoHint:
@@ -130,7 +130,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "チャット内でインポーターを開き、他のアプリから履歴を取り込みます — MyFitnessPal、Cronometer、Lose It!、MacroFactorからエクスポートしたファイルを選び、その列をカロリー、マクロ栄養素、食物繊維、糖類、カフェイン（アルコール記録をオンにしている場合はアルコールも）に対応づけ、確定前に追加内容を確認できます。ファイルはブラウザ内で読み込まれ、プレビューを承認するまで何も保存されません。同じファイルを再度インポートしても重複は作成されません。",
+                "チャット内でインポーターを開き、他のアプリから履歴を取り込みます — MyFitnessPal、Cronometer、Lose It!、MacroFactorなどのトラッカーからエクスポートしたCSVを選び、その列をカロリー、マクロ栄養素、食物繊維、糖類、カフェイン（アルコール記録をオンにしている場合はアルコールも）に対応づけ、確定前に追加内容を確認できます。ファイルはブラウザ内で読み込まれ、プレビューを承認するまで何も保存されません。同じファイルを再度インポートしても重複は作成されません。",
             params: {},
             example: "MyFitnessPalから食事履歴をインポートして",
         },
@@ -217,7 +217,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "本サービスがあなたについて保存しているすべてのデータを1つのZIPとしてエクスポートします — meals.csv、water.csv、weight.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツール利用の記録）、connections.csv（接続中のAIアプリ、トークンは含みません）、そして列、単位、含まれない内容を説明するREADME.txt — 有効期限60分の同じプライベートリンクで提供されます。現時点で再インポートできるのは食事データのみです。",
+                "本サービスがあなたについて保存しているすべてのデータを1つのZIPとしてエクスポートします — meals.csv、water.csv、weight.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツール利用の記録）、connections.csv（接続中のAIアプリ、トークンは含みません）、そして列、単位、含まれない内容を説明するREADME.txt — を作成し、有効期限60分のプライベートなダウンロードリンクを返します。現時点で再インポートできるのは食事データのみです。",
             params: {},
             example:
                 "食事、水分、体重、目標など、すべてのデータをエクスポートして",
@@ -326,7 +326,7 @@ export const TOOLS_JA: ToolsDoc = {
                 daily_alcohol_g:
                     "1日のアルコール上限を<b>純アルコール</b>のグラム数で指定します — 超えないようにすべき最大値です。米国の標準的な1杯は14g、英国の1ユニットは7.9gです。nullでクリア。",
                 daily_caffeine_mg:
-                    "1日のカフェイン上限を<b>ミリグラム</b>単位で指定します — 超えないようにすべき最大値です。EFSAおよびFDAが定める健康な成人の上限は1日400mg（ドリップコーヒー約4杯分）、妊娠中は200mgです。0は「まったく摂らない」という実際の上限を意味します。nullでクリア。",
+                    "1日のカフェイン上限を<b>ミリグラム</b>単位で指定します — 超えないようにすべき最大値です。EFSAとFDAは健康な成人の上限を1日400mg（ドリップコーヒー約4杯分）としており、妊娠中についてはEFSAが200mgとしています。0は「まったく摂らない」という実際の上限を意味します。nullでクリア。",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -386,7 +386,7 @@ export const TOOLS_JA: ToolsDoc = {
             description:
                 "チャット内ウィジェット（ダッシュボードやグラフ）のUI言語を設定します。AIがあなたに返す文章の言語ではありません。",
             params: {
-                locale: "ISO 639-1コード。例：<code>de</code>、<code>uk</code>。対応言語：英語、ドイツ語、スペイン語、フランス語、オランダ語、ポーランド語、イタリア語、ウクライナ語。",
+                locale: "ISO 639-1コード。例：<code>de</code>、<code>ja</code>。対応言語：英語、ドイツ語、スペイン語、フランス語、オランダ語、ポーランド語、イタリア語、ウクライナ語、日本語。",
             },
             example: "ウィジェットをドイツ語で表示して",
         },
@@ -417,7 +417,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Nutrition MCPのアカウントと、そこに保存されているあなたに関するすべてのデータを完全に削除します。これは取り消せません — AIは必ず事前に確認します。",
+                "Nutrition MCPのアカウントと、そこに保存されているあなたに関するすべてのデータを完全に削除します。これは取り消せないため、明示的な確認がない限りツールは何も実行せず、AIにも、実行前にあなたへ確認するよう求めています。",
             params: {},
             example: "アカウントとすべてのデータを削除して",
         },
