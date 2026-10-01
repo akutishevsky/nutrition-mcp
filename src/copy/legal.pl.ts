@@ -19,6 +19,9 @@ const ul = (items: string[]): { type: "ul"; items: string[] } => ({
 
 export const PRIVACY_PL: LegalDoc = {
     title: "Polityka prywatności",
+    lead: "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
+    documentsLabel: "Dokumenty prawne",
+    tocLabel: "Na tej stronie",
     metaDescription:
         "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
     ogDescription:
@@ -70,7 +73,7 @@ export const PRIVACY_PL: LegalDoc = {
                     "<strong>Telemetria serwera.</strong> Każde wywołanie narzędzia MCP zapisuje jeden wiersz telemetrii użycia — które narzędzie zostało uruchomione, czy się powiodło, ile trwało, która wersja protokołu MCP i która aplikacja AI (według podawanej przez nią nazwy i wersji) wykonała wywołanie — powiązany z Twoim identyfikatorem konta, ale nie z tym, co zapisałeś/aś. Wykorzystujemy to, żeby znajdować wolne i uszkodzone narzędzia. Nie jest to udostępniane nikomu i jest usuwane razem ze wszystkim innym, gdy usuwasz swoje konto.",
                 ]),
                 p(
-                    "Ponieważ strona wczytuje czcionki i ikony z Google Fonts i jsDelivr, a strona główna pobiera liczbę gwiazdek projektu z GitHub API, odwiedzanie tych stron ujawnia Twój adres IP tym dostawcom.",
+                    "Ponieważ strona wczytuje czcionki i ikony z Google Fonts i jsDelivr, odwiedzanie tych stron ujawnia Twój adres IP tym dostawcom. Liczbę gwiazdek projektu na GitHubie pobiera nasz serwer, a nie Twoja przeglądarka, więc GitHub nie widzi Twojej wizyty.",
                 ),
             ],
         },
@@ -127,7 +130,7 @@ export const PRIVACY_PL: LegalDoc = {
                     "<strong>Skarga</strong> — możesz złożyć skargę do organu ochrony danych w kraju, w którym mieszkasz lub pracujesz. Będziemy jednak wdzięczni, jeśli najpierw dasz nam szansę rozwiązać problem.",
                 ]),
                 p(
-                    "Wszystko, co przechowujemy, pozostaje we wskazanym wyżej regionie UE. To, co Twój asystent AI odczytuje za pomocą narzędzi, trafia do dostawcy tego asystenta, który może znajdować się poza UE; dzieje się to na podstawie Twojej własnej umowy z tym dostawcą, a nie naszej. Poza UE znajdują się również Cloudflare (sieć, przez którą przechodzi każde żądanie), Google i Microsoft (analityka strony, Google Sign-In) oraz Google, jsDelivr i GitHub (opisane wyżej zapytania o czcionki, ikony i liczbę gwiazdek); jeśli otrzymują dane osobowe poza UE, opierają się na standardowych klauzulach umownych Komisji Europejskiej albo na ramach ochrony danych UE–USA (EU–US Data Privacy Framework).",
+                    "Wszystko, co przechowujemy, pozostaje we wskazanym wyżej regionie UE. To, co Twój asystent AI odczytuje za pomocą narzędzi, trafia do dostawcy tego asystenta, który może znajdować się poza UE; dzieje się to na podstawie Twojej własnej umowy z tym dostawcą, a nie naszej. Poza UE znajdują się również Cloudflare (sieć, przez którą przechodzi każde żądanie), Google i Microsoft (analityka strony, Google Sign-In) oraz Google i jsDelivr (opisane wyżej zapytania o czcionki i ikony); jeśli otrzymują dane osobowe poza UE, opierają się na standardowych klauzulach umownych Komisji Europejskiej albo na ramach ochrony danych UE–USA (EU–US Data Privacy Framework).",
                 ),
                 p(
                     'Usługa nie jest przeznaczona dla osób poniżej 16. roku życia, a <a href="/terms" data-legal-link="terms">Regulamin</a> wymaga ukończenia 16 lat. Jeśli uważasz, że konto założyła młodsza osoba, napisz do nas, a usuniemy je.',
@@ -150,6 +153,9 @@ export const PRIVACY_PL: LegalDoc = {
 
 export const TERMS_PL: LegalDoc = {
     title: "Regulamin",
+    lead: "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT.",
+    documentsLabel: "Dokumenty prawne",
+    tocLabel: "Na tej stronie",
     metaDescription:
         "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT. Regulamin napisany prostym językiem, obejmujący konta, dopuszczalne użycie, Twoje dane i odpowiedzialność.",
     ogDescription:
@@ -256,7 +262,7 @@ export const TERMS_PL: LegalDoc = {
                     'Dane produktów z kodów kreskowych &copy; współtwórcy <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, udostępniane na licencji <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
                 ),
                 p(
-                    "Sama strona internetowa korzysta też, za Twoją zgodą, z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz GitHub API do wyświetlania liczby gwiazdek projektu. Wczytanie strony wysyła więc zapytania do Google Fonts i jsDelivr (a na stronie głównej także do GitHub), które mogą zobaczyć Twój adres IP i przeglądarkę; z Google Analytics i Microsoft Clarity strona łączy się dopiero po wyrażeniu zgody na analitykę.",
+                    "Sama strona internetowa korzysta też, za Twoją zgodą, z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz GitHub API, z którego liczbę gwiazdek projektu pobiera nasz serwer (a nie Twoja przeglądarka), więc żadne dane odwiedzających nie trafiają do GitHuba. Wczytanie strony wysyła więc zapytania do Google Fonts i jsDelivr, które mogą zobaczyć Twój adres IP i przeglądarkę; z Google Analytics i Microsoft Clarity strona łączy się dopiero po wyrażeniu zgody na analitykę.",
                 ),
                 p(
                     "Ich regulaminy i dostępność są ich własną sprawą, i nie ponosimy za nie odpowiedzialności.",

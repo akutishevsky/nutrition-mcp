@@ -42,6 +42,9 @@ export const PRIVACY_JA: LegalDoc = {
         "Nutrition MCPがあなたのデータをどのように扱うか——何を保存し、どのように利用し、どこに保管し、いつでもアカウントとその中のすべてを削除する方法まで。",
     lastUpdated: "2026年9月29日",
     backToHome: "ホームに戻る",
+    lead: "Nutrition MCPがあなたのデータをどのように扱うか——何を保存し、どのように利用し、どこに保管し、いつでもアカウントとその中のすべてを削除する方法まで。",
+    documentsLabel: "法的文書",
+    tocLabel: "このページの内容",
     sections: [
         {
             heading: "収集する情報",
@@ -87,7 +90,7 @@ export const PRIVACY_JA: LegalDoc = {
                     "<strong>サーバーテレメトリ。</strong>MCPツールが呼び出されるたびに、どのツールが実行されたか、成功したかどうか、所要時間、どのMCPプロトコルのリビジョンでどのAIアプリ（自己申告の名前とバージョン）から呼び出されたかという1行の利用テレメトリが書き込まれます。これはアカウントIDに紐づけられますが、記録内容とは紐づきません。動作が遅い・壊れているツールを見つけるために使用します。誰とも共有されることはなく、アカウントを削除すれば他のすべてのデータと一緒に削除されます。",
                 ]),
                 p(
-                    "サイトはGoogle FontsとjsDelivrからフォントとアイコンを読み込み、ホームページはGitHub APIからプロジェクトのスター数を取得しているため、これらのページを訪れるとIPアドレスがそれらのプロバイダーに送信されます。",
+                    "サイトはGoogle FontsとjsDelivrからフォントとアイコンを読み込んでいるため、これらのページを訪れるとIPアドレスがそれらのプロバイダーに送信されます。プロジェクトのGitHubスター数は、ブラウザではなく当社のサーバーが取得するため、あなたの訪問がGitHubに伝わることはありません。",
                 ),
             ],
         },
@@ -144,7 +147,7 @@ export const PRIVACY_JA: LegalDoc = {
                     "<strong>苦情の申立て</strong> — お住まいまたはお勤めの地域のデータ保護監督機関に苦情を申し立てることができます。ただ、まずは当社に解決の機会をいただければ幸いです。",
                 ]),
                 p(
-                    "当社が保存するすべてのデータは、上記のEUリージョン内にとどまります。AIアシスタントがツールを通じて読み取った内容は、そのアシスタントの提供者に送信されます。提供者はEU域外にある場合がありますが、これは当社ではなく、あなたご自身とその提供者との間の契約に基づいて行われます。すべてのリクエストが経由するネットワークであるCloudflare、ウェブサイト解析とGoogleサインインのためのGoogleとMicrosoft、そして上記のフォント・アイコン・スター数のリクエストのためのGoogle、jsDelivr、GitHubもEU域外にあります。これらの事業者がEU域外から個人データを受け取る場合は、欧州委員会の標準契約条項（SCC）またはEU-米国データプライバシーフレームワークに依拠しています。",
+                    "当社が保存するすべてのデータは、上記のEUリージョン内にとどまります。AIアシスタントがツールを通じて読み取った内容は、そのアシスタントの提供者に送信されます。提供者はEU域外にある場合がありますが、これは当社ではなく、あなたご自身とその提供者との間の契約に基づいて行われます。すべてのリクエストが経由するネットワークであるCloudflare、ウェブサイト解析とGoogleサインインのためのGoogleとMicrosoft、そして上記のフォントとアイコンのリクエストのためのGoogleとjsDelivrもEU域外にあります。これらの事業者がEU域外から個人データを受け取る場合は、欧州委員会の標準契約条項（SCC）またはEU-米国データプライバシーフレームワークに依拠しています。",
                 ),
                 p(
                     '本サービスは16歳未満の方を対象としておらず、<a href="/terms" data-legal-link="terms">利用規約</a>でも16歳以上であることを求めています。16歳未満の方がアカウントを作成したと思われる場合は、メールでご連絡ください。そのアカウントを削除します。',
@@ -173,6 +176,9 @@ export const TERMS_JA: LegalDoc = {
         "Nutrition MCP——Claude・ChatGPT向けの無料・オープンソースの栄養トラッカー兼リモートMCPサーバー——の利用を規律する規約です。",
     lastUpdated: "2026年9月29日",
     backToHome: "ホームに戻る",
+    lead: "Nutrition MCP——Claude・ChatGPT向けの無料・オープンソースの栄養トラッカー兼リモートMCPサーバー——の利用を規律する規約です。",
+    documentsLabel: "法的文書",
+    tocLabel: "このページの内容",
     sections: [
         {
             heading: "規約への同意",
@@ -275,7 +281,7 @@ export const TERMS_JA: LegalDoc = {
                     'バーコードの商品データ &copy; <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> contributors。<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>の下で提供されています。',
                 ),
                 p(
-                    "ウェブサイト自体も、トラフィックとページの使われ方の計測に（あなたの同意がある場合）Google AnalyticsとMicrosoft Clarity、フォントとアイコンの読み込みにGoogle FontsとjsDelivr CDN、ログイン方法として選択した場合はGoogleサインイン、プロジェクトのスター数の表示にGitHub APIを使用しています。そのため、ページを読み込むたびにGoogle FontsとjsDelivr（ホームページではGitHubも）へのリクエストが発生し、あなたのIPアドレスとブラウザ情報がそれらに見える可能性があります。Google AnalyticsとMicrosoft Clarityへの接続は、解析に同意した後にのみ行われます。",
+                    "ウェブサイト自体も、トラフィックとページの使われ方の計測に（あなたの同意がある場合）Google AnalyticsとMicrosoft Clarity、フォントとアイコンの読み込みにGoogle FontsとjsDelivr CDN、ログイン方法として選択した場合はGoogleサインイン、プロジェクトのスター数の表示にGitHub APIを使用しています（GitHub APIに問い合わせるのはブラウザではなく当社のサーバーであり、訪問者のデータがGitHubに届くことはありません）。そのため、ページを読み込むたびにGoogle FontsとjsDelivrへのリクエストが発生し、あなたのIPアドレスとブラウザ情報がそれらに見える可能性があります。Google AnalyticsとMicrosoft Clarityへの接続は、解析に同意した後にのみ行われます。",
                 ),
                 p(
                     "これらのサービスの規約や可用性はそれぞれの提供者に帰属するものであり、当社はそれらについて責任を負いません。",

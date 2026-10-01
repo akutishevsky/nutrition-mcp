@@ -15,6 +15,9 @@ export const PRIVACY_NL: LegalDoc = {
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
     ogDescription:
         "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
+    lead: "Hoe Nutrition MCP omgaat met je gegevens: wat we opslaan, hoe het wordt gebruikt, waar het staat, en hoe je je account en alles daarin op elk moment kunt verwijderen.",
+    documentsLabel: "Juridische documenten",
+    tocLabel: "Op deze pagina",
     lastUpdated: "29 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
@@ -79,7 +82,7 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Omdat de site lettertypen en iconen laadt van Google Fonts en jsDelivr, en de startpagina het aantal sterren van het project ophaalt bij de GitHub API, stelt een bezoek aan deze pagina's je IP-adres bloot aan die aanbieders.",
+                    html: "Omdat de site lettertypen en iconen laadt van Google Fonts en jsDelivr, stelt een bezoek aan deze pagina's je IP-adres bloot aan die aanbieders. Het aantal GitHub-sterren van het project haalt onze server op, niet je browser, dus GitHub ziet je bezoek niet.",
                 },
             ],
         },
@@ -153,7 +156,7 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Alles wat we opslaan, blijft in de hierboven genoemde EU-regio. Wat je AI-assistent via de tools leest, wordt naar de aanbieder van die assistent gestuurd, die buiten de EU kan zitten; dat gebeurt op grond van je eigen overeenkomst met die aanbieder, niet de onze. Cloudflare (het netwerk waar elk verzoek doorheen gaat), Google en Microsoft (website-analyse, Google Sign-In) en Google, jsDelivr en GitHub (de hierboven beschreven verzoeken voor lettertypen, iconen en het aantal sterren) zitten ook buiten de EU; waar zij persoonsgegevens van buiten de EU ontvangen, baseren ze zich op de standaardcontractbepalingen van de Europese Commissie of op het EU-VS-kader voor gegevensbescherming (EU–US Data Privacy Framework).",
+                    html: "Alles wat we opslaan, blijft in de hierboven genoemde EU-regio. Wat je AI-assistent via de tools leest, wordt naar de aanbieder van die assistent gestuurd, die buiten de EU kan zitten; dat gebeurt op grond van je eigen overeenkomst met die aanbieder, niet de onze. Cloudflare (het netwerk waar elk verzoek doorheen gaat), Google en Microsoft (website-analyse, Google Sign-In) en Google en jsDelivr (de hierboven beschreven verzoeken voor lettertypen en iconen) zitten ook buiten de EU; waar zij persoonsgegevens van buiten de EU ontvangen, baseren ze zich op de standaardcontractbepalingen van de Europese Commissie of op het EU-VS-kader voor gegevensbescherming (EU–US Data Privacy Framework).",
                 },
                 {
                     type: "p",
@@ -183,6 +186,9 @@ export const TERMS_NL: LegalDoc = {
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT. Begrijpelijke voorwaarden over accounts, toegestaan gebruik, je gegevens en aansprakelijkheid.",
     ogDescription:
         "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT.",
+    lead: "De voorwaarden die het gebruik van Nutrition MCP regelen — de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT.",
+    documentsLabel: "Juridische documenten",
+    tocLabel: "Op deze pagina",
     lastUpdated: "29 september 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
@@ -309,7 +315,7 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "De website zelf gebruikt ook, met je toestemming, Google Analytics en Microsoft Clarity om verkeer en het gebruik van de pagina's te meten, Google Fonts en het jsDelivr-CDN om lettertypen en iconen te laden, Google Sign-In als je voor die manier van inloggen kiest, en de GitHub API om het aantal sterren van het project te tonen. Het laden van een pagina doet dus verzoeken naar Google Fonts en jsDelivr (en, op de startpagina, naar GitHub), die je IP-adres en browser kunnen zien; Google Analytics en Microsoft Clarity worden pas benaderd nadat je analyse hebt geaccepteerd.",
+                    html: "De website zelf gebruikt ook, met je toestemming, Google Analytics en Microsoft Clarity om verkeer en het gebruik van de pagina's te meten, Google Fonts en het jsDelivr-CDN om lettertypen en iconen te laden, Google Sign-In als je voor die manier van inloggen kiest, en de GitHub API, die onze server (niet je browser) raadpleegt voor het aantal sterren van het project, zodat er geen bezoekersgegevens bij GitHub terechtkomen. Het laden van een pagina doet dus verzoeken naar Google Fonts en jsDelivr, die je IP-adres en browser kunnen zien; Google Analytics en Microsoft Clarity worden pas benaderd nadat je analyse hebt geaccepteerd.",
                 },
                 {
                     type: "p",

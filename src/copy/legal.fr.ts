@@ -40,6 +40,9 @@ export const PRIVACY_FR: LegalDoc = {
         "Comment Nutrition MCP traite tes données : ce que nous stockons, comment c'est utilisé, où ça se trouve, et comment supprimer ton compte et tout ce qu'il contient à tout moment.",
     ogDescription:
         "Comment Nutrition MCP traite tes données : ce que nous stockons, comment c'est utilisé, où ça se trouve, et comment supprimer ton compte et tout ce qu'il contient à tout moment.",
+    lead: "Comment Nutrition MCP traite tes données : ce que nous stockons, comment c'est utilisé, où ça se trouve, et comment supprimer ton compte et tout ce qu'il contient à tout moment.",
+    documentsLabel: "Documents juridiques",
+    tocLabel: "Sur cette page",
     lastUpdated: "29 septembre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
@@ -87,7 +90,7 @@ export const PRIVACY_FR: LegalDoc = {
                     "<strong>Télémétrie serveur.</strong> Chaque appel d'outil MCP écrit une ligne de télémétrie d'utilisation — quel outil a été exécuté, s'il a réussi, combien de temps il a pris, quelle révision du protocole MCP et quelle application d'IA (selon le nom et la version qu'elle indique) ont effectué l'appel — liée à ton identifiant de compte mais pas à ce que tu as enregistré. Nous l'utilisons pour repérer les outils lents ou défaillants. Elle n'est partagée avec personne, et elle est supprimée avec tout le reste quand tu supprimes ton compte.",
                 ]),
                 p(
-                    "Comme le site charge des polices et des icônes depuis Google Fonts et jsDelivr, et que la page d'accueil récupère le nombre d'étoiles du projet via l'API GitHub, visiter ces pages expose ton adresse IP à ces fournisseurs.",
+                    "Comme le site charge des polices et des icônes depuis Google Fonts et jsDelivr, visiter ces pages expose ton adresse IP à ces fournisseurs. Le nombre d'étoiles du projet sur GitHub est récupéré par notre serveur, et non par ton navigateur, si bien que GitHub ne voit pas ta visite.",
                 ),
             ],
         },
@@ -144,7 +147,7 @@ export const PRIVACY_FR: LegalDoc = {
                     "<strong>Réclamation</strong> — tu peux introduire une réclamation auprès de l'autorité de protection des données du pays où tu vis ou travailles. Nous aimerions toutefois avoir d'abord l'occasion de régler le problème.",
                 ]),
                 p(
-                    "Tout ce que nous stockons reste dans la région de l'UE mentionnée plus haut. Ce que ton assistant IA lit au moyen des outils est transmis au fournisseur de cet assistant, qui peut se trouver hors de l'UE ; cela relève de ton propre accord avec lui, et non d'un accord entre lui et nous. Cloudflare (le réseau par lequel transite chaque requête), Google et Microsoft (analyse du site, Google Sign-In) ainsi que Google, jsDelivr et GitHub (les requêtes de polices, d'icônes et de nombre d'étoiles décrites plus haut) se trouvent eux aussi hors de l'UE ; lorsqu'ils reçoivent des données personnelles en dehors de l'UE, ils s'appuient sur les clauses contractuelles types de la Commission européenne ou sur le cadre de protection des données UE–États-Unis (EU–US Data Privacy Framework).",
+                    "Tout ce que nous stockons reste dans la région de l'UE mentionnée plus haut. Ce que ton assistant IA lit au moyen des outils est transmis au fournisseur de cet assistant, qui peut se trouver hors de l'UE ; cela relève de ton propre accord avec lui, et non d'un accord entre lui et nous. Cloudflare (le réseau par lequel transite chaque requête), Google et Microsoft (analyse du site, Google Sign-In) ainsi que Google et jsDelivr (les requêtes de polices et d'icônes décrites plus haut) se trouvent eux aussi hors de l'UE ; lorsqu'ils reçoivent des données personnelles en dehors de l'UE, ils s'appuient sur les clauses contractuelles types de la Commission européenne ou sur le cadre de protection des données UE–États-Unis (EU–US Data Privacy Framework).",
                 ),
                 p(
                     'Le service n\'est pas destiné aux personnes de moins de 16 ans, et les <a href="/terms" data-legal-link="terms">Conditions d\'utilisation</a> exigent que tu aies au moins 16 ans. Si tu penses qu\'une personne plus jeune a créé un compte, écris-nous et nous le supprimerons.',
@@ -171,6 +174,9 @@ export const TERMS_FR: LegalDoc = {
         "Les conditions qui régissent l'utilisation de Nutrition MCP — le traqueur nutritionnel gratuit et open source, et le serveur MCP distant pour Claude et ChatGPT. Conditions en langage clair couvrant les comptes, l'usage acceptable, tes données et la responsabilité.",
     ogDescription:
         "Les conditions qui régissent l'utilisation de Nutrition MCP — le traqueur nutritionnel gratuit et open source, et le serveur MCP distant pour Claude et ChatGPT.",
+    lead: "Les conditions qui régissent l'utilisation de Nutrition MCP — le traqueur nutritionnel gratuit et open source, et le serveur MCP distant pour Claude et ChatGPT.",
+    documentsLabel: "Documents juridiques",
+    tocLabel: "Sur cette page",
     lastUpdated: "29 septembre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
@@ -273,7 +279,7 @@ export const TERMS_FR: LegalDoc = {
                     'Données produit des codes-barres &copy; contributeurs d\'<a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, disponibles sous licence <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
                 ),
                 p(
-                    "Le site lui-même utilise aussi, avec ton consentement, Google Analytics et Microsoft Clarity pour mesurer le trafic et l'usage des pages, Google Fonts et le CDN jsDelivr pour charger les polices et icônes, Google Sign-In si tu choisis cette méthode de connexion, et l'API GitHub pour afficher le nombre d'étoiles du projet. Charger une page effectue donc des requêtes vers Google Fonts et jsDelivr (et, sur la page d'accueil, vers GitHub), qui peuvent voir ton adresse IP et ton navigateur ; Google Analytics et Microsoft Clarity ne sont contactés qu'après que tu as accepté la mesure d'audience.",
+                    "Le site lui-même utilise aussi, avec ton consentement, Google Analytics et Microsoft Clarity pour mesurer le trafic et l'usage des pages, Google Fonts et le CDN jsDelivr pour charger les polices et icônes, Google Sign-In si tu choisis cette méthode de connexion, et l'API GitHub, que notre serveur (et non ton navigateur) interroge pour obtenir le nombre d'étoiles du projet, si bien qu'aucune donnée de visiteur ne parvient à GitHub. Charger une page effectue donc des requêtes vers Google Fonts et jsDelivr, qui peuvent voir ton adresse IP et ton navigateur ; Google Analytics et Microsoft Clarity ne sont contactés qu'après que tu as accepté la mesure d'audience.",
                 ),
                 p(
                     "Leurs conditions et leur disponibilité leur sont propres, et nous n'en sommes pas responsables.",

@@ -25,6 +25,9 @@ export const PRIVACY_ES: LegalDoc = {
         "Cómo gestiona Nutrition MCP tus datos: qué guardamos, cómo se usa, dónde vive y cómo eliminar tu cuenta y todo lo que contiene en cualquier momento.",
     lastUpdated: "29 de septiembre de 2026",
     backToHome: "Volver al inicio",
+    lead: "Cómo gestiona Nutrition MCP tus datos: qué guardamos, cómo se usa, dónde vive y cómo eliminar tu cuenta y todo lo que contiene en cualquier momento.",
+    documentsLabel: "Documentos legales",
+    tocLabel: "En esta página",
     sections: [
         {
             heading: "Qué recopilamos",
@@ -70,7 +73,7 @@ export const PRIVACY_ES: LegalDoc = {
                     "<strong>Telemetría del servidor.</strong> Cada llamada a una herramienta MCP escribe una fila de telemetría de uso — qué herramienta se ejecutó, si tuvo éxito, cuánto tardó, qué revisión del protocolo MCP y qué app de IA (por el nombre y la versión que indica) hicieron la llamada — vinculada al id de tu cuenta pero no a lo que registraste. La usamos para encontrar herramientas lentas o rotas. No se comparte con nadie, y se elimina junto con todo lo demás cuando eliminas tu cuenta.",
                 ]),
                 p(
-                    "Como el sitio carga fuentes e iconos desde Google Fonts y jsDelivr, y la página de inicio obtiene el número de estrellas del proyecto desde la API de GitHub, visitar estas páginas expone tu dirección IP a esos proveedores.",
+                    "Como el sitio carga fuentes e iconos desde Google Fonts y jsDelivr, visitar estas páginas expone tu dirección IP a esos proveedores. El número de estrellas del proyecto en GitHub lo obtiene nuestro servidor, no tu navegador, así que GitHub no ve tu visita.",
                 ),
             ],
         },
@@ -127,7 +130,7 @@ export const PRIVACY_ES: LegalDoc = {
                     "<strong>Reclamación</strong> — puedes presentar una reclamación ante la autoridad de protección de datos del lugar donde vives o trabajas. Te agradeceríamos que nos dieras antes la oportunidad de solucionarlo.",
                 ]),
                 p(
-                    "Todo lo que almacenamos se queda en la región de la UE indicada arriba. Lo que tu asistente de IA lee a través de las herramientas se envía al proveedor de ese asistente, que puede estar fuera de la UE; eso ocurre en virtud de tu propio acuerdo con él, no del nuestro. Cloudflare (la red por la que pasa cada solicitud), Google y Microsoft (analítica del sitio web, Google Sign-In) y Google, jsDelivr y GitHub (las solicitudes de fuentes, iconos y número de estrellas descritas arriba) también están fuera de la UE; cuando reciben datos personales desde fuera de la UE, se amparan en las cláusulas contractuales tipo de la Comisión Europea o en el Marco de Privacidad de Datos UE-EE. UU.",
+                    "Todo lo que almacenamos se queda en la región de la UE indicada arriba. Lo que tu asistente de IA lee a través de las herramientas se envía al proveedor de ese asistente, que puede estar fuera de la UE; eso ocurre en virtud de tu propio acuerdo con él, no del nuestro. Cloudflare (la red por la que pasa cada solicitud), Google y Microsoft (analítica del sitio web, Google Sign-In) y Google y jsDelivr (las solicitudes de fuentes e iconos descritas arriba) también están fuera de la UE; cuando reciben datos personales desde fuera de la UE, se amparan en las cláusulas contractuales tipo de la Comisión Europea o en el Marco de Privacidad de Datos UE-EE. UU.",
                 ),
                 p(
                     'El servicio no está pensado para menores de 16 años, y los <a href="/terms" data-legal-link="terms">Términos de servicio</a> exigen que tengas al menos 16. Si crees que alguien más joven ha creado una cuenta, escríbenos y la eliminaremos.',
@@ -156,6 +159,9 @@ export const TERMS_ES: LegalDoc = {
         "Los términos que rigen el uso de Nutrition MCP — el rastreador de nutrición gratuito y de código abierto, y servidor MCP remoto para Claude y ChatGPT.",
     lastUpdated: "29 de septiembre de 2026",
     backToHome: "Volver al inicio",
+    lead: "Los términos que rigen el uso de Nutrition MCP — el rastreador de nutrición gratuito y de código abierto, y servidor MCP remoto para Claude y ChatGPT.",
+    documentsLabel: "Documentos legales",
+    tocLabel: "En esta página",
     sections: [
         {
             heading: "Acuerdo",
@@ -256,7 +262,7 @@ export const TERMS_ES: LegalDoc = {
                     'Datos de productos por código de barras &copy; colaboradores de <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, disponibles bajo la <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
                 ),
                 p(
-                    "El propio sitio web también usa, con tu consentimiento, Google Analytics y Microsoft Clarity para medir el tráfico y el uso de las páginas, Google Fonts y la CDN de jsDelivr para cargar fuentes e iconos, Google Sign-In si eliges esa forma de iniciar sesión, y la API de GitHub para mostrar el número de estrellas del proyecto. Cargar una página, por tanto, hace solicitudes a Google Fonts y jsDelivr (y, en la página de inicio, a GitHub), que pueden ver tu dirección IP y tu navegador; Google Analytics y Microsoft Clarity solo se contactan después de que aceptes la analítica.",
+                    "El propio sitio web también usa, con tu consentimiento, Google Analytics y Microsoft Clarity para medir el tráfico y el uso de las páginas, Google Fonts y la CDN de jsDelivr para cargar fuentes e iconos, Google Sign-In si eliges esa forma de iniciar sesión, y la API de GitHub, que consulta nuestro servidor (no tu navegador) para obtener el número de estrellas del proyecto, de modo que ningún dato de los visitantes llega a GitHub. Cargar una página, por tanto, hace solicitudes a Google Fonts y jsDelivr, que pueden ver tu dirección IP y tu navegador; Google Analytics y Microsoft Clarity solo se contactan después de que aceptes la analítica.",
                 ),
                 p(
                     "Sus términos y su disponibilidad son responsabilidad suya, y nosotros no respondemos por ellos.",
