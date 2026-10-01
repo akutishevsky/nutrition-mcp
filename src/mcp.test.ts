@@ -2546,8 +2546,8 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
         const tools = await toolsOf();
         for (const name of ["log_meal", "update_meal"]) {
             const desc = tools.find((t) => t.name === name)?.description ?? "";
-            expect(desc, name).toContain("send them on EVERY meal");
-            expect(desc, name).toContain("a missing value is not a zero");
+            expect(desc, name).toContain("are read on every meal");
+            expect(desc, name).toContain("not as zero");
         }
     });
 
@@ -4660,7 +4660,7 @@ describe("every tool carries directory-ready annotations", () => {
         const byName = new Map(tools.map((t) => [t.name, t.annotations]));
         expect(byName.get("start_meal_import")).toEqual({
             title: "Import Meals from a File",
-            readOnlyHint: true,
+            readOnlyHint: false,
             destructiveHint: false,
             idempotentHint: true,
             openWorldHint: false,
@@ -4922,7 +4922,7 @@ describe("tool text leaves writes and location to the user", () => {
                 expect(instructions).not.toMatch(/venue and city/);
                 expect(instructions).toContain(LOCATION);
                 expect(instructions).toContain(
-                    "offer to fill it in with update_meal",
+                    "once the user wants it filled in",
                 );
 
                 const { tools } = await client.listTools();
@@ -4937,6 +4937,18 @@ describe("tool text leaves writes and location to the user", () => {
                 expect(desc("search_meals")).toContain(
                     "When the user has named the restaurant",
                 );
+
+                // Directory review, 2026-10-01: these described when to offer a
+                // setting or how to phrase a reply, not what the tool does.
+                expect(instructions).not.toMatch(/\boffer\b/i);
+                for (const name of [
+                    "set_language",
+                    "set_timezone",
+                    "get_meal_patterns",
+                ]) {
+                    expect(desc(name), name).not.toMatch(/\boffer\b/i);
+                    expect(desc(name), name).not.toMatch(/narrate/i);
+                }
 
                 const updateMeal = desc("update_meal");
                 expect(updateMeal).not.toContain(
