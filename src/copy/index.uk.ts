@@ -183,7 +183,8 @@ export const INDEX_UK: IndexDoc = {
         carouselLabel: "Приклади",
         threadLabel: "Розмова",
         moreToolsLabel: "Також використовує",
-        toolLinkLabel: "{tool} на сторінці інструментів",
+        toolLinkLabel:
+            "{tool} на сторінці інструментів (відкриється в новій вкладці)",
         photoMealAlt:
             "Фото: тарілка борщу з ложкою сметани й кропом, а поруч скибка житнього хліба",
         photoPackageAlt:

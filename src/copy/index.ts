@@ -564,7 +564,7 @@ const INDEX_EN: IndexDoc = {
         carouselLabel: "Examples",
         threadLabel: "Conversation",
         moreToolsLabel: "Also uses",
-        toolLinkLabel: "{tool} on the Tools page",
+        toolLinkLabel: "{tool} on the Tools page (opens in a new tab)",
         photoMealAlt:
             "Photo: a bowl of borscht with a spoonful of sour cream and dill, and a slice of rye bread beside it",
         photoPackageAlt:

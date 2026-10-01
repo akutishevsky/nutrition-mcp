@@ -178,7 +178,8 @@ export const INDEX_PL: IndexDoc = {
         carouselLabel: "Przykłady",
         threadLabel: "Rozmowa",
         moreToolsLabel: "Korzysta też z",
-        toolLinkLabel: "{tool} na stronie narzędzi",
+        toolLinkLabel:
+            "{tool} na stronie narzędzi (otwiera się w nowej karcie)",
         photoMealAlt:
             "Zdjęcie: miska barszczu z łyżką śmietany i koperkiem, a obok kromka żytniego chleba",
         photoPackageAlt:

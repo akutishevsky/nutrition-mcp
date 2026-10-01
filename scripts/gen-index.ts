@@ -525,7 +525,7 @@ function renderExamples(doc: IndexDoc, locale: SiteLocale): string {
     const total = e.slides.length;
     const toolHref = (t: string) => `${pathFor(locale, "/tools")}#${t}`;
     const chip = (t: string, main: boolean) =>
-        `<a class="lp-chip" href="${toolHref(t)}" aria-label="${esc(fill(e.toolLinkLabel, { tool: t }))}">${main ? '<i class="fa-solid fa-plug" aria-hidden="true"></i>' : ""}${t}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>`;
+        `<a class="lp-chip" href="${toolHref(t)}" target="_blank" rel="noopener" aria-label="${esc(fill(e.toolLinkLabel, { tool: t }))}">${main ? '<i class="fa-solid fa-plug" aria-hidden="true"></i>' : ""}${t}<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>`;
     const tabs = e.slides
         .map((s, i) => {
             const m = EX_META[s.id];

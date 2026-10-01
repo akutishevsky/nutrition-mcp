@@ -178,7 +178,7 @@ export const INDEX_NL: IndexDoc = {
         carouselLabel: "Voorbeelden",
         threadLabel: "Gesprek",
         moreToolsLabel: "Gebruikt ook",
-        toolLinkLabel: "{tool} op de toolspagina",
+        toolLinkLabel: "{tool} op de toolspagina (opent in een nieuw tabblad)",
         photoMealAlt:
             "Foto: een kom borsjtsj met een schepje zure room en dille, met een snee roggebrood ernaast",
         photoPackageAlt:

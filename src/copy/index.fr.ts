@@ -185,7 +185,8 @@ export const INDEX_FR: IndexDoc = {
         carouselLabel: "Exemples",
         threadLabel: "Conversation",
         moreToolsLabel: "Utilise aussi",
-        toolLinkLabel: "{tool} sur la page des outils",
+        toolLinkLabel:
+            "{tool} sur la page des outils (s’ouvre dans un nouvel onglet)",
         photoMealAlt:
             "Photo : un bol de bortsch avec une cuillerée de crème fraîche et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:

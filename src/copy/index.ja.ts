@@ -199,7 +199,7 @@ export const INDEX_JA: IndexDoc = {
         carouselLabel: "使用例",
         threadLabel: "会話",
         moreToolsLabel: "あわせて使用",
-        toolLinkLabel: "ツールページの{tool}",
+        toolLinkLabel: "ツールページの{tool}（新しいタブで開きます）",
         photoMealAlt:
             "写真：サワークリームとディルをのせたボルシチと、横に添えたライ麦パン1枚",
         photoPackageAlt:

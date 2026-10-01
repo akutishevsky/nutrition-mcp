@@ -196,7 +196,7 @@ html.js .lp-ex-panel.is-on .lp-ex-info { animation: nm-rise .4s both; }
 .lp-chip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--line); font-family: var(--mono); font-size: 14px; color: var(--ink); }
 .lp-chip:hover { border-color: var(--line2); color: var(--ink); }
 .lp-chip .fa-plug { font-size: 11px; color: var(--ink3); }
-.lp-chip .fa-arrow-right { font-size: 10px; }
+.lp-chip .fa-arrow-up-right-from-square { font-size: 10px; opacity: .85; }
 .lp-ex-tools .lp-ex-also { margin: 10px 0 0; font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--ink3); }
 .lp-ex-more { display: grid; gap: 8px; justify-items: start; }
 .lp-ex-more .lp-chip { height: 32px; padding: 0 12px; font-size: 13px; }
