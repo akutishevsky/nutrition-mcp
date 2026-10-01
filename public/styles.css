@@ -106,12 +106,13 @@ body {
     --tile: var(--panel);
     --pop: var(--acc);
     --pop-ink: var(--acc-ink);
-    /* world map (figure must out-contrast ground in both themes) */
-    --map-halo: #3b7a4f;
+    /* world map: timezone dots share the logo's accent green; land stays neutral
+       so the figure out-contrasts the ground in both themes */
+    --map-halo: var(--acc);
     --map-halo-op: 0.32;
     --map-halo-lo: 0.12;
     --map-halo-hi: 0.4;
-    --map-core: #2f6440;
+    --map-core: var(--acc);
     --map-land: #b6bdb8;
 
     /* layout + type (theme-independent) */
@@ -199,11 +200,11 @@ html[lang="ja"] body {
         --shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.7);
         --cta-bg: #161a22;
         --cta-ink: #f2f3f6;
-        --map-halo: #79c28c;
+        --map-halo: var(--acc);
         --map-halo-op: 0.55;
         --map-halo-lo: 0.28;
         --map-halo-hi: 0.75;
-        --map-core: #9ad6a8;
+        --map-core: var(--acc);
         --map-land: #3a463f;
         color-scheme: dark;
     }
@@ -253,11 +254,11 @@ body[data-theme="dark"] {
     --shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.7);
     --cta-bg: #161a22;
     --cta-ink: #f2f3f6;
-    --map-halo: #79c28c;
+    --map-halo: var(--acc);
     --map-halo-op: 0.55;
     --map-halo-lo: 0.28;
     --map-halo-hi: 0.75;
-    --map-core: #9ad6a8;
+    --map-core: var(--acc);
     --map-land: #3a463f;
     color-scheme: dark;
 }
