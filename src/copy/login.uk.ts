@@ -9,6 +9,9 @@ export const LOGIN_UK: LoginDoc = {
     passwordLabel: "Пароль",
     signInButton: "Увійти",
     createAccountButton: "Створити акаунт",
+    modeGroupAriaLabel: "Акаунт",
+    showPasswordLabel: "Показати пароль",
+    hidePasswordLabel: "Сховати пароль",
     // "погоджуєшся з" governs the instrumental case, so both link texts are
     // in the instrumental rather than the nominative the footer uses.
     consentNote:

@@ -280,7 +280,7 @@ function authorizeUrl(session: OAuthSession, locale: SiteLocale): string {
 async function renderLangSwitcher(
     session: OAuthSession,
     locale: SiteLocale,
-): Promise<string> {
+): Promise<{ header: string; menu: string }> {
     const available = await availableLoginLocales();
     const items = available
         .map((l) => {
@@ -289,7 +289,7 @@ async function renderLangSwitcher(
                                 href="${escapeHtml(authorizeUrl(session, l))}"
                                 lang="${HTML_LANG[l]}"
                                 hreflang="${HTML_LANG[l]}"${active ? '\n                                aria-current="page"' : ""}
-                                >${escapeHtml(LOCALE_NAMES[l])}</a
+                                ><span>${escapeHtml(LOCALE_NAMES[l])}</span><span class="lang-menu-code">${HTML_LANG[l].toUpperCase()}</span></a
                             >`;
         })
         .join("\n");
@@ -301,18 +301,34 @@ async function renderLangSwitcher(
     // decoration: an aria-label on a bare <div> is exposed to nothing, so
     // without it the menu's label is inert however well translated.
     const c = chromeFor(locale);
-    return `<details class="lang-switch">
+    // The sheet menu's grid: the only language switcher a phone gets, since
+    // .head-tools is hidden below 700px. Twin of nav()'s menuLangItems.
+    const menuItems = available
+        .map((l) => {
+            const name = escapeHtml(LOCALE_NAMES[l]);
+            const current = l === locale ? ' aria-current="page"' : "";
+            return `                    <a href="${escapeHtml(authorizeUrl(session, l))}" lang="${HTML_LANG[l]}" hreflang="${HTML_LANG[l]}" aria-label="${name}" title="${name}"${current}>${HTML_LANG[l].toUpperCase()}</a>`;
+        })
+        .join("\n");
+    const menu = `<div class="menu-group">
+                <span class="menu-group-label" id="menu-lang-l">${escapeHtml(c.languageTitle)}</span>
+                <div class="menu-langs" role="group" aria-labelledby="menu-lang-l">
+${menuItems}
+                </div>
+            </div>`;
+    const header = `<details class="lang-switch">
                         <summary
                             class="icon-btn"
                             aria-label="${escapeHtml(c.changeLanguageAriaLabel)}"
                             title="${escapeHtml(c.languageTitle)}"
                         >
-                            <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
+                            <i class="fa-solid fa-language" aria-hidden="true"></i><span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
                         </summary>
                         <div class="lang-menu" role="group" aria-label="${escapeHtml(c.languageTitle)}">
 ${items}
                         </div>
                     </details>`;
+    return { header, menu };
 }
 
 // "This page is machine-translated" disclosure, linking back to THIS same
@@ -383,7 +399,7 @@ export async function renderLoginPage(
             : `./public/${locale}/login.html`;
     const template = await Bun.file(file).text();
     const errorHtml = error
-        ? `<div class="error-banner">${escapeHtml(error)}</div>`
+        ? `<div class="error-banner" role="alert">${escapeHtml(error)}</div>`
         : "";
     // Every replacement is passed as a function: a string replacement expands
     // "$'", "$&" and "$`" patterns, and the notice and error carry text the
@@ -396,7 +412,8 @@ export async function renderLoginPage(
         .replaceAll("{{SESSION_ID}}", () => escapeHtml(sessionId))
         .replaceAll("{{ERROR}}", () => errorHtml)
         .replaceAll("{{CLIENT_NOTICE}}", () => notice)
-        .replaceAll("{{LANG_SWITCHER}}", () => switcher)
+        .replaceAll("{{LANG_SWITCHER}}", () => switcher.header)
+        .replaceAll("{{LANG_SWITCHER_MENU}}", () => switcher.menu)
         .replaceAll("{{TRANSLATION_NOTICE}}", () => translation);
 }
 

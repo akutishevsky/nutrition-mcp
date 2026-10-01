@@ -9,6 +9,9 @@ export const LOGIN_JA: LoginDoc = {
     passwordLabel: "パスワード",
     signInButton: "サインイン",
     createAccountButton: "アカウントを作成",
+    modeGroupAriaLabel: "アカウント",
+    showPasswordLabel: "パスワードを表示",
+    hidePasswordLabel: "パスワードを非表示",
     consentNote:
         "続行することで、16歳以上であることを確認し、{terms}と{privacy}に同意し、あなたが記録する食事、体重、アルコール（健康データにあたります）を当社が保存することに同意します。",
     termsLinkText: "利用規約",

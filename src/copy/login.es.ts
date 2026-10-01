@@ -9,6 +9,9 @@ export const LOGIN_ES: LoginDoc = {
     passwordLabel: "Contraseña",
     signInButton: "Iniciar sesión",
     createAccountButton: "Crear cuenta",
+    modeGroupAriaLabel: "Cuenta",
+    showPasswordLabel: "Mostrar contraseña",
+    hidePasswordLabel: "Ocultar contraseña",
     consentNote:
         "Al continuar confirmas que tienes al menos 16 años, aceptas los {terms} y la {privacy}, y consientes que almacenemos las comidas, el peso y el alcohol que registres, que son datos de salud.",
     termsLinkText: "Términos de servicio",

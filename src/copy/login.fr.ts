@@ -17,6 +17,9 @@ export const LOGIN_FR: LoginDoc = {
         "Première visite ? Saisis ton e-mail et un mot de passe, puis choisis « Créer un compte ».",
     afterConnectNote:
         "Une fois la connexion établie dans ton client, conserve ton mot de passe en lieu sûr et ferme cet onglet du navigateur.",
+    modeGroupAriaLabel: "Compte",
+    showPasswordLabel: "Afficher le mot de passe",
+    hidePasswordLabel: "Masquer le mot de passe",
 };
 
 export const LOGIN_ERRORS_FR: LoginErrors = {

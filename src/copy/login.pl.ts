@@ -9,6 +9,9 @@ export const LOGIN_PL: LoginDoc = {
     passwordLabel: "Hasło",
     signInButton: "Zaloguj się",
     createAccountButton: "Załóż konto",
+    modeGroupAriaLabel: "Konto",
+    showPasswordLabel: "Pokaż hasło",
+    hidePasswordLabel: "Ukryj hasło",
     // {terms}/{privacy} stand mid-sentence after "akceptujesz", so both link
     // texts are in the accusative — Polish inflects them there, and the
     // nominative "Polityka prywatności" would read as a grammatical error.

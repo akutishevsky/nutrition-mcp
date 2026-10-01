@@ -315,7 +315,10 @@ test("renderLoginPage renders the error banner only when given an error", async 
 test("renderLoginPage substitutes {{LANG_SWITCHER}} and reflects the session's locale", async () => {
     const html = await renderLoginPage("s1", fakeSession());
     expect(html).not.toContain("{{LANG_SWITCHER}}");
+    expect(html).not.toContain("{{LANG_SWITCHER_MENU}}");
     expect(html).toContain('class="lang-switch"');
+    // The sheet menu's grid is the only switcher below 700px.
+    expect(html).toContain('class="menu-langs"');
 
     // The switcher's links carry the session's own OAuth params (state,
     // client_id, redirect_uri) so switching language re-enters the same
