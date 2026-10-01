@@ -201,8 +201,8 @@ html.js .lp-ex-panel.is-on .lp-ex-info { animation: nm-rise .4s both; }
 .lp-ex-more { display: grid; gap: 8px; justify-items: start; }
 .lp-ex-more .lp-chip { height: 32px; padding: 0 12px; font-size: 13px; }
 .lp-ex-more p { font-size: 15px; }
-.lp-ex-chat { position: relative; background: var(--bg); border: 1px solid var(--line); border-radius: 28px; padding: 14px 16px; display: flex; flex-direction: column; height: 580px; min-width: 0; }
-.lp-ex-thread { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; display: flex; flex-direction: column; gap: 12px; padding: 14px 4px 14px 0; }
+.lp-ex-chat { position: relative; background: var(--bg); border: 1px solid var(--line); border-radius: 28px; padding: 14px 16px; display: flex; flex-direction: column; min-height: 580px; min-width: 0; }
+.lp-ex-thread { flex: 1; min-height: 0; contain: size; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; display: flex; flex-direction: column; gap: 12px; padding: 14px 4px 14px 0; }
 .lp-ex-thread > * { flex: none; }
 html.js .lp-ex-panel.is-on .lp-ex-thread > * { animation: nm-rise .35s both; }
 
