@@ -1,12 +1,15 @@
 /**
  * Generates public/index.html (the landing page) and its translated
  * counterparts under public/{locale}/ from the typed data in
- * src/copy/index.ts. This page used to be hand-authored HTML with
- * nav()/footer() copy-pasted in by hand; see scripts/gen-legal.ts and
- * scripts/site-partials.ts for why every generated page now shares one
- * copy of that markup instead.
+ * src/copy/index.ts. Shares nav()/footer() and the page shell with every
+ * other generator (scripts/site-partials.ts).
  *
- * Re-run after editing src/copy/index.ts:
+ * Page-only pieces live beside it: scripts/landing-css.ts (the page's own
+ * layout CSS, inlined in <head>), scripts/landing-cards.ts (the demo widget
+ * cards and the drawn photos) and scripts/landing-script.js (the page's
+ * behaviour, inlined verbatim as LANDING_SCRIPT).
+ *
+ * Re-run after editing any of them or src/copy/index.ts:
  *   bun run scripts/gen-index.ts
  * The generated .html files are the served artifacts — don't hand-edit them.
  */
@@ -24,36 +27,64 @@ import {
     HEAD_ASSETS,
     SITE_SCRIPT,
     THEME_PREPAINT,
+    THEME_COLOR_LIGHT,
     EMAIL_OFF_OPEN,
     EMAIL_OFF_CLOSE,
+    ICON_LINKS,
 } from "./site-partials.js";
-import { INDEX, type FaqEntry, type IndexDoc } from "../src/copy/index.js";
+import {
+    INDEX,
+    type ExampleMessage,
+    type ExampleSlide,
+    type ExampleSlideId,
+    type FaqEntry,
+    type HeroExchange,
+    type IndexDoc,
+} from "../src/copy/index.js";
+import {
+    borschtSvg,
+    canSvg,
+    renderCard,
+    smoothieSvg,
+    type DemoCardId,
+} from "./landing-cards.js";
+import { LANDING_CSS } from "./landing-css.js";
 
-// The landing page's own stats-odometer / world-map / theme-tilt / carousel
-// / copy-button JS. Not prose — page behaviour, kept byte-for-byte as it was
-// in the hand-authored file. It contains backticks of its own (template
-// literals inside the script), so it is embedded via JSON.stringify rather
-// than as a TS template literal, which sidesteps escaping them by hand.
+// The landing page's behaviour: hero replay, examples carousel, live stats
+// (odometers, deltas, Metric/Imperial, the world map), the GitHub star count
+// and the Patreon posts. Kept in its own .js file so it is ordinary,
+// prettier-formatted JavaScript rather than a hand-escaped string; it holds
+// no copy (every word it shows is read out of the markup).
 //
 // Exported for src/landing-script.test.ts, which pins the nine generated
-// pages against THIS constant. Everything else that test knows about the
-// script it reads back out of the HTML, which cannot tell an edit that was
-// never regenerated from no edit at all.
-export const LANDING_SCRIPT: string =
-    '            (function () {\n                var reduceMotion = window.matchMedia(\n                    "(prefers-reduced-motion: reduce)",\n                ).matches;\n\n                // The page\'s own language, stamped on <html lang> by the\n                // generator. One script serves all nine locales, so it can\n                // never name a locale of its own: it reads the one it was\n                // rendered in.\n                var NUM_LOCALE = document.documentElement.lang || "en";\n\n                // ---------- animated stat numbers ----------\n                function fmtInt(n) {\n                    return Math.round(n).toLocaleString(NUM_LOCALE);\n                }\n                // ---------- weight unit ----------\n                // Every weight the API returns is in grams and is only ever\n                // rendered through these, so the kg/lb toggle is a repaint\n                // and never a refetch.\n                var UNIT_STORE = "stats-unit";\n                var GRAMS_PER = { kg: 1000, lb: 453.59237 };\n                var OUNCE_G = 28.349523125;\n                var WEIGHT_KEYS = [\n                    "total_protein_g",\n                    "total_carbs_g",\n                    "total_fat_g",\n                ];\n                // A remembered choice wins; failing that, the visitor\'s own\n                // measurement system, since "512 kg" is not a quantity most\n                // readers of the English page have a feel for.\n                var unit = "kg";\n                try {\n                    var savedUnit = localStorage.getItem(UNIT_STORE);\n                    if (savedUnit === "kg" || savedUnit === "lb")\n                        unit = savedUnit;\n                    else if (/^en-US\\b/i.test(navigator.language || ""))\n                        unit = "lb";\n                } catch (e) {}\n                function toWeight(g) {\n                    return g / GRAMS_PER[unit];\n                }\n                function fmtWeight(n) {\n                    return fmtInt(n) + " " + unit;\n                }\n                var FORMATS = {\n                    food_logs: {\n                        to: function (v) {\n                            return v;\n                        },\n                        fmt: fmtInt,\n                    },\n                    timezones: {\n                        to: function (v) {\n                            return v;\n                        },\n                        fmt: fmtInt,\n                    },\n                    total_protein_g: { to: toWeight, fmt: fmtWeight },\n                    total_carbs_g: { to: toWeight, fmt: fmtWeight },\n                    total_fat_g: { to: toWeight, fmt: fmtWeight },\n                };\n                // A count-up owns its element\'s text until the last frame,\n                // so anything repainting that element behind its back is undone\n                // by the next one. The kg/lb toggle is exactly that, and the\n                // frame that wins writes the OLD unit\'s magnitude under the NEW\n                // unit\'s suffix - "600 lb" where "1,323 lb" is right. It then\n                // sticks, because setStats leaves a key alone whose value did\n                // not change on the next poll. So every pending frame is parked\n                // here, and a repaint cancels the loop that would overwrite it.\n                var pending = new WeakMap();\n                function cancelAnim(el) {\n                    var h = pending.get(el);\n                    if (h) {\n                        cancelAnimationFrame(h);\n                        pending.delete(el);\n                    }\n                }\n                // Counts from `from` (0 on first paint, the previous value on\n                // a live update) to `target`.\n                function animate(el, target, fmt, from) {\n                    from = from || 0;\n                    // A second update landing mid-count-up replaces the first\n                    // rather than racing it for the same textContent.\n                    cancelAnim(el);\n                    if (reduceMotion) {\n                        el.textContent = fmt(target);\n                        return;\n                    }\n                    var dur = 1300,\n                        start = null;\n                    function step(ts) {\n                        if (start === null) start = ts;\n                        var p = Math.min((ts - start) / dur, 1);\n                        var e = 1 - Math.pow(1 - p, 3);\n                        el.textContent = fmt(from + (target - from) * e);\n                        if (p < 1) pending.set(el, requestAnimationFrame(step));\n                        else pending.delete(el);\n                    }\n                    pending.set(el, requestAnimationFrame(step));\n                }\n                // ---------- live deltas ----------\n                // Every figure is compared with the baseline captured when\n                // the page loaded, and the tag shows the net change since\n                // then ("+150 kcal") for as long as the page is open. Raw\n                // units, not the display ones: a 40 g change is invisible\n                // once rounded to kg.\n                var DELTA_UNIT = {\n                    food_logs: "",\n                    timezones: "",\n                    total_calories: " kcal",\n                };\n                // A weight row\'s delta is read in the small unit of whichever\n                // system is on screen — grams under kg, ounces under lb.\n                function deltaFor(key, diff) {\n                    if (key in DELTA_UNIT)\n                        return { n: Math.round(diff), unit: DELTA_UNIT[key] };\n                    return unit === "kg"\n                        ? { n: Math.round(diff), unit: " g" }\n                        : { n: Math.round(diff / OUNCE_G), unit: " oz" };\n                }\n                // `quiet` repaints the tag without replaying the pop — used\n                // when the unit changed but the underlying figure did not.\n                function showDelta(el, key, diff, quiet) {\n                    var d = deltaFor(key, diff);\n                    var n = d.n;\n                    var host = el.closest(".facts-row, .facts-cal") || el;\n                    var tag = host.querySelector(".delta");\n                    if (!n) {\n                        if (tag) tag.remove();\n                        return;\n                    }\n                    if (!tag) {\n                        tag = document.createElement("span");\n                        tag.className = "delta";\n                        tag.setAttribute("role", "status");\n                        // Sits between the label and the figure.\n                        host.insertBefore(\n                            tag,\n                            host.querySelector("b, .odo-hero") || null,\n                        );\n                    }\n                    tag.classList.toggle("down", n < 0);\n                    tag.textContent =\n                        (n > 0 ? "+" : "\\u2212") + fmtInt(Math.abs(n)) + d.unit;\n                    if (quiet) return;\n                    // Re-trigger the pop so a second change is noticed.\n                    tag.classList.remove("pop");\n                    void tag.offsetWidth;\n                    tag.classList.add("pop");\n                }\n                // ---------- odometer ----------\n                // Builds one reel per digit of the real total, so the digits\n                // that roll are the digits that are true — nothing is invented\n                // to make the motion look better. Reels further right spin\n                // through more cycles and take longer, so the leading digits\n                // settle first and the tail is still turning, the way a\n                // mechanical counter reads.\n                var ODO_MAX_CYCLES = 6;\n                function setOdometer(el, value) {\n                    var text = fmtInt(value);\n                    // The translated caption already sits beside the reel, in\n                    // the sibling .odo-cap the generator renders from\n                    // stats.calCaption. Read it rather than name the nutrient\n                    // in English, which is what every locale used to announce.\n                    var cap =\n                        el.parentNode &&\n                        el.parentNode.querySelector(".odo-cap");\n                    var capText = cap ? cap.textContent.trim() : "";\n                    el.setAttribute(\n                        "aria-label",\n                        capText\n                            ? text + " " + capText\n                            : text + " calories tracked",\n                    );\n                    el.textContent = "";\n                    if (reduceMotion) {\n                        el.textContent = text;\n                        return;\n                    }\n                    var strips = [],\n                        i = 0;\n                    text.split("").forEach(function (ch) {\n                        if (ch < "0" || ch > "9") {\n                            var sep = document.createElement("span");\n                            sep.className = "odo-sep";\n                            sep.textContent = ch;\n                            el.appendChild(sep);\n                            return;\n                        }\n                        var cycles = Math.min(ODO_MAX_CYCLES, 2 + i);\n                        var reel = document.createElement("span");\n                        reel.className = "odo-reel";\n                        var strip = document.createElement("span");\n                        strip.className = "odo-strip";\n                        for (var c = 0; c <= cycles; c++) {\n                            for (var d = 0; d < 10; d++) {\n                                var cell = document.createElement("span");\n                                cell.textContent = d;\n                                strip.appendChild(cell);\n                            }\n                        }\n                        strip.style.transitionDuration = 1.1 + i * 0.12 + "s";\n                        // Land on a cell whose face is ch, `cycles` turns down.\n                        // Expressed as a share of the strip\'s own height so the\n                        // reel stays in register at any font size.\n                        var cells = (cycles + 1) * 10;\n                        var stop = cycles * 10 + Number(ch);\n                        strips.push([strip, (stop / cells) * 100]);\n                        reel.appendChild(strip);\n                        el.appendChild(reel);\n                        i++;\n                    });\n                    // Paint at rest first. Moving in the same frame as the\n                    // insert gives the strip no start value to animate from, so\n                    // the transition is skipped and the number just appears.\n                    requestAnimationFrame(function () {\n                        requestAnimationFrame(function () {\n                            strips.forEach(function (s) {\n                                s[0].style.transform =\n                                    "translateY(-" + s[1] + "%)";\n                            });\n                        });\n                    });\n                }\n\n                // `prev` is the last stats object painted, or null on first\n                // load. Unchanged figures are left alone so the page is still\n                // while nothing happens; changed ones count from old to new.\n                function setStats(stats, prev, base) {\n                    Object.keys(FORMATS).forEach(function (key) {\n                        if (typeof stats[key] !== "number") return;\n                        var before = prev ? prev[key] : null;\n                        if (prev && before === stats[key]) return;\n                        document\n                            .querySelectorAll(\'[data-stat="\' + key + \'"]\')\n                            .forEach(function (el) {\n                                var c = FORMATS[key];\n                                animate(\n                                    el,\n                                    c.to(stats[key]),\n                                    c.fmt,\n                                    typeof before === "number"\n                                        ? c.to(before)\n                                        : 0,\n                                );\n                                if (base)\n                                    showDelta(el, key, stats[key] - base[key]);\n                            });\n                    });\n                    document\n                        .querySelectorAll("[data-odo]")\n                        .forEach(function (el) {\n                            var key = el.dataset.odo;\n                            var v = stats[key];\n                            if (typeof v !== "number") return;\n                            var before = prev ? prev[key] : null;\n                            if (prev && before === v) return;\n                            setOdometer(el, v);\n                            if (base) showDelta(el, key, v - base[key]);\n                        });\n                    // The "Live stats" nav badge counts food logs alone,\n                    // and it is on the nav of every page — so public/site.js\n                    // owns it site-wide rather than this script, which only\n                    // ships on the landing page. Handing over the figures\n                    // already fetched here keeps this page on one poll\n                    // instead of two, and passing our own page-load baseline\n                    // alongside them keeps the badge showing exactly what the\n                    // delta tag on that row shows.\n                    document.dispatchEvent(\n                        new CustomEvent("live-stats", {\n                            detail: { stats: stats, base: base },\n                        }),\n                    );\n                }\n\n                // ---------- world map ----------\n                var SVGNS = "http://www.w3.org/2000/svg";\n                // UTC-equivalent zones all resolve to the map center [500,250]\n                // (lon 0, lat 0 — open ocean), so plotting them drops a bogus\n                // dot in the middle of the map. Skip them.\n                // gen-map-data.ts parks all of these on null island, so every\n                // one of them has to be skipped — GMT and Etc/Greenwich were\n                // missing here, and a profile on either would have drawn a dot\n                // in the middle of the Atlantic.\n                var UTC_TZS = {\n                    UTC: 1,\n                    "Etc/UTC": 1,\n                    "Etc/GMT": 1,\n                    GMT: 1,\n                    "Etc/Greenwich": 1,\n                };\n                // [halo, core] radius per level. Radii step by roughly √2 in\n                // area terms rather than linearly, because a circle is read by\n                // its area: doubling the radius would look like four times the\n                // share. Level 3 is the old fixed size, so a typical dot is\n                // unchanged and only the extremes move.\n                var TZ_RADII = [\n                    [5.5, 2.0],\n                    [7.0, 2.5],\n                    [9.0, 3.2],\n                    [11.5, 3.9],\n                    [14.5, 4.7],\n                ];\n                // Expect this to render almost empty right now, and NOT because\n                // of a bug here: the 2026-08-15 nullable_profile_timezone\n                // migration reset every profile\'s timezone to NULL (see #99),\n                // and /api/stats\'s timezone_counts/timezone_list only count\n                // `where timezone is not null` — so tzLevels is near-empty\n                // until users call set_timezone again. That warning was itself\n                // silently unreachable for the most common log call (no\n                // logged_at) until #111 fixed it the same day, so expect this\n                // to self-heal gradually as people log meals, not instantly.\n                function buildMap(mapData, tzLevels) {\n                    var svg = document.getElementById("world-svg");\n                    if (!svg || !mapData) return;\n                    var landFrag = document.createDocumentFragment();\n                    mapData.land.forEach(function (p) {\n                        var c = document.createElementNS(SVGNS, "circle");\n                        c.setAttribute("cx", p[0]);\n                        c.setAttribute("cy", p[1]);\n                        c.setAttribute("r", "1.9");\n                        c.setAttribute("class", "land-dot");\n                        landFrag.appendChild(c);\n                    });\n                    svg.appendChild(landFrag);\n                    function sizeDot(dot, level) {\n                        var r = TZ_RADII[level - 1];\n                        dot.halo.setAttribute("r", r[0]);\n                        dot.core.setAttribute("r", r[1]);\n                        dot.level = level;\n                    }\n                    var seen = {};\n                    var plotted = 0;\n                    Object.keys(tzLevels || {}).forEach(function (tz) {\n                        if (UTC_TZS[tz]) return;\n                        var pt = mapData.tz[tz];\n                        if (!pt) return;\n                        var level = Math.min(\n                            TZ_RADII.length,\n                            Math.max(1, Math.round(tzLevels[tz]) || 1),\n                        );\n                        // Alias spellings (Europe/Kiev vs Europe/Kyiv) project\n                        // to the same coordinates and so share one dot. Keep\n                        // the larger level rather than whichever name came\n                        // first, so the dot is never smaller than the busiest\n                        // zone standing on it.\n                        var k = pt[0] + "," + pt[1];\n                        if (seen[k]) {\n                            if (level > seen[k].level) sizeDot(seen[k], level);\n                            return;\n                        }\n                        var halo = document.createElementNS(SVGNS, "circle");\n                        halo.setAttribute("cx", pt[0]);\n                        halo.setAttribute("cy", pt[1]);\n                        halo.setAttribute("class", "tz-halo");\n                        if (!reduceMotion)\n                            halo.style.animationDelay =\n                                (plotted % 6) * 0.45 + "s";\n                        var core = document.createElementNS(SVGNS, "circle");\n                        core.setAttribute("cx", pt[0]);\n                        core.setAttribute("cy", pt[1]);\n                        core.setAttribute("class", "tz-core");\n                        var dot = { halo: halo, core: core, level: 0 };\n                        sizeDot(dot, level);\n                        seen[k] = dot;\n                        svg.appendChild(halo);\n                        svg.appendChild(core);\n                        plotted++;\n                    });\n                }\n\n                // ---------- load data, then keep it live ----------\n                var POLL_MS = 5000;\n                var lastStats = null;\n                var baseStats = null;\n                var pollTimer = null;\n                var liveEl = document.getElementById("facts-live");\n                // The translated word the generator rendered into that node\n                // ("Live", "En direct", "Na zywo"). Captured before the first\n                // live update overwrites it, so the line below is rebuilt from\n                // it rather than replaced with English.\n                var liveLabel = liveEl ? liveEl.textContent.trim() : "";\n\n                // ---------- kg / lb toggle ----------\n                var unitBtns = [].slice.call(\n                    document.querySelectorAll("[data-unit]"),\n                );\n                function paintUnitToggle() {\n                    unitBtns.forEach(function (b) {\n                        b.setAttribute(\n                            "aria-pressed",\n                            b.getAttribute("data-unit") === unit\n                                ? "true"\n                                : "false",\n                        );\n                    });\n                }\n                // Repainted in place rather than through setStats: counting\n                // 512 up to 1,129 would read as the figure changing, when\n                // all that changed is the unit it is written in. Cancelling\n                // first is what makes the toggle win over a count-up already\n                // in flight on the same row; see animate().\n                function repaintWeights() {\n                    if (!lastStats) return;\n                    WEIGHT_KEYS.forEach(function (key) {\n                        var v = lastStats[key];\n                        if (typeof v !== "number") return;\n                        document\n                            .querySelectorAll(\'[data-stat="\' + key + \'"]\')\n                            .forEach(function (el) {\n                                cancelAnim(el);\n                                el.textContent = fmtWeight(toWeight(v));\n                                if (baseStats)\n                                    showDelta(\n                                        el,\n                                        key,\n                                        v - baseStats[key],\n                                        true,\n                                    );\n                            });\n                    });\n                }\n                paintUnitToggle();\n                unitBtns.forEach(function (b) {\n                    b.addEventListener("click", function () {\n                        var next = b.getAttribute("data-unit");\n                        if (next === unit) return;\n                        unit = next;\n                        try {\n                            localStorage.setItem(UNIT_STORE, unit);\n                        } catch (e) {}\n                        paintUnitToggle();\n                        repaintWeights();\n                    });\n                });\n                function fetchStats() {\n                    return fetch("/api/stats", { cache: "no-store" }).then(\n                        function (r) {\n                            if (!r.ok) throw new Error("stats");\n                            return r.json();\n                        },\n                    );\n                }\n                function poll() {\n                    pollTimer = null;\n                    if (document.hidden) return;\n                    fetchStats()\n                        .then(function (stats) {\n                            setStats(stats, lastStats, baseStats);\n                            lastStats = stats;\n                            if (liveEl) liveEl.classList.remove("stale");\n                        })\n                        .catch(function () {\n                            if (liveEl) liveEl.classList.add("stale");\n                        })\n                        .then(schedule);\n                }\n                function schedule() {\n                    if (pollTimer || document.hidden) return;\n                    pollTimer = setTimeout(poll, POLL_MS);\n                }\n                // A background tab stops polling; coming back refetches at\n                // once so the figures are never minutes behind.\n                document.addEventListener("visibilitychange", function () {\n                    if (document.hidden) {\n                        clearTimeout(pollTimer);\n                        pollTimer = null;\n                    } else if (lastStats) {\n                        poll();\n                    }\n                });\n                Promise.all([\n                    fetchStats(),\n                    fetch("/map-data.json").then(function (r) {\n                        return r.ok ? r.json() : null;\n                    }),\n                ])\n                    .then(function (res) {\n                        var stats = res[0];\n                        setStats(stats, null, null);\n                        lastStats = stats;\n                        baseStats = stats;\n                        buildMap(res[1], stats.timezone_levels);\n                        if (liveEl) {\n                            liveEl.classList.add("on");\n                            // The deltas are measured from this moment.\n                            var t = new Date().toLocaleTimeString(NUM_LOCALE, {\n                                hour: "numeric",\n                                minute: "2-digit",\n                            });\n                            liveEl.textContent =\n                                (liveLabel ? liveLabel + " \\u00b7 " : "") + t;\n                        }\n                        schedule();\n                    })\n                    .catch(function () {\n                        var row = document.getElementById("stat-row");\n                        var map = document.getElementById("map-block");\n                        if (row) row.style.display = "none";\n                        if (map) map.style.display = "none";\n                    });\n\n                // ---------- live GitHub star count ----------\n                var ghEl = document.getElementById("gh-stars");\n                if (ghEl) {\n                    fetch(\n                        "https://api.github.com/repos/akutishevsky/nutrition-mcp",\n                    )\n                        .then(function (r) {\n                            return r.ok ? r.json() : null;\n                        })\n                        .then(function (d) {\n                            if (d && typeof d.stargazers_count === "number") {\n                                // Grouped in the page\'s language like every\n                                // other figure. Latent until the repo passes\n                                // 999 stars, at which point a German page\n                                // would have read 1,024 rather than 1.024.\n                                ghEl.textContent =\n                                    "· ★ " +\n                                    d.stargazers_count.toLocaleString(\n                                        NUM_LOCALE,\n                                    );\n                            }\n                        })\n                        .catch(function () {});\n                }\n\n                // ---------- shared carousel paging engine ----------\n                // Powers both the "try saying" chat carousel below and the\n                // recent-Patreon-posts carousel that precedes it: paging,\n                // dot navigation, arrow clicks, hover/focus autoplay pause,\n                // and touch swipe, in one place so a future fix (swipe\n                // threshold, keyboard nav, dot ARIA labeling) only has to\n                // land once instead of drifting between two copies.\n                //\n                // opts:\n                //   root          element that owns the hover/focus/touch\n                //                 and arrow-click listeners (the outer\n                //                 carousel container)\n                //   track         element whose transform pages the slides\n                //   slides        NodeList/array of slide elements\n                //   dots          existing NodeList/array of dot buttons,\n                //                 OR a number of dots to build fresh into\n                //                 dotsContainer -- used when the slide\n                //                 count is only known once async data\n                //                 arrives, rather than at render time\n                //   dotsContainer container to build dots into when `dots`\n                //                 is a number\n                //   interval      autoplay delay in ms\n                //   onActivate    optional callback(slideEl), run on every\n                //                 goTo, for a carousel-specific per-slide\n                //                 effect (the chat carousel\'s typing/reply\n                //                 animation)\n                //\n                // Returns { goTo, start, stop, wireControls }. wireControls\n                // is separate from construction because the Patreon\n                // carousel only wants dot/arrow/hover/touch listeners once\n                // it knows there is more than one page.\n                function initCarousel(opts) {\n                    var slides = opts.slides;\n                    var track = opts.track;\n                    var root = opts.root;\n                    var idx = 0;\n                    var timer = null;\n                    var dotEls = [];\n                    if (typeof opts.dots === "number") {\n                        var dotLabel =\n                            (opts.dotsContainer &&\n                                opts.dotsContainer.dataset.dotLabel) ||\n                            "";\n                        for (var k = 0; k < opts.dots; k++) {\n                            var dot = document.createElement("button");\n                            dot.type = "button";\n                            dot.className = "dot";\n                            dot.setAttribute(\n                                "aria-label",\n                                dotLabel + " " + (k + 1),\n                            );\n                            opts.dotsContainer.appendChild(dot);\n                        }\n                        dotEls = opts.dotsContainer.querySelectorAll(".dot");\n                    } else if (opts.dots) {\n                        dotEls = opts.dots;\n                    }\n                    function goTo(n) {\n                        idx = (n + slides.length) % slides.length;\n                        track.style.transform =\n                            "translateX(" + -idx * 100 + "%)";\n                        dotEls.forEach(function (d, k) {\n                            d.classList.toggle("active", k === idx);\n                        });\n                        if (opts.onActivate) opts.onActivate(slides[idx]);\n                    }\n                    function stop() {\n                        if (timer) clearInterval(timer);\n                        timer = null;\n                    }\n                    function start() {\n                        if (reduceMotion || slides.length < 2) return;\n                        stop();\n                        timer = setInterval(function () {\n                            goTo(idx + 1);\n                        }, opts.interval);\n                    }\n                    function wireControls() {\n                        dotEls.forEach(function (d, k) {\n                            d.addEventListener("click", function () {\n                                goTo(k);\n                                start();\n                            });\n                        });\n                        root.querySelectorAll(".carousel-arrow").forEach(\n                            function (arrow) {\n                                arrow.addEventListener("click", function () {\n                                    goTo(\n                                        idx +\n                                            (arrow.getAttribute("data-dir") ===\n                                            "next"\n                                                ? 1\n                                                : -1),\n                                    );\n                                    start();\n                                });\n                            },\n                        );\n                        root.addEventListener("mouseenter", stop);\n                        root.addEventListener("mouseleave", start);\n                        root.addEventListener("focusin", stop);\n                        root.addEventListener("focusout", start);\n                        var x0 = null;\n                        root.addEventListener(\n                            "touchstart",\n                            function (e) {\n                                x0 = e.touches[0].clientX;\n                            },\n                            { passive: true },\n                        );\n                        root.addEventListener("touchend", function (e) {\n                            if (x0 === null) return;\n                            var dx = e.changedTouches[0].clientX - x0;\n                            if (Math.abs(dx) > 40)\n                                goTo(idx + (dx < 0 ? 1 : -1));\n                            x0 = null;\n                            start();\n                        });\n                    }\n                    return {\n                        goTo: goTo,\n                        start: start,\n                        stop: stop,\n                        wireControls: wireControls,\n                    };\n                }\n\n                // ---------- recent Patreon posts ----------\n                var patreonBlock = document.getElementById("patreon-updates");\n                var patreonCarousel =\n                    document.getElementById("patreon-carousel");\n                var patreonTrack = document.getElementById(\n                    "patreon-carousel-track",\n                );\n                var patreonDots = document.getElementById(\n                    "patreon-carousel-dots",\n                );\n                var patreonControls = document.getElementById(\n                    "patreon-carousel-controls",\n                );\n                if (patreonBlock && patreonCarousel && patreonTrack) {\n                    fetch("/api/patreon-posts")\n                        .then(function (r) {\n                            return r.ok ? r.json() : [];\n                        })\n                        .then(function (posts) {\n                            if (!posts || !posts.length) return;\n                            var pageSize = 3;\n                            var pages = [];\n                            for (var i = 0; i < posts.length; i += pageSize) {\n                                pages.push(posts.slice(i, i + pageSize));\n                            }\n                            pages.forEach(function (pagePosts) {\n                                var slide = document.createElement("div");\n                                slide.className = "slide patreon-updates-grid";\n                                pagePosts.forEach(function (p) {\n                                    var a = document.createElement("a");\n                                    a.href = p.url;\n                                    a.target = "_blank";\n                                    a.rel = "noopener noreferrer";\n                                    a.className = "card patreon-update-link";\n                                    var titleEl =\n                                        document.createElement("span");\n                                    titleEl.className = "patreon-update-title";\n                                    titleEl.textContent = p.title;\n                                    a.appendChild(titleEl);\n                                    if (p.preview) {\n                                        var previewEl =\n                                            document.createElement("span");\n                                        previewEl.className =\n                                            "patreon-update-preview";\n                                        previewEl.textContent = p.preview;\n                                        a.appendChild(previewEl);\n                                    }\n                                    slide.appendChild(a);\n                                });\n                                patreonTrack.appendChild(slide);\n                            });\n                            var slides =\n                                patreonTrack.querySelectorAll(".slide");\n                            var multiPage =\n                                slides.length > 1 &&\n                                patreonDots &&\n                                patreonControls;\n                            var patreonCarouselApi = initCarousel({\n                                root: patreonCarousel,\n                                track: patreonTrack,\n                                slides: slides,\n                                dots: multiPage ? slides.length : null,\n                                dotsContainer: patreonDots,\n                                interval: 6000,\n                            });\n                            if (multiPage) {\n                                patreonControls.hidden = false;\n                                patreonCarouselApi.wireControls();\n                            }\n                            patreonCarouselApi.goTo(0);\n                            patreonCarouselApi.start();\n                            patreonBlock.hidden = false;\n                        })\n                        .catch(function () {});\n                }\n                // ---------- "try saying" chat carousel ----------\n                var carousel = document.getElementById("try-carousel");\n                if (carousel) {\n                    var track = carousel.querySelector(".carousel-track");\n                    var slides = carousel.querySelectorAll(".slide");\n                    var dots = carousel.querySelectorAll(".dot");\n                    // Play the typing -> reply animation for the active slide.\n                    function play(active) {\n                        slides.forEach(function (s) {\n                            var tp = s.querySelector(".typing");\n                            var aiList = s.querySelectorAll(".msg-ai");\n                            var meal = s.querySelector(".meal-pick");\n                            var target = s.querySelector(".meal-pick-target");\n                            clearTimeout(s._t);\n                            clearTimeout(s._t2);\n                            clearTimeout(s._t3);\n                            function complete() {\n                                if (tp) tp.style.display = "none";\n                                aiList.forEach(function (a) {\n                                    a.style.display = "";\n                                    a.style.animation = "none";\n                                });\n                                if (target) target.classList.add("selected");\n                            }\n                            if (s !== active || reduceMotion) {\n                                complete();\n                                return;\n                            }\n                            // reset, then play the sequence\n                            aiList.forEach(function (a) {\n                                a.style.display = "none";\n                                a.style.animation = "none";\n                            });\n                            if (target) target.classList.remove("selected");\n                            if (tp) tp.style.display = "flex";\n                            if (meal) {\n                                var ask = s.querySelector(".step-ask");\n                                var done = s.querySelector(".step-done");\n                                s._t = setTimeout(function () {\n                                    if (tp) tp.style.display = "none";\n                                    if (ask) {\n                                        ask.style.display = "";\n                                        ask.style.animation =\n                                            "msgin 0.4s ease both";\n                                    }\n                                    s._t2 = setTimeout(function () {\n                                        if (target)\n                                            target.classList.add("selected");\n                                        s._t3 = setTimeout(function () {\n                                            if (done) {\n                                                done.style.display = "";\n                                                done.style.animation =\n                                                    "msgin 0.4s ease both";\n                                            }\n                                        }, 750);\n                                    }, 1300);\n                                }, 1000);\n                            } else {\n                                var ai = aiList[0];\n                                s._t = setTimeout(function () {\n                                    if (tp) tp.style.display = "none";\n                                    if (ai) {\n                                        ai.style.display = "";\n                                        ai.style.animation =\n                                            "msgin 0.4s ease both";\n                                    }\n                                }, 1100);\n                            }\n                        });\n                    }\n                    var chatCarouselApi = initCarousel({\n                        root: carousel,\n                        track: track,\n                        slides: slides,\n                        dots: dots,\n                        interval: 5200,\n                        onActivate: play,\n                    });\n                    chatCarouselApi.wireControls();\n                    chatCarouselApi.goTo(0);\n                    chatCarouselApi.start();\n                }\n            })();';
+// pages against THIS constant. scripts/depersonalize.ts matches its
+// "live GitHub star count" and "recent Patreon posts" blocks by their
+// comment lines and closing `.catch(function () {});\n    }` — keep both
+// shapes.
+export const LANDING_SCRIPT: string = await Bun.file(
+    new URL("./landing-script.js", import.meta.url),
+).text();
 
-// src/copy/index.ts's `why.noteHtml` carries a plain
-// href="/alternatives" data-link="alternatives" marker, because the content
-// string itself has no access to `locale` — this rewrites that href to the
-// locale-correct path (e.g. "/de/alternatives") and drops the marker.
-// Without it, a translated landing page's in-prose link to the comparison
-// hub would silently point at the English one (the exact bug the login page
-// shipped once — see scripts/gen-login.ts / gen-legal.ts's own version of
-// this same fix).
+// The Claude connectors directory listing — the install tab's button.
+const CLAUDE_DIRECTORY_URL = "https://claude.ai/directory/nutrition-mcp";
+const SERVER_URL = "https://nutrition-mcp.com/mcp";
+const REPO_URL = "https://github.com/akutishevsky/nutrition-mcp";
+const PATREON_URL =
+    "https://patreon.com/akutishevskyi?utm_medium=unknown&amp;utm_source=join_link&amp;utm_campaign=creatorshare_creator&amp;utm_content=copyLink";
+const CONTACT_EMAIL = "anton@nutrition-mcp.com";
+/** The archive export_all_data writes (src/export.ts). */
+const EXPORT_FILE_NAME = "nutrition-mcp-export.zip";
+
+// ---------------------------------------------------------------- helpers
+
+// src/copy/index.ts's `why.noteHtml` carries a plain href="/alternatives"
+// data-link="alternatives" marker, because the content string has no access
+// to `locale` — this rewrites it to the locale-correct path. Without it a
+// translated landing page would link to the English comparison hub.
 function localizeLinks(html: string, locale: SiteLocale): string {
     return html.replace(
         /href="\/alternatives" data-link="alternatives"/,
-        `href="${pathFor(locale, "/alternatives")}"`,
+        `class="nm-link" href="${pathFor(locale, "/alternatives")}"`,
     );
 }
 
@@ -68,58 +99,699 @@ function faqJsonLdText(entry: FaqEntry): string {
     return entry.jsonLdText ?? stripTags(entry.visibleHtml);
 }
 
-function renderFaq(entry: FaqEntry): string {
-    return `                        <details>
-                            <summary>${esc(entry.question)}</summary>
-                            <p>${entry.visibleHtml}</p>
-                        </details>`;
+/** Escaped text with the server URL set as <code>. */
+function withUrlCode(text: string): string {
+    return esc(text).replace(SERVER_URL, `<code>${SERVER_URL}</code>`);
 }
 
-function renderFeatureCard(
-    card: IndexDoc["features"]["cards"][number],
-): string {
-    return `                        <article class="card feature">
-                            <span class="feature-icon" aria-hidden="true"
-                                ><i class="${card.icon}"></i
-                            ></span>
-                            <h3>${esc(card.title)}</h3>
-                            <p>
-                                ${esc(card.body)}
-                            </p>
-                        </article>`;
+const fill = (s: string, vars: Record<string, string>): string =>
+    s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? vars[k]! : m));
+
+const pad2 = (n: number): string => String(n).padStart(2, "0");
+
+/** A colour-role tile (`nm-tile`) holding one Font Awesome icon. */
+function tile(icon: string, extra = ""): string {
+    return `<span class="nm-tile${extra}" aria-hidden="true"><i class="${icon}"></i></span>`;
 }
 
-function renderHowStep(
-    step: IndexDoc["how"]["steps"][number],
-    icon: string,
-): string {
-    return `                        <div class="step3">
-                            <span class="step3-icon"
-                                ><i class="${icon}"></i
-                            ></span>
-                            <h3>${esc(step.title)}</h3>
-                            <p>
-                                ${esc(step.body)}
-                            </p>
-                        </div>`;
-}
+// ------------------------------------------------------------- structure
 
-// The Claude connectors directory listing — the install tab's button.
-const CLAUDE_DIRECTORY_URL = "https://claude.ai/directory/nutrition-mcp";
-
-const HOW_ICONS = [
-    "fa-solid fa-plug",
-    "fa-solid fa-message",
-    "fa-solid fa-chart-area",
+const HOW_META = [
+    { icon: "fa-solid fa-plug", c: "acc" },
+    { icon: "fa-solid fa-comment-dots", c: "cal" },
+    { icon: "fa-solid fa-chart-area", c: "pro" },
+];
+const ONBOARDING_META = [
+    { icon: "fa-solid fa-clock", c: "wat" },
+    { icon: "fa-solid fa-bullseye", c: "pro" },
+    { icon: "fa-solid fa-language", c: "car" },
+    { icon: "fa-solid fa-utensils", c: "cal" },
+];
+const FEATURE_META = [
+    { icon: "fa-solid fa-comment-dots", c: "cal" },
+    { icon: "fa-solid fa-barcode", c: "car" },
+    { icon: "fa-solid fa-bullseye", c: "pro" },
+    { icon: "fa-solid fa-chart-line", c: "fat" },
+    { icon: "fa-solid fa-glass-water", c: "wat" },
+    { icon: "fa-solid fa-weight-scale", c: "fib" },
+    { icon: "fa-solid fa-earth-americas", c: "wat" },
+    { icon: "fa-solid fa-file-import", c: "sug" },
+    { icon: "fa-solid fa-file-zipper", c: "acc" },
 ];
 const TRUST_ICONS = [
     "fa-solid fa-lock",
-    "fa-solid fa-code-branch",
-    "fa-solid fa-file-export",
-    "fa-solid fa-trash",
+    "fa-brands fa-github",
+    "fa-solid fa-file-csv",
+    "fa-solid fa-trash-can",
 ];
 
+/** Each example slide's icon, colour and the MCP tools its conversation
+ * calls, in chip order (the first is the slide's main tool). Structure, not
+ * copy: written once for every locale. */
+/** A colour role (a token name in public/styles.css: acc, cal, pro, car,
+ * fat, wat, fib, sug, caf, gold) as the inline custom properties the tiles
+ * read: --c for fills and tints, --c-icon for the glyph drawn on them (the
+ * contrast-safe *-icon token; the accent's own fill already is one). */
+const roleVar = (k: string) => `var(--${k})`;
+const roleIconVar = (k: string) =>
+    k === "acc" ? "var(--acc)" : `var(--${k}-icon)`;
+const roleStyle = (k: string) => `--c:${roleVar(k)};--c-icon:${roleIconVar(k)}`;
+
+const EX_META: Record<
+    ExampleSlideId,
+    { icon: string; color: string; tools: string[] }
+> = {
+    "log-meal": {
+        icon: "fa-solid fa-comment-dots",
+        color: "cal",
+        tools: ["log_meal", "log_water", "get_current_time"],
+    },
+    "photo-meal": {
+        icon: "fa-solid fa-camera",
+        color: "fat",
+        tools: ["search_meals", "log_meal"],
+    },
+    "scan-barcode": {
+        icon: "fa-solid fa-barcode",
+        color: "car",
+        tools: ["lookup_barcode", "log_meal"],
+    },
+    "goals-progress": {
+        icon: "fa-solid fa-bullseye",
+        color: "acc",
+        tools: ["set_nutrition_goals", "get_goal_progress"],
+    },
+    "review-week": {
+        icon: "fa-solid fa-chart-area",
+        color: "pro",
+        tools: ["get_trends"],
+    },
+    "weight-trend": {
+        icon: "fa-solid fa-weight-scale",
+        color: "wat",
+        tools: ["log_weight", "get_weight_trends"],
+    },
+    "meal-patterns": {
+        icon: "fa-solid fa-magnifying-glass-chart",
+        color: "fib",
+        tools: ["get_meal_patterns"],
+    },
+    "track-drinks": {
+        icon: "fa-solid fa-beer-mug-empty",
+        color: "gold",
+        tools: ["set_alcohol_tracking", "log_meal"],
+    },
+    "import-history": {
+        icon: "fa-solid fa-file-import",
+        color: "caf",
+        tools: ["start_meal_import", "set_timezone"],
+    },
+    "export-data": {
+        icon: "fa-solid fa-box-archive",
+        color: "sug",
+        tools: ["export_all_data"],
+    },
+};
+const EX_ORDER = Object.keys(EX_META) as ExampleSlideId[];
+
+/** Which demo card each slide's widget is (its figures live in
+ * scripts/landing-cards.ts). */
+const EX_CARD: Partial<Record<ExampleSlideId, DemoCardId>> = {
+    "log-meal": "log-meal",
+    "photo-meal": "photo-meal",
+    "scan-barcode": "scan-barcode",
+    "goals-progress": "goals-progress",
+    "review-week": "review-week",
+    "weight-trend": "weight-trend",
+    "track-drinks": "track-drinks",
+    "import-history": "import-file",
+};
+
+/** The live-stats tiles, in grid order (the first spans two columns). */
+const STAT_TILES: {
+    key: string;
+    icon: string;
+    c: string;
+    label: (s: IndexDoc["stats"]) => string;
+    unit: string;
+}[] = [
+    {
+        key: "total_calories",
+        icon: "fa-solid fa-fire",
+        c: "cal",
+        label: (s) => s.calCaption,
+        unit: "kcal",
+    },
+    {
+        key: "food_logs",
+        icon: "fa-solid fa-utensils",
+        c: "cal",
+        label: (s) => s.cards.foodLogs,
+        unit: "",
+    },
+    {
+        key: "total_protein_g",
+        icon: "fa-solid fa-dumbbell",
+        c: "pro",
+        label: (s) => s.cards.protein,
+        unit: "kg",
+    },
+    {
+        key: "total_carbs_g",
+        icon: "fa-solid fa-wheat-awn",
+        c: "car",
+        label: (s) => s.cards.carbs,
+        unit: "kg",
+    },
+    {
+        key: "total_fat_g",
+        icon: "fa-solid fa-bottle-droplet",
+        c: "gold",
+        label: (s) => s.cards.fat,
+        unit: "kg",
+    },
+    {
+        key: "weight_lost_g",
+        icon: "fa-solid fa-weight-scale",
+        c: "fib",
+        label: (s) => s.cards.weightLost,
+        unit: "kg",
+    },
+    {
+        key: "total_water_ml",
+        icon: "fa-solid fa-glass-water",
+        c: "wat",
+        label: (s) => s.cards.water,
+        unit: "L",
+    },
+];
+
+/** Every locale has to tell the same ten stories in the same shape — the
+ * icons, tools and cards above are keyed by id and drawn by index. */
+function assertExamples(doc: IndexDoc, locale: SiteLocale): void {
+    const ids = doc.examples.slides.map((s) => s.id);
+    if (ids.join() !== EX_ORDER.join())
+        throw new Error(`${locale}: example slide ids ${ids.join()}`);
+    for (const s of doc.examples.slides) {
+        const want = EX_META[s.id].tools;
+        const have = Object.keys(s.toolNotes);
+        if (
+            have.length !== want.length ||
+            want.some((t) => !s.toolNotes[t]?.trim())
+        )
+            throw new Error(
+                `${locale}: ${s.id} toolNotes must be exactly ${want.join(", ")}`,
+            );
+    }
+}
+
+// ---------------------------------------------------------------- hero
+
+function heroThread(doc: IndexDoc, locale: SiteLocale): string {
+    const out: string[] = [];
+    const cardFor = (ex: HeroExchange): string => {
+        switch (ex.card) {
+            case "meal-logged":
+                return renderCard(
+                    "hero-meal",
+                    locale,
+                    ex.meal?.description ?? "",
+                );
+            case "nutrition-summary":
+                return renderCard("hero-day", locale);
+            case "weight-trends":
+                return renderCard("hero-weight", locale);
+            default:
+                return "";
+        }
+    };
+    for (const ex of doc.hero.chat.exchanges) {
+        if (ex.photo) {
+            out.push(
+                `<div class="lp-msg-photo" data-kind="photo"><div role="img" aria-label="${esc(doc.hero.chat.photoAlt)}">${smoothieSvg()}</div><p>${esc(ex.userText)}</p></div>`,
+            );
+        } else {
+            out.push(
+                `<div class="lp-msg-u" data-kind="user">${esc(ex.userText)}</div>`,
+            );
+        }
+        out.push(
+            `<div class="lp-msg-a" data-kind="ai">${esc(ex.aiText)}</div>`,
+        );
+        if (ex.card)
+            out.push(
+                `<div class="lp-card-slot" data-kind="card">${cardFor(ex)}</div>`,
+            );
+    }
+    return out.map((m) => `                            ${m}`).join("\n");
+}
+
+function renderHero(doc: IndexDoc, locale: SiteLocale): string {
+    const h = doc.hero;
+    return `            <section class="lp-hero" id="top">
+                <div>
+                    <h1 class="nm-h1">${esc(h.titleBeforeEm)}<em>${esc(h.titleEm)}</em>${esc(h.titleAfterEm)}</h1>
+                    <p class="lp-lead">${esc(h.lead)}</p>
+                    <div class="lp-ctas">
+                        <a class="nm-btn nm-btn-acc" href="#install">${esc(h.ctaPrimary)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                        <a class="lp-support-btn" href="#support"><i class="fa-brands fa-patreon" aria-hidden="true"></i>${esc(h.ctaSecondary)}</a>
+                    </div>
+                </div>
+                <div class="lp-demo">
+                    <div class="lp-chatframe">
+                        <div class="lp-chat">
+                            <span class="lp-chat-ctl">
+                                <button type="button" data-hero-pause aria-label="${esc(h.chat.pauseLabel)}" aria-pressed="false" hidden><i class="fa-solid fa-pause" aria-hidden="true"></i></button>
+                                <button type="button" data-hero-replay aria-label="${esc(h.chat.replayLabel)}" hidden><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button>
+                            </span>
+                            <div class="lp-thread" id="hero-thread" role="region" aria-label="${esc(doc.examples.threadLabel)}" aria-live="off" tabindex="0">
+${heroThread(doc, locale)}
+                            </div>
+                        </div>
+                    </div>
+                    <a class="lp-more" href="#try">${esc(h.moreExamples)}<i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
+                </div>
+            </section>`;
+}
+
+// ------------------------------------------------------------- sections
+
+function renderHow(doc: IndexDoc): string {
+    const cards = doc.how.steps
+        .map((s, i) => {
+            const m = HOW_META[i]!;
+            return `                    <div class="nm-card lp-how-card lp-hover-lift nm-c-${m.c}">
+                        <span class="nm-blob" aria-hidden="true"></span>
+                        <div class="lp-how-top">${tile(m.icon)}<span class="nm-label-mono">${esc(fill(doc.how.counter, { n: String(i + 1) }))}</span></div>
+                        <div><h3 class="lp-how-h">${esc(s.title)}</h3><p>${esc(s.body)}</p></div>
+                    </div>`;
+        })
+        .join("\n");
+    return `            <section class="nm-section lp-sec" id="how">
+                <h2 class="nm-h2 lp-mb">${esc(doc.how.title)}</h2>
+                <div class="lp-how-grid">
+${cards}
+                </div>
+            </section>`;
+}
+
+function renderInstall(doc: IndexDoc): string {
+    const i = doc.install;
+    const steps = (list: string[]) =>
+        list
+            .map(
+                (s) =>
+                    `                                <li><span>${s}</span></li>`,
+            )
+            .join("\n");
+    return `            <section class="nm-section lp-sec" id="install">
+                <div class="lp-install">
+                    <div class="lp-sticky">
+                        <h2 class="nm-h2">${esc(i.title)}</h2>
+                        <p class="nm-sub">${esc(i.sub)}</p>
+                        <div class="lp-url"><span>${SERVER_URL}</span><button class="nm-icon-btn copy-mini" type="button" data-copy="${SERVER_URL}" aria-label="${esc(i.copyAriaLabel)}"><i class="fa-regular fa-copy" aria-hidden="true"></i></button></div>
+                    </div>
+                    <div class="nm-card lp-tabcard">
+                        <fieldset>
+                            <legend class="vh">${esc(i.tabsLabel)}</legend>
+                            <input type="radio" name="itab" id="itab-claude" class="lp-tab-input" checked />
+                            <input type="radio" name="itab" id="itab-chatgpt" class="lp-tab-input" />
+                            <input type="radio" name="itab" id="itab-other" class="lp-tab-input" />
+                            <div class="lp-seg">
+                                <label for="itab-claude"><i class="fa-brands fa-claude" aria-hidden="true"></i>Claude</label>
+                                <label for="itab-chatgpt"><i class="fa-brands fa-openai" aria-hidden="true"></i>ChatGPT</label>
+                                <label for="itab-other"><i class="fa-solid fa-terminal" aria-hidden="true"></i>${esc(i.otherTabLabel)}</label>
+                            </div>
+                            <div class="lp-panel lp-panel-claude">
+                                <a class="lp-claude-btn" href="${CLAUDE_DIRECTORY_URL}" target="_blank" rel="noopener"><i class="fa-brands fa-claude" aria-hidden="true"></i>${esc(i.claude.cta)}<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                                <ol class="lp-steps">
+${steps(i.claude.steps)}
+                                </ol>
+                                <p class="lp-panel-note">${withUrlCode(i.claude.note)}</p>
+                            </div>
+                            <div class="lp-panel lp-panel-chatgpt">
+                                <ol class="lp-steps">
+${steps(i.chatgpt.steps)}
+                                </ol>
+                            </div>
+                            <div class="lp-panel lp-panel-other">
+                                <!-- prettier-ignore -->
+                                <pre>{
+  "mcpServers": {
+    "nutrition": {
+      "url": "${SERVER_URL}"
+    }
+  }
+}</pre>
+                                <p class="lp-panel-note">${i.other.note}</p>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+            </section>`;
+}
+
+function renderOnboarding(doc: IndexDoc, locale: SiteLocale): string {
+    const o = doc.onboarding;
+    const cards = o.steps
+        .map((s, i) => {
+            const m = ONBOARDING_META[i]!;
+            return `                    <li class="nm-card nm-c-${m.c}">
+                        <span class="lp-onb-top">${tile(m.icon, " nm-tile-md")}<span class="nm-label-mono">${pad2(i + 1)}</span></span>
+                        <p><b>${esc(s.title)}</b> — ${esc(s.body)}</p>
+                        <div class="lp-say"><span>${esc(o.justSay)}</span><q>${esc(s.say)}</q></div>
+                    </li>`;
+        })
+        .join("\n");
+    return `            <section class="nm-section lp-sec" id="onboarding">
+                <div class="lp-head">
+                    <h2 class="nm-h2 lp-onb-h2">${esc(o.title)}</h2>
+                    <p>${esc(o.sub)}</p>
+                </div>
+                <ol class="lp-onb">
+${cards}
+                </ol>
+                <p class="lp-note">${esc(o.note)}</p>
+                <a class="lp-tools-cta" href="${pathFor(locale, "/tools")}">
+                    <span aria-hidden="true"><i class="fa-solid fa-toolbox"></i></span>
+                    <span class="lp-tools-text"><b>${esc(o.toolsCta.heading)}</b>${esc(o.toolsCta.body)}</span>
+                    <span class="lp-tools-go">${esc(o.toolsCta.arrow)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
+            </section>`;
+}
+
+// -------------------------------------------------------------- examples
+
+function exampleMessage(m: ExampleMessage, doc: IndexDoc): string {
+    const e = doc.examples;
+    if (m.from === "user" && m.photo) {
+        const svg = m.photo === "meal" ? borschtSvg() : canSvg();
+        const alt = m.photo === "meal" ? e.photoMealAlt : e.photoPackageAlt;
+        return `<div class="lp-msg-photo"><div role="img" aria-label="${esc(alt)}">${svg}</div>${m.text ? `<p>${esc(m.text)}</p>` : ""}</div>`;
+    }
+    if (m.from === "user") return `<div class="lp-msg-u">${esc(m.text)}</div>`;
+    const bubble = `<div class="lp-msg-a">${esc(m.text)}</div>`;
+    if (m.from === "ai" && m.download === "export-zip")
+        return `${bubble}<div class="lp-dl"><span aria-hidden="true"><i class="fa-solid fa-file-zipper"></i></span><span><b>${EXPORT_FILE_NAME}</b><small>${esc(e.downloadExpires)}</small></span><i class="fa-solid fa-download" aria-hidden="true"></i></div>`;
+    return bubble;
+}
+
+function exampleThread(
+    s: ExampleSlide,
+    doc: IndexDoc,
+    locale: SiteLocale,
+): string {
+    const cardId = EX_CARD[s.id];
+    const meals = [...(s.cardMeals ?? [])];
+    const out: string[] = [];
+    s.messages.forEach((m, i) => {
+        out.push(exampleMessage(m, doc));
+        for (const c of s.cards ?? []) {
+            if (c.after !== i || !cardId) continue;
+            const meal = c.kind === "meal-logged" ? (meals.shift() ?? "") : "";
+            out.push(
+                `<div class="lp-card-slot">${renderCard(cardId, locale, meal)}</div>`,
+            );
+        }
+    });
+    return out.map((m) => `                                ${m}`).join("\n");
+}
+
+function renderExamples(doc: IndexDoc, locale: SiteLocale): string {
+    const e = doc.examples;
+    const total = e.slides.length;
+    const toolHref = (t: string) => `${pathFor(locale, "/tools")}#${t}`;
+    const chip = (t: string, main: boolean) =>
+        `<a class="lp-chip" href="${toolHref(t)}" aria-label="${esc(fill(e.toolLinkLabel, { tool: t }))}">${main ? '<i class="fa-solid fa-plug" aria-hidden="true"></i>' : ""}${t}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>`;
+    const tabs = e.slides
+        .map((s, i) => {
+            const m = EX_META[s.id];
+            return `                    <button class="lp-ex-tab" type="button" role="tab" id="ex-tab-${i + 1}" aria-controls="ex-panel-${i + 1}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(s.title)}" title="${esc(s.title)}" data-c="${roleVar(m.color)}" data-ci="${roleIconVar(m.color)}" style="${roleStyle(m.color)}"><span><i class="${m.icon}" aria-hidden="true"></i></span></button>`;
+        })
+        .join("\n");
+    const panels = e.slides
+        .map((s, i) => {
+            const m = EX_META[s.id];
+            const [main, ...more] = m.tools;
+            const moreHtml = more.length
+                ? `
+                            <p class="lp-ex-also">${esc(e.moreToolsLabel)}</p>
+${more.map((t) => `                            <div class="lp-ex-more">${chip(t, false)}<p>${esc(s.toolNotes[t]!)}</p></div>`).join("\n")}`
+                : "";
+            return `                <div class="lp-ex-panel${i === 0 ? " is-on" : ""}" id="ex-panel-${i + 1}" role="tabpanel" aria-labelledby="ex-tab-${i + 1}" style="${roleStyle(m.color)}">
+                    <div class="lp-ex-info">
+                        <div class="lp-ex-title"><span class="lp-ex-icon" aria-hidden="true"><i class="${m.icon}"></i></span><h3 class="lp-ex-h">${esc(s.title)}</h3></div>
+                        <p class="lp-ex-desc">${esc(s.description)}</p>
+                        <div class="lp-ex-tools">
+                            ${chip(main!, true)}
+                            <p>${esc(s.toolNotes[main!]!)}</p>${moreHtml}
+                        </div>
+                    </div>
+                    <div class="lp-ex-chat">
+                        <div class="lp-ex-thread" role="region" aria-label="${esc(e.threadLabel)}" tabindex="0">
+${exampleThread(s, doc, locale)}
+                        </div>
+                    </div>
+                </div>`;
+        })
+        .join("\n");
+    return `            <section class="nm-section lp-sec lp-try" id="try">
+                <div class="lp-head">
+                    <h2 class="nm-h2">${esc(e.title)}</h2>
+                    <p>${esc(e.sub)}</p>
+                </div>
+                <div class="lp-ex-bar">
+                    <div class="lp-ex-tabs" id="ex-tabs" role="tablist" aria-label="${esc(e.pickerLabel)}">
+                        <span class="lp-ex-ring" id="ex-ring" aria-hidden="true"></span>
+${tabs}
+                    </div>
+                    <div class="lp-ex-nav">
+                        <span class="lp-ex-count" aria-hidden="true"><b id="ex-count">01</b><span> / ${pad2(total)}</span></span>
+                        <button class="lp-round" type="button" data-ex-dir="prev" aria-label="${esc(e.prevLabel)}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
+                        <button class="lp-round" type="button" data-ex-dir="next" aria-label="${esc(e.nextLabel)}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <div class="lp-ex-box" id="try-carousel" role="region" aria-roledescription="carousel" aria-label="${esc(e.carouselLabel)}" style="${roleStyle(EX_META[e.slides[0]!.id].color)}">
+                    <span class="lp-ex-blob" aria-hidden="true"></span>
+${panels}
+                </div>
+            </section>`;
+}
+
+// ------------------------------------------------------------ live stats
+
+function renderStats(doc: IndexDoc): string {
+    const s = doc.stats;
+    const u = s.foodLogsUnit;
+    const plurals = (["one", "few", "many", "other"] as const)
+        .filter((k) => u[k])
+        .map((k) => ` data-plural-${k}="${esc(u[k]!)}"`)
+        .join("");
+    const tiles = STAT_TILES.map(
+        (
+            t,
+        ) => `                    <div class="lp-tile" data-tile="${t.key}" style="${roleStyle(t.c)}"${t.key === "food_logs" ? plurals : ""}>
+                        <div class="lp-tile-top"><span class="nm-tile" style="${roleStyle(t.c)}" aria-hidden="true"><i class="${t.icon}"></i></span><span class="lp-delta" role="status" hidden></span></div>
+                        <div><b class="lp-fig"><span class="lp-odo" data-odo="${t.key}" role="img" aria-label="${esc(t.label(s))}">—</span><span class="lp-unit" aria-hidden="true">${t.unit}</span></b><span class="odo-cap">${esc(t.label(s))}</span></div>
+                    </div>`,
+    ).join("\n");
+    return `            <section class="nm-section lp-sec lp-stats" id="stats">
+                <div class="lp-head">
+                    <div>
+                        <h2 class="nm-h2">${esc(s.title)}</h2>
+                        <p>${esc(s.sub)}</p>
+                    </div>
+                    <div class="lp-units" role="group" aria-label="${esc(s.unitGroupLabel)}">
+                        <button type="button" data-unit="kg" aria-pressed="true" aria-label="${esc(s.unitKgLabel)}">${esc(s.unitMetricLabel)}</button>
+                        <button type="button" data-unit="lb" aria-pressed="false" aria-label="${esc(s.unitLbLabel)}">${esc(s.unitImperialLabel)}</button>
+                    </div>
+                </div>
+                <div class="lp-meta" id="stats-meta">
+                    <span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--track)" stroke-width="2.5"></circle><circle id="stats-ring" cx="8" cy="8" r="6" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="37.7"></circle></svg><span>${esc(s.refreshBefore)}<b id="stats-next">5</b>${esc(s.refreshAfter)}</span><span class="vh" id="facts-live" role="status">${esc(s.liveLabel)}</span></span>
+                    <span class="lp-since"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>${esc(s.sinceOpenLabel)} · <span id="stats-since">0:00</span></span>
+                </div>
+                <div class="lp-tiles" id="stat-row">
+${tiles}
+                </div>
+                <div class="nm-card lp-map" id="map-block">
+                    <div class="lp-map-head">
+                        <span class="lp-tz"><i class="fa-solid fa-earth-americas" aria-hidden="true"></i><b data-stat="timezones">—</b>${esc(s.timezonesAfter)}</span>
+                        <span class="lp-map-note">${esc(s.mapNote)}</span>
+                    </div>
+                    <div class="lp-map-wrap">
+                        <svg id="world-svg" viewBox="0 0 1000 440" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(s.mapAriaLabel)}"></svg>
+                    </div>
+                    <p class="lp-map-foot"><i class="fa-solid fa-lock" aria-hidden="true"></i><span>${esc(s.foot)}</span></p>
+                </div>
+            </section>`;
+}
+
+// -------------------------------------------------------- features / why
+
+function renderFeatures(doc: IndexDoc): string {
+    const cards = doc.features.cards
+        .map((c, i) => {
+            const m = FEATURE_META[i] ?? FEATURE_META[0]!;
+            return `                    <article class="nm-card lp-hover-lift nm-c-${m.c}">
+                        ${tile(m.icon)}
+                        <div><h3>${esc(c.title)}</h3>
+                        <p>${esc(c.body)}</p></div>
+                    </article>`;
+        })
+        .join("\n");
+    return `            <section class="nm-section lp-sec" id="features">
+                <h2 class="nm-h2 lp-mb">${esc(doc.features.title)}</h2>
+                <div class="lp-feat">
+${cards}
+                </div>
+            </section>`;
+}
+
+function renderWhy(doc: IndexDoc, locale: SiteLocale): string {
+    const w = doc.why;
+    const items = (list: string[], icon: string) =>
+        list
+            .map(
+                (t) =>
+                    `<li><i class="fa-solid ${icon}" aria-hidden="true"></i>${esc(t)}</li>`,
+            )
+            .join("");
+    const trust = doc.trust
+        .map(
+            (t, i) =>
+                `                    <div>${tile(TRUST_ICONS[i]!)}<span><b>${esc(t.label)}</b>${esc(t.small)}</span></div>`,
+        )
+        .join("\n");
+    return `            <section class="nm-section lp-sec lp-why" id="why">
+                <div class="lp-head">
+                    <h2 class="nm-h2">${esc(w.title)}</h2>
+                    <p>${esc(w.sub)}</p>
+                </div>
+                <div class="lp-why-grid">
+                    <div class="lp-why-old">
+                        <h3 class="lp-why-h">${esc(w.oldHeading)}</h3>
+                        <ul>${items(w.oldItems, "fa-xmark")}</ul>
+                    </div>
+                    <div class="lp-why-new">
+                        <span class="nm-blob" aria-hidden="true"></span>
+                        <h3 class="lp-why-h">${esc(w.newHeading)}</h3>
+                        <ul>${items(w.newItems, "fa-check")}</ul>
+                    </div>
+                </div>
+                <p class="lp-why-note">${localizeLinks(w.noteHtml, locale)}</p>
+                <div class="lp-trust">
+${trust}
+                </div>
+            </section>`;
+}
+
+// ------------------------------------------------- support / cta / contact
+
+function stars(): string {
+    return `<span class="nm-stars" data-gh-stars hidden><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars-n></span></span>`;
+}
+
+function renderSupport(doc: IndexDoc): string {
+    const s = doc.support;
+    return `            <!-- Support -->
+            <section class="nm-section lp-sec lp-support" id="support">
+                <div class="lp-free">
+                    <h2 class="nm-h2">${esc(s.title)}</h2>
+                    <p>${esc(s.sub)}</p>
+                    <div class="lp-tier">
+                        <div class="lp-tier-head"><h3>${esc(s.free.tier)}</h3><b>${esc(s.free.price)}</b></div>
+                        <p>${esc(s.free.desc)}</p>
+                        <a class="nm-btn lp-follow" href="${PATREON_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-patreon" aria-hidden="true"></i>${esc(s.free.cta)}</a>
+                    </div>
+                </div>
+                <div class="lp-paid">
+                    <span class="nm-blob" aria-hidden="true"></span>
+                    <span class="lp-paid-eyebrow">${esc(s.paid.tier)}</span>
+                    <h3>${esc(s.paid.price)}</h3>
+                    <p>${esc(s.paid.desc)}</p>
+                    <div class="lp-paid-ctas">
+                        <a class="nm-btn lp-pop" href="${PATREON_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-patreon" aria-hidden="true"></i>${esc(s.paid.cta)}</a>
+                        <a class="nm-btn nm-btn-ghost-dark" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(doc.cta.secondary)}${stars()}</a>
+                    </div>
+                </div>
+                <div class="patreon-updates" id="patreon-updates" hidden>
+                    <div class="lp-posts-head">
+                        <h3><i class="fa-brands fa-patreon" aria-hidden="true"></i>${esc(s.updatesTitle)}<span class="lp-free-badge">${esc(s.updatesBadge)}</span></h3>
+                        <span>${esc(s.updatesNote)}</span>
+                    </div>
+                    <div class="lp-posts" id="patreon-grid" data-link-label="${esc(s.postLinkLabel)}"></div>
+                    <div class="lp-pager" id="patreon-pager" hidden>
+                        <button class="lp-round" type="button" data-posts-dir="prev" aria-label="${esc(s.updatesPrevLabel)}"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                        <div class="lp-dots" id="patreon-dots" data-dot-label="${esc(s.updatesDotLabel)}"></div>
+                        <button class="lp-round" type="button" data-posts-dir="next" aria-label="${esc(s.updatesNextLabel)}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+            </section>`;
+}
+
+function renderCta(doc: IndexDoc): string {
+    const c = doc.cta;
+    return `            <section class="nm-section lp-sec lp-cta-sec">
+                <div class="nm-ink lp-cta">
+                    <span class="nm-blob b1" aria-hidden="true"></span>
+                    <span class="nm-blob b2" aria-hidden="true"></span>
+                    <h2 class="nm-h2">${esc(c.title)}</h2>
+                    <p>${esc(c.sub)}</p>
+                    <div class="lp-cta-btns">
+                        <a class="nm-btn nm-btn-acc nm-btn-lg" href="#install">${esc(c.primary)}</a>
+                        <a class="nm-btn nm-btn-lg nm-btn-ghost-dark" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(c.secondary)}${stars()}</a>
+                    </div>
+                </div>
+            </section>`;
+}
+
+function renderContact(doc: IndexDoc): string {
+    const c = doc.contact;
+    return `            <!-- Contact -->
+            <section class="nm-section lp-sec" id="contact">
+                <div class="nm-card nm-card-lg lp-contact">
+                    <span class="nm-blob" aria-hidden="true"></span>
+                    <div>
+                        <h2 class="nm-h2">${esc(c.title)}</h2>
+                        <p>${esc(c.sub)}</p>
+                    </div>
+                    <div>
+                        <a class="lp-mail" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>
+                        <a class="nm-btn nm-btn-ink" href="mailto:${CONTACT_EMAIL}"><i class="fa-solid fa-envelope" aria-hidden="true"></i>${esc(c.cta)}</a>
+                    </div>
+                </div>
+            </section>`;
+}
+
+function renderFaq(doc: IndexDoc): string {
+    // Native <details name="faq">: no script, one open at a time, the first
+    // open. The number and the +/− are CSS (counter + ::after), so <summary>
+    // holds only the question — src/site-copy.test.ts reads it that way.
+    const rows = doc.faq
+        .map(
+            (
+                q,
+                i,
+            ) => `                    <details name="faq"${i === 0 ? " open" : ""}>
+                        <summary>${esc(q.question)}</summary>
+                        <p>${q.visibleHtml}</p>
+                    </details>`,
+        )
+        .join("\n");
+    return `            <section class="nm-section lp-sec lp-faq" id="faq">
+                <div class="lp-sticky">
+                    <h2 class="nm-h2">${esc(doc.faqSection.title)}</h2>
+                </div>
+                <div class="nm-card lp-faq-list">
+${rows}
+                </div>
+            </section>`;
+}
+
+// -------------------------------------------------------------------- page
+
 function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
+    assertExamples(doc, locale);
     const suffix = "";
     const url = urlFor(locale, suffix);
     const title = esc(doc.title);
@@ -153,31 +825,6 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
         })),
     };
 
-    const dots = doc.try.slides
-        .map(
-            (_, i) =>
-                `                                <button
-                                    class="dot${i === 0 ? " active" : ""}"
-                                    type="button"
-                                    aria-label="${esc(doc.try.exampleLabel)} ${i + 1}"
-                                ></button>`,
-        )
-        .join("\n");
-
-    const slides = doc.try.slides
-        .map(
-            (s) => `                                    <div
-                                        class="slide"
-                                        role="group"
-                                        aria-roledescription="slide"
-                                    >
-                                        <div class="mini-chat">
-${s.html}
-                                        </div>
-                                    </div>`,
-        )
-        .join("\n");
-
     return `<!doctype html>
 <html lang="${HTML_LANG[locale]}">
     <head>
@@ -200,12 +847,12 @@ ${s.html}
         <meta name="twitter:title" content="${title}" />
         <meta name="twitter:description" content="${esc(doc.ogDescription)}" />
 ${localeHead(locale, suffix)}
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#fbfbf9" />
+${ICON_LINKS}
+        <meta name="theme-color" content="${THEME_COLOR_LIGHT}" />
 ${jsonLd(softwareAppSchema)}
 ${jsonLd(faqSchema)}
 ${HEAD_ASSETS}
+        <style>${LANDING_CSS}</style>
     </head>
     <body class="landing">
 ${generatedBanner("scripts/gen-index.ts")}
@@ -215,557 +862,31 @@ ${THEME_PREPAINT}
 ${nav(locale, suffix)}
 
         <main id="main">
-            <!-- Hero -->
-            <section class="hero">
-                <div class="container hero-grid">
-                    <div class="hero-copy">
-                        <p class="eyebrow">${esc(doc.hero.eyebrow)}</p>
-                        <h1 class="hero-title">
-                            ${esc(doc.hero.titleBeforeEm)}<em>${esc(doc.hero.titleEm)}</em>${esc(doc.hero.titleAfterEm)}
-                        </h1>
-                        <p class="lead">
-                            ${esc(doc.hero.lead)}
-                        </p>
-                        <div class="hero-actions">
-                            <a class="btn btn-primary" href="#install"
-                                >${esc(doc.hero.ctaPrimary)}</a
-                            >
-                            <a class="btn btn-secondary" href="#support"
-                                >${esc(doc.hero.ctaSecondary)}</a
-                            >
-                        </div>
-                    </div>
-
-                    <!-- Illustrative chat demo (decorative). Three depth
-                         layers: a faint label panel at the back, macro chips
-                         in the middle, the chat card in front. site.js moves
-                         them by scroll × data-depth and tilts the card. -->
-                    <div class="hero-stage" aria-hidden="true">
-                        <div class="hero-panel depth" data-depth="0.22"></div>
-                        <div class="hero-chips depth" data-depth="0.1">
-${doc.hero.chipsHtml}
-                        </div>
-                        <div class="hero-card depth" data-depth="-0.04">
-                            <div class="chat-window">
-${doc.hero.chatHtml}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
+${renderHero(doc, locale)}
 ${
     notice
-        ? `            <div class="container translation-notice-band">
+        ? `            <div class="translation-notice-band">
 ${notice}
             </div>`
         : ""
 }
-
-            <!-- How it works -->
-            <section class="section band" id="how">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.how.eyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(doc.how.title)}
-                        </h2>
-                    </div>
-                    <div class="steps3" data-reveal="stagger">
-${doc.how.steps.map((s, i) => renderHowStep(s, HOW_ICONS[i]!)).join("\n")}
-                    </div>
-                </div>
-            </section>
-
-            <!-- Quick install -->
-            <section class="section" id="install">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.install.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.install.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.install.sub)}
-                        </p>
-                    </div>
-
-                    <div class="card install-card">
-                        <div class="tabs-wrap">
-                            <input
-                                type="radio"
-                                name="itab"
-                                id="itab-claude"
-                                class="tab-input"
-                                checked
-                            />
-                            <input
-                                type="radio"
-                                name="itab"
-                                id="itab-chatgpt"
-                                class="tab-input"
-                            />
-                            <input
-                                type="radio"
-                                name="itab"
-                                id="itab-other"
-                                class="tab-input"
-                            />
-
-                            <div class="seg">
-                                <label for="itab-claude" class="seg-claude"
-                                    ><i class="fa-brands fa-claude" aria-hidden="true"></i>
-                                    Claude</label
-                                >
-                                <label for="itab-chatgpt" class="seg-chatgpt"
-                                    ><i class="fa-brands fa-openai" aria-hidden="true"></i>
-                                    ChatGPT</label
-                                >
-                                <label for="itab-other" class="seg-other"
-                                    ><i class="fa-solid fa-terminal" aria-hidden="true"></i>
-                                    ${esc(doc.install.otherTabLabel)}</label
-                                >
-                            </div>
-
-                            <div class="tab-panel panel-claude">
-                                <a
-                                    class="btn claude-cta"
-                                    href="${CLAUDE_DIRECTORY_URL}"
-                                    target="_blank"
-                                    rel="noopener"
-                                    ><i class="fa-brands fa-claude" aria-hidden="true"></i>
-                                    ${esc(doc.install.claude.cta)}
-                                    <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i
-                                ></a>
-                                <ol class="steps">
-${doc.install.claude.steps.map((s) => `                                    <li>${s}</li>`).join("\n")}
-                                </ol>
-                                <p class="note">
-                                    ${esc(doc.install.claude.note)}
-                                </p>
-                            </div>
-
-                            <div class="tab-panel panel-chatgpt">
-                                <ol class="steps">
-${doc.install.chatgpt.steps.map((s) => `                                    <li>${s}</li>`).join("\n")}
-                                </ol>
-                            </div>
-
-                            <div class="tab-panel panel-other">
-                                <!-- prettier-ignore -->
-                                <pre class="code-block">{
-  "mcpServers": {
-    "nutrition": {
-      "url": "https://nutrition-mcp.com/mcp"
-    }
-  }
-}</pre>
-                                <p class="note">
-                                    ${doc.install.other.note}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Optional onboarding -->
-            <section class="section" id="onboarding">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.onboarding.eyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(doc.onboarding.title)}
-                        </h2>
-                        <p class="section-sub">
-                            ${esc(doc.onboarding.sub)}
-                        </p>
-                    </div>
-
-                    <div class="card install-card">
-                        <ol class="steps">
-${doc.onboarding.steps.map((s) => `                            <li>\n                                ${s}\n                            </li>`).join("\n")}
-                        </ol>
-                        <p class="note">
-                            ${esc(doc.onboarding.note)}
-                        </p>
-                    </div>
-
-                    <a class="tools-cta" href="${pathFor(locale, "/tools")}">
-                        <span class="tools-cta-icon" aria-hidden="true"
-                            ><i class="fa-solid fa-wand-magic-sparkles"></i
-                        ></span>
-                        <span class="tools-cta-text">
-                            <strong>${esc(doc.onboarding.toolsCta.heading)}</strong>
-                            ${esc(doc.onboarding.toolsCta.body)}
-                        </span>
-                        <span class="tools-cta-arrow" aria-hidden="true"
-                            >${esc(doc.onboarding.toolsCta.arrow)}
-                            <i class="fa-solid fa-arrow-right"></i
-                        ></span>
-                    </a>
-                </div>
-            </section>
-
-            <!-- Try saying -->
-            <section class="section band" id="try">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.try.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.try.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.try.sub)}
-                        </p>
-                    </div>
-                    <div class="cw-wrap" id="try-carousel">
-                        <div class="chat-window">
-                            <div class="cw-header">
-                                <span class="cw-avatar" aria-hidden="true"
-                                    ><i class="fa-solid fa-apple-whole"></i
-                                ></span>
-                                <span class="cw-title">${esc(doc.chatChrome.brand)}</span>
-                                <span class="cw-status">${esc(doc.chatChrome.status)}</span>
-                            </div>
-                            <div class="carousel-viewport cw-body">
-                                <div class="carousel-track">
-${slides}
-                                </div>
-                            </div>
-                            <div class="cw-input" aria-hidden="true">
-                                <span class="cw-field">${esc(doc.chatChrome.inputPlaceholder)}</span>
-                                <span class="cw-send"
-                                    ><i class="fa-solid fa-arrow-up"></i
-                                ></span>
-                            </div>
-                        </div>
-                        <div class="carousel-controls">
-                            <button
-                                class="carousel-arrow"
-                                type="button"
-                                data-dir="prev"
-                                aria-label="${esc(doc.try.prevLabel)}"
-                            >
-                                <i class="fa-solid fa-chevron-left"></i>
-                            </button>
-                            <div class="carousel-dots">
-${dots}
-                            </div>
-                            <button
-                                class="carousel-arrow"
-                                type="button"
-                                data-dir="next"
-                                aria-label="${esc(doc.try.nextLabel)}"
-                            >
-                                <i class="fa-solid fa-chevron-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Stats + world map -->
-            <section class="section" id="stats">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.stats.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.stats.title)}</h2>
-                    </div>
-
-                    <div class="facts" id="stat-row" data-reveal>
-                        <p class="facts-title">
-                            <span>${esc(doc.stats.factsTitle)}</span>
-                            <span
-                                class="facts-unit"
-                                role="group"
-                                aria-label="${esc(doc.stats.unitGroupLabel)}"
-                            >
-                                <button
-                                    type="button"
-                                    data-unit="kg"
-                                    aria-pressed="true"
-                                    aria-label="${esc(doc.stats.unitKgLabel)}"
-                                >
-                                    kg
-                                </button>
-                                <button
-                                    type="button"
-                                    data-unit="lb"
-                                    aria-pressed="false"
-                                    aria-label="${esc(doc.stats.unitLbLabel)}"
-                                >
-                                    lb
-                                </button>
-                            </span>
-                        </p>
-                        <p class="facts-serving">
-                            <span>${esc(doc.stats.servingPrefix)}<b>${esc(doc.stats.servingBold)}</b></span>
-                            <span class="facts-live" id="facts-live">${esc(doc.stats.liveLabel)}</span>
-                        </p>
-                        <div class="facts-cal">
-                            <span class="label"
-                                >${esc(doc.stats.calLabel)}<small>${esc(doc.stats.calSmall)}</small></span
-                            >
-                            <div class="odo-hero">
-                                <span
-                                    class="odo"
-                                    data-odo="total_calories"
-                                    role="img"
-                                    aria-label="${esc(doc.stats.calCaption)}"
-                                    >—</span
-                                >
-                                <span class="odo-cap">${esc(doc.stats.calCaption)}</span>
-                            </div>
-                        </div>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowFoodLogs)}</span>
-                            <b data-stat="food_logs">—</b>
-                        </p>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowProtein)}</span>
-                            <b data-stat="total_protein_g">—</b>
-                        </p>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowCarbs)}</span>
-                            <b data-stat="total_carbs_g">—</b>
-                        </p>
-                        <p class="facts-row">
-                            <span>${esc(doc.stats.rowFat)}</span>
-                            <b data-stat="total_fat_g">—</b>
-                        </p>
-                        <p class="facts-foot">
-                            ${esc(doc.stats.foot)}
-                        </p>
-                    </div>
-
-                    <div class="map-block" id="map-block">
-                        <p class="map-head">
-                            ${esc(doc.stats.mapPrefix)}
-                            <span class="map-count" data-stat="timezones"
-                                >35</span
-                            >
-                            ${esc(doc.stats.mapSuffix)}
-                        </p>
-                        <div class="world-map">
-                            <svg
-                                id="world-svg"
-                                viewBox="0 0 1000 500"
-                                preserveAspectRatio="xMidYMid meet"
-                                role="img"
-                                aria-label="${esc(doc.stats.mapAriaLabel)}"
-                            ></svg>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Features -->
-            <section class="section band" id="features">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.features.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.features.title)}</h2>
-                    </div>
-                    <div class="features-grid" data-reveal="stagger">
-${doc.features.cards.map(renderFeatureCard).join("\n")}
-                    </div>
-                </div>
-            </section>
-
-            <!-- Why / comparison -->
-            <section class="section" id="why">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.why.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.why.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.why.sub)}
-                        </p>
-                    </div>
-                    <div class="compare">
-                        <div class="compare-col">
-                            <h3 class="compare-h compare-h-old">
-                                ${esc(doc.why.oldHeading)}
-                            </h3>
-                            <ul>
-${doc.why.oldItems.map((i) => `                                <li>\n                                    <i class="fa-solid fa-xmark"></i> ${esc(i)}\n                                </li>`).join("\n")}
-                            </ul>
-                        </div>
-                        <div class="compare-col compare-col-new">
-                            <h3 class="compare-h compare-h-new">
-                                ${esc(doc.why.newHeading)}
-                            </h3>
-                            <ul>
-${doc.why.newItems.map((i) => `                                <li>\n                                    <i class="fa-solid fa-circle-check"></i> ${esc(i)}\n                                </li>`).join("\n")}
-                            </ul>
-                        </div>
-                    </div>
-                    <p class="note compare-note">
-                        ${localizeLinks(doc.why.noteHtml, locale)}
-                    </p>
-                </div>
-            </section>
-
-            <!-- Trust -->
-            <section class="section band" id="trust">
-                <div class="container trust-grid" data-reveal="stagger">
-${doc.trust.map((t, i) => `                    <div class="trust-item">\n                        <i class="${TRUST_ICONS[i]}"></i>\n                        <span>${esc(t.label)}</span>\n                        <small>${esc(t.small)}</small>\n                    </div>`).join("\n")}
-                </div>
-            </section>
-
-            <!-- Support -->
-            <section class="section" id="support">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.support.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.support.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.support.sub)}
-                        </p>
-                    </div>
-                    <div class="support-grid">
-                        <div class="card support-card">
-                            <h3 class="support-tier">${esc(doc.support.free.tier)}</h3>
-                            <p class="support-price">${esc(doc.support.free.price)}</p>
-                            <p class="support-desc">
-                                ${esc(doc.support.free.desc)}
-                            </p>
-                            <a
-                                class="btn btn-secondary"
-                                href="https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                >${esc(doc.support.free.cta)}</a
-                            >
-                        </div>
-                        <div class="card support-card support-card-paid">
-                            <h3 class="support-tier">${esc(doc.support.paid.tier)}</h3>
-                            <p class="support-price">${esc(doc.support.paid.price)}</p>
-                            <p class="support-desc">
-                                ${esc(doc.support.paid.desc)}
-                            </p>
-                            <a
-                                class="btn btn-primary"
-                                href="https://patreon.com/akutishevskyi?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                >${esc(doc.support.paid.cta)}</a
-                            >
-                        </div>
-                    </div>
-                    <div class="patreon-updates" id="patreon-updates" hidden>
-                        <div class="patreon-updates-head">
-                            <p class="patreon-updates-title">${esc(doc.support.updatesTitle)}</p>
-                            <p class="patreon-updates-note">${esc(doc.support.updatesNote)}</p>
-                        </div>
-                        <div class="patreon-carousel" id="patreon-carousel">
-                            <div class="carousel-viewport">
-                                <div
-                                    class="carousel-track"
-                                    id="patreon-carousel-track"
-                                ></div>
-                            </div>
-                            <div
-                                class="carousel-controls"
-                                id="patreon-carousel-controls"
-                                hidden
-                            >
-                                <button
-                                    class="carousel-arrow"
-                                    type="button"
-                                    data-dir="prev"
-                                    aria-label="${esc(doc.support.updatesPrevLabel)}"
-                                >
-                                    <i class="fa-solid fa-chevron-left"></i>
-                                </button>
-                                <div
-                                    class="carousel-dots"
-                                    id="patreon-carousel-dots"
-                                    data-dot-label="${esc(doc.support.updatesDotLabel)}"
-                                ></div>
-                                <button
-                                    class="carousel-arrow"
-                                    type="button"
-                                    data-dir="next"
-                                    aria-label="${esc(doc.support.updatesNextLabel)}"
-                                >
-                                    <i class="fa-solid fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Closing CTA -->
-            <section class="section cta">
-                <div class="container cta-inner" data-reveal>
-                    <h2 class="cta-title">${esc(doc.cta.title)}</h2>
-                    <p class="cta-sub">
-                        ${esc(doc.cta.sub)}
-                    </p>
-                    <div class="cta-actions">
-                        <a class="btn btn-on-accent" href="#install"
-                            >${esc(doc.cta.primary)}</a
-                        >
-                        <a
-                            class="btn btn-ghost-accent"
-                            href="https://github.com/akutishevsky/nutrition-mcp"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            <i class="fa-brands fa-github"></i> ${esc(doc.cta.secondary)}
-                            <span class="gh-stars" id="gh-stars"></span>
-                        </a>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Contact -->
-            <section class="section band" id="contact">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.contact.eyebrow)}</p>
-                        <h2 class="section-title">${esc(doc.contact.title)}</h2>
-                        <p class="section-sub">
-                            ${esc(doc.contact.sub)}
-                        </p>
-                    </div>
-                    <div class="card contact-card">
-                        <span class="contact-icon" aria-hidden="true"
-                            ><i class="fa-solid fa-envelope"></i
-                        ></span>
-                        <a
-                            class="contact-email"
-                            href="mailto:anton@nutrition-mcp.com"
-                            >anton@nutrition-mcp.com</a
-                        >
-                        <a
-                            class="btn btn-primary"
-                            href="mailto:anton@nutrition-mcp.com"
-                            >${esc(doc.contact.cta)}</a
-                        >
-                    </div>
-                </div>
-            </section>
-
-            <!-- FAQ -->
-            <section class="section" id="faq">
-                <div class="container" data-reveal>
-                    <div class="section-head">
-                        <p class="eyebrow">${esc(doc.faqSection.eyebrow)}</p>
-                        <h2 class="section-title">
-                            ${esc(doc.faqSection.title)}
-                        </h2>
-                    </div>
-                    <div class="faq">
-${doc.faq.map(renderFaq).join("\n")}
-                    </div>
-                </div>
-            </section>
+${renderHow(doc)}
+${renderInstall(doc)}
+${renderOnboarding(doc, locale)}
+${renderExamples(doc, locale)}
+${renderStats(doc)}
+${renderFeatures(doc)}
+${renderWhy(doc, locale)}
+${renderSupport(doc)}
+${renderCta(doc)}
+${renderContact(doc)}
+${renderFaq(doc)}
         </main>
 
 ${footer(locale)}
 
         <script>
-            ${LANDING_SCRIPT}
+${LANDING_SCRIPT}
         </script>
 ${SITE_SCRIPT}
 ${EMAIL_OFF_CLOSE}
@@ -787,7 +908,20 @@ if (import.meta.main) {
             locale === "en"
                 ? "./public/index.html"
                 : `./public/${locale}/index.html`;
-        await Bun.write(file, renderDoc(doc, locale));
+        let html: string;
+        try {
+            html = renderDoc(doc, locale);
+        } catch (err) {
+            // A translation that has not caught up with IndexDoc yet (a
+            // missing field reads as undefined at runtime, since only
+            // `bun run typecheck` sees the type). English must always build.
+            if (locale === "en") throw err;
+            console.warn(
+                `skipped ${file}: src/copy/index.${locale}.ts does not match IndexDoc yet (${(err as Error).message})`,
+            );
+            continue;
+        }
+        await Bun.write(file, html);
         console.log(`wrote ${file}`);
     }
 }

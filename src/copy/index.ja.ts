@@ -1,2205 +1,40 @@
 // Japanese (ja) translation of the landing page content — see src/copy/index.ts
 // for the authoritative shape (`IndexDoc`) and the full doc comments on what
-// each field means and why the decorative chat-widget blocks are stored as
-// one trusted HTML block per message rather than split field-by-field.
+// each field means, which fields carry trusted HTML, and which fields of the
+// demo conversations are structure (copied verbatim) rather than copy.
 //
-// Terminology kept consistent across the widget mockups and prose:
+// NOTE on sugar: the in-chat widget strings (src/copy/widgets.ja.ts, not
+// this file) label the sugar tile 糖質, while this prose says 糖類, so an
+// examples reply that names sugar sits above a real card that says 糖質.
+// Known and deliberate: 糖質 means net carbohydrate, so the prose keeps the
+// accurate 糖類, and the card's label is the widget copy's to change.
+//
+// Terminology kept consistent across the widget labels and prose:
 // protein → タンパク質, carbs → 炭水化物, fat → 脂質, fiber → 食物繊維,
 // (total) sugar → 糖類, alcohol → アルコール（純アルコール換算のグラム）,
 // caffeine → カフェイン, meal → 食事, water → 水分, weigh-in → 記録,
 // goals/target → 目標, limit → 上限, timezone → タイムゾーン,
-// export → エクスポート, trends → トレンド. Standard polite です/ます
-// register throughout the prose, matching how a modern consumer SaaS
-// product speaks in Japanese; link/button labels use plain/dictionary
-// form where that's the natural Japanese UI convention (e.g. a bare
-// noun phrase like "食事を記録"), even inside an otherwise です/ます page.
-// Proper nouns (Nutrition MCP, Claude, ChatGPT, GitHub, MyFitnessPal,
-// Cronometer, Lose It!, MacroFactor, MCP) stay in Latin script, never
+// export → エクスポート, trends → トレンド, examples → 使用例. Standard
+// polite です/ます register throughout the prose, matching how a modern
+// consumer SaaS product speaks in Japanese; the user's side of the demo
+// chats is casual, as people actually type. Link/button labels use
+// plain/dictionary form where that's the natural Japanese UI convention
+// (e.g. a bare noun phrase like "食事を記録"). Proper nouns (Nutrition MCP,
+// Claude, ChatGPT, GitHub, Patreon, MyFitnessPal, Cronometer, Lose It!,
+// MacroFactor, Open Food Facts, MCP) stay in Latin script, never
 // transliterated into katakana. Numbers stay half-width digits with the
-// same comma thousands-separator as the English source (e.g. "2,100") —
-// unlike French's narrow-space grouping, Japanese numeral convention
-// matches English here, so figures inside the widget mockups are
-// byte-identical to src/copy/index.ts.
+// same comma thousands-separator and unit spacing as the English source
+// (e.g. "2,000", "480 kcal", "21 g"), so every figure the cards draw is
+// quoted byte-identically.
+//
+// Three spacing fields deliberately differ from the English contract:
+// `onboarding.justSay` ends in a full-width colon instead of a trailing
+// space, and `stats.refreshBefore` / `stats.timezonesAfter` carry no space
+// next to the number — Japanese sets no space between a numeral and the
+// counter/particle around it (「12か所のタイムゾーン」), so the English
+// pattern would render a stray gap beside the <b>{n}</b>.
 
 import type { IndexDoc } from "./index.js";
-
-const HERO_CHIPS_HTML_PLACEHOLDER = `
-                            <span class="chip chip-1"
-                                ><i style="--c: var(--cal)"></i
-                                ><b>+340</b> kcal</span
-                            >
-                            <span class="chip chip-2"
-                                ><i style="--c: #8b5cf6"></i
-                                ><b>20 g</b> タンパク質</span
-                            >
-                            <span class="chip chip-3"
-                                ><i style="--c: #10b981"></i
-                                ><b>30 g</b> 炭水化物</span
-                            >
-                            <span class="chip chip-4"
-                                ><i style="--c: #0ea5e9"></i
-                                ><b>500 ml</b> 水分</span
-                            >`;
-const HERO_CHAT_HTML_PLACEHOLDER = `
-                                <div class="cw-header">
-                                    <span class="cw-avatar"
-                                        ><i class="fa-solid fa-apple-whole"></i
-                                    ></span>
-                                    <span class="cw-title">Nutrition MCP</span>
-                                    <span class="cw-status">オンライン</span>
-                                </div>
-                                <div class="cw-body">
-                                    <div class="chat-thread">
-                                        <div class="msg msg-user">
-                                            朝食に卵2個、全粒粉トースト、コーヒー
-                                        </div>
-
-                                        <div class="msg msg-ai">
-                                            <div class="wdg">
-                                                <div class="wdg-head">
-                                                    <div class="wdg-title">
-                                                        食事を記録しました
-                                                    </div>
-                                                    <div class="wdg-sub">
-                                                        卵2個、トースト、コーヒー
-                                                        · 朝食
-                                                    </div>
-                                                    <div
-                                                        class="wdg-meta wdg-kcal"
-                                                    >
-                                                        +340 kcal
-                                                    </div>
-                                                </div>
-                                                <div class="wdg-strip">
-                                                    <div class="wdg-srow">
-                                                        <div class="wdg-cal">
-                                                            <div
-                                                                class="wdg-gauge"
-                                                            >
-                                                                <div
-                                                                    class="wdg-ring"
-                                                                    style="
-                                                                        --c: var(
-                                                                            --cal
-                                                                        );
-                                                                        --p: 16;
-                                                                    "
-                                                                ></div>
-                                                                <div
-                                                                    class="wdg-rc"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-rp"
-                                                                        style="
-                                                                            color: var(
-                                                                                --cal
-                                                                            );
-                                                                        "
-                                                                        >16%</span
-                                                                    >
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-caltxt"
-                                                            >
-                                                                <div
-                                                                    class="wdg-callab"
-                                                                >
-                                                                    本日のカロリー
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-calline"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-calval"
-                                                                    >
-                                                                        340<span
-                                                                            class="wdg-calgoal"
-                                                                            >/
-                                                                            2,100</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calleft"
-                                                                    >
-                                                                        残り1,760
-                                                                        kcal
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="wdg-grids">
-                                                            <div
-                                                                class="wdg-mgrid"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >タンパク質</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >20<span
-                                                                                class="wdg-msub"
-                                                                                >/150</span
-                                                                            ></span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 13.3%;
-                                                                                background: var(
-                                                                                    --pro
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >炭水化物</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >30<span
-                                                                                class="wdg-msub"
-                                                                                >/220</span
-                                                                            ></span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 13.6%;
-                                                                                background: var(
-                                                                                    --car
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >脂質</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >15<span
-                                                                                class="wdg-msub"
-                                                                                >/70</span
-                                                                            ></span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 21.4%;
-                                                                                background: var(
-                                                                                    --fat
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mgrid wdg-lim wdg-sec"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >糖類</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >2.5</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 5.6%;
-                                                                                background: var(
-                                                                                    --sug
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mcap"
-                                                                    >
-                                                                        上限45
-                                                                        g
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >カフェイン</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >95</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 23.8%;
-                                                                                background: var(
-                                                                                    --caf
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mcap"
-                                                                    >
-                                                                        上限
-                                                                        400 mg
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >食物繊維</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >3.4</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 11.3%;
-                                                                                background: var(
-                                                                                    --fib
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mcap"
-                                                                    >
-                                                                        目標30
-                                                                        g
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mhint"
-                                                                aria-hidden="true"
-                                                            >
-                                                                数値をタップすると対象の食事が表示されます
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            完了しました —
-                                            朝食に卵2個、トースト、コーヒーを記録しました。約340
-                                            kcal（タンパク質20g、炭水化物30g、脂質15g、食物繊維3.4g）、コーヒーからカフェイン95mgです。
-                                        </div>
-
-                                        <div class="msg msg-user">
-                                            体重の推移はどうですか?
-                                        </div>
-
-                                        <div class="msg msg-ai">
-                                            <div class="wdg">
-                                                <div class="wdg-head wdg-mid">
-                                                    <div class="wdg-title">
-                                                        体重
-                                                    </div>
-                                                    <div
-                                                        class="wdg-seg"
-                                                        aria-hidden="true"
-                                                    >
-                                                        <span
-                                                            class="wdg-seg-btn wdg-on"
-                                                            >7</span
-                                                        >
-                                                        <span
-                                                            class="wdg-seg-btn"
-                                                            >14</span
-                                                        >
-                                                        <span
-                                                            class="wdg-seg-btn"
-                                                            >30</span
-                                                        >
-                                                    </div>
-                                                </div>
-                                                <div class="wdg-wmain">
-                                                    <div class="wdg-wnow">
-                                                        <div class="wdg-wtag">
-                                                            直近
-                                                        </div>
-                                                        <div class="wdg-wval">
-                                                            74.5<span
-                                                                class="wdg-wunit"
-                                                                >kg</span
-                                                            >
-                                                        </div>
-                                                        <div
-                                                            class="wdg-wdelta"
-                                                            style="
-                                                                color: var(
-                                                                    --accent
-                                                                );
-                                                            "
-                                                        >
-                                                            7月5日から −0.6 kg
-                                                        </div>
-                                                    </div>
-                                                    <svg
-                                                        class="wdg-wchart"
-                                                        viewBox="0 0 300 62"
-                                                        role="img"
-                                                        aria-label="7月5日から7月11日までの体重推移、直近74.5 kg"
-                                                    >
-                                                        <line
-                                                            class="wdg-goalline"
-                                                            x1="5"
-                                                            y1="50.4"
-                                                            x2="295"
-                                                            y2="50.4"
-                                                        />
-                                                        <path
-                                                            d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z"
-                                                            fill="var(--accent)"
-                                                            opacity="0.16"
-                                                        />
-                                                        <path
-                                                            d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1"
-                                                            fill="none"
-                                                            stroke="var(--accent)"
-                                                            stroke-width="2"
-                                                            stroke-linejoin="round"
-                                                            stroke-linecap="round"
-                                                        />
-                                                        <circle
-                                                            cx="5.0"
-                                                            cy="13.6"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="53.3"
-                                                            cy="15.4"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="101.7"
-                                                            cy="18.9"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="150.0"
-                                                            cy="17.1"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="198.3"
-                                                            cy="22.4"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="246.7"
-                                                            cy="20.6"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="295.0"
-                                                            cy="24.1"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                    </svg>
-                                                </div>
-                                                <div class="wdg-sec wdg-wfoot">
-                                                    <span
-                                                        >7回の記録 · 7月5日 →
-                                                        7月11日</span
-                                                    >
-                                                    <span
-                                                        ><b>目標73.0 kg</b> ·
-                                                        あと1.5 kgで達成</span
-                                                    >
-                                                </div>
-                                            </div>
-                                            今週は0.6kg減り、目標の73kgまであと1.5kgです
-                                            —
-                                            7日間平均は順調に下降しています。
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="cw-input">
-                                    <span class="cw-field"
-                                        >Nutritionにメッセージ…</span
-                                    >
-                                    <span class="cw-send"
-                                        ><i class="fa-solid fa-arrow-up"></i
-                                    ></span>
-                                </div>`;
-const SLIDE_1_HTML_PLACEHOLDER = `
-                                            <div class="msg msg-user">
-                                                昼食にチキンブリトーボウルを記録して
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                <div class="wdg">
-                                                    <div class="wdg-head">
-                                                        <div class="wdg-title">
-                                                            食事を記録しました
-                                                        </div>
-                                                        <div class="wdg-sub">
-                                                            チキンブリトーボウル
-                                                            · 昼食
-                                                        </div>
-                                                        <div
-                                                            class="wdg-meta wdg-kcal"
-                                                        >
-                                                            +650 kcal
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-strip">
-                                                        <div class="wdg-srow">
-                                                            <div
-                                                                class="wdg-cal"
-                                                            >
-                                                                <div
-                                                                    class="wdg-gauge"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-ring"
-                                                                        style="
-                                                                            --c: var(
-                                                                                --cal
-                                                                            );
-                                                                            --p: 47;
-                                                                        "
-                                                                    ></div>
-                                                                    <div
-                                                                        class="wdg-rc"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-rp"
-                                                                            style="
-                                                                                color: var(
-                                                                                    --cal
-                                                                                );
-                                                                            "
-                                                                            >47%</span
-                                                                        >
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-caltxt"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-callab"
-                                                                    >
-                                                                        本日のカロリー
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calline"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-calval"
-                                                                        >
-                                                                            990<span
-                                                                                class="wdg-calgoal"
-                                                                                >/
-                                                                                2,100</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-calleft"
-                                                                        >
-                                                                            残り1,110
-                                                                            kcal
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-grids"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mgrid"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >タンパク質</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >62<span
-                                                                                    class="wdg-msub"
-                                                                                    >/150</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 41.3%;
-                                                                                    background: var(
-                                                                                        --pro
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >炭水化物</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >98<span
-                                                                                    class="wdg-msub"
-                                                                                    >/220</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 44.5%;
-                                                                                    background: var(
-                                                                                        --car
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >脂質</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >37<span
-                                                                                    class="wdg-msub"
-                                                                                    >/70</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 52.9%;
-                                                                                    background: var(
-                                                                                        --fat
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mgrid wdg-lim wdg-sec"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >糖類</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >6.5</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 14.4%;
-                                                                                    background: var(
-                                                                                        --sug
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            上限
-                                                                            45 g
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >カフェイン</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >95</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 23.8%;
-                                                                                    background: var(
-                                                                                        --caf
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            上限
-                                                                            400
-                                                                            mg
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >食物繊維</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >15.4</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 51.3%;
-                                                                                    background: var(
-                                                                                        --fib
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            目標
-                                                                            30 g
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mhint"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    数値をタップすると対象の食事が表示されます
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="wdg-wrow wdg-sec"
-                                                        >
-                                                            <span
-                                                                class="wdg-wlab"
-                                                                ><span
-                                                                    class="wdg-dot"
-                                                                    style="
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></span
-                                                                >水分</span
-                                                            >
-                                                            <div
-                                                                class="wdg-mbar"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mfill"
-                                                                    style="
-                                                                        width: 48%;
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></div>
-                                                            </div>
-                                                            <span
-                                                                class="wdg-wnum"
-                                                                >1.2<span
-                                                                    class="wdg-wsub"
-                                                                    >/2.5
-                                                                    L</span
-                                                                ></span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                了解しました —
-                                                昼食にチキンブリトーボウルを記録しました。約650
-                                                kcal（タンパク質42g、炭水化物68g、脂質22g）、豆から食物繊維12gです。
-                                            </div>`;
-const SLIDE_2_HTML_PLACEHOLDER = `
-                                            <div
-                                                class="msg-img"
-                                                aria-hidden="true"
-                                            >
-                                                <svg
-                                                    viewBox="0 0 220 150"
-                                                    class="chat-photo"
-                                                    role="img"
-                                                    aria-label="夕食の皿の写真"
-                                                >
-                                                    <rect
-                                                        width="220"
-                                                        height="150"
-                                                        fill="#efe9df"
-                                                    />
-                                                    <ellipse
-                                                        cx="110"
-                                                        cy="82"
-                                                        rx="72"
-                                                        ry="52"
-                                                        fill="#fbfaf7"
-                                                    />
-                                                    <ellipse
-                                                        cx="110"
-                                                        cy="82"
-                                                        rx="72"
-                                                        ry="52"
-                                                        fill="none"
-                                                        stroke="#e6e0d3"
-                                                        stroke-width="2.5"
-                                                    />
-                                                    <ellipse
-                                                        cx="110"
-                                                        cy="82"
-                                                        rx="58"
-                                                        ry="41"
-                                                        fill="none"
-                                                        stroke="#efe9df"
-                                                        stroke-width="1.5"
-                                                    />
-                                                    <ellipse
-                                                        cx="136"
-                                                        cy="64"
-                                                        rx="28"
-                                                        ry="19"
-                                                        fill="#f3efe6"
-                                                    />
-                                                    <ellipse
-                                                        cx="136"
-                                                        cy="64"
-                                                        rx="28"
-                                                        ry="19"
-                                                        fill="none"
-                                                        stroke="#e7e1d4"
-                                                        stroke-width="1"
-                                                    />
-                                                    <g fill="#ffffff">
-                                                        <circle
-                                                            cx="126"
-                                                            cy="60"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="138"
-                                                            cy="58"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="146"
-                                                            cy="66"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="132"
-                                                            cy="70"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="142"
-                                                            cy="68"
-                                                            r="1.6"
-                                                        />
-                                                    </g>
-                                                    <g
-                                                        transform="rotate(-16 86 92)"
-                                                    >
-                                                        <rect
-                                                            x="58"
-                                                            y="80"
-                                                            width="56"
-                                                            height="26"
-                                                            rx="9"
-                                                            fill="#e0916b"
-                                                        />
-                                                        <rect
-                                                            x="64"
-                                                            y="86"
-                                                            width="44"
-                                                            height="3"
-                                                            rx="1.5"
-                                                            fill="#edb293"
-                                                        />
-                                                        <rect
-                                                            x="64"
-                                                            y="92"
-                                                            width="44"
-                                                            height="3"
-                                                            rx="1.5"
-                                                            fill="#edb293"
-                                                        />
-                                                        <rect
-                                                            x="64"
-                                                            y="98"
-                                                            width="44"
-                                                            height="3"
-                                                            rx="1.5"
-                                                            fill="#edb293"
-                                                        />
-                                                    </g>
-                                                    <g>
-                                                        <rect
-                                                            x="128"
-                                                            y="98"
-                                                            width="4"
-                                                            height="12"
-                                                            rx="2"
-                                                            fill="#9ab98a"
-                                                        />
-                                                        <circle
-                                                            cx="124"
-                                                            cy="98"
-                                                            r="10"
-                                                            fill="#5f8f4e"
-                                                        />
-                                                        <circle
-                                                            cx="136"
-                                                            cy="95"
-                                                            r="8.5"
-                                                            fill="#6fa35d"
-                                                        />
-                                                        <circle
-                                                            cx="133"
-                                                            cy="105"
-                                                            r="7.5"
-                                                            fill="#537f44"
-                                                        />
-                                                        <circle
-                                                            cx="121"
-                                                            cy="106"
-                                                            r="6.5"
-                                                            fill="#6a9a58"
-                                                        />
-                                                    </g>
-                                                </svg>
-                                            </div>
-                                            <div class="msg msg-user">
-                                                これが夕食です —
-                                                何が入っていますか?
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                グリルサーモンにご飯とブロッコリーのようですね
-                                                — 夕食に記録しました。約540
-                                                kcal（タンパク質38g、炭水化物45g、脂質20g）です。
-                                            </div>`;
-const SLIDE_3_HTML_PLACEHOLDER = `
-                                            <div
-                                                class="msg-img"
-                                                aria-hidden="true"
-                                            >
-                                                <svg
-                                                    viewBox="0 0 220 150"
-                                                    class="chat-photo"
-                                                    role="img"
-                                                    aria-label="商品バーコードの写真"
-                                                >
-                                                    <rect
-                                                        width="220"
-                                                        height="150"
-                                                        fill="#efe9df"
-                                                    />
-                                                    <rect
-                                                        x="40"
-                                                        y="32"
-                                                        width="140"
-                                                        height="86"
-                                                        rx="12"
-                                                        fill="#ffffff"
-                                                        stroke="#e6e0d3"
-                                                        stroke-width="2"
-                                                    />
-                                                    <g>
-                                                        <rect
-                                                            x="53"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="58.6"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="62.2"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="66.8"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="70.39999999999999"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="73.99999999999999"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="79.59999999999998"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="84.19999999999997"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="87.79999999999997"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="92.39999999999996"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="95.99999999999996"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="101.59999999999995"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="105.19999999999995"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="108.79999999999994"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="113.39999999999993"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="117.99999999999993"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="121.59999999999992"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="127.19999999999992"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="130.79999999999993"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="135.39999999999992"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="138.99999999999991"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="142.5999999999999"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="147.1999999999999"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="152.7999999999999"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                    </g>
-                                                    <text
-                                                        x="110"
-                                                        y="108"
-                                                        text-anchor="middle"
-                                                        font-family="ui-monospace, monospace"
-                                                        font-size="10"
-                                                        letter-spacing="2"
-                                                        fill="#9a9a9f"
-                                                    >
-                                                        0 12345 67890
-                                                    </text>
-                                                </svg>
-                                            </div>
-                                            <div class="msg msg-user">
-                                                これを記録して
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai step-ask">
-                                                見つかりました —
-                                                Chobaniのギリシャヨーグルト、1カップ:120
-                                                kcal、タンパク質15g。どの食事に記録しますか?
-                                                <div class="meal-pick">
-                                                    <span class="meal-chip"
-                                                        >朝食</span
-                                                    >
-                                                    <span class="meal-chip"
-                                                        >昼食</span
-                                                    >
-                                                    <span class="meal-chip"
-                                                        >夕食</span
-                                                    >
-                                                    <span
-                                                        class="meal-chip meal-pick-target"
-                                                        >間食</span
-                                                    >
-                                                </div>
-                                            </div>
-                                            <div class="msg msg-ai step-done">
-                                                <div class="wdg">
-                                                    <div class="wdg-head">
-                                                        <div class="wdg-title">
-                                                            食事を記録しました
-                                                        </div>
-                                                        <div class="wdg-sub">
-                                                            Chobaniのギリシャヨーグルト、1カップ
-                                                            · 間食
-                                                        </div>
-                                                        <div
-                                                            class="wdg-meta wdg-kcal"
-                                                        >
-                                                            +120 kcal
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-strip">
-                                                        <div class="wdg-srow">
-                                                            <div
-                                                                class="wdg-cal"
-                                                            >
-                                                                <div
-                                                                    class="wdg-gauge"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-ring"
-                                                                        style="
-                                                                            --c: var(
-                                                                                --cal
-                                                                            );
-                                                                            --p: 73;
-                                                                        "
-                                                                    ></div>
-                                                                    <div
-                                                                        class="wdg-rc"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-rp"
-                                                                            style="
-                                                                                color: var(
-                                                                                    --cal
-                                                                                );
-                                                                            "
-                                                                            >73%</span
-                                                                        >
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-caltxt"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-callab"
-                                                                    >
-                                                                        本日のカロリー
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calline"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-calval"
-                                                                        >
-                                                                            1,540<span
-                                                                                class="wdg-calgoal"
-                                                                                >/
-                                                                                2,100</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-calleft"
-                                                                        >
-                                                                            残り560
-                                                                            kcal
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-grids"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mgrid"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >タンパク質</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >98<span
-                                                                                    class="wdg-msub"
-                                                                                    >/150</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 65.3%;
-                                                                                    background: var(
-                                                                                        --pro
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >炭水化物</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >150<span
-                                                                                    class="wdg-msub"
-                                                                                    >/220</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 68.2%;
-                                                                                    background: var(
-                                                                                        --car
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >脂質</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >52<span
-                                                                                    class="wdg-msub"
-                                                                                    >/70</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 74.3%;
-                                                                                    background: var(
-                                                                                        --fat
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mgrid wdg-lim wdg-sec"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >糖類</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >28.4</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 63.1%;
-                                                                                    background: var(
-                                                                                        --sug
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            上限
-                                                                            45 g
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >カフェイン</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >95</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 23.8%;
-                                                                                    background: var(
-                                                                                        --caf
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            上限
-                                                                            400
-                                                                            mg
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >食物繊維</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >19.2</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 64%;
-                                                                                    background: var(
-                                                                                        --fib
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            目標
-                                                                            30 g
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mhint"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    数値をタップすると対象の食事が表示されます
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                間食に記録しました — 120
-                                                kcal、タンパク質15g、糖類9gです。
-                                            </div>`;
-const SLIDE_4_HTML_PLACEHOLDER = `
-                                            <div class="msg msg-user">
-                                                タイムゾーンをニューヨークに設定して
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                完了しました —
-                                                1日の区切りが東部時間の深夜0時になったので、どこにいても今日の合計が正確になります。
-                                            </div>`;
-const SLIDE_5_HTML_PLACEHOLDER = `
-                                            <div class="msg msg-user">
-                                                今日のタンパク質摂取量はどうですか?
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                目標150gのうち118gです —
-                                                あと32g。ギリシャヨーグルト1カップか鶏むね肉1枚で達成できます。
-                                            </div>`;
-const SLIDE_6_HTML_PLACEHOLDER = `
-                                            <div class="msg msg-user">
-                                                今週のトレンドを見せて
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                <div class="wdg">
-                                                    <div
-                                                        class="wdg-head wdg-mid"
-                                                    >
-                                                        <div class="wdg-title">
-                                                            トレンド
-                                                        </div>
-                                                        <div
-                                                            class="wdg-seg"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <span
-                                                                class="wdg-seg-btn wdg-on"
-                                                                >7</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >14</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >30</span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-chart">
-                                                        <div class="wdg-chead">
-                                                            <span
-                                                                class="wdg-ctitle"
-                                                                >カロリー/日</span
-                                                            >
-                                                            <span
-                                                                class="wdg-cmeta"
-                                                                >7/7日
-                                                                記録済み</span
-                                                            >
-                                                        </div>
-                                                        <svg
-                                                            viewBox="0 0 480 54"
-                                                            role="img"
-                                                            aria-label="過去7日間の1日あたりカロリー"
-                                                        >
-                                                            <line
-                                                                class="wdg-axis"
-                                                                x1="8"
-                                                                y1="50"
-                                                                x2="472"
-                                                                y2="50"
-                                                            />
-                                                            <line
-                                                                class="wdg-goalline"
-                                                                x1="8"
-                                                                y1="11.7"
-                                                                x2="472"
-                                                                y2="11.7"
-                                                            />
-                                                            <path
-                                                                d="M8.0 50 L8.0 13.2 L85.3 14.7 L162.7 11.9 L240.0 15.7 L317.3 13.4 L394.7 14.4 L472.0 14.2 L472.0 50 Z"
-                                                                fill="var(--cal)"
-                                                                opacity="0.16"
-                                                            />
-                                                            <path
-                                                                d="M8.0 13.2 L85.3 14.7 L162.7 11.9 L240.0 15.7 L317.3 13.4 L394.7 14.4 L472.0 14.2"
-                                                                fill="none"
-                                                                stroke="var(--cal)"
-                                                                stroke-width="2"
-                                                                stroke-linejoin="round"
-                                                                stroke-linecap="round"
-                                                            />
-                                                            <circle
-                                                                cx="8.0"
-                                                                cy="13.2"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="85.3"
-                                                                cy="14.7"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="162.7"
-                                                                cy="11.9"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="240.0"
-                                                                cy="15.7"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="317.3"
-                                                                cy="13.4"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="394.7"
-                                                                cy="14.4"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="472.0"
-                                                                cy="14.2"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                        </svg>
-                                                        <div class="wdg-tdates">
-                                                            <span>07-05</span
-                                                            ><span>07-11</span>
-                                                        </div>
-                                                    </div>
-                                                    <div
-                                                        class="wdg-strip wdg-sec"
-                                                    >
-                                                        <div class="wdg-srow">
-                                                            <div
-                                                                class="wdg-cal"
-                                                            >
-                                                                <div
-                                                                    class="wdg-gauge"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-ring"
-                                                                        style="
-                                                                            --c: var(
-                                                                                --cal
-                                                                            );
-                                                                            --p: 94;
-                                                                        "
-                                                                    ></div>
-                                                                    <div
-                                                                        class="wdg-rc"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-rp"
-                                                                            style="
-                                                                                color: var(
-                                                                                    --cal
-                                                                                );
-                                                                            "
-                                                                            >94%</span
-                                                                        >
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-caltxt"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-callab"
-                                                                    >
-                                                                        7日間平均
-                                                                        ·
-                                                                        全日
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calline"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-calval"
-                                                                        >
-                                                                            1,980<span
-                                                                                class="wdg-calgoal"
-                                                                                >/
-                                                                                2,100</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-calleft"
-                                                                        >
-                                                                            120
-                                                                            kcal少ない
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-grids"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mgrid"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >タンパク質</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >148<span
-                                                                                    class="wdg-msub"
-                                                                                    >/150</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 98.7%;
-                                                                                    background: var(
-                                                                                        --pro
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >炭水化物</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >205<span
-                                                                                    class="wdg-msub"
-                                                                                    >/220</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 93.2%;
-                                                                                    background: var(
-                                                                                        --car
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >脂質</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >66<span
-                                                                                    class="wdg-msub"
-                                                                                    >/70</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 94.3%;
-                                                                                    background: var(
-                                                                                        --fat
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mgrid wdg-lim wdg-sec"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >糖類</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >38.2</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 84.9%;
-                                                                                    background: var(
-                                                                                        --sug
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            上限
-                                                                            45 g
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >カフェイン</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >180</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 45%;
-                                                                                    background: var(
-                                                                                        --caf
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            上限
-                                                                            400
-                                                                            mg
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >食物繊維</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >26.8</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 89.3%;
-                                                                                    background: var(
-                                                                                        --fib
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            目標
-                                                                            30 g
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="wdg-wrow wdg-sec"
-                                                        >
-                                                            <span
-                                                                class="wdg-wlab"
-                                                                ><span
-                                                                    class="wdg-dot"
-                                                                    style="
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></span
-                                                                >水分</span
-                                                            >
-                                                            <div
-                                                                class="wdg-mbar"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mfill"
-                                                                    style="
-                                                                        width: 84%;
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></div>
-                                                            </div>
-                                                            <span
-                                                                class="wdg-wnum"
-                                                                >2.1<span
-                                                                    class="wdg-wsub"
-                                                                    >/2.5
-                                                                    L</span
-                                                                ></span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                1日平均1,980
-                                                kcalです —
-                                                目標より120
-                                                kcal少なく、糖類とカフェインもどちらも上限内に余裕があります。食物繊維は平均26.8
-                                                gで、目標の30
-                                                gにわずかに届いていません。
-                                            </div>`;
-const SLIDE_7_HTML_PLACEHOLDER = `
-                                            <div class="msg msg-user">
-                                                体重を記録して、74.5 kg
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                <div class="wdg">
-                                                    <div
-                                                        class="wdg-head wdg-mid"
-                                                    >
-                                                        <div class="wdg-title">
-                                                            体重
-                                                        </div>
-                                                        <div
-                                                            class="wdg-seg"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <span
-                                                                class="wdg-seg-btn wdg-on"
-                                                                >7</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >14</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >30</span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-wmain">
-                                                        <div class="wdg-wnow">
-                                                            <div
-                                                                class="wdg-wtag"
-                                                            >
-                                                                直近
-                                                            </div>
-                                                            <div
-                                                                class="wdg-wval"
-                                                            >
-                                                                74.5<span
-                                                                    class="wdg-wunit"
-                                                                    >kg</span
-                                                                >
-                                                            </div>
-                                                            <div
-                                                                class="wdg-wdelta"
-                                                                style="
-                                                                    color: var(
-                                                                        --accent
-                                                                    );
-                                                                "
-                                                            >
-                                                                7月5日から
-                                                                −0.6 kg
-                                                            </div>
-                                                        </div>
-                                                        <svg
-                                                            class="wdg-wchart"
-                                                            viewBox="0 0 300 62"
-                                                            role="img"
-                                                            aria-label="7月5日から7月11日までの体重推移、直近74.5 kg"
-                                                        >
-                                                            <line
-                                                                class="wdg-goalline"
-                                                                x1="5"
-                                                                y1="50.4"
-                                                                x2="295"
-                                                                y2="50.4"
-                                                            />
-                                                            <path
-                                                                d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z"
-                                                                fill="var(--accent)"
-                                                                opacity="0.16"
-                                                            />
-                                                            <path
-                                                                d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1"
-                                                                fill="none"
-                                                                stroke="var(--accent)"
-                                                                stroke-width="2"
-                                                                stroke-linejoin="round"
-                                                                stroke-linecap="round"
-                                                            />
-                                                            <circle
-                                                                cx="5.0"
-                                                                cy="13.6"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="53.3"
-                                                                cy="15.4"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="101.7"
-                                                                cy="18.9"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="150.0"
-                                                                cy="17.1"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="198.3"
-                                                                cy="22.4"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="246.7"
-                                                                cy="20.6"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="295.0"
-                                                                cy="24.1"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                        </svg>
-                                                    </div>
-                                                    <div
-                                                        class="wdg-sec wdg-wfoot"
-                                                    >
-                                                        <span
-                                                            >7回の記録 · 7月5日
-                                                            → 7月11日</span
-                                                        >
-                                                        <span
-                                                            ><b
-                                                                >目標73.0
-                                                                kg</b
-                                                            >
-                                                            · あと1.5
-                                                            kgで達成</span
-                                                        >
-                                                    </div>
-                                                </div>
-                                                記録しました —
-                                                目標に近づいています。
-                                            </div>`;
 
 export const INDEX_JA: IndexDoc = {
     title: "Nutrition MCP — ClaudeとChatGPTで使えるAI食事・栄養トラッカー",
@@ -2210,26 +45,67 @@ export const INDEX_JA: IndexDoc = {
     keywords:
         "栄養トラッカー, 食事記録, MCPサーバー, Claude AI, ChatGPT, カロリーカウンター, 栄養素トラッカー, バーコードスキャナー, 食事ログ, ダイエット管理, 体重トラッカー, 体重記録, AI栄養管理, Model Context Protocol",
 
-    chatChrome: {
-        brand: "Nutrition MCP",
-        status: "オンライン",
-        inputPlaceholder: "Nutritionにメッセージ…",
-    },
-
     hero: {
-        eyebrow: "無料 · オープンソース · OAuth 2.0",
         titleBeforeEm: "AIに",
         titleEm: "話しかける",
         titleAfterEm: "だけで栄養管理。",
         lead: "ClaudeまたはChatGPTを接続して、食べたものを話すだけ。カロリーと栄養素が自動で記録されます。",
         ctaPrimary: "かんたん導入",
         ctaSecondary: "サポート",
-        chipsHtml: HERO_CHIPS_HTML_PLACEHOLDER,
-        chatHtml: HERO_CHAT_HTML_PLACEHOLDER,
+        moreExamples: "使用例をもっと見る",
+        chat: {
+            photoAlt:
+                "写真：バナナ、ベリー、グラノーラをのせたスムージーボウルと、横に置いたアメリカーノ",
+            pauseLabel: "デモを一時停止",
+            replayLabel: "デモをもう一度再生",
+            exchanges: [
+                {
+                    photo: true,
+                    userText: "朝ごはん + アメリカーノ",
+                    aiText: "スムージーボウルですね。見たところ手作りのようです。これまで2通りで記録しています：グラノーラとはちみつ入りか、フルーツだけか。今回はどちらですか?",
+                },
+                {
+                    userText: "グラノーラとはちみつ。スプーンにたっぷり1杯",
+                    aiText: "わかりました。アメリカーノはブラックですか、ミルク入りですか?",
+                },
+                {
+                    userText: "オーツミルクをちょっとだけ",
+                    aiText: "では：グラノーラ1つかみとはちみつ大さじ1のボウルに、オーツミルクを少し入れたアメリカーノ。約480 kcal、タンパク質21 gです。朝食として記録しますか?",
+                },
+                {
+                    userText: "うん",
+                    aiText: "朝食を記録しました：480 kcal、タンパク質21 g、カフェイン150 mg。糖類は51 gで、そのうち17 gははちみつの分です。",
+                    card: "meal-logged",
+                    meal: {
+                        description:
+                            "グラノーラ（1つかみ）とはちみつ（大さじ1）をのせたスムージーボウル（ギリシャヨーグルト、バナナ、ベリー）、オーツミルク少量入りのアメリカーノ",
+                        type: "breakfast",
+                    },
+                },
+                {
+                    userText:
+                        "昨日の夜の残りの炒め物、量は同じ。あと500 mlの水を1本",
+                    aiText: "昼食を記録しました。昨夜と同じく620 kcal、タンパク質54 g、それに水500 mlです。",
+                },
+                {
+                    userText: "子どものポテト6本つまんじゃった。何も言わないで",
+                    aiText: "何も言いませんよ。約90 kcal、間食として記録しました。",
+                },
+                {
+                    userText: "夕飯、あとどれくらい食べられる?",
+                    aiText: "残りは810 kcalで、タンパク質はまだ84 g足りません。甘くないものにしましょう：糖類はすでに上限60 gのうち59 gです。",
+                    card: "nutrition-summary",
+                },
+                {
+                    userText: "体重はどんな感じ?",
+                    aiText: "2月11日から1.4 kg減で、週に約0.4 kgのペースです。目標の75 kgまであと3.8 kgです。",
+                    card: "weight-trends",
+                },
+            ],
+        },
     },
 
     how: {
-        eyebrow: "使い方",
         title: "3ステップ。覚えるアプリはありません。",
         steps: [
             {
@@ -2245,12 +121,14 @@ export const INDEX_JA: IndexDoc = {
                 body: "日次サマリー、週次トレンド、目標の進捗を聞いたり、記録したすべてをCSVファイルとしてエクスポートしたりできます — すべて無料です。",
             },
         ],
+        counter: "{n} / 3",
     },
 
     install: {
-        eyebrow: "かんたん導入",
         title: "1分足らずで接続完了",
         sub: "OAuth 2.0（PKCE対応）をサポートするMCPクライアントならどれでも使えます。初回接続時にGoogleまたはメールアドレスとパスワードでアカウントを作成し、同じ方法でサインインすればデータを引き継げます。",
+        copyAriaLabel: "サーバーURLをコピー",
+        tabsLabel: "AIクライアントを選択",
         claude: {
             cta: "Claudeに追加",
             steps: [
@@ -2264,7 +142,7 @@ export const INDEX_JA: IndexDoc = {
                 "<strong>ChatGPT（Web版）</strong>を開き、<strong>設定</strong> → <strong>アプリ</strong>に進みます。",
                 "ポップアップ下部の<strong>アプリを作成</strong>をクリックします。表示されない場合は、<strong>詳細設定</strong>で<strong>開発者モード</strong>をオンにしてください。",
                 "名前を付けます（例:<strong>Nutrition</strong>）。",
-                '<strong>Connection</strong>には、<span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="サーバーURLをコピー"><i class="fa-solid fa-copy"></i></button></span>を貼り付けます。',
+                "<strong>Connection</strong>には<code>https://nutrition-mcp.com/mcp</code>を貼り付けます。",
                 "<strong>Authentication</strong>では<strong>OAuth</strong>を選択し、それ以外はそのままにします。",
                 '<strong>"I understand and want to continue"</strong>にチェックを入れます。',
                 "<strong>作成</strong>をクリックします。",
@@ -2279,14 +157,30 @@ export const INDEX_JA: IndexDoc = {
     },
 
     onboarding: {
-        eyebrow: "オンボーディング",
         title: "一度設定するか、そのまま話し始めるか",
         sub: "こちらは完全に任意です — Nutrition MCPは接続した瞬間から使えます。より正確にしたい場合は、次の3つの簡単なステップを行ってください。もちろん、そのまま記録を始めてもかまいません。",
+        justSay: "こう言うだけ：",
         steps: [
-            '<strong>タイムゾーンを設定</strong> — 現地時間の深夜0時に日付が切り替わり、どこにいても今日の合計が正確になります。<span class="step-say"><q>タイムゾーンをニューヨークに設定して</q>と言うだけ。</span>',
-            '<strong>目標を設定</strong> — 1日あたりのカロリー・栄養素・水分の目標に加え、任意で目標体重と単位（kgまたはlb）を設定して、進捗を追跡できます。<span class="step-say"><q>1日の目標を2,000カロリーとタンパク質150gに設定して</q>と言うだけ。</span>',
-            '<strong>言語を設定</strong> — チャット内ウィジェット（ダッシュボードやグラフ）を表示する言語です。AIがあなたに返す文章の言語ではありません。<span class="step-say"><q>ウィジェットをドイツ語で表示して</q>と言うだけ。</span>',
-            '<strong>記録を始める</strong> — 食べたものを話すか、写真を送るか、バーコードをスキャンするだけ。それだけです。<span class="step-say"><q>朝食にベリー入りオートミールを食べました</q>と言うだけ。</span>',
+            {
+                title: "タイムゾーンを設定",
+                body: "現地時間の深夜0時に日付が切り替わり、どこにいても今日の合計が正確になります。",
+                say: "タイムゾーンをニューヨークに設定して",
+            },
+            {
+                title: "目標を設定",
+                body: "1日あたりのカロリー・栄養素・水分の目標に加え、任意で目標体重と単位（kgまたはlb）を設定して、進捗を追跡できます。",
+                say: "1日の目標を2,000カロリーとタンパク質150gに設定して",
+            },
+            {
+                title: "言語を設定",
+                body: "チャット内ウィジェット（ダッシュボードやグラフ）を表示する言語です。AIがあなたに返す文章の言語ではありません。",
+                say: "ウィジェットをドイツ語で表示して",
+            },
+            {
+                title: "記録を始める",
+                body: "食べたものを話すか、写真を送るか、バーコードをスキャンするだけ。それだけです。",
+                say: "朝食にベリー入りオートミールを食べました",
+            },
         ],
         note: "ここでの設定はすべて任意です。今すぐでも、後からでも、しなくても構いません — まずは記録を始めて、好きなタイミングで設定してください。",
         toolsCta: {
@@ -2296,97 +190,531 @@ export const INDEX_JA: IndexDoc = {
         },
     },
 
-    try: {
-        eyebrow: "こう話しかけてみて",
+    examples: {
         title: "話しかけるだけ。",
         sub: "話しかけるだけでできることの一部です。",
         prevLabel: "前の例",
         nextLabel: "次の例",
-        exampleLabel: "例",
+        pickerLabel: "例を選択",
+        carouselLabel: "使用例",
+        threadLabel: "会話",
+        moreToolsLabel: "あわせて使用",
+        toolLinkLabel: "ツールページの{tool}",
+        photoMealAlt:
+            "写真：サワークリームとディルをのせたボルシチと、横に添えたライ麦パン1枚",
+        photoPackageAlt:
+            "写真：コカ・コーラの缶のバーコード、番号5449000000996",
+        downloadExpires: "60分後に期限切れ",
         slides: [
-            { html: SLIDE_1_HTML_PLACEHOLDER },
-            { html: SLIDE_2_HTML_PLACEHOLDER },
-            { html: SLIDE_3_HTML_PLACEHOLDER },
-            { html: SLIDE_4_HTML_PLACEHOLDER },
-            { html: SLIDE_5_HTML_PLACEHOLDER },
-            { html: SLIDE_6_HTML_PLACEHOLDER },
-            { html: SLIDE_7_HTML_PLACEHOLDER },
+            {
+                id: "log-meal",
+                title: "ふだんの言葉で記録",
+                description:
+                    "友だちに話すように伝えるだけ。量やどの食事かがわからなければ、推定する前に確認します。食物繊維と糖類はすべての記録に、カフェインは含まれるものに入り、「今朝」もあなたのタイムゾーンで記録されます。",
+                toolNotes: {
+                    log_meal:
+                        "主要栄養素、食物繊維、糖類、コーヒーのカフェイン込みで朝食を記録",
+                    log_water: "07:00の500 mlを今日の水分の合計に加算",
+                    get_current_time:
+                        "今日の日付を確認し、「7時ごろ」を07:00として記録",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "朝ごはんはブルーベリー入りのオートミールとコーヒー",
+                    },
+                    {
+                        from: "ai",
+                        text: "器はどのくらいの大きさで、オートミールは牛乳と水のどちらで作りましたか? コーヒーには何か入れましたか?",
+                    },
+                    {
+                        from: "user",
+                        text: "普通サイズ、牛乳で。コーヒーはブラック",
+                    },
+                    {
+                        from: "ai",
+                        text: "朝食を記録しました：約320 kcal、タンパク質11 g、食物繊維6 g。コーヒーのカフェインで、上限400 mgのうち95 mgになりました。",
+                    },
+                    {
+                        from: "user",
+                        text: "あ、あと7時ごろ、ランニングの前に水を半リットルくらい飲んだ",
+                    },
+                    {
+                        from: "ai",
+                        text: "今朝07:00に水500 mlを追加しました。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 3,
+                    },
+                ],
+                cardMeals: [
+                    "牛乳で作ったブルーベリー入りオートミール（1杯）とブラックコーヒー（1杯）",
+                ],
+            },
+            {
+                id: "photo-meal",
+                title: "お皿を撮るだけ",
+                description:
+                    "写真は推測ではなく、会話のきっかけです。手作りか外食かを確かめ、写真ではわからないことは過去の記録から調べ、食べた量を身近な単位でたずねます。記録するのは、まとめをあなたが承認してからです。",
+                toolNotes: {
+                    search_meals:
+                        "以前Tsybulyaで記録したボルシチと、その中身を見つける",
+                    log_meal: "承認を受けてから、お店の名前つきで記録",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        photo: "meal",
+                        text: "お昼",
+                    },
+                    {
+                        from: "ai",
+                        text: "サワークリームを添えたボルシチと、ライ麦パン1枚のようですね。手作りですか、それともお店のものですか? お店なら、どちらのお店ですか?",
+                    },
+                    {
+                        from: "user",
+                        text: "キーウのポジールにあるTsybulya",
+                    },
+                    {
+                        from: "ai",
+                        text: "Tsybulyaのボルシチは以前に2回記録していて、どちらもサワークリーム添えの牛肉のボルシチでした。今回も同じですか? ボルシチとパンは全部食べましたか?",
+                    },
+                    {
+                        from: "user",
+                        text: "同じやつ。全部食べた、パンも",
+                    },
+                    {
+                        from: "ai",
+                        text: "では：キーウ・ポジールのTsybulyaで、サワークリームを添えた牛肉のボルシチ（1杯、完食）とライ麦パン（1枚）。約520 kcal、タンパク質24 gで、公表値ではなく推定です。昼食として記録しますか?",
+                    },
+                    {
+                        from: "user",
+                        text: "うん",
+                    },
+                    {
+                        from: "ai",
+                        text: "昼食を記録しました：520 kcal · タンパク質24 g · 炭水化物43 g · 脂質27 g · 食物繊維7 g · 糖類10 g。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 7,
+                    },
+                ],
+                cardMeals: [
+                    "サワークリームを添えた牛肉のボルシチ（1杯、完食）とライ麦パン（1枚）、Tsybulya（キーウ・ポジール）",
+                ],
+            },
+            {
+                id: "scan-barcode",
+                title: "バーコードをスキャン",
+                description:
+                    "パッケージを撮影すると、バーコードの下の数字をOpen Food Factsで検索し、どれだけ口にしたかを尋ねます。Open Food Factsにはカフェインの情報がないため、カフェインはラベルか一般的な含有量から補い、欠けている食物繊維や糖類の数値も空欄にせず推定します。",
+                toolNotes: {
+                    lookup_barcode: "缶のラベルの数値をOpen Food Factsから取得",
+                    log_meal: "缶1本分をカフェイン込みで昼食に記録",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        photo: "package",
+                        text: "これお昼と一緒に飲んだ。実際どれくらい体に悪い?",
+                    },
+                    {
+                        from: "ai",
+                        text: "コカ・コーラの330 ml缶ですね：139 kcal、糖類35 g（Open Food Factsより）。1缶まるごと飲みましたか?",
+                    },
+                    {
+                        from: "user",
+                        text: "1缶全部",
+                    },
+                    {
+                        from: "ai",
+                        text: "昼食に追加して記録しました：139 kcal、糖類35 g、カフェイン33 mg。Open Food Factsにはカフェインの記載がないため、カフェインは缶のラベルの値です。どれくらい悪いかというと、この糖類だけで1日の上限60 gの半分を超えます。Open Food Factsの評価はNutri-Score E、NOVA 4（超加工食品）です。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 3,
+                    },
+                ],
+                cardMeals: ["コカ・コーラ（330 ml缶）"],
+            },
+            {
+                id: "goals-progress",
+                title: "目標を決めて確認",
+                description:
+                    "カロリーやタンパク質のように達成したい目標と、糖類・アルコール・カフェインのように超えたくない上限を設定。変わるのは伝えた項目だけです。どの日についても、各数値を目標と比べ、あとどれだけ残っているかを確認できます。",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "カロリーとタンパク質の目標、カフェイン上限400 mgを保存",
+                    get_goal_progress: "今日の各目標に対する状況と残りを表示",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ちょっと絞りたい。2000 kcalとタンパク質160 gに設定して。あとカフェインの上限ってどれくらいが妥当? ほぼコーヒーで生きてる",
+                    },
+                    {
+                        from: "ai",
+                        text: "健康な成人については、EFSAとFDAが1日400 mgまでとしています。ドリップコーヒー約4杯分で、妊娠中はEFSAが200 mgを推奨しています。上限はご自身で決められます。400にしますか?",
+                    },
+                    {
+                        from: "user",
+                        text: "うん、400で",
+                    },
+                    {
+                        from: "ai",
+                        text: "設定しました：2,000 kcalとタンパク質160 gを目標に、カフェインは400 mg未満。ほかはそのままです：炭水化物220 g、脂質70 g、食物繊維30 g、水分2.5 L、糖類の上限60 g。",
+                    },
+                    {
+                        from: "user",
+                        text: "今夜まだデザート食べられる?",
+                    },
+                    {
+                        from: "ai",
+                        text: "ここまで1,540 kcal、タンパク質104 gなので、残りは460 kcal、タンパク質56 gです。厳しいのは糖類で、上限60 gのうち40 g、残りは20 gです。カフェインは400 mgのうち130 mgです。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "goal-progress",
+                        after: 5,
+                    },
+                ],
+            },
+            {
+                id: "review-week",
+                title: "1週間を振り返る",
+                description:
+                    "1週間の様子を聞くと、平均と記録日数を載せたトレンドカードがチャット内に開きます。7日・14日・30日の切り替えも、栄養素をタップしたグラフ表示も、新たなリクエストなしで。連続記録や目標達成日数も答えられます。",
+                toolNotes: {
+                    get_trends:
+                        "直近7日・14日・30日を平均し、トレンドカードを開く",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "この2週間どうだった? なんかバラバラだった気がする",
+                    },
+                    {
+                        from: "ai",
+                        text: "感じているより安定しています。1日平均1,830 kcalで、目標の2,000より170少ないですが、これは14日のうち記録しなかった1日を0として数えた値です。記録した13日だけなら約1,970で、目標の±10%以内が9日。しかも10日連続で記録中です。",
+                    },
+                    {
+                        from: "user",
+                        text: "糖類は?",
+                    },
+                    {
+                        from: "ai",
+                        text: "そこは要注意です。平均52 gで、13日のうち4日は上限の60 gを超えました。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "trends",
+                        after: 1,
+                    },
+                ],
+            },
+            {
+                id: "weight-trend",
+                title: "体重を記録",
+                description:
+                    "体重をkgまたはlbで記録すれば、日々の変動に隠れたトレンドがわかります。平滑化した平均、1か月の変化、目標までの差を表示。小数点の打ち忘れのようなありえない値は、保存前に弾きます。",
+                toolNotes: {
+                    log_weight: "784 kgをありえない値として退け、78.4 kgを保存",
+                    get_weight_trends:
+                        "30日分を移動平均で平滑化し、目標までの差を算出",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "今量った、784",
+                    },
+                    {
+                        from: "ai",
+                        text: "784 kgは体重としてありえる範囲（20〜500 kg）を外れているため、何も保存していません。78.4 kgのことですか?",
+                    },
+                    {
+                        from: "user",
+                        text: "笑 そう、点を忘れた。推移はどう?",
+                    },
+                    {
+                        from: "ai",
+                        text: "78.4 kgを記録しました。2月11日から1.8 kg減で、週に約0.4 kgのペース、7日間平均は78.7 kgです。目標の75 kgまであと3.4 kgです。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "weight-trends",
+                        after: 3,
+                    },
+                ],
+            },
+            {
+                id: "meal-patterns",
+                title: "自分の傾向を知る",
+                description:
+                    "いつ多く食べているかを聞くと、あなた自身の記録を比較します：平日と週末、朝食のある日とない日、しっかりした昼食、早めと遅めの夕食。いつもと違う日も知らせ、伝えるのは原因ではなく傾向です。",
+                toolNotes: {
+                    get_meal_patterns:
+                        "30日分で朝食の有無、夕食の時間、週末を比較",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "朝ごはん抜いた日の方が食べ過ぎてる? そんな気がする",
+                    },
+                    {
+                        from: "ai",
+                        text: "少しそうです。直近30日のうち28日を記録していて、朝食を抜いたのは6日。その日の平均は2,215 kcalで、朝食をとった22日の1,940 kcalより多く、タンパク質は約35 g少なめでした。",
+                    },
+                    {
+                        from: "user",
+                        text: "夜遅い夕食は? ジムの日は9時まで食べないんだけど",
+                    },
+                    {
+                        from: "ai",
+                        text: "そちらも目立ちます：夕食が20時以降だった9日は平均2,165 kcal、残りの19日は1,920 kcalでした。どちらも記録に見られる傾向で、それが原因だという証拠ではありません。",
+                    },
+                    {
+                        from: "user",
+                        text: "週末は?",
+                    },
+                    {
+                        from: "ai",
+                        text: "ほとんど変わりません：週末の平均は2,010 kcal、平日は1,993 kcalです。",
+                    },
+                ],
+            },
+            {
+                id: "track-drinks",
+                title: "お酒も記録",
+                description:
+                    "アルコール記録は、頼むまでオフのまま。US標準ドリンクかUKユニットを選ぶと、どの飲み物も量と度数から純アルコールのグラム数を算出します。あとでオフにしても非表示になるだけで、削除はされません。",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "アルコール記録をオンにし、グラム数とUKユニットを併記",
+                    log_meal: "パイントの純アルコール量を量と度数から算出",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "お酒も数えてくれる? ちょっと控えたくて",
+                    },
+                    {
+                        from: "ai",
+                        text: "わかりました。アルコールはUS標準ドリンクとUKユニット、どちらで表示しますか?",
+                    },
+                    {
+                        from: "user",
+                        text: "UKユニットで。マンチェスター住みだから",
+                    },
+                    {
+                        from: "ai",
+                        text: "アルコール記録をオンにしました。グラム数とUKユニットを併記します。",
+                    },
+                    {
+                        from: "user",
+                        text: "夕食でラガーを1パイント飲んだ",
+                    },
+                    {
+                        from: "ai",
+                        text: "度数はどれくらいでしたか? ラガーはだいたい4〜5%で、サーバーや缶に書いてあります。",
+                    },
+                    {
+                        from: "user",
+                        text: "たぶん4%",
+                    },
+                    {
+                        from: "ai",
+                        text: "夕食に追加して記録しました：568 mlの1パイント、度数4%で純アルコール17.9 g、2.3 UKユニット、約180 kcalです。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 7,
+                    },
+                ],
+                cardMeals: ["ラガー、4%（1パイント、568 ml）"],
+            },
+            {
+                id: "import-history",
+                title: "履歴を引き継ぐ",
+                description:
+                    "MyFitnessPal、Cronometer、Lose It!、MacroFactorからの乗り換えですか? インポーターがチャット内に開き、エクスポートをブラウザ内で読み込んで対応付けます。プレビューを確認するまで何も保存されず、同じファイルを再度インポートしても食事は重複しません。タイムゾーンが未設定なら、始める前に知らせます。",
+                toolNotes: {
+                    start_meal_import:
+                        "エクスポートファイル用のチャット内インポーターを開く",
+                    set_timezone:
+                        "America/Chicagoに設定し、食事を現地時刻で記録",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "myfitnesspalから乗り換え中。食事記録を移せる? エクスポートはある",
+                    },
+                    {
+                        from: "ai",
+                        text: "下にインポーターを開きました。ファイルを選ぶ前にひとつ：アカウントにタイムゾーンが設定されていないため、時刻がUTCとして読み込まれてしまいます。どちらにお住まいですか?",
+                    },
+                    {
+                        from: "user",
+                        text: "シカゴ",
+                    },
+                    {
+                        from: "ai",
+                        text: "America/Chicagoに設定しました。では、MyFitnessPalのエクスポートからNutrition-SummaryのCSVを選んでください。ファイルはブラウザ内で直接読み込まれ、プレビューを確認するまで何も保存されません。",
+                    },
+                    {
+                        from: "user",
+                        text: "列は対応付けされたけど、食品名が（このファイルにはありません）になってる?",
+                    },
+                    {
+                        from: "ai",
+                        text: "MyFitnessPalではそれが普通です：エクスポートは1日の食事ごとに1行で、合計値はあっても食品名がありません。代わりに各食事は食事の種類でラベル付けされ、カロリーと主要栄養素はそのまま残ります。",
+                    },
+                    {
+                        from: "user",
+                        text: "603件だって。正午で登録されるって書いてあるけど?",
+                    },
+                    {
+                        from: "ai",
+                        text: "そのとおりです。エクスポートには日付はあっても食事の時刻がないので、それぞれ現地時間の正午に置かれます。これでどの食事もシカゴ時間で正しい日に入ります。実際に食べた時刻がわからなくなるだけです。",
+                    },
+                    {
+                        from: "user",
+                        text: "できた! 全部入った?",
+                    },
+                    {
+                        from: "ai",
+                        text: "全部です：603件の食事をインポートし、失敗はありません。",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "import-meals",
+                        after: 3,
+                        step: "file",
+                    },
+                ],
+            },
+            {
+                id: "export-data",
+                title: "データを持ち出す",
+                description:
+                    "一度頼むだけで、あなたについて保存されているすべて — 食事、水分、体重の記録、目標、プロフィール設定、アカウントの記録、利用テレメトリ、アプリの接続 — を、READMEつきのCSVファイルのZIPにまとめます。タイムスタンプはあなたのタイムゾーンで記載され、meals.csvはそのままインポートし直せます。",
+                toolNotes: {
+                    export_all_data:
+                        "8つのCSVファイルとREADMEをZIPにまとめ、60分間有効なリンクで渡す",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "管理栄養士さんが食事記録を見たいって。スプレッドシートで出せる?",
+                    },
+                    {
+                        from: "ai",
+                        text: "どうぞ：食事1,204件、水分318件、体重64件に、目標、プロフィール設定、アカウント情報、ツールの利用テレメトリ、アプリの接続をまとめたZIPです。食事記録は中のmeals.csvで、ExcelやGoogleスプレッドシートで開けます。",
+                        download: "export-zip",
+                    },
+                    {
+                        from: "user",
+                        text: "リンクをそのまま送ればいい?",
+                    },
+                    {
+                        from: "ai",
+                        text: "ダウンロードしてファイルを送る方が安心です。リンクは60分で使えなくなりますし、リンクを持っている人なら誰でも、食事だけでなく体重やアカウント情報、設定も含めたエクスポート全体を開けてしまいます。",
+                    },
+                    {
+                        from: "user",
+                        text: "なるほど。必要になったら、あとでこれから復元できる?",
+                    },
+                    {
+                        from: "ai",
+                        text: "食事はできます。meals.csvはインポーターと同じ列名を使っているのでそのままインポートし直せ、すでに記録にある食事は認識してスキップするので、重複しません。ほかのファイルは控え用で、インポートし直すことはできません。",
+                    },
+                ],
+            },
         ],
     },
 
     stats: {
-        eyebrow: "みんなでここまで記録",
-        title: "世界中で広がる食事記録",
-        factsTitle: "栄養成分表示",
-        servingPrefix: "内容量 ",
-        servingBold: "これまでの全員",
+        title: "どこかで朝食、別のどこかで夕食。",
+        sub: "Nutrition MCP全アカウントのライブ栄養統計 — カロリー、食事ログ、栄養素、減った体重 — 5秒ごとに更新されます。",
         liveLabel: "ライブ",
-        calLabel: "カロリー ",
-        calSmall: "これまでの累計",
-        calCaption: "追跡したカロリーの合計",
-        rowFoodLogs: "食事ログ数",
-        rowProtein: "タンパク質",
-        rowCarbs: "炭水化物",
-        rowFat: "脂質",
-        unitGroupLabel: "重量の単位",
+        unitGroupLabel: "単位",
+        unitMetricLabel: "メートル法",
+        unitImperialLabel: "ヤード・ポンド法",
         // Full-width parentheses around half-width Latin, as everywhere
-        // else in this file (「カフェイン（mg）」). The symbol is what the
-        // button shows, and it also separates ポンド the mass from ポンド
-        // the currency. See the note on the field in src/copy/index.ts.
-        unitKgLabel: "キログラム（kg）",
-        unitLbLabel: "ポンド（lb）",
+        // else in this file (「カフェイン（mg）」). Each starts with its
+        // button's visible text and carries the Latin symbol (see the note
+        // on the field in src/copy/index.ts).
+        unitKgLabel: "メートル法（kg）",
+        unitLbLabel: "ヤード・ポンド法（lb）",
+        refreshBefore: "5秒ごとに更新 · 次の更新まで",
+        refreshAfter: "秒",
+        sinceOpenLabel: "このページを開いてから",
+        calCaption: "記録されたカロリー",
+        cards: {
+            foodLogs: "食事ログ",
+            protein: "記録されたタンパク質",
+            carbs: "記録された炭水化物",
+            fat: "記録された脂質",
+            weightLost: "2026年7月2日からの減量",
+            water: "記録された水分",
+        },
+        foodLogsUnit: { one: "件", other: "件" },
+        timezonesAfter:
+            "か所のタイムゾーン · 日付はそれぞれの現地時間の深夜0時に切り替わります",
+        mapNote: "点の大きさ = アカウントの割合",
+        mapAriaLabel: "食事が記録されたタイムゾーンの世界地図",
         foot: "全アカウントの合計値で、食事が記録されるたびに更新されます。個人のデータが表示されることはありません。",
-        mapPrefix: "世界の",
-        mapSuffix: "のタイムゾーンで記録",
-        mapAriaLabel: "Nutrition MCPが使われているタイムゾーンを示す世界地図",
     },
 
     features: {
-        eyebrow: "チャットするだけで、すべてが揃う",
         title: "記録できること",
         cards: [
             {
-                icon: "fa-solid fa-utensils",
                 title: "自然な言葉で食事記録",
                 body: "食べたものを説明するだけで、AIがカロリー、タンパク質、炭水化物、脂質、食物繊維、総糖類、カフェイン（mg）を推定して記録します。",
             },
             {
-                icon: "fa-solid fa-barcode",
                 title: "バーコードをスキャン",
                 body: "商品のバーコードを撮影または入力すると、Open Food Factsから栄養素・食物繊維・糖類を取得し、食べた量に合わせて調整します。",
             },
             {
-                icon: "fa-solid fa-bullseye",
                 title: "目標と進捗",
                 body: "1日あたりのカロリー・栄養素・食物繊維・水分の目標を設定し、糖類・カフェイン・アルコールの上限も決められます。進捗はリアルタイムで確認できます。",
             },
             {
-                icon: "fa-solid fa-chart-area",
                 title: "サマリーとトレンド",
                 body: "日次・週次の内訳、7/14/30日間のトレンド、連続記録日数、よく食べるパターンを確認できます。",
             },
             {
-                icon: "fa-solid fa-glass-water",
                 title: "水分記録",
                 body: "食事と合わせて水分摂取量（ml）を記録し、日ごとに振り返れます。",
             },
             {
-                icon: "fa-solid fa-weight-scale",
                 title: "体重管理",
                 body: "体重をkgまたはlbで記録し、7/14/30日間のトレンドを確認して、目標体重への進捗を追跡できます。",
             },
             {
-                icon: "fa-solid fa-clock-four",
                 title: "タイムゾーン対応",
                 body: "世界のどこにいても、現地時間で日付が切り替わります。",
             },
             {
-                icon: "fa-solid fa-file-import",
                 title: "他のアプリからインポート",
                 body: "MyFitnessPal、Cronometer、Lose It!、MacroFactorから食事履歴を持ち込めます — その他のCSVでも列を自分で対応付ければ利用できます。保存する前に、追加内容を確認できます。",
             },
             {
-                icon: "fa-solid fa-file-csv",
                 title: "エクスポートしてデータを所有",
                 body: "食事、水分、体重、目標、プロフィールに加え、アカウントの記録、利用テレメトリ、接続中のアプリまで、当社があなたについて保存しているすべてのデータをCSVファイルのZIPとして取得できます。現時点で再インポートできるのは食事のみです。アカウントとデータはいつでも削除できます。",
             },
@@ -2394,7 +722,6 @@ export const INDEX_JA: IndexDoc = {
     },
 
     why: {
-        eyebrow: "Nutrition MCPを選ぶ理由",
         title: "タップより、話す方が早い。",
         sub: "バーコードを撮るか、食べたものを話すだけ — データベースを探し回る必要も、別のアプリを開く必要もありません。",
         oldHeading: "従来のアプリ",
@@ -2435,14 +762,15 @@ export const INDEX_JA: IndexDoc = {
     ],
 
     support: {
-        eyebrow: "サポート",
         title: "運営を支えてください。",
         sub: "Nutrition MCPは無料・広告なしです。サーバーとデータベースの費用はPatreonでまかなっています。",
         updatesTitle: "Patreonの最新情報",
+        updatesBadge: "無料",
         updatesNote: "無料で読めます — メンバー登録は不要です。",
         updatesPrevLabel: "前の投稿",
         updatesNextLabel: "次の投稿",
         updatesDotLabel: "投稿",
+        postLinkLabel: "Patreonで読む",
         free: {
             tier: "無料メンバー",
             price: "$0",
@@ -2465,14 +793,12 @@ export const INDEX_JA: IndexDoc = {
     },
 
     contact: {
-        eyebrow: "お問い合わせ",
         title: "質問やフィードバックはありますか?",
         sub: "バグを見つけた、機能の要望がある、質問がある — どんなことでも直接メールしてください。すべてのメッセージに目を通しています。",
         cta: "メールを送る",
     },
 
     faqSection: {
-        eyebrow: "FAQ",
         title: "よくある質問",
     },
     faq: [

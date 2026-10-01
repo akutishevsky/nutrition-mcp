@@ -94,7 +94,7 @@ test("there is a landing page and a landing script on every locale", async () =>
 // ---------------------------------------------------------------- contracts
 
 // NUM_LOCALE is `document.documentElement.lang || "en"`. Without the
-// attribute every figure in the Nutrition Facts panel and the clock beside
+// attribute every figure in the live stats panel and the clock beside
 // it silently fall back to English grouping on all eight translated pages.
 test("every landing page stamps its own <html lang>", async () => {
     for (const { locale, path, html } of await landingPages()) {

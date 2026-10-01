@@ -1,556 +1,18 @@
+// Polish translation of src/copy/index.ts's IndexDoc. See that file's header
+// for the shape/trust-level rules this follows: the hero chat and the example
+// slides are structured (one field per message), so only the words translate;
+// `photo`, `card`, `meal.type`, `id`, `from`, `download`, `cards` and the
+// `toolNotes` keys are structure, copied verbatim from English.
+//
+// Notes for the Polish version:
+//   - "zjadłeś/aś" and similar forms cover both genders on purpose, as on
+//     /tools and the rest of the site.
+//   - Claude and ChatGPT UI labels (Customize, Connectors, Settings → Apps…)
+//     stay in English, because that is how they appear on screen.
+//   - Every figure a card draws is kept as written; in running text numbers
+//     use Polish formatting (2000, 1540, 78,4 kg).
+
 import type { IndexDoc } from "./index.js";
-
-const HERO_CHIPS_HTML_PL = `
-    <span class="chip chip-1"><i style="--c: var(--cal)"></i><b>+340</b> kcal</span>
-    <span class="chip chip-2"><i style="--c: #8b5cf6"></i><b>20 g</b> białka</span>
-    <span class="chip chip-3"><i style="--c: #10b981"></i><b>30 g</b> węglowodanów</span>
-    <span class="chip chip-4"><i style="--c: #0ea5e9"></i><b>500 ml</b> wody</span>`;
-
-const HERO_CHAT_HTML_PL = `
-    <div class="cw-header">
-        <span class="cw-avatar"><i class="fa-solid fa-apple-whole"></i></span>
-        <span class="cw-title">Nutrition MCP</span>
-        <span class="cw-status">online</span>
-    </div>
-    <div class="cw-body">
-        <div class="chat-thread">
-            <div class="msg msg-user">
-                Dwa jajka, tosty pełnoziarniste i kawa na śniadanie
-            </div>
-
-            <div class="msg msg-ai">
-                <div class="wdg">
-                    <div class="wdg-head">
-                        <div class="wdg-title">Posiłek zapisany</div>
-                        <div class="wdg-sub">Dwa jajka, tosty i kawa · śniadanie</div>
-                        <div class="wdg-meta wdg-kcal">+340 kcal</div>
-                    </div>
-                    <div class="wdg-strip">
-                        <div class="wdg-srow">
-                            <div class="wdg-cal">
-                                <div class="wdg-gauge">
-                                    <div class="wdg-ring" style="--c: var(--cal); --p: 16;"></div>
-                                    <div class="wdg-rc">
-                                        <span class="wdg-rp" style="color: var(--cal);">16%</span>
-                                    </div>
-                                </div>
-                                <div class="wdg-caltxt">
-                                    <div class="wdg-callab">Kalorie dzisiaj</div>
-                                    <div class="wdg-calline">
-                                        <div class="wdg-calval">340<span class="wdg-calgoal">/ 2 100</span></div>
-                                        <div class="wdg-calleft">Zostało 1 760 kcal</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="wdg-grids">
-                                <div class="wdg-mgrid">
-                                    <div class="wdg-mtile">
-                                        <div class="wdg-mtop">
-                                            <span class="wdg-mkey">Białko</span>
-                                            <span class="wdg-mnum">20<span class="wdg-msub">/150</span></span>
-                                        </div>
-                                        <div class="wdg-mbar">
-                                            <div class="wdg-mfill" style="width: 13.3%; background: var(--pro);"></div>
-                                        </div>
-                                    </div>
-                                    <div class="wdg-mtile">
-                                        <div class="wdg-mtop">
-                                            <span class="wdg-mkey">Węglowodany</span>
-                                            <span class="wdg-mnum">30<span class="wdg-msub">/220</span></span>
-                                        </div>
-                                        <div class="wdg-mbar">
-                                            <div class="wdg-mfill" style="width: 13.6%; background: var(--car);"></div>
-                                        </div>
-                                    </div>
-                                    <div class="wdg-mtile">
-                                        <div class="wdg-mtop">
-                                            <span class="wdg-mkey">Tłuszcz</span>
-                                            <span class="wdg-mnum">15<span class="wdg-msub">/70</span></span>
-                                        </div>
-                                        <div class="wdg-mbar">
-                                            <div class="wdg-mfill" style="width: 21.4%; background: var(--fat);"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="wdg-mgrid wdg-lim wdg-sec">
-                                    <div class="wdg-mtile">
-                                        <div class="wdg-mtop">
-                                            <span class="wdg-mkey">Cukry</span>
-                                            <span class="wdg-mnum">2.5</span>
-                                        </div>
-                                        <div class="wdg-mbar">
-                                            <div class="wdg-mfill" style="width: 5.6%; background: var(--sug);"></div>
-                                        </div>
-                                        <div class="wdg-mcap">limit 45 g</div>
-                                    </div>
-                                    <div class="wdg-mtile">
-                                        <div class="wdg-mtop">
-                                            <span class="wdg-mkey">Kofeina</span>
-                                            <span class="wdg-mnum">95</span>
-                                        </div>
-                                        <div class="wdg-mbar">
-                                            <div class="wdg-mfill" style="width: 23.8%; background: var(--caf);"></div>
-                                        </div>
-                                        <div class="wdg-mcap">limit 400 mg</div>
-                                    </div>
-                                    <div class="wdg-mtile">
-                                        <div class="wdg-mtop">
-                                            <span class="wdg-mkey">Błonnik</span>
-                                            <span class="wdg-mnum">3.4</span>
-                                        </div>
-                                        <div class="wdg-mbar">
-                                            <div class="wdg-mfill" style="width: 11.3%; background: var(--fib);"></div>
-                                        </div>
-                                        <div class="wdg-mcap">z 30 g</div>
-                                    </div>
-                                </div>
-                                <div class="wdg-mhint" aria-hidden="true">Dotknij wskaźnika, by zobaczyć posiłki, które się na niego złożyły</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                Gotowe — dodałem to do śniadania: dwa jajka, tosty i kawa. To około
-                340 kcal (20 g białka, 30 g węglowodanów, 15 g tłuszczu, 3,4 g
-                błonnika), plus 95 mg kofeiny z kawy.
-            </div>
-
-            <div class="msg msg-user">
-                Jak wygląda trend mojej wagi?
-            </div>
-
-            <div class="msg msg-ai">
-                <div class="wdg">
-                    <div class="wdg-head wdg-mid">
-                        <div class="wdg-title">Waga</div>
-                        <div class="wdg-seg" aria-hidden="true">
-                            <span class="wdg-seg-btn wdg-on">7</span>
-                            <span class="wdg-seg-btn">14</span>
-                            <span class="wdg-seg-btn">30</span>
-                        </div>
-                    </div>
-                    <div class="wdg-wmain">
-                        <div class="wdg-wnow">
-                            <div class="wdg-wtag">Ostatni pomiar</div>
-                            <div class="wdg-wval">74.5<span class="wdg-wunit">kg</span></div>
-                            <div class="wdg-wdelta" style="color: var(--accent);">−0,6 kg od 5 lipca</div>
-                        </div>
-                        <svg class="wdg-wchart" viewBox="0 0 300 62" role="img" aria-label="Waga od 5 lipca do 11 lipca, ostatni pomiar 74,5 kg">
-                            <line class="wdg-goalline" x1="5" y1="50.4" x2="295" y2="50.4" />
-                            <path d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z" fill="var(--accent)" opacity="0.16" />
-                            <path d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-                            <circle cx="5.0" cy="13.6" r="2.6" fill="var(--accent)" />
-                            <circle cx="53.3" cy="15.4" r="2.6" fill="var(--accent)" />
-                            <circle cx="101.7" cy="18.9" r="2.6" fill="var(--accent)" />
-                            <circle cx="150.0" cy="17.1" r="2.6" fill="var(--accent)" />
-                            <circle cx="198.3" cy="22.4" r="2.6" fill="var(--accent)" />
-                            <circle cx="246.7" cy="20.6" r="2.6" fill="var(--accent)" />
-                            <circle cx="295.0" cy="24.1" r="2.6" fill="var(--accent)" />
-                        </svg>
-                    </div>
-                    <div class="wdg-sec wdg-wfoot">
-                        <span>7 ważeń · 5 lip → 11 lip</span>
-                        <span><b>Cel 73,0 kg</b> · 1,5 kg do zrzucenia</span>
-                    </div>
-                </div>
-                Twoja waga spadła w tym tygodniu o 0,6 kg i została Ci 1,5 kg do celu
-                73 kg — Twoja 7-dniowa średnia ładnie spada.
-            </div>
-        </div>
-    </div>
-    <div class="cw-input">
-        <span class="cw-field">Napisz do Nutrition…</span>
-        <span class="cw-send"><i class="fa-solid fa-arrow-up"></i></span>
-    </div>`;
-
-const SLIDE_1_HTML_PL = `
-    <div class="msg msg-user">
-        Zapisz burrito bowl z kurczakiem na obiad
-    </div>
-    <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="msg msg-ai">
-        <div class="wdg">
-            <div class="wdg-head">
-                <div class="wdg-title">Posiłek zapisany</div>
-                <div class="wdg-sub">Burrito bowl z kurczakiem · obiad</div>
-                <div class="wdg-meta wdg-kcal">+650 kcal</div>
-            </div>
-            <div class="wdg-strip">
-                <div class="wdg-srow">
-                    <div class="wdg-cal">
-                        <div class="wdg-gauge">
-                            <div class="wdg-ring" style="--c: var(--cal); --p: 47;"></div>
-                            <div class="wdg-rc"><span class="wdg-rp" style="color: var(--cal);">47%</span></div>
-                        </div>
-                        <div class="wdg-caltxt">
-                            <div class="wdg-callab">Kalorie dzisiaj</div>
-                            <div class="wdg-calline">
-                                <div class="wdg-calval">990<span class="wdg-calgoal">/ 2 100</span></div>
-                                <div class="wdg-calleft">Zostało 1 110 kcal</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="wdg-grids">
-                        <div class="wdg-mgrid">
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop">
-                                    <span class="wdg-mkey">Białko</span>
-                                    <span class="wdg-mnum">62<span class="wdg-msub">/150</span></span>
-                                </div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 41.3%; background: var(--pro);"></div></div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop">
-                                    <span class="wdg-mkey">Węglowodany</span>
-                                    <span class="wdg-mnum">98<span class="wdg-msub">/220</span></span>
-                                </div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 44.5%; background: var(--car);"></div></div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop">
-                                    <span class="wdg-mkey">Tłuszcz</span>
-                                    <span class="wdg-mnum">37<span class="wdg-msub">/70</span></span>
-                                </div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 52.9%; background: var(--fat);"></div></div>
-                            </div>
-                        </div>
-                        <div class="wdg-mgrid wdg-lim wdg-sec">
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Cukry</span><span class="wdg-mnum">6.5</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 14.4%; background: var(--sug);"></div></div>
-                                <div class="wdg-mcap">limit 45 g</div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Kofeina</span><span class="wdg-mnum">95</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 23.8%; background: var(--caf);"></div></div>
-                                <div class="wdg-mcap">limit 400 mg</div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Błonnik</span><span class="wdg-mnum">15.4</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 51.3%; background: var(--fib);"></div></div>
-                                <div class="wdg-mcap">z 30 g</div>
-                            </div>
-                        </div>
-                        <div class="wdg-mhint" aria-hidden="true">Dotknij wskaźnika, by zobaczyć posiłki, które się na niego złożyły</div>
-                    </div>
-                    <div class="wdg-wrow wdg-sec">
-                        <span class="wdg-wlab"><span class="wdg-dot" style="background: var(--wat);"></span>Woda</span>
-                        <div class="wdg-mbar"><div class="wdg-mfill" style="width: 48%; background: var(--wat);"></div></div>
-                        <span class="wdg-wnum">1.2<span class="wdg-wsub">/2.5 L</span></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        Zapisane — dodałem burrito bowl z kurczakiem do obiadu, około 650 kcal
-        (42 g białka, 68 g węglowodanów, 22 g tłuszczu) i 12 g błonnika z fasoli.
-    </div>`;
-
-const SLIDE_2_HTML_PL = `
-    <div class="msg-img" aria-hidden="true">
-        <svg viewBox="0 0 220 150" class="chat-photo" role="img" aria-label="Zdjęcie talerza z kolacją">
-            <rect width="220" height="150" fill="#efe9df" />
-            <ellipse cx="110" cy="82" rx="72" ry="52" fill="#fbfaf7" />
-            <ellipse cx="110" cy="82" rx="72" ry="52" fill="none" stroke="#e6e0d3" stroke-width="2.5" />
-            <ellipse cx="110" cy="82" rx="58" ry="41" fill="none" stroke="#efe9df" stroke-width="1.5" />
-            <ellipse cx="136" cy="64" rx="28" ry="19" fill="#f3efe6" />
-            <ellipse cx="136" cy="64" rx="28" ry="19" fill="none" stroke="#e7e1d4" stroke-width="1" />
-            <g fill="#ffffff">
-                <circle cx="126" cy="60" r="1.6" />
-                <circle cx="138" cy="58" r="1.6" />
-                <circle cx="146" cy="66" r="1.6" />
-                <circle cx="132" cy="70" r="1.6" />
-                <circle cx="142" cy="68" r="1.6" />
-            </g>
-            <g transform="rotate(-16 86 92)">
-                <rect x="58" y="80" width="56" height="26" rx="9" fill="#e0916b" />
-                <rect x="64" y="86" width="44" height="3" rx="1.5" fill="#edb293" />
-                <rect x="64" y="92" width="44" height="3" rx="1.5" fill="#edb293" />
-                <rect x="64" y="98" width="44" height="3" rx="1.5" fill="#edb293" />
-            </g>
-            <g>
-                <rect x="128" y="98" width="4" height="12" rx="2" fill="#9ab98a" />
-                <circle cx="124" cy="98" r="10" fill="#5f8f4e" />
-                <circle cx="136" cy="95" r="8.5" fill="#6fa35d" />
-                <circle cx="133" cy="105" r="7.5" fill="#537f44" />
-                <circle cx="121" cy="106" r="6.5" fill="#6a9a58" />
-            </g>
-        </svg>
-    </div>
-    <div class="msg msg-user">
-        Oto moja kolacja — co w niej jest?
-    </div>
-    <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="msg msg-ai">
-        Wygląda na grillowanego łososia z ryżem i brokułami — zapisane jako
-        kolacja, około 540 kcal (38 g białka, 45 g węglowodanów, 20 g tłuszczu).
-    </div>`;
-
-const SLIDE_3_HTML_PL = `
-    <div class="msg-img" aria-hidden="true">
-        <svg viewBox="0 0 220 150" class="chat-photo" role="img" aria-label="Zdjęcie kodu kreskowego produktu">
-            <rect width="220" height="150" fill="#efe9df" />
-            <rect x="40" y="32" width="140" height="86" rx="12" fill="#ffffff" stroke="#e6e0d3" stroke-width="2" />
-            <g>
-                <rect x="53" y="50" width="3" height="44" fill="#2b2b2b" />
-                <rect x="58.6" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="62.2" y="50" width="2" height="44" fill="#2b2b2b" />
-                <rect x="66.8" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="70.39999999999999" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="73.99999999999999" y="50" width="3" height="44" fill="#2b2b2b" />
-                <rect x="79.59999999999998" y="50" width="2" height="44" fill="#2b2b2b" />
-                <rect x="84.19999999999997" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="87.79999999999997" y="50" width="2" height="44" fill="#2b2b2b" />
-                <rect x="92.39999999999996" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="95.99999999999996" y="50" width="3" height="44" fill="#2b2b2b" />
-                <rect x="101.59999999999995" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="105.19999999999995" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="108.79999999999994" y="50" width="2" height="44" fill="#2b2b2b" />
-                <rect x="113.39999999999993" y="50" width="2" height="44" fill="#2b2b2b" />
-                <rect x="117.99999999999993" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="121.59999999999992" y="50" width="3" height="44" fill="#2b2b2b" />
-                <rect x="127.19999999999992" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="130.79999999999993" y="50" width="2" height="44" fill="#2b2b2b" />
-                <rect x="135.39999999999992" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="138.99999999999991" y="50" width="1" height="44" fill="#2b2b2b" />
-                <rect x="142.5999999999999" y="50" width="2" height="44" fill="#2b2b2b" />
-                <rect x="147.1999999999999" y="50" width="3" height="44" fill="#2b2b2b" />
-                <rect x="152.7999999999999" y="50" width="1" height="44" fill="#2b2b2b" />
-            </g>
-            <text x="110" y="108" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" letter-spacing="2" fill="#9a9a9f">0 12345 67890</text>
-        </svg>
-    </div>
-    <div class="msg msg-user">
-        Zapisz to
-    </div>
-    <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="msg msg-ai step-ask">
-        Znalazłem — jogurt grecki Chobani, 1 kubek: 120 kcal, 15 g białka. Do
-        którego posiłku to zaliczyć?
-        <div class="meal-pick">
-            <span class="meal-chip">Śniadanie</span>
-            <span class="meal-chip">Obiad</span>
-            <span class="meal-chip">Kolacja</span>
-            <span class="meal-chip meal-pick-target">Przekąska</span>
-        </div>
-    </div>
-    <div class="msg msg-ai step-done">
-        <div class="wdg">
-            <div class="wdg-head">
-                <div class="wdg-title">Posiłek zapisany</div>
-                <div class="wdg-sub">Jogurt grecki Chobani, 1 kubek · przekąska</div>
-                <div class="wdg-meta wdg-kcal">+120 kcal</div>
-            </div>
-            <div class="wdg-strip">
-                <div class="wdg-srow">
-                    <div class="wdg-cal">
-                        <div class="wdg-gauge">
-                            <div class="wdg-ring" style="--c: var(--cal); --p: 73;"></div>
-                            <div class="wdg-rc"><span class="wdg-rp" style="color: var(--cal);">73%</span></div>
-                        </div>
-                        <div class="wdg-caltxt">
-                            <div class="wdg-callab">Kalorie dzisiaj</div>
-                            <div class="wdg-calline">
-                                <div class="wdg-calval">1 540<span class="wdg-calgoal">/ 2 100</span></div>
-                                <div class="wdg-calleft">Zostało 560 kcal</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="wdg-grids">
-                        <div class="wdg-mgrid">
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Białko</span><span class="wdg-mnum">98<span class="wdg-msub">/150</span></span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 65.3%; background: var(--pro);"></div></div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Węglowodany</span><span class="wdg-mnum">150<span class="wdg-msub">/220</span></span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 68.2%; background: var(--car);"></div></div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Tłuszcz</span><span class="wdg-mnum">52<span class="wdg-msub">/70</span></span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 74.3%; background: var(--fat);"></div></div>
-                            </div>
-                        </div>
-                        <div class="wdg-mgrid wdg-lim wdg-sec">
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Cukry</span><span class="wdg-mnum">28.4</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 63.1%; background: var(--sug);"></div></div>
-                                <div class="wdg-mcap">limit 45 g</div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Kofeina</span><span class="wdg-mnum">95</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 23.8%; background: var(--caf);"></div></div>
-                                <div class="wdg-mcap">limit 400 mg</div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Błonnik</span><span class="wdg-mnum">19.2</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 64%; background: var(--fib);"></div></div>
-                                <div class="wdg-mcap">z 30 g</div>
-                            </div>
-                        </div>
-                        <div class="wdg-mhint" aria-hidden="true">Dotknij wskaźnika, by zobaczyć posiłki, które się na niego złożyły</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        Zapisane jako przekąska — 120 kcal, 15 g białka, 9 g cukru.
-    </div>`;
-
-const SLIDE_4_HTML_PL = `
-    <div class="msg msg-user">
-        Ustaw moją strefę czasową na Nowy Jork
-    </div>
-    <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="msg msg-ai">
-        Gotowe — Twoje dni zmieniają się teraz o północy czasu wschodniego, więc
-        dzisiejsze podsumowania są trafne, gdziekolwiek jesteś.
-    </div>`;
-
-const SLIDE_5_HTML_PL = `
-    <div class="msg msg-user">
-        Jak mi idzie z białkiem dzisiaj?
-    </div>
-    <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="msg msg-ai">
-        Masz 118 g z celu 150 g — zostało 32 g. Kubek jogurtu greckiego albo
-        pierś z kurczaka i będzie zaliczone.
-    </div>`;
-
-const SLIDE_6_HTML_PL = `
-    <div class="msg msg-user">
-        Pokaż moje trendy z tego tygodnia
-    </div>
-    <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="msg msg-ai">
-        <div class="wdg">
-            <div class="wdg-head wdg-mid">
-                <div class="wdg-title">Trendy</div>
-                <div class="wdg-seg" aria-hidden="true">
-                    <span class="wdg-seg-btn wdg-on">7</span>
-                    <span class="wdg-seg-btn">14</span>
-                    <span class="wdg-seg-btn">30</span>
-                </div>
-            </div>
-            <div class="wdg-chart">
-                <div class="wdg-chead">
-                    <span class="wdg-ctitle">Kalorie / dzień</span>
-                    <span class="wdg-cmeta">7/7 dni zapisanych</span>
-                </div>
-                <svg viewBox="0 0 480 54" role="img" aria-label="Kalorie dziennie w ciągu ostatnich 7 dni">
-                    <line class="wdg-axis" x1="8" y1="50" x2="472" y2="50" />
-                    <line class="wdg-goalline" x1="8" y1="11.7" x2="472" y2="11.7" />
-                    <path d="M8.0 50 L8.0 13.2 L85.3 14.7 L162.7 11.9 L240.0 15.7 L317.3 13.4 L394.7 14.4 L472.0 14.2 L472.0 50 Z" fill="var(--cal)" opacity="0.16" />
-                    <path d="M8.0 13.2 L85.3 14.7 L162.7 11.9 L240.0 15.7 L317.3 13.4 L394.7 14.4 L472.0 14.2" fill="none" stroke="var(--cal)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-                    <circle cx="8.0" cy="13.2" r="2.2" fill="var(--cal)" />
-                    <circle cx="85.3" cy="14.7" r="2.2" fill="var(--cal)" />
-                    <circle cx="162.7" cy="11.9" r="2.2" fill="var(--cal)" />
-                    <circle cx="240.0" cy="15.7" r="2.2" fill="var(--cal)" />
-                    <circle cx="317.3" cy="13.4" r="2.2" fill="var(--cal)" />
-                    <circle cx="394.7" cy="14.4" r="2.2" fill="var(--cal)" />
-                    <circle cx="472.0" cy="14.2" r="2.2" fill="var(--cal)" />
-                </svg>
-                <div class="wdg-tdates"><span>07-05</span><span>07-11</span></div>
-            </div>
-            <div class="wdg-strip wdg-sec">
-                <div class="wdg-srow">
-                    <div class="wdg-cal">
-                        <div class="wdg-gauge">
-                            <div class="wdg-ring" style="--c: var(--cal); --p: 94;"></div>
-                            <div class="wdg-rc"><span class="wdg-rp" style="color: var(--cal);">94%</span></div>
-                        </div>
-                        <div class="wdg-caltxt">
-                            <div class="wdg-callab">Średnia 7-dniowa · wszystkie dni</div>
-                            <div class="wdg-calline">
-                                <div class="wdg-calval">1 980<span class="wdg-calgoal">/ 2 100</span></div>
-                                <div class="wdg-calleft">120 kcal poniżej celu</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="wdg-grids">
-                        <div class="wdg-mgrid">
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Białko</span><span class="wdg-mnum">148<span class="wdg-msub">/150</span></span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 98.7%; background: var(--pro);"></div></div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Węglowodany</span><span class="wdg-mnum">205<span class="wdg-msub">/220</span></span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 93.2%; background: var(--car);"></div></div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Tłuszcz</span><span class="wdg-mnum">66<span class="wdg-msub">/70</span></span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 94.3%; background: var(--fat);"></div></div>
-                            </div>
-                        </div>
-                        <div class="wdg-mgrid wdg-lim wdg-sec">
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Cukry</span><span class="wdg-mnum">38.2</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 84.9%; background: var(--sug);"></div></div>
-                                <div class="wdg-mcap">limit 45 g</div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Kofeina</span><span class="wdg-mnum">180</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 45%; background: var(--caf);"></div></div>
-                                <div class="wdg-mcap">limit 400 mg</div>
-                            </div>
-                            <div class="wdg-mtile">
-                                <div class="wdg-mtop"><span class="wdg-mkey">Błonnik</span><span class="wdg-mnum">26.8</span></div>
-                                <div class="wdg-mbar"><div class="wdg-mfill" style="width: 89.3%; background: var(--fib);"></div></div>
-                                <div class="wdg-mcap">z 30 g</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="wdg-wrow wdg-sec">
-                    <span class="wdg-wlab"><span class="wdg-dot" style="background: var(--wat);"></span>Woda</span>
-                    <div class="wdg-mbar"><div class="wdg-mfill" style="width: 84%; background: var(--wat);"></div></div>
-                    <span class="wdg-wnum">2.1<span class="wdg-wsub">/2.5 L</span></span>
-                </div>
-            </div>
-        </div>
-        Średnio masz 1 980 kcal dziennie — 120 kcal poniżej celu, a cukier i
-        kofeina mieszczą się wygodnie w limitach. Błonnik wynosi średnio 26,8 g,
-        tuż poniżej celu 30 g.
-    </div>`;
-
-const SLIDE_7_HTML_PL = `
-    <div class="msg msg-user">
-        Zapisz moją wagę, 74,5 kg
-    </div>
-    <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="msg msg-ai">
-        <div class="wdg">
-            <div class="wdg-head wdg-mid">
-                <div class="wdg-title">Waga</div>
-                <div class="wdg-seg" aria-hidden="true">
-                    <span class="wdg-seg-btn wdg-on">7</span>
-                    <span class="wdg-seg-btn">14</span>
-                    <span class="wdg-seg-btn">30</span>
-                </div>
-            </div>
-            <div class="wdg-wmain">
-                <div class="wdg-wnow">
-                    <div class="wdg-wtag">Ostatni pomiar</div>
-                    <div class="wdg-wval">74.5<span class="wdg-wunit">kg</span></div>
-                    <div class="wdg-wdelta" style="color: var(--accent);">−0,6 kg od 5 lipca</div>
-                </div>
-                <svg class="wdg-wchart" viewBox="0 0 300 62" role="img" aria-label="Waga od 5 lipca do 11 lipca, ostatni pomiar 74,5 kg">
-                    <line class="wdg-goalline" x1="5" y1="50.4" x2="295" y2="50.4" />
-                    <path d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z" fill="var(--accent)" opacity="0.16" />
-                    <path d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-                    <circle cx="5.0" cy="13.6" r="2.6" fill="var(--accent)" />
-                    <circle cx="53.3" cy="15.4" r="2.6" fill="var(--accent)" />
-                    <circle cx="101.7" cy="18.9" r="2.6" fill="var(--accent)" />
-                    <circle cx="150.0" cy="17.1" r="2.6" fill="var(--accent)" />
-                    <circle cx="198.3" cy="22.4" r="2.6" fill="var(--accent)" />
-                    <circle cx="246.7" cy="20.6" r="2.6" fill="var(--accent)" />
-                    <circle cx="295.0" cy="24.1" r="2.6" fill="var(--accent)" />
-                </svg>
-            </div>
-            <div class="wdg-sec wdg-wfoot">
-                <span>7 ważeń · 5 lip → 11 lip</span>
-                <span><b>Cel 73,0 kg</b> · 1,5 kg do zrzucenia</span>
-            </div>
-        </div>
-        Zapisane — zbliżasz się do celu.
-    </div>`;
 
 export const INDEX_PL: IndexDoc = {
     title: "Nutrition MCP — Tracker posiłków i makroskładników AI dla Claude i ChatGPT",
@@ -561,26 +23,68 @@ export const INDEX_PL: IndexDoc = {
     keywords:
         "tracker odżywiania, tracker posiłków, serwer MCP, Claude AI, ChatGPT, licznik kalorii, tracker makroskładników, skaner kodów kreskowych, zapisywanie jedzenia, tracker diety, tracker wagi, dziennik wagi, odżywianie AI, Model Context Protocol",
 
-    chatChrome: {
-        brand: "Nutrition MCP",
-        status: "online",
-        inputPlaceholder: "Napisz do Nutrition…",
-    },
-
     hero: {
-        eyebrow: "Darmowy · Open source · OAuth 2.0",
         titleBeforeEm: "Śledź swoją dietę, po prostu ",
         titleEm: "rozmawiając",
         titleAfterEm: " ze swoim AI.",
         lead: "Połącz Claude albo ChatGPT, a potem po prostu powiedz, co zjadłeś/aś. Kalorie i makroskładniki, zapisywane automatycznie.",
         ctaPrimary: "Szybka instalacja",
         ctaSecondary: "Wsparcie",
-        chipsHtml: HERO_CHIPS_HTML_PL,
-        chatHtml: HERO_CHAT_HTML_PL,
+        moreExamples: "Więcej przykładów",
+        chat: {
+            photoAlt:
+                "Zdjęcie: smoothie bowl z bananem, owocami leśnymi i granolą, a obok americano",
+            pauseLabel: "Wstrzymaj demo",
+            replayLabel: "Odtwórz demo ponownie",
+            exchanges: [
+                {
+                    photo: true,
+                    userText: "śniadanie + americano",
+                    aiText: "Smoothie bowl, na oko domowej roboty. Jadłeś/aś to już w dwóch wersjach: z granolą i miodem albo z samymi owocami. Która to z nich?",
+                },
+                {
+                    userText: "granola i miód, pełna łyżka",
+                    aiText: "Jasne. A americano: czarne czy z mlekiem?",
+                },
+                {
+                    userText: "odrobina mleka owsianego",
+                    aiText: "Czyli: smoothie bowl z garścią granoli i 1 łyżką miodu oraz americano z odrobiną mleka owsianego. Około 480 kcal i 21 g białka. Zapisać jako śniadanie?",
+                },
+                {
+                    userText: "tak",
+                    aiText: "Zapisano śniadanie: 480 kcal, 21 g białka i 150 mg kofeiny. Jest w nim 51 g cukru, z czego 17 g z miodu.",
+                    card: "meal-logged",
+                    meal: {
+                        description:
+                            "Smoothie bowl (jogurt grecki, banan, owoce leśne) z granolą (1 garść) i miodem (1 łyżka); americano z odrobiną mleka owsianego",
+                        type: "breakfast",
+                    },
+                },
+                {
+                    userText:
+                        "resztki stir fry z wczoraj, ta sama porcja. i butelka wody 500 ml",
+                    aiText: "Zapisano obiad, to samo co wczoraj wieczorem: 620 kcal i 54 g białka, plus 500 ml wody.",
+                },
+                {
+                    userText:
+                        "podkradłem/am dziecku 6 frytek. tylko nie oceniaj",
+                    aiText: "Nikt tu nie ocenia. Około 90 kcal, zapisane jako przekąska.",
+                },
+                {
+                    userText: "ile zostało na kolację?",
+                    aiText: "810 kcal i jeszcze 84 g białka do zjedzenia. Lepiej coś wytrawnego: cukru jest już 59 z Twoich 60 g.",
+                    card: "nutrition-summary",
+                },
+                {
+                    userText: "a jak tam moja waga?",
+                    aiText: "Od 11 lutego ubyło Ci 1,4 kg, około 0,4 kg tygodniowo. Do celu 75 kg zostało 3,8 kg.",
+                    card: "weight-trends",
+                },
+            ],
+        },
     },
 
     how: {
-        eyebrow: "Jak to działa",
         title: "Trzy kroki. Żadnej aplikacji do nauki.",
         steps: [
             {
@@ -596,12 +100,14 @@ export const INDEX_PL: IndexDoc = {
                 body: "Poproś o dzienne podsumowania, tygodniowe trendy, postęp celów albo wyeksportuj wszystko, co zapisałeś/aś, jako pliki CSV — całkowicie za darmo.",
             },
         ],
+        counter: "{n} / 3",
     },
 
     install: {
-        eyebrow: "Szybka instalacja",
         title: "Połącz się w mniej niż minutę",
         sub: "Działa z każdym klientem MCP, który obsługuje OAuth 2.0 z PKCE. Przy pierwszym połączeniu zakładasz konto przez Google albo e-mail i hasło; loguj się tak samo, żeby zachować swoje dane.",
+        copyAriaLabel: "Kopiuj adres URL serwera",
+        tabsLabel: "Wybierz swojego klienta AI",
         claude: {
             cta: "Dodaj do Claude",
             steps: [
@@ -615,7 +121,7 @@ export const INDEX_PL: IndexDoc = {
                 "Otwórz <strong>ChatGPT w przeglądarce</strong> → <strong>Settings</strong> → <strong>Apps</strong>.",
                 "Kliknij <strong>Create app</strong> na dole wyskakującego okna. Jeśli go nie widzisz, włącz <strong>Developer mode</strong> w <strong>Advanced settings</strong>.",
                 "Nadaj mu nazwę, na przykład <strong>Nutrition</strong>.",
-                'W polu <strong>Connection</strong> wklej <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Kopiuj adres URL serwera"><i class="fa-solid fa-copy"></i></button></span>.',
+                "W polu <strong>Connection</strong> wklej <code>https://nutrition-mcp.com/mcp</code>.",
                 "W polu <strong>Authentication</strong> wybierz <strong>OAuth</strong> — resztę zostaw bez zmian.",
                 'Zaznacz <strong>„I understand and want to continue"</strong>.',
                 "Kliknij <strong>Create</strong>.",
@@ -630,14 +136,30 @@ export const INDEX_PL: IndexDoc = {
     },
 
     onboarding: {
-        eyebrow: "Pierwsze kroki",
         title: "Skonfiguruj raz — albo po prostu zacznij mówić",
         sub: "To całkowicie opcjonalne — Nutrition MCP działa od razu po połączeniu. Jeśli chcesz, te trzy szybkie kroki zwiększą dokładność, ale możesz też od razu przejść do zapisywania.",
+        justSay: "Po prostu powiedz ",
         steps: [
-            '<strong>Ustaw strefę czasową</strong> — żeby dni zmieniały się o Twojej lokalnej północy, a dzisiejsze podsumowania były trafne, gdziekolwiek jesteś. <span class="step-say">Po prostu powiedz <q>Ustaw moją strefę czasową na Nowy Jork</q>.</span>',
-            '<strong>Ustaw swoje cele</strong> — dzienne cele kaloryczne, makroskładnikowe i wodne, a także opcjonalną wagę docelową i preferowaną jednostkę wagi (kg lub lb), względem których będziesz śledzić postępy. <span class="step-say">Po prostu powiedz <q>Ustaw mój dzienny cel na 2000 kalorii i 150 g białka</q>.</span>',
-            '<strong>Ustaw swój język</strong> — język, w jakim wyświetlają się widżety w czacie (panele, wykresy), a nie treści, które pisze do Ciebie AI. <span class="step-say">Po prostu powiedz <q>Pokazuj moje widżety po niemiecku</q>.</span>',
-            '<strong>Zacznij zapisywać</strong> — po prostu powiedz, co zjadłeś/aś, wyślij zdjęcie albo zeskanuj kod kreskowy. To wszystko. <span class="step-say">Po prostu powiedz <q>Zjadłem/am owsiankę z owocami na śniadanie</q>.</span>',
+            {
+                title: "Ustaw strefę czasową",
+                body: "żeby dni zmieniały się o Twojej lokalnej północy, a dzisiejsze podsumowania były trafne, gdziekolwiek jesteś.",
+                say: "Ustaw moją strefę czasową na Nowy Jork",
+            },
+            {
+                title: "Ustaw swoje cele",
+                body: "dzienne cele kaloryczne, makroskładnikowe i wodne, a także opcjonalną wagę docelową i preferowaną jednostkę wagi (kg lub lb), względem których będziesz śledzić postępy.",
+                say: "Ustaw mój dzienny cel na 2000 kalorii i 150 g białka",
+            },
+            {
+                title: "Ustaw swój język",
+                body: "język, w jakim wyświetlają się widżety w czacie (panele, wykresy), a nie treści, które pisze do Ciebie AI.",
+                say: "Pokazuj moje widżety po niemiecku",
+            },
+            {
+                title: "Zacznij zapisywać",
+                body: "po prostu powiedz, co zjadłeś/aś, wyślij zdjęcie albo zeskanuj kod kreskowy. To wszystko.",
+                say: "Zjadłem/am owsiankę z owocami na śniadanie",
+            },
         ],
         note: "Wszystko tutaj jest opcjonalne. Możesz to zrobić teraz, później albo wcale — po prostu zacznij zapisywać, a to ustaw, kiedy tylko zechcesz.",
         toolsCta: {
@@ -647,94 +169,539 @@ export const INDEX_PL: IndexDoc = {
         },
     },
 
-    try: {
-        eyebrow: "Spróbuj powiedzieć",
+    examples: {
         title: "Po prostu z nim porozmawiaj.",
         sub: "Kilka rzeczy, które możesz zrobić — po prostu rozmawiając.",
         prevLabel: "Poprzedni przykład",
         nextLabel: "Następny przykład",
-        exampleLabel: "Przykład",
+        pickerLabel: "Wybierz przykład",
+        carouselLabel: "Przykłady",
+        threadLabel: "Rozmowa",
+        moreToolsLabel: "Korzysta też z",
+        toolLinkLabel: "{tool} na stronie narzędzi",
+        photoMealAlt:
+            "Zdjęcie: miska barszczu z łyżką śmietany i koperkiem, a obok kromka żytniego chleba",
+        photoPackageAlt:
+            "Zdjęcie: kod kreskowy na puszce Coca-Coli, numer 5449000000996",
+        downloadExpires: "Wygasa za 60 minut",
         slides: [
-            { html: SLIDE_1_HTML_PL },
-            { html: SLIDE_2_HTML_PL },
-            { html: SLIDE_3_HTML_PL },
-            { html: SLIDE_4_HTML_PL },
-            { html: SLIDE_5_HTML_PL },
-            { html: SLIDE_6_HTML_PL },
-            { html: SLIDE_7_HTML_PL },
+            {
+                id: "log-meal",
+                title: "Pisz zwykłymi słowami",
+                description:
+                    "Powiedz to tak, jak znajomemu. Gdy brakuje porcji albo nie wiadomo, który to posiłek, AI dopyta, zanim oszacuje. Błonnik i cukry trafiają do każdego wpisu, kofeina do wszystkiego, co ją zawiera, a „dziś rano” wypada w Twojej strefie czasowej.",
+                toolNotes: {
+                    log_meal:
+                        "Zapisuje śniadanie: makroskładniki, błonnik, cukry i kofeinę z kawy",
+                    log_water:
+                        "Dolicza 500 ml z 07:00 do dzisiejszej sumy wody",
+                    get_current_time:
+                        "Ustala dzisiejszą datę, żeby „koło 7” trafiło na 07:00",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "owsianka z borówkami i kawa na śniadanie",
+                    },
+                    {
+                        from: "ai",
+                        text: "Jak duża była miska i czy owsianka była na mleku, czy na wodzie? Coś do kawy?",
+                    },
+                    {
+                        from: "user",
+                        text: "normalna miska, na mleku. kawa czarna",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano śniadanie: około 320 kcal, 11 g białka i 6 g błonnika. Po kawie masz 95 mg z limitu 400 mg kofeiny.",
+                    },
+                    {
+                        from: "user",
+                        text: "aha, i koło 7, przed bieganiem, było jeszcze jakieś pół litra wody",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dodano 500 ml wody o 07:00 dziś rano.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 3,
+                    },
+                ],
+                cardMeals: [
+                    "Owsianka na mleku z borówkami (1 miska) i czarna kawa (1 filiżanka)",
+                ],
+            },
+            {
+                id: "photo-meal",
+                title: "Zrób zdjęcie talerza",
+                description:
+                    "Zdjęcie zaczyna rozmowę, a nie zgadywanie. AI pyta, czy danie było domowe, czy z restauracji, sprawdza w Twoich wcześniejszych wpisach to, czego nie widać na zdjęciu, pyta zwykłymi miarami, ile zjedzono, i zapisuje dopiero wtedy, gdy zaakceptujesz podsumowanie.",
+                toolNotes: {
+                    search_meals:
+                        "Znajduje Twój wcześniejszy barszcz z restauracji Tsybulya i to, co w nim było",
+                    log_meal:
+                        "Zapisuje posiłek z nazwą restauracji, gdy powiesz „tak”",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        photo: "meal",
+                        text: "obiad",
+                    },
+                    {
+                        from: "ai",
+                        text: "Wygląda na barszcz ze śmietaną i kromkę żytniego chleba. Domowy czy z restauracji? Jeśli z restauracji, to z której?",
+                    },
+                    {
+                        from: "user",
+                        text: "Tsybulya, na Podolu w Kijowie",
+                    },
+                    {
+                        from: "ai",
+                        text: "Barszcz w restauracji Tsybulya zapisywałeś/aś już dwa razy, za każdym razem wersję na wołowinie ze śmietaną. Tym razem to samo? I czy zjadłeś/aś całą miskę i chleb?",
+                    },
+                    {
+                        from: "user",
+                        text: "to samo, wszystko, chleb też",
+                    },
+                    {
+                        from: "ai",
+                        text: "Czyli: barszcz na wołowinie ze śmietaną (1 miska, zjedzona) i chleb żytni (1 kromka) w restauracji Tsybulya, Podół, Kijów. Około 520 kcal i 24 g białka — to wartości szacunkowe, a nie opublikowane dane. Zapisać jako obiad?",
+                    },
+                    {
+                        from: "user",
+                        text: "tak",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano obiad: 520 kcal · 24 g białka · 43 g węglowodanów · 27 g tłuszczu · 7 g błonnika · 10 g cukru.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 7,
+                    },
+                ],
+                cardMeals: [
+                    "Barszcz na wołowinie ze śmietaną (1 miska, zjedzona) i chleb żytni (1 kromka) w restauracji Tsybulya, Podół, Kijów",
+                ],
+            },
+            {
+                id: "scan-barcode",
+                title: "Zeskanuj kod kreskowy",
+                description:
+                    "Zrób zdjęcie opakowania: cyfry spod kodu kreskowego są wyszukiwane w Open Food Facts, a AI pyta, ile tego było. Open Food Facts nie podaje kofeiny, więc jej ilość pochodzi z etykiety albo z typowych wartości; brakujące wartości błonnika czy cukrów są szacowane, a nie zostawiane puste.",
+                toolNotes: {
+                    lookup_barcode:
+                        "Pobiera dane z etykiety puszki z Open Food Facts",
+                    log_meal: "Zapisuje całą puszkę do obiadu, razem z kofeiną",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        photo: "package",
+                        text: "to było do obiadu. jak bardzo to jest złe?",
+                    },
+                    {
+                        from: "ai",
+                        text: "To puszka Coca-Coli 330 ml: 139 kcal i 35 g cukru według Open Food Facts. Cała puszka?",
+                    },
+                    {
+                        from: "user",
+                        text: "cała",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano do obiadu: 139 kcal, 35 g cukru i 33 mg kofeiny z etykiety puszki, bo Open Food Facts nie podaje kofeiny. A jak bardzo złe: sam ten cukier to ponad połowa Twojego dziennego limitu 60 g, a Open Food Facts przyznaje napojowi Nutri-Score E i NOVA 4, czyli żywność ultraprzetworzoną.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 3,
+                    },
+                ],
+                cardMeals: ["Coca-Cola (puszka 330 ml)"],
+            },
+            {
+                id: "goals-progress",
+                title: "Ustaw cele, sprawdzaj postęp",
+                description:
+                    "Ustaw cele do osiągnięcia, jak kalorie i białko, oraz limity dla cukrów, alkoholu i kofeiny; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, by zobaczyć każdą wartość na tle celu i ile jeszcze zostało.",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "Zapisuje cele kalorii i białka oraz limit kofeiny 400 mg",
+                    get_goal_progress:
+                        "Pokazuje dzisiejszy dzień na tle celów i ile jeszcze zostało",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "chcę się trochę wyrzeźbić. ustaw mi 2000 kcal i 160 g białka. i jaki limit kofeiny ma sens? praktycznie żyję na kawie",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dla zdrowych dorosłych EFSA i FDA podają do 400 mg dziennie, czyli mniej więcej cztery kubki parzonej kawy, a w ciąży EFSA zaleca do 200 mg. Limit to Twoja decyzja; ustawić 400?",
+                    },
+                    {
+                        from: "user",
+                        text: "no, 400",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gotowe: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 30 g błonnika, 2,5 l wody i limit cukru 60 g.",
+                    },
+                    {
+                        from: "user",
+                        text: "zmieszczę jeszcze wieczorem deser?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Na razie masz 1540 kcal i 104 g białka, więc zostało 460 kcal i 56 g białka. Ciaśniej jest z cukrem: 40 z limitu 60 g, czyli zostało 20 g. Kofeina: 130 z 400 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "goal-progress",
+                        after: 5,
+                    },
+                ],
+            },
+            {
+                id: "review-week",
+                title: "Przejrzyj tydzień",
+                description:
+                    "Zapytaj, jak minął tydzień, a widżet trendów otworzy się w czacie ze średnimi i liczbą dni z wpisami. Przełączaj 7, 14 i 30 dni albo dotknij składnika, by zobaczyć wykres, bez nowego zapytania. AI powie Ci też o seriach i dniach zgodnych z celem.",
+                toolNotes: {
+                    get_trends:
+                        "Liczy średnie z 7, 14 i 30 dni i otwiera widżet trendów",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "jak mi poszły ostatnie dwa tygodnie? mam wrażenie, że totalny chaos",
+                    },
+                    {
+                        from: "ai",
+                        text: "Stabilniej, niż się wydaje. Średnio 1830 kcal dziennie, 170 poniżej celu 2000, ale ta średnia liczy jako zero jedyny niezapisany dzień z 14. W 13 dniach z wpisami wychodzi około 1970, a 9 dni mieści się w 10% od celu. No i masz serię 10 dni z wpisami z rzędu.",
+                    },
+                    {
+                        from: "user",
+                        text: "a cukier?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Na niego trzeba uważać. Średnio 52 g, a limit 60 g przekroczony w 4 z 13 dni.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "trends",
+                        after: 1,
+                    },
+                ],
+            },
+            {
+                id: "weight-trend",
+                title: "Śledź swoją wagę",
+                description:
+                    "Zapisz pomiar wagi w kg albo lb i zobacz trend spod codziennych wahań: wygładzoną średnią, zmianę w ciągu miesiąca i to, ile zostało do wagi docelowej. Niemożliwy odczyt, np. z pominiętym przecinkiem, zostaje wyłapany przed zapisem.",
+                toolNotes: {
+                    log_weight:
+                        "Odrzuca 784 kg jako nieprawdopodobne, potem zapisuje 78,4 kg",
+                    get_weight_trends:
+                        "Wygładza 30 dni średnimi kroczącymi i liczy, ile zostało do celu",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "dzisiejsze ważenie: 784",
+                    },
+                    {
+                        from: "ai",
+                        text: "784 kg wykracza poza wiarygodny zakres masy ciała (20–500 kg), więc nic nie zostało zapisane. Chodziło o 78,4 kg?",
+                    },
+                    {
+                        from: "user",
+                        text: "haha tak, zgubił się przecinek. jak mi idzie?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano 78,4 kg. Od 11 lutego ubyło Ci 1,8 kg, około 0,4 kg tygodniowo, a średnia z 7 dni to 78,7 kg. Do celu 75 kg zostało 3,4 kg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "weight-trends",
+                        after: 3,
+                    },
+                ],
+            },
+            {
+                id: "meal-patterns",
+                title: "Odkryj swoje nawyki",
+                description:
+                    "Zapytaj, kiedy jesz więcej, a AI porówna Twoje własne wpisy: dni robocze z weekendami, dni ze śniadaniem i bez, duże obiady, wczesne kolacje z późnymi. Wskaże też nietypowe dni i opisze wzorce, nie przyczyny.",
+                toolNotes: {
+                    get_meal_patterns:
+                        "Porównuje dni ze śniadaniem, porę kolacji i weekendy z 30 dni",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "czy jem więcej w dni, kiedy pomijam śniadanie? mam takie wrażenie",
+                    },
+                    {
+                        from: "ai",
+                        text: "Trochę tak. Masz wpisy z 28 z ostatnich 30 dni, a śniadanie pominięte 6 razy. Te dni dają średnio 2215 kcal, wobec 1940 w 22 dniach ze śniadaniem, i około 35 g białka mniej.",
+                    },
+                    {
+                        from: "user",
+                        text: "a późne kolacje? w dni treningowe jem dopiero o 21",
+                    },
+                    {
+                        from: "ai",
+                        text: "Też się wyróżniają: 9 dni z kolacją o 20:00 lub później to średnio 2165 kcal, wobec 1920 w pozostałych 19. Oba to wzorce w Twoich wpisach, a nie dowód, że któryś z nich jest przyczyną.",
+                    },
+                    {
+                        from: "user",
+                        text: "a weekendy?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Prawie bez różnicy: w weekendy średnio 2010 kcal, w dni robocze 1993.",
+                    },
+                ],
+            },
+            {
+                id: "track-drinks",
+                title: "Śledź też alkohol",
+                description:
+                    "Alkohol śledzisz tylko wtedy, gdy o to poprosisz. Wybierz standardowe drinki amerykańskie albo jednostki brytyjskie, a każdy napój zostanie przeliczony na gramy alkoholu według objętości i mocy. Po wyłączeniu dane są ukryte, a nie usunięte.",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "Włącza śledzenie alkoholu: gramy obok jednostek brytyjskich",
+                    log_meal:
+                        "Przelicza alkohol w pincie według objętości i mocy",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "możesz liczyć też alkohol? chcę trochę przystopować",
+                    },
+                    {
+                        from: "ai",
+                        text: "Jasne. Pokazywać alkohol w standardowych drinkach amerykańskich czy w jednostkach brytyjskich?",
+                    },
+                    {
+                        from: "user",
+                        text: "brytyjskie jednostki, mieszkam w manchesterze",
+                    },
+                    {
+                        from: "ai",
+                        text: "Śledzenie alkoholu włączone, w gramach i jednostkach brytyjskich.",
+                    },
+                    {
+                        from: "user",
+                        text: "do kolacji była pinta lagera",
+                    },
+                    {
+                        from: "ai",
+                        text: "Jaka moc? Lagery mają zwykle od 4 do 5%, a moc jest podana na nalewaku albo puszce.",
+                    },
+                    {
+                        from: "user",
+                        text: "chyba 4%",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano do kolacji: pinta 568 ml o mocy 4% to 17,9 g alkoholu, 2,3 jednostki brytyjskiej, około 180 kcal.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 7,
+                    },
+                ],
+                cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
+            },
+            {
+                id: "import-history",
+                title: "Przenieś swoją historię",
+                description:
+                    "Przechodzisz z MyFitnessPal, Cronometer, Lose It! albo MacroFactor? Importer otwiera się w czacie, odczytuje i mapuje Twój eksport w przeglądarce, niczego nie zapisuje, dopóki nie potwierdzisz podglądu, i nigdy nie dubluje posiłków, jeśli zaimportujesz ten sam plik ponownie. Brak strefy czasowej zgłasza, zanim zaczniesz.",
+                toolNotes: {
+                    start_meal_import:
+                        "Otwiera importer w czacie dla Twojego pliku eksportu",
+                    set_timezone:
+                        "Ustawia America/Chicago, by godziny posiłków były lokalne",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "przechodzę z myfitnesspal. dasz radę przenieść mój dziennik jedzenia? mam eksport",
+                    },
+                    {
+                        from: "ai",
+                        text: "Importer jest otwarty poniżej. Jedna rzecz, zanim wybierzesz plik: na Twoim koncie nie ma ustawionej strefy czasowej, więc godziny zostałyby odczytane jako UTC. Gdzie mieszkasz?",
+                    },
+                    {
+                        from: "user",
+                        text: "chicago",
+                    },
+                    {
+                        from: "ai",
+                        text: "Ustawiono America/Chicago. Teraz wybierz plik CSV Nutrition-Summary z eksportu MyFitnessPal. Jest odczytywany bezpośrednio w Twojej przeglądarce i nic nie zostanie zapisane, dopóki nie potwierdzisz podglądu.",
+                    },
+                    {
+                        from: "user",
+                        text: "dopasował kolumny, ale przy nazwie produktu pisze, że nie ma jej w tym pliku?",
+                    },
+                    {
+                        from: "ai",
+                        text: "To normalne w MyFitnessPal: eksport ma jeden wiersz na każdy posiłek dnia, z sumami, ale bez nazw produktów. Każdy posiłek zostanie więc opisany swoim rodzajem, a kalorie i makro pozostaną nienaruszone.",
+                    },
+                    {
+                        from: "user",
+                        text: "603 posiłki. pisze, że wszystkie będą w południe?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Tak, eksport ma daty, ale nie ma godzin posiłków, więc każdy trafia na lokalne południe. Dzięki temu każdy posiłek zostaje we właściwym dniu w Chicago; po prostu nie będzie widać, o której naprawdę jadłeś/aś.",
+                    },
+                    {
+                        from: "user",
+                        text: "gotowe! wszystko weszło?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Wszystko: zaimportowano 603 posiłki, bez ani jednego błędu.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "import-meals",
+                        after: 3,
+                        step: "file",
+                    },
+                ],
+            },
+            {
+                id: "export-data",
+                title: "Zabierz swoje dane",
+                description:
+                    "Jedna prośba pakuje wszystko, co jest o Tobie przechowywane — posiłki, wodę, pomiary wagi, cele, ustawienia profilu, dane konta, telemetrię użycia i połączone aplikacje — w ZIP z plikami CSV i plikiem README. Znaczniki czasu są w Twojej strefie czasowej, a meals.csv importuje się prosto z powrotem.",
+                toolNotes: {
+                    export_all_data:
+                        "Pakuje osiem plików CSV i README pod linkiem ważnym 60 minut",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "moja dietetyczka chce zobaczyć mój dziennik jedzenia. możesz mi go wyciągnąć jako arkusz?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Proszę: jeden ZIP z 1204 posiłkami, 318 wpisami wody i 64 pomiarami wagi, a do tego Twoje cele, ustawienia profilu, dane konta, telemetria użycia narzędzi i połączone aplikacje. Dziennik jedzenia to plik meals.csv w środku, który otworzysz w Excelu albo w Google Sheets.",
+                        download: "export-zip",
+                    },
+                    {
+                        from: "user",
+                        text: "mogę jej po prostu wysłać link?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Lepiej pobierz plik i wyślij jej sam plik. Link przestaje działać po 60 minutach, a każdy, kto go ma, może otworzyć cały Twój eksport — nie tylko posiłki, ale też wagę, dane konta i ustawienia.",
+                    },
+                    {
+                        from: "user",
+                        text: "dobrze wiedzieć. a w razie czego mogę później przywrócić z tego dane?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Posiłki tak. meals.csv używa nazw kolumn samego importera, więc wraca prosto do dziennika, a posiłki, które już w nim są, zostają rozpoznane i pominięte, więc nic się nie dubluje. Pozostałe pliki są tylko do Twojego archiwum; nie da się ich zaimportować z powrotem.",
+                    },
+                ],
+            },
         ],
     },
 
     stats: {
-        eyebrow: "Zapisane dotąd, razem",
-        title: "Rosnący globalny dziennik jedzenia",
-        factsTitle: "Wartości odżywcze",
-        servingPrefix: "Wielkość porcji: ",
-        servingBold: "wszyscy, jak dotąd",
+        title: "Gdzieś śniadanie, gdzie indziej kolacja.",
+        sub: "Statystyki odżywiania na żywo ze wszystkich kont Nutrition MCP — kalorie, wpisy jedzenia, makroskładniki i zrzucona waga — odświeżane co pięć sekund.",
         liveLabel: "Na żywo",
-        calLabel: "Kalorie ",
-        calSmall: "zapisanych, łącznie",
+        unitGroupLabel: "Jednostki",
+        unitMetricLabel: "Metryczne",
+        unitImperialLabel: "Imperialne",
+        unitKgLabel: "Metryczne (kg)",
+        unitLbLabel: "Imperialne (lb)",
+        refreshBefore: "Odświeżanie co 5 s · następne za ",
+        refreshAfter: " s",
+        sinceOpenLabel: "od otwarcia tej strony",
         calCaption: "Zapisane kalorie",
-        rowFoodLogs: "Wpisy jedzenia",
-        rowProtein: "Białko",
-        rowCarbs: "Węglowodany",
-        rowFat: "Tłuszcz",
-        unitGroupLabel: "Jednostka wagi",
-        unitKgLabel: "Kilogramy (kg)",
-        unitLbLabel: "Funty (lb)",
-        foot: "Sumy ze wszystkich kont, aktualizowane na bieżąco w miarę zapisywania posiłków. Dane indywidualne nigdy nie są pokazywane.",
-        mapPrefix: "Zapisywane w",
-        mapSuffix: "strefach czasowych na całym świecie",
+        cards: {
+            foodLogs: "Wpisy jedzenia",
+            protein: "Zapisane białko",
+            carbs: "Zapisane węglowodany",
+            fat: "Zapisany tłuszcz",
+            weightLost: "Waga zrzucona od 2 lipca 2026",
+            water: "Zapisana woda",
+        },
+        foodLogsUnit: {
+            one: "wpis",
+            few: "wpisy",
+            many: "wpisów",
+            other: "wpisu",
+        },
+        timezonesAfter:
+            " stref czasowych · dni zmieniają się o lokalnej północy każdej osoby",
+        mapNote: "wielkość kropki = udział kont",
         mapAriaLabel:
-            "Mapa świata pokazująca strefy czasowe, w których używany jest Nutrition MCP",
+            "Mapa świata ze strefami czasowymi, w których zapisano posiłki",
+        foot: "Sumy ze wszystkich kont, aktualizowane na bieżąco w miarę zapisywania posiłków. Dane indywidualne nigdy nie są pokazywane.",
     },
 
     features: {
-        eyebrow: "Wszystko, po prostu przez rozmowę",
         title: "Co możesz śledzić",
         cards: [
             {
-                icon: "fa-solid fa-utensils",
                 title: "Posiłki zwykłym językiem",
                 body: "Opisz, co zjadłeś/aś — Twój AI szacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem i kofeinę w miligramach, po czym to zapisuje.",
             },
             {
-                icon: "fa-solid fa-barcode",
                 title: "Zeskanuj kod kreskowy",
                 body: "Zrób zdjęcie albo wpisz kod kreskowy produktu i pobierz makroskładniki, błonnik i cukier z Open Food Facts, przeliczone na zjedzoną ilość.",
             },
             {
-                icon: "fa-solid fa-bullseye",
                 title: "Cele i postępy",
                 body: "Ustaw dzienne cele kaloryczne, makroskładnikowe, błonnika i wody — a także limity cukru, kofeiny i alkoholu, których nie należy przekraczać — i sprawdzaj postępy na bieżąco.",
             },
             {
-                icon: "fa-solid fa-chart-area",
                 title: "Podsumowania i trendy",
                 body: "Dzienne i tygodniowe zestawienia, trendy 7/14/30-dniowe, serie i powtarzające się wzorce posiłków.",
             },
             {
-                icon: "fa-solid fa-glass-water",
                 title: "Zapisywanie wody",
                 body: "Śledź nawodnienie w mililitrach razem z posiłkami i przeglądaj je dzień po dniu.",
             },
             {
-                icon: "fa-solid fa-weight-scale",
                 title: "Śledzenie wagi",
                 body: "Zapisuj masę ciała w kg albo lb, oglądaj trendy 7/14/30-dniowe i śledź postęp w kierunku wagi docelowej.",
             },
             {
-                icon: "fa-solid fa-clock-four",
                 title: "Świadomy stref czasowych",
                 body: "Dni zmieniają się w Twoim lokalnym czasie, gdziekolwiek jesteś na świecie.",
             },
             {
-                icon: "fa-solid fa-file-import",
                 title: "Import z innej aplikacji",
                 body: "Przenieś historię posiłków z MyFitnessPal, Cronometer, Lose It! albo MacroFactor — albo dowolnego innego CSV, mapując jego kolumny samodzielnie. Potwierdzasz, co zostanie dodane, zanim cokolwiek zostanie zapisane.",
             },
             {
-                icon: "fa-solid fa-file-csv",
                 title: "Eksport i własność Twoich danych",
                 body: "Zabierz wszystko, co o Tobie przechowujemy — posiłki, wodę, wagę, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — jako jeden ZIP z plikami CSV. Na razie tylko posiłki można zaimportować z powrotem. Usuń swoje konto i dane, kiedy tylko zechcesz.",
             },
@@ -742,7 +709,6 @@ export const INDEX_PL: IndexDoc = {
     },
 
     why: {
-        eyebrow: "Dlaczego Nutrition MCP",
         title: "Rozmowa bije klikanie.",
         sub: "Zrób zdjęcie kodu kreskowego albo po prostu powiedz, co zjadłeś/aś — bez grzebania w bazie danych, bez osobnej aplikacji do otwierania.",
         oldHeading: "Tradycyjne aplikacje",
@@ -777,14 +743,15 @@ export const INDEX_PL: IndexDoc = {
     ],
 
     support: {
-        eyebrow: "Wsparcie",
         title: "Pomóż utrzymać to w ruchu.",
         sub: "Nutrition MCP jest darmowy i bez reklam. Patreon pokrywa rachunki za serwer i bazę danych.",
         updatesTitle: "Najnowsze na Patreon",
+        updatesBadge: "Za darmo",
         updatesNote: "Bezpłatne do czytania — nie trzeba być członkiem.",
         updatesPrevLabel: "Poprzednia aktualizacja",
         updatesNextLabel: "Następna aktualizacja",
         updatesDotLabel: "Aktualizacja",
+        postLinkLabel: "Czytaj na Patreon",
         free: {
             tier: "Darmowy członek",
             price: "0 zł",
@@ -807,14 +774,12 @@ export const INDEX_PL: IndexDoc = {
     },
 
     contact: {
-        eyebrow: "Kontakt",
         title: "Pytania albo opinie?",
         sub: "Znalazłeś/aś błąd, chcesz nową funkcję, albo po prostu masz pytanie? Napisz do mnie bezpośrednio — czytam każdą wiadomość.",
         cta: "Wyślij e-mail",
     },
 
     faqSection: {
-        eyebrow: "FAQ",
         title: "Najczęściej zadawane pytania",
     },
     faq: [
