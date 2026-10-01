@@ -27,14 +27,14 @@ export const ALT_UI_IT: AltUiCopy = {
         heroEyebrow: "Alternativa a {app}",
         heroTitleHtml: "Cerchi un server <em>{app} MCP</em>?",
         heroLead:
-            "{app} non ne ha uno — quindi non puoi usarlo dentro Claude o ChatGPT. Nutrition MCP fa lo stesso lavoro per conversazione, ed è gratuito e open source.",
+            "{app} non ne pubblica uno da collegare — quindi non puoi registrare nel tuo diario {app} da Claude o ChatGPT. Nutrition MCP fa lo stesso lavoro per conversazione, ed è gratuito e open source.",
         ctaConnect: "Connettiti in meno di un minuto",
         ctaSeeComparison: "Guarda il confronto",
 
         answerEyebrow: "La risposta breve",
-        answerTitle: "No, {app} non ha un server MCP.",
+        answerTitle: "No — {app} non ha un server MCP ufficiale e pubblico.",
         answerBodyHtml:
-            "Il Model Context Protocol (MCP) è lo standard aperto che permette agli assistenti IA come Claude e ChatGPT di connettersi a strumenti esterni. {app} non pubblica un server MCP, quindi non esiste un modo ufficiale per registrare il cibo dalla tua IA. Se hai cercato &ldquo;{app} MCP&rdquo; o &ldquo;collegare {app} a Claude,&rdquo; ciò che stai davvero cercando è un tracker nutrizionale che vive <em>dentro</em> la tua IA — è esattamente ciò che è Nutrition MCP.",
+            "Il Model Context Protocol (MCP) è lo standard aperto che permette agli assistenti IA come Claude e ChatGPT di connettersi a strumenti esterni. {app} non mette a disposizione un server MCP pubblico, quindi non esiste un modo ufficiale per registrare il cibo nel tuo diario {app} dalla tua IA. Se hai cercato &ldquo;{app} MCP&rdquo; o &ldquo;collegare {app} a Claude,&rdquo; ciò che stai davvero cercando è un tracker nutrizionale che vive <em>dentro</em> la tua IA — è esattamente ciò che è Nutrition MCP.",
 
         insteadEyebrow: "Cosa ottieni invece",
         insteadTitle: "Lo stesso tracciamento, ma parlando",
@@ -45,7 +45,7 @@ export const ALT_UI_IT: AltUiCopy = {
             },
             {
                 title: "Scansione dei codici a barre — gratuita",
-                body: "Invia il codice a barre di un prodotto e recupera le macro dell'etichetta da Open Food Facts — fibre e zuccheri inclusi, dove l'etichetta li riporta. Nessun abbonamento Premium per sbloccarla.",
+                body: "Invia il codice a barre di un prodotto e recupera le macro dell'etichetta da Open Food Facts — fibre e zuccheri inclusi, dove l'etichetta li riporta. Gratis per tutti, senza abbonamento.",
             },
             {
                 title: "Peso &amp; obiettivi",
@@ -66,6 +66,7 @@ export const ALT_UI_IT: AltUiCopy = {
         ],
 
         compareEyebrow: "{app} vs. Nutrition MCP",
+        otherComparisonsLabel: "Altri confronti:",
         compareTitle: "Come si confrontano",
         pros: [
             "Costruito come server MCP — vive dentro Claude &amp; ChatGPT",
@@ -96,10 +97,10 @@ export const ALT_UI_IT: AltUiCopy = {
         faqTitleTemplate: "Domande su {app} &amp; MCP",
         faq: {
             mcpQ: "{app} ha un server MCP?",
-            mcpA: "No. {app} non offre un server Model Context Protocol (MCP), quindi non esiste un modo ufficiale per collegarlo a Claude, ChatGPT o altri assistenti IA. Nutrition MCP è un'alternativa gratuita e open source costruita come server MCP fin dall'inizio, così puoi registrare pasti e macro direttamente dentro la tua IA.",
+            mcpA: "Nessuno ufficiale. {app} non mette a disposizione un server Model Context Protocol (MCP) pubblico, quindi non esiste un modo ufficiale per registrare nel tuo diario {app} da Claude, ChatGPT o altri client MCP. Esistono alcuni server non ufficiali, creati dalla community; non sono realizzati né supportati da {app}. Nutrition MCP è diverso: un tracker gratuito e open source costruito come server MCP fin dall'inizio, con un proprio account, che può importare l'esportazione CSV di {app}.",
             connectQ: "Come collego {app} a Claude?",
             connectA:
-                "Non esiste un connettore ufficiale {app} per Claude, perché {app} non ha un server MCP né un'integrazione MCP pubblica. L'opzione più vicina è Nutrition MCP, un server MCP gratuito presente nella directory di Claude: aprilo su https://claude.ai/directory/nutrition-mcp, clicca su Connect, accedi, e inizia a registrare per conversazione.",
+                "Non esiste un connettore ufficiale {app} per Claude, perché {app} non mette a disposizione alcun server MCP pubblico. Un'opzione è Nutrition MCP, un server MCP gratuito presente nella directory di Claude: aprilo su https://claude.ai/directory/nutrition-mcp, clicca su Connect, accedi, e inizia a registrare per conversazione.",
             goodAltQ: "Nutrition MCP è una buona alternativa a {app}?",
             goodAltA:
                 "Se vuoi tracciare calorie, macro — fibre, zuccheri totali e caffeina inclusi — acqua e peso senza aprire un'app separata o cercare in un database alimentare, sì. Invece di navigare a colpi di tap in un database, descrivi cosa hai mangiato in linguaggio naturale, invii una foto o scansioni un codice a barre, e la tua IA lo registra — completamente gratuito e open source.",
@@ -110,7 +111,7 @@ export const ALT_UI_IT: AltUiCopy = {
                 "Non quando si apre l'importatore. Analizza il CSV nel tuo browser e ti mostra cosa verrà aggiunto prima che venga scritto qualcosa: quanti pasti, il totale calorico, tutto ciò che ha dovuto segnalare, e le righe stesse — un file lungo elenca le prime insieme a un conteggio del resto anziché ogni riga. Vengono inviate solo le righe che confermi, e viaggiano come dati strutturati anziché attraverso la risposta dell'IA, quindi nessuna riga può essere trascritta male o inventata durante il tragitto. Ogni riga porta anche un'impronta di contenuto, così rieseguire lo stesso file segnala quei pasti come già registrati invece di duplicarli, a patto che nel frattempo il fuso orario non sia cambiato. Se il tuo client non può mostrare pannelli in chat, il ripiego è incollare l'esportazione — su quel percorso l'IA la legge davvero, quindi preferisci l'importatore quando puoi scegliere.",
             freeQ: "Nutrition MCP è gratuito?",
             freeAFallback:
-                "Sì. Nutrition MCP è completamente gratuito, senza piano premium, pubblicità o funzioni dietro paywall — a differenza delle app che mettono alcune funzioni dietro un abbonamento. Ti serve solo un account Claude o ChatGPT per connetterti.",
+                "Sì. Nutrition MCP è completamente gratuito, senza piano premium, pubblicità o funzioni dietro paywall — a differenza delle app che mettono alcune funzioni dietro un abbonamento. Ti servono un'app di IA che supporti MCP, come Claude o ChatGPT, e un account Nutrition MCP gratuito, che crei con Google o con email e password la prima volta che ti connetti.",
         },
         importFallbackNote:
             " Nei client senza pannelli in chat puoi incollare la tua esportazione.",
@@ -123,9 +124,9 @@ export const ALT_UI_IT: AltUiCopy = {
     hub: {
         heroEyebrow: "Alternative MCP",
         heroTitleHtml:
-            "La tua app di nutrizione non ha un <em>server MCP</em>.",
+            "La tua app di nutrizione non ha un <em>server MCP</em> ufficiale.",
         heroLead:
-            "App come MyFitnessPal, Cronometer e Lose It non possono connettersi a Claude o ChatGPT. Nutrition MCP è il modo gratuito e open source per tracciare pasti, macro e peso parlando con la tua IA.",
+            "App come MyFitnessPal, Cronometer e Lose It! non offrono un modo ufficiale per registrare nel tuo diario da Claude o ChatGPT. Nutrition MCP è un modo gratuito e open source per tracciare pasti, macro e peso parlando con la tua IA — e importa il tuo storico.",
         ctaSeeExamples: "Guarda gli esempi",
 
         appsEyebrow: "Passando da…",
@@ -133,7 +134,7 @@ export const ALT_UI_IT: AltUiCopy = {
         appsSub:
             "Scopri come Nutrition MCP si confronta con il tracker che usi oggi — e come spostare la tua registrazione, e il tuo storico esistente, dentro la tua IA.",
         noAppNote:
-            "Non vedi la tua app? Quasi certamente non ha nemmeno lei un server MCP — Nutrition MCP funziona allo stesso modo indipendentemente da cosa stai lasciando.",
+            "Non vedi la tua app? Neanche la maggior parte delle app di nutrizione ha un server MCP ufficiale — Nutrition MCP funziona allo stesso modo indipendentemente da cosa stai lasciando.",
         requestComparisonLinkText: "Richiedi un confronto",
 
         importEyebrow: "Porta il tuo storico",

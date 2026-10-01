@@ -15,14 +15,14 @@ export const ALT_UI_NL: AltUiCopy = {
         heroEyebrow: "{app}-alternatief",
         heroTitleHtml: "Op zoek naar een <em>{app} MCP</em>-server?",
         heroLead:
-            "{app} heeft die niet — dus je kunt het niet gebruiken binnen Claude of ChatGPT. Nutrition MCP doet hetzelfde via een gesprek, en het is gratis en open source.",
+            "{app} publiceert er geen die je kunt verbinden — dus je kunt je {app}-dagboek niet bijhouden vanuit Claude of ChatGPT. Nutrition MCP doet hetzelfde via een gesprek, en het is gratis en open source.",
         ctaConnect: "Verbind binnen een minuut",
         ctaSeeComparison: "Bekijk de vergelijking",
 
         answerEyebrow: "Het korte antwoord",
-        answerTitle: "Nee, {app} heeft geen MCP-server.",
+        answerTitle: "Nee — {app} heeft geen officiële, publieke MCP-server.",
         answerBodyHtml:
-            "Het Model Context Protocol (MCP) is de open standaard waarmee AI-assistenten zoals Claude en ChatGPT verbinding kunnen maken met externe tools. {app} publiceert geen MCP-server, dus er is geen officiële manier om er vanuit je AI eten in te loggen. Als je zocht op &ldquo;{app} MCP&rdquo; of &ldquo;{app} verbinden met Claude,&rdquo; ben je eigenlijk op zoek naar een voedingstracker die <em>binnen</em> je AI leeft — dat is precies wat Nutrition MCP is.",
+            "Het Model Context Protocol (MCP) is de open standaard waarmee AI-assistenten zoals Claude en ChatGPT verbinding kunnen maken met externe tools. {app} publiceert geen publieke MCP-server, dus er is geen officiële manier om vanuit je AI eten te loggen in je {app}-dagboek. Als je zocht op &ldquo;{app} MCP&rdquo; of &ldquo;{app} verbinden met Claude,&rdquo; ben je eigenlijk op zoek naar een voedingstracker die <em>binnen</em> je AI leeft — dat is precies wat Nutrition MCP is.",
 
         insteadEyebrow: "Wat je in plaats daarvan krijgt",
         insteadTitle: "Dezelfde tracking, gewoon door te praten",
@@ -33,7 +33,7 @@ export const ALT_UI_NL: AltUiCopy = {
             },
             {
                 title: "Barcode scannen — gratis",
-                body: "Stuur de barcode van een product en haal de labelmacro's op bij Open Food Facts — vezels en suiker ook, waar het label die vermeldt. Geen Premium-abonnement nodig om het te ontgrendelen.",
+                body: "Stuur de barcode van een product en haal de labelmacro's op bij Open Food Facts — vezels en suiker ook, waar het label die vermeldt. Gratis voor iedereen, zonder abonnement.",
             },
             {
                 title: "Gewicht &amp; doelen",
@@ -54,6 +54,7 @@ export const ALT_UI_NL: AltUiCopy = {
         ],
 
         compareEyebrow: "{app} vs. Nutrition MCP",
+        otherComparisonsLabel: "Ook vergeleken:",
         compareTitle: "Hoe ze zich verhouden",
         pros: [
             "Gebouwd als MCP-server — werkt binnen Claude &amp; ChatGPT",
@@ -84,10 +85,10 @@ export const ALT_UI_NL: AltUiCopy = {
         faqTitleTemplate: "{app} &amp; MCP-vragen",
         faq: {
             mcpQ: "Heeft {app} een MCP-server?",
-            mcpA: "Nee. {app} biedt geen Model Context Protocol (MCP)-server aan, dus er is geen officiële manier om het te verbinden met Claude, ChatGPT of andere AI-assistenten. Nutrition MCP is een gratis, open source alternatief dat vanaf de grond af is gebouwd als MCP-server, zodat je maaltijden en macro's rechtstreeks in je AI kunt loggen.",
+            mcpA: "Niet officieel. {app} publiceert geen publieke Model Context Protocol (MCP)-server, dus er is geen officiële manier om vanuit Claude, ChatGPT of andere MCP-clients in je {app}-dagboek te loggen. Er bestaan enkele onofficiële servers die door de community zijn gebouwd; die worden niet door {app} gemaakt of ondersteund. Nutrition MCP is anders: een gratis, open source tracker die vanaf de grond af is gebouwd als MCP-server, met een eigen account, en die je {app}-CSV-export kan importeren.",
             connectQ: "Hoe verbind ik {app} met Claude?",
             connectA:
-                "Er is geen officiële {app}-connector voor Claude, omdat {app} geen MCP-server of publieke MCP-integratie heeft. De dichtstbijzijnde optie is Nutrition MCP, een gratis MCP-server die in de Claude-directory staat: open hem via https://claude.ai/directory/nutrition-mcp, klik op Connect, log in, en begin met loggen via een gesprek.",
+                "Er is geen officiële {app}-connector voor Claude, omdat {app} geen publieke MCP-server aanbiedt. Een mogelijkheid is Nutrition MCP, een gratis MCP-server die in de Claude-directory staat: open hem via https://claude.ai/directory/nutrition-mcp, klik op Connect, log in, en begin met loggen via een gesprek.",
             goodAltQ: "Is Nutrition MCP een goed {app}-alternatief?",
             goodAltA:
                 "Als je calorieën, macro's — vezels, totale suikers en cafeïne inbegrepen — water en gewicht wilt bijhouden zonder een aparte app te openen of een voedseldatabase te doorzoeken, dan wel. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto, of scan je een barcode, en je AI logt het — volledig gratis en open source.",
@@ -97,7 +98,7 @@ export const ALT_UI_NL: AltUiCopy = {
                 "Niet wanneer de importer opent. Die verwerkt de CSV in je browser en laat je zien wat wordt toegevoegd voordat er iets wordt geschreven: hoeveel maaltijden, het caloriegetal, alles wat gemarkeerd moest worden, en de regels zelf — bij een lang bestand worden de eerste getoond plus een telling van de rest, in plaats van elke regel. Alleen de regels die je bevestigt worden verzonden, en die gaan als gestructureerde gegevens in plaats van via het antwoord van de AI, dus er kan onderweg geen regel verkeerd worden overgetypt of verzonnen. Elke regel draagt ook een inhoudelijke vingerafdruk, dus dezelfde import nogmaals uitvoeren meldt die maaltijden als al gelogd in plaats van ze te dupliceren, zolang je tijdzone intussen niet is gewijzigd. Als je client geen in-chat-panelen kan tonen, is het alternatief om de export te plakken — op dat pad leest de AI het wel, dus geef de voorkeur aan de importer wanneer je de keuze hebt.",
             freeQ: "Is Nutrition MCP gratis?",
             freeAFallback:
-                "Ja. Nutrition MCP is volledig gratis, zonder premium-laag, advertenties of functies achter een betaalmuur — in tegenstelling tot apps die sommige functies achter een abonnement plaatsen. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden.",
+                "Ja. Nutrition MCP is volledig gratis, zonder premium-laag, advertenties of functies achter een betaalmuur — in tegenstelling tot apps die sommige functies achter een abonnement plaatsen. Je hebt een AI-app nodig die MCP ondersteunt, zoals Claude of ChatGPT, en een gratis Nutrition MCP-account, dat je de eerste keer dat je verbindt aanmaakt met Google of een e-mailadres en wachtwoord.",
         },
         importFallbackNote:
             " In clients zonder in-chat-panelen kun je in plaats daarvan je export plakken.",
@@ -109,9 +110,10 @@ export const ALT_UI_NL: AltUiCopy = {
 
     hub: {
         heroEyebrow: "MCP-alternatieven",
-        heroTitleHtml: "Jouw voedingsapp heeft geen <em>MCP-server</em>.",
+        heroTitleHtml:
+            "Jouw voedingsapp heeft geen officiële <em>MCP-server</em>.",
         heroLead:
-            "Apps zoals MyFitnessPal, Cronometer en Lose It kunnen geen verbinding maken met Claude of ChatGPT. Nutrition MCP is de gratis, open source manier om maaltijden, macro's en gewicht bij te houden door met je AI te praten.",
+            "Apps zoals MyFitnessPal, Cronometer en Lose It! bieden geen officiële manier om je dagboek bij te houden vanuit Claude of ChatGPT. Nutrition MCP is een gratis, open source manier om maaltijden, macro's en gewicht bij te houden door met je AI te praten — en het importeert je geschiedenis.",
         ctaSeeExamples: "Bekijk voorbeelden",
 
         appsEyebrow: "Overstappen van…",
@@ -119,7 +121,7 @@ export const ALT_UI_NL: AltUiCopy = {
         appsSub:
             "Bekijk hoe Nutrition MCP zich verhoudt tot de tracker die je nu gebruikt — en hoe je je loggen, en je bestaande geschiedenis, naar je AI overbrengt.",
         noAppNote:
-            "Zie je je app niet? Die heeft vrijwel zeker ook geen MCP-server — Nutrition MCP werkt op dezelfde manier, ongeacht waar je vandaan overstapt.",
+            "Zie je je app niet? De meeste voedingsapps publiceren ook geen officiële MCP-server — Nutrition MCP werkt op dezelfde manier, ongeacht waar je vandaan overstapt.",
         requestComparisonLinkText: "Vraag een vergelijking aan",
 
         importEyebrow: "Je geschiedenis meenemen",

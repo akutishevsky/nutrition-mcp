@@ -15,14 +15,14 @@ export const ALT_UI_JA: AltUiCopy = {
         heroEyebrow: "{app}の代替",
         heroTitleHtml: "<em>{app} MCP</em>サーバーをお探しですか？",
         heroLead:
-            "{app}にはMCPサーバーがないため、ClaudeやChatGPTの中では使えません。Nutrition MCPなら会話するだけで同じことができ、しかも無料でオープンソースです。",
+            "{app}は接続できるMCPサーバーを公開していないため、ClaudeやChatGPTから{app}の記録をつけることはできません。Nutrition MCPなら会話するだけで同じことができ、しかも無料でオープンソースです。",
         ctaConnect: "1分足らずで接続",
         ctaSeeComparison: "比較を見る",
 
         answerEyebrow: "結論から言うと",
-        answerTitle: "いいえ、{app}にMCPサーバーはありません。",
+        answerTitle: "いいえ、{app}に公式の公開MCPサーバーはありません。",
         answerBodyHtml:
-            "Model Context Protocol（MCP）は、ClaudeやChatGPTのようなAIアシスタントが外部ツールに接続するためのオープンスタンダードです。{app}はMCPサーバーを公開していないため、あなたのAIから食事を記録する公式な方法はありません。もし&ldquo;{app} MCP&rdquo;や&ldquo;{app}をClaudeに接続&rdquo;と検索したことがあるなら、本当に求めているのはAIの<em>中に</em>ある栄養管理ツールのはずです——それこそがNutrition MCPです。",
+            "Model Context Protocol（MCP）は、ClaudeやChatGPTのようなAIアシスタントが外部ツールに接続するためのオープンスタンダードです。{app}は公開MCPサーバーを提供していないため、あなたのAIから{app}の記録に食事を書き込む公式な方法はありません。もし&ldquo;{app} MCP&rdquo;や&ldquo;{app}をClaudeに接続&rdquo;と検索したことがあるなら、本当に求めているのはAIの<em>中に</em>ある栄養管理ツールのはずです——それこそがNutrition MCPです。",
 
         insteadEyebrow: "代わりに得られるもの",
         insteadTitle: "同じ記録が、話すだけで",
@@ -33,7 +33,7 @@ export const ALT_UI_JA: AltUiCopy = {
             },
             {
                 title: "バーコードスキャン——無料",
-                body: "商品のバーコードを送信するだけで、Open Food Factsからラベルのマクロ栄養素を取得します——ラベルに記載があれば食物繊維や糖質も。Premium課金で解除する必要はありません。",
+                body: "商品のバーコードを送信するだけで、Open Food Factsからラベルのマクロ栄養素を取得します——ラベルに記載があれば食物繊維や糖類も。誰でも無料で、サブスクリプションは不要です。",
             },
             {
                 title: "体重 &amp; 目標",
@@ -54,6 +54,7 @@ export const ALT_UI_JA: AltUiCopy = {
         ],
 
         compareEyebrow: "{app} vs. Nutrition MCP",
+        otherComparisonsLabel: "ほかの比較：",
         compareTitle: "機能を比較すると",
         pros: [
             "MCPサーバーとして構築——Claude &amp; ChatGPTの中で動作",
@@ -84,10 +85,10 @@ export const ALT_UI_JA: AltUiCopy = {
         faqTitleTemplate: "{app} &amp; MCPに関する質問",
         faq: {
             mcpQ: "{app}にMCPサーバーはありますか？",
-            mcpA: "いいえ。{app}はModel Context Protocol（MCP）サーバーを提供していないため、Claude、ChatGPT、その他のAIアシスタントに接続する公式な方法はありません。Nutrition MCPは、最初からMCPサーバーとして構築された無料・オープンソースの代替ツールで、食事やマクロ栄養素をAIの中で直接記録できます。",
+            mcpA: "公式のものはありません。{app}は公開のModel Context Protocol（MCP）サーバーを提供していないため、Claude、ChatGPT、その他のMCPクライアントから{app}の記録をつける公式な方法はありません。有志が開発した非公式のサーバーはいくつかありますが、{app}が開発・サポートしているものではありません。Nutrition MCPはそれらとは異なり、最初からMCPサーバーとして構築された無料・オープンソースのトラッカーで、独自のアカウントを持ち、{app}のCSVエクスポートをインポートできます。",
             connectQ: "{app}をClaudeに接続するにはどうすればいいですか？",
             connectA:
-                "{app}には公式のClaude用コネクタはありません。{app}にはMCPサーバーも公開MCP連携もないためです。最も近い選択肢が、Claudeディレクトリに掲載されている無料のMCPサーバー、Nutrition MCPです：https://claude.ai/directory/nutrition-mcpで開き、「接続」をクリックしてサインインすれば、会話するだけで記録を始められます。",
+                "{app}は公開MCPサーバーを提供していないため、{app}の公式なClaude用コネクタはありません。選択肢の一つが、Claudeディレクトリに掲載されている無料のMCPサーバー、Nutrition MCPです。https://claude.ai/directory/nutrition-mcp を開いて「接続」をクリックし、サインインすれば、会話するだけで記録を始められます。",
             goodAltQ: "Nutrition MCPは{app}の良い代替になりますか？",
             goodAltA:
                 "別のアプリを開いたり食品データベースを検索したりせずに、カロリー、マクロ栄養素——食物繊維、総糖質、カフェインを含む——、水分、体重を記録したいなら、はいそうです。データベースをタップして探す代わりに、食べたものを普段の言葉で説明したり、写真を送ったり、バーコードをスキャンしたりするだけで、AIが記録してくれます——完全に無料でオープンソースです。",
@@ -98,7 +99,7 @@ export const ALT_UI_JA: AltUiCopy = {
                 "インポーターが開いている間は読みません。CSVはブラウザ内で解析され、何も書き込まれる前に、追加される内容——食事の件数、カロリー合計、警告が必要な項目、そして行データそのもの——が表示されます。長いファイルの場合はすべての行ではなく、先頭の数行と残りの件数が表示されます。送信されるのは確定した行だけで、それらはAIの返答を経由せず構造化データとして送られるため、途中で行が誤記されたり創作されたりすることはありません。各行にはコンテンツフィンガープリントも付与されるため、その間にタイムゾーンを変更していなければ、同じファイルを再度実行しても、それらの食事はすでに記録済みとして扱われ、重複することはありません。チャット内パネルを表示できないクライアントを使っている場合は、代わりにエクスポート内容を貼り付ける方法があります——その場合はAIが内容を読むため、選べるならインポーターを優先してください。",
             freeQ: "Nutrition MCPは無料ですか？",
             freeAFallback:
-                "はい。Nutrition MCPは完全に無料で、プレミアムプランも広告も課金制限された機能もありません——一部機能をサブスクリプションの背後に置く他のアプリとは異なります。接続に必要なのはClaudeまたはChatGPTのアカウントだけです。",
+                "はい。Nutrition MCPは完全に無料で、プレミアムプランも広告も課金制限された機能もありません——一部機能をサブスクリプションの背後に置く他のアプリとは異なります。必要なのは、ClaudeやChatGPTなどMCPに対応したAIアプリと、無料のNutrition MCPアカウントです。アカウントは初回接続時に、Googleまたはメールアドレスとパスワードで作成します。",
         },
         importFallbackNote:
             " チャット内パネルに対応していないクライアントでは、代わりにエクスポート内容を貼り付けることができます。",
@@ -111,9 +112,9 @@ export const ALT_UI_JA: AltUiCopy = {
     hub: {
         heroEyebrow: "MCP代替ツール",
         heroTitleHtml:
-            "あなたの栄養管理アプリには<em>MCPサーバー</em>がありません。",
+            "あなたの栄養管理アプリには公式の<em>MCPサーバー</em>がありません。",
         heroLead:
-            "MyFitnessPal、Cronometer、Lose Itのようなアプリは、ClaudeやChatGPTに接続できません。Nutrition MCPなら、AIと話すだけで食事・マクロ栄養素・体重を記録できる、無料でオープンソースな方法です。",
+            "MyFitnessPal、Cronometer、Lose It!のようなアプリには、ClaudeやChatGPTから記録をつける公式な方法がありません。Nutrition MCPなら、AIと話すだけで食事・マクロ栄養素・体重を記録できる、無料でオープンソースな方法です——これまでの履歴もインポートできます。",
         ctaSeeExamples: "例を見る",
 
         appsEyebrow: "乗り換え元…",
@@ -121,7 +122,7 @@ export const ALT_UI_JA: AltUiCopy = {
         appsSub:
             "今使っているトラッカーとNutrition MCPを比較し、記録方法と既存の履歴をAIへ移す方法を確認できます。",
         noAppNote:
-            "お使いのアプリが見当たりませんか？そのアプリにもほぼ確実にMCPサーバーはありません——Nutrition MCPは、どこから乗り換える場合でも同じように使えます。",
+            "お使いのアプリが見当たりませんか？ほとんどの栄養管理アプリは、公式のMCPサーバーを公開していません——Nutrition MCPは、どこから乗り換える場合でも同じように使えます。",
         requestComparisonLinkText: "比較の追加をリクエスト",
 
         importEyebrow: "履歴を持ち込む",

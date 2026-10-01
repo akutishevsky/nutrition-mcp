@@ -75,111 +75,100 @@ export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
     en: {
         appTitle: "{app} MCP Server? Track Nutrition in Claude & ChatGPT",
         appDesc:
-            "No MCP server for {app}? Nutrition MCP logs meals and macros inside Claude or ChatGPT — free, open source, and it imports your CSV export.",
+            "No official MCP server for {app}? Nutrition MCP logs meals and macros inside Claude or ChatGPT — free, open source, and it imports your CSV export.",
         appOgDesc:
-            "{app} has no MCP server. Nutrition MCP is a free, open-source alternative that logs meals, macros, and weight in Claude or ChatGPT — and imports your {app} history from a CSV export.",
-        hubTitle:
-            "Nutrition App MCP Alternatives — Track Food in Claude & ChatGPT",
+            "{app} has no official MCP server. Nutrition MCP is a free, open-source alternative that logs meals, macros, and weight in Claude or ChatGPT — and imports your {app} history from a CSV export.",
+        hubTitle: "MyFitnessPal & Cronometer Alternative in Claude & ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer, and Lose It! have no MCP server. Nutrition MCP is the free, open-source alternative for Claude and ChatGPT — and imports your history.",
+            "MyFitnessPal, Cronometer, and Lose It! have no official MCP server. Nutrition MCP is a free, open-source alternative for Claude and ChatGPT, with CSV import.",
         hubOgDesc:
-            "Your nutrition app doesn't have an MCP server. Nutrition MCP is a free, open-source alternative that works inside Claude or ChatGPT — and imports your history from a CSV export.",
+            "Your nutrition app has no official MCP server. Nutrition MCP is a free, open-source alternative that works inside Claude or ChatGPT — and imports your history from a CSV export.",
     },
     de: {
         appTitle: "{app} MCP-Server? Ernährung in Claude & ChatGPT verfolgen",
         appDesc:
-            "Kein MCP-Server für {app}? Nutrition MCP protokolliert Mahlzeiten und Makros in Claude oder ChatGPT — kostenlos, quelloffen, und importiert deinen CSV-Export.",
+            "Kein offizieller MCP-Server für {app}? Nutrition MCP erfasst Mahlzeiten und Makros in Claude oder ChatGPT — kostenlos, quelloffen, mit CSV-Import.",
         appOgDesc:
-            "{app} hat keinen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die Mahlzeiten, Makros und Gewicht in Claude oder ChatGPT protokolliert — und importiert deinen {app}-Verlauf aus einem CSV-Export.",
-        hubTitle:
-            "Nutrition App MCP-Alternativen — Ernährung in Claude & ChatGPT verfolgen",
+            "{app} hat keinen offiziellen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die Mahlzeiten, Makros und Gewicht in Claude oder ChatGPT erfasst — und deine {app}-Historie aus einem CSV-Export importiert.",
+        hubTitle: "MyFitnessPal- & Cronometer-Alternative in Claude & ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer und Lose It! haben keinen MCP-Server. Nutrition MCP ist die kostenlose, quelloffene Alternative für Claude und ChatGPT — und importiert deinen Verlauf.",
+            "MyFitnessPal, Cronometer und Lose It! haben keinen offiziellen MCP-Server. Nutrition MCP: kostenlos, quelloffen, für Claude und ChatGPT, mit CSV-Import.",
         hubOgDesc:
-            "Deine Ernährungs-App hat keinen MCP-Server? Nutrition MCP ist eine kostenlose, quelloffene Alternative, die in Claude oder ChatGPT läuft — und importiert deinen Verlauf aus einem CSV-Export.",
+            "Deine Ernährungs-App hat keinen offiziellen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die in Claude oder ChatGPT läuft — und deine Historie aus einem CSV-Export importiert.",
     },
     es: {
-        appTitle:
-            "¿Servidor MCP para {app}? Controla tu nutrición en Claude y ChatGPT",
+        appTitle: "¿Servidor MCP para {app}? Nutrición en Claude y ChatGPT",
         appDesc:
-            "¿{app} no tiene servidor MCP? Nutrition MCP registra comidas y macros dentro de Claude o ChatGPT — gratuito, de código abierto, e importa tu exportación CSV.",
+            "¿{app} sin servidor MCP oficial? Nutrition MCP registra comidas y macros en Claude o ChatGPT — gratis, de código abierto y con importación CSV.",
         appOgDesc:
-            "{app} no tiene servidor MCP. Nutrition MCP es una alternativa gratuita y de código abierto que registra comidas, macros y peso en Claude o ChatGPT — e importa tu historial de {app} desde una exportación CSV.",
-        hubTitle:
-            "Alternativas MCP a apps de nutrición — Controla tu comida en Claude y ChatGPT",
+            "{app} no tiene servidor MCP oficial. Nutrition MCP es una alternativa gratuita y de código abierto que registra comidas, macros y peso en Claude o ChatGPT — e importa tu historial de {app} desde una exportación CSV.",
+        hubTitle: "Alternativa a MyFitnessPal y Cronometer en Claude y ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer y Lose It! no tienen servidor MCP. Nutrition MCP es la alternativa gratuita y de código abierto para Claude y ChatGPT — e importa tu historial.",
+            "MyFitnessPal, Cronometer y Lose It! no tienen servidor MCP oficial. Nutrition MCP: gratis, de código abierto, para Claude y ChatGPT, con importación CSV.",
         hubOgDesc:
-            "Tu app de nutrición no tiene servidor MCP. Nutrition MCP es una alternativa gratuita y de código abierto que funciona dentro de Claude o ChatGPT — e importa tu historial desde una exportación CSV.",
+            "Tu app de nutrición no tiene servidor MCP oficial. Nutrition MCP es una alternativa gratuita y de código abierto que funciona dentro de Claude o ChatGPT — e importa tu historial desde una exportación CSV.",
     },
     fr: {
-        appTitle:
-            "Serveur MCP pour {app} ? Suis ta nutrition dans Claude et ChatGPT",
+        appTitle: "Serveur MCP pour {app} ? Nutrition dans Claude et ChatGPT",
         appDesc:
-            "Pas de serveur MCP pour {app} ? Nutrition MCP enregistre les repas et les macros dans Claude ou ChatGPT — gratuit, open source, et importe ton export CSV.",
+            "Pas de serveur MCP officiel pour {app} ? Nutrition MCP enregistre repas et macros dans Claude ou ChatGPT — gratuit, open source, et il importe ton CSV.",
         appOgDesc:
-            "{app} n'a pas de serveur MCP. Nutrition MCP est une alternative gratuite et open source qui enregistre repas, macros et poids dans Claude ou ChatGPT — et importe ton historique {app} depuis un export CSV.",
+            "{app} n'a pas de serveur MCP officiel. Nutrition MCP est une alternative gratuite et open source qui enregistre repas, macros et poids dans Claude ou ChatGPT — et importe ton historique {app} depuis un export CSV.",
         hubTitle:
-            "Alternatives MCP aux apps de nutrition — Suis ton alimentation dans Claude et ChatGPT",
+            "Alternative à MyFitnessPal & Cronometer dans Claude & ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer et Lose It! n'ont pas de serveur MCP. Nutrition MCP est l'alternative gratuite et open source pour Claude et ChatGPT — et importe ton historique.",
+            "MyFitnessPal, Cronometer et Lose It! n'ont pas de serveur MCP officiel. Nutrition MCP : gratuit, open source, pour Claude et ChatGPT, avec import CSV.",
         hubOgDesc:
-            "Ton app de nutrition n'a pas de serveur MCP ? Nutrition MCP est une alternative gratuite et open source qui fonctionne dans Claude ou ChatGPT — et importe ton historique depuis un export CSV.",
+            "Ton app de nutrition n'a pas de serveur MCP officiel. Nutrition MCP est une alternative gratuite et open source qui fonctionne dans Claude ou ChatGPT — et importe ton historique depuis un export CSV.",
     },
     nl: {
-        appTitle:
-            "MCP-server voor {app}? Houd je voeding bij in Claude en ChatGPT",
+        appTitle: "MCP-server voor {app}? Voeding loggen in Claude en ChatGPT",
         appDesc:
-            "Geen MCP-server voor {app}? Nutrition MCP logt maaltijden en macro's in Claude of ChatGPT — gratis, open source, en importeert je CSV-export.",
+            "Geen officiële MCP-server voor {app}? Nutrition MCP logt maaltijden en macro's in Claude of ChatGPT — gratis, open source, en importeert je CSV-export.",
         appOgDesc:
-            "{app} heeft geen MCP-server. Nutrition MCP is een gratis, open source alternatief dat maaltijden, macro's en gewicht logt in Claude of ChatGPT — en importeert je {app}-geschiedenis vanuit een CSV-export.",
-        hubTitle:
-            "MCP-alternatieven voor voedingsapps — Houd je voeding bij in Claude en ChatGPT",
+            "{app} heeft geen officiële MCP-server. Nutrition MCP is een gratis, open source alternatief dat maaltijden, macro's en gewicht logt in Claude of ChatGPT — en dat je {app}-geschiedenis uit een CSV-export importeert.",
+        hubTitle: "MyFitnessPal- & Cronometer-alternatief in Claude & ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer en Lose It! hebben geen MCP-server. Nutrition MCP is het gratis, open source alternatief voor Claude en ChatGPT — en importeert je geschiedenis.",
+            "MyFitnessPal, Cronometer en Lose It! hebben geen officiële MCP-server. Nutrition MCP: gratis, open source, voor Claude en ChatGPT, met CSV-import.",
         hubOgDesc:
-            "Jouw voedingsapp heeft geen MCP-server? Nutrition MCP is een gratis, open source alternatief dat werkt binnen Claude of ChatGPT — en importeert je geschiedenis vanuit een CSV-export.",
+            "Jouw voedingsapp heeft geen officiële MCP-server. Nutrition MCP is een gratis, open source alternatief dat werkt binnen Claude of ChatGPT — en dat je geschiedenis uit een CSV-export importeert.",
     },
     pl: {
         appTitle: "Serwer MCP dla {app}? Śledź odżywianie w Claude i ChatGPT",
         appDesc:
-            "Brak serwera MCP dla {app}? Nutrition MCP zapisuje posiłki i makroskładniki w Claude lub ChatGPT — za darmo, open source, i importuje Twój eksport CSV.",
+            "Brak oficjalnego serwera MCP dla {app}? Nutrition MCP zapisuje posiłki i makroskładniki w Claude lub ChatGPT — za darmo, open source, z importem CSV.",
         appOgDesc:
-            "{app} nie ma serwera MCP. Nutrition MCP to darmowa alternatywa open source, która zapisuje posiłki, makroskładniki i wagę w Claude lub ChatGPT — i importuje Twoją historię z {app} z eksportu CSV.",
+            "{app} nie ma oficjalnego serwera MCP. Nutrition MCP to darmowa alternatywa open source, która zapisuje posiłki, makroskładniki i wagę w Claude lub ChatGPT — i importuje Twoją historię z {app} z eksportu CSV.",
         hubTitle:
-            "Alternatywy MCP dla aplikacji żywieniowych — Śledź jedzenie w Claude i ChatGPT",
+            "Alternatywa dla MyFitnessPal i Cronometer w Claude i ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer i Lose It! nie mają serwera MCP. Nutrition MCP to darmowa alternatywa open source dla Claude i ChatGPT — i importuje Twoją historię.",
+            "MyFitnessPal, Cronometer i Lose It! nie mają oficjalnego serwera MCP. Nutrition MCP to darmowa alternatywa open source dla Claude i ChatGPT z importem historii.",
         hubOgDesc:
-            "Twoja aplikacja żywieniowa nie ma serwera MCP? Nutrition MCP to darmowa alternatywa open source, działająca w Claude lub ChatGPT — i importuje Twoją historię z eksportu CSV.",
+            "Twoja aplikacja żywieniowa nie ma oficjalnego serwera MCP. Nutrition MCP to darmowa alternatywa open source, działająca w Claude lub ChatGPT — i importuje Twoją historię z eksportu CSV.",
     },
     it: {
-        appTitle:
-            "Server MCP per {app}? Monitora la tua alimentazione in Claude e ChatGPT",
+        appTitle: "Server MCP per {app}? Conta le calorie in Claude e ChatGPT",
         appDesc:
-            "Nessun server MCP per {app}? Nutrition MCP registra pasti e macro in Claude o ChatGPT — gratuito, open source, e importa il tuo export CSV.",
+            "Nessun server MCP ufficiale per {app}? Nutrition MCP registra pasti e macro in Claude o ChatGPT — gratuito, open source, e importa il tuo export CSV.",
         appOgDesc:
-            "{app} non ha un server MCP. Nutrition MCP è un'alternativa gratuita e open source che registra pasti, macro e peso in Claude o ChatGPT — e importa la tua cronologia {app} da un export CSV.",
-        hubTitle:
-            "Alternative MCP alle app di nutrizione — Monitora il cibo in Claude e ChatGPT",
+            "{app} non ha un server MCP ufficiale. Nutrition MCP è un'alternativa gratuita e open source che registra pasti, macro e peso in Claude o ChatGPT — e importa la tua cronologia {app} da un export CSV.",
+        hubTitle: "Alternativa a MyFitnessPal e Cronometer in Claude e ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer e Lose It! non hanno un server MCP. Nutrition MCP è l'alternativa gratuita e open source per Claude e ChatGPT — e importa la tua cronologia.",
+            "MyFitnessPal, Cronometer e Lose It! non hanno un server MCP ufficiale. Nutrition MCP: gratuito, open source, per Claude e ChatGPT, con import CSV.",
         hubOgDesc:
-            "La tua app di nutrizione non ha un server MCP? Nutrition MCP è un'alternativa gratuita e open source che funziona in Claude o ChatGPT — e importa la tua cronologia da un export CSV.",
+            "La tua app di nutrizione non ha un server MCP ufficiale. Nutrition MCP è un'alternativa gratuita e open source che funziona in Claude o ChatGPT — e importa la tua cronologia da un export CSV.",
     },
     uk: {
-        appTitle:
-            "MCP-сервер для {app}? Відстежуй харчування в Claude та ChatGPT",
+        appTitle: "MCP-сервер для {app}? Харчування в Claude та ChatGPT",
         appDesc:
-            "Немає MCP-сервера для {app}? Nutrition MCP записує прийоми їжі та макронутрієнти прямо в Claude чи ChatGPT — безкоштовно, з відкритим кодом, і імпортує твій CSV-експорт.",
+            "Немає офіційного MCP-сервера для {app}? Nutrition MCP записує їжу й макронутрієнти в Claude чи ChatGPT — безкоштовно, з відкритим кодом та імпортом CSV.",
         appOgDesc:
-            "{app} не має MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка записує прийоми їжі, макронутрієнти та вагу в Claude чи ChatGPT — і імпортує твою історію з {app} із CSV-експорту.",
-        hubTitle:
-            "MCP-альтернативи додаткам для харчування — Відстежуй їжу в Claude та ChatGPT",
+            "{app} не має офіційного MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка записує прийоми їжі, макронутрієнти та вагу в Claude чи ChatGPT — і імпортує твою історію з {app} із CSV-експорту.",
+        hubTitle: "Альтернатива MyFitnessPal і Cronometer у Claude та ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer і Lose It! не мають MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом для Claude та ChatGPT — і імпортує твою історію.",
+            "MyFitnessPal, Cronometer, Lose It! — без офіційного MCP-сервера. Nutrition MCP — безкоштовний трекер з відкритим кодом для Claude і ChatGPT з імпортом історії.",
         hubOgDesc:
-            "Твій додаток для харчування не має MCP-сервера? Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка працює в Claude чи ChatGPT — і імпортує твою історію з CSV-експорту.",
+            "Твій застосунок для харчування не має офіційного MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка працює в Claude чи ChatGPT — і імпортує твою історію з CSV-експорту.",
     },
     ja: ALT_PAGE_META_JA,
 };
@@ -190,9 +179,9 @@ export const ALTERNATIVES_COPY: Partial<
     en: {
         "myfitnesspal-mcp": {
             hubBlurb:
-                "No MCP server, and some features need a paid plan. See the free, conversational alternative.",
+                "No official MCP server, and some features need a paid plan. See the free, conversational alternative.",
             cons: [
-                "No MCP server — can't run inside Claude or ChatGPT",
+                "No official MCP server — can't log your diary from Claude or ChatGPT",
                 "Search a database and pick the right entry for every item",
                 "Some features, like the barcode scanner, need a paid plan",
                 "A separate app and account, with ads on the free tier",
@@ -203,11 +192,11 @@ export const ALTERNATIVES_COPY: Partial<
                 body: [
                     "MyFitnessPal built its following on one of the largest food databases anywhere — tens of millions of crowd-sourced entries. That scale is also its friction: for any given food you scroll past near-duplicates and have to guess which entry is accurate. Conversational logging skips the lookup entirely — you describe the food and your AI estimates the macros.",
                     "You don't have to leave the diary behind to do it: a MyFitnessPal CSV export imports directly, quirks and all, so the years you've already logged come with you. Everything you record from then on is yours to export as CSV whenever you want.",
-                    "The features MyFitnessPal gradually moved behind Premium — barcode scanning, macros by gram, no ads — are simply included here. You're not weighing a free tier against a $20-a-month upgrade; there's one free, open-source tier, and the only account you need is the Claude or ChatGPT one you already have.",
+                    "The features MyFitnessPal gradually moved behind Premium — barcode scanning, macros by gram, no ads — are simply included here. You're not weighing a free tier against a $20-a-month upgrade; there's one free, open-source tier, and the only new thing you set up is a free sign-in the first time you connect.",
                 ],
             },
             importSection: {
-                title: "Bring the diary with you",
+                title: "Import your MyFitnessPal diary from CSV",
                 body: [
                     "Years of logged history is the real reason people stay, and you don't have to abandon it. Ask to import and an importer panel opens in the chat: you choose the CSV MyFitnessPal exports, it's parsed in your browser, the columns it recognises are matched for you, and you see what will be added before anything is written. That match covers calories, protein, carbs, and fat, plus fiber, total sugar, and caffeine in milligrams where your export carries those columns. The rows never pass through the AI, so there's nothing for it to mistype.",
                     "A MyFitnessPal export is handled by name, quirks included. The file arrives with a byte-order mark that would otherwise corrupt the first column heading; its notes can contain line breaks inside a quoted cell, which naive line-splitting would shred along with every row after it; and each day's block ends with a totals row that must not become a meal. The one that matters most: MyFitnessPal exports one aggregated row per meal per day and no food-name column at all, so rather than rejecting those rows for having no description, the importer recognises the shape and labels them by their slot — they arrive as “Breakfast (imported from MyFitnessPal)”.",
@@ -229,9 +218,9 @@ export const ALTERNATIVES_COPY: Partial<
         },
         "cronometer-mcp": {
             hubBlurb:
-                "No MCP server. See the free, conversational way to track calories and macros inside your AI.",
+                "No official MCP server. See the free, conversational way to track calories and macros inside your AI.",
             cons: [
-                "No MCP server — can't run inside Claude or ChatGPT",
+                "No official MCP server — can't log your diary from Claude or ChatGPT",
                 "Log by searching its database, entry by entry",
                 "Some features require a paid Gold plan",
                 "A separate app to open every time you eat",
@@ -262,17 +251,17 @@ export const ALTERNATIVES_COPY: Partial<
                 },
                 {
                     q: "Is Nutrition MCP as accurate as Cronometer?",
-                    a: "For calories, macros, fiber, and sugar, conversational estimates are close enough for most goals — but they won't match Cronometer's curated, gram-for-gram database. It trades a little precision for far less logging effort, which is the right trade for most people.",
+                    a: "No. Conversational figures are AI estimates and won't match Cronometer's curated, gram-for-gram database — they can be wrong, so verify anything that matters. For packaged foods, a barcode lookup uses the label data from Open Food Facts instead, though that isn't verified either. What you trade is some precision for far less logging effort.",
                 },
             ],
         },
         "lose-it-mcp": {
             hubBlurb:
-                "No MCP server. Log meals by talking to Claude or ChatGPT instead — free.",
+                "No official MCP server. Log meals by talking to Claude or ChatGPT instead — free.",
             cons: [
-                "No MCP server — can't run inside Claude or ChatGPT",
+                "No official MCP server — can't log your diary from Claude or ChatGPT",
                 "Search and log each item by hand",
-                "Some features, like photo logging, need a paid plan",
+                "Some features, like unlimited Snap It photo logging, need a paid plan",
                 "Another app, another account, ads on the free tier",
             ],
             note: "Lose It! is a friendly calorie counter. Nutrition MCP does the same core logging by conversation, free, without ever leaving Claude or ChatGPT.",
@@ -280,7 +269,7 @@ export const ALTERNATIVES_COPY: Partial<
                 title: "The same simplicity, minus the app",
                 body: [
                     "Lose It! won people over by keeping calorie counting light and a little gamified, with its Snap It photo logging as the headline trick. Nutrition MCP does the photo trick too — send a picture of your plate and your AI reads it — except it lives inside the assistant you already chat with, so there's no separate app to open.",
-                    "If what you liked about Lose It! was low-friction logging and quick daily feedback, you'll feel at home: say what you ate, get your remaining calories and macros back, and move on. No ads, no upsell, and no account to juggle.",
+                    "If what you liked about Lose It! was low-friction logging and quick daily feedback, you'll feel at home: say what you ate, get your remaining calories and macros back, and move on. No ads and no upsell.",
                     "The one thing you give up is the streaks-and-badges layer Lose It! uses to keep you coming back. If that gamification is what motivates you, that's a fair reason to stay. If it always felt like noise on top of the actual logging, you won't miss it — the daily number is right there in the chat whenever you ask.",
                 ],
             },
@@ -297,7 +286,7 @@ export const ALTERNATIVES_COPY: Partial<
             extraFaqs: [
                 {
                     q: "Does Nutrition MCP have photo logging like Lose It!'s Snap It?",
-                    a: "Yes — send a photo of your plate and your AI identifies the food and estimates the macros, then logs it after you confirm. In Lose It! photo logging sits behind a paid plan; with Nutrition MCP it's free and works right in the chat.",
+                    a: "Yes — send a photo of your plate and your AI identifies the food, estimates the macros, and logs it once you've confirmed the details. Lose It! limits Snap It on its free plan and unlocks unlimited use with Premium; with Nutrition MCP, photo logging costs nothing extra and works right in the chat, in any AI app that can read images.",
                 },
                 {
                     q: "Can I count calories the same way I did in Lose It!?",
@@ -307,9 +296,9 @@ export const ALTERNATIVES_COPY: Partial<
         },
         "macrofactor-mcp": {
             hubBlurb:
-                "Subscription-only and no MCP server. See the free alternative that lives in your AI.",
+                "Subscription-only and no official MCP server. See the free alternative that lives in your AI.",
             cons: [
-                "No MCP server — can't run inside Claude or ChatGPT",
+                "No official MCP server — can't log your diary from Claude or ChatGPT",
                 "A paid subscription after the free trial (no free tier)",
                 "You still open a separate app to log every meal",
                 "Its adaptive coaching is the product, not effortless logging",
@@ -319,7 +308,7 @@ export const ALTERNATIVES_COPY: Partial<
                 title: "Coaching versus logging",
                 body: [
                     "MacroFactor's pitch is its algorithm: it watches your logged intake and weight and quietly recalculates your calorie and macro targets each week — genuinely clever, adaptive coaching from the Stronger By Science team. That coaching is the product, which is why it's subscription-only.",
-                    "Nutrition MCP doesn't run a coaching algorithm — but because you're already inside an AI assistant, you can just ask. “Given my last three weeks, should I adjust my calories?” gets you a reasoned answer on demand. It's a different model: analysis when you want it, conversationally, instead of a fixed weekly recalculation — and it's free.",
+                    "Nutrition MCP doesn't run a coaching algorithm — but because you're already inside an AI assistant, you can just ask. “Given my last three weeks, should I adjust my calories?” gets your AI's reading of your own logged numbers on demand — an estimate to weigh, not dietary advice. It's a different model: analysis when you want it, conversationally, instead of a fixed weekly recalculation — and it's free.",
                     "The honest trade-off is discipline versus flexibility. MacroFactor's weekly recalculation happens whether or not you think to ask, which keeps you honest; the conversational model only adjusts when you prompt it. If you want a hands-off algorithm steering your numbers, MacroFactor is worth the subscription. If you'd rather log for free and pull analysis when you care, this fits better.",
                 ],
             },
@@ -328,7 +317,7 @@ export const ALTERNATIVES_COPY: Partial<
                 body: [
                     "What you'd be leaving is the algorithm, not the data. Ask to import and an importer panel opens in the chat: you choose your MacroFactor CSV export, it's parsed in your browser, the columns it recognises are mapped for you, and you confirm a preview before anything is written. The rows never pass through the AI, so nothing gets mistranscribed on the way in.",
                     "MacroFactor's export is recognised by name — its serving-size column is the giveaway — and its date, food, meal, calorie, and macro columns map themselves, fiber, total sugar, and caffeine included where the file carries them. If your export reports energy in kilojoules rather than kilocalories, that's converted rather than stored 4.184x too high. Because a column simply headed “Calories” can hold either unit, the unit is offered as a control next to a worked example from your own first row, so you confirm it instead of trusting a guess that would silently inflate every day.",
-                    "That history is immediately useful rather than just archived. Once weeks of intake and weight are in, you can ask the question MacroFactor's algorithm answered on a schedule — “given the last three weeks, should I adjust my calories?” — and get a reasoned answer on demand. A second import of the same file changes nothing, since each row carries a content fingerprint and repeats come back reported as already logged, as long as your timezone hasn't changed in between.",
+                    "That history is immediately useful rather than just archived. Once weeks of intake and weight are in, you can ask the question MacroFactor's algorithm answered on a schedule — “given the last three weeks, should I adjust my calories?” — and get your AI's reading of your own numbers on demand — an estimate, not dietary advice. A second import of the same file changes nothing, since each row carries a content fingerprint and repeats come back reported as already logged, as long as your timezone hasn't changed in between.",
                 ],
             },
             importFaq:
@@ -340,17 +329,17 @@ export const ALTERNATIVES_COPY: Partial<
                 },
                 {
                     q: "Is Nutrition MCP really free when MacroFactor is subscription-only?",
-                    a: "Yes. Nutrition MCP is completely free and open source, with no trial-then-pay and no free-tier limits — unlike MacroFactor, which has no free tier and requires a subscription after its trial. You only need a Claude or ChatGPT account.",
+                    a: "Yes. Nutrition MCP is completely free and open source, with no trial-then-pay and no free-tier limits — unlike MacroFactor, which has no free tier and requires a subscription after its trial. You need an AI app that supports MCP, such as Claude or ChatGPT, and a free Nutrition MCP account, which you create with Google or an email and password the first time you connect.",
                 },
             ],
             freeAnswer:
-                "Yes. Nutrition MCP is completely free and open source, with no subscription — whereas MacroFactor requires a paid subscription after its free trial. You just need a Claude or ChatGPT account to connect.",
+                "Yes. Nutrition MCP is completely free and open source, with no subscription — whereas MacroFactor requires a paid subscription after its free trial. You need an AI app that supports MCP, such as Claude or ChatGPT, and a free Nutrition MCP account, which you create with Google or an email and password the first time you connect.",
         },
         "yazio-mcp": {
             hubBlurb:
-                "No MCP server. Track meals and macros by conversation — free and open source.",
+                "No official MCP server. Track meals and macros by conversation — free and open source.",
             cons: [
-                "No MCP server — can't run inside Claude or ChatGPT",
+                "No official MCP server — can't log your diary from Claude or ChatGPT",
                 "Search the database for each food you log",
                 "Some features, like meal plans, need a paid PRO plan",
                 "A separate app and account to manage",
@@ -387,9 +376,9 @@ export const ALTERNATIVES_COPY: Partial<
         },
         "lifesum-mcp": {
             hubBlurb:
-                "No MCP server. A leaner, free way to log food inside Claude or ChatGPT.",
+                "No official MCP server. A leaner, free way to log food inside Claude or ChatGPT.",
             cons: [
-                "No MCP server — can't run inside Claude or ChatGPT",
+                "No official MCP server — can't log your diary from Claude or ChatGPT",
                 "Log foods by searching its database one by one",
                 "Some features, like diet plans, need a paid plan",
                 "Yet another app and subscription to manage",
@@ -400,7 +389,7 @@ export const ALTERNATIVES_COPY: Partial<
                 body: [
                     "Lifesum leans on structure and feedback — diet plans, recipes, and its food-rating system that scores what you eat. Nutrition MCP doesn't grade your foods with a badge, so if that scoring loop is what motivates you, Lifesum has an edge there.",
                     "The trade is flexibility: rather than a fixed rating, you can ask your AI “is this a good choice for my goals?” and get a real answer in context. Logging is a single sentence, trends and a target weight come built in, and there's no premium tier gating the useful parts.",
-                    "A badge tells you a food scored 3 out of 5; a conversation tells you why, and what to do about it — “swap half the rice for greens and this fits your day.” It's the difference between a score and a coach, and because Lifesum puts diet plans and some tracking behind Premium, it's the free option of the two.",
+                    "A badge tells you a food scored 3 out of 5; a conversation can explain why, in the context of your own log — “swap half the rice for greens and this fits your day.” And because Lifesum puts diet plans and some tracking behind Premium, Nutrition MCP is the free option of the two.",
                 ],
             },
             importSection: {
@@ -420,7 +409,7 @@ export const ALTERNATIVES_COPY: Partial<
                 },
                 {
                     q: "Is Nutrition MCP free without a Lifesum Premium-style plan?",
-                    a: "Yes. Nutrition MCP is completely free and open source, with no premium tier — whereas Lifesum puts diet plans and some tracking features behind a Premium subscription. You only need a Claude or ChatGPT account to connect.",
+                    a: "Yes. Nutrition MCP is completely free and open source, with no premium tier — whereas Lifesum puts diet plans and some tracking features behind a Premium subscription. You need an AI app that supports MCP, such as Claude or ChatGPT, and a free Nutrition MCP account, which you create with Google or an email and password the first time you connect.",
                 },
             ],
         },

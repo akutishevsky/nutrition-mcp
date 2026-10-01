@@ -9,9 +9,9 @@ import type { AppCopy, AppSlug } from "./alternatives.js";
 export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
     "myfitnesspal-mcp": {
         hubBlurb:
-            "Geen MCP-server, en sommige functies vereisen een betaald abonnement. Bekijk het gratis, conversationele alternatief.",
+            "Geen officiële MCP-server, en sommige functies vereisen een betaald abonnement. Bekijk het gratis, conversationele alternatief.",
         cons: [
-            "Geen MCP-server — werkt niet binnen Claude of ChatGPT",
+            "Geen officiële MCP-server — je kunt je dagboek niet bijhouden vanuit Claude of ChatGPT",
             "Doorzoek een database en kies voor elk item de juiste vermelding",
             "Sommige functies, zoals de barcodescanner, vereisen een betaald abonnement",
             "Een aparte app en account, met advertenties in de gratis versie",
@@ -22,11 +22,11 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             body: [
                 "MyFitnessPal bouwde zijn aanhang op een van de grootste voedseldatabases die er zijn — tientallen miljoenen door gebruikers aangeleverde vermeldingen. Die schaal is ook de wrijving: voor elk voedingsmiddel scrol je langs bijna-identieke vermeldingen en moet je gokken welke klopt. Conversationeel loggen slaat het opzoeken helemaal over — je omschrijft het eten en je AI schat de macro's.",
                 "Je hoeft je dagboek daarvoor niet achter te laten: een CSV-export van MyFitnessPal wordt direct geïmporteerd, eigenaardigheden en al, dus de jaren die je al hebt gelogd gaan mee. Alles wat je vanaf dan vastlegt, kun je zelf op elk moment weer als CSV exporteren.",
-                "De functies die MyFitnessPal geleidelijk achter Premium plaatste — barcode scannen, macro's per gram, geen advertenties — zijn hier gewoon inbegrepen. Je weegt geen gratis versie af tegen een upgrade van $20 per maand; er is één gratis, open source-niveau, en het enige account dat je nodig hebt is het Claude- of ChatGPT-account dat je al hebt.",
+                "De functies die MyFitnessPal geleidelijk achter Premium plaatste — barcode scannen, macro's per gram, geen advertenties — zijn hier gewoon inbegrepen. Je weegt geen gratis versie af tegen een upgrade van $20 per maand; er is één gratis, open source-niveau, en het enige nieuwe dat je instelt is een gratis aanmelding de eerste keer dat je verbindt.",
             ],
         },
         importSection: {
-            title: "Neem je dagboek mee",
+            title: "Importeer je MyFitnessPal-dagboek uit een CSV",
             body: [
                 "Jaren aan gelogde geschiedenis zijn de echte reden dat mensen blijven, en die hoef je niet op te geven. Vraag om te importeren en er opent een importvenster in de chat: je kiest de CSV die MyFitnessPal exporteert, die wordt in je browser verwerkt, de kolommen die worden herkend worden voor je gekoppeld, en je ziet wat er wordt toegevoegd voordat er iets wordt geschreven. Die koppeling omvat calorieën, eiwit, koolhydraten en vet, plus vezels, totale suikers en cafeïne in milligram waar je export die kolommen bevat. De regels gaan nooit door de AI, dus die kan niets verkeerd overtypen.",
                 "Een MyFitnessPal-export wordt op naam herkend, eigenaardigheden inbegrepen. Het bestand komt binnen met een byte-order mark die anders de eerste kolomkop zou beschadigen; de notities kunnen regeleinden bevatten binnen een aangehaalde cel, wat naïef opsplitsen per regel zou versnipperen samen met elke volgende regel; en elk dagblok eindigt met een totaalregel die geen maaltijd mag worden. Het belangrijkste: MyFitnessPal exporteert één samengevoegde regel per maaltijd per dag en helemaal geen kolom met een voedselnaam, dus in plaats van die regels af te wijzen omdat er geen omschrijving is, herkent de importer de vorm en labelt ze naar hun tijdslot — ze komen binnen als “Breakfast (imported from MyFitnessPal)”.",
@@ -48,9 +48,9 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
     },
     "cronometer-mcp": {
         hubBlurb:
-            "Geen MCP-server. Bekijk de gratis, conversationele manier om calorieën en macro's bij te houden in je AI.",
+            "Geen officiële MCP-server. Bekijk de gratis, conversationele manier om calorieën en macro's bij te houden in je AI.",
         cons: [
-            "Geen MCP-server — werkt niet binnen Claude of ChatGPT",
+            "Geen officiële MCP-server — je kunt je dagboek niet bijhouden vanuit Claude of ChatGPT",
             "Log door zijn database te doorzoeken, vermelding voor vermelding",
             "Sommige functies vereisen een betaald Gold-abonnement",
             "Een aparte app om te openen bij elke maaltijd",
@@ -81,17 +81,17 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Is Nutrition MCP net zo nauwkeurig als Cronometer?",
-                a: "Voor calorieën, macro's, vezels en suiker zijn conversationele schattingen voor de meeste doelen precies genoeg — maar ze evenaren niet Cronometers samengestelde database, gram voor gram. Het ruilt een beetje precisie in voor veel minder loginspanning, wat voor de meeste mensen de juiste ruil is.",
+                a: "Nee. Conversationele cijfers zijn schattingen van je AI en evenaren niet Cronometers samengestelde database, gram voor gram — ze kunnen fout zijn, dus controleer alles wat ertoe doet. Voor verpakte producten gebruikt een barcode-opzoeking in plaats daarvan de etiketgegevens van Open Food Facts, al zijn die ook niet geverifieerd. Je ruilt wat precisie in voor veel minder loginspanning.",
             },
         ],
     },
     "lose-it-mcp": {
         hubBlurb:
-            "Geen MCP-server. Log maaltijden door met Claude of ChatGPT te praten — gratis.",
+            "Geen officiële MCP-server. Log maaltijden in plaats daarvan door met Claude of ChatGPT te praten — gratis.",
         cons: [
-            "Geen MCP-server — werkt niet binnen Claude of ChatGPT",
+            "Geen officiële MCP-server — je kunt je dagboek niet bijhouden vanuit Claude of ChatGPT",
             "Zoek en log elk item met de hand",
-            "Sommige functies, zoals foto's loggen, vereisen een betaald abonnement",
+            "Sommige functies, zoals onbeperkt foto's loggen met Snap It, vereisen een betaald abonnement",
             "Weer een app, weer een account, advertenties in de gratis versie",
         ],
         note: "Lose It! is een vriendelijke calorieënteller. Nutrition MCP doet hetzelfde kernwerk van loggen via een gesprek, gratis, zonder Claude of ChatGPT ooit te verlaten.",
@@ -99,7 +99,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             title: "Dezelfde eenvoud, minus de app",
             body: [
                 "Lose It! won mensen voor zich door calorieën tellen licht en een beetje speels te houden, met Snap It-fotologging als hoofdtruc. Nutrition MCP doet die fototruc ook — stuur een foto van je bord en je AI leest hem — behalve dat het leeft in de assistent waarmee je al chat, dus er is geen aparte app om te openen.",
-                "Als wat je aan Lose It! aantrok laagdrempelig loggen en snelle dagelijkse feedback was, voel je je meteen thuis: zeg wat je hebt gegeten, krijg je resterende calorieën en macro's terug, en ga verder. Geen advertenties, geen upsell, en geen account om bij te houden.",
+                "Als wat je aan Lose It! aantrok laagdrempelig loggen en snelle dagelijkse feedback was, voel je je meteen thuis: zeg wat je hebt gegeten, krijg je resterende calorieën en macro's terug, en ga verder. Geen advertenties en geen upsell.",
                 "Het enige waar je afstand van doet is de laag van reeksen en badges waarmee Lose It! je laat terugkomen. Als die gamification je motiveert, is dat een prima reden om te blijven. Als het altijd als ruis boven op het eigenlijke loggen aanvoelde, mis je het niet — het dagelijkse cijfer staat gewoon in de chat zodra je ernaar vraagt.",
             ],
         },
@@ -116,7 +116,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
         extraFaqs: [
             {
                 q: "Heeft Nutrition MCP fotologging zoals Snap It van Lose It!?",
-                a: "Ja — stuur een foto van je bord en je AI herkent het eten en schat de macro's, en logt het zodra je bevestigt. Bij Lose It! zit fotologging achter een betaald abonnement; bij Nutrition MCP is het gratis en werkt het rechtstreeks in de chat.",
+                a: "Ja — stuur een foto van je bord en je AI herkent het eten, schat de macro's en logt het zodra je de details hebt bevestigd. Lose It! beperkt Snap It in de gratis versie en ontgrendelt onbeperkt gebruik met Premium; bij Nutrition MCP kost fotologging niets extra en werkt het rechtstreeks in de chat, in elke AI-app die afbeeldingen kan lezen.",
             },
             {
                 q: "Kan ik calorieën tellen op dezelfde manier als in Lose It!?",
@@ -126,9 +126,9 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
     },
     "macrofactor-mcp": {
         hubBlurb:
-            "Alleen op abonnement en geen MCP-server. Bekijk het gratis alternatief dat in je AI leeft.",
+            "Alleen op abonnement en geen officiële MCP-server. Bekijk het gratis alternatief dat in je AI leeft.",
         cons: [
-            "Geen MCP-server — werkt niet binnen Claude of ChatGPT",
+            "Geen officiële MCP-server — je kunt je dagboek niet bijhouden vanuit Claude of ChatGPT",
             "Een betaald abonnement na de gratis proefperiode (geen gratis versie)",
             "Je opent nog steeds een aparte app om elke maaltijd te loggen",
             "De adaptieve coaching is het product, niet moeiteloos loggen",
@@ -138,7 +138,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             title: "Coaching versus loggen",
             body: [
                 "De belofte van MacroFactor is zijn algoritme: het houdt je gelogde inname en gewicht in de gaten en herberekent stilletjes elke week je calorie- en macrodoelen — oprecht slimme, adaptieve coaching van het Stronger By Science-team. Die coaching is het product, en daarom is het alleen op abonnement.",
-                "Nutrition MCP draait geen coachingsalgoritme — maar omdat je al in een AI-assistent zit, kun je het gewoon vragen. “Moet ik mijn calorieën bijstellen, gezien mijn laatste drie weken?” levert op verzoek een onderbouwd antwoord op. Het is een ander model: analyse wanneer je die wilt, conversationeel, in plaats van een vaste wekelijkse herberekening — en het is gratis.",
+                "Nutrition MCP draait geen coachingsalgoritme — maar omdat je al in een AI-assistent zit, kun je het gewoon vragen. “Moet ik mijn calorieën bijstellen, gezien mijn laatste drie weken?” geeft je op verzoek de interpretatie van je AI van je eigen gelogde cijfers — een schatting om af te wegen, geen voedingsadvies. Het is een ander model: analyse wanneer je die wilt, conversationeel, in plaats van een vaste wekelijkse herberekening — en het is gratis.",
                 "De eerlijke afweging is discipline versus flexibiliteit. De wekelijkse herberekening van MacroFactor gebeurt of je er nu wel of niet aan denkt te vragen, wat je scherp houdt; het conversationele model past alleen aan wanneer jij het vraagt. Wil je een algoritme dat zonder omkijken je cijfers stuurt, dan is MacroFactor het abonnement waard. Wil je liever gratis loggen en analyse ophalen wanneer het je interesseert, dan past dit beter.",
             ],
         },
@@ -147,7 +147,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             body: [
                 "Wat je zou achterlaten is het algoritme, niet de gegevens. Vraag om te importeren en er opent een importvenster in de chat: je kiest je MacroFactor-CSV-export, die wordt in je browser verwerkt, de kolommen die worden herkend worden voor je gekoppeld, en je bevestigt een preview voordat er iets wordt geschreven. De regels gaan nooit door de AI, dus er kan onderweg niets verkeerd worden overgetypt.",
                 "De export van MacroFactor wordt op naam herkend — de kolom met portiegrootte is het verklikkende teken — en de kolommen voor datum, voedsel, maaltijd, calorieën en macro's koppelen zichzelf, vezels, totale suikers en cafeïne inbegrepen waar het bestand die bevat. Als je export energie in kilojoules in plaats van kilocalorieën rapporteert, wordt dat omgerekend in plaats van 4,184 keer te hoog opgeslagen. Omdat een kolom die simpelweg “Calories” heet elk van beide eenheden kan bevatten, wordt de eenheid aangeboden als keuze naast een uitgewerkt voorbeeld uit je eigen eerste regel, zodat je die bevestigt in plaats van te vertrouwen op een gok die stilletjes elke dag zou opblazen.",
-                "Die geschiedenis is meteen nuttig in plaats van alleen gearchiveerd. Zodra er weken aan inname en gewicht binnen zijn, kun je de vraag stellen die het algoritme van MacroFactor volgens een schema beantwoordde — “moet ik mijn calorieën bijstellen, gezien de laatste drie weken?” — en op verzoek een onderbouwd antwoord krijgen. Een tweede import van hetzelfde bestand verandert niets, want elke regel draagt een inhoudelijke vingerafdruk en herhalingen komen terug als al gelogd, zolang je tijdzone intussen niet is gewijzigd.",
+                "Die geschiedenis is meteen nuttig in plaats van alleen gearchiveerd. Zodra er weken aan inname en gewicht binnen zijn, kun je de vraag stellen die het algoritme van MacroFactor volgens een schema beantwoordde — “moet ik mijn calorieën bijstellen, gezien de laatste drie weken?” — en op verzoek de interpretatie van je AI van je eigen cijfers krijgen — een schatting, geen voedingsadvies. Een tweede import van hetzelfde bestand verandert niets, want elke regel draagt een inhoudelijke vingerafdruk en herhalingen komen terug als al gelogd, zolang je tijdzone intussen niet is gewijzigd.",
             ],
         },
         importFaq:
@@ -159,17 +159,17 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Is Nutrition MCP echt gratis terwijl MacroFactor alleen op abonnement is?",
-                a: "Ja. Nutrition MCP is volledig gratis en open source, zonder proefperiode-daarna-betalen en zonder limieten op de gratis versie — in tegenstelling tot MacroFactor, dat geen gratis versie heeft en na de proefperiode een abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig.",
+                a: "Ja. Nutrition MCP is volledig gratis en open source, zonder proefperiode-daarna-betalen en zonder limieten op de gratis versie — in tegenstelling tot MacroFactor, dat geen gratis versie heeft en na de proefperiode een abonnement vereist. Je hebt een AI-app nodig die MCP ondersteunt, zoals Claude of ChatGPT, en een gratis Nutrition MCP-account, dat je de eerste keer dat je verbindt aanmaakt met Google of een e-mailadres en wachtwoord.",
             },
         ],
         freeAnswer:
-            "Ja. Nutrition MCP is volledig gratis en open source, zonder abonnement — terwijl MacroFactor na de gratis proefperiode een betaald abonnement vereist. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden.",
+            "Ja. Nutrition MCP is volledig gratis en open source, zonder abonnement — terwijl MacroFactor na de gratis proefperiode een betaald abonnement vereist. Je hebt een AI-app nodig die MCP ondersteunt, zoals Claude of ChatGPT, en een gratis Nutrition MCP-account, dat je de eerste keer dat je verbindt aanmaakt met Google of een e-mailadres en wachtwoord.",
     },
     "yazio-mcp": {
         hubBlurb:
-            "Geen MCP-server. Houd maaltijden en macro's bij via een gesprek — gratis en open source.",
+            "Geen officiële MCP-server. Houd maaltijden en macro's bij via een gesprek — gratis en open source.",
         cons: [
-            "Geen MCP-server — werkt niet binnen Claude of ChatGPT",
+            "Geen officiële MCP-server — je kunt je dagboek niet bijhouden vanuit Claude of ChatGPT",
             "Doorzoek de database voor elk voedingsmiddel dat je logt",
             "Sommige functies, zoals maaltijdplannen, vereisen een betaald PRO-abonnement",
             "Een aparte app en account om te beheren",
@@ -206,9 +206,9 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
     },
     "lifesum-mcp": {
         hubBlurb:
-            "Geen MCP-server. Een lichtere, gratis manier om eten te loggen binnen Claude of ChatGPT.",
+            "Geen officiële MCP-server. Een lichtere, gratis manier om eten te loggen binnen Claude of ChatGPT.",
         cons: [
-            "Geen MCP-server — werkt niet binnen Claude of ChatGPT",
+            "Geen officiële MCP-server — je kunt je dagboek niet bijhouden vanuit Claude of ChatGPT",
             "Log voedingsmiddelen door zijn database één voor één te doorzoeken",
             "Sommige functies, zoals dieetplannen, vereisen een betaald abonnement",
             "Weer een app en abonnement om te beheren",
@@ -219,7 +219,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             body: [
                 "Lifesum leunt op structuur en feedback — dieetplannen, recepten en het voedselbeoordelingssysteem dat scoort wat je eet. Nutrition MCP geeft je eten geen badge als cijfer, dus als die scorelus je motiveert, heeft Lifesum daar een streepje voor.",
                 "De ruil is flexibiliteit: in plaats van een vaste beoordeling kun je je AI vragen “is dit een goede keuze voor mijn doelen?” en een echt antwoord in context krijgen. Loggen is één zin, trends en een streefgewicht zitten er standaard bij, en geen premium-laag blokkeert de nuttige onderdelen.",
-                "Een badge vertelt je dat een voedingsmiddel 3 van de 5 scoorde; een gesprek vertelt je waarom, en wat je eraan kunt doen — “vervang de helft van de rijst door groenten en dit past in je dag.” Het is het verschil tussen een score en een coach, en omdat Lifesum dieetplannen en een deel van de tracking achter Premium plaatst, is dit van de twee de gratis optie.",
+                "Een badge vertelt je dat een voedingsmiddel 3 van de 5 scoorde; een gesprek kan uitleggen waarom, in de context van je eigen log — “vervang de helft van de rijst door groenten en dit past in je dag.” En omdat Lifesum dieetplannen en een deel van de tracking achter Premium plaatst, is Nutrition MCP van de twee de gratis optie.",
             ],
         },
         importSection: {
@@ -239,7 +239,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Is Nutrition MCP gratis zonder een abonnement zoals Lifesum Premium?",
-                a: "Ja. Nutrition MCP is volledig gratis en open source, zonder premium-laag — terwijl Lifesum dieetplannen en een deel van de trackingfuncties achter een Premium-abonnement plaatst. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden.",
+                a: "Ja. Nutrition MCP is volledig gratis en open source, zonder premium-laag — terwijl Lifesum dieetplannen en een deel van de trackingfuncties achter een Premium-abonnement plaatst. Je hebt een AI-app nodig die MCP ondersteunt, zoals Claude of ChatGPT, en een gratis Nutrition MCP-account, dat je de eerste keer dat je verbindt aanmaakt met Google of een e-mailadres en wachtwoord.",
             },
         ],
     },

@@ -13,9 +13,9 @@ import type { AppCopy, AppSlug } from "./alternatives.js";
 export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
     "myfitnesspal-mcp": {
         hubBlurb:
-            "Sin servidor MCP, y algunas funciones requieren un plan de pago. Descubre la alternativa gratuita y conversacional.",
+            "Sin servidor MCP oficial, y algunas funciones requieren un plan de pago. Descubre la alternativa gratuita y conversacional.",
         cons: [
-            "Sin servidor MCP: no funciona dentro de Claude o ChatGPT",
+            "Sin servidor MCP oficial: no puedes registrar tu diario desde Claude o ChatGPT",
             "Busca en una base de datos y elige la entrada correcta para cada alimento",
             "Algunas funciones, como el escáner de código de barras, requieren un plan de pago",
             "Una app y una cuenta aparte, con anuncios en el plan gratuito",
@@ -26,11 +26,11 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             body: [
                 "MyFitnessPal construyó su comunidad sobre una de las bases de datos de alimentos más grandes que existen: decenas de millones de entradas aportadas por usuarios. Esa escala es también su fricción: para cualquier alimento, te desplazas entre entradas casi duplicadas y tienes que adivinar cuál es correcta. El registro conversacional se salta la búsqueda por completo: describes el alimento y tu IA estima los macros.",
                 "No hace falta dejar atrás tu diario para lograrlo: una exportación CSV de MyFitnessPal se importa directamente, con sus peculiaridades incluidas, así que los años que ya has registrado vienen contigo. Todo lo que registres a partir de entonces es tuyo, para exportarlo como CSV cuando quieras.",
-                "Las funciones que MyFitnessPal fue trasladando a Premium (escaneo de código de barras, macros por gramo, sin anuncios) aquí están incluidas sin más. No estás comparando un plan gratuito con una mejora de 20 $ al mes: hay un único plan gratuito y de código abierto, y la única cuenta que necesitas es la de Claude o ChatGPT que ya tienes.",
+                "Las funciones que MyFitnessPal fue trasladando a Premium (escaneo de código de barras, macros por gramo, sin anuncios) aquí están incluidas sin más. No estás comparando un plan gratuito con una mejora de 20 $ al mes: hay un único plan gratuito y de código abierto, y lo único nuevo que configuras es un inicio de sesión gratuito la primera vez que te conectas.",
             ],
         },
         importSection: {
-            title: "Trae el diario contigo",
+            title: "Importa tu diario de MyFitnessPal desde un CSV",
             body: [
                 "Años de historial registrado son la verdadera razón por la que la gente se queda, y no tienes que abandonarlos. Pide importar y se abre un panel de importación en el chat: eliges el CSV que exporta MyFitnessPal, se analiza en tu navegador, se emparejan por ti las columnas que reconoce, y ves qué se añadirá antes de que se guarde nada. Ese emparejamiento cubre calorías, proteína, carbohidratos y grasa, además de fibra, azúcares totales y cafeína en miligramos donde tu exportación tenga esas columnas. Las filas nunca pasan por la IA, así que no hay nada que pueda transcribir mal.",
                 "Una exportación de MyFitnessPal se reconoce por su nombre, peculiaridades incluidas. El archivo llega con una marca de orden de bytes que, si no se tratara, corrompería el encabezado de la primera columna; sus notas pueden contener saltos de línea dentro de una celda entre comillas, algo que una división ingenua por líneas destrozaría junto con todas las filas siguientes; y cada bloque de un día termina con una fila de totales que no debe convertirse en una comida. La más importante: MyFitnessPal exporta una fila agregada por comida y por día, y no tiene ninguna columna de nombre de alimento, así que en vez de rechazar esas filas por no tener descripción, el importador reconoce la forma y las etiqueta por su franja: llegan como «Desayuno (importado de MyFitnessPal)».",
@@ -52,9 +52,9 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
     },
     "cronometer-mcp": {
         hubBlurb:
-            "Sin servidor MCP. Descubre la forma gratuita y conversacional de controlar calorías y macros dentro de tu IA.",
+            "Sin servidor MCP oficial. Descubre la forma gratuita y conversacional de controlar calorías y macros dentro de tu IA.",
         cons: [
-            "Sin servidor MCP: no funciona dentro de Claude o ChatGPT",
+            "Sin servidor MCP oficial: no puedes registrar tu diario desde Claude o ChatGPT",
             "Registras buscando en su base de datos, entrada por entrada",
             "Algunas funciones requieren el plan de pago Gold",
             "Una app aparte que hay que abrir cada vez que comes",
@@ -85,17 +85,17 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "¿Es Nutrition MCP tan preciso como Cronometer?",
-                a: "Para calorías, macros, fibra y azúcar, las estimaciones conversacionales son suficientemente precisas para la mayoría de los objetivos, pero no van a igualar la base de datos curada y gramo a gramo de Cronometer. Cambia algo de precisión por mucho menos esfuerzo de registro, y ese es el trato correcto para la mayoría de la gente.",
+                a: "No. Las cifras conversacionales son estimaciones de la IA y no van a igualar la base de datos curada y gramo a gramo de Cronometer: pueden fallar, así que comprueba lo que sea importante. Para alimentos envasados, una búsqueda por código de barras usa en su lugar los datos de la etiqueta de Open Food Facts, aunque tampoco están verificados. Lo que cambias es algo de precisión por mucho menos esfuerzo de registro.",
             },
         ],
     },
     "lose-it-mcp": {
         hubBlurb:
-            "Sin servidor MCP. Registra tus comidas hablando con Claude o ChatGPT en su lugar: gratis.",
+            "Sin servidor MCP oficial. Registra tus comidas hablando con Claude o ChatGPT en su lugar: gratis.",
         cons: [
-            "Sin servidor MCP: no funciona dentro de Claude o ChatGPT",
+            "Sin servidor MCP oficial: no puedes registrar tu diario desde Claude o ChatGPT",
             "Busca y registra cada alimento a mano",
-            "Algunas funciones, como el registro por foto, requieren un plan de pago",
+            "Algunas funciones, como el registro ilimitado por foto con Snap It, requieren un plan de pago",
             "Otra app, otra cuenta, anuncios en el plan gratuito",
         ],
         note: "Lose It! es un contador de calorías amigable. Nutrition MCP hace el mismo registro básico por conversación, gratis, sin salir nunca de Claude o ChatGPT.",
@@ -103,7 +103,7 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             title: "La misma simplicidad, sin la app",
             body: [
                 "Lose It! se ganó a la gente manteniendo el conteo de calorías ligero y un poco gamificado, con su registro por foto Snap It como truco estrella. Nutrition MCP también hace el truco de la foto: envía una imagen de tu plato y tu IA la lee, solo que vive dentro del asistente con el que ya hablas, así que no hay una app aparte que abrir.",
-                "Si lo que te gustaba de Lose It! era el registro sin fricción y el feedback diario rápido, te vas a sentir como en casa: dices lo que comiste, recibes tus calorías y macros restantes, y sigues adelante. Sin anuncios, sin ventas adicionales y sin cuenta que gestionar.",
+                "Si lo que te gustaba de Lose It! era el registro sin fricción y el feedback diario rápido, te vas a sentir como en casa: dices lo que comiste, recibes tus calorías y macros restantes, y sigues adelante. Sin anuncios y sin ventas adicionales.",
                 "Lo único que pierdes es la capa de rachas e insignias que Lose It! usa para que vuelvas. Si esa gamificación es lo que te motiva, es una razón válida para quedarte. Si siempre te pareció ruido por encima del registro real, no la vas a echar de menos: el número del día está ahí mismo, en el chat, cuando lo pidas.",
             ],
         },
@@ -120,7 +120,7 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
         extraFaqs: [
             {
                 q: "¿Nutrition MCP tiene registro por foto como el Snap It de Lose It!?",
-                a: "Sí: envía una foto de tu plato y tu IA identifica el alimento y estima los macros, y luego lo registra tras tu confirmación. En Lose It! el registro por foto está detrás de un plan de pago; con Nutrition MCP es gratis y funciona directamente en el chat.",
+                a: "Sí: envía una foto de tu plato y tu IA identifica el alimento, estima los macros y lo registra una vez que has confirmado los detalles. Lose It! limita Snap It en su plan gratuito y desbloquea el uso ilimitado con Premium; con Nutrition MCP, el registro por foto no cuesta nada extra y funciona directamente en el chat, en cualquier app de IA que pueda leer imágenes.",
             },
             {
                 q: "¿Puedo contar calorías de la misma forma que en Lose It!?",
@@ -130,9 +130,9 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
     },
     "macrofactor-mcp": {
         hubBlurb:
-            "Solo por suscripción y sin servidor MCP. Descubre la alternativa gratuita que vive dentro de tu IA.",
+            "Solo por suscripción y sin servidor MCP oficial. Descubre la alternativa gratuita que vive dentro de tu IA.",
         cons: [
-            "Sin servidor MCP: no funciona dentro de Claude o ChatGPT",
+            "Sin servidor MCP oficial: no puedes registrar tu diario desde Claude o ChatGPT",
             "Una suscripción de pago tras la prueba gratuita (sin plan gratuito)",
             "Sigues abriendo una app aparte para registrar cada comida",
             "Su coaching adaptativo es el producto, no un registro sin esfuerzo",
@@ -142,7 +142,7 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             title: "Coaching frente a registro",
             body: [
                 "La propuesta de MacroFactor es su algoritmo: observa tu ingesta y peso registrados y recalcula en silencio tus objetivos de calorías y macros cada semana; un coaching adaptativo genuinamente inteligente del equipo de Stronger By Science. Ese coaching es el producto, por eso es solo por suscripción.",
-                "Nutrition MCP no ejecuta un algoritmo de coaching, pero como ya estás dentro de un asistente de IA, simplemente puedes preguntar. «Según mis últimas tres semanas, ¿debería ajustar mis calorías?» te da una respuesta razonada al momento. Es un modelo distinto: análisis cuando lo quieres, de forma conversacional, en vez de un recálculo semanal fijo, y es gratis.",
+                "Nutrition MCP no ejecuta un algoritmo de coaching, pero como ya estás dentro de un asistente de IA, simplemente puedes preguntar. «Según mis últimas tres semanas, ¿debería ajustar mis calorías?» te da al momento la lectura que hace tu IA de tus propias cifras registradas: una estimación a valorar, no un consejo dietético. Es un modelo distinto: análisis cuando lo quieres, de forma conversacional, en vez de un recálculo semanal fijo, y es gratis.",
                 "La contrapartida honesta es disciplina frente a flexibilidad. El recálculo semanal de MacroFactor ocurre pienses o no en preguntarlo, lo que te mantiene honesto; el modelo conversacional solo se ajusta cuando tú lo pides. Si quieres un algoritmo que dirija tus números sin que tengas que intervenir, MacroFactor vale la suscripción. Si prefieres registrar gratis y pedir análisis cuando te importa, esto encaja mejor.",
             ],
         },
@@ -151,7 +151,7 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             body: [
                 "Lo que dejarías atrás es el algoritmo, no los datos. Pide importar y se abre un panel de importación en el chat: eliges tu exportación CSV de MacroFactor, se analiza en tu navegador, las columnas que reconoce se emparejan por ti, y confirmas una vista previa antes de que se escriba nada. Las filas nunca pasan por la IA, así que nada se transcribe mal por el camino.",
                 "La exportación de MacroFactor se reconoce por su nombre (su columna de tamaño de porción es la pista), y sus columnas de fecha, alimento, comida, calorías y macros se emparejan solas, fibra, azúcares totales y cafeína incluidas cuando el archivo las tiene. Si tu exportación reporta la energía en kilojulios en vez de kilocalorías, eso se convierte en vez de guardarse 4,184 veces demasiado alto. Como una columna simplemente encabezada «Calories» puede contener cualquiera de las dos unidades, la unidad se ofrece como un control junto a un ejemplo trabajado de tu propia primera fila, así que la confirmas en vez de confiar en una suposición que inflaría en silencio cada día.",
-                "Ese historial es útil de inmediato, no solo un archivo guardado. Una vez que hay semanas de ingesta y peso, puedes hacer la pregunta que el algoritmo de MacroFactor respondía según un horario: «según las últimas tres semanas, ¿debería ajustar mis calorías?», y obtener una respuesta razonada al momento. Una segunda importación del mismo archivo no cambia nada, ya que cada fila lleva una huella de contenido y las repeticiones vuelven marcadas como ya registradas, siempre que tu zona horaria no haya cambiado entretanto.",
+                "Ese historial es útil de inmediato, no solo un archivo guardado. Una vez que hay semanas de ingesta y peso, puedes hacer la pregunta que el algoritmo de MacroFactor respondía según un horario: «según las últimas tres semanas, ¿debería ajustar mis calorías?», y obtener al momento la lectura que hace tu IA de tus propias cifras: una estimación, no un consejo dietético. Una segunda importación del mismo archivo no cambia nada, ya que cada fila lleva una huella de contenido y las repeticiones vuelven marcadas como ya registradas, siempre que tu zona horaria no haya cambiado entretanto.",
             ],
         },
         importFaq:
@@ -163,17 +163,17 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "¿De verdad es gratis Nutrition MCP cuando MacroFactor es solo por suscripción?",
-                a: "Sí. Nutrition MCP es completamente gratuito y de código abierto, sin prueba-y-luego-pago y sin límites de plan gratuito, a diferencia de MacroFactor, que no tiene plan gratuito y exige una suscripción tras su prueba. Solo necesitas una cuenta de Claude o ChatGPT.",
+                a: "Sí. Nutrition MCP es completamente gratuito y de código abierto, sin prueba-y-luego-pago y sin límites de plan gratuito, a diferencia de MacroFactor, que no tiene plan gratuito y exige una suscripción tras su prueba. Necesitas una app de IA compatible con MCP, como Claude o ChatGPT, y una cuenta gratuita de Nutrition MCP, que creas con Google o con un correo y una contraseña la primera vez que te conectas.",
             },
         ],
         freeAnswer:
-            "Sí. Nutrition MCP es completamente gratuito y de código abierto, sin suscripción, mientras que MacroFactor exige una suscripción de pago tras su prueba gratuita. Solo necesitas una cuenta de Claude o ChatGPT para conectarte.",
+            "Sí. Nutrition MCP es completamente gratuito y de código abierto, sin suscripción, mientras que MacroFactor exige una suscripción de pago tras su prueba gratuita. Necesitas una app de IA compatible con MCP, como Claude o ChatGPT, y una cuenta gratuita de Nutrition MCP, que creas con Google o con un correo y una contraseña la primera vez que te conectas.",
     },
     "yazio-mcp": {
         hubBlurb:
-            "Sin servidor MCP. Controla comidas y macros por conversación: gratis y de código abierto.",
+            "Sin servidor MCP oficial. Controla comidas y macros por conversación: gratis y de código abierto.",
         cons: [
-            "Sin servidor MCP: no funciona dentro de Claude o ChatGPT",
+            "Sin servidor MCP oficial: no puedes registrar tu diario desde Claude o ChatGPT",
             "Busca en la base de datos cada alimento que registras",
             "Algunas funciones, como los planes de comidas, requieren el plan de pago PRO",
             "Una app y una cuenta aparte que gestionar",
@@ -210,9 +210,9 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
     },
     "lifesum-mcp": {
         hubBlurb:
-            "Sin servidor MCP. Una forma más ligera y gratuita de registrar comida dentro de Claude o ChatGPT.",
+            "Sin servidor MCP oficial. Una forma más ligera y gratuita de registrar comida dentro de Claude o ChatGPT.",
         cons: [
-            "Sin servidor MCP: no funciona dentro de Claude o ChatGPT",
+            "Sin servidor MCP oficial: no puedes registrar tu diario desde Claude o ChatGPT",
             "Registras alimentos buscando en su base de datos uno por uno",
             "Algunas funciones, como los planes de dieta, requieren un plan de pago",
             "Otra app y otra suscripción que gestionar",
@@ -223,7 +223,7 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             body: [
                 "Lifesum se apoya en estructura y feedback: planes de dieta, recetas y su sistema de valoración de alimentos que puntúa lo que comes. Nutrition MCP no le pone una insignia a tus alimentos, así que si ese ciclo de puntuación es lo que te motiva, ahí Lifesum tiene ventaja.",
                 "La contrapartida es la flexibilidad: en vez de una valoración fija, puedes preguntarle a tu IA «¿es esta una buena opción para mis objetivos?» y recibir una respuesta real en contexto. El registro es una sola frase, las tendencias y un peso objetivo vienen incluidos, y no hay ningún nivel premium que bloquee las partes útiles.",
-                "Una insignia te dice que un alimento sacó un 3 sobre 5; una conversación te dice por qué, y qué hacer al respecto: «cambia la mitad del arroz por verduras y esto encaja en tu día». Es la diferencia entre una puntuación y un entrenador, y como Lifesum pone los planes de dieta y parte del seguimiento detrás de Premium, es la opción gratuita de las dos.",
+                "Una insignia te dice que un alimento sacó un 3 sobre 5; una conversación puede explicarte por qué, en el contexto de tu propio registro: «cambia la mitad del arroz por verduras y esto encaja en tu día». Y como Lifesum pone los planes de dieta y parte del seguimiento detrás de Premium, Nutrition MCP es la opción gratuita de las dos.",
             ],
         },
         importSection: {
@@ -243,7 +243,7 @@ export const ALTERNATIVES_ES: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "¿Es Nutrition MCP gratis sin un plan al estilo Lifesum Premium?",
-                a: "Sí. Nutrition MCP es completamente gratuito y de código abierto, sin nivel premium, mientras que Lifesum pone los planes de dieta y algunas funciones de seguimiento detrás de una suscripción Premium. Solo necesitas una cuenta de Claude o ChatGPT para conectarte.",
+                a: "Sí. Nutrition MCP es completamente gratuito y de código abierto, sin nivel premium, mientras que Lifesum pone los planes de dieta y algunas funciones de seguimiento detrás de una suscripción Premium. Necesitas una app de IA compatible con MCP, como Claude o ChatGPT, y una cuenta gratuita de Nutrition MCP, que creas con Google o con un correo y una contraseña la primera vez que te conectas.",
             },
         ],
     },

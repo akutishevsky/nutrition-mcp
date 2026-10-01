@@ -49,6 +49,7 @@ import {
     THEME_COLOR_LIGHT,
     logoSvg,
     ICON_LINKS,
+    OG_IMAGE_META,
 } from "./site-partials.js";
 
 // The structural, non-translatable fields only. Every piece of prose about
@@ -948,12 +949,12 @@ function renderApp(app: App, locale: SiteLocale = "en"): string {
                 "@type": "ListItem",
                 position: 1,
                 name: "Nutrition MCP",
-                item: SITE,
+                item: urlFor(locale, ""),
             },
             {
                 "@type": "ListItem",
                 position: 2,
-                name: "Alternatives",
+                name: ui.breadcrumbAlternatives,
                 item: urlFor(locale, "/alternatives"),
             },
             {
@@ -998,11 +999,7 @@ function renderApp(app: App, locale: SiteLocale = "en"): string {
         <meta property="og:description" content="${esc(ogDesc)}" />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="${url}" />
-        <meta property="og:image" content="${SITE}/og.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="${SITE}/og.png" />
+${OG_IMAGE_META}
         <meta name="twitter:title" content="${esc(title)}" />
         <meta name="twitter:description" content="${esc(ogDesc)}" />
 ${localeHead(locale, `/${app.slug}`)}
@@ -1083,6 +1080,14 @@ ${pros}
                     </div>
                 </div>
                 <p class="alt-note">${esc(copy.note)}</p>
+                <p class="alt-note">${esc(ui.app.otherComparisonsLabel ?? ALT_UI_EN.app.otherComparisonsLabel ?? "")} ${APPS.filter(
+                    (a) => a.slug !== app.slug,
+                )
+                    .map(
+                        (a) =>
+                            `<a href="${pathFor(locale, `/${a.slug}`)}">${esc(ui.app.compareEyebrow.replaceAll("{app}", a.name))}</a>`,
+                    )
+                    .join(" · ")}</p>
             </section>
 
             <!-- Moving from X (per-app, unique content) -->
@@ -1163,6 +1168,7 @@ ${EMAIL_OFF_CLOSE}
 
 function renderHub(locale: SiteLocale = "en"): string {
     const url = urlFor(locale, "/alternatives");
+    const ui = altUiFor(locale);
     const breadcrumb = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -1176,7 +1182,7 @@ function renderHub(locale: SiteLocale = "en"): string {
             {
                 "@type": "ListItem",
                 position: 2,
-                name: "Alternatives",
+                name: ui.breadcrumbAlternatives,
                 item: url,
             },
         ],
@@ -1195,7 +1201,6 @@ function renderHub(locale: SiteLocale = "en"): string {
     // As on the per-app pages, the title keeps the head term and the description
     // carries the import hook. See renderApp for the reasoning.
     const meta = metaFor(locale);
-    const ui = altUiFor(locale);
     const title = meta.hubTitle;
     const desc = meta.hubDesc;
     const ogDesc = meta.hubOgDesc;
@@ -1211,11 +1216,7 @@ function renderHub(locale: SiteLocale = "en"): string {
         <meta property="og:description" content="${esc(ogDesc)}" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="${url}" />
-        <meta property="og:image" content="${SITE}/og.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="${SITE}/og.png" />
+${OG_IMAGE_META}
         <meta name="twitter:title" content="${esc(title)}" />
         <meta name="twitter:description" content="${esc(ogDesc)}" />
 ${localeHead(locale, "/alternatives")}
