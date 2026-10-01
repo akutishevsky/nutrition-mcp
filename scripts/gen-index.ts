@@ -104,6 +104,9 @@ function renderHowStep(
                         </div>`;
 }
 
+// The Claude connectors directory listing — the install tab's button.
+const CLAUDE_DIRECTORY_URL = "https://claude.ai/directory/nutrition-mcp";
+
 const HOW_ICONS = [
     "fa-solid fa-plug",
     "fa-solid fa-message",
@@ -323,6 +326,15 @@ ${doc.how.steps.map((s, i) => renderHowStep(s, HOW_ICONS[i]!)).join("\n")}
                             </div>
 
                             <div class="tab-panel panel-claude">
+                                <a
+                                    class="btn claude-cta"
+                                    href="${CLAUDE_DIRECTORY_URL}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    ><i class="fa-brands fa-claude" aria-hidden="true"></i>
+                                    ${esc(doc.install.claude.cta)}
+                                    <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i
+                                ></a>
                                 <ol class="steps">
 ${doc.install.claude.steps.map((s) => `                                    <li>${s}</li>`).join("\n")}
                                 </ol>

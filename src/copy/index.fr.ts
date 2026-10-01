@@ -2284,17 +2284,12 @@ export const INDEX_FR: IndexDoc = {
         title: "Connecte-toi en moins d'une minute",
         sub: "Fonctionne avec tout client MCP compatible OAuth 2.0 avec PKCE. À la première connexion, tu crées un compte avec Google ou un e-mail et un mot de passe ; connecte-toi de la même façon pour retrouver tes données.",
         claude: {
+            cta: "Ajouter à Claude",
             steps: [
-                "Ouvre <strong>Claude</strong> (web ou bureau) et clique sur <strong>Personnaliser</strong> en haut à gauche.",
-                "Clique sur <strong>Connecteurs</strong>.",
-                "Clique sur <strong>+</strong>, puis <strong>Ajouter un connecteur personnalisé</strong>.",
-                "Donne-lui un nom, par exemple <strong>Nutrition</strong>.",
-                'Colle <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copier l\'URL du serveur"><i class="fa-solid fa-copy"></i></button></span> dans le champ <strong>URL du serveur MCP distant</strong>.',
-                "Clique sur <strong>Ajouter</strong>.",
-                "Clique sur <strong>Connecter</strong> — la page de connexion s'ouvre ; continue avec Google ou connecte-toi avec un e-mail et un mot de passe.",
+                "Sur la page de l'annuaire, clique sur <strong>Connecter</strong>, puis continue avec Google ou connecte-toi avec un e-mail et un mot de passe.",
                 "C'est fait. Ça fonctionne immédiatement et apparaît automatiquement dans tes apps iOS et Android.",
             ],
-            note: "Fonctionne sur tous les forfaits Claude. Le forfait gratuit permet un serveur MCP connecté à la fois.",
+            note: "Fonctionne sur tous les forfaits Claude, y compris le forfait gratuit. Pour l'ajouter à la main, utilise Personnaliser → Connecteurs → Ajouter un connecteur personnalisé avec https://nutrition-mcp.com/mcp.",
         },
         chatgpt: {
             steps: [

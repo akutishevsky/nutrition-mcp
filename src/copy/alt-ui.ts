@@ -18,7 +18,7 @@
 // pre-escaped entities (&ldquo;, &amp;) exactly as the original hand-authored
 // markup did. A translation MUST preserve every tag and entity verbatim and
 // only translate the surrounding natural-language text. Placeholders
-// (`{app}`, `{link}`, `{copyUrl}`) are substituted by the generator at
+// (`{app}`, `{link}`) are substituted by the generator at
 // render time and must also be preserved verbatim, unmoved relative to the
 // grammar only if the target language's word order requires it (still must
 // resolve to the same substituted meaning).
@@ -99,18 +99,13 @@ export interface AltUiCopy {
 
         switchEyebrow: string;
         switchSub: string;
-        /** Raw HTML, 4 <li> steps. Step 3 contains a literal {copyUrl} placeholder. */
+        /** Raw HTML, 3 <li> steps, rendered as-is: step 1 links to the
+         * Claude directory listing (keep the anchor and its href verbatim),
+         * step 2 is Connect + sign-in, step 3 is "start logging". */
         installSteps: string[];
         /** Raw text with a {link} placeholder the generator replaces with an anchor. */
         installNoteTemplate: string;
         installLinkText: string;
-        /** aria-label on the copy-to-clipboard button next to the server URL
-         * (installSteps' {copyUrl} slot) — was hardcoded English in
-         * scripts/gen-alternatives.ts until a translation review caught it;
-         * the equivalent button on the landing page (src/copy/index.ts's
-         * install steps) already carries this translation, so reuse the
-         * same wording for consistency within a locale. */
-        copyUrlAriaLabel: string;
 
         faqEyebrow: string;
         faqTitleTemplate: string;
@@ -216,15 +211,13 @@ export const ALT_UI_EN: AltUiCopy = {
         switchSub:
             "Works with any MCP client that supports OAuth 2.0 with PKCE. On first connect you create an account with Google or an email and password.",
         installSteps: [
-            "Open <strong>Claude</strong> (web or desktop) and click <strong>Customize</strong> → <strong>Connectors</strong>.",
-            "Click <strong>+</strong>, then <strong>Add custom connector</strong>, and give it a name like <strong>Nutrition</strong>.",
-            "Paste {copyUrl} into the <strong>Remote MCP server URL</strong> field and click <strong>Add</strong>.",
-            "Click <strong>Connect</strong>, sign in, and start logging by saying what you ate.",
+            'Open <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Nutrition MCP in the Claude directory</a>.',
+            "Click <strong>Connect</strong> and sign in with Google or an email and password.",
+            "Start logging by saying what you ate.",
         ],
         installNoteTemplate:
             "Using ChatGPT or another client instead? The {link} covers ChatGPT, Cursor, VS Code, Claude Code, and more.",
         installLinkText: "full install guide",
-        copyUrlAriaLabel: "Copy server URL",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "{app} &amp; MCP questions",
@@ -233,7 +226,7 @@ export const ALT_UI_EN: AltUiCopy = {
             mcpA: "No. {app} does not offer a Model Context Protocol (MCP) server, so there is no official way to connect it to Claude, ChatGPT, or other AI assistants. Nutrition MCP is a free, open-source alternative built as an MCP server from the ground up, so you can log meals and macros directly inside your AI.",
             connectQ: "How do I connect {app} to Claude?",
             connectA:
-                "There is no official {app} connector for Claude, because {app} has no MCP server or public MCP integration. The closest option is Nutrition MCP, a free MCP server: add https://nutrition-mcp.com/mcp as a custom connector in Claude, sign in, and start logging by conversation.",
+                "There is no official {app} connector for Claude, because {app} has no MCP server or public MCP integration. The closest option is Nutrition MCP, a free MCP server listed in the Claude directory: open it at https://claude.ai/directory/nutrition-mcp, click Connect, sign in, and start logging by conversation.",
             goodAltQ: "Is Nutrition MCP a good {app} alternative?",
             goodAltA:
                 "If you want to track calories, macros — fiber, total sugar, and caffeine included — water, and weight without opening a separate app or searching a food database, yes. Instead of tapping through a database, you describe what you ate in plain language, send a photo, or scan a barcode, and your AI logs it — completely free and open source.",

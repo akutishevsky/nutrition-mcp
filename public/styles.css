@@ -1380,6 +1380,73 @@ body.is-dark .btn-primary:hover,
 .tab-panel {
     display: none;
 }
+/* The Claude tab's "Add to Claude" button: the one-click install, so it
+   gets the accent fill and a light sheen sweeping across it. */
+.claude-cta {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    display: flex;
+    width: fit-content;
+    margin: 0 auto 1.5rem;
+    min-height: 52px;
+    padding: 0.8rem 1.75rem;
+    font-size: 1.05rem;
+    background: linear-gradient(
+        135deg,
+        var(--accent) 0%,
+        var(--accent-hover) 100%
+    );
+    color: var(--accent-ink);
+    box-shadow:
+        0 1px 0 color-mix(in srgb, #fff 25%, transparent) inset,
+        0 6px 20px -6px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.claude-cta::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+        110deg,
+        transparent 30%,
+        color-mix(in srgb, #fff 45%, transparent) 50%,
+        transparent 70%
+    );
+    transform: translateX(-120%);
+}
+.claude-cta:hover {
+    color: var(--accent-ink);
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 color-mix(in srgb, #fff 25%, transparent) inset,
+        0 10px 28px -8px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+.claude-cta:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+.claude-cta .fa-arrow-up-right-from-square {
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .claude-cta::after {
+        animation: claude-cta-sheen 3.2s ease-in-out 1s infinite;
+    }
+    .claude-cta:hover::after {
+        animation-duration: 1.2s;
+    }
+}
+@keyframes claude-cta-sheen {
+    0% {
+        transform: translateX(-120%);
+    }
+    45%,
+    100% {
+        transform: translateX(120%);
+    }
+}
 #itab-claude:checked ~ .panel-claude,
 #itab-chatgpt:checked ~ .panel-chatgpt,
 #itab-other:checked ~ .panel-other {

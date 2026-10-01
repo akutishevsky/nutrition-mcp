@@ -71,15 +71,13 @@ export const ALT_UI_NL: AltUiCopy = {
         switchSub:
             "Werkt met elke MCP-client die OAuth 2.0 met PKCE ondersteunt. Bij de eerste verbinding maak je een account aan met Google of een e-mailadres en wachtwoord.",
         installSteps: [
-            "Open <strong>Claude</strong> (web of desktop) en klik op <strong>Customize</strong> → <strong>Connectors</strong>.",
-            "Klik op <strong>+</strong>, daarna op <strong>Add custom connector</strong>, en geef het een naam zoals <strong>Nutrition</strong>.",
-            "Plak {copyUrl} in het veld <strong>Remote MCP server URL</strong> en klik op <strong>Add</strong>.",
-            "Klik op <strong>Connect</strong>, log in, en begin met loggen door te zeggen wat je hebt gegeten.",
+            'Open <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Nutrition MCP in de Claude-directory</a>.',
+            "Klik op <strong>Connect</strong> en log in met Google of een e-mailadres en wachtwoord.",
+            "Begin met loggen door te zeggen wat je hebt gegeten.",
         ],
         installNoteTemplate:
             "Gebruik je liever ChatGPT of een andere client? De {link} behandelt ChatGPT, Cursor, VS Code, Claude Code en meer.",
         installLinkText: "volledige installatiehandleiding",
-        copyUrlAriaLabel: "Serverlink kopiëren",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "{app} &amp; MCP-vragen",
@@ -88,7 +86,7 @@ export const ALT_UI_NL: AltUiCopy = {
             mcpA: "Nee. {app} biedt geen Model Context Protocol (MCP)-server aan, dus er is geen officiële manier om het te verbinden met Claude, ChatGPT of andere AI-assistenten. Nutrition MCP is een gratis, open source alternatief dat vanaf de grond af is gebouwd als MCP-server, zodat je maaltijden en macro's rechtstreeks in je AI kunt loggen.",
             connectQ: "Hoe verbind ik {app} met Claude?",
             connectA:
-                "Er is geen officiële {app}-connector voor Claude, omdat {app} geen MCP-server of publieke MCP-integratie heeft. De dichtstbijzijnde optie is Nutrition MCP, een gratis MCP-server: voeg https://nutrition-mcp.com/mcp toe als custom connector in Claude, log in, en begin met loggen via een gesprek.",
+                "Er is geen officiële {app}-connector voor Claude, omdat {app} geen MCP-server of publieke MCP-integratie heeft. De dichtstbijzijnde optie is Nutrition MCP, een gratis MCP-server die in de Claude-directory staat: open hem via https://claude.ai/directory/nutrition-mcp, klik op Connect, log in, en begin met loggen via een gesprek.",
             goodAltQ: "Is Nutrition MCP een goed {app}-alternatief?",
             goodAltA:
                 "Als je calorieën, macro's — vezels, totale suikers en cafeïne inbegrepen — water en gewicht wilt bijhouden zonder een aparte app te openen of een voedseldatabase te doorzoeken, dan wel. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto, of scan je een barcode, en je AI logt het — volledig gratis en open source.",
