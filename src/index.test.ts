@@ -474,3 +474,17 @@ describe("GET /api/github-stars", () => {
 
 // The "Plugged Apple" icon set. /favicon.ico and the PNGs are the MCP server
 // icon too (src/mcp.ts), so their paths and types are part of the contract.
+describe("icon files", () => {
+    test.each([
+        ["/favicon.ico", "image/x-icon"],
+        ["/favicon.svg", "image/svg+xml"],
+        ["/apple-touch-icon.png", "image/png"],
+        ["/icon-192.png", "image/png"],
+        ["/icon-512.png", "image/png"],
+    ])("%s is served as %s", async (path, type) => {
+        const r = await app.request(`http://x${path}`);
+        expect(r.status).toBe(200);
+        expect(r.headers.get("content-type")).toStartWith(type);
+        expect((await r.arrayBuffer()).byteLength).toBeGreaterThan(0);
+    });
+});

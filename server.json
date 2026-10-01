@@ -5,6 +5,18 @@
     "description": "Personal nutrition tracking — log meals, track macros, review history, import from another app.",
     "version": "1.27.2",
     "websiteUrl": "https://nutrition-mcp.com/",
+    "icons": [
+        {
+            "src": "https://nutrition-mcp.com/icon-192.png",
+            "mimeType": "image/png",
+            "sizes": ["192x192"]
+        },
+        {
+            "src": "https://nutrition-mcp.com/icon-512.png",
+            "mimeType": "image/png",
+            "sizes": ["512x512"]
+        }
+    ],
     "repository": {
         "url": "https://github.com/akutishevsky/nutrition-mcp",
         "source": "github",

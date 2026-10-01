@@ -338,22 +338,27 @@ app.get("/map-data.json", async (c) => {
     });
 });
 
-// Static images (social card + touch icon)
-app.get("/og.png", async (c) => {
-    return c.body(await Bun.file("./public/og.png").arrayBuffer(), 200, {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=86400",
-    });
-});
-app.get("/apple-touch-icon.png", async (c) => {
-    return c.body(
-        await Bun.file("./public/apple-touch-icon.png").arrayBuffer(),
-        200,
-        {
+// Static images (social card + the "Plugged Apple" icon set). The PNG icons
+// are also advertised as the MCP server icon (src/mcp.ts), so their paths are
+// public contracts: keep them stable.
+for (const name of [
+    "og.png",
+    "apple-touch-icon.png",
+    "icon-192.png",
+    "icon-512.png",
+]) {
+    app.get(`/${name}`, async (c) => {
+        return c.body(await Bun.file(`./public/${name}`).arrayBuffer(), 200, {
             "Content-Type": "image/png",
             "Cache-Control": "public, max-age=86400",
-        },
-    );
+        });
+    });
+}
+app.get("/favicon.svg", async (c) => {
+    return c.body(await Bun.file("./public/favicon.svg").text(), 200, {
+        "Content-Type": "image/svg+xml",
+        "Cache-Control": "public, max-age=86400",
+    });
 });
 
 // SEO crawl files
