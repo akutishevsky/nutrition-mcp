@@ -312,9 +312,11 @@ test("every locale's unit-toggle accessible name contains its symbol", () => {
 
 // And the same thing one step later, on the rendered page: the pairing only
 // reaches a user if the generator was re-run, and this reads the visible text
-// out of the same markup as the name instead of trusting that the symbol is
-// still what the button shows.
-test("each unit button's aria-label contains that button's visible text", async () => {
+// out of the same markup as the name instead of trusting the copy file. The
+// buttons show "Metric" / "Imperial" (translated); their accessible names
+// must START with that visible word (WCAG 2.5.3 Label in Name — speech users
+// say what they see) and still carry the unit symbol the toggle switches to.
+test("each unit button's aria-label starts with its visible text and names its unit", async () => {
     for (const locale of Object.keys(INDEX) as SiteLocale[]) {
         // gen-index.ts writes exactly one page per INDEX entry, so a missing
         // file here is a page that was never regenerated.
@@ -337,47 +339,57 @@ test("each unit button's aria-label contains that button's visible text", async 
             const visible = body!.trim();
             expect(
                 visible,
-                `${path}: the ${unit} button's visible text is not the bare symbol`,
-            ).toBe(unit!);
+                `${path}: the ${unit} button has no visible text`,
+            ).toBeTruthy();
             expect(
                 name,
                 `${path}: the ${unit} button has no aria-label`,
             ).toBeTruthy();
             expect(
+                name!.startsWith(visible),
+                `${path}: aria-label "${name}" does not start with the visible "${visible}" (WCAG 2.5.3 Label in Name)`,
+            ).toBe(true);
+            expect(
                 name!,
-                `${path}: aria-label "${name}" does not contain the visible "${visible}" (WCAG 2.5.3 Label in Name)`,
-            ).toContain(visible);
+                `${path}: aria-label "${name}" does not name the unit "${unit}"`,
+            ).toContain(unit!);
         }
     }
 });
 
-// Layout itself needs a browser, so what is pinned here is the pair of
-// declarations the fix rests on. The calorie odometer is one reel per digit:
-// it cannot shrink and cannot break mid-number, so .facts-cal has to be free
-// to wrap it onto its own line when the live delta tag joins the row, or the
-// digits run out past the panel's right edge at 390px (#129). flex-end is the
-// other half: space-between would park the odometer at the LEFT of that
-// second line, and it is a no-op on any line holding the label, whose
-// margin-right:auto absorbs the free space first.
-test("the Nutrition Facts calorie row can wrap its odometer", async () => {
-    const css = await Bun.file("./public/styles.css").text();
-    // Every bare `.facts-cal {` block, not the first one: a later
-    // `@media (max-width: 640px) { .facts-cal { flex-wrap: nowrap } }` wins
-    // the cascade at exactly the widths this fix is about, and a
-    // first-match-only check would still pass while #129 was back. Requiring
-    // the selector to appear once makes adding a second block a loud failure
-    // rather than a silent revert. The descendant rules (.facts-cal .label,
-    // .facts-cal > :first-child) do not match — the selector has to be
-    // followed by the brace.
-    const blocks = [...css.matchAll(/\.facts-cal\s*\{([^}]*)\}/g)];
-    expect(
-        blocks.length,
-        "expected exactly one `.facts-cal {` block in public/styles.css",
-    ).toBe(1);
-    // Anchored on the semicolon so `wrap-reverse` — which would put the
-    // odometer ABOVE the label rather than below it — does not read as wrap.
-    expect(blocks[0]![1]).toMatch(/flex-wrap:\s*wrap;/);
-    expect(blocks[0]![1]).toMatch(/justify-content:\s*flex-end;/);
+// Layout itself needs a browser, so what is pinned here is the structure the
+// fix rests on. The calorie odometer is one reel per digit: it cannot shrink
+// and cannot break mid-number, so when the live delta tag shared its row the
+// digits ran out past the panel's right edge at 390px (#129). In the current
+// design the tag sits in the tile's top row beside the icon, never in the
+// figure's row, and that top row wraps; the tile itself may shrink below its
+// content (min-width: 0) so the stats grid never forces a horizontal scroll.
+test("the live stats delta tag never shares the odometer's row", async () => {
+    const html = await Bun.file("./public/index.html").text();
+    const style = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)]
+        .map((m) => m[1])
+        .join("\n");
+    const block = (sel: string) => {
+        const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const found = [
+            ...style.matchAll(
+                new RegExp(`(?:^|[}\\s])${esc}\\s*\\{([^}]*)\\}`, "g"),
+            ),
+        ];
+        expect(found.length, `expected one \`${sel} {\` block`).toBe(1);
+        return found[0]![1]!;
+    };
+    // Anchored on the semicolon so `wrap-reverse` does not read as wrap.
+    expect(block(".lp-tile-top")).toMatch(/flex-wrap:\s*wrap;/);
+    expect(block(".lp-tile")).toMatch(/min-width:\s*0;/);
+    const tops = [
+        ...html.matchAll(/<div class="lp-tile-top">([\s\S]*?)<\/div>/g),
+    ];
+    expect(tops.length).toBeGreaterThan(0);
+    for (const t of tops) expect(t[1]).toContain('class="lp-delta"');
+    const figs = [...html.matchAll(/<b class="lp-fig">([\s\S]*?)<\/b>/g)];
+    expect(figs.length).toBe(tops.length);
+    for (const f of figs) expect(f[1]).not.toContain("lp-delta");
 });
 
 // scripts/gen-tools.ts renders `prose.params[p.name] ?? ""`, so a param added
@@ -690,7 +702,7 @@ test("every locale's /tools renders the Troubleshooting section last, in order",
         const html = normalize(await Bun.file(path).text());
         expect(html, `${path}: section`).toContain('id="troubleshooting"');
         expect(html, `${path}: Help pill`).toMatch(
-            /<a class="cat-pill" href="#troubleshooting"/,
+            /<a class="nm-chip tools-chip" href="#troubleshooting"/,
         );
         const ids = [...html.matchAll(/<details id="([^"]+)"/g)]
             .map((m) => m[1])

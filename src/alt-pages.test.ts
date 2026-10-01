@@ -496,10 +496,10 @@ test("every locale has a built login page, in its own language", async () => {
 });
 
 // This page is a TEMPLATE, not a finished document: renderLoginPage() in
-// src/oauth.ts fills these four in per request. A token lost to a
+// src/oauth.ts fills these in per request. A token lost to a
 // generator change wouldn't fail a build or a typecheck — it would ship a
 // login form whose submit button posts an empty session_id.
-test("every login page keeps its four runtime placeholders", async () => {
+test("every login page keeps its runtime placeholders", async () => {
     for (const locale of SITE_LOCALES) {
         const path = loginPath(locale);
         const html = await Bun.file(path).text();
@@ -507,6 +507,7 @@ test("every login page keeps its four runtime placeholders", async () => {
             "{{SESSION_ID}}",
             "{{ERROR}}",
             "{{LANG_SWITCHER}}",
+            "{{LANG_SWITCHER_MENU}}",
             "{{TRANSLATION_NOTICE}}",
         ]) {
             expect(`${path} ${token}: ${html.includes(token)}`).toBe(
