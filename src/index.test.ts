@@ -390,7 +390,6 @@ describe("Content-Security-Policy on the public site", () => {
                 "https://analytics.google.com",
                 "https://www.google.com",
                 "https://*.googletagmanager.com",
-                "https://api.github.com",
                 "https://*.clarity.ms",
                 "https://c.bing.com",
             ]),
@@ -439,3 +438,39 @@ describe("GET /.well-known/security.txt", () => {
         expect(r.headers.get("Location")).toBe("/.well-known/security.txt");
     });
 });
+
+// The star count is fetched by the server, never by a visitor's browser (the
+// privacy policy says so). The route's counter is module state, so this only
+// exercises the failure path: GitHub refusing must answer null quickly with a
+// short cache, and must not be retried on the very next request.
+describe("GET /api/github-stars", () => {
+    test("answers null when GitHub fails, and caches the failure", async () => {
+        const spy = spyOn(globalThis, "fetch").mockImplementation(
+            (async () =>
+                new Response("rate limited", {
+                    status: 403,
+                })) as unknown as typeof fetch,
+        );
+        const errSpy = spyOn(console, "error").mockImplementation(() => {});
+        try {
+            const r = await app.request("http://x/api/github-stars");
+            expect(r.status).toBe(200);
+            expect(await r.json()).toEqual({ stars: null });
+            expect(r.headers.get("Cache-Control")).toBe("public, max-age=300");
+            expect(spy).toHaveBeenCalledTimes(1);
+            expect(String(spy.mock.calls[0]![0])).toStartWith(
+                "https://api.github.com/repos/",
+            );
+
+            const again = await app.request("http://x/api/github-stars");
+            expect(await again.json()).toEqual({ stars: null });
+            expect(spy).toHaveBeenCalledTimes(1);
+        } finally {
+            spy.mockRestore();
+            errSpy.mockRestore();
+        }
+    });
+});
+
+// The "Plugged Apple" icon set. /favicon.ico and the PNGs are the MCP server
+// icon too (src/mcp.ts), so their paths and types are part of the contract.

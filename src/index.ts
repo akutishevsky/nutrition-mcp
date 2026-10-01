@@ -25,6 +25,7 @@ import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
 import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
 import { createTtlCache } from "./ttl-cache.js";
+import { createStarCounter } from "./github-stars.js";
 import { isHttpsRequest } from "./url.js";
 
 const app = new Hono();
@@ -70,7 +71,7 @@ app.use("*", async (c, next) => {
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://api.github.com https://*.clarity.ms https://c.bing.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-ancestors 'none'",
         );
     }
     c.header("Referrer-Policy", "no-referrer");
@@ -312,6 +313,20 @@ app.get("/api/patreon-posts", async (c) => {
         // so an outage doesn't get hammered by clients either.
         return c.json([], 200, { "Cache-Control": "public, max-age=60" });
     }
+});
+
+// The project's GitHub star count for the [data-gh-stars] badges site.js
+// fills on every page. Fetched server-side (src/github-stars.ts) so no
+// visitor's browser contacts GitHub — the privacy policy relies on that.
+// `stars` is null until GitHub has answered once; the badge stays hidden.
+const getGithubStars = createStarCounter();
+
+app.get("/api/github-stars", async (c) => {
+    const stars = await getGithubStars();
+    return c.json({ stars }, 200, {
+        "Cache-Control":
+            stars === null ? "public, max-age=300" : "public, max-age=3600",
+    });
 });
 
 // Static world-map data (land dot-matrix + projected timezone coords) for the
