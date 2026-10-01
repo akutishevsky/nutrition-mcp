@@ -146,9 +146,9 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // zero, it excludes the entire DAY from that nutrient's averages and goal lines
 // (dayCarries in insights.ts), so one forgotten fiber figure silently deletes a
 // day from the user's fiber trend rather than making it slightly wrong.
-const NUTRIENT_COVERAGE = `Fiber, sugar and caffeine are tracked here alongside the headline macros, and they are only worth tracking if they are actually filled in.
-- fiber_g and sugar_g: send them on EVERY meal, exactly as you already send protein, carbs and fat. Not knowing the exact figure is not a reason to leave one out — you do not know the exact protein either. Work in this order: a nutrition label, a barcode lookup, or the chain's or product's published per-item nutrition where it is available; otherwise an estimate from the ingredients and the portion. A 0 is the right answer wherever 0 is true (a steak, eggs, oil, black coffee) — what is wrong is omitting the field, because a missing value is not a zero: it records "nobody measured this" and drops the whole day out of the user's fiber and sugar averages, goal lines and charts.
-- caffeine_mg: decide it deliberately on every entry instead of defaulting to silence, but only send a number when the item really is a caffeine source — coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. If it is one, use the figure on the label or in the chain's published nutrition where available; otherwise use the typical amounts in the field description. If the item is plainly not a caffeine source, OMIT the field rather than sending 0 — an explicit 0 means "measured, and it was none", which turns on a caffeine row for a user who never consumes any.`;
+const NUTRIENT_COVERAGE = `Fiber, sugar and caffeine are tracked alongside the headline macros.
+- fiber_g and sugar_g are read on every meal, like protein, carbs and fat. A missing value is stored as "not measured", not as zero, and leaves that whole day out of the user's fiber and sugar averages, goal lines and charts; an estimate keeps the day in. In order of accuracy, a figure comes from a nutrition label, a barcode lookup, the chain's or product's published per-item nutrition, or an estimate from the ingredients and the portion — an exact figure is no more required here than it is for protein. 0 is the correct value for food that has none (a steak, eggs, oil, black coffee).
+- caffeine_mg applies only to caffeine sources: coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. A label or a chain's published nutrition gives the figure where available; the field description lists typical amounts otherwise. For anything that is not a caffeine source the field is left out: an explicit 0 means "measured, and it was none", and it shows a caffeine row to a user who never consumes any.`;
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
 // Advisory — not every client surfaces it, so the photo-logging substance
@@ -163,30 +163,30 @@ const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, goals, an
 All nutrition figures are estimates and this server does not provide medical or dietary advice.
 
 Current time — some hosts put the current date and time in context and some do not; this server always knows both the clock and the user's timezone, and get_current_time returns them.
-- For something that just happened, omit logged_at: the server stamps the entry with the current time, which is more accurate than a reconstructed one, so there is no need to ask the user what time it is.
+- Entries that omit logged_at are stamped by the server with the current time, which is more accurate than a reconstructed one; something that just happened needs no time from the user.
 - A relative time ("this morning", "an hour ago", "last Monday") or "today" resolves via get_current_time, passed on as the local time in logged_at.
-- The user only needs to supply a time for an entry at some other moment they have not mentioned.
+- A time from the user is needed only for an entry at some other moment they have not mentioned.
 
-Recording a complete meal — this applies to every write path (log_meal, update_meal, a barcode lookup you then log, a meal you copied from search_meals), not just to photos.
+Recording a complete meal — this applies to every write path (log_meal, update_meal, a barcode lookup that is then logged, a meal copied from search_meals), not just to photos.
 ${NUTRIENT_COVERAGE}
-When a meal turns out to have gone in without its fiber or sugar, tell the user and offer to fill it in with update_meal; update the entry once they agree.
+A meal saved without its fiber or sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in.
 
 Meals from photos:
 - A packaged product with a visible barcode: the digits printed under the barcode go to lookup_barcode.
-- For a plated or prepared meal, whether it came from a restaurant/takeout or was made at home changes the evidence available. If the user names the restaurant, the name matters: chains usually publish per-item nutrition, and an independent restaurant's menu or ingredient list — if the user shares it or it is available to you — reveals butter, cream, oil and sugar a photo hides. Restaurant cooking is usually richer than the same dish made at home. Where the user ate is not needed for an estimate; do not infer a location the user did not state.
-- search_meals past logs (for the dish, and for the restaurant name when the user gave one) reveal variations and hidden ingredients (raisins vs banana, milk vs water, added honey or oil); search with short keywords in both the conversation language and English.
-- Portions are best expressed in household measures the user can verify at a glance (a glass, a handful, a tablespoon, half the plate) rather than grams, and for a restaurant serving, how much was actually eaten matters most.
-- Before log_meal, resolve the open questions — which variation or menu item each dish is, how much was eaten, and ingredients the photo cannot show (oil, butter, sugar, dressing, sauce, what a drink was made with) — and confirm the summarized meal with the user, unless they ask to just log it. A single obvious item may need one question; a full plate usually needs several.
-- The logged description carries the confirmed portions (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") and, for a restaurant meal the user named, the restaurant name as they gave it (e.g. "Pad thai with chicken (1 plate, finished) at Thai Basil"), so future search_meals results are self-describing. Add a neighbourhood or city only if the user stated it; do not infer a location the user did not state. Say plainly when a figure is an estimate rather than published nutrition, and note the source in notes.
+- For a plated or prepared meal, whether it came from a restaurant/takeout or was made at home changes the evidence available. When the user names the restaurant, the name matters: chains usually publish per-item nutrition, and an independent restaurant's menu or ingredient list — when the user shares it or it is otherwise available — reveals butter, cream, oil and sugar a photo hides. Restaurant cooking is usually richer than the same dish made at home. Where the user ate is not needed for an estimate; do not infer a location the user did not state.
+- search_meals over past logs (for the dish, and for the restaurant name when the user gave one) reveals variations and hidden ingredients (raisins vs banana, milk vs water, added honey or oil). It matches short keywords, and past logs may be in the conversation language or in English.
+- Portions are most reliable in household measures the user can verify at a glance (a glass, a handful, a tablespoon, half the plate) rather than grams, and for a restaurant serving, how much was actually eaten matters most.
+- A photo alone leaves open questions — which variation or menu item each dish is, how much was eaten, and ingredients it cannot show (oil, butter, sugar, dressing, sauce, what a drink was made with). log_meal is for a meal whose summary the user has confirmed, or one they asked to log as is. A single obvious item may leave one question open; a full plate usually leaves several.
+- A description that carries the confirmed portions (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") and, for a restaurant meal the user named, the restaurant name as they gave it (e.g. "Pad thai with chicken (1 plate, finished) at Thai Basil") keeps future search_meals results self-describing. A neighbourhood or city belongs there only if the user stated it; do not infer a location the user did not state. notes is where the source of a figure goes, including whether it is an estimate rather than published nutrition.
 
-"Log my usual X" works the same way: search_meals, then confirm the variation and the amount before logging.
+"Log my usual X" works the same way: search_meals finds the past entries, and the variation and the amount are what remain to confirm.
 
-Importing history from another app — when the user wants to bring in past meals from MyFitnessPal, Cronometer, Lose It!, MacroFactor or a similar export:
-1. If they have a FILE, call start_meal_import first and let them drive it. The importer reads and maps the file in the browser, so the rows never pass through you and cannot be mistranscribed, and it handles column mapping, batching and retries. Do not ask them to paste a file you could import properly.
-2. Call bulk_import_meals directly only when the importer is not an option: the data is already pasted into the conversation, the user cannot use the panel, or the importer reports that this client will not let it save. Then parse the rows yourself and follow that tool's description exactly — in particular, compute the row count and calorie total from the source text with real counting rather than by re-reading what you just wrote, and dry-run first.
-3. Never log a backfill by calling log_meal in a loop. One bulk_import_meals call carries up to ${MAX_ROWS_PER_CALL} rows, validates and reports on every row, supports a dry run, and recognises rows it has already written, so a failed batch can be re-sent safely while the timezone is unchanged (see step 5); a loop of log_meal calls has none of that, and each call counts separately against the per-account rate limit.
-4. Check get_profile before any sizeable import and offer set_timezone if the timezone is unset. Times without an explicit UTC offset are placed using the saved timezone, so correcting it afterwards moves every imported meal — onto an adjacent day for anything logged near midnight.
-5. Show the user what was resolved before treating an import as done: the dry run echoes back the date, time and meal type for every row, and a misread date column shows up there rather than in the totals. Re-sending the same rows is safe as long as the timezone hasn't changed in between — the server recognises them and skips them, so a retry after a failure or a timeout doesn't duplicate anything. Set the timezone before the first import, not between attempts.`;
+Importing history from another app (MyFitnessPal, Cronometer, Lose It!, MacroFactor or a similar export):
+1. start_meal_import is for a user who has a file. It opens an importer the user drives: it reads and maps the file in the browser, so the rows never pass through the conversation and cannot be mistranscribed, and it handles column mapping, batching and retries.
+2. bulk_import_meals is the path when the importer is not an option: the data is already pasted into the conversation, the user cannot use the panel, or the importer reports that this client will not let it save. Its description covers parsing, the control totals (counted from the source text, not from the rows as written) and the dry run.
+3. One bulk_import_meals call carries up to ${MAX_ROWS_PER_CALL} rows, validates and reports on every row, supports a dry run, and recognises rows it has already written, so a failed batch can be re-sent safely while the timezone is unchanged (see 5). A backfill done as a loop of log_meal calls has none of that, and each call counts separately against the per-account rate limit.
+4. Times without an explicit UTC offset are placed using the saved timezone (get_profile shows it; an unset one means UTC), so correcting it after an import moves every imported meal — onto an adjacent day for anything logged near midnight.
+5. The dry run echoes back the date, time and meal type for every row, so a misread date column shows up there rather than in the totals. Re-sending the same rows is safe as long as the timezone hasn't changed in between — the server recognises them and skips them, so a retry after a failure or a timeout doesn't duplicate anything. A timezone change between attempts re-reads the offset-less rows and inserts them again.`;
 
 // ---------- Numeric bounds for the write tools ----------
 //
@@ -1758,7 +1758,9 @@ export function registerTools(
             outputSchema: START_IMPORT_OUTPUT_SCHEMA,
             annotations: {
                 title: "Import Meals from a File",
-                readOnlyHint: true,
+                // Opening the importer writes nothing, but the flow it starts
+                // saves meals (via bulk_import_meals), so it is not read-only.
+                readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
                 openWorldHint: false,
@@ -1781,7 +1783,7 @@ export function registerTools(
                     const text = widgetsEnabled
                         ? "Importer ready — pick your export file in the panel above. Nothing is saved until you confirm the preview." +
                           (tz === null
-                              ? " Note: this account has no timezone set, so times will be read as UTC. Offer to set it first."
+                              ? " Note: this account has no timezone set, so times will be read as UTC; set_timezone changes that, and it is best done before importing."
                               : "")
                         : "This account has widgets turned off, so the importer cannot be shown. The user can paste their export for bulk_import_meals instead, or turn widgets on with set_widget_display.";
                     return {
@@ -4421,7 +4423,7 @@ export function registerTools(
         {
             title: "Get Meal Patterns",
             description:
-                "Pre-aggregated behavioural patterns across the logged window: meal-type presence rates, breakfast effect (days with vs without), high-calorie-lunch effect, late-dinner effect, weekday vs weekend, and outlier days. Narrate findings conversationally to the user. Defaults to the last 30 days. Patterns are descriptive estimates, not medical or dietary advice.",
+                "Pre-aggregated behavioural patterns across the logged window: meal-type presence rates, breakfast effect (days with vs without), high-calorie-lunch effect, late-dinner effect, weekday vs weekend, and outlier days. Defaults to the last 30 days. Patterns are descriptive estimates, not medical or dietary advice.",
             annotations: {
                 title: "Get Meal Patterns",
                 readOnlyHint: true,
@@ -4662,7 +4664,7 @@ export function registerTools(
         {
             title: "Set Timezone",
             description:
-                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water and weight are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). If the user hasn't set one yet and logs a meal or asks about 'today', offer to set it.",
+                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water and weight are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). Until one is set, the account uses UTC.",
             annotations: {
                 title: "Set Timezone",
                 readOnlyHint: false,
@@ -4706,7 +4708,7 @@ export function registerTools(
         "set_language",
         {
             title: "Set Language",
-            description: `Set the user's UI language for in-chat widgets (dashboards, charts). Supported: ${SITE_LOCALES.map((l) => `'${l}' (${LOCALE_NAMES[l]})`).join(", ")}. This does not change what language the model replies in — only the text rendered inside widget cards. Offer to set this the first time you notice the user writing in a non-English language.`,
+            description: `Set the user's UI language for in-chat widgets (dashboards, charts). Supported: ${SITE_LOCALES.map((l) => `'${l}' (${LOCALE_NAMES[l]})`).join(", ")}. This does not change what language the model replies in — only the text rendered inside widget cards. Until one is set, widgets follow the host's language where it reports one, otherwise English.`,
             annotations: {
                 title: "Set Language",
                 readOnlyHint: false,
@@ -4776,7 +4778,7 @@ export function registerTools(
                     const unset =
                         configuredTz !== null
                             ? ""
-                            : " No timezone is set for this account, so this is UTC and may not be the user's actual local time — offer set_timezone.";
+                            : " No timezone is set for this account, so this is UTC and may not be the user's actual local time — set_timezone sets it.";
                     return {
                         content: [
                             {
