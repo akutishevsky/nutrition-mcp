@@ -321,7 +321,14 @@ function heroThread(doc: IndexDoc, locale: SiteLocale): string {
                     ex.meal?.description ?? "",
                 );
             case "nutrition-summary":
-                return renderCard("hero-day", locale);
+                return renderCard(
+                    "hero-day",
+                    locale,
+                    "",
+                    doc.hero.chat.exchanges.flatMap((e) =>
+                        e.meal ? [e.meal] : [],
+                    ),
+                );
             case "weight-trends":
                 return renderCard("hero-weight", locale);
             default:

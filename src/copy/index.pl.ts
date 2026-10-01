@@ -40,44 +40,53 @@ export const INDEX_PL: IndexDoc = {
                 {
                     photo: true,
                     userText: "śniadanie + americano",
-                    aiText: "Smoothie bowl, na oko domowej roboty. Jadłeś/aś to już w dwóch wersjach: z granolą i miodem albo z samymi owocami. Która to z nich?",
+                    aiText: "Smoothie bowl, na oko domowej roboty. Masz go w dzienniku w dwóch wersjach: z granolą i miodem albo z samymi owocami. Która to wersja?",
                 },
                 {
                     userText: "granola i miód, pełna łyżka",
-                    aiText: "Jasne. A americano: czarne czy z mlekiem?",
+                    aiText: "Jasne. A americano: pojedyncze czy podwójne, z mlekiem czy bez?",
                 },
                 {
-                    userText: "odrobina mleka owsianego",
-                    aiText: "Czyli: smoothie bowl z garścią granoli i 1 łyżką miodu oraz americano z odrobiną mleka owsianego. Około 480 kcal i 21 g białka. Zapisać jako śniadanie?",
+                    userText: "podwójne, odrobina mleka owsianego",
+                    aiText: "Czyli: smoothie bowl z garścią granoli i 1 łyżką miodu oraz podwójne americano z odrobiną mleka owsianego. Około 480 kcal i 21 g białka. Zapisać?",
                 },
                 {
                     userText: "tak",
-                    aiText: "Zapisano śniadanie: 480 kcal, 21 g białka i 150 mg kofeiny. Jest w nim 51 g cukru, z czego 17 g z miodu.",
+                    aiText: "Zapisano śniadanie: 480 kcal, 21 g białka i 126 mg kofeiny. Cukru jest już 51 z Twojego limitu 60 g.",
                     card: "meal-logged",
                     meal: {
                         description:
-                            "Smoothie bowl (jogurt grecki, banan, owoce leśne) z granolą (1 garść) i miodem (1 łyżka); americano z odrobiną mleka owsianego",
+                            "Smoothie bowl (1 miska: jogurt grecki, banan, owoce leśne) z granolą (1 garść) i miodem (1 łyżka); podwójne americano z odrobiną mleka owsianego",
                         type: "breakfast",
                     },
                 },
                 {
                     userText:
-                        "resztki stir fry z wczoraj, ta sama porcja. i butelka wody 500 ml",
+                        "obiad: resztki stir fry z wczoraj, ta sama porcja. i butelka wody 500 ml",
                     aiText: "Zapisano obiad, to samo co wczoraj wieczorem: 620 kcal i 54 g białka, plus 500 ml wody.",
+                    meal: {
+                        description:
+                            "Resztki stir fry (1 porcja, jak wczoraj wieczorem)",
+                        type: "lunch",
+                    },
                 },
                 {
                     userText:
-                        "podkradłem/am dziecku 6 frytek. tylko nie oceniaj",
-                    aiText: "Nikt tu nie ocenia. Około 90 kcal, zapisane jako przekąska.",
+                        "przekąska: 6 frytek podkradzionych dziecku. tylko nie oceniaj",
+                    aiText: "Nikt tu nie ocenia. Około 50 kcal, zapisano jako przekąskę.",
+                    meal: {
+                        description: "Frytki (6 sztuk, z talerza dziecka)",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "ile zostało na kolację?",
-                    aiText: "810 kcal i jeszcze 84 g białka do zjedzenia. Lepiej coś wytrawnego: cukru jest już 59 z Twoich 60 g.",
+                    aiText: "Zostało 850 kcal i 84 g białka. Cukru jest 59 z Twojego limitu 60 g.",
                     card: "nutrition-summary",
                 },
                 {
                     userText: "a jak tam moja waga?",
-                    aiText: "Od 11 lutego ubyło Ci 1,4 kg, około 0,4 kg tygodniowo. Do celu 75 kg zostało 3,8 kg.",
+                    aiText: "Od 11 lutego ubyło Ci 1,4 kg, z 80,2 do 78,8 kg. Do celu 75 kg zostało 3,8 kg.",
                     card: "weight-trends",
                 },
             ],

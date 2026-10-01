@@ -41,40 +41,50 @@ export const INDEX_DE: IndexDoc = {
                 },
                 {
                     userText: "Granola und Honig, ein voller Löffel",
-                    aiText: "Alles klar. Und der Americano: schwarz oder mit Milch?",
+                    aiText: "Alles klar. Und der Americano: einfach oder doppelt, mit oder ohne Milch?",
                 },
                 {
-                    userText: "ein Schuss Hafermilch",
-                    aiText: "Also: die Bowl mit einer Handvoll Granola und 1 EL Honig, dazu ein Americano mit einem Schuss Hafermilch. Etwa 480 kcal und 21 g Protein. Als Frühstück erfassen?",
+                    userText: "doppelt, ein Schuss Hafermilch",
+                    aiText: "Also: die Bowl mit einer Handvoll Granola und 1 EL Honig, dazu ein doppelter Americano mit einem Schuss Hafermilch. Etwa 480 kcal und 21 g Protein. Soll ich das erfassen?",
                 },
                 {
                     userText: "ja",
-                    aiText: "Frühstück erfasst: 480 kcal, 21 g Protein und 150 mg Koffein. Drin stecken 51 g Zucker, 17 g davon aus dem Honig.",
+                    aiText: "Frühstück erfasst: 480 kcal, 21 g Protein und 126 mg Koffein. Beim Zucker bist du schon bei 51 g, dein Limit liegt bei 60 g.",
                     card: "meal-logged",
                     meal: {
                         description:
-                            "Smoothie-Bowl (griechischer Joghurt, Banane, Beeren) mit Granola (1 Handvoll) und Honig (1 EL); Americano mit einem Schuss Hafermilch",
+                            "Smoothie-Bowl (1 Bowl: griechischer Joghurt, Banane, Beeren) mit Granola (1 Handvoll) und Honig (1 EL); Americano (doppelt) mit einem Schuss Hafermilch",
                         type: "breakfast",
                     },
                 },
                 {
                     userText:
-                        "Reste von der Wokpfanne von gestern Abend, gleiche Portion. und ne 500-ml-Flasche Wasser",
+                        "Mittagessen: Reste von der Wokpfanne von gestern Abend, gleiche Portion. und ne 500-ml-Flasche Wasser",
                     aiText: "Mittagessen erfasst, wie gestern Abend: 620 kcal und 54 g Protein, dazu 500 ml Wasser.",
+                    meal: {
+                        description:
+                            "Reste Wokpfanne (1 Portion, wie gestern Abend)",
+                        type: "lunch",
+                    },
                 },
                 {
                     userText:
-                        "hab meinem Kind 6 Pommes geklaut. nicht urteilen",
-                    aiText: "Ich sag nix. Etwa 90 kcal, als Snack erfasst.",
+                        "Snack: hab meinem Kind 6 Pommes geklaut. nicht verurteilen",
+                    aiText: "Keine Sorge, ich urteile nicht. Etwa 50 kcal, als Snack erfasst.",
+                    meal: {
+                        description:
+                            "Pommes (6 Stück, vom Teller meines Kindes)",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "was ist noch drin fürs Abendessen?",
-                    aiText: "Noch 810 kcal frei, und 84 g Protein fehlen dir noch. Lieber was Herzhaftes: Beim Zucker bist du schon bei 59 von deinen 60 g.",
+                    aiText: "Noch 850 kcal und 84 g Protein offen. Beim Zucker bist du bei 59 g, dein Limit liegt bei 60 g.",
                     card: "nutrition-summary",
                 },
                 {
                     userText: "und wie läuft's mit meinem Gewicht?",
-                    aiText: "Seit dem 11. Feb. hast du 1,4 kg abgenommen, etwa 0,4 kg pro Woche. Noch 3,8 kg bis zu deinem Zielgewicht von 75 kg.",
+                    aiText: "Seit dem 11. Feb. hast du 1,4 kg abgenommen, von 80,2 auf 78,8 kg. Noch 3,8 kg bis zu deinem Zielgewicht von 75 kg.",
                     card: "weight-trends",
                 },
             ],

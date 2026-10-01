@@ -124,10 +124,10 @@ const MEAL_CARDS: Partial<
             kcal: 480,
             pro: 21,
             car: 85,
-            fat: 9,
+            fat: 8,
             fib: 9,
             sug: 51,
-            caf: 150,
+            caf: 126,
             water: 0,
         },
     },
@@ -222,9 +222,13 @@ function totalsItem(t: Totals) {
 
 /** A meal row (MEAL_BREAKDOWN_ITEM). Its description only appears in the
  * tile drawer, which a still card never opens. */
-function mealRow(description: string, t: Totals) {
+function mealRow(
+    description: string,
+    t: Totals,
+    meal_type: string | null = null,
+) {
     const { water_ml: _w, ...rest } = totalsItem(t);
-    return { description, meal_type: null, date: null, ...rest };
+    return { description, meal_type, date: null, ...rest };
 }
 
 const ZERO: Totals = {
@@ -238,8 +242,10 @@ const ZERO: Totals = {
     water: 0,
 };
 
-/** The hero day (8 Mar): breakfast, lunch and the fries, 1,190 kcal and
- * 76 g protein — the reply quotes 810 kcal and 84 g left, sugar 59 of 60. */
+/** The hero day (8 Mar): breakfast, lunch and the fries, 1,150 kcal and
+ * 76 g protein — the reply quotes 850 kcal and 84 g left, sugar 59 of 60.
+ * Keyed by meal_type; each row's description is the locale's hero copy
+ * (`meal` on the exchange that logged it). */
 const HERO_DAY_MEALS: [string, Totals][] = [
     ["breakfast", MEAL_CARDS["hero-meal"]!.totals],
     [
@@ -258,10 +264,10 @@ const HERO_DAY_MEALS: [string, Totals][] = [
     [
         "snack",
         {
-            kcal: 90,
+            kcal: 50,
             pro: 1,
-            car: 11,
-            fat: 5,
+            car: 6,
+            fat: 3,
             fib: 1,
             sug: 0,
             caf: null,
@@ -346,8 +352,17 @@ function mealLoggedPayload(id: DemoCardId, meal: string, locale: string) {
     };
 }
 
-function summaryPayload(locale: string) {
+type HeroMeal = { description: string; type: string };
+
+function summaryPayload(locale: string, dayMeals: HeroMeal[]) {
     const date = "2026-03-08";
+    if (
+        dayMeals.length !== HERO_DAY_MEALS.length ||
+        dayMeals.some((m, i) => m.type !== HERO_DAY_MEALS[i]![0])
+    )
+        throw new Error(
+            `${locale}: hero chat must log ${HERO_DAY_MEALS.map(([t]) => t).join(", ")} in order, got ${dayMeals.map((m) => m.type).join(", ")}`,
+        );
     const t = sumTotals(
         HERO_DAY_MEALS.map(([, m]) => m),
         500,
@@ -370,7 +385,9 @@ function summaryPayload(locale: string) {
             caffeine_mg: 1,
         },
         days: [day],
-        meals: HERO_DAY_MEALS.map(([name, m]) => mealRow(name, m)),
+        meals: HERO_DAY_MEALS.map(([type, m], i) =>
+            mealRow(dayMeals[i]!.description, m, type),
+        ),
     };
 }
 
@@ -472,12 +489,14 @@ function importPayload(locale: string) {
 await loadWidgetSources();
 
 /** One demo card, in the page's language: the real widget's markup for its
- * payload. `meal` is the meal a meal-logged card names (from the page copy);
- * the others ignore it. */
+ * payload. `meal` is the meal a meal-logged card names and `dayMeals` the
+ * meals the hero day's summary lists (both from the page copy); the other
+ * cards ignore them. */
 export function renderCard(
     id: DemoCardId,
     locale: SiteLocale,
     meal = "",
+    dayMeals: HeroMeal[] = [],
 ): string {
     const lang = HTML_LANG[locale];
     const card = (key: string, payload: { locale: string }, today: string) =>
@@ -486,7 +505,7 @@ export function renderCard(
         case "hero-day":
             return card(
                 "nutrition-summary",
-                summaryPayload(locale),
+                summaryPayload(locale, dayMeals),
                 "2026-03-08",
             );
         case "hero-weight": {

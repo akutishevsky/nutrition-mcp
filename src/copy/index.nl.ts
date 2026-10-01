@@ -41,43 +41,54 @@ export const INDEX_NL: IndexDoc = {
                 {
                     photo: true,
                     userText: "ontbijt + americano",
-                    aiText: "Een smoothiebowl, zo te zien zelfgemaakt. Je had hem tot nu toe op twee manieren: met granola en honing, of alleen met fruit. Welke is dit?",
+                    aiText: "Een smoothiebowl, zo te zien zelfgemaakt. Je hebt hem eerder op twee manieren gegeten: met granola en honing, of alleen met fruit. Welke is dit?",
                 },
                 {
                     userText: "granola en honing, een volle lepel",
-                    aiText: "Helder. En de americano: zwart of met melk?",
+                    aiText: "Helder. En de americano: enkel of dubbel, met melk?",
                 },
                 {
-                    userText: "scheutje havermelk",
-                    aiText: "Dus: de bowl met een handje granola en 1 el honing, en een americano met een scheutje havermelk. Ongeveer 480 kcal en 21 g eiwit. Loggen als ontbijt?",
+                    userText: "dubbel, scheutje havermelk",
+                    aiText: "Dus: de bowl met een handje granola en 1 el honing, en een dubbele americano met een scheutje havermelk. Ongeveer 480 kcal en 21 g eiwit. Zal ik het loggen?",
                 },
                 {
                     userText: "ja",
-                    aiText: "Ontbijt gelogd: 480 kcal, 21 g eiwit en 150 mg cafeïne. Er zit 51 g suiker in, waarvan 17 g uit de honing.",
+                    aiText: "Ontbijt gelogd: 480 kcal, 21 g eiwit en 126 mg cafeïne. Suiker zit al op 51 van je limiet van 60 g.",
                     card: "meal-logged",
                     meal: {
                         description:
-                            "Smoothiebowl (Griekse yoghurt, banaan, bessen) met granola (1 handje) en honing (1 el); americano met een scheutje havermelk",
+                            "Smoothiebowl (1 bowl: Griekse yoghurt, banaan, bessen) met granola (1 handje) en honing (1 el); americano (dubbele shot) met een scheutje havermelk",
                         type: "breakfast",
                     },
                 },
                 {
                     userText:
-                        "restje wok van gisteravond, zelfde portie. en een flesje water van 500 ml",
+                        "lunch: restje wok van gisteravond, zelfde portie. en een flesje water van 500 ml",
                     aiText: "Lunch gelogd, hetzelfde als gisteravond: 620 kcal en 54 g eiwit, plus 500 ml water.",
+                    meal: {
+                        description:
+                            "Restje wok (1 portie, zelfde als gisteravond)",
+                        type: "lunch",
+                    },
                 },
                 {
-                    userText: "6 frietjes van mijn kind gejat. niet oordelen",
-                    aiText: "Geen oordeel. Ongeveer 90 kcal, gelogd als snack.",
+                    userText:
+                        "snack: 6 frietjes van mijn kind gejat. niet oordelen",
+                    aiText: "Geen oordeel. Ongeveer 50 kcal, gelogd als snack.",
+                    meal: {
+                        description:
+                            "Friet (6 stuks, van het bord van mijn kind)",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "wat kan er nog in bij het avondeten?",
-                    aiText: "810 kcal, en er moet nog 84 g eiwit bij. Hou het hartig: suiker zit al op 59 van je 60 g.",
+                    aiText: "Nog 850 kcal en 84 g eiwit te gaan. Suiker zit op 59 van je limiet van 60 g.",
                     card: "nutrition-summary",
                 },
                 {
                     userText: "en hoe gaat het met mijn gewicht?",
-                    aiText: "Sinds 11 feb ben je 1,4 kg afgevallen, ongeveer 0,4 kg per week. Nog 3,8 kg tot je streefgewicht van 75 kg.",
+                    aiText: "Sinds 11 feb ben je 1,4 kg afgevallen, van 80,2 naar 78,8 kg. Nog 3,8 kg tot je streefgewicht van 75 kg.",
                     card: "weight-trends",
                 },
             ],

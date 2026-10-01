@@ -51,40 +51,50 @@ export const INDEX_IT: IndexDoc = {
                 },
                 {
                     userText: "granola e miele, un cucchiaio bello pieno",
-                    aiText: "Ok. E l'americano: senza niente o con del latte?",
+                    aiText: "Ok. E l'americano: singolo o doppio, e ci metti del latte?",
                 },
                 {
-                    userText: "un goccio di latte d'avena",
-                    aiText: "Quindi: la bowl con una manciata di granola e 1 cucchiaio di miele, e un americano con un goccio di latte d'avena. Circa 480 kcal e 21 g di proteine. La registro come colazione?",
+                    userText: "doppio, un goccio di latte d'avena",
+                    aiText: "Quindi: la bowl con una manciata di granola e 1 cucchiaio di miele, e un americano doppio con un goccio di latte d'avena. Circa 480 kcal e 21 g di proteine. Registro?",
                 },
                 {
                     userText: "sì",
-                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 150 mg di caffeina. Contiene 51 g di zuccheri, 17 g dei quali dal miele.",
+                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 126 mg di caffeina. Gli zuccheri sono già a 51 g sui 60 g del tuo limite.",
                     card: "meal-logged",
                     meal: {
                         description:
-                            "Smoothie bowl (yogurt greco, banana, frutti di bosco) con granola (1 manciata) e miele (1 cucchiaio); americano con un goccio di latte d'avena",
+                            "Smoothie bowl (1 scodella: yogurt greco, banana, frutti di bosco) con granola (1 manciata) e miele (1 cucchiaio); americano doppio con un goccio di latte d'avena",
                         type: "breakfast",
                     },
                 },
                 {
                     userText:
-                        "gli avanzi del saltato in padella di ieri sera, stessa porzione. e una bottiglietta d'acqua da 500 ml",
+                        "pranzo: gli avanzi del saltato in padella di ieri sera, stessa porzione. e una bottiglietta d'acqua da 500 ml",
                     aiText: "Pranzo registrato, come ieri sera: 620 kcal e 54 g di proteine, più 500 ml d'acqua.",
+                    meal: {
+                        description:
+                            "Avanzi di saltato in padella (1 porzione, come ieri sera)",
+                        type: "lunch",
+                    },
                 },
                 {
                     userText:
-                        "ho rubato 6 patatine fritte a mio figlio. non giudicarmi",
-                    aiText: "Nessun giudizio. Circa 90 kcal, registrate come spuntino.",
+                        "spuntino: ho rubato 6 patatine fritte a mio figlio. non giudicarmi",
+                    aiText: "Nessun giudizio. Circa 50 kcal, l'ho registrato come spuntino.",
+                    meal: {
+                        description:
+                            "Patatine fritte (6, dal piatto di mio figlio)",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "cosa mi resta per cena?",
-                    aiText: "810 kcal, e ti mancano ancora 84 g di proteine. Meglio qualcosa di salato: gli zuccheri sono già a 59 dei tuoi 60 g.",
+                    aiText: "Ti restano 850 kcal e 84 g di proteine. Gli zuccheri sono a 59 g sui 60 g del tuo limite.",
                     card: "nutrition-summary",
                 },
                 {
                     userText: "e il peso come va?",
-                    aiText: "Hai perso 1,4 kg dall'11 feb, circa 0,4 kg a settimana. Mancano 3,8 kg al tuo obiettivo di 75 kg.",
+                    aiText: "Hai perso 1,4 kg dall'11 feb, da 80,2 a 78,8 kg. Mancano 3,8 kg al tuo obiettivo di 75 kg.",
                     card: "weight-trends",
                 },
             ],

@@ -84,10 +84,12 @@ export interface HeroExchange {
      * returns, shown after its reply. Every figure on it is the generator's;
      * the reply quotes them, so a translation keeps the numbers as written. */
     card?: HeroCardKind;
-    /** The meal this exchange logged, as the meal-logged card's header shows
-     * it — the description as it would be STORED, not the sentence the user
-     * typed. Set only on the exchange whose card is `meal-logged`. `type` is
-     * the server's enum: copy it verbatim. */
+    /** The meal this exchange logged — the description as it would be
+     * STORED, not the sentence the user typed. Set on every exchange that
+     * logs a meal, in order: the meal-logged card's header names its own, and
+     * the nutrition-summary card lists them all as the day's meal rows
+     * (scripts/landing-cards.ts checks they match its breakfast, lunch and
+     * snack). `type` is the server's enum: copy it verbatim. */
     meal?: {
         description: string;
         type: "breakfast" | "lunch" | "dinner" | "snack";
@@ -431,39 +433,48 @@ const INDEX_EN: IndexDoc = {
                 },
                 {
                     userText: "granola and honey, a full spoon",
-                    aiText: "Got it. And the americano: black, or with milk?",
+                    aiText: "Got it. And the americano: single or double, any milk?",
                 },
                 {
-                    userText: "a splash of oat milk",
-                    aiText: "So: the bowl with a handful of granola and 1 tbsp honey, and an americano with a splash of oat milk. About 480 kcal and 21 g protein. Log it as breakfast?",
+                    userText: "double, splash of oat milk",
+                    aiText: "So: the bowl with a handful of granola and 1 tbsp honey, and a double americano with a splash of oat milk. About 480 kcal and 21 g protein. Log it?",
                 },
                 {
                     userText: "yes",
-                    aiText: "Logged breakfast: 480 kcal, 21 g protein and 150 mg caffeine. It carries 51 g of sugar, 17 g of it from the honey.",
+                    aiText: "Logged breakfast: 480 kcal, 21 g protein and 126 mg caffeine. Sugar is already at 51 of your 60 g limit.",
                     card: "meal-logged",
                     meal: {
                         description:
-                            "Smoothie bowl (Greek yogurt, banana, berries) with granola (1 handful) and honey (1 tbsp); americano with a splash of oat milk",
+                            "Smoothie bowl (1 bowl: Greek yogurt, banana, berries) with granola (1 handful) and honey (1 tbsp); americano (double shot) with a splash of oat milk",
                         type: "breakfast",
                     },
                 },
                 {
                     userText:
-                        "leftover stir fry from last night, same portion. and a 500 ml bottle of water",
+                        "lunch: leftover stir fry from last night, same portion. and a 500 ml bottle of water",
                     aiText: "Logged lunch, same as last night: 620 kcal and 54 g protein, plus 500 ml of water.",
+                    meal: {
+                        description:
+                            "Leftover stir fry (1 portion, same as last night)",
+                        type: "lunch",
+                    },
                 },
                 {
-                    userText: "stole 6 of my kid's fries. don't judge",
-                    aiText: "No judgment. About 90 kcal, logged as a snack.",
+                    userText: "snack: stole 6 of my kid's fries. don't judge",
+                    aiText: "No judgment. About 50 kcal, logged as a snack.",
+                    meal: {
+                        description: "Fries (6, from my kid's plate)",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "what's left for dinner?",
-                    aiText: "810 kcal, and 84 g of protein still to find. Keep it savory: sugar's already at 59 of your 60 g.",
+                    aiText: "850 kcal and 84 g of protein to go. Sugar is at 59 of your 60 g limit.",
                     card: "nutrition-summary",
                 },
                 {
                     userText: "and how's my weight doing?",
-                    aiText: "Down 1.4 kg since 11 Feb, about 0.4 kg a week. 3.8 kg to go to your 75 kg target.",
+                    aiText: "Down 1.4 kg since 11 Feb, from 80.2 to 78.8 kg. 3.8 kg to go to your 75 kg target.",
                     card: "weight-trends",
                 },
             ],

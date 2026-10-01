@@ -48,43 +48,54 @@ export const INDEX_FR: IndexDoc = {
                 {
                     photo: true,
                     userText: "petit-déj + americano",
-                    aiText: "Un smoothie bowl, fait maison on dirait. Tu l'as déjà pris de deux façons : avec granola et miel, ou juste aux fruits. C'est lequel ?",
+                    aiText: "Un smoothie bowl, fait maison, on dirait. Tu l'as déjà pris de deux façons : avec granola et miel, ou juste aux fruits. C'est lequel ?",
                 },
                 {
                     userText: "granola et miel, une bonne cuillère",
-                    aiText: "Noté. Et l'americano : noir, ou avec du lait ?",
+                    aiText: "Noté. Et l'americano : simple ou double, avec du lait ?",
                 },
                 {
-                    userText: "un nuage de lait d'avoine",
-                    aiText: "Donc : le bowl avec une poignée de granola et 1 c. à soupe de miel, et un americano avec un nuage de lait d'avoine. Environ 480 kcal et 21 g de protéines. Je l'enregistre en petit-déjeuner ?",
+                    userText: "double, un nuage de lait d'avoine",
+                    aiText: "Donc : le bowl avec une poignée de granola et 1 c. à soupe de miel, et un americano double avec un nuage de lait d'avoine. Environ 480 kcal et 21 g de protéines. Je l'enregistre ?",
                 },
                 {
                     userText: "oui",
-                    aiText: "Petit-déjeuner enregistré : 480 kcal, 21 g de protéines et 150 mg de caféine. Il contient 51 g de sucres, dont 17 g viennent du miel.",
+                    aiText: "Petit-déjeuner enregistré : 480 kcal, 21 g de protéines et 126 mg de caféine. Côté sucre, tu es déjà à 51 g sur ta limite de 60 g.",
                     card: "meal-logged",
                     meal: {
                         description:
-                            "Smoothie bowl (yaourt grec, banane, fruits rouges) avec granola (1 poignée) et miel (1 c. à soupe) ; americano avec un nuage de lait d'avoine",
+                            "Smoothie bowl (1 bol : yaourt grec, banane, fruits rouges) avec granola (1 poignée) et miel (1 c. à soupe) ; americano double avec un nuage de lait d'avoine",
                         type: "breakfast",
                     },
                 },
                 {
                     userText:
-                        "le reste du wok d'hier soir, même portion. et une bouteille d'eau de 500 ml",
+                        "déjeuner : le reste du wok d'hier soir, même portion. et une bouteille d'eau de 500 ml",
                     aiText: "Déjeuner enregistré, comme hier soir : 620 kcal et 54 g de protéines, plus 500 ml d'eau.",
+                    meal: {
+                        description:
+                            "Reste de wok (1 portion, comme hier soir)",
+                        type: "lunch",
+                    },
                 },
                 {
-                    userText: "j'ai piqué 6 frites à mon gamin. me juge pas",
-                    aiText: "Aucun jugement. Environ 90 kcal, enregistrées en collation.",
+                    userText:
+                        "collation : j'ai piqué 6 frites à mon gamin. me juge pas",
+                    aiText: "Aucun jugement. Environ 50 kcal, enregistré en collation.",
+                    meal: {
+                        description:
+                            "Frites (6, piquées dans l'assiette de mon enfant)",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "il me reste quoi pour le dîner ?",
-                    aiText: "810 kcal, et encore 84 g de protéines à trouver. Mise plutôt sur le salé : les sucres sont déjà à 59 sur tes 60 g.",
+                    aiText: "Il te reste 850 kcal et 84 g de protéines. Côté sucre, tu es à 59 g sur ta limite de 60 g.",
                     card: "nutrition-summary",
                 },
                 {
                     userText: "et mon poids, ça donne quoi ?",
-                    aiText: "1,4 kg de moins depuis le 11 février, environ 0,4 kg par semaine. Encore 3,8 kg avant ton objectif de 75 kg.",
+                    aiText: "1,4 kg de moins depuis le 11 février, de 80,2 à 78,8 kg. Plus que 3,8 kg pour atteindre ton objectif de 75 kg.",
                     card: "weight-trends",
                 },
             ],

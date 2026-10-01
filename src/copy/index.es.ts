@@ -43,40 +43,49 @@ export const INDEX_ES: IndexDoc = {
                 },
                 {
                     userText: "granola y miel, una cucharada bien llena",
-                    aiText: "Entendido. ¿Y el americano: solo o con leche?",
+                    aiText: "Entendido. ¿Y el americano? ¿Sencillo o doble, y con leche o sin?",
                 },
                 {
-                    userText: "un chorrito de leche de avena",
-                    aiText: "Entonces: el bowl con un puñado de granola y 1 cda. de miel, y un americano con un chorrito de leche de avena. Unas 480 kcal y 21 g de proteína. ¿Lo registro como desayuno?",
+                    userText: "doble, un chorrito de leche de avena",
+                    aiText: "Entonces: el bowl con un puñado de granola y 1 cda. de miel, y un americano doble con un chorrito de leche de avena. Unas 480 kcal y 21 g de proteína. ¿Lo registro?",
                 },
                 {
                     userText: "sí",
-                    aiText: "Desayuno registrado: 480 kcal, 21 g de proteína y 150 mg de cafeína. Lleva 51 g de azúcar, de los cuales 17 g son de la miel.",
+                    aiText: "Desayuno registrado: 480 kcal, 21 g de proteína y 126 mg de cafeína. Ya llevas 51 g de azúcar, de un límite de 60 g.",
                     card: "meal-logged",
                     meal: {
                         description:
-                            "Smoothie bowl (yogur griego, plátano, frutos rojos) con granola (1 puñado) y miel (1 cda.); americano con un chorrito de leche de avena",
+                            "Smoothie bowl (1 bowl: yogur griego, plátano, frutos rojos) con granola (1 puñado) y miel (1 cda.); americano doble con un chorrito de leche de avena",
                         type: "breakfast",
                     },
                 },
                 {
                     userText:
-                        "lo que sobró del salteado de anoche, la misma ración. y una botella de agua de 500 ml",
+                        "almuerzo: lo que sobró del salteado de anoche, la misma ración. y una botella de agua de 500 ml",
                     aiText: "Almuerzo registrado, igual que anoche: 620 kcal y 54 g de proteína, más 500 ml de agua.",
+                    meal: {
+                        description:
+                            "Sobras del salteado (1 ración, igual que anoche)",
+                        type: "lunch",
+                    },
                 },
                 {
                     userText:
-                        "le he robado 6 patatas fritas a mi hijo. no me juzgues",
-                    aiText: "Nadie te juzga. Unas 90 kcal, registradas como tentempié.",
+                        "tentempié: le he robado 6 patatas fritas a mi hijo. no me juzgues",
+                    aiText: "Nadie te juzga. Unas 50 kcal, registradas como tentempié.",
+                    meal: {
+                        description: "Patatas fritas (6, del plato de mi hijo)",
+                        type: "snack",
+                    },
                 },
                 {
                     userText: "¿qué me queda para la cena?",
-                    aiText: "810 kcal, y todavía te faltan 84 g de proteína. Mejor algo salado: el azúcar ya va por 59 de tus 60 g.",
+                    aiText: "Te quedan 850 kcal y te faltan 84 g de proteína. Llevas 59 g de azúcar, de un límite de 60 g.",
                     card: "nutrition-summary",
                 },
                 {
                     userText: "¿y qué tal va mi peso?",
-                    aiText: "Has bajado 1,4 kg desde el 11 de febrero, unos 0,4 kg por semana. Te faltan 3,8 kg para tu objetivo de 75 kg.",
+                    aiText: "Has bajado 1,4 kg desde el 11 de febrero, de 80,2 a 78,8 kg. Te faltan 3,8 kg para tu objetivo de 75 kg.",
                     card: "weight-trends",
                 },
             ],
