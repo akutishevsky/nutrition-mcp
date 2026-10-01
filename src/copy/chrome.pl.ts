@@ -40,19 +40,7 @@ export const CHROME_PL: ChromeCopy = {
     closeMenuAriaLabel: "Zamknij menu",
 
     menu: {
-        howSmall: "3 kroki",
-        installSmall: "poniżej minuty",
-        toolsSmall: "36 narzędzi",
-        examplesSmall: "przykłady na żywo",
-        liveStatsSmall: "od otwarcia strony",
-        alternatives: "Alternatywy",
-        alternativesSmall: "zmiana aplikacji",
-        support: "Wsparcie",
-        contact: "Kontakt",
         github: "GitHub",
-        privacy: "Prywatność",
-        terms: "Regulamin",
-        connectInMinute: "Połącz się w minutę",
     },
 
     footer: {

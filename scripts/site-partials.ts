@@ -195,7 +195,7 @@ const STYLE_ASSETS = `        <link rel="preconnect" href="https://fonts.googlea
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist+Mono:wght@400;500&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,400..900;1,400&family=Geist+Mono:wght@400..700&display=swap"
             rel="stylesheet"
         />
         <link
@@ -203,6 +203,17 @@ const STYLE_ASSETS = `        <link rel="preconnect" href="https://fonts.googlea
             href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
         />
         <link rel="stylesheet" href="/styles.css" />`;
+
+/**
+ * The tab and home-screen icons ("Plugged Apple", built from logoSvg()'s
+ * paths). Browsers that read SVG favicons take /favicon.svg (no cord, green,
+ * light green under a dark UI); `sizes="32x32"` on the .ico keeps Chrome from
+ * preferring it over the SVG. /favicon.ico is also the MCP server icon, so
+ * its path never changes. Every generator's `<head>` uses this one block.
+ */
+export const ICON_LINKS = `        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />`;
 
 /**
  * The `<head>` assets with no analytics at all: fonts, icons, styles. The
@@ -218,6 +229,15 @@ export const HEAD_ASSETS = ANALYTICS_ENABLED
     ? `${STYLE_ASSETS}
 ${analyticsHead()}`
     : STYLE_ASSETS;
+
+/**
+ * `<meta name="theme-color">` values — the page background (`--bg` in
+ * public/styles.css) in each theme. site.js rewrites the meta on every theme
+ * change with these same two values, so a generator's static tag should use
+ * THEME_COLOR_LIGHT (what a first paint with no stored override shows).
+ */
+export const THEME_COLOR_LIGHT = "#f7f7f9";
+export const THEME_COLOR_DARK = "#0b0d12";
 
 export const THEME_PREPAINT = `        <script>
             // Apply a saved theme override before paint to avoid a flash.
@@ -279,17 +299,49 @@ export function localeHead(locale: SiteLocale, suffix: string): string {
 ${hreflang}
 ${xDefault}
 ${ogLocale}
-${ogAlternates}`;
+${ogAlternates}${localeFontLinks(locale)}`;
 }
 
 /**
- * The "Live stats" notification badge — an app-icon-style count that hangs
- * off the top-right corner of the nav item. It ships [hidden] on every page
+ * Script fonts for the locales Urbanist can't set. Urbanist ships Latin only,
+ * so /uk and /ja used to fall back to whatever the OS had. Mulish (Cyrillic)
+ * is the closest Google Fonts match — single-storey a/g like Urbanist, x-height
+ * 0.503em vs 0.501em; M PLUS 2 (Japanese) has the same geometric construction
+ * and a variable 100–900 axis. Weight ranges here and in STYLE_ASSETS match
+ * what the pages compute: 400 (unstyled body text) through 900 (`<b>` inside
+ * an 800 element computes `bolder` = 900), plus 400 italic for `<em>` in
+ * prose; M PLUS 2 has no italic. Geist Mono
+ * already carries Cyrillic. Loaded only on the page that needs it, and the
+ * public/styles.css `html[lang] body` overrides put each after Urbanist, so Latin
+ * runs keep Urbanist and only the script's own glyphs come from here (Google's
+ * unicode-range slicing downloads just the slices a page uses). Rationale and
+ * measurements: the fonts spec of the redesign. Called from localeHead() and
+ * directly by gen-login.ts, which has no localeHead().
+ */
+const LOCALE_FONT_FAMILY: Partial<Record<SiteLocale, string>> = {
+    uk: "Mulish:ital,wght@0,400..900;1,400",
+    ja: "M+PLUS+2:wght@400..900",
+};
+
+export function localeFontLinks(locale: SiteLocale): string {
+    const family = LOCALE_FONT_FAMILY[locale];
+    if (!family) return "";
+    return `
+        <link
+            href="https://fonts.googleapis.com/css2?family=${family}&display=swap"
+            rel="stylesheet"
+        />`;
+}
+
+/**
+ * The "Live stats" notification badge — an inline "+N" pill after the nav
+ * item's label (the "+" is CSS, `.nav-badge-n::before`, so the digits stay
+ * plain for setNavBadge and for screen readers). It ships [hidden] on every page
  * and is painted by public/site.js, which every page loads: the count is the
  * number of food logs written since the visitor arrived on the SITE, so it
  * keeps counting across a click from /tools to /privacy rather than
- * restarting at zero, which is what the menu's "since you opened" hint
- * promises. It used to be painted by the landing page's own stats poller
+ * restarting at zero, which is what the screen-reader label ("… since you
+ * opened") promises. It used to be painted by the landing page's own stats poller
  * (LANDING_SCRIPT in scripts/gen-index.ts) instead, and the consequence was
  * that on /tools, /privacy and every /alternatives page the badge shipped,
  * reserved its space in the nav, and then never moved.
@@ -318,7 +370,8 @@ ${ogAlternates}`;
  * There are three copies per page, not two: below the .head-nav breakpoint
  * the whole nav collapses behind the hamburger, so the badge rides the
  * hamburger itself — otherwise the one surface that tells a phone visitor
- * something arrived is hidden inside the menu they have not opened.
+ * something arrived is hidden inside the menu they have not opened. The
+ * design has no badge there; styles.css draws that copy as a quiet dot.
  */
 const PLURAL_CATEGORIES = ["one", "few", "many", "other"] as const;
 
@@ -348,6 +401,52 @@ function liveBadge(c: ChromeCopy, decorative?: boolean): string {
 }
 
 /**
+ * The brand mark: "Plugged Apple" (Logo Explorations, Turn 5 · Final,
+ * variant 5a). One masked shape filled with currentColor, so `color` on the
+ * element (or `.nm-logo { color: var(--acc) }` in styles.css) themes it.
+ * The mask id must be unique per document — every page carries at least
+ * two copies (header and footer) — so each caller passes its own short `id`:
+ * "h" header, "f" footer, and e.g. "a" for the sign-in card, "l" legal,
+ * "c" a comparison card. `cord: false` drops the plug's cord, which is the
+ * favicon variant (5c) for sizes of 24px and under.
+ */
+export function logoSvg(
+    id: string,
+    size: number,
+    opts: { cord?: boolean } = {},
+): string {
+    const cord =
+        opts.cord === false
+            ? ""
+            : `<path d="M32 45V51" stroke="#000" stroke-width="5" stroke-linecap="round"/>`;
+    return `<svg class="nm-logo" aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="${size}" height="${size}"><mask id="nm-logo-${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><path d="M32 20C26 14 10 14 9 32C8 46 18 58 25 58C28 58 30 56.5 32 56.5C34 56.5 36 58 39 58C46 58 56 46 55 32C54 14 38 14 32 20Z" fill="#fff"/><path d="M35 15C35 8 40 4 47 4C47 11 42 15 35 15Z" fill="#fff"/><path d="M22 32H42V37A10 10 0 0 1 32 47A10 10 0 0 1 22 37Z" fill="#000"/><rect x="24.5" y="24" width="5" height="10" rx="2.5" fill="#000"/><rect x="34.5" y="24" width="5" height="10" rx="2.5" fill="#000"/>${cord}</mask><rect width="64" height="64" fill="currentColor" mask="url(#nm-logo-${id})"/></svg>`;
+}
+
+/**
+ * The three drifting colour blobs behind the top of every page (decorative,
+ * aria-hidden). nav() emits them, so a page gets them without asking;
+ * "compact" is the shorter, fainter set the /tools design uses, and a page
+ * can still stretch or shrink the box with `--blobs-h` on <body>. Absolute
+ * against <body> (position: relative in styles.css), under main/footer
+ * (z-index 1) and the header.
+ */
+export type BlobsVariant = "default" | "compact";
+export function blobs(variant: BlobsVariant = "default"): string {
+    const cls =
+        variant === "compact" ? "nm-blobs nm-blobs-compact" : "nm-blobs";
+    return `        <div class="${cls}" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>`;
+}
+
+const REPO_URL = "https://github.com/akutishevsky/nutrition-mcp";
+
+/** The three theme modes, in control order, with their Font Awesome icon. */
+const THEME_MODES = [
+    { mode: "system", icon: "fa-circle-half-stroke" },
+    { mode: "light", icon: "fa-sun" },
+    { mode: "dark", icon: "fa-moon" },
+] as const;
+
+/**
  * Shared site header + mobile menu. site.js owns the theme toggle, menu and
  * scroll state. `suffix` is the current page's PAGE_ROUTES key ("" for
  * home, "/tools", "/myfitnesspal-mcp", ...) — used to build the language
@@ -355,6 +454,18 @@ function liveBadge(c: ChromeCopy, decorative?: boolean): string {
  * and, via `currentSuffix`, to mark the matching nav/menu link
  * aria-current="page" (a PAGE_ROUTES key, e.g. "/tools" — NOT a locale-
  * prefixed href, since that's computed here from the locale + suffix).
+ *
+ * Layout (public/styles.css): the header is two glass pills — `.head-bar`
+ * (brand, primary nav with its sliding `.nav-ind` pill, hamburger) and
+ * `.head-tools` (GitHub, language, theme, Connect; hidden under 700px,
+ * where the sheet carries the same controls). Under 1060px — or whenever
+ * the nav overflows its pill, which site.js detects and flags with
+ * html.nav-tight — the nav collapses behind the hamburger into
+ * `.site-menu`, a full-screen sheet.
+ *
+ * Every element scripts/depersonalize.ts strips (the consent <section>, each
+ * GitHub <a>) must keep ending its own line: those rules match up to a
+ * closing tag followed by "\n".
  */
 export function nav(
     locale: SiteLocale,
@@ -368,35 +479,58 @@ export function nav(
          * routed by path). When true, the whole <details class="lang-switch">
          * block is replaced with a literal "{{LANG_SWITCHER}}" token for the
          * caller to substitute at request time (see renderLangSwitcher in
-         * src/oauth.ts) instead of at generation time.
+         * src/oauth.ts) instead of at generation time. The sheet menu's
+         * language grid has the same problem, so it becomes a second token,
+         * "{{LANG_SWITCHER_MENU}}" — below 700px .head-tools is hidden and
+         * that grid is the only language switcher a phone gets.
          */
         dynamicSwitcher?: boolean;
         /** False on the login page, which carries no analytics. */
         consent?: boolean;
+        /** The background blobs: "default", "compact" (/tools) or false. */
+        blobs?: BlobsVariant | false;
     },
 ): string {
     const p = (id: string) => pathFor(locale, id);
     const h = (id: string) => hashPath(locale, id);
     const c = chromeFor(locale);
+    const attr = (s: string) => esc(s).replace(/"/g, "&quot;");
+    const code = (l: SiteLocale) => HTML_LANG[l].toUpperCase();
     const switcherItems = SITE_LOCALES.map((l) => {
         const active = l === locale;
-        return `                    <a
-                        href="${urlFor(l, suffix)}"
-                        lang="${HTML_LANG[l]}"
-                        hreflang="${HTML_LANG[l]}"${active ? '\n                        aria-current="page"' : ""}
-                        >${esc(LOCALE_NAMES[l])}</a
-                    >`;
+        return `                            <a
+                                href="${urlFor(l, suffix)}"
+                                lang="${HTML_LANG[l]}"
+                                hreflang="${HTML_LANG[l]}"${active ? '\n                                aria-current="page"' : ""}
+                                ><span>${esc(LOCALE_NAMES[l])}</span><span class="lang-menu-code">${code(l)}</span></a
+                            >`;
     }).join("\n");
-    // The consent banner: a strip in the normal flow above the sticky
+    const menuLangItems = SITE_LOCALES.map((l) => {
+        const active = l === locale;
+        return `                    <a href="${urlFor(l, suffix)}" lang="${HTML_LANG[l]}" hreflang="${HTML_LANG[l]}" aria-label="${attr(LOCALE_NAMES[l])}" title="${attr(LOCALE_NAMES[l])}"${active ? ' aria-current="page"' : ""}>${code(l)}</a>`;
+    }).join("\n");
+    const themeSeg = THEME_MODES.map(
+        ({ mode, icon }) =>
+            `                        <button type="button" data-theme-set="${mode}" aria-pressed="${mode === "system"}" title="${attr(c.theme[mode])}"><i class="fa-solid ${icon}" aria-hidden="true"></i><span class="vh">${esc(c.theme[mode])}</span></button>`,
+    ).join("\n");
+    const menuTheme = THEME_MODES.map(
+        ({ mode, icon }) =>
+            `                    <button type="button" data-theme-set="${mode}" aria-pressed="${mode === "system"}"><i class="fa-solid ${icon}" aria-hidden="true"></i>${esc(c.theme[mode])}</button>`,
+    ).join("\n");
+    const arrow = `<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>`;
+    // The consent banner: a glass card in the normal flow above the sticky
     // header, so it pushes the page down rather than covering any of it.
     // html[data-consent] is stamped in <head> before first paint, so the
-    // strip is there from the first frame and nothing shifts. It sits after
+    // card is there from the first frame and nothing shifts. It sits after
     // the skip link (still the first tab stop) and ahead of the header, so
     // keyboard and screen-reader users meet it before the page. Reopened
     // from the footer's "Cookie settings", site.js docks it to the bottom
     // edge instead (html[data-consent-reopen]). `data-consent-link` keeps
     // the aria-current replaceAll below off its privacy link, and
     // `data-analytics` is what scripts/depersonalize.ts strips it by.
+    // Accept and Reject share one style on purpose: the design draws Accept
+    // as a filled button, which is the kind of nudge consent guidance warns
+    // against, so neither choice is made the easier one.
     const banner =
         ANALYTICS_ENABLED && opts?.consent !== false
             ? `
@@ -404,42 +538,59 @@ export function nav(
             <div class="consent-inner">
                 <p class="consent-text"><strong id="consent-title" class="consent-title">${esc(c.consent.title)}</strong> ${esc(c.consent.body)} <a data-consent-link href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a></p>
                 <div class="consent-actions">
-                    <button type="button" class="btn consent-btn" data-consent-choice="denied">${esc(c.consent.reject)}</button>
-                    <button type="button" class="btn consent-btn" data-consent-choice="granted">${esc(c.consent.accept)}</button>
+                    <button type="button" class="consent-btn" data-consent-choice="denied">${esc(c.consent.reject)}</button>
+                    <button type="button" class="consent-btn" data-consent-choice="granted">${esc(c.consent.accept)}</button>
                 </div>
             </div>
         </section>`
             : "";
-    const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>${banner}
+    const blobsHtml =
+        opts?.blobs === false ? "" : `\n${blobs(opts?.blobs || "default")}`;
+    const menuLangGroup = opts?.dynamicSwitcher
+        ? "\n            {{LANG_SWITCHER_MENU}}"
+        : `
+            <div class="menu-group">
+                <span class="menu-group-label" id="menu-lang-l">${esc(c.languageTitle)}</span>
+                <div class="menu-langs" role="group" aria-labelledby="menu-lang-l">
+${menuLangItems}
+                </div>
+            </div>`;
+    const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>${blobsHtml}${banner}
         <header class="site-head" id="site-head">
             <div class="head-inner">
-                <a class="brand" href="${p("")}" aria-label="${esc(c.brandHomeAriaLabel)}">
-                    <span class="brand-mark" aria-hidden="true">🍏</span>
-                    <span>Nutrition&nbsp;MCP</span>
-                </a>
-                <nav class="head-nav" aria-label="${esc(c.landmarks.primaryNav)}">
-                    <a href="${h("how")}">${esc(c.nav.how)}</a>
-                    <a href="${h("install")}">${esc(c.nav.install)}</a>
-                    <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
-                    <a href="${h("try")}">${esc(c.nav.examples)}</a>
-                    <a class="nav-has-badge" href="${h("stats")}">${esc(c.nav.liveStats)}${liveBadge(c)}</a>
-                    <a href="${h("faq")}">${esc(c.nav.faq)}</a>
-                </nav>
+                <div class="head-bar">
+                    <a class="brand" href="${p("")}" aria-label="${esc(c.brandHomeAriaLabel)}">${logoSvg("h", 28)}<span>Nutrition&nbsp;MCP</span></a>
+                    <nav class="head-nav" aria-label="${esc(c.landmarks.primaryNav)}">
+                        <span class="nav-ind" aria-hidden="true"></span>
+                        <a href="${h("how")}">${esc(c.nav.how)}</a>
+                        <a href="${h("install")}">${esc(c.nav.install)}</a>
+                        <a href="${p("/tools")}">${esc(c.nav.tools)}</a>
+                        <a href="${h("try")}">${esc(c.nav.examples)}</a>
+                        <a class="nav-has-badge" href="${h("stats")}">${esc(c.nav.liveStats)}${liveBadge(c)}</a>
+                        <a href="${h("faq")}">${esc(c.nav.faq)}</a>
+                    </nav>
+                    <button
+                        class="menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="${esc(c.openMenuAriaLabel)}"
+                        data-close-label="${esc(c.closeMenuAriaLabel)}"
+                    >
+                        <i class="fa-solid fa-bars mb-open" aria-hidden="true"></i><i class="fa-solid fa-xmark mb-close" aria-hidden="true"></i>${liveBadge(c, true)}
+                    </button>
+                </div>
                 <div class="head-tools">
                     <a
                         class="icon-btn head-gh"
-                        href="https://github.com/akutishevsky/nutrition-mcp"
+                        href="${REPO_URL}"
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="${esc(c.githubAriaLabel)}"
                         title="GitHub"
+                        ><i class="fa-brands fa-github" aria-hidden="true"></i></a
                     >
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path
-                                d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
-                            />
-                        </svg>
-                    </a>
 ${
     opts?.dynamicSwitcher
         ? "                    {{LANG_SWITCHER}}"
@@ -449,78 +600,38 @@ ${
                             aria-label="${esc(c.changeLanguageAriaLabel)}"
                             title="${esc(c.languageTitle)}"
                         >
-                            <span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>
+                            <i class="fa-solid fa-language" aria-hidden="true"></i><span class="lang-code">${code(locale)}</span>
                         </summary>
                         <div class="lang-menu" role="group" aria-label="${esc(c.languageTitle)}">
 ${switcherItems}
                         </div>
                     </details>`
 }
-                    <details class="theme-switch" id="theme-switch">
-                        <summary
-                            class="icon-btn"
-                            aria-label="${esc(c.theme.ariaLabel)}"
-                            title="${esc(c.theme.title)}"
-                        >
-                            <svg class="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="9" />
-                                <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
-                            </svg>
-                            <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-                            </svg>
-                            <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="4" />
-                                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-                            </svg>
-                        </summary>
-                        <div class="theme-menu" role="group" aria-label="${esc(c.theme.title)}">
-                            <button type="button" data-theme-set="system" aria-pressed="true">${esc(c.theme.system)}</button>
-                            <button type="button" data-theme-set="light" aria-pressed="false">${esc(c.theme.light)}</button>
-                            <button type="button" data-theme-set="dark" aria-pressed="false">${esc(c.theme.dark)}</button>
-                        </div>
-                    </details>
-                    <a class="btn btn-primary btn-sm head-cta" href="${h("install")}"
-                        >${esc(c.connectCta)}</a
-                    >
-                    <button
-                        class="icon-btn menu-btn"
-                        type="button"
-                        id="menu-btn"
-                        aria-expanded="false"
-                        aria-controls="site-menu"
-                        aria-label="${esc(c.openMenuAriaLabel)}"
-                        data-close-label="${esc(c.closeMenuAriaLabel)}"
-                    >
-                        <span class="burger" aria-hidden="true"></span>${liveBadge(c, true)}
-                    </button>
+                    <div class="theme-seg" role="group" aria-label="${esc(c.theme.ariaLabel)}" title="${esc(c.theme.title)}">
+${themeSeg}
+                    </div>
+                    <a class="head-cta" href="${h("install")}">${esc(c.connectCta)}</a>
                 </div>
             </div>
         </header>
         <div class="site-menu" id="site-menu" hidden>
-            <nav aria-label="${esc(c.landmarks.menu)}">
-                <a href="${h("how")}">${esc(c.nav.how)} <small>${esc(c.menu.howSmall)}</small></a>
-                <a href="${h("install")}">${esc(c.nav.install)} <small>${esc(c.menu.installSmall)}</small></a>
-                <a href="${p("/tools")}">${esc(c.nav.tools)} <small>${esc(c.menu.toolsSmall)}</small></a>
-                <a href="${h("try")}">${esc(c.nav.examples)} <small>${esc(c.menu.examplesSmall)}</small></a>
-                <a href="${h("stats")}"><span class="menu-label nav-has-badge">${esc(c.nav.liveStats)}${liveBadge(c)}</span> <small>${esc(c.menu.liveStatsSmall)}</small></a>
-                <a href="${h("faq")}">${esc(c.nav.faq)}</a>
-                <a href="${p("/alternatives")}">${esc(c.menu.alternatives)} <small>${esc(c.menu.alternativesSmall)}</small></a>
-            </nav>
-            <div class="menu-secondary">
-                <a href="${h("support")}">${esc(c.menu.support)}</a>
-                <a href="${h("contact")}">${esc(c.menu.contact)}</a>
-                <a
-                    href="https://github.com/akutishevsky/nutrition-mcp"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >${esc(c.menu.github)}</a
-                >
-                <a href="${p("/privacy")}">${esc(c.menu.privacy)}</a>
-                <a href="${p("/terms")}">${esc(c.menu.terms)}</a>
+            <nav aria-label="${esc(c.landmarks.menu)}" class="menu-nav">
+                <a href="${h("how")}"><span>${esc(c.nav.how)}</span>${arrow}</a>
+                <a href="${h("install")}"><span>${esc(c.nav.install)}</span>${arrow}</a>
+                <a href="${p("/tools")}"><span>${esc(c.nav.tools)}</span>${arrow}</a>
+                <a href="${h("try")}"><span>${esc(c.nav.examples)}</span>${arrow}</a>
+                <a href="${h("stats")}"><span class="menu-label">${esc(c.nav.liveStats)}${liveBadge(c)}</span>${arrow}</a>
+                <a href="${h("faq")}"><span>${esc(c.nav.faq)}</span>${arrow}</a>
+            </nav>${menuLangGroup}
+            <div class="menu-group">
+                <span class="menu-group-label" aria-hidden="true">${esc(c.theme.title)}</span>
+                <div class="menu-theme" role="group" aria-label="${esc(c.theme.title)}">
+${menuTheme}
+                </div>
             </div>
             <div class="menu-foot">
-                <a class="btn btn-primary" href="${h("install")}">${esc(c.menu.connectInMinute)}</a>
+                <a class="menu-gh" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(c.menu.github)}<span class="menu-gh-stars" data-gh-stars hidden><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars-n></span></span></a>
+                <a class="menu-cta" href="${h("install")}">${esc(c.connectCta)}${arrow}</a>
             </div>
         </div>`;
     if (!currentSuffix) return html;
@@ -556,43 +667,40 @@ export function footer(
     const consent = ANALYTICS_ENABLED && opts.consent !== false;
     const settingsBtn = consent
         ? `
-                    <button type="button" class="footer-link-btn" data-consent-open data-analytics>${esc(c.consent.settings)}</button>`
+                        <button type="button" class="footer-link-btn" data-consent-open data-analytics>${esc(c.consent.settings)}</button>`
         : "";
     const html = `        <footer class="footer">
             <div class="footer-inner">
-                <span class="footer-brand">
-                    <span class="brand-mark" aria-hidden="true">🍏</span>
-                    Nutrition MCP
-                </span>
-                <nav class="footer-links" aria-label="${esc(c.landmarks.footer)}">
-                    <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
-                    <a href="${p("/tools")}#troubleshooting">${esc(c.footer.troubleshooting)}</a>
-                    <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
-                    <a
-                        href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >${esc(c.footer.howIBuiltThis)}</a
-                    >
-                    <a
-                        href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >${esc(c.footer.demo)}</a
-                    >
-                    <a
-                        href="https://github.com/akutishevsky/nutrition-mcp"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >${esc(c.footer.github)}</a
-                    >
-                    <a href="mailto:anton@nutrition-mcp.com">${esc(c.footer.contact)}</a>
-                    <a href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a>
-                    <a href="${p("/terms")}">${esc(c.footer.termsOfService)}</a>${settingsBtn}
-                </nav>
-                <p class="footer-note">
-                    ${esc(c.footer.note)}
-                </p>
+                <div class="footer-top">
+                    <a class="footer-brand" href="${p("")}" aria-label="${esc(c.brandHomeAriaLabel)}">${logoSvg("f", 34)}<span>Nutrition&nbsp;MCP</span></a>
+                    <nav class="footer-links" aria-label="${esc(c.landmarks.footer)}">
+                        <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
+                        <a href="${p("/tools")}#troubleshooting">${esc(c.footer.troubleshooting)}</a>
+                        <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
+                        <a
+                            href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >${esc(c.footer.howIBuiltThis)}</a
+                        >
+                        <a
+                            href="https://youtube.com/shorts/Y1EHbfimQ70?feature=share"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >${esc(c.footer.demo)}</a
+                        >
+                        <a
+                            href="${REPO_URL}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >${esc(c.footer.github)}<span class="footer-stars" data-gh-stars hidden><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars-n></span></span></a
+                        >
+                        <a href="mailto:anton@nutrition-mcp.com">${esc(c.footer.contact)}</a>
+                        <a href="${p("/privacy")}">${esc(c.footer.privacyPolicy)}</a>
+                        <a href="${p("/terms")}">${esc(c.footer.termsOfService)}</a>${settingsBtn}
+                    </nav>
+                </div>
+                <p class="footer-note">${esc(c.footer.note)}</p>
             </div>
         </footer>`;
     if (!currentSuffix) return html;

@@ -37,19 +37,7 @@ export const CHROME_JA: ChromeCopy = {
     closeMenuAriaLabel: "メニューを閉じる",
 
     menu: {
-        howSmall: "3ステップ",
-        installSmall: "1分足らず",
-        toolsSmall: "36個のツール",
-        examplesSmall: "ライブデモ",
-        liveStatsSmall: "開いてから",
-        alternatives: "代替アプリ",
-        alternativesSmall: "アプリの乗り換え",
-        support: "サポート",
-        contact: "お問い合わせ",
         github: "GitHub",
-        privacy: "プライバシー",
-        terms: "利用規約",
-        connectInMinute: "1分で接続",
     },
 
     footer: {

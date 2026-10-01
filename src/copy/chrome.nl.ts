@@ -38,19 +38,7 @@ export const CHROME_NL: ChromeCopy = {
     closeMenuAriaLabel: "Menu sluiten",
 
     menu: {
-        howSmall: "3 stappen",
-        installSmall: "binnen een minuut",
-        toolsSmall: "36 tools",
-        examplesSmall: "live demo's",
-        liveStatsSmall: "sinds je de pagina opende",
-        alternatives: "Alternatieven",
-        alternativesSmall: "van app wisselen",
-        support: "Steun",
-        contact: "Contact",
         github: "GitHub",
-        privacy: "Privacy",
-        terms: "Voorwaarden",
-        connectInMinute: "Verbind binnen een minuut",
     },
 
     footer: {

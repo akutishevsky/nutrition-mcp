@@ -40,19 +40,7 @@ export const CHROME_UK: ChromeCopy = {
     closeMenuAriaLabel: "Закрити меню",
 
     menu: {
-        howSmall: "3 кроки",
-        installSmall: "менш ніж за хвилину",
-        toolsSmall: "36 інструментів",
-        examplesSmall: "демо наживо",
-        liveStatsSmall: "з моменту відкриття",
-        alternatives: "Альтернативи",
-        alternativesSmall: "перехід з іншого застосунку",
-        support: "Підтримка",
-        contact: "Контакти",
         github: "GitHub",
-        privacy: "Приватність",
-        terms: "Умови",
-        connectInMinute: "Підключи за хвилину",
     },
 
     footer: {
