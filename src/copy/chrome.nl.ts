@@ -56,7 +56,7 @@ export const CHROME_NL: ChromeCopy = {
 
     consent: {
         title: "Analytische cookies.",
-        body: "Met je toestemming laten Google Analytics en Microsoft Clarity ons zien welke pagina's helpen en waar mensen vastlopen. Er laadt niets tot je akkoord gaat.",
+        body: "Met je toestemming telt Google Analytics bezoeken en legt Microsoft Clarity klikken en scrollen vast als sessie-opnames, zodat we zien welke pagina's helpen en waar mensen vastlopen. Geen van beide wordt geladen tot je akkoord gaat.",
         accept: "Accepteren",
         reject: "Weigeren",
         settings: "Cookie-instellingen",

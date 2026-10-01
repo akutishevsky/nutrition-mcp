@@ -55,7 +55,7 @@ export const CHROME_JA: ChromeCopy = {
 
     consent: {
         title: "【分析用Cookie】",
-        body: "同意いただいた場合のみ、Google Analytics と Microsoft Clarity で、どのページが役立ち、どこでつまずいているかを把握します。同意するまで何も読み込まれません。",
+        body: "許可していただいた場合、Google Analyticsが訪問数を計測し、Microsoft Clarityがクリックやスクロールをセッション記録として残します。どのページが役立ち、どこでつまずいているかを把握するためです。どちらも、同意いただくまで読み込まれません。",
         accept: "許可する",
         reject: "拒否する",
         settings: "Cookie設定",
