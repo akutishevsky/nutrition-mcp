@@ -60,13 +60,13 @@ function priorityFor(suffix: string): string {
 // shared-partial edits) and turn <lastmod> into noise instead of a signal.
 // Bump an entry here by hand when that page's real content changes.
 const LASTMOD: Record<string, string> = {
-    "": "2026-07-25",
-    "/tools": "2026-07-25",
-    "/privacy": "2026-07-23",
-    "/terms": "2026-07-23",
+    "": "2026-10-01",
+    "/tools": "2026-10-01",
+    "/privacy": "2026-09-29",
+    "/terms": "2026-09-29",
 };
 function lastmodFor(suffix: string): string {
-    return LASTMOD[suffix] ?? "2026-08-23";
+    return LASTMOD[suffix] ?? "2026-10-01";
 }
 
 async function fileFor(locale: SiteLocale, file: string): Promise<string> {

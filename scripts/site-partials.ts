@@ -265,6 +265,23 @@ export const EMAIL_OFF_OPEN = `        <!--email_off-->`;
 export const EMAIL_OFF_CLOSE = `        <!--/email_off-->`;
 
 // Theme toggle, menu, reveals and copy buttons all live in /site.js.
+const OG_IMAGE_ALT =
+    "Nutrition MCP — Track your nutrition by talking to your AI. Free and open source, for Claude and ChatGPT.";
+
+/**
+ * Social-card image tags shared by every generated page except legal
+ * (gen-legal.ts keeps its own). Each page still writes its own
+ * twitter:title / twitter:description beside it.
+ */
+export const OG_IMAGE_META = `        <meta property="og:site_name" content="Nutrition MCP" />
+        <meta property="og:image" content="${SITE}/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="${OG_IMAGE_ALT}" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="${SITE}/og.png" />
+        <meta name="twitter:image:alt" content="${OG_IMAGE_ALT}" />`;
+
 export const SITE_SCRIPT = `        <script src="/site.js" defer></script>`;
 
 export function generatedBanner(script: string): string {
