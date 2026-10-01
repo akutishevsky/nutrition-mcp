@@ -166,27 +166,11 @@ ${cards}
 
 function installBlock(locale: SiteLocale, ui: AltUiCopy): string {
     const steps = ui.app.installSteps
-        .map((s, i) => {
-            const html =
-                i === 2
-                    ? s.replace(
-                          "{copyUrl}",
-                          `<span class="copy-url"
-                                    ><code>https://nutrition-mcp.com/mcp</code
-                                    ><button
-                                        class="copy-mini"
-                                        type="button"
-                                        data-copy="https://nutrition-mcp.com/mcp"
-                                        aria-label="${esc(ui.app.copyUrlAriaLabel)}"
-                                    >
-                                        <i class="fa-solid fa-copy"></i></button
-                                ></span>`,
-                      )
-                    : s;
-            return `                            <li>
-                                ${html}
-                            </li>`;
-        })
+        .map(
+            (s) => `                            <li>
+                                ${s}
+                            </li>`,
+        )
         .join("\n");
     const note = ui.app.installNoteTemplate.replace(
         "{link}",

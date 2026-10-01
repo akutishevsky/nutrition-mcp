@@ -603,17 +603,12 @@ export const INDEX_PL: IndexDoc = {
         title: "Połącz się w mniej niż minutę",
         sub: "Działa z każdym klientem MCP, który obsługuje OAuth 2.0 z PKCE. Przy pierwszym połączeniu zakładasz konto przez Google albo e-mail i hasło; loguj się tak samo, żeby zachować swoje dane.",
         claude: {
+            cta: "Dodaj do Claude",
             steps: [
-                "Otwórz <strong>Claude</strong> (w przeglądarce albo aplikacji) i kliknij <strong>Customize</strong> w lewym górnym rogu.",
-                "Kliknij <strong>Connectors</strong>.",
-                "Kliknij <strong>+</strong>, a potem <strong>Add custom connector</strong>.",
-                "Nadaj mu nazwę, na przykład <strong>Nutrition</strong>.",
-                'Wklej <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Kopiuj adres URL serwera"><i class="fa-solid fa-copy"></i></button></span> w pole <strong>Remote MCP server URL</strong>.',
-                "Kliknij <strong>Add</strong>.",
-                "Kliknij <strong>Connect</strong> — otworzy się strona logowania; kontynuuj przez Google albo zaloguj się e-mailem i hasłem.",
+                "Na stronie katalogu kliknij <strong>Connect</strong>, a potem kontynuuj przez Google albo zaloguj się e-mailem i hasłem.",
                 "Gotowe. Działa od razu i automatycznie pojawia się w Twoich aplikacjach na iOS i Androida.",
             ],
-            note: "Działa na każdym planie Claude. Darmowy plan pozwala na jeden podłączony serwer MCP naraz.",
+            note: "Działa na każdym planie Claude, także darmowym. Aby dodać go ręcznie, użyj Customize → Connectors → Add custom connector z adresem https://nutrition-mcp.com/mcp.",
         },
         chatgpt: {
             steps: [

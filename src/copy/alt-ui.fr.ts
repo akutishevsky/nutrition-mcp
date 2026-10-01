@@ -71,15 +71,13 @@ export const ALT_UI_FR: AltUiCopy = {
         switchSub:
             "Fonctionne avec tout client MCP compatible OAuth 2.0 avec PKCE. Lors de la première connexion, tu crées un compte avec Google ou un e-mail et un mot de passe.",
         installSteps: [
-            "Ouvre <strong>Claude</strong> (web ou bureau) et clique sur <strong>Personnaliser</strong> → <strong>Connecteurs</strong>.",
-            "Clique sur <strong>+</strong>, puis <strong>Ajouter un connecteur personnalisé</strong>, et donne-lui un nom comme <strong>Nutrition</strong>.",
-            "Colle {copyUrl} dans le champ <strong>URL du serveur MCP distant</strong> et clique sur <strong>Ajouter</strong>.",
-            "Clique sur <strong>Connecter</strong>, connecte-toi, et commence à enregistrer en disant ce que tu as mangé.",
+            'Ouvre <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Nutrition MCP dans l\'annuaire Claude</a>.',
+            "Clique sur <strong>Connecter</strong> et connecte-toi avec Google ou un e-mail et un mot de passe.",
+            "Commence à enregistrer en disant ce que tu as mangé.",
         ],
         installNoteTemplate:
             "Tu utilises ChatGPT ou un autre client ? Le {link} couvre ChatGPT, Cursor, VS Code, Claude Code, et plus encore.",
         installLinkText: "guide d'installation complet",
-        copyUrlAriaLabel: "Copier l'URL du serveur",
 
         faqEyebrow: "FAQ",
         faqTitleTemplate: "Questions sur {app} &amp; MCP",
@@ -88,7 +86,7 @@ export const ALT_UI_FR: AltUiCopy = {
             mcpA: "Non. {app} ne propose pas de serveur Model Context Protocol (MCP), donc il n'existe aucun moyen officiel de le connecter à Claude, ChatGPT ou d'autres assistants IA. Nutrition MCP est une alternative gratuite et open source, conçue comme serveur MCP depuis le départ, pour que tu puisses enregistrer repas et macros directement dans ton IA.",
             connectQ: "Comment connecter {app} à Claude ?",
             connectA:
-                "Il n'existe aucun connecteur officiel {app} pour Claude, car {app} n'a ni serveur MCP ni intégration MCP publique. L'option la plus proche est Nutrition MCP, un serveur MCP gratuit : ajoute https://nutrition-mcp.com/mcp comme connecteur personnalisé dans Claude, connecte-toi, et commence à enregistrer par conversation.",
+                "Il n'existe aucun connecteur officiel {app} pour Claude, car {app} n'a ni serveur MCP ni intégration MCP publique. L'option la plus proche est Nutrition MCP, un serveur MCP gratuit référencé dans l'annuaire Claude : ouvre-le sur https://claude.ai/directory/nutrition-mcp, clique sur Connecter, connecte-toi, et commence à enregistrer par conversation.",
             goodAltQ:
                 "Est-ce que Nutrition MCP est une bonne alternative à {app} ?",
             goodAltA:
