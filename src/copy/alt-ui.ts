@@ -60,6 +60,10 @@ export interface AltFaqCopy {
 export interface AltUiCopy {
     breadcrumbHome: string;
     breadcrumbAlternatives: string;
+    /** aria-label of the breadcrumb <nav> landmark ("Breadcrumb"). Plain
+     * text. Never painted, but a screen reader jumping by landmark reads
+     * it, so it is translated like every visible string. */
+    breadcrumbAriaLabel: string;
     /** "Quick install" — reused on the app closing CTA, hub hero, and hub closing CTA. */
     ctaQuickInstall: string;
     /** "Track nutrition inside the AI you already use." — reused on both closing CTAs. */
@@ -143,6 +147,7 @@ export interface AltUiCopy {
 export const ALT_UI_EN: AltUiCopy = {
     breadcrumbHome: "Home",
     breadcrumbAlternatives: "Alternatives",
+    breadcrumbAriaLabel: "Breadcrumb",
     ctaQuickInstall: "Quick install",
     ctaClosingTitle: "Track nutrition inside the AI you already use.",
     disclaimerAppHtml:
@@ -211,7 +216,7 @@ export const ALT_UI_EN: AltUiCopy = {
         switchSub:
             "Works with any MCP client that supports OAuth 2.0 with PKCE. On first connect you create an account with Google or an email and password.",
         installSteps: [
-            'Open <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Nutrition MCP in the Claude directory</a>.',
+            'Open <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener noreferrer">Nutrition MCP in the Claude directory</a>.',
             "Click <strong>Connect</strong> and sign in with Google or an email and password.",
             "Start logging by saying what you ate.",
         ],

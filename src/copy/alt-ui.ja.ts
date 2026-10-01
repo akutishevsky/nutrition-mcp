@@ -3,6 +3,7 @@ import type { AltUiCopy } from "./alt-ui.js";
 export const ALT_UI_JA: AltUiCopy = {
     breadcrumbHome: "ホーム",
     breadcrumbAlternatives: "代替ツール",
+    breadcrumbAriaLabel: "パンくずリスト",
     ctaQuickInstall: "クイックインストール",
     ctaClosingTitle: "使い慣れたAIの中で栄養管理を。",
     disclaimerAppHtml:
@@ -71,7 +72,7 @@ export const ALT_UI_JA: AltUiCopy = {
         switchSub:
             "OAuth 2.0（PKCE対応）をサポートするMCPクライアントであればどれでも利用できます。初回接続時に、Googleアカウントまたはメールアドレスとパスワードでアカウントを作成します。",
         installSteps: [
-            '<a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Claudeディレクトリ内のNutrition MCP</a>を開きます。',
+            '<a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener noreferrer">Claudeディレクトリ内のNutrition MCP</a>を開きます。',
             "<strong>接続</strong>をクリックし、Googleまたはメールアドレスとパスワードでサインインします。",
             "食べたものを話しかけるだけで記録を始められます。",
         ],

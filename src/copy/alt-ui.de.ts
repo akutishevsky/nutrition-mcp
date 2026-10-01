@@ -9,6 +9,7 @@ import type { AltUiCopy } from "./alt-ui.js";
 export const ALT_UI_DE: AltUiCopy = {
     breadcrumbHome: "Startseite",
     breadcrumbAlternatives: "Alternativen",
+    breadcrumbAriaLabel: "Brotkrümelnavigation",
     ctaQuickInstall: "Schnell installieren",
     ctaClosingTitle: "Erfasse deine Ernährung in der KI, die du schon nutzt.",
     disclaimerAppHtml:
@@ -77,7 +78,7 @@ export const ALT_UI_DE: AltUiCopy = {
         switchSub:
             "Funktioniert mit jedem MCP-Client, der OAuth 2.0 mit PKCE unterstützt. Bei der ersten Verbindung erstellst du ein Konto mit Google oder einer E-Mail-Adresse und einem Passwort.",
         installSteps: [
-            'Öffne <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Nutrition MCP im Claude-Verzeichnis</a>.',
+            'Öffne <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener noreferrer">Nutrition MCP im Claude-Verzeichnis</a>.',
             "Klick auf <strong>Connect</strong> und melde dich mit Google oder mit E-Mail und Passwort an.",
             "Leg los, indem du sagst, was du gegessen hast.",
         ],
