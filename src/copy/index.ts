@@ -1143,7 +1143,7 @@ const INDEX_EN: IndexDoc = {
         paid: {
             tier: "Paid member",
             price: "Pay what you want",
-            desc: "Chip in for hosting and database costs. It's a gift, not a purchase — it unlocks nothing, and everything stays free for everyone.",
+            desc: "If Nutrition MCP is useful to you, you can help with its hosting and database costs. Everyone gets the same features, supporters included, and it stays free for all.",
             cta: "Become a supporter",
         },
     },

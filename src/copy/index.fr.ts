@@ -769,7 +769,7 @@ export const INDEX_FR: IndexDoc = {
         paid: {
             tier: "Membre payant",
             price: "Paie ce que tu veux",
-            desc: "Participe aux frais d'hébergement et de base de données. C'est un don, pas un achat — ça ne débloque rien, et tout reste gratuit pour tout le monde.",
+            desc: "Si Nutrition MCP t'est utile, tu peux aider à couvrir les frais d'hébergement et de base de données. Tout le monde a les mêmes fonctionnalités, soutiens compris, et tout reste gratuit pour tous.",
             cta: "Devenir soutien",
         },
     },

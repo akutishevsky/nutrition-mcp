@@ -760,7 +760,7 @@ export const INDEX_NL: IndexDoc = {
         paid: {
             tier: "Betalend lid",
             price: "Betaal wat je wilt",
-            desc: "Draag bij aan hosting- en databasekosten. Het is een gift, geen aankoop — het ontgrendelt niets, en alles blijft gratis voor iedereen.",
+            desc: "Heb je iets aan Nutrition MCP? Dan kun je helpen met de kosten voor hosting en database. Iedereen krijgt dezelfde functies, supporters ook, en het blijft gratis voor iedereen.",
             cta: "Word supporter",
         },
     },
