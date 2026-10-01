@@ -402,11 +402,11 @@ export interface IndexDoc {
 }
 
 const INDEX_EN: IndexDoc = {
-    title: "Nutrition MCP — AI Meal & Macro Tracker for Claude & ChatGPT",
+    title: "Nutrition MCP — Calorie & Macro Tracker for Claude & ChatGPT",
     metaDescription:
-        "Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, calorie counting, weight tracking, and diet tracking.",
+        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with barcode lookup, weight tracking and full data export.",
     ogDescription:
-        "Track meals, macros, weight, and nutrition history through conversation with Claude or ChatGPT. Free MCP server for AI-powered food logging, barcode scanning, and weight tracking.",
+        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with barcode lookup, weight tracking and full data export.",
     keywords:
         "nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, weight tracker, weight log, AI nutrition, Model Context Protocol",
 
@@ -868,7 +868,7 @@ const INDEX_EN: IndexDoc = {
                 id: "track-drinks",
                 title: "Track drinks too",
                 description:
-                    "Alcohol tracking stays off until you ask for it. Pick US standard drinks or UK units, and each drink is worked out as grams of alcohol from its size and strength. Switch it off later and it's hidden, never deleted.",
+                    "Alcohol stays hidden until you switch tracking on. Pick US standard drinks or UK units, and each drink is worked out as grams of alcohol from its size and strength. Switching it off later hides alcohol again; it doesn't delete it.",
                 toolNotes: {
                     set_alcohol_tracking:
                         "Turns alcohol on, shown in grams alongside UK units",
@@ -921,7 +921,7 @@ const INDEX_EN: IndexDoc = {
                 id: "import-history",
                 title: "Bring your history",
                 description:
-                    "Moving from MyFitnessPal, Cronometer, Lose It! or MacroFactor? The importer opens in the chat, reads and maps your export in the browser, saves nothing until you confirm a preview, and never doubles a meal if you import the same file again. It flags a missing timezone before you start.",
+                    "Moving from MyFitnessPal, Cronometer, Lose It! or MacroFactor? The importer opens in the chat, reads and maps your export in the browser, saves nothing until you confirm a preview, and doesn't double a meal if you import the same file again with the same timezone. It flags a missing timezone before you start.",
                 toolNotes: {
                     start_meal_import:
                         "Opens the in-chat importer for your export file",
@@ -1042,8 +1042,9 @@ const INDEX_EN: IndexDoc = {
         foodLogsUnit: { one: "log", other: "logs" },
         timezonesAfter:
             " timezones · days roll over at each person's own midnight",
-        mapNote: "dot size = share of accounts",
-        mapAriaLabel: "World map of timezones with logged meals",
+        mapNote: "dot size = share of profiles",
+        mapAriaLabel:
+            "World map of the timezones set in profiles, each shown once at least three profiles use it",
         foot: "Totals across every account, updated as meals are logged. Individual data is never shown.",
     },
 
@@ -1096,7 +1097,7 @@ const INDEX_EN: IndexDoc = {
         oldItems: [
             "Search a database for every item",
             "Fix wrong database entries by hand",
-            "Yet another app, account, and paywall",
+            "Yet another app to open, often behind a paywall",
             "Tedious manual logging",
         ],
         newHeading: "Nutrition MCP",
@@ -1111,11 +1112,14 @@ const INDEX_EN: IndexDoc = {
     },
 
     trust: [
-        { label: "Private by default", small: "Only you can see your data." },
+        {
+            label: "Private by default",
+            small: "Never sold, shared or used for ads.",
+        },
         { label: "Open source", small: "Audit or self-host it." },
         {
             label: "Export anytime",
-            small: "Every table as CSV, in one ZIP.",
+            small: "Everything we store, as CSV in one ZIP.",
         },
         { label: "Delete instantly", small: "Remove your account & data." },
     ],
@@ -1139,7 +1143,7 @@ const INDEX_EN: IndexDoc = {
         paid: {
             tier: "Paid member",
             price: "Pay what you want",
-            desc: "Chip in for hosting and database costs so the server stays free and online for everyone.",
+            desc: "Chip in for hosting and database costs. It's a gift, not a purchase — it unlocks nothing, and everything stays free for everyone.",
             cta: "Become a supporter",
         },
     },
@@ -1164,12 +1168,17 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is a free Model Context Protocol (MCP) server that lets you track meals, calories, macros, and nutrition history through natural conversation with Claude or ChatGPT. Instead of typing into a traditional app, you tell your AI what you ate and it logs everything for you.",
+                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of searching a food database, you tell your AI what you ate and it logs the calories, macros, fiber, sugar and caffeine to your own food diary.",
         },
         {
             question: "What is the Model Context Protocol (MCP)?",
             visibleHtml:
                 "The Model Context Protocol is an open standard that lets AI assistants like Claude and ChatGPT connect to external tools and data sources. An MCP server provides specific capabilities — here, nutrition tracking — that the AI can use during a conversation. Think of it as a plugin system for AI assistants.",
+        },
+        {
+            question: "How do I track calories with Claude or ChatGPT?",
+            visibleHtml:
+                "Connect Nutrition MCP once — in Claude from the connectors directory, in ChatGPT as a custom app with the server URL — and sign in. Then tell your AI what you ate in your own words, show it a photo of the meal, or give it a product barcode. Your AI estimates the calories, protein, carbs, fat, fiber and sugar, and Nutrition MCP saves the entry to your food diary. Ask for today's totals, weekly trends or progress toward your goals at any time.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -1179,9 +1188,9 @@ const INDEX_EN: IndexDoc = {
             // than silently reconciled.
             question: "Does it work with ChatGPT?",
             visibleHtml:
-                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL using OAuth, and sign in. It works on every ChatGPT plan.",
+                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL using OAuth, and sign in. Creating a custom app needs ChatGPT's Developer mode, which OpenAI offers on some ChatGPT plans.",
             jsonLdText:
-                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL https://nutrition-mcp.com/mcp using OAuth, and sign in. It works on every ChatGPT plan.",
+                "Yes. In ChatGPT on the web, open Settings → Apps, create a custom app with the server URL https://nutrition-mcp.com/mcp using OAuth, and sign in. Creating a custom app needs ChatGPT's Developer mode, which OpenAI offers on some ChatGPT plans.",
         },
         {
             question: "Which other clients are supported?",
@@ -1196,28 +1205,33 @@ const INDEX_EN: IndexDoc = {
         {
             question: "Is Nutrition MCP free?",
             visibleHtml:
-                "Yes, it is completely free — no premium tiers, ads, or hidden costs. You just need a Claude or ChatGPT account to connect. Donations on Patreon help cover server costs.",
+                "Yes, it is completely free — no paid tier, no ads, no hidden costs. You need an AI app that supports MCP connectors, such as Claude or ChatGPT, and a free Nutrition MCP account, which you create the first time you connect. Voluntary donations on Patreon help cover server costs and unlock nothing.",
         },
         {
             question: "What can I track?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, fiber, total sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol is tracked as well, in grams of pure ethanol, once you switch it on. You can also log your body weight in kg or lb and track trends toward a target weight. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protein, carbohydrates, fat, fiber, total sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+        },
+        {
+            question: "How accurate are the calorie counts?",
+            visibleHtml:
+                "They are estimates. For a meal you describe or photograph, your AI estimates the figures; for a barcode, they come from the product's label data in Open Food Facts, which your AI scales to how much you had. Either can be wrong, so check anything that matters — you can correct or delete any entry just by asking. Nutrition MCP is a logging tool, not medical or dietary advice: talk to a doctor or dietitian before making decisions about your health, especially if you are pregnant, have a medical condition or a history of disordered eating.",
         },
         {
             question: "Does it track alcohol?",
             visibleHtml:
-                "Only if you turn it on — alcohol tracking is off by default. Switched on, drinks are recorded in grams of pure ethanol and shown as US standard drinks or UK units, whichever you prefer. Nothing infers alcohol for you: it comes from a drink you log or an alcohol column in a file you import. Switching it back off hides alcohol from your meals, goals, and summaries and stops the importer reading alcohol columns — it is not a delete switch, and your CSV export always includes what you logged.",
+                "Yes, as an opt-in: alcohol tracking is off by default, and alcohol stays hidden from your meals, goals, and summaries until you switch it on. Then drinks are shown in grams of pure ethanol and as US standard drinks or UK units, whichever you prefer. Nothing infers alcohol for you: it is only recorded from a drink you log or an alcohol column in a file you import, and a drink you log is saved even while tracking is off. Switching it back off hides alcohol again and stops the importer reading alcohol columns — it is not a delete switch, and your export always includes what you logged. To remove an alcohol figure, delete the meal it belongs to.",
         },
         {
             question:
                 "Can I import my history from MyFitnessPal or another app?",
             visibleHtml:
-                "Yes. Ask to import your history and an importer opens in the chat: you pick the CSV your old app exported, check how its columns map, and see what will be added before confirming. Exports from MyFitnessPal, Cronometer, Lose It!, and MacroFactor are recognised automatically, and any other CSV works by mapping the columns yourself. Your browser reads the file, so the AI never retypes your rows. In clients without in-chat panels you can paste your export instead — and importing the same file twice does not create duplicates.",
+                "Yes. Ask to import your history and an importer opens in the chat: you pick the CSV your old app exported, check how its columns map, and see what will be added before confirming. Exports from MyFitnessPal, Cronometer, Lose It!, and MacroFactor are recognised automatically, and any other CSV works by mapping the columns yourself. Your browser reads the file, so the AI never retypes your rows. In clients without in-chat panels you can paste your export instead — and importing the same file again does not create duplicates, as long as your timezone hasn't changed in between.",
         },
         {
             question: "Is my data private?",
             visibleHtml:
-                "Your data is stored securely and linked to your personal account. Only you can access your nutrition history through your authenticated session. Nutrition MCP does not sell or share your data, and you can delete your account and all data at any time.",
+                'Your logs are stored in the EU and linked to your own account, which you reach through the AI apps you connect. Nutrition MCP never sells your data, never shares it with third parties and never uses it for advertising; the home page shows only anonymous site-wide totals. Whatever your AI reads through the tools is sent to that AI\'s provider under your own agreement with them. You can export everything we store about you, or delete your account and all its data, at any time — the <a href="/privacy" data-link="privacy">privacy policy</a> has the details.',
         },
     ],
 };

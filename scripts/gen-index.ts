@@ -31,6 +31,7 @@ import {
     EMAIL_OFF_OPEN,
     EMAIL_OFF_CLOSE,
     ICON_LINKS,
+    OG_IMAGE_META,
 } from "./site-partials.js";
 import {
     INDEX,
@@ -77,14 +78,16 @@ const EXPORT_FILE_NAME = "nutrition-mcp-export.zip";
 
 // ---------------------------------------------------------------- helpers
 
-// src/copy/index.ts's `why.noteHtml` carries a plain href="/alternatives"
-// data-link="alternatives" marker, because the content string has no access
-// to `locale` — this rewrites it to the locale-correct path. Without it a
-// translated landing page would link to the English comparison hub.
+// src/copy/index.ts's `why.noteHtml` and `faq[].visibleHtml` carry plain
+// href="/alternatives" data-link="alternatives" (or /privacy, /terms)
+// markers, because the content string has no access to `locale` — this
+// rewrites each to the locale-correct path. Without it a translated landing
+// page would link to the English comparison hub or policy.
 function localizeLinks(html: string, locale: SiteLocale): string {
     return html.replace(
-        /href="\/alternatives" data-link="alternatives"/,
-        `class="nm-link" href="${pathFor(locale, "/alternatives")}"`,
+        /href="\/(alternatives|privacy|terms)" data-link="\1"/g,
+        (_m, page: string) =>
+            `class="nm-link" href="${pathFor(locale, `/${page}`)}"`,
     );
 }
 
@@ -763,7 +766,7 @@ function renderContact(doc: IndexDoc): string {
             </section>`;
 }
 
-function renderFaq(doc: IndexDoc): string {
+function renderFaq(doc: IndexDoc, locale: SiteLocale): string {
     // Native <details name="faq">: no script, one open at a time, the first
     // open. The number and the +/− are CSS (counter + ::after), so <summary>
     // holds only the question — src/site-copy.test.ts reads it that way.
@@ -774,7 +777,7 @@ function renderFaq(doc: IndexDoc): string {
                 i,
             ) => `                    <details name="faq"${i === 0 ? " open" : ""}>
                         <summary>${esc(q.question)}</summary>
-                        <p>${q.visibleHtml}</p>
+                        <p>${localizeLinks(q.visibleHtml, locale)}</p>
                     </details>`,
         )
         .join("\n");
@@ -803,13 +806,34 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
         name: "Nutrition MCP",
         description: doc.metaDescription,
         url,
+        image: `${SITE}/og.png`,
+        inLanguage: HTML_LANG[locale],
         applicationCategory: "HealthApplication",
         operatingSystem: "Any",
+        isAccessibleForFree: true,
+        license: "https://opensource.org/licenses/MIT",
+        author: {
+            "@type": "Person",
+            name: "Anton Kutishevskyi",
+            url: REPO_URL,
+        },
+        // A profile of the project, not an endorsement: the directory
+        // listing carries Anthropic's Community label.
+        sameAs: [REPO_URL, CLAUDE_DIRECTORY_URL],
         offers: {
             "@type": "Offer",
             price: "0",
             priceCurrency: "USD",
         },
+    };
+
+    // Google reads WebSite markup for the site name on the domain root only,
+    // so it is emitted on the English page (/) and nowhere else.
+    const websiteSchema = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "Nutrition MCP",
+        url: `${SITE}/`,
     };
 
     const faqSchema = {
@@ -839,17 +863,13 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
         <meta property="og:description" content="${esc(doc.ogDescription)}" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="${url}" />
-        <meta property="og:image" content="${SITE}/og.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="${SITE}/og.png" />
+${OG_IMAGE_META}
         <meta name="twitter:title" content="${title}" />
         <meta name="twitter:description" content="${esc(doc.ogDescription)}" />
 ${localeHead(locale, suffix)}
 ${ICON_LINKS}
         <meta name="theme-color" content="${THEME_COLOR_LIGHT}" />
-${jsonLd(softwareAppSchema)}
+${locale === "en" ? jsonLd(websiteSchema) + "\n" : ""}${jsonLd(softwareAppSchema)}
 ${jsonLd(faqSchema)}
 ${HEAD_ASSETS}
         <style>${LANDING_CSS}</style>
@@ -880,7 +900,7 @@ ${renderWhy(doc, locale)}
 ${renderSupport(doc)}
 ${renderCta(doc)}
 ${renderContact(doc)}
-${renderFaq(doc)}
+${renderFaq(doc, locale)}
         </main>
 
 ${footer(locale)}

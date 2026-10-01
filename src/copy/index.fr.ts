@@ -23,11 +23,11 @@
 import type { IndexDoc } from "./index.js";
 
 export const INDEX_FR: IndexDoc = {
-    title: "Nutrition MCP — Suivi IA des repas et macros pour Claude et ChatGPT",
+    title: "Nutrition MCP — Compteur de calories pour Claude et ChatGPT",
     metaDescription:
-        "Suis tes repas, macros, poids et historique nutritionnel en conversant avec Claude ou ChatGPT. Serveur MCP gratuit pour enregistrer tes repas, scanner des codes-barres, compter les calories, suivre ton poids et ton alimentation grâce à l'IA.",
+        "Enregistre repas, calories et macros en parlant à Claude ou ChatGPT. Serveur MCP gratuit et open source avec codes-barres, suivi du poids et export complet.",
     ogDescription:
-        "Suis tes repas, macros, poids et historique nutritionnel en conversant avec Claude ou ChatGPT. Serveur MCP gratuit pour enregistrer tes repas, scanner des codes-barres et suivre ton poids grâce à l'IA.",
+        "Enregistre repas, calories et macros en parlant à Claude ou ChatGPT. Serveur MCP gratuit et open source avec codes-barres, suivi du poids et export complet.",
     keywords:
         "suivi nutritionnel, suivi des repas, serveur MCP, Claude AI, ChatGPT, compteur de calories, suivi des macros, scanner de codes-barres, journal alimentaire, suivi de régime, suivi du poids, carnet de poids, nutrition IA, Model Context Protocol",
 
@@ -489,7 +489,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "track-drinks",
                 title: "Suis aussi tes boissons",
                 description:
-                    "Le suivi de l'alcool reste désactivé tant que tu ne le demandes pas. Choisis les verres standards américains ou les unités britanniques, et chaque boisson est convertie en grammes d'alcool selon son volume et son degré. Désactivé plus tard, il est masqué, jamais supprimé.",
+                    "L'alcool reste masqué tant que tu n'actives pas son suivi. Choisis les verres standards américains ou les unités britanniques, et chaque boisson est convertie en grammes d'alcool selon son volume et son degré. Le désactiver plus tard masque de nouveau l'alcool ; ça ne le supprime pas.",
                 toolNotes: {
                     set_alcohol_tracking:
                         "Active le suivi de l'alcool, en grammes avec les unités britanniques",
@@ -542,7 +542,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "import-history",
                 title: "Importe ton historique",
                 description:
-                    "Tu viens de MyFitnessPal, Cronometer, Lose It! ou MacroFactor ? L'outil d'import s'ouvre dans le chat, lit et associe ton export dans le navigateur, n'enregistre rien avant que tu confirmes un aperçu, et ne double jamais un repas si tu importes à nouveau le même fichier. Il signale un fuseau horaire manquant avant de commencer.",
+                    "Tu viens de MyFitnessPal, Cronometer, Lose It! ou MacroFactor ? L'outil d'import s'ouvre dans le chat, lit et associe ton export dans le navigateur, n'enregistre rien avant que tu confirmes un aperçu, et ne double pas un repas si tu importes à nouveau le même fichier avec le même fuseau horaire. Il signale un fuseau horaire manquant avant de commencer.",
                 toolNotes: {
                     start_meal_import:
                         "Ouvre l'outil d'import dans le chat pour ton fichier d'export",
@@ -664,9 +664,9 @@ export const INDEX_FR: IndexDoc = {
         foodLogsUnit: { one: "repas", other: "repas" },
         timezonesAfter:
             " fuseaux horaires · chaque journée bascule à minuit, heure locale de chacun",
-        mapNote: "taille du point = part des comptes",
+        mapNote: "taille du point = part des profils",
         mapAriaLabel:
-            "Carte du monde des fuseaux horaires où des repas sont enregistrés",
+            "Carte du monde des fuseaux horaires définis dans les profils, chacun affiché dès qu'au moins trois profils l'utilisent",
         foot: "Totaux tous comptes confondus, mis à jour à chaque repas enregistré. Les données individuelles ne sont jamais affichées.",
     },
 
@@ -719,7 +719,7 @@ export const INDEX_FR: IndexDoc = {
         oldItems: [
             "Chercher chaque aliment dans une base de données",
             "Corriger à la main les entrées erronées",
-            "Encore une app, un compte et un mur payant",
+            "Encore une app à ouvrir, souvent derrière un mur payant",
             "Enregistrement manuel fastidieux",
         ],
         newHeading: "Nutrition MCP",
@@ -736,12 +736,12 @@ export const INDEX_FR: IndexDoc = {
     trust: [
         {
             label: "Privé par défaut",
-            small: "Toi seul peux voir tes données.",
+            small: "Jamais vendues, partagées ni utilisées pour la publicité.",
         },
         { label: "Open source", small: "Audite-le ou héberge-le toi-même." },
         {
             label: "Exporte à tout moment",
-            small: "Chaque table en CSV, dans un seul ZIP.",
+            small: "Tout ce que nous stockons, en CSV dans un seul ZIP.",
         },
         {
             label: "Supprime instantanément",
@@ -768,7 +768,7 @@ export const INDEX_FR: IndexDoc = {
         paid: {
             tier: "Membre payant",
             price: "Paie ce que tu veux",
-            desc: "Contribue aux frais d'hébergement et de base de données pour que le serveur reste gratuit et en ligne pour tout le monde.",
+            desc: "Participe aux frais d'hébergement et de base de données. C'est un don, pas un achat — ça ne débloque rien, et tout reste gratuit pour tout le monde.",
             cta: "Devenir soutien",
         },
     },
@@ -793,12 +793,17 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Qu'est-ce que Nutrition MCP ?",
             visibleHtml:
-                "Nutrition MCP est un serveur Model Context Protocol (MCP) gratuit qui te permet de suivre tes repas, calories, macros et historique nutritionnel par simple conversation avec Claude ou ChatGPT. Plutôt que de taper dans une app traditionnelle, tu dis à ton IA ce que tu as mangé et elle enregistre tout pour toi.",
+                "Nutrition MCP est un serveur Model Context Protocol (MCP) gratuit et open source qui transforme Claude, ChatGPT ou un autre client MCP en compteur de calories et de macros. Plutôt que de chercher dans une base de données d'aliments, tu dis à ton IA ce que tu as mangé, et elle enregistre les calories, les macros, les fibres, les sucres et la caféine dans ton propre journal alimentaire.",
         },
         {
             question: "Qu'est-ce que le Model Context Protocol (MCP) ?",
             visibleHtml:
                 "Le Model Context Protocol est un standard ouvert qui permet à des assistants IA comme Claude et ChatGPT de se connecter à des outils et sources de données externes. Un serveur MCP fournit des capacités précises — ici, le suivi nutritionnel — que l'IA peut utiliser pendant une conversation. Vois ça comme un système de plugins pour assistants IA.",
+        },
+        {
+            question: "Comment compter ses calories avec Claude ou ChatGPT ?",
+            visibleHtml:
+                "Ajoute Nutrition MCP une fois — dans Claude depuis l'annuaire des connecteurs, dans ChatGPT comme app personnalisée avec l'URL du serveur — puis connecte-toi. Dis ensuite à ton IA ce que tu as mangé avec tes propres mots, montre-lui une photo du repas ou donne-lui le code-barres d'un produit. Ton IA estime les calories, protéines, glucides, lipides, fibres et sucres, et Nutrition MCP enregistre l'entrée dans ton journal alimentaire. Demande à tout moment tes totaux du jour, tes tendances de la semaine ou ta progression vers tes objectifs.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -808,9 +813,9 @@ export const INDEX_FR: IndexDoc = {
             // than silently reconciled.
             question: "Ça fonctionne avec ChatGPT ?",
             visibleHtml:
-                "Oui. Dans ChatGPT sur le web, ouvre Paramètres → Applications, crée une app personnalisée avec l'URL du serveur via OAuth, et connecte-toi. Ça fonctionne sur tous les forfaits ChatGPT.",
+                "Oui. Dans ChatGPT sur le web, ouvre Paramètres → Applications, crée une app personnalisée avec l'URL du serveur via OAuth, et connecte-toi. Créer une app personnalisée nécessite le mode développeur de ChatGPT, qu'OpenAI propose sur certains forfaits ChatGPT.",
             jsonLdText:
-                "Oui. Dans ChatGPT sur le web, ouvre Paramètres → Applications, crée une app personnalisée avec l'URL du serveur https://nutrition-mcp.com/mcp via OAuth, et connecte-toi. Ça fonctionne sur tous les forfaits ChatGPT.",
+                "Oui. Dans ChatGPT sur le web, ouvre Paramètres → Applications, crée une app personnalisée avec l'URL du serveur https://nutrition-mcp.com/mcp via OAuth, et connecte-toi. Créer une app personnalisée nécessite le mode développeur de ChatGPT, qu'OpenAI propose sur certains forfaits ChatGPT.",
         },
         {
             question: "Quels autres clients sont pris en charge ?",
@@ -825,28 +830,33 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Nutrition MCP est-il gratuit ?",
             visibleHtml:
-                "Oui, c'est entièrement gratuit — pas de forfait premium, de publicité ni de frais cachés. Il te faut juste un compte Claude ou ChatGPT pour te connecter. Les dons sur Patreon aident à couvrir les frais de serveur.",
+                "Oui, c'est entièrement gratuit — pas de forfait payant, pas de publicité, pas de frais cachés. Il te faut une app d'IA compatible avec les connecteurs MCP, comme Claude ou ChatGPT, et un compte Nutrition MCP gratuit, que tu crées lors de ta première connexion. Les dons volontaires sur Patreon aident à couvrir les frais de serveur et ne débloquent rien.",
         },
         {
             question: "Que puis-je suivre ?",
             visibleHtml:
-                "Calories, protéines, glucides, lipides, fibres, sucres totaux et eau pour chaque entrée — décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool est suivi également, en grammes d'éthanol pur, une fois que tu l'actives. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Consulte des résumés quotidiens, interroge tes repas par période, modifie ou supprime des entrées passées, définis des objectifs et surveille les tendances dans le temps.",
+                "Calories, protéines, glucides, lipides, fibres, sucres totaux et eau pour chaque entrée — décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool peut aussi être suivi, en grammes d'éthanol pur ; il s'affiche une fois que tu actives le suivi de l'alcool. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Consulte des résumés quotidiens, interroge tes repas par période, modifie ou supprime des entrées passées, définis des objectifs et surveille les tendances dans le temps.",
+        },
+        {
+            question: "Le comptage des calories est-il précis ?",
+            visibleHtml:
+                "Ce sont des estimations. Pour un repas que tu décris ou photographies, c'est ton IA qui estime les valeurs ; pour un code-barres, elles viennent des données d'étiquette du produit dans Open Food Facts, que ton IA ajuste à la quantité consommée. Les deux peuvent se tromper, alors vérifie tout ce qui compte — tu peux corriger ou supprimer n'importe quelle entrée simplement en le demandant. Nutrition MCP est un outil d'enregistrement, pas un conseil médical ou diététique : parle à un médecin ou à un diététicien avant de prendre des décisions concernant ta santé, surtout si tu es enceinte, si tu as un problème de santé ou des antécédents de troubles du comportement alimentaire.",
         },
         {
             question: "Est-ce que ça suit l'alcool ?",
             visibleHtml:
-                "Seulement si tu l'actives — le suivi de l'alcool est désactivé par défaut. Une fois activé, les boissons sont enregistrées en grammes d'éthanol pur et affichées en verres standards américains ou en unités britanniques, selon ta préférence. Rien n'est déduit automatiquement pour toi : ça vient d'une boisson que tu enregistres ou d'une colonne alcool dans un fichier que tu importes. Le désactiver à nouveau masque l'alcool de tes repas, objectifs et résumés et empêche l'outil d'import de lire les colonnes alcool — ce n'est pas un interrupteur de suppression, et ton export CSV inclut toujours ce que tu as enregistré.",
+                "Oui, sur option : le suivi de l'alcool est désactivé par défaut, et l'alcool reste masqué dans tes repas, objectifs et résumés tant que tu ne l'actives pas. Les boissons s'affichent alors en grammes d'éthanol pur et en verres standards américains ou en unités britanniques, selon ta préférence. Rien ne déduit l'alcool à ta place : il n'est enregistré qu'à partir d'une boisson que tu enregistres ou d'une colonne alcool dans un fichier que tu importes, et une boisson que tu enregistres est sauvegardée même quand le suivi est désactivé. Le désactiver à nouveau masque l'alcool et empêche l'outil d'import de lire les colonnes alcool — ce n'est pas un interrupteur de suppression, et ton export inclut toujours ce que tu as enregistré. Pour retirer un chiffre d'alcool, supprime le repas auquel il appartient.",
         },
         {
             question:
                 "Puis-je importer mon historique depuis MyFitnessPal ou une autre app ?",
             visibleHtml:
-                "Oui. Demande à importer ton historique et un outil d'import s'ouvre dans le chat : tu choisis le CSV exporté par ton ancienne app, tu vérifies comment ses colonnes sont associées, et tu vois ce qui sera ajouté avant de confirmer. Les exports de MyFitnessPal, Cronometer, Lose It! et MacroFactor sont reconnus automatiquement, et tout autre CSV fonctionne en associant toi-même les colonnes. Ton navigateur lit le fichier, donc l'IA ne retape jamais tes lignes. Dans les clients sans panneaux intégrés au chat, tu peux coller ton export à la place — et importer deux fois le même fichier ne crée pas de doublons.",
+                "Oui. Demande à importer ton historique et un outil d'import s'ouvre dans le chat : tu choisis le CSV exporté par ton ancienne app, tu vérifies comment ses colonnes sont associées, et tu vois ce qui sera ajouté avant de confirmer. Les exports de MyFitnessPal, Cronometer, Lose It! et MacroFactor sont reconnus automatiquement, et tout autre CSV fonctionne en associant toi-même les colonnes. Ton navigateur lit le fichier, donc l'IA ne retape jamais tes lignes. Dans les clients sans panneaux intégrés au chat, tu peux coller ton export à la place — et importer à nouveau le même fichier ne crée pas de doublons, tant que ton fuseau horaire n'a pas changé entre-temps.",
         },
         {
             question: "Mes données sont-elles privées ?",
             visibleHtml:
-                "Tes données sont stockées de façon sécurisée et liées à ton compte personnel. Toi seul peux accéder à ton historique nutritionnel via ta session authentifiée. Nutrition MCP ne vend ni ne partage tes données, et tu peux supprimer ton compte et toutes tes données à tout moment.",
+                "Tes journaux sont stockés dans l'UE et liés à ton propre compte, auquel tu accèdes via les applications d'IA que tu connectes. Nutrition MCP ne vend jamais tes données, ne les partage jamais avec des tiers et ne les utilise jamais à des fins publicitaires ; la page d'accueil n'affiche que des totaux anonymes à l'échelle du site. Ce que ton IA lit au moyen des outils est transmis au fournisseur de cette IA, dans le cadre de ton propre accord avec lui. Tu peux exporter tout ce que nous stockons à ton sujet, ou supprimer ton compte et toutes ses données, à tout moment — la <a href=\"/privacy\" data-link=\"privacy\">politique de confidentialité</a> donne tous les détails.",
         },
     ],
 };

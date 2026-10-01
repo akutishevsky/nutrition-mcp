@@ -12,11 +12,11 @@
 import type { IndexDoc } from "./index.js";
 
 export const INDEX_DE: IndexDoc = {
-    title: "Nutrition MCP — KI-Mahlzeiten- & Makro-Tracker für Claude & ChatGPT",
+    title: "Nutrition MCP — Kalorien- & Makro-Tracker für Claude & ChatGPT",
     metaDescription:
-        "Erfasse Mahlzeiten, Makros, Gewicht und deine Ernährungshistorie im Gespräch mit Claude oder ChatGPT. Kostenloser MCP-Server für KI-gestütztes Essensprotokoll, Barcode-Scans, Kalorienzählung und Gewichts-Tracking.",
+        "Mahlzeiten, Kalorien und Makros im Gespräch mit Claude oder ChatGPT erfassen. Kostenloser, quelloffener MCP-Server mit Barcode-Suche, Gewicht und Datenexport.",
     ogDescription:
-        "Erfasse Mahlzeiten, Makros, Gewicht und deine Ernährungshistorie im Gespräch mit Claude oder ChatGPT. Kostenloser MCP-Server für KI-gestütztes Essensprotokoll, Barcode-Scans und Gewichts-Tracking.",
+        "Mahlzeiten, Kalorien und Makros im Gespräch mit Claude oder ChatGPT erfassen. Kostenloser, quelloffener MCP-Server mit Barcode-Suche, Gewicht und Datenexport.",
     keywords:
         "Ernährungs-Tracker, Mahlzeiten-Tracker, MCP-Server, Claude AI, ChatGPT, Kalorienzähler, Makro-Tracker, Barcode-Scanner, Essensprotokoll, Diät-Tracker, Gewichts-Tracker, Gewichtsprotokoll, KI-Ernährung, Model Context Protocol",
 
@@ -479,7 +479,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "track-drinks",
                 title: "Auch Getränke erfassen",
                 description:
-                    "Die Alkohol-Erfassung bleibt aus, bis du danach fragst. Wähl US-Standard-Drinks oder UK-Einheiten, und jedes Getränk wird aus Menge und Alkoholgehalt in Gramm Alkohol umgerechnet. Schaltest du sie später aus, bleibt alles ausgeblendet, nie gelöscht.",
+                    "Alkohol bleibt ausgeblendet, bis du die Erfassung einschaltest. Wähl US-Standard-Drinks oder UK-Einheiten, und jedes Getränk wird aus Menge und Alkoholgehalt in Gramm Alkohol umgerechnet. Schaltest du sie später wieder aus, wird Alkohol erneut ausgeblendet, aber nicht gelöscht.",
                 toolNotes: {
                     set_alcohol_tracking:
                         "Schaltet Alkohol ein, in Gramm und dazu in UK-Einheiten",
@@ -532,7 +532,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "import-history",
                 title: "Deine Historie mitnehmen",
                 description:
-                    "Du wechselst von MyFitnessPal, Cronometer, Lose It! oder MacroFactor? Der Importer öffnet sich im Chat, liest deinen Export im Browser und ordnet ihn zu, speichert nichts, bevor du eine Vorschau bestätigst, und legt keine Mahlzeit doppelt an, wenn du dieselbe Datei noch einmal importierst. Eine fehlende Zeitzone meldet er, bevor du loslegst.",
+                    "Du wechselst von MyFitnessPal, Cronometer, Lose It! oder MacroFactor? Der Importer öffnet sich im Chat, liest deinen Export im Browser und ordnet ihn zu, speichert nichts, bevor du eine Vorschau bestätigst, und legt keine Mahlzeit doppelt an, wenn du dieselbe Datei bei unveränderter Zeitzone noch einmal importierst. Eine fehlende Zeitzone meldet er, bevor du loslegst.",
                 toolNotes: {
                     start_meal_import:
                         "Öffnet den Importer im Chat für deine Exportdatei",
@@ -653,8 +653,9 @@ export const INDEX_DE: IndexDoc = {
         foodLogsUnit: { one: "Eintrag", other: "Einträge" },
         timezonesAfter:
             " Zeitzonen · der Tag wechselt jeweils um Mitternacht Ortszeit",
-        mapNote: "Punktgröße = Anteil der Konten",
-        mapAriaLabel: "Weltkarte der Zeitzonen mit erfassten Mahlzeiten",
+        mapNote: "Punktgröße = Anteil der Profile",
+        mapAriaLabel:
+            "Weltkarte der in Profilen eingestellten Zeitzonen; eine Zeitzone erscheint erst, wenn mindestens drei Profile sie nutzen",
         foot: "Summen über alle Konten, aktualisiert bei jeder erfassten Mahlzeit. Individuelle Daten werden nie angezeigt.",
     },
 
@@ -707,7 +708,7 @@ export const INDEX_DE: IndexDoc = {
         oldItems: [
             "Für jedes Lebensmittel eine Datenbank durchsuchen",
             "Falsche Datenbankeinträge von Hand korrigieren",
-            "Noch eine App, noch ein Konto, noch eine Bezahlschranke",
+            "Noch eine App zum Öffnen, oft hinter einer Bezahlschranke",
             "Mühsames manuelles Erfassen",
         ],
         newHeading: "Nutrition MCP",
@@ -724,12 +725,12 @@ export const INDEX_DE: IndexDoc = {
     trust: [
         {
             label: "Privat per Voreinstellung",
-            small: "Nur du siehst deine Daten.",
+            small: "Nie verkauft, weitergegeben oder für Werbung genutzt.",
         },
         { label: "Quelloffen", small: "Selbst prüfen oder hosten." },
         {
             label: "Jederzeit exportieren",
-            small: "Jede Tabelle als CSV, in einem ZIP.",
+            small: "Alles Gespeicherte als CSV in einem ZIP.",
         },
         { label: "Sofort löschen", small: "Konto & Daten entfernen." },
     ],
@@ -753,7 +754,7 @@ export const INDEX_DE: IndexDoc = {
         paid: {
             tier: "Zahlendes Mitglied",
             price: "Zahl, was du willst",
-            desc: "Beteilige dich an den Hosting- und Datenbankkosten, damit der Server für alle kostenlos und online bleibt.",
+            desc: "Beteilige dich an den Hosting- und Datenbankkosten. Es ist ein Geschenk, kein Kauf — es schaltet nichts frei, und alles bleibt für alle kostenlos.",
             cta: "Unterstützer werden",
         },
     },
@@ -778,12 +779,17 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was ist Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP ist ein kostenloser Model Context Protocol (MCP) Server, mit dem du Mahlzeiten, Kalorien, Makros und deine Ernährungshistorie im natürlichen Gespräch mit Claude oder ChatGPT erfasst. Statt in eine klassische App zu tippen, sagst du deiner KI, was du gegessen hast, und sie erfasst alles für dich.",
+                "Nutrition MCP ist ein kostenloser, quelloffener Model Context Protocol (MCP) Server, der Claude, ChatGPT oder einen anderen MCP-Client zum Kalorienzähler und Makro-Tracker macht. Statt eine Lebensmitteldatenbank zu durchsuchen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker und Koffein in dein eigenes Ernährungstagebuch ein.",
         },
         {
             question: "Was ist das Model Context Protocol (MCP)?",
             visibleHtml:
                 "Das Model Context Protocol ist ein offener Standard, der es KI-Assistenten wie Claude und ChatGPT ermöglicht, sich mit externen Werkzeugen und Datenquellen zu verbinden. Ein MCP-Server stellt bestimmte Fähigkeiten bereit — hier: Ernährungs-Tracking —, die die KI während eines Gesprächs nutzen kann. Man kann es sich wie ein Plugin-System für KI-Assistenten vorstellen.",
+        },
+        {
+            question: "Wie zähle ich Kalorien mit Claude oder ChatGPT?",
+            visibleHtml:
+                "Verbinde Nutrition MCP einmal — in Claude über das Connector-Verzeichnis, in ChatGPT als benutzerdefinierte App mit der Server-URL — und melde dich an. Dann sag deiner KI in eigenen Worten, was du gegessen hast, zeig ihr ein Foto der Mahlzeit oder gib ihr einen Produkt-Barcode. Deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Zucker, und Nutrition MCP speichert den Eintrag in deinem Ernährungstagebuch. Frag jederzeit nach deinen Tagessummen, Wochentrends oder deinem Fortschritt bei deinen Zielen.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -793,9 +799,9 @@ export const INDEX_DE: IndexDoc = {
             // ChatGPT?" entry.
             question: "Funktioniert es mit ChatGPT?",
             visibleHtml:
-                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle eine benutzerdefinierte App mit der Server-URL über OAuth und melde dich an. Es funktioniert mit jedem ChatGPT-Plan.",
+                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle eine benutzerdefinierte App mit der Server-URL über OAuth und melde dich an. Für eine benutzerdefinierte App brauchst du den Entwicklermodus (Developer mode) von ChatGPT, den OpenAI in einigen ChatGPT-Tarifen anbietet.",
             jsonLdText:
-                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle eine benutzerdefinierte App mit der Server-URL https://nutrition-mcp.com/mcp über OAuth und melde dich an. Es funktioniert mit jedem ChatGPT-Plan.",
+                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle eine benutzerdefinierte App mit der Server-URL https://nutrition-mcp.com/mcp über OAuth und melde dich an. Für eine benutzerdefinierte App brauchst du den Entwicklermodus (Developer mode) von ChatGPT, den OpenAI in einigen ChatGPT-Tarifen anbietet.",
         },
         {
             question: "Welche anderen Clients werden unterstützt?",
@@ -810,28 +816,33 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Ist Nutrition MCP kostenlos?",
             visibleHtml:
-                "Ja, es ist komplett kostenlos — keine Premium-Stufen, keine Werbung, keine versteckten Kosten. Du brauchst nur ein Claude- oder ChatGPT-Konto, um dich zu verbinden. Spenden auf Patreon helfen, die Serverkosten zu decken.",
+                "Ja, es ist komplett kostenlos — keine kostenpflichtige Stufe, keine Werbung, keine versteckten Kosten. Du brauchst eine KI-App, die MCP-Connectors unterstützt, etwa Claude oder ChatGPT, und ein kostenloses Nutrition-MCP-Konto, das du beim ersten Verbinden anlegst. Freiwillige Spenden auf Patreon helfen, die Serverkosten zu decken, und schalten nichts frei.",
         },
         {
             question: "Was kann ich erfassen?",
             visibleHtml:
-                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Wasser für jeden Eintrag — beschrieben in normaler Sprache oder über einen Produkt-Barcode via Open Food Facts abgerufen. Koffein wird ebenfalls erfasst, in Milligramm, der Einheit, die jedes Etikett verwendet, und es liefert keine Kalorien. Auch Alkohol wird erfasst, in Gramm reinen Alkohols, sobald du das aktivierst. Du kannst außerdem dein Körpergewicht in kg oder lb erfassen und Trends zu einem Zielgewicht verfolgen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Datumsbereich ab, ändere oder lösche vergangene Einträge, leg Ziele fest und beobachte Trends über die Zeit.",
+                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Wasser für jeden Eintrag — beschrieben in normaler Sprache oder über einen Produkt-Barcode via Open Food Facts abgerufen. Koffein wird ebenfalls erfasst, in Milligramm, der Einheit, die jedes Etikett verwendet, und es liefert keine Kalorien. Auch Alkohol lässt sich erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Du kannst außerdem dein Körpergewicht in kg oder lb erfassen und Trends zu einem Zielgewicht verfolgen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Datumsbereich ab, ändere oder lösche vergangene Einträge, leg Ziele fest und beobachte Trends über die Zeit.",
+        },
+        {
+            question: "Wie genau sind die Kalorienangaben?",
+            visibleHtml:
+                "Es sind Schätzungen. Bei einer Mahlzeit, die du beschreibst oder fotografierst, schätzt deine KI die Werte; bei einem Barcode stammen sie aus den Etikettdaten des Produkts in Open Food Facts, die deine KI auf deine Menge umrechnet. Beides kann falsch sein, also prüf alles, worauf es ankommt — du kannst jeden Eintrag korrigieren oder löschen, indem du einfach danach fragst. Nutrition MCP ist ein Werkzeug zum Erfassen, keine medizinische Beratung und keine Ernährungsberatung: Sprich mit einer Ärztin, einem Arzt oder einer Ernährungsfachkraft, bevor du Entscheidungen über deine Gesundheit triffst, besonders in der Schwangerschaft, bei einer Erkrankung oder wenn du schon einmal eine Essstörung hattest.",
         },
         {
             question: "Wird Alkohol erfasst?",
             visibleHtml:
-                "Nur wenn du es aktivierst — die Alkohol-Erfassung ist standardmäßig ausgeschaltet. Eingeschaltet werden Getränke in Gramm reinen Alkohols erfasst und wahlweise als US-Standard-Drinks oder UK-Einheiten angezeigt. Nichts leitet Alkohol stellvertretend für dich ab: Er stammt aus einem Getränk, das du einträgst, oder aus einer Alkohol-Spalte in einer importierten Datei. Schaltest du es wieder aus, wird Alkohol in Mahlzeiten, Zielen und Übersichten ausgeblendet, und der Importer liest die Alkohol-Spalte nicht mehr — das ist kein Löschschalter, und dein CSV-Export enthält immer, was du erfasst hast.",
+                "Ja, als Opt-in: Die Alkohol-Erfassung ist standardmäßig ausgeschaltet, und Alkohol bleibt in Mahlzeiten, Zielen und Übersichten ausgeblendet, bis du sie einschaltest. Dann werden Getränke in Gramm reinen Alkohols und wahlweise als US-Standard-Drinks oder UK-Einheiten angezeigt. Nichts leitet Alkohol stellvertretend für dich ab: Er wird nur aus einem Getränk erfasst, das du einträgst, oder aus einer Alkohol-Spalte in einer importierten Datei, und ein eingetragenes Getränk wird auch bei ausgeschalteter Erfassung gespeichert. Schaltest du sie wieder aus, wird Alkohol erneut ausgeblendet, und der Importer liest keine Alkohol-Spalten mehr — das ist kein Löschschalter, und dein Export enthält immer, was du erfasst hast. Um einen Alkoholwert zu entfernen, lösch die Mahlzeit, zu der er gehört.",
         },
         {
             question:
                 "Kann ich meine Historie aus MyFitnessPal oder einer anderen App importieren?",
             visibleHtml:
-                "Ja. Bitte um den Import deiner Historie, und ein Importer öffnet sich im Chat: Du wählst die CSV, die deine alte App exportiert hat, prüfst, wie ihre Spalten zugeordnet werden, und siehst, was hinzugefügt wird, bevor du bestätigst. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden automatisch erkannt, und jede andere CSV funktioniert, indem du die Spalten selbst zuordnest. Dein Browser liest die Datei, die KI tippt deine Zeilen also nie ab. In Clients ohne In-Chat-Panels kannst du deinen Export stattdessen einfügen — und ein zweiter Import derselben Datei erzeugt keine Duplikate.",
+                "Ja. Bitte um den Import deiner Historie, und ein Importer öffnet sich im Chat: Du wählst die CSV, die deine alte App exportiert hat, prüfst, wie ihre Spalten zugeordnet werden, und siehst, was hinzugefügt wird, bevor du bestätigst. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden automatisch erkannt, und jede andere CSV funktioniert, indem du die Spalten selbst zuordnest. Dein Browser liest die Datei, die KI tippt deine Zeilen also nie ab. In Clients ohne In-Chat-Panels kannst du deinen Export stattdessen einfügen — und ein erneuter Import derselben Datei erzeugt keine Duplikate, solange sich deine Zeitzone zwischendurch nicht geändert hat.",
         },
         {
             question: "Sind meine Daten privat?",
             visibleHtml:
-                "Deine Daten werden sicher gespeichert und mit deinem persönlichen Konto verknüpft. Nur du kannst über deine authentifizierte Sitzung auf deine Ernährungshistorie zugreifen. Nutrition MCP verkauft oder teilt deine Daten nicht, und du kannst dein Konto und alle Daten jederzeit löschen.",
+                'Deine Einträge werden in der EU gespeichert und mit deinem eigenen Konto verknüpft, auf das du über die KI-Apps zugreifst, die du verbindest. Nutrition MCP verkauft deine Daten nie, gibt sie nie an Dritte weiter und nutzt sie nie für Werbung; die Startseite zeigt nur anonyme Gesamtzahlen über die ganze Website. Was deine KI über die Werkzeuge liest, geht an den Anbieter dieser KI, im Rahmen deiner eigenen Vereinbarung mit ihm. Du kannst jederzeit alles exportieren, was wir über dich speichern, oder dein Konto samt allen Daten löschen — Details stehen in der <a href="/privacy" data-link="privacy">Datenschutzerklärung</a>.',
         },
     ],
 };

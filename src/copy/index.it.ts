@@ -22,11 +22,11 @@
 import type { IndexDoc } from "./index.js";
 
 export const INDEX_IT: IndexDoc = {
-    title: "Nutrition MCP — Tracker di pasti e macro con l'IA per Claude e ChatGPT",
+    title: "Nutrition MCP — Contacalorie e macro per Claude e ChatGPT",
     metaDescription:
-        "Registra pasti, macro, peso e storico alimentare parlando con Claude o ChatGPT. Server MCP gratuito per la registrazione dei pasti con l'IA, la scansione di codici a barre, il conteggio delle calorie, il monitoraggio del peso e della dieta.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con codici a barre, peso ed esportazione completa dei dati.",
     ogDescription:
-        "Registra pasti, macro, peso e storico alimentare parlando con Claude o ChatGPT. Server MCP gratuito per la registrazione dei pasti con l'IA, la scansione di codici a barre e il monitoraggio del peso.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con codici a barre, peso ed esportazione completa dei dati.",
     keywords:
         "tracker nutrizionale, registro pasti, server MCP, Claude AI, ChatGPT, conta calorie, tracker macro, scanner codice a barre, registrazione pasti, diario alimentare, tracker peso, registro peso, nutrizione IA, Model Context Protocol",
 
@@ -489,7 +489,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "track-drinks",
                 title: "Anche i drink",
                 description:
-                    "Il tracciamento dell'alcol resta spento finché non lo chiedi. Scegli drink standard USA o unità britanniche, e ogni bevanda viene calcolata in grammi di alcol in base a quantità e gradazione. Se lo disattivi viene nascosto, mai cancellato.",
+                    "L'alcol resta nascosto finché non attivi il tracciamento. Scegli drink standard USA o unità britanniche, e ogni bevanda viene calcolata in grammi di alcol in base a quantità e gradazione. Se poi lo disattivi, l'alcol torna nascosto, ma non viene cancellato.",
                 toolNotes: {
                     set_alcohol_tracking:
                         "Attiva l'alcol, in grammi accanto alle unità britanniche",
@@ -542,7 +542,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "import-history",
                 title: "Porta il tuo storico",
                 description:
-                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? L'importatore si apre in chat, legge e mappa la tua esportazione nel browser, non salva nulla finché non confermi un'anteprima e non duplica mai un pasto se reimporti lo stesso file. Prima di iniziare ti avvisa se manca il fuso orario.",
+                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? L'importatore si apre in chat, legge e mappa la tua esportazione nel browser, non salva nulla finché non confermi un'anteprima e non duplica un pasto se reimporti lo stesso file con lo stesso fuso orario. Prima di iniziare ti avvisa se manca il fuso orario.",
                 toolNotes: {
                     start_meal_import:
                         "Apre in chat l'importatore per il tuo file esportato",
@@ -663,8 +663,9 @@ export const INDEX_IT: IndexDoc = {
         foodLogsUnit: { one: "pasto", other: "pasti" },
         timezonesAfter:
             " fusi orari · i giorni cambiano alla mezzanotte di ciascuno",
-        mapNote: "dimensione del punto = quota di account",
-        mapAriaLabel: "Mappa del mondo dei fusi orari con pasti registrati",
+        mapNote: "dimensione del punto = quota di profili",
+        mapAriaLabel:
+            "Mappa del mondo dei fusi orari impostati nei profili, ciascuno mostrato solo quando lo usano almeno tre profili",
         foot: "Totali di tutti gli account, aggiornati man mano che i pasti vengono registrati. I dati individuali non vengono mai mostrati.",
     },
 
@@ -717,7 +718,7 @@ export const INDEX_IT: IndexDoc = {
         oldItems: [
             "Cerca ogni alimento in un database",
             "Correggi a mano le voci sbagliate del database",
-            "Un'altra app, un altro account, un altro paywall",
+            "L'ennesima app da aprire, spesso a pagamento",
             "Registrazione manuale e noiosa",
         ],
         newHeading: "Nutrition MCP",
@@ -734,12 +735,12 @@ export const INDEX_IT: IndexDoc = {
     trust: [
         {
             label: "Privato per impostazione predefinita",
-            small: "Solo tu puoi vedere i tuoi dati.",
+            small: "Mai venduti, condivisi o usati per pubblicità.",
         },
         { label: "Open source", small: "Verificalo o ospitalo tu stesso." },
         {
             label: "Esporta quando vuoi",
-            small: "Ogni tabella in CSV, in un unico ZIP.",
+            small: "Tutto ciò che conserviamo, in CSV in un unico ZIP.",
         },
         { label: "Elimina all'istante", small: "Rimuovi account e dati." },
     ],
@@ -763,7 +764,7 @@ export const INDEX_IT: IndexDoc = {
         paid: {
             tier: "Membro sostenitore",
             price: "Paga quanto vuoi",
-            desc: "Contribuisci alle spese di hosting e database per mantenere il server gratuito e online per tutti.",
+            desc: "Contribuisci alle spese di hosting e database. È un regalo, non un acquisto — non sblocca nulla, e tutto resta gratuito per tutti.",
             cta: "Diventa un sostenitore",
         },
     },
@@ -788,7 +789,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cos'è Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito che ti permette di tracciare pasti, calorie, macro e storico nutrizionale attraverso una conversazione naturale con Claude o ChatGPT. Invece di digitare in un'app tradizionale, dici alla tua IA cosa hai mangiato e lei registra tutto per te.",
+                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contacalorie e tracker di macro. Invece di cercare in un database di alimenti, dici alla tua IA cosa hai mangiato e lei registra calorie, macro, fibre, zuccheri e caffeina nel tuo diario alimentare.",
         },
         {
             question: "Cos'è il Model Context Protocol (MCP)?",
@@ -796,11 +797,16 @@ export const INDEX_IT: IndexDoc = {
                 "Il Model Context Protocol è uno standard aperto che permette ad assistenti IA come Claude e ChatGPT di collegarsi a strumenti e fonti di dati esterne. Un server MCP fornisce funzionalità specifiche — in questo caso, il tracciamento nutrizionale — che l'IA può usare durante una conversazione. Pensalo come un sistema di plugin per gli assistenti IA.",
         },
         {
+            question: "Come contare le calorie con Claude o ChatGPT?",
+            visibleHtml:
+                "Connetti Nutrition MCP una volta sola — in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l'URL del server — e accedi. Poi di' alla tua IA cosa hai mangiato con parole tue, mostrale una foto del pasto o dalle il codice a barre di un prodotto. La tua IA stima calorie, proteine, carboidrati, grassi, fibre e zuccheri, e Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, gli andamenti settimanali o i progressi verso i tuoi obiettivi.",
+        },
+        {
             question: "Funziona con ChatGPT?",
             visibleHtml:
-                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server usando OAuth, e accedi. Funziona con ogni piano ChatGPT.",
+                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server usando OAuth, e accedi. Per creare un'app personalizzata serve la modalità sviluppatore (Developer mode) di ChatGPT, che OpenAI offre su alcuni piani ChatGPT.",
             jsonLdText:
-                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server https://nutrition-mcp.com/mcp usando OAuth, e accedi. Funziona con ogni piano ChatGPT.",
+                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server https://nutrition-mcp.com/mcp usando OAuth, e accedi. Per creare un'app personalizzata serve la modalità sviluppatore (Developer mode) di ChatGPT, che OpenAI offre su alcuni piani ChatGPT.",
         },
         {
             question: "Quali altri client sono supportati?",
@@ -815,28 +821,33 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Nutrition MCP è gratuito?",
             visibleHtml:
-                "Sì, è completamente gratuito — nessun piano premium, pubblicità o costi nascosti. Ti serve solo un account Claude o ChatGPT per connetterti. Le donazioni su Patreon aiutano a coprire i costi del server.",
+                "Sì, è completamente gratuito — nessun piano a pagamento, nessuna pubblicità, nessun costo nascosto. Ti servono un'app di IA che supporti i connettori MCP, come Claude o ChatGPT, e un account Nutrition MCP gratuito, che crei la prima volta che ti connetti. Le donazioni volontarie su Patreon aiutano a coprire i costi del server e non sbloccano nulla.",
         },
         {
             question: "Cosa posso tracciare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce — descritti con parole tue o recuperati dal codice a barre di un prodotto tramite Open Food Facts. Viene tracciata anche la caffeina, in milligrammi, l'unità usata da ogni etichetta, e non aggiunge calorie. Anche l'alcol viene tracciato, in grammi di etanolo puro, una volta che lo attivi. Puoi anche registrare il tuo peso corporeo in kg o lb e monitorare gli andamenti verso un peso obiettivo. Visualizza riepiloghi giornalieri, interroga i pasti per intervallo di date, aggiorna o elimina voci passate, imposta obiettivi e monitora gli andamenti nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce — descritti con parole tue o recuperati dal codice a barre di un prodotto tramite Open Food Facts. Viene tracciata anche la caffeina, in milligrammi, l'unità usata da ogni etichetta, e non aggiunge calorie. Puoi tracciare anche l'alcol, in grammi di etanolo puro; viene mostrato dopo che attivi il tracciamento dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e monitorare gli andamenti verso un peso obiettivo. Visualizza riepiloghi giornalieri, interroga i pasti per intervallo di date, aggiorna o elimina voci passate, imposta obiettivi e monitora gli andamenti nel tempo.",
+        },
+        {
+            question: "Quanto sono precisi i conteggi delle calorie?",
+            visibleHtml:
+                "Sono stime. Per un pasto che descrivi o fotografi, i valori li stima la tua IA; per un codice a barre, provengono dai dati dell'etichetta del prodotto su Open Food Facts, che la tua IA ricalcola in base alla quantità che hai consumato. Entrambi possono essere sbagliati, quindi verifica tutto ciò che conta — puoi correggere o eliminare qualsiasi voce semplicemente chiedendolo. Nutrition MCP è uno strumento di registrazione, non un consiglio medico o dietetico: consulta un medico o un dietologo prima di prendere decisioni sulla tua salute, specialmente se sei in gravidanza, hai una condizione medica o una storia di disturbi alimentari.",
         },
         {
             question: "Traccia l'alcol?",
             visibleHtml:
-                "Solo se lo attivi — il tracciamento dell'alcol è disattivato per impostazione predefinita. Una volta attivato, i drink vengono registrati in grammi di etanolo puro e mostrati come drink standard USA o unità britanniche, a tua scelta. Niente viene dedotto automaticamente per te: l'alcol arriva solo da un drink che registri o da una colonna alcol in un file che importi. Disattivarlo di nuovo nasconde l'alcol da pasti, obiettivi e riepiloghi e impedisce all'importatore di leggere le colonne dell'alcol — non è un interruttore di eliminazione, e la tua esportazione CSV include sempre ciò che hai registrato.",
+                "Sì, se lo attivi: il tracciamento dell'alcol è disattivato per impostazione predefinita, e l'alcol resta nascosto da pasti, obiettivi e riepiloghi finché non lo attivi. Da quel momento i drink vengono mostrati in grammi di etanolo puro e come drink standard USA o unità britanniche, a tua scelta. Niente viene dedotto automaticamente per te: l'alcol viene memorizzato solo quando registri un drink o importi un file con una colonna alcol, e un drink che registri viene salvato anche mentre il tracciamento è disattivato. Se lo disattivi di nuovo, l'alcol torna nascosto e l'importatore smette di leggere le colonne dell'alcol — non è un interruttore di eliminazione, e la tua esportazione include sempre ciò che hai registrato. Per rimuovere un valore di alcol, elimina il pasto a cui appartiene.",
         },
         {
             question:
                 "Posso importare il mio storico da MyFitnessPal o un'altra app?",
             visibleHtml:
-                "Sì. Chiedi di importare il tuo storico e si apre un importatore nella chat: scegli il CSV esportato dalla tua vecchia app, controlli come vengono mappate le colonne e vedi cosa verrà aggiunto prima di confermare. Le esportazioni di MyFitnessPal, Cronometer, Lose It! e MacroFactor vengono riconosciute automaticamente, mentre qualsiasi altro CSV funziona mappando tu stesso le colonne. Il file viene letto dal tuo browser, quindi l'IA non riscrive mai le tue righe. Nei client senza pannelli in chat puoi invece incollare la tua esportazione — e importare lo stesso file due volte non crea duplicati.",
+                "Sì. Chiedi di importare il tuo storico e si apre un importatore nella chat: scegli il CSV esportato dalla tua vecchia app, controlli come vengono mappate le colonne e vedi cosa verrà aggiunto prima di confermare. Le esportazioni di MyFitnessPal, Cronometer, Lose It! e MacroFactor vengono riconosciute automaticamente, mentre qualsiasi altro CSV funziona mappando tu stesso le colonne. Il file viene letto dal tuo browser, quindi l'IA non riscrive mai le tue righe. Nei client senza pannelli in chat puoi invece incollare la tua esportazione — e importare di nuovo lo stesso file non crea duplicati, purché nel frattempo il tuo fuso orario non sia cambiato.",
         },
         {
             question: "I miei dati sono privati?",
             visibleHtml:
-                "I tuoi dati sono conservati in modo sicuro e collegati al tuo account personale. Solo tu puoi accedere al tuo storico nutrizionale, tramite la tua sessione autenticata. Nutrition MCP non vende né condivide i tuoi dati, e puoi eliminare il tuo account e tutti i dati in qualsiasi momento.",
+                'I dati che registri sono conservati nell\'UE e collegati al tuo account, a cui accedi tramite le app di IA che connetti. Nutrition MCP non vende mai i tuoi dati, non li condivide mai con terze parti e non li usa mai per pubblicità; la home page mostra solo totali anonimi dell\'intero sito. Ciò che la tua IA legge tramite gli strumenti viene inviato al fornitore di quella IA, in base al tuo accordo con quel fornitore. Puoi esportare tutto ciò che conserviamo su di te, o eliminare il tuo account e tutti i suoi dati, in qualsiasi momento — i dettagli sono nell\'<a href="/privacy" data-link="privacy">informativa sulla privacy</a>.',
         },
     ],
 };

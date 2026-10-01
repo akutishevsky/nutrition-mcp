@@ -16,11 +16,11 @@
 import type { IndexDoc } from "./index.js";
 
 export const INDEX_NL: IndexDoc = {
-    title: "Nutrition MCP — AI Maaltijd- & Macrotracker voor Claude & ChatGPT",
+    title: "Nutrition MCP — Calorieteller voor Claude & ChatGPT",
     metaDescription:
-        "Houd maaltijden, macro's, gewicht en voedingsgeschiedenis bij door met Claude of ChatGPT te praten. Gratis MCP-server voor AI-gestuurd eten loggen, barcodes scannen, calorieën tellen, gewicht bijhouden en dieet volgen.",
+        "Calorieteller in Claude of ChatGPT: log maaltijden, calorieën en macro's door te praten. Gratis, open source MCP-server met barcodes, gewicht en volledige export.",
     ogDescription:
-        "Houd maaltijden, macro's, gewicht en voedingsgeschiedenis bij door met Claude of ChatGPT te praten. Gratis MCP-server voor AI-gestuurd eten loggen, barcodes scannen en gewicht bijhouden.",
+        "Calorieteller in Claude of ChatGPT: log maaltijden, calorieën en macro's door te praten. Gratis, open source MCP-server met barcodes, gewicht en volledige export.",
     keywords:
         "voedingstracker, maaltijdtracker, MCP-server, Claude AI, ChatGPT, calorieënteller, macrotracker, barcodescanner, eten loggen, dieettracker, gewichtstracker, gewichtslog, AI-voeding, Model Context Protocol",
 
@@ -482,7 +482,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "track-drinks",
                 title: "Ook drankjes bijhouden",
                 description:
-                    "Alcoholregistratie blijft uit tot je erom vraagt. Kies Amerikaanse standaardglazen of Britse eenheden, en elk drankje wordt omgerekend naar gram alcohol uit hoeveelheid en sterkte. Zet je het later uit, dan blijft alles verborgen, nooit gewist.",
+                    "Alcohol blijft verborgen tot je de registratie aanzet. Kies Amerikaanse standaardglazen of Britse eenheden, en elk drankje wordt omgerekend naar gram alcohol uit hoeveelheid en sterkte. Zet je het later weer uit, dan wordt alcohol weer verborgen; het wordt niet gewist.",
                 toolNotes: {
                     set_alcohol_tracking:
                         "Zet alcohol aan, in gram met Britse eenheden erbij",
@@ -535,7 +535,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "import-history",
                 title: "Neem je geschiedenis mee",
                 description:
-                    "Overstappen van MyFitnessPal, Cronometer, Lose It! of MacroFactor? De importer opent in de chat, leest en koppelt je export in de browser, slaat niets op tot je een voorbeeld bevestigt, en maakt nooit een maaltijd dubbel als je hetzelfde bestand opnieuw importeert. Een ontbrekende tijdzone wordt gemeld voordat je begint.",
+                    "Overstappen van MyFitnessPal, Cronometer, Lose It! of MacroFactor? De importer opent in de chat, leest en koppelt je export in de browser, slaat niets op tot je een voorbeeld bevestigt, en maakt geen maaltijd dubbel als je hetzelfde bestand opnieuw importeert met dezelfde tijdzone. Een ontbrekende tijdzone wordt gemeld voordat je begint.",
                 toolNotes: {
                     start_meal_import:
                         "Opent de importer in de chat voor je exportbestand",
@@ -656,8 +656,9 @@ export const INDEX_NL: IndexDoc = {
         foodLogsUnit: { one: "log", other: "logs" },
         timezonesAfter:
             " tijdzones · dagen gaan over om ieders eigen middernacht",
-        mapNote: "stipgrootte = aandeel accounts",
-        mapAriaLabel: "Wereldkaart van tijdzones met gelogde maaltijden",
+        mapNote: "stipgrootte = aandeel profielen",
+        mapAriaLabel:
+            "Wereldkaart van de tijdzones die in profielen zijn ingesteld, elke tijdzone pas getoond zodra minstens drie profielen die gebruiken",
         foot: "Totalen over alle accounts, bijgewerkt zodra maaltijden worden gelogd. Individuele gegevens worden nooit getoond.",
     },
 
@@ -710,7 +711,7 @@ export const INDEX_NL: IndexDoc = {
         oldItems: [
             "Doorzoek een database voor elk item",
             "Corrigeer foute database-vermeldingen met de hand",
-            "Weer een app, account en betaalmuur",
+            "Wéér een app om te openen, vaak achter een betaalmuur",
             "Vervelend handmatig loggen",
         ],
         newHeading: "Nutrition MCP",
@@ -727,12 +728,12 @@ export const INDEX_NL: IndexDoc = {
     trust: [
         {
             label: "Privé, standaard",
-            small: "Alleen jij kunt je gegevens zien.",
+            small: "Nooit verkocht, gedeeld of gebruikt voor advertenties.",
         },
         { label: "Open source", small: "Controleer het of host het zelf." },
         {
             label: "Exporteer wanneer je wilt",
-            small: "Elke tabel als CSV, in één ZIP.",
+            small: "Alles wat we opslaan, als CSV in één ZIP.",
         },
         {
             label: "Direct verwijderen",
@@ -759,7 +760,7 @@ export const INDEX_NL: IndexDoc = {
         paid: {
             tier: "Betalend lid",
             price: "Betaal wat je wilt",
-            desc: "Draag bij aan hosting- en databasekosten, zodat de server voor iedereen gratis en online blijft.",
+            desc: "Draag bij aan hosting- en databasekosten. Het is een gift, geen aankoop — het ontgrendelt niets, en alles blijft gratis voor iedereen.",
             cta: "Word supporter",
         },
     },
@@ -784,12 +785,17 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is een gratis Model Context Protocol (MCP)-server waarmee je maaltijden, calorieën, macro's en voedingsgeschiedenis bijhoudt via een natuurlijk gesprek met Claude of ChatGPT. In plaats van te typen in een traditionele app, vertel je je AI wat je hebt gegeten en die logt alles voor je.",
+                "Nutrition MCP is een gratis, open source Model Context Protocol (MCP)-server die van Claude, ChatGPT of een andere MCP-client een calorieteller en macrotracker maakt. In plaats van een voedingsdatabase te doorzoeken, vertel je je AI wat je hebt gegeten en die legt de calorieën, macro's, vezels, suikers en cafeïne vast in je eigen eetdagboek.",
         },
         {
             question: "Wat is het Model Context Protocol (MCP)?",
             visibleHtml:
                 "Het Model Context Protocol is een open standaard waarmee AI-assistenten zoals Claude en ChatGPT verbinding kunnen maken met externe tools en gegevensbronnen. Een MCP-server biedt specifieke mogelijkheden — hier voedingstracking — die de AI tijdens een gesprek kan gebruiken. Zie het als een pluginsysteem voor AI-assistenten.",
+        },
+        {
+            question: "Hoe tel ik calorieën met Claude of ChatGPT?",
+            visibleHtml:
+                "Verbind Nutrition MCP één keer — in Claude via de connectordirectory, in ChatGPT als custom app met de server-URL — en log in. Vertel je AI daarna in je eigen woorden wat je hebt gegeten, laat een foto van de maaltijd zien of geef een productbarcode. Je AI schat de calorieën, eiwitten, koolhydraten, vetten, vezels en suikers, en Nutrition MCP slaat de registratie op in je eetdagboek. Vraag op elk moment naar je totalen van vandaag, je weektrends of je voortgang richting je doelen.",
         },
         {
             // Het zichtbare antwoord laat de server-URL bewust weg (die staat
@@ -799,9 +805,9 @@ export const INDEX_NL: IndexDoc = {
             // overgenomen in plaats van stilzwijgend gelijkgetrokken.
             question: "Werkt het met ChatGPT?",
             visibleHtml:
-                "Ja. Open in ChatGPT op het web Settings → Apps, maak een custom app aan met de server-URL via OAuth, en log in. Het werkt op elk ChatGPT-abonnement.",
+                "Ja. Open in ChatGPT op het web Settings → Apps, maak een custom app aan met de server-URL via OAuth, en log in. Voor een custom app heb je de Developer mode van ChatGPT nodig, die OpenAI bij sommige ChatGPT-abonnementen aanbiedt.",
             jsonLdText:
-                "Ja. Open in ChatGPT op het web Settings → Apps, maak een custom app aan met de server-URL https://nutrition-mcp.com/mcp via OAuth, en log in. Het werkt op elk ChatGPT-abonnement.",
+                "Ja. Open in ChatGPT op het web Settings → Apps, maak een custom app aan met de server-URL https://nutrition-mcp.com/mcp via OAuth, en log in. Voor een custom app heb je de Developer mode van ChatGPT nodig, die OpenAI bij sommige ChatGPT-abonnementen aanbiedt.",
         },
         {
             question: "Welke andere clients worden ondersteund?",
@@ -816,28 +822,33 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Is Nutrition MCP gratis?",
             visibleHtml:
-                "Ja, het is volledig gratis — geen premium-lagen, advertenties of verborgen kosten. Je hebt alleen een Claude- of ChatGPT-account nodig om te verbinden. Donaties op Patreon helpen de serverkosten te dekken.",
+                "Ja, het is volledig gratis — geen betaalde laag, geen advertenties, geen verborgen kosten. Je hebt een AI-app nodig die MCP-connectors ondersteunt, zoals Claude of ChatGPT, en een gratis Nutrition MCP-account, dat je aanmaakt wanneer je voor het eerst verbindt. Vrijwillige donaties op Patreon helpen de serverkosten te dekken en ontgrendelen niets.",
         },
         {
             question: "Wat kan ik bijhouden?",
             visibleHtml:
-                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en water voor elke registratie — omschreven in gewone taal of opgehaald via een productbarcode met Open Food Facts. Cafeïne wordt ook bijgehouden, in milligram, de eenheid die elk label gebruikt, en het levert geen calorieën. Alcohol wordt ook bijgehouden, in gram zuivere ethanol, zodra je het aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Bekijk dagelijkse overzichten, vraag maaltijden op per periode, werk eerdere registraties bij of verwijder ze, stel doelen in, en volg trends in de tijd.",
+                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en water voor elke registratie — omschreven in gewone taal of opgehaald via een productbarcode met Open Food Facts. Cafeïne wordt ook bijgehouden, in milligram, de eenheid die elk label gebruikt, en het levert geen calorieën. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Bekijk dagelijkse overzichten, vraag maaltijden op per periode, werk eerdere registraties bij of verwijder ze, stel doelen in, en volg trends in de tijd.",
+        },
+        {
+            question: "Hoe nauwkeurig zijn de calorieën?",
+            visibleHtml:
+                "Het zijn schattingen. Voor een maaltijd die je beschrijft of fotografeert, schat je AI de cijfers; bij een barcode komen ze uit de etiketgegevens van het product in Open Food Facts, die je AI omrekent naar de hoeveelheid die je hebt gegeten. Beide kunnen fout zijn, dus controleer alles wat ertoe doet — je kunt elke registratie corrigeren of verwijderen door het gewoon te vragen. Nutrition MCP is een hulpmiddel om te loggen, geen medisch of voedingsadvies: overleg met een arts of diëtist voordat je beslissingen over je gezondheid neemt, zeker als je zwanger bent, een medische aandoening hebt of een eetstoornis hebt gehad.",
         },
         {
             question: "Houdt het alcohol bij?",
             visibleHtml:
-                "Alleen als je het aanzet — alcoholregistratie staat standaard uit. Eenmaal aangezet worden drankjes vastgelegd in gram zuivere ethanol en getoond als Amerikaanse standaardglazen of Britse eenheden, wat je voorkeur heeft. Niets leidt alcohol voor je af: het komt van een drankje dat je logt of een alcoholkolom in een bestand dat je importeert. Het weer uitzetten verbergt alcohol uit je maaltijden, doelen en overzichten en zorgt dat de importer geen alcoholkolommen meer leest — het is geen verwijderschakelaar, en je CSV-export bevat altijd wat je hebt gelogd.",
+                "Ja, als je ervoor kiest: alcoholregistratie staat standaard uit, en alcohol blijft verborgen in je maaltijden, doelen en overzichten tot je het aanzet. Daarna worden drankjes getoond in gram zuivere ethanol en als Amerikaanse standaardglazen of Britse eenheden, wat je voorkeur heeft. Niets leidt alcohol voor je af: het wordt alleen vastgelegd uit een drankje dat je logt of een alcoholkolom in een bestand dat je importeert, en een drankje dat je logt wordt ook opgeslagen als de registratie uit staat. Zet je het weer uit, dan wordt alcohol weer verborgen en leest de importer geen alcoholkolommen meer — het is geen verwijderschakelaar, en je export bevat altijd wat je hebt gelogd. Wil je een alcoholwaarde verwijderen, verwijder dan de maaltijd waar die bij hoort.",
         },
         {
             question:
                 "Kan ik mijn geschiedenis importeren uit MyFitnessPal of een andere app?",
             visibleHtml:
-                "Ja. Vraag om je geschiedenis te importeren en er opent een importvenster in de chat: je kiest de CSV die je oude app heeft geëxporteerd, controleert hoe de kolommen worden gekoppeld, en ziet wat er wordt toegevoegd voordat je bevestigt. Exports van MyFitnessPal, Cronometer, Lose It! en MacroFactor worden automatisch herkend, en elke andere CSV werkt door de kolommen zelf te koppelen. Je browser leest het bestand, dus de AI typt je regels nooit over. In clients zonder in-chat-panelen kun je je export in plaats daarvan plakken — en hetzelfde bestand twee keer importeren levert geen dubbele registraties op.",
+                "Ja. Vraag om je geschiedenis te importeren en er opent een importvenster in de chat: je kiest de CSV die je oude app heeft geëxporteerd, controleert hoe de kolommen worden gekoppeld, en ziet wat er wordt toegevoegd voordat je bevestigt. Exports van MyFitnessPal, Cronometer, Lose It! en MacroFactor worden automatisch herkend, en elke andere CSV werkt door de kolommen zelf te koppelen. Je browser leest het bestand, dus de AI typt je regels nooit over. In clients zonder in-chat-panelen kun je je export in plaats daarvan plakken — en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op, zolang je tijdzone tussendoor niet is veranderd.",
         },
         {
             question: "Zijn mijn gegevens privé?",
             visibleHtml:
-                "Je gegevens worden veilig opgeslagen en gekoppeld aan je persoonlijke account. Alleen jij hebt via je geauthenticeerde sessie toegang tot je voedingsgeschiedenis. Nutrition MCP verkoopt of deelt je gegevens niet, en je kunt je account en alle gegevens op elk moment verwijderen.",
+                'Je registraties worden opgeslagen in de EU en gekoppeld aan je eigen account, dat je bereikt via de AI-apps die je verbindt. Nutrition MCP verkoopt je gegevens nooit, deelt ze nooit met derden en gebruikt ze nooit voor advertenties; de startpagina toont alleen anonieme totalen over de hele site. Wat je AI via de tools leest, wordt naar de aanbieder van die AI gestuurd op grond van je eigen overeenkomst met die aanbieder. Je kunt op elk moment alles exporteren wat we over je opslaan, of je account en al je gegevens verwijderen — het <a href="/privacy" data-link="privacy">privacybeleid</a> geeft de details.',
         },
     ],
 };
