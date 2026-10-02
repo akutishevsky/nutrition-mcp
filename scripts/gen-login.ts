@@ -484,8 +484,9 @@ const LOGIN_STYLE = `        <style>
 // Progressive enhancement for the card, run inline at the end of <main> so
 // the html.js rules apply before first paint instead of when the deferred
 // site.js lands. It never changes what a button posts: the mode control
-// only hides one of the two submit buttons (the visible one keeps its own
-// name=action value), and the eye only flips the input's type.
+// only hides one of the two submit buttons and moves the visible one first
+// so Enter posts it (each keeps its own name=action value), and the eye only
+// flips the input's type.
 const LOGIN_SCRIPT = `        <script>
             (function () {
                 document.documentElement.classList.add("js");
@@ -504,6 +505,10 @@ const LOGIN_SCRIPT = `        <script>
                         );
                     signin.hidden = up;
                     signup.hidden = !up;
+                    // Enter submits with the form's first submit button even
+                    // when it is hidden, so the chosen one goes first: in
+                    // Create account mode Enter must post action=signup.
+                    signin.parentNode.insertBefore(up ? signup : signin, up ? signin : signup);
                     signup.classList.toggle("auth-btn-secondary", !up);
                     pw.setAttribute(
                         "autocomplete",
