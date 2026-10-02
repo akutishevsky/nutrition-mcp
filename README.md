@@ -1,6 +1,6 @@
 # Nutrition MCP
 
-A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber, total sugar and caffeine, log water and body weight, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
+A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber, total sugar and caffeine, log water, body weight and body measurements, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
 
 [Help me pay for the servers on Patreon][patreon]
 
@@ -88,10 +88,15 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `update_weight`            | Update an existing weight entry                                                                                                                  |
 | `delete_weight`            | Delete a weight entry by ID                                                                                                                      |
 | `set_weight_unit`          | Set the preferred weight unit (`kg` or `lb`; null to clear)                                                                                      |
+| `log_body_measurement`     | Log a tape measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf) in cm or in                                        |
+| `get_body_measurements`    | List body measurements by day, optionally for one site; last 30 days by default, up to 366 days per call                                         |
+| `update_body_measurement`  | Update a measurement's value, unit, time or notes (the site is fixed)                                                                            |
+| `delete_body_measurement`  | Delete a body measurement by ID                                                                                                                  |
+| `set_length_unit`          | Set the preferred length unit (`cm` or `in`; null to clear)                                                                                      |
 | `get_trends`               | 7/14/30-day averages, std dev, streaks, day-of-week calorie averages, best/worst day by calories                                                 |
 | `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                |
 | `export_all_data`          | Export everything stored about you — logs, goals, profile, account, telemetry, app connections — as one ZIP of CSVs + README; 60-minute link     |
-| `get_profile`              | Get timezone (+ local date/time), widget language, weight unit, widget display and alcohol tracking in one call                                  |
+| `get_profile`              | Get timezone (+ local date/time), widget language, weight and length units, widget display and alcohol tracking in one call                      |
 | `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                                                        |
 | `set_language`             | Set the UI language for in-chat widgets (dashboards, charts) — not the language the AI replies in                                                |
 | `get_current_time`         | Get the current date and time in the user's timezone, plus the UTC instant — for hosts with no clock in context                                  |

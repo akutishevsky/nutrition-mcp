@@ -175,7 +175,7 @@ export const INDEX_NL: IndexDoc = {
         note: "Dit is allemaal optioneel. Doe het nu, later of nooit: begin met loggen en stel het in wanneer het jou uitkomt.",
         toolsCta: {
             heading: "Benieuwd wat het écht allemaal kan?",
-            body: "Bekijk alle 36 tools (loggen, barcodes, water, gewicht, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
+            body: "Bekijk alle 41 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
             arrow: "Bekijk de tools",
         },
     },
@@ -602,10 +602,10 @@ export const INDEX_NL: IndexDoc = {
                 id: "export-data",
                 title: "Neem je gegevens mee",
                 description:
-                    "Met één verzoek krijg je alles wat over je is opgeslagen (maaltijden, water, weegmomenten, doelen, profielinstellingen, je accountgegevens, gebruikstelemetrie en app-koppelingen) in een ZIP met CSV-bestanden en een README. Tijdstippen staan in jouw tijdzone, en meals.csv importeer je zo weer terug.",
+                    "Met één verzoek krijg je alles wat over je is opgeslagen (maaltijden, water, weegmomenten, lichaamsmaten, doelen, profielinstellingen, je accountgegevens, gebruikstelemetrie en app-koppelingen) in een ZIP met CSV-bestanden en een README. Tijdstippen staan in jouw tijdzone, en meals.csv importeer je zo weer terug.",
                 toolNotes: {
                     export_all_data:
-                        "Zet acht CSV-bestanden en een README in een ZIP, achter een link die 60 minuten geldig is",
+                        "Zet negen CSV-bestanden en een README in een ZIP, achter een link die 60 minuten geldig is",
                 },
                 messages: [
                     {
@@ -677,7 +677,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Gewicht bijhouden",
-                body: "Log je lichaamsgewicht in kg of lb, bekijk trends over 7/14/30 dagen en volg je voortgang richting een streefgewicht.",
+                body: "Log je lichaamsgewicht in kg of lb, bekijk trends over 7/14/30 dagen en volg je voortgang richting een streefgewicht. Omtrekmaten van negen lichaamsdelen, van taille tot kuit, log je ernaast in cm of inch.",
             },
             {
                 title: "In je eigen tijdzone",
@@ -689,7 +689,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Exporteer je gegevens: ze zijn van jou",
-                body: "Neem alles mee wat we over je bewaren (maaltijden, water, gewicht, doelen en profiel, plus je accountgegevens, gebruikstelemetrie en gekoppelde apps) als één ZIP met CSV-bestanden. Voorlopig kun je alleen maaltijden weer importeren. Verwijder je account en gegevens wanneer je wilt.",
+                body: "Neem alles mee wat we over je bewaren (maaltijden, water, gewicht, lichaamsmaten, doelen en profiel, plus je accountgegevens, gebruikstelemetrie en gekoppelde apps) als één ZIP met CSV-bestanden. Voorlopig kun je alleen maaltijden weer importeren. Verwijder je account en gegevens wanneer je wilt.",
             },
         ],
     },
@@ -817,7 +817,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat kan ik bijhouden?",
             visibleHtml:
-                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en water voor elke registratie, omschreven in gewone taal of via een productbarcode opgehaald uit Open Food Facts. Cafeïne wordt ook bijgehouden, in milligram (de eenheid die op elk etiket staat), en levert geen calorieën op. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Bekijk dagoverzichten, vraag maaltijden op over een periode, pas eerdere registraties aan of verwijder ze, stel doelen in en volg trends door de tijd.",
+                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en water voor elke registratie, omschreven in gewone taal of via een productbarcode opgehaald uit Open Food Facts. Cafeïne wordt ook bijgehouden, in milligram (de eenheid die op elk etiket staat), en levert geen calorieën op. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Ook lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij en kuit) kun je in cm of inch loggen. Bekijk dagoverzichten, vraag maaltijden op over een periode, pas eerdere registraties aan of verwijder ze, stel doelen in en volg trends door de tijd.",
         },
         {
             question: "Hoe nauwkeurig zijn de calorieën?",

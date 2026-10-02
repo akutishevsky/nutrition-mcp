@@ -171,7 +171,7 @@ export const INDEX_DE: IndexDoc = {
         note: "Das alles ist optional. Ob jetzt, später oder nie – fang einfach an zu erfassen und stell das ein, wann immer du willst.",
         toolsCta: {
             heading: "Neugierig, was es alles kann?",
-            body: "Sieh dir alle 36 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
+            body: "Sieh dir alle 41 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht und Körpermaße, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
             arrow: "Werkzeuge entdecken",
         },
     },
@@ -600,10 +600,10 @@ export const INDEX_DE: IndexDoc = {
                 id: "export-data",
                 title: "Deine Daten mitnehmen",
                 description:
-                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Gewichtseinträge, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
+                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Gewichtseinträge, Körpermaße, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
                 toolNotes: {
                     export_all_data:
-                        "Packt acht CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
+                        "Packt neun CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
                 },
                 messages: [
                     {
@@ -675,7 +675,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Gewichts-Tracking",
-                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir 7/14/30-Tage-Trends an und verfolg deinen Fortschritt Richtung Zielgewicht.",
+                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir 7/14/30-Tage-Trends an und verfolg deinen Fortschritt Richtung Zielgewicht. Maßband-Maße von neun Körperstellen – von der Taille bis zur Wade – erfasst du daneben in cm oder in.",
             },
             {
                 title: "Passt sich deiner Zeitzone an",
@@ -687,7 +687,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Export & volle Kontrolle über deine Daten",
-                body: "Nimm alles mit, was wir über dich speichern – Mahlzeiten, Wasser, Gewicht, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungstelemetrie und deine verbundenen Apps – als ein ZIP mit CSV-Dateien. Bisher lassen sich nur die Mahlzeiten wieder importieren. Lösch dein Konto und deine Daten, wann immer du willst.",
+                body: "Nimm alles mit, was wir über dich speichern – Mahlzeiten, Wasser, Gewicht, Körpermaße, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungstelemetrie und deine verbundenen Apps – als ein ZIP mit CSV-Dateien. Bisher lassen sich nur die Mahlzeiten wieder importieren. Lösch dein Konto und deine Daten, wann immer du willst.",
             },
         ],
     },
@@ -812,7 +812,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was kann ich erfassen?",
             visibleHtml:
-                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
+                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Auch Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich in cm oder Zoll erfassen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
         },
         {
             question: "Wie genau sind die Kalorienangaben?",

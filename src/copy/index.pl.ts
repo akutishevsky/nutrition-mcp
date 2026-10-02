@@ -176,7 +176,7 @@ export const INDEX_PL: IndexDoc = {
         note: "Wszystko tu jest opcjonalne. Możesz to zrobić teraz, później albo wcale: po prostu zacznij zapisywać, a ustawienia zmień, kiedy zechcesz.",
         toolsCta: {
             heading: "Ciekawi Cię, co naprawdę potrafi?",
-            body: "Przejrzyj wszystkie 36 narzędzi — zapisywanie, kody kreskowe, woda, waga, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
+            body: "Przejrzyj wszystkie 41 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
             arrow: "Zobacz narzędzia",
         },
     },
@@ -604,10 +604,10 @@ export const INDEX_PL: IndexDoc = {
                 id: "export-data",
                 title: "Zabierz swoje dane",
                 description:
-                    "Jedna prośba wystarczy, żeby spakować wszystko, co o Tobie przechowujemy — posiłki, wodę, pomiary wagi, cele, ustawienia profilu, dane konta, telemetrię użycia i połączone aplikacje — do ZIP-a z plikami CSV i plikiem README. Znaczniki czasu są w Twojej strefie czasowej, a meals.csv można od razu zaimportować z powrotem.",
+                    "Jedna prośba wystarczy, żeby spakować wszystko, co o Tobie przechowujemy — posiłki, wodę, pomiary wagi, wymiary ciała, cele, ustawienia profilu, dane konta, telemetrię użycia i połączone aplikacje — do ZIP-a z plikami CSV i plikiem README. Znaczniki czasu są w Twojej strefie czasowej, a meals.csv można od razu zaimportować z powrotem.",
                 toolNotes: {
                     export_all_data:
-                        "Pakuje osiem plików CSV i README do ZIP-a z linkiem ważnym 60 minut",
+                        "Pakuje dziewięć plików CSV i README do ZIP-a z linkiem ważnym 60 minut",
                 },
                 messages: [
                     {
@@ -684,7 +684,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Śledzenie wagi",
-                body: "Zapisuj wagę w kg albo lb, oglądaj trendy z 7, 14 i 30 dni i śledź postępy w drodze do wagi docelowej.",
+                body: "Zapisuj wagę w kg albo lb, oglądaj trendy z 7, 14 i 30 dni i śledź postępy w drodze do wagi docelowej. Obok możesz też zapisywać obwody dziewięciu partii ciała — od talii po łydkę — w cm albo calach.",
             },
             {
                 title: "Twoja strefa czasowa",
@@ -696,7 +696,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Eksport — dane należą do Ciebie",
-                body: "Pobierz wszystko, co o Tobie przechowujemy — posiłki, wodę, wagę, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — w jednym ZIP-ie z plikami CSV. Na razie z powrotem można zaimportować tylko posiłki. Konto i dane usuniesz, kiedy tylko zechcesz.",
+                body: "Pobierz wszystko, co o Tobie przechowujemy — posiłki, wodę, wagę, wymiary ciała, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — w jednym ZIP-ie z plikami CSV. Na razie z powrotem można zaimportować tylko posiłki. Konto i dane usuniesz, kiedy tylko zechcesz.",
             },
         ],
     },
@@ -823,7 +823,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Co mogę śledzić?",
             visibleHtml:
-                "Kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem i wodę w każdym wpisie — opisane własnymi słowami albo pobrane z kodu kreskowego produktu przez Open Food Facts. Śledzona jest też kofeina, w miligramach, czyli w jednostce używanej na każdej etykiecie; nie dodaje ona kalorii. Można też śledzić alkohol, w gramach czystego etanolu; pojawia się po włączeniu śledzenia alkoholu. Możesz również zapisywać masę ciała w kg albo lb i śledzić trendy w drodze do wagi docelowej. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, poprawiaj lub usuwaj wcześniejsze wpisy, ustawiaj cele i obserwuj trendy w czasie.",
+                "Kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem i wodę w każdym wpisie — opisane własnymi słowami albo pobrane z kodu kreskowego produktu przez Open Food Facts. Śledzona jest też kofeina, w miligramach, czyli w jednostce używanej na każdej etykiecie; nie dodaje ona kalorii. Można też śledzić alkohol, w gramach czystego etanolu; pojawia się po włączeniu śledzenia alkoholu. Możesz również zapisywać masę ciała w kg albo lb i śledzić trendy w drodze do wagi docelowej. Wymiary ciała (talię, biodra, szyję, klatkę piersiową, barki, ramię, przedramię, udo i łydkę) też możesz zapisywać w cm albo calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, poprawiaj lub usuwaj wcześniejsze wpisy, ustawiaj cele i obserwuj trendy w czasie.",
         },
         {
             question: "Jak dokładne jest liczenie kalorii?",

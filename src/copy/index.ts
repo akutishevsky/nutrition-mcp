@@ -563,7 +563,7 @@ const INDEX_EN: IndexDoc = {
         note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
         toolsCta: {
             heading: "Curious what it can actually do?",
-            body: "Browse all 36 tools — logging, barcodes, water, weight, goals, and trends — with a description and an example prompt for each.",
+            body: "Browse all 41 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
             arrow: "Explore the tools",
         },
     },
@@ -989,10 +989,10 @@ const INDEX_EN: IndexDoc = {
                 id: "export-data",
                 title: "Take your data",
                 description:
-                    "One request packs everything stored about you — meals, water, weigh-ins, goals, profile settings, your account record, usage telemetry and app connections — into a ZIP of CSV files with a README. Timestamps use your timezone, and meals.csv imports straight back in.",
+                    "One request packs everything stored about you — meals, water, weigh-ins, body measurements, goals, profile settings, your account record, usage telemetry and app connections — into a ZIP of CSV files with a README. Timestamps use your timezone, and meals.csv imports straight back in.",
                 toolNotes: {
                     export_all_data:
-                        "Zips eight CSV files and a README behind a 60-minute link",
+                        "Zips nine CSV files and a README behind a 60-minute link",
                 },
                 messages: [
                     {
@@ -1064,7 +1064,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Weight tracking",
-                body: "Log your body weight in kg or lb, see 7/14/30-day trends, and track progress toward a target weight.",
+                body: "Log your body weight in kg or lb, see 7/14/30-day trends, and track progress toward a target weight. Tape measurements of nine body sites — waist to calf — in cm or in sit alongside it.",
             },
             {
                 title: "Timezone-aware",
@@ -1076,7 +1076,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Export & own your data",
-                body: "Take everything we store about you — meals, water, weight, goals, and profile, plus your account record, usage telemetry, and connected apps — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
+                body: "Take everything we store about you — meals, water, weight, body measurements, goals, and profile, plus your account record, usage telemetry, and connected apps — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
             },
         ],
     },
@@ -1201,7 +1201,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What can I track?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, fiber, total sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protein, carbohydrates, fat, fiber, total sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
         },
         {
             question: "How accurate are the calorie counts?",

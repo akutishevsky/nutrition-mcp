@@ -49,6 +49,7 @@ import {
     MEALS_RANGE_MAX_DAYS,
     SUMMARY_RANGE_MAX_DAYS,
     WEIGHT_RANGE_MAX_DAYS,
+    BODY_MEASUREMENT_RANGE_MAX_DAYS,
 } from "./mcp.js";
 import {
     Client,
@@ -83,8 +84,15 @@ import type {
     NutritionGoals,
     WaterEntry,
     WeightEntry,
+    BodyMeasurementEntry,
 } from "./supabase.js";
-import { dateInTz, formatLocalDateTime, weekdayInTz } from "./tz.js";
+import {
+    dateInTz,
+    formatLocalDateTime,
+    weekdayInTz,
+    todayInTz,
+    shiftLocalDate,
+} from "./tz.js";
 import { getWidgetHtml } from "./widgets.js";
 
 // Real uuids, because the id tools check the shape before touching the
@@ -92,6 +100,7 @@ import { getWidgetHtml } from "./widgets.js";
 const MEAL_ID = "00000000-0000-4000-8000-000000000001";
 const WATER_ID = "00000000-0000-4000-8000-000000000002";
 const WEIGHT_ID = "00000000-0000-4000-8000-000000000003";
+const MEASUREMENT_ID = "00000000-0000-4000-8000-000000000004";
 
 function meal(over: Partial<Meal> = {}): Meal {
     return {
@@ -1445,7 +1454,27 @@ const PROFILE_BASE: actualSupabase.Profile = {
     locale: null,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
+    preferred_length_unit: null,
 };
+
+/** A stored body measurement: waist 84.5 cm unless overridden. */
+function measurementRow(
+    over: Partial<BodyMeasurementEntry> = {},
+): BodyMeasurementEntry {
+    return {
+        id: MEASUREMENT_ID,
+        user_id: "u1",
+        kind: "waist",
+        value_mm: 845,
+        value_entered: 84.5,
+        entered_unit: "cm",
+        logged_at: "2026-08-07T08:00:00.000Z",
+        notes: null,
+        created_at: "2026-08-07T08:00:00.000Z",
+        idempotency_key: null,
+        ...over,
+    };
+}
 
 /** What the DB would hand back after a write: every nutrient absent unless the
  *  caller sent it. Building on the `meal()` fixture instead would silently give
@@ -1484,6 +1513,17 @@ const db = {
     waterInserted: [] as Record<string, unknown>[],
     weightInserted: [] as Record<string, unknown>[],
     weightUpdates: [] as Record<string, unknown>[],
+    // Body measurements: the rows getBodyMeasurementsInRange and
+    // getBodyMeasurement read, and the write/read witnesses.
+    measurements: [] as BodyMeasurementEntry[],
+    measurementInserted: [] as Record<string, unknown>[],
+    measurementUpdates: [] as Record<string, unknown>[],
+    measurementRangeArgs: [] as {
+        s: string;
+        e: string;
+        tz: string;
+        kind: string | undefined;
+    }[],
     profilePatches: [] as Record<string, unknown>[],
     // Ids the delete stubs consider to exist. Deleting one removes it, so a
     // second delete of the same id reports "not found" like the real table.
@@ -1625,6 +1665,54 @@ mock.module("./supabase.js", () => ({
         db.deleteCalls += 1;
         return db.rowIds.delete(id);
     },
+    insertBodyMeasurement: async (
+        _userId: string,
+        input: Record<string, unknown>,
+    ) => {
+        db.measurementInserted.push(input);
+        const defined = Object.fromEntries(
+            Object.entries(input).filter(([, v]) => v !== undefined),
+        ) as Partial<BodyMeasurementEntry>;
+        return {
+            entry: measurementRow({ ...defined, idempotency_key: null }),
+            deduplicated: db.dedupe,
+        };
+    },
+    getBodyMeasurementsInRange: async (
+        _userId: string,
+        s: string,
+        e: string,
+        tz: string,
+        kind?: string,
+    ) => {
+        db.measurementRangeArgs.push({ s, e, tz, kind });
+        return kind
+            ? db.measurements.filter((m) => m.kind === kind)
+            : db.measurements;
+    },
+    getBodyMeasurement: async (_userId: string, id: string) =>
+        db.measurements.find((m) => m.id === id) ?? null,
+    updateBodyMeasurement: async (
+        _userId: string,
+        id: string,
+        fields: Record<string, unknown>,
+    ) => {
+        db.measurementUpdates.push(fields);
+        const current = db.measurements.find((m) => m.id === id);
+        if (!current)
+            throw new ToolError(`No body measurement found with id ${id}.`);
+        const defined = Object.fromEntries(
+            Object.entries(fields).filter(([, v]) => v !== undefined),
+        ) as Partial<BodyMeasurementEntry>;
+        return { ...current, ...defined };
+    },
+    deleteBodyMeasurement: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        return db.rowIds.delete(id);
+    },
+    getPreferredLengthUnit: async () =>
+        db.profile?.preferred_length_unit ?? null,
+    getAllBodyMeasurements: async () => [],
     countMeals: async () => db.meals.length,
     existingIdempotencyKeys: async () => new Set<string>(),
     existingMealIds: async (_userId: string, ids: string[]) =>
@@ -1664,6 +1752,10 @@ beforeEach(() => {
     db.waterInserted = [];
     db.weightInserted = [];
     db.weightUpdates = [];
+    db.measurements = [];
+    db.measurementInserted = [];
+    db.measurementUpdates = [];
+    db.measurementRangeArgs = [];
     db.profilePatches = [];
     db.rowIds = new Set<string>();
     db.analyticsRows = [];
@@ -2811,6 +2903,13 @@ describe("delete tools distinguish deleted from not-found", () => {
             deleted: `Weight entry ${WEIGHT_ID} deleted.`,
             notFound: `No weight entry found with id ${WEIGHT_ID}.`,
         },
+        {
+            tool: "delete_body_measurement",
+            id: MEASUREMENT_ID,
+            seed: (id) => db.rowIds.add(id),
+            deleted: `Body measurement ${MEASUREMENT_ID} deleted.`,
+            notFound: `No body measurement found with id ${MEASUREMENT_ID}.`,
+        },
     ];
 
     for (const c of cases) {
@@ -2846,6 +2945,11 @@ describe("id params are validated before the database", () => {
         ["delete_meal", "meal", "get_meals_today"],
         ["delete_water", "water entry", "get_water_today"],
         ["delete_weight", "weight entry", "get_weight_today"],
+        [
+            "delete_body_measurement",
+            "body measurement",
+            "get_body_measurements",
+        ],
     ])(
         "%s answers a non-uuid id without touching the database",
         async (tool, kind, source) => {
@@ -2879,6 +2983,7 @@ describe("id params are validated before the database", () => {
     test.each([
         ["update_meal", "meal", "mealUpdates"],
         ["update_weight", "weight entry", "weightUpdates"],
+        ["update_body_measurement", "body measurement", "measurementUpdates"],
     ] as const)(
         "%s refuses a non-uuid id as record_not_found",
         async (tool, kind, updates) => {
@@ -3092,6 +3197,30 @@ describe("date-range listings reject bad and oversized ranges", () => {
             );
             expect(textOf(over)).toContain("get_weight_trends");
         });
+    });
+
+    test("get_body_measurements has the same guard with a year's cap", async () => {
+        expect(BODY_MEASUREMENT_RANGE_MAX_DAYS).toBe(366);
+        await withTools(null, async (call) => {
+            const ok = await call("get_body_measurements", {
+                start_date: "2024-01-01",
+                end_date: "2024-12-31",
+            });
+            expect(ok.isError).toBeFalsy();
+            expect(textOf(ok)).toContain("No body measurements found");
+
+            const over = await call("get_body_measurements", {
+                start_date: "2024-01-01",
+                end_date: "2025-01-01",
+            });
+            expect(over.isError).toBe(true);
+            expect(textOf(over)).toContain(
+                `at most ${BODY_MEASUREMENT_RANGE_MAX_DAYS} days`,
+            );
+        });
+        expect(rowsFor("get_body_measurements")[1]!.error_category).toBe(
+            "date_range_too_long",
+        );
     });
 
     test("the summary cap is a quarter", () => {
@@ -3318,6 +3447,25 @@ describe("meal listings are compact by default", () => {
         });
     });
 
+    test("get_body_measurements prints local HH:MM, not the stored instant", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.measurements = [
+            measurementRow({ logged_at: KYIV_ISO, created_at: KYIV_ISO }),
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_body_measurements", {
+                    start_date: "2026-01-01",
+                    end_date: "2026-01-31",
+                }),
+            );
+            expect(text).toContain("Times are local (Europe/Kyiv)");
+            expect(text).toContain("## 2026-01-15");
+            expect(text).toContain("- Waist 84.5 cm at 21:05");
+            expect(text).not.toContain("T19:05");
+        });
+    });
+
     test("write confirmations show local time", async () => {
         db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
         await withTools(null, async (call) => {
@@ -3530,6 +3678,8 @@ describe("date params are real calendar dates", () => {
         ["get_water_by_date", "date", "2026-99-99"],
         ["get_weight_by_date", "date", "2026-99-99"],
         ["get_meals_by_date", "date", "2026-02-30"],
+        ["get_body_measurements", "start_date", "2026-02-30"],
+        ["get_body_measurements", "end_date", "yesterday"],
     ])("%s refuses %s %p", async (tool, param, bad) => {
         await withTools(null, async (call) => {
             const r = await call(tool, { [param]: bad });
@@ -4204,6 +4354,41 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
         });
     });
 
+    test("log_body_measurement resolves an offset-less time the same way", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 84.5,
+                unit: "cm",
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(loggedAtOf(db.measurementInserted[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+        });
+    });
+
+    test("update_body_measurement resolves an offset-less time and omits an absent one", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.measurements = [measurementRow()];
+        await withTools(null, async (call) => {
+            await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(loggedAtOf(db.measurementUpdates[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+            await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                notes: "morning",
+            });
+            expect(db.measurementUpdates[1]).not.toHaveProperty("logged_at");
+        });
+    });
+
     // The point of the whole change. The two routes do NOT dedupe against each
     // other — the importer stamps `import:` keys and log_meal derives `auto:`
     // ones — so both copies are stored either way. What must not differ is
@@ -4258,6 +4443,369 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
                 loggedAtOf(db.inserted[0])!,
             );
             expect(loggedAtOf(db.inserted[0])).toBe("2026-07-20T19:00:00.000Z");
+        });
+    });
+});
+
+// ---------- body measurements ----------
+//
+// Five tools over body_measurement_log. What is pinned here is the handler
+// logic: the unit rule (explicit, then the saved length unit, then refuse —
+// never the weight unit), the per-site plausibility check, the kind filter and
+// default window of the read, display in the preferred unit, and the update
+// path that re-reads a stored number in a corrected unit. The SQL side is in
+// supabase.test.ts / supabase-window.test.ts.
+describe("body measurements", () => {
+    const rowsFor = (tool: string) =>
+        db.analyticsRows.filter((r) => r.tool_name === tool);
+
+    test("an explicit unit is stored as entered, plus its millimetres", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "hips",
+                value: 40,
+                unit: "in",
+            });
+            expect(r.isError).toBeFalsy();
+            const text = textOf(r);
+            expect(text).toContain("Body measurement logged: Hips 40 in");
+            expect(text).toContain(`ID: ${MEASUREMENT_ID}`);
+        });
+        expect(db.measurementInserted).toHaveLength(1);
+        expect(db.measurementInserted[0]).toMatchObject({
+            kind: "hips",
+            value_mm: 1016,
+            value_entered: 40,
+            entered_unit: "in",
+        });
+    });
+
+    test("a saved length unit fills in a missing unit", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_length_unit: "cm" };
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 84.5,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("Waist 84.5 cm");
+        });
+        expect(db.measurementInserted[0]).toMatchObject({
+            value_mm: 845,
+            entered_unit: "cm",
+        });
+    });
+
+    test("no unit and no saved length unit is refused", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 84.5,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("No length unit given");
+            expect(textOf(r)).toContain("set_length_unit");
+        });
+        expect(db.measurementInserted).toHaveLength(0);
+        expect(rowsFor("log_body_measurement")[0]!.error_category).toBe(
+            "missing_required_param",
+        );
+    });
+
+    test("the weight unit is never used as a length unit", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_weight_unit: "lb" };
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 33,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("No length unit given");
+        });
+        expect(db.measurementInserted).toHaveLength(0);
+    });
+
+    test("an implausible value is refused, with the other unit only when it fits", async () => {
+        await withTools(null, async (call) => {
+            const mm = await call("log_body_measurement", {
+                kind: "waist",
+                value: 845,
+                unit: "cm",
+            });
+            expect(mm.isError).toBe(true);
+            expect(textOf(mm)).toContain("is outside the plausible range");
+
+            const swapped = await call("log_body_measurement", {
+                kind: "calf",
+                value: 10,
+                unit: "cm",
+            });
+            expect(swapped.isError).toBe(true);
+            expect(textOf(swapped)).toContain("As 10 in it would be in range");
+            // No hint when the number fits neither unit.
+            expect(textOf(mm)).not.toContain(" As ");
+        });
+        expect(db.measurementInserted).toHaveLength(0);
+        expect(rowsFor("log_body_measurement")[0]!.error_category).toBe(
+            "invalid_numeric_value",
+        );
+    });
+
+    test("the kind filter reaches the reader and only that site is listed", async () => {
+        db.measurements = [
+            measurementRow({ kind: "waist" }),
+            measurementRow({
+                id: "00000000-0000-4000-8000-000000000005",
+                kind: "neck",
+                value_mm: 380,
+                value_entered: 38,
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_body_measurements", {
+                    kind: "neck",
+                    start_date: "2026-08-01",
+                    end_date: "2026-08-31",
+                }),
+            );
+            expect(text).toContain("- Neck 38 cm");
+            expect(text).not.toContain("Waist");
+        });
+        expect(db.measurementRangeArgs[0]!.kind).toBe("neck");
+    });
+
+    test("the default window is the 30 days ending today in the user's zone", async () => {
+        const tz = "Pacific/Auckland";
+        db.profile = { ...PROFILE_BASE, timezone: tz };
+        db.measurements = [measurementRow()];
+        await withTools(null, async (call) => {
+            const r = await call("get_body_measurements", {});
+            expect(textOf(r)).toContain(`Times are local (${tz})`);
+            await call("get_body_measurements", {
+                start_date: "2026-01-01",
+            });
+            await call("get_body_measurements", { end_date: "2026-03-31" });
+        });
+        const today = todayInTz(tz);
+        expect(db.measurementRangeArgs[0]).toEqual({
+            s: shiftLocalDate(today, -29),
+            e: today,
+            tz,
+            kind: undefined,
+        });
+        expect(db.measurementRangeArgs[1]!.s).toBe("2026-01-01");
+        expect(db.measurementRangeArgs[1]!.e).toBe(today);
+        expect(db.measurementRangeArgs[2]!.s).toBe("2026-03-02");
+        expect(db.measurementRangeArgs[2]!.e).toBe("2026-03-31");
+        expect(
+            rowsFor("get_body_measurements")[0]!.date_range_days,
+        ).toBeUndefined();
+    });
+
+    test("a saved length unit converts the display; without one each row keeps its own", async () => {
+        db.measurements = [measurementRow()];
+        const range = { start_date: "2026-08-01", end_date: "2026-08-31" };
+        await withTools(null, async (call) => {
+            expect(
+                textOf(await call("get_body_measurements", range)),
+            ).toContain("- Waist 84.5 cm");
+            db.profile = { ...PROFILE_BASE, preferred_length_unit: "in" };
+            expect(
+                textOf(await call("get_body_measurements", range)),
+            ).toContain("- Waist 33.3 in");
+        });
+    });
+
+    test("a new value is read in the entry's own unit, not the preference", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_length_unit: "cm" };
+        db.measurements = [
+            measurementRow({
+                value_mm: 813,
+                value_entered: 32,
+                entered_unit: "in",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                value: 33,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("Waist 33 in");
+        });
+        expect(db.measurementUpdates[0]).toMatchObject({
+            value_mm: 838,
+            value_entered: 33,
+            entered_unit: "in",
+        });
+    });
+
+    test("a unit alone re-reads the stored number in that unit", async () => {
+        db.measurements = [
+            measurementRow({
+                kind: "neck",
+                value_mm: 320,
+                value_entered: 32,
+                entered_unit: "cm",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                unit: "in",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("Neck 32 in");
+        });
+        expect(db.measurementUpdates[0]).toMatchObject({
+            value_mm: 813,
+            value_entered: 32,
+            entered_unit: "in",
+        });
+    });
+
+    test("update_body_measurement takes no kind", async () => {
+        const server = new McpServer(
+            { name: "nutrition-mcp-test", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [clientTransport, serverTransport] =
+            InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "test-client", version: "0.0.0" });
+        await Promise.all([
+            server.connect(serverTransport),
+            client.connect(clientTransport),
+        ]);
+        try {
+            const { tools } = await client.listTools();
+            const update = tools.find(
+                (t) => t.name === "update_body_measurement",
+            )!;
+            expect(
+                Object.keys(update.inputSchema.properties ?? {}),
+            ).not.toContain("kind");
+            expect(
+                tools.find((t) => t.name === "log_body_measurement")!
+                    .inputSchema.properties,
+            ).toHaveProperty("kind");
+        } finally {
+            await client.close();
+            await server.close();
+        }
+    });
+
+    test("an update with nothing to change is refused before any write", async () => {
+        db.measurements = [measurementRow()];
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("Nothing to change");
+        });
+        expect(db.measurementUpdates).toHaveLength(0);
+        expect(rowsFor("update_body_measurement")[0]!.error_category).toBe(
+            "missing_required_param",
+        );
+    });
+
+    test("updating the value of a missing row is record_not_found", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                value: 80,
+            });
+            expect(r.isError).toBe(true);
+            expect(
+                textOf(r).startsWith("No body measurement found with id"),
+            ).toBe(true);
+        });
+        expect(db.measurementUpdates).toHaveLength(0);
+        expect(rowsFor("update_body_measurement")[0]!.error_category).toBe(
+            "record_not_found",
+        );
+    });
+
+    test("set_length_unit saves, clears and refuses an unknown unit", async () => {
+        await withTools(null, async (call) => {
+            const set = await call("set_length_unit", { unit: "in" });
+            expect(textOf(set)).toContain("set to in");
+            expect(db.profilePatches[0]).toEqual({
+                preferred_length_unit: "in",
+            });
+
+            const cleared = await call("set_length_unit", { unit: null });
+            expect(textOf(cleared)).toContain("cleared");
+            expect(db.profilePatches[1]).toEqual({
+                preferred_length_unit: null,
+            });
+
+            const bad = await call("set_length_unit", { unit: "mm" });
+            expect(bad.isError).toBe(true);
+        });
+        expect(db.profilePatches).toHaveLength(2);
+    });
+
+    test("a long listing stops on a whole day and names where to continue", async () => {
+        const notes = "n".repeat(1000);
+        db.measurements = Array.from({ length: 50 }, (_, i) => {
+            const date = shiftLocalDate("2026-01-01", i);
+            return measurementRow({
+                id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+                logged_at: `${date}T08:00:00.000Z`,
+                notes,
+            });
+        });
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_body_measurements", {
+                    start_date: "2026-01-01",
+                    end_date: "2026-02-28",
+                    kind: "waist",
+                }),
+            );
+            const m = text.match(
+                /\(Listing stops after (\d{4}-\d{2}-\d{2}) to keep the response short; get_body_measurements with start_date (\d{4}-\d{2}-\d{2}), end_date 2026-02-28 and kind waist returns the rest\.\)$/,
+            );
+            expect(m).not.toBeNull();
+            expect(m![2]).toBe(shiftLocalDate(m![1]!, 1));
+            // The notice is the only thing past the budget, and the last day
+            // listed is complete.
+            const body = text.slice(0, text.lastIndexOf("\n\n(Listing"));
+            expect(body.length).toBeLessThanOrEqual(40_000);
+            expect(body).toContain(`## ${m![1]}`);
+            expect(body).not.toContain(`## ${m![2]}`);
+        });
+    });
+
+    test("notes reach the data layer as sent", async () => {
+        await withTools(null, async (call) => {
+            await call("log_body_measurement", {
+                kind: "upper_arm",
+                value: 34,
+                unit: "cm",
+                notes: "left\\nside",
+            });
+        });
+        expect(db.measurementInserted[0]!.notes).toBe("left\\nside");
+    });
+
+    test("a deduplicated log is rendered from the stored row", async () => {
+        db.dedupe = true;
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("log_body_measurement", {
+                    kind: "waist",
+                    value: 84.5,
+                    unit: "cm",
+                    logged_at: "2026-08-07T08:00:00Z",
+                }),
+            );
+            expect(text.startsWith("Already logged")).toBe(true);
+            expect(text).toContain("Waist 84.5 cm");
+            expect(text).toContain(`ID: ${MEASUREMENT_ID}`);
         });
     });
 });
@@ -4428,6 +4976,24 @@ describe("current-time disclosure", () => {
         });
     });
 
+    test("get_profile reports a saved length unit", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_length_unit: "in" };
+        await withTools(null, async (call) => {
+            expect(textOf(await call("get_profile"))).toContain(
+                "Length unit: in.",
+            );
+        });
+    });
+
+    test("get_profile flags the length unit as unset without directing a call", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain("Length unit: not set.");
+            expect(text).not.toContain("Call set_");
+        });
+    });
+
     test("get_current_time answers in the profile's zone, and is measured", async () => {
         db.profile = { ...PROFILE_BASE, timezone: "Asia/Tokyo" };
         await withTools(null, async (call) => {
@@ -4477,7 +5043,7 @@ describe("current-time disclosure", () => {
     // The shipped guidance is the actual fix: the three "log it now" tools used
     // to tell the model to ask the user for the time before calling them. Now
     // they tell it to omit the field and let the server stamp now.
-    test("log_meal, log_water and log_weight tell the model to omit logged_at, not to ask", async () => {
+    test("log_meal, log_water, log_weight and log_body_measurement tell the model to omit logged_at, not to ask", async () => {
         const server = new McpServer(
             { name: "t", version: "0.0.0" },
             { capabilities: { tools: {}, resources: {} } },
@@ -4488,24 +5054,50 @@ describe("current-time disclosure", () => {
         await Promise.all([server.connect(st), client.connect(ct)]);
         try {
             const { tools } = await client.listTools();
-            for (const name of ["log_meal", "log_water", "log_weight"]) {
-                const props = (
+            const propsOf = (name: string) =>
+                (
                     tools.find((t) => t.name === name)?.inputSchema as {
                         properties?: Record<string, { description?: string }>;
                     }
                 )?.properties;
-                const desc = props?.logged_at?.description ?? "";
+            for (const name of [
+                "log_meal",
+                "log_water",
+                "log_weight",
+                "log_body_measurement",
+            ]) {
+                const desc = propsOf(name)?.logged_at?.description ?? "";
                 expect(desc).not.toBe("");
                 expect(desc).not.toContain(
                     "ask the user before calling this tool",
                 );
-                // Asking the user is not prescribed: the text states that the
-                // server knows the time, so there is no need to ask (#102).
                 expect(desc).not.toMatch(/\b(?:do not|don't) ask the user\b/i);
+                expect(desc).toContain("get_current_time");
+            }
+            // The three older tools still carry the inherited wording: the
+            // server knows the time, so there is no need to ask (#102). They
+            // move to the descriptive form under #198.
+            for (const name of ["log_meal", "log_water", "log_weight"]) {
+                const desc = propsOf(name)?.logged_at?.description ?? "";
                 expect(desc).toContain("The server knows the current time");
                 expect(desc).toContain("no need to ask the user");
                 expect(desc).toContain("omit this field entirely");
-                expect(desc).toContain("get_current_time");
+            }
+            // log_body_measurement, added after the directory review, only
+            // describes what an omitted value means and what the key does.
+            const body = propsOf("log_body_measurement");
+            const bodyLoggedAt = body?.logged_at?.description ?? "";
+            expect(bodyLoggedAt).toContain(
+                "Omitted, the server stamps the entry with the current time",
+            );
+            for (const text of [
+                bodyLoggedAt,
+                body?.idempotency_key?.description ?? "",
+            ]) {
+                expect(text).not.toBe("");
+                expect(text).not.toMatch(
+                    /\b(?:never|do not|don't|no need to|omit this|only supply|pass any|send the same)\b/i,
+                );
             }
             // ...and the tool that replaces the question is actually reachable.
             expect(tools.map((t) => t.name)).toContain("get_current_time");
@@ -4554,6 +5146,7 @@ describe("export_all_data is on the tool surface", () => {
             "meals.csv",
             "water.csv",
             "weight.csv",
+            "body_measurements.csv",
             "goals.csv",
             "profile.csv",
             "account.csv",
@@ -4607,20 +5200,22 @@ describe("every tool carries directory-ready annotations", () => {
 
         // destructiveHint is true exactly for tools that overwrite or remove a
         // user record — "false" means "only additive updates" in the spec, so
-        // the update_* tools and set_nutrition_goals belong here. The five
+        // the update_* tools and set_nutrition_goals belong here. The six
         // preference setters stay out on purpose: each replaces one visible
         // preference that get_profile shows and the user can set back.
         const DESTRUCTIVE = new Set([
             "delete_meal",
             "delete_water",
             "delete_weight",
+            "delete_body_measurement",
             "delete_account",
             "update_meal",
             "update_weight",
+            "update_body_measurement",
             "set_nutrition_goals",
         ]);
         const OPEN_WORLD = new Set(["lookup_barcode"]);
-        expect(tools.length).toBe(36);
+        expect(tools.length).toBe(41);
         for (const t of tools) {
             const a = t.annotations;
             expect(a?.title, t.name).toBeTruthy();
@@ -5045,7 +5640,12 @@ describe("tool text makes only claims the code keeps", () => {
                         (byName.get(name)!.inputSchema.properties ??
                             {}) as Record<string, { description?: string }>
                     ).idempotency_key?.description ?? "";
-                for (const name of ["log_meal", "log_water", "log_weight"]) {
+                for (const name of [
+                    "log_meal",
+                    "log_water",
+                    "log_weight",
+                    "log_body_measurement",
+                ]) {
                     const d = keyDescription(name);
                     expect(d, name).toContain("omits logged_at");
                     expect(d, name).toContain("adds a new");
@@ -5099,6 +5699,11 @@ describe("dedupe headers do not claim a retry", () => {
         ],
         ["log_water", { amount_ml: 250 }, "Water logged"],
         ["log_weight", { weight: 70, unit: "kg" }, "Weight logged"],
+        [
+            "log_body_measurement",
+            { kind: "waist", value: 84.5, unit: "cm" },
+            "Body measurement logged",
+        ],
     ];
 
     test.each(WRITES)(

@@ -183,7 +183,7 @@ export const INDEX_FR: IndexDoc = {
         note: "Tout ça est facultatif. Tu peux le faire maintenant, plus tard ou jamais : commence simplement à enregistrer, et règle le reste quand tu veux.",
         toolsCta: {
             heading: "Envie de voir tout ce qu'il sait faire ?",
-            body: "Parcours les 36 outils (enregistrement, codes-barres, eau, poids, objectifs et tendances), chacun avec sa description et un exemple de demande.",
+            body: "Parcours les 41 outils (enregistrement, codes-barres, eau, poids et mensurations, objectifs et tendances), chacun avec sa description et un exemple de demande.",
             arrow: "Explorer les outils",
         },
     },
@@ -611,10 +611,10 @@ export const INDEX_FR: IndexDoc = {
                 id: "export-data",
                 title: "Récupère tes données",
                 description:
-                    "Une seule demande regroupe tout ce qui est stocké à ton sujet (repas, eau, pesées, objectifs, réglages du profil, données de ton compte, télémétrie d'utilisation et applications connectées) dans un ZIP de fichiers CSV accompagné d'un README. Les horodatages suivent ton fuseau horaire, et meals.csv se réimporte tel quel.",
+                    "Une seule demande regroupe tout ce qui est stocké à ton sujet (repas, eau, pesées, mensurations, objectifs, réglages du profil, données de ton compte, télémétrie d'utilisation et applications connectées) dans un ZIP de fichiers CSV accompagné d'un README. Les horodatages suivent ton fuseau horaire, et meals.csv se réimporte tel quel.",
                 toolNotes: {
                     export_all_data:
-                        "Regroupe huit fichiers CSV et un README dans un ZIP, derrière un lien valable 60 minutes",
+                        "Regroupe neuf fichiers CSV et un README dans un ZIP, derrière un lien valable 60 minutes",
                 },
                 messages: [
                     {
@@ -687,7 +687,7 @@ export const INDEX_FR: IndexDoc = {
             },
             {
                 title: "Suivi du poids",
-                body: "Enregistre ton poids en kg ou en lb, consulte les tendances sur 7/14/30 jours et suis ta progression vers un poids cible.",
+                body: "Enregistre ton poids en kg ou en lb, consulte les tendances sur 7/14/30 jours et suis ta progression vers un poids cible. Les mensurations de neuf zones du corps, de la taille au mollet, s'y ajoutent en cm ou en pouces.",
             },
             {
                 title: "Ton fuseau horaire, pris en compte",
@@ -699,7 +699,7 @@ export const INDEX_FR: IndexDoc = {
             },
             {
                 title: "Exporte tes données, elles t'appartiennent",
-                body: "Récupère tout ce que nous stockons à ton sujet (repas, eau, poids, objectifs et profil, ainsi que les données de ton compte, ta télémétrie d'utilisation et tes applications connectées) dans un seul ZIP de fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Supprime ton compte et tes données quand tu veux.",
+                body: "Récupère tout ce que nous stockons à ton sujet (repas, eau, poids, mensurations, objectifs et profil, ainsi que les données de ton compte, ta télémétrie d'utilisation et tes applications connectées) dans un seul ZIP de fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Supprime ton compte et tes données quand tu veux.",
             },
         ],
     },
@@ -830,7 +830,7 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Que puis-je suivre ?",
             visibleHtml:
-                "Calories, protéines, glucides, lipides, fibres, sucres totaux et eau pour chaque entrée, décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool peut aussi être suivi, en grammes d'éthanol pur ; il s'affiche une fois que tu actives le suivi de l'alcool. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Consulte des résumés quotidiens, retrouve tes repas sur une période donnée, modifie ou supprime des entrées passées, définis des objectifs et suis tes tendances dans la durée.",
+                "Calories, protéines, glucides, lipides, fibres, sucres totaux et eau pour chaque entrée, décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool peut aussi être suivi, en grammes d'éthanol pur ; il s'affiche une fois que tu actives le suivi de l'alcool. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Les mensurations (taille, hanches, cou, poitrine, épaules, haut du bras, avant-bras, cuisse et mollet) peuvent elles aussi être enregistrées en cm ou en pouces. Consulte des résumés quotidiens, retrouve tes repas sur une période donnée, modifie ou supprime des entrées passées, définis des objectifs et suis tes tendances dans la durée.",
         },
         {
             question: "Le comptage des calories est-il précis ?",

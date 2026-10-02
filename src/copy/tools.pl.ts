@@ -2,11 +2,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "36 narzędzi: kalorie, makroskładniki, woda i waga",
+        title: "41 narzędzi: kalorie, makroskładniki, woda i waga",
         description:
-            "Wszystkie 36 narzędzi Nutrition MCP dla Claude, ChatGPT i innych aplikacji AI: posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda i waga.",
+            "Wszystkie 41 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
         ogDescription:
-            "Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 41 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
@@ -14,7 +14,7 @@ export const TOOLS_PL: ToolsDoc = {
         titleEm: "potrafi",
         titleAfterEm: " Twoje AI",
         lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
-        countBold: "36 narzędzi",
+        countBold: "41 narzędzi",
         countTail: "w 7 obszarach",
     },
     categories: {
@@ -36,10 +36,10 @@ export const TOOLS_PL: ToolsDoc = {
             description: "Śledź, ile pijesz, obok tego, co jesz.",
         },
         weight: {
-            pillLabel: "Waga",
-            title: "Śledzenie wagi",
+            pillLabel: "Ciało",
+            title: "Waga i wymiary ciała",
             description:
-                "Zapisuj pomiary wagi, przeglądaj je i śledź, jak zbliżasz się do wagi docelowej.",
+                "Zapisuj pomiary wagi i obwodów ciała, przeglądaj je i śledź, jak Twoja waga zbliża się do wagi docelowej.",
         },
         "goals-progress": {
             pillLabel: "Cele",
@@ -202,7 +202,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI, bez żadnych tokenów) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI, bez żadnych tokenów) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",
@@ -297,6 +297,54 @@ export const TOOLS_PL: ToolsDoc = {
             params: {},
             example: "Od teraz pokazuj moją wagę w funtach",
         },
+        log_body_measurement: {
+            description:
+                "Zapisz pomiar obwodu jednej partii ciała — talii, bioder, szyi, klatki piersiowej, barków, ramienia, przedramienia, uda lub łydki — w cm albo calach. Wartość jest przechowywana dokładnie tak, jak ją podasz, obok wartości w stałej jednostce, więc zmiana jednostki nigdy nie przesuwa liczby. Liczby daleko poza realnym zakresem dla danej partii ciała są odrzucane jako prawdopodobne literówki.",
+            params: {
+                kind: "Która partia ciała: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> lub <code>calf</code>. Jedna wartość na partię ciała; stronę (lewa/prawa) można podać w notatkach.",
+                value: "Wynik pomiaru w jednostce <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> lub <code>in</code>; domyślnie zapisana jednostka długości.",
+                logged_at: "Kiedy wykonano pomiar, jeśli nie teraz",
+                notes: "Dodatkowe notatki",
+            },
+            example: "Zapisz obwód talii: dziś rano 82 cm",
+        },
+        get_body_measurements: {
+            description:
+                "Zobacz swoje wymiary ciała pogrupowane według dni, od najstarszych, opcjonalnie tylko dla jednej partii ciała. Bez podanych dat obejmuje ostatnie 30 dni, maksymalnie 366 dni na jedno wywołanie.",
+            params: {
+                kind: "Tylko ta partia ciała (np. <code>waist</code>)",
+                start_date: "Data początkowa (RRRR-MM-DD)",
+                end_date:
+                    "Data końcowa (RRRR-MM-DD), maksymalnie 366 dni wraz z dniem początkowym",
+            },
+            example: "Pokaż moje pomiary talii z ostatnich trzech miesięcy",
+        },
+        update_body_measurement: {
+            description:
+                "Popraw zapisany pomiar — wartość, jednostkę, datę i godzinę albo notatki. Partii ciała nie da się zmienić; pomiar innej partii to nowy wpis.",
+            params: {
+                id: "UUID pomiaru do zaktualizowania",
+                value: "Nowa wartość w jednostce <code>unit</code>.",
+                unit: "Domyślnie jednostka, w której zapisano pomiar.",
+                logged_at: "Znacznik czasu w formacie ISO 8601",
+                notes: "Nowe notatki",
+            },
+            example: "Obwód bioder to było 98 cm, a nie 89",
+        },
+        delete_body_measurement: {
+            description: "Usuń pomiar wymiaru ciała.",
+            params: {
+                id: "UUID pomiaru do usunięcia",
+            },
+            example: "Usuń dzisiejszy pomiar obwodu szyi",
+        },
+        set_length_unit: {
+            description:
+                "Wybierz, czy wymiary ciała mają być wyświetlane i wpisywane w centymetrach czy w calach. To ustawienie jest niezależne od jednostki wagi. Zapisane wartości się nie zmieniają — zmienia się tylko sposób wyświetlania i domyślna jednostka wpisywanych liczb.",
+            params: {},
+            example: "Pokazuj moje wymiary w calach",
+        },
         set_nutrition_goals: {
             description:
                 "Ustaw dzienne cele dla kalorii, makroskładników, błonnika, cukru, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; cukier, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
@@ -364,7 +412,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_profile: {
             description:
-                "Zobacz wszystkie aktualne ustawienia naraz: strefę czasową (wraz z lokalną datą i godziną), język widżetów, preferowaną jednostkę wagi oraz to, czy widżety w czacie i śledzenie alkoholu są włączone.",
+                "Zobacz wszystkie aktualne ustawienia naraz: strefę czasową (wraz z lokalną datą i godziną), język widżetów, preferowane jednostki wagi i długości oraz to, czy widżety w czacie i śledzenie alkoholu są włączone.",
             params: {},
             example: "Jakie mam teraz ustawienia?",
         },
@@ -485,7 +533,7 @@ export const TOOLS_PL: ToolsDoc = {
             "delete-account": {
                 question: "Jak usunąć konto?",
                 answerHtml:
-                    'Poproś AI o usunięcie Twojego konta Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). AI poprosi o potwierdzenie, a następnie trwale usunie Twoje posiłki, wodę, wagę, cele, ustawienia, rejestr narzędzi, z których korzystała Twoja aplikacja AI, ewentualny plik eksportu, dane logowania i samo konto. Tego nie da się cofnąć, więc jeśli chcesz mieć kopię, najpierw wyeksportuj dane. Potem usuń konektor ze swojej aplikacji. Jeśli w przyszłości zalogujesz się ponownie tym samym adresem e-mail, powstanie nowe, puste konto.',
+                    'Poproś AI o usunięcie Twojego konta Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). AI poprosi o potwierdzenie, a następnie trwale usunie Twoje posiłki, wodę, wagę, wymiary ciała, cele, ustawienia, rejestr narzędzi, z których korzystała Twoja aplikacja AI, ewentualny plik eksportu, dane logowania i samo konto. Tego nie da się cofnąć, więc jeśli chcesz mieć kopię, najpierw wyeksportuj dane. Potem usuń konektor ze swojej aplikacji. Jeśli w przyszłości zalogujesz się ponownie tym samym adresem e-mail, powstanie nowe, puste konto.',
             },
             "report-a-problem": {
                 question: "Jak zgłosić błąd lub problem z bezpieczeństwem?",

@@ -386,7 +386,8 @@ export function loggedAtFailureReason(
 
 /**
  * Resolve `logged_at` for a manual write tool (log_meal, update_meal,
- * log_water, log_weight, update_weight), throwing on anything unusable.
+ * log_water, log_weight, update_weight, log_body_measurement,
+ * update_body_measurement), throwing on anything unusable.
  *
  * Same placement rules as the bulk importer, deliberately. The bounds are where
  * they part: the importer is backfilling history and takes anything from 20

@@ -13,7 +13,7 @@ export const LOGIN_DE: LoginDoc = {
     showPasswordLabel: "Passwort anzeigen",
     hidePasswordLabel: "Passwort verbergen",
     consentNote:
-        "Wenn du fortfährst, bestätigst du, dass du mindestens 16 Jahre alt bist, stimmst den {terms} und der {privacy} zu und willigst ein, dass wir die von dir erfassten Mahlzeiten-, Gewichts- und Alkoholangaben speichern – das sind Gesundheitsdaten.",
+        "Wenn du fortfährst, bestätigst du, dass du mindestens 16 Jahre alt bist, stimmst den {terms} und der {privacy} zu und willigst ein, dass wir die von dir erfassten Mahlzeiten-, Gewichts-, Körpermaß- und Alkoholangaben speichern – das sind Gesundheitsdaten.",
     termsLinkText: "Nutzungsbedingungen",
     privacyLinkText: "Datenschutzerklärung",
     newHereNote:

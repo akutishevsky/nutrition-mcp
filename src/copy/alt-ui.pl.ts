@@ -37,7 +37,7 @@ export const ALT_UI_PL: AltUiCopy = {
             },
             {
                 title: "Waga i cele",
-                body: "Zapisuj wagę w kg lub lb, ustaw cele dla kalorii, makroskładników, błonnika, cukru, kofeiny i wody — błonnik jako cel do osiągnięcia, cukier i kofeinę jako limity, których nie przekraczasz — i śledź, jak zbliżasz się do wagi docelowej. Jest też śledzenie alkoholu: opcjonalne i wyłączone, dopóki go nie włączysz.",
+                body: "Zapisuj wagę w kg lub lb i obwody dziewięciu partii ciała w cm lub calach, ustaw cele dla kalorii, makroskładników, błonnika, cukru, kofeiny i wody — błonnik jako cel do osiągnięcia, cukier i kofeinę jako limity, których nie przekraczasz — i śledź, jak zbliżasz się do wagi docelowej. Jest też śledzenie alkoholu: opcjonalne i wyłączone, dopóki go nie włączysz.",
             },
             {
                 title: "Podsumowania i trendy",
@@ -45,7 +45,7 @@ export const ALT_UI_PL: AltUiCopy = {
             },
             {
                 title: "Import i pełna kontrola nad danymi",
-                body: "Zaimportuj historię posiłków z eksportu CSV innej aplikacji — plik jest odczytywany w Twojej przeglądarce, a nie przez AI. Wszystkie dane pobierzesz, kiedy zechcesz: jeden ZIP z posiłkami, wodą, wagą, celami i profilem, a do tego z danymi konta, telemetrią użycia i połączonymi aplikacjami — wszystko w plikach CSV. Na razie z powrotem da się zaimportować tylko posiłki. Konto możesz też równie łatwo usunąć.",
+                body: "Zaimportuj historię posiłków z eksportu CSV innej aplikacji — plik jest odczytywany w Twojej przeglądarce, a nie przez AI. Wszystkie dane pobierzesz, kiedy zechcesz: jeden ZIP z posiłkami, wodą, wagą, wymiarami ciała, celami i profilem, a do tego z danymi konta, telemetrią użycia i połączonymi aplikacjami — wszystko w plikach CSV. Na razie z powrotem da się zaimportować tylko posiłki. Konto możesz też równie łatwo usunąć.",
             },
             {
                 title: "Open source i za darmo",
