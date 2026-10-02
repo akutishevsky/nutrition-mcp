@@ -318,8 +318,8 @@ html.js .lp-ex-panel.is-on .lp-ex-thread > * { animation: nm-rise .35s both; }
 .lp-pager { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 6px; }
 .lp-pager[hidden] { display: none; }
 .lp-pager .lp-round { width: 44px; height: 44px; font-size: 13px; }
-.lp-dots { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; }
-.lp-dots button { height: 32px; padding: 0 3px; border: 0; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.lp-dots { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 2px; }
+.lp-dots button { min-width: 24px; height: 32px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; display: grid; place-items: center; }
 .lp-dots span { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--line2); transition: width .45s var(--ease-out), background .3s ease; }
 .lp-dots [aria-current="true"] span { width: 28px; background: var(--acc); }
 
