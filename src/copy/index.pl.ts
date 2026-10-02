@@ -424,23 +424,14 @@ export const INDEX_PL: IndexDoc = {
                 description:
                     "Zapisz pomiar wagi w kg albo lb i zobacz trend ukryty pod codziennymi wahaniami: wygładzoną średnią, zmianę w ciągu miesiąca i to, ile zostało do wagi docelowej. Niemożliwy odczyt, np. ze zgubionym przecinkiem, zostaje wyłapany przed zapisem.",
                 toolNotes: {
-                    log_weight:
-                        "Odrzuca 784 kg jako nieprawdopodobny wynik, potem zapisuje 78,4 kg",
+                    log_weight: "Zapisuje dzisiejsze poranne ważenie: 78,4 kg",
                     get_weight_trends:
                         "Wygładza 30 dni średnimi kroczącymi i liczy, ile zostało do celu",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "dzisiejsze ważenie: 784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kg wykracza poza wiarygodny zakres masy ciała (20–500 kg), więc niczego nie zapisano. Chodziło o 78,4 kg czy o 784 lb?",
-                    },
-                    {
-                        from: "user",
-                        text: "haha tak, zgubił się przecinek. jak mi idzie?",
+                        text: "dziś rano 78,4 kg. jak wygląda trend?",
                     },
                     {
                         from: "ai",
@@ -450,7 +441,7 @@ export const INDEX_PL: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },

@@ -807,23 +807,14 @@ const INDEX_EN: IndexDoc = {
                 description:
                     "Log a weigh-in in kg or lb and see the trend under the day-to-day noise: a smoothed average, the change over the month and the gap to your target. An impossible reading, like a missed decimal point, is caught before it's saved.",
                 toolNotes: {
-                    log_weight:
-                        "Turns away 784 kg as implausible, then saves 78.4 kg",
+                    log_weight: "Saves this morning's 78.4 kg weigh-in",
                     get_weight_trends:
                         "Smooths 30 days into moving averages and the gap to target",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "just weighed in, 784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kg is outside the plausible body-weight range (20–500 kg), so nothing was saved. Did you mean 78.4 kg, or 784 lb?",
-                    },
-                    {
-                        from: "user",
-                        text: "lol yes, missed the dot. how am i trending?",
+                        text: "78.4 kg this morning. how's my trend looking?",
                     },
                     {
                         from: "ai",
@@ -833,7 +824,7 @@ const INDEX_EN: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },

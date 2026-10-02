@@ -420,24 +420,12 @@ export const INDEX_ES: IndexDoc = {
                 description:
                     "Registra tu peso en kg o lb y mira la tendencia más allá de las subidas y bajadas diarias: una media suavizada, el cambio del mes y lo que te falta para tu objetivo. Una lectura imposible, como una coma decimal olvidada, se detecta antes de guardarse.",
                 toolNotes: {
-                    log_weight:
-                        "Rechaza 784 kg por inverosímil y luego guarda 78,4 kg",
+                    log_weight: "Guarda el peso de esta mañana: 78,4 kg",
                     get_weight_trends:
                         "Suaviza 30 días con medias móviles y calcula cuánto falta para el objetivo",
                 },
                 messages: [
-                    {
-                        from: "user",
-                        text: "me acabo de pesar, 784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kg está fuera del rango plausible de peso corporal (20–500 kg), así que no se ha guardado nada. ¿Querías decir 78,4 kg, o 784 lb?",
-                    },
-                    {
-                        from: "user",
-                        text: "jaja sí, se me olvidó la coma. ¿cómo voy?",
-                    },
+                    { from: "user", text: "78,4 kg esta mañana. ¿cómo voy?" },
                     {
                         from: "ai",
                         text: "Guardado: 78,4 kg. Has bajado 1,8 kg desde el 11 de febrero (cuando pesabas 80,2 kg), y tu media de 7 días es de 78,7 kg. Te faltan 3,4 kg para tu objetivo de 75 kg.",
@@ -446,7 +434,7 @@ export const INDEX_ES: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },

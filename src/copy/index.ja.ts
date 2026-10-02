@@ -436,24 +436,12 @@ export const INDEX_JA: IndexDoc = {
                 description:
                     "体重をkgかlbで記録すると、日々の増減に埋もれたトレンドが見えてきます。平滑化した平均、1か月の変化、目標までの差を表示。小数点の打ち忘れのようなありえない値は、保存する前にはじきます。",
                 toolNotes: {
-                    log_weight:
-                        "784 kgをありえない値としてはじき、78.4 kgを保存",
+                    log_weight: "今朝の体重78.4 kgを記録",
                     get_weight_trends:
                         "30日分を移動平均で平滑化し、目標までの差を算出",
                 },
                 messages: [
-                    {
-                        from: "user",
-                        text: "今量った、784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kgは体重として妥当な範囲（20〜500 kg）を外れているので、保存していません。78.4 kgのことですか？　それとも784 lbですか？",
-                    },
-                    {
-                        from: "user",
-                        text: "そうそう、小数点打ち忘れた（笑）。推移はどう？",
-                    },
+                    { from: "user", text: "今朝は78.4 kgでした。推移はどう？" },
                     {
                         from: "ai",
                         text: "78.4 kgを記録しました。2月11日（80.2 kg）から1.8 kg減で、7日間平均は78.7 kgです。目標の75 kgまであと3.4 kgです。",
@@ -462,7 +450,7 @@ export const INDEX_JA: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },

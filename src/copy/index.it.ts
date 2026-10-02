@@ -429,23 +429,14 @@ export const INDEX_IT: IndexDoc = {
                 description:
                     "Registra una pesata in kg o lb e guarda l'andamento al di là delle oscillazioni quotidiane: media smussata, variazione nel mese e quanto manca all'obiettivo. Un valore impossibile, come una virgola dimenticata, viene bloccato prima di essere salvato.",
                 toolNotes: {
-                    log_weight:
-                        "Scarta 784 kg perché non plausibile, poi salva 78,4 kg",
+                    log_weight: "Salva la pesata di stamattina: 78,4 kg",
                     get_weight_trends:
                         "Smussa 30 giorni con medie mobili e calcola la distanza dall'obiettivo",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "appena pesato, 784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kg è fuori dall'intervallo plausibile per un peso corporeo (20–500 kg), quindi non ho salvato nulla. Intendevi 78,4 kg o 784 lb?",
-                    },
-                    {
-                        from: "user",
-                        text: "ahah sì, ho saltato la virgola. come sto andando?",
+                        text: "stamattina 78,4 kg. come sto andando?",
                     },
                     {
                         from: "ai",
@@ -455,7 +446,7 @@ export const INDEX_IT: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },

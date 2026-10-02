@@ -431,23 +431,14 @@ export const INDEX_FR: IndexDoc = {
                 description:
                     "Enregistre une pesée en kg ou en lb et vois la tendance derrière les variations du quotidien : moyenne lissée, évolution sur le mois, écart avec ton poids cible. Une valeur impossible, comme une virgule oubliée, est repérée avant l'enregistrement.",
                 toolNotes: {
-                    log_weight:
-                        "Refuse 784 kg comme invraisemblable, puis enregistre 78,4 kg",
+                    log_weight: "Enregistre la pesée de ce matin : 78,4 kg",
                     get_weight_trends:
                         "Lisse 30 jours en moyennes mobiles, avec l'écart à la cible",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "je viens de me peser, 784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kg, c'est hors de la plage plausible pour un poids corporel (20–500 kg) : rien n'a été enregistré. Tu voulais dire 78,4 kg, ou 784 lb ?",
-                    },
-                    {
-                        from: "user",
-                        text: "mdr oui, j'ai oublié la virgule. c'est quoi ma tendance ?",
+                        text: "78,4 kg ce matin. quelle est ma tendance ?",
                     },
                     {
                         from: "ai",
@@ -457,7 +448,7 @@ export const INDEX_FR: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },

@@ -420,22 +420,14 @@ export const INDEX_DE: IndexDoc = {
                     "Trag dein Gewicht in kg oder lb ein und sieh den Trend hinter den täglichen Schwankungen: geglätteter Durchschnitt, Veränderung im Monat, Abstand zum Zielgewicht. Ein unmöglicher Wert, etwa mit vergessenem Komma, wird abgefangen, bevor er gespeichert wird.",
                 toolNotes: {
                     log_weight:
-                        "Weist 784 kg als unplausibel zurück und speichert dann 78,4 kg",
+                        "Speichert die Messung von heute Morgen: 78,4 kg",
                     get_weight_trends:
                         "Glättet 30 Tage zu gleitenden Durchschnitten und zeigt den Abstand zum Ziel",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "gerade gewogen, 784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kg liegt außerhalb des plausiblen Bereichs für ein Körpergewicht (20–500 kg), deshalb wurde nichts gespeichert. Meintest du 78,4 kg oder 784 lb?",
-                    },
-                    {
-                        from: "user",
-                        text: "haha ja, Komma vergessen. wie sieht mein Trend aus?",
+                        text: "heute Morgen 78,4 kg. wie sieht mein Trend aus?",
                     },
                     {
                         from: "ai",
@@ -445,7 +437,7 @@ export const INDEX_DE: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },

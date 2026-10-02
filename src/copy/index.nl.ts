@@ -422,23 +422,14 @@ export const INDEX_NL: IndexDoc = {
                 description:
                     "Log een weegmoment in kg of lb en zie de trend achter de dagelijkse schommelingen: een afgevlakt gemiddelde, de verandering over de maand en de afstand tot je streefgewicht. Een onmogelijke meting, zoals een vergeten komma, wordt tegengehouden voordat hij wordt opgeslagen.",
                 toolNotes: {
-                    log_weight:
-                        "Weigert 784 kg als onaannemelijk en slaat daarna 78,4 kg op",
+                    log_weight: "Slaat de weging van vanochtend op: 78,4 kg",
                     get_weight_trends:
                         "Vlakt 30 dagen af tot voortschrijdende gemiddelden en de afstand tot je doel",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "net gewogen, 784",
-                    },
-                    {
-                        from: "ai",
-                        text: "784 kg valt buiten het aannemelijke bereik voor lichaamsgewicht (20–500 kg), dus er is niets opgeslagen. Bedoelde je 78,4 kg, of 784 lb?",
-                    },
-                    {
-                        from: "user",
-                        text: "haha ja, komma vergeten. hoe ziet mijn trend eruit?",
+                        text: "vanochtend 78,4 kg. hoe ziet mijn trend eruit?",
                     },
                     {
                         from: "ai",
@@ -448,7 +439,7 @@ export const INDEX_NL: IndexDoc = {
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 2,
+                        after: 0,
                     },
                 ],
             },
