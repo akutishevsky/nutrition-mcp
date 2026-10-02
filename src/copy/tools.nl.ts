@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "36 tools voor calorieën, macro's, water & gewicht",
+        title: "41 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 36 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water en gewicht bijhouden.",
+            "Alle 41 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 36 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer om je geschiedenis uit een andere app over te zetten. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 41 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer om je geschiedenis uit een andere app over te zetten. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
@@ -20,7 +20,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleEm: "doen",
         titleAfterEm: "",
         lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
-        countBold: "36 tools",
+        countBold: "41 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -42,10 +42,10 @@ export const TOOLS_NL: ToolsDoc = {
             description: "Houd naast je eten ook bij hoeveel je drinkt.",
         },
         weight: {
-            pillLabel: "Gewicht",
-            title: "Gewicht bijhouden",
+            pillLabel: "Lichaam",
+            title: "Gewicht en lichaamsmaten",
             description:
-                "Log weegmomenten, bekijk ze terug en volg de trend richting je streefgewicht.",
+                "Log weegmomenten en omtrekmetingen, bekijk ze terug en volg de trend van je gewicht richting je streefgewicht.",
         },
         "goals-progress": {
             pillLabel: "Doelen",
@@ -209,7 +209,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps, zonder tokens) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
+                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps, zonder tokens) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens: maaltijden, water, gewicht en doelen",
@@ -306,6 +306,54 @@ export const TOOLS_NL: ToolsDoc = {
             params: {},
             example: "Gebruik voortaan lb voor mijn gewicht",
         },
+        log_body_measurement: {
+            description:
+                "Leg een omtrekmeting van één lichaamsdeel vast (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij of kuit) in cm of inch. De waarde wordt precies zo opgeslagen als je hem invoert, naast een vaste standaardwaarde, zodat wisselen van eenheid nooit een getal verschuift. Getallen ver buiten een realistisch bereik voor dat lichaamsdeel worden geweigerd als waarschijnlijke tikfout.",
+            params: {
+                kind: "Welk lichaamsdeel: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> of <code>calf</code>. Eén waarde per lichaamsdeel; een kant (links/rechts) kan in de notities.",
+                value: "De meting, in <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> of <code>in</code>; standaard je opgeslagen lengte-eenheid.",
+                logged_at: "Wanneer je hebt gemeten, als dat niet nu was",
+                notes: "Extra notities",
+            },
+            example: "Log mijn taille: 82 cm vanochtend",
+        },
+        get_body_measurements: {
+            description:
+                "Bekijk je lichaamsmaten per dag, oudste eerst, eventueel voor één lichaamsdeel. Zonder datums gaat het om de afgelopen 30 dagen, met maximaal 366 dagen per aanroep.",
+            params: {
+                kind: "Alleen dit lichaamsdeel (bijv. <code>waist</code>)",
+                start_date: "Startdatum (JJJJ-MM-DD)",
+                end_date:
+                    "Einddatum (JJJJ-MM-DD), maximaal 366 dagen inclusief de startdatum",
+            },
+            example: "Toon mijn tailleomtrek van de afgelopen drie maanden",
+        },
+        update_body_measurement: {
+            description:
+                "Corrigeer een bestaande meting: de waarde, de eenheid, het tijdstip of de notities. Het lichaamsdeel zelf ligt vast; een ander lichaamsdeel is een nieuwe registratie.",
+            params: {
+                id: "UUID van de te wijzigen meting",
+                value: "Nieuwe waarde, in <code>unit</code>.",
+                unit: "Standaard de eenheid waarin de meting is vastgelegd.",
+                logged_at: "ISO 8601-tijdstempel",
+                notes: "Nieuwe notities",
+            },
+            example: "Die heupomtrek was 98 cm, niet 89",
+        },
+        delete_body_measurement: {
+            description: "Verwijder een lichaamsmeting.",
+            params: {
+                id: "UUID van de te verwijderen meting",
+            },
+            example: "Verwijder de nekmeting van vandaag",
+        },
+        set_length_unit: {
+            description:
+                "Kies of lichaamsmaten in centimeters of inches worden getoond en ingevoerd. Dit staat los van je gewichtseenheid. Opgeslagen waarden blijven hetzelfde; alleen de weergave verandert en de eenheid die wordt aangenomen als je er geen noemt.",
+            params: {},
+            example: "Gebruik inches voor mijn lichaamsmaten",
+        },
         set_nutrition_goals: {
             description:
                 "Stel je dagelijkse doelen in voor calorieën, macro's, vezels, suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
@@ -373,7 +421,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_profile: {
             description:
-                "Bekijk al je huidige instellingen in één keer: tijdzone (plus je lokale datum en tijd), de widgettaal, je gewichtseenheid, of de widgets in de chat worden getoond en of alcoholregistratie aanstaat.",
+                "Bekijk al je huidige instellingen in één keer: tijdzone (plus je lokale datum en tijd), de widgettaal, je gewichts- en lengte-eenheid, of de widgets in de chat worden getoond en of alcoholregistratie aanstaat.",
             params: {},
             example: "Wat zijn mijn huidige instellingen?",
         },
@@ -495,7 +543,7 @@ export const TOOLS_NL: ToolsDoc = {
             "delete-account": {
                 question: "Hoe verwijder ik mijn account?",
                 answerHtml:
-                    'Vraag de AI om je Nutrition MCP-account te verwijderen (<a href="#delete_account"><code>delete_account</code></a>). Die vraagt je om bevestiging en verwijdert daarna definitief je maaltijden, water, gewicht, doelen, instellingen, het overzicht van welke tools je AI-app heeft gebruikt, een eventueel exportbestand, je inloggegevens en het account zelf. Dit kan niet ongedaan worden gemaakt, dus exporteer eerst je gegevens als je een kopie wilt. Verwijder daarna de connector uit je app. Log je later opnieuw in met hetzelfde e-mailadres, dan krijg je een nieuw, leeg account.',
+                    'Vraag de AI om je Nutrition MCP-account te verwijderen (<a href="#delete_account"><code>delete_account</code></a>). Die vraagt je om bevestiging en verwijdert daarna definitief je maaltijden, water, gewicht, lichaamsmaten, doelen, instellingen, het overzicht van welke tools je AI-app heeft gebruikt, een eventueel exportbestand, je inloggegevens en het account zelf. Dit kan niet ongedaan worden gemaakt, dus exporteer eerst je gegevens als je een kopie wilt. Verwijder daarna de connector uit je app. Log je later opnieuw in met hetzelfde e-mailadres, dan krijg je een nieuw, leeg account.',
             },
             "report-a-problem": {
                 question: "Hoe meld ik een bug of een beveiligingsprobleem?",

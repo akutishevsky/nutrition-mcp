@@ -6,11 +6,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "36 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
+        title: "41 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
         description:
-            "Alle 36 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser und Gewicht tracken.",
+            "Alle 41 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
         ogDescription:
-            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
+            "Alle 41 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
@@ -18,7 +18,7 @@ export const TOOLS_DE: ToolsDoc = {
         titleEm: "kann",
         titleAfterEm: "",
         lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
-        countBold: "36 Werkzeuge",
+        countBold: "41 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
     categories: {
@@ -41,10 +41,10 @@ export const TOOLS_DE: ToolsDoc = {
                 "Behalte deine Flüssigkeitszufuhr neben dem Essen im Blick.",
         },
         weight: {
-            pillLabel: "Gewicht",
-            title: "Gewichts-Tracking",
+            pillLabel: "Körper",
+            title: "Gewicht & Körpermaße",
             description:
-                "Erfasse Messungen, sieh sie dir an und verfolge den Trend Richtung Zielgewicht.",
+                "Erfasse Wiegungen und Maßband-Maße, sieh sie dir an und verfolge deinen Gewichtstrend Richtung Zielgewicht.",
         },
         "goals-progress": {
             pillLabel: "Ziele",
@@ -214,7 +214,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
+                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
             params: {},
             example:
                 "Exportier alle meine Daten – Mahlzeiten, Wasser, Gewicht und Ziele",
@@ -312,6 +312,54 @@ export const TOOLS_DE: ToolsDoc = {
             params: {},
             example: "Zeig mein Gewicht ab jetzt in lb an",
         },
+        log_body_measurement: {
+            description:
+                "Erfasse ein Maßband-Maß an einer Körperstelle – Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel oder Wade – in cm oder Zoll. Der Wert wird genau so gespeichert, wie du ihn eingibst, zusammen mit einem einheitlichen Wert, sodass ein Wechsel der Einheit nie eine Zahl verschiebt. Zahlen weit außerhalb eines realistischen Bereichs für die Körperstelle werden als wahrscheinliche Tippfehler abgelehnt.",
+            params: {
+                kind: "Welche Körperstelle: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> oder <code>calf</code>. Ein Wert pro Körperstelle; die Seite (links/rechts) kann in die Notizen.",
+                value: "Das Maß in <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> oder <code>in</code>; Standard ist deine gespeicherte Längeneinheit.",
+                logged_at: "Wann gemessen wurde, falls nicht jetzt",
+                notes: "Zusätzliche Notizen",
+            },
+            example: "Trag meinen Taillenumfang ein – heute Morgen 82 cm",
+        },
+        get_body_measurements: {
+            description:
+                "Liste deine Körpermaße nach Tagen auf, älteste zuerst, auf Wunsch nur für eine Körperstelle. Ohne Datumsangaben umfasst das die letzten 30 Tage, pro Aufruf bis zu 366 Tage.",
+            params: {
+                kind: "Nur diese Körperstelle (z. B. <code>waist</code>)",
+                start_date: "Startdatum (JJJJ-MM-TT)",
+                end_date:
+                    "Enddatum (JJJJ-MM-TT), bis zu 366 Tage einschließlich des Starttags",
+            },
+            example: "Zeig mir meinen Taillenumfang der letzten drei Monate",
+        },
+        update_body_measurement: {
+            description:
+                "Korrigiere ein bestehendes Maß – den Wert, seine Einheit, den Zeitpunkt oder die Notizen. Die Körperstelle selbst bleibt fest; eine andere Körperstelle ist ein neuer Eintrag.",
+            params: {
+                id: "UUID des zu ändernden Maßes",
+                value: "Neuer Wert in <code>unit</code>.",
+                unit: "Standard ist die Einheit, in der der Eintrag erfasst wurde.",
+                logged_at: "ISO-8601-Zeitstempel",
+                notes: "Neue Notizen, die die bisherigen ersetzen",
+            },
+            example: "Der Hüftumfang war 98 cm, nicht 89",
+        },
+        delete_body_measurement: {
+            description: "Entferne einen Körpermaß-Eintrag.",
+            params: {
+                id: "UUID des zu löschenden Maßes",
+            },
+            example: "Lösch das heutige Halsmaß",
+        },
+        set_length_unit: {
+            description:
+                "Wähl, ob Körpermaße in Zentimetern oder Zoll angezeigt und eingegeben werden. Unabhängig von deiner Gewichtseinheit. Gespeicherte Werte bleiben unverändert – es ändert sich nur die Anzeige und wie Eingaben ohne Einheit gelesen werden.",
+            params: {},
+            example: "Nimm für meine Körpermaße ab jetzt Zoll",
+        },
         set_nutrition_goals: {
             description:
                 "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
@@ -380,7 +428,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_profile: {
             description:
-                "Sieh deine aktuellen Einstellungen auf einen Blick: Zeitzone (plus lokales Datum und Uhrzeit), Widget-Sprache, bevorzugte Gewichtseinheit, ob In-Chat-Widgets angezeigt werden und ob die Alkohol-Erfassung eingeschaltet ist.",
+                "Sieh deine aktuellen Einstellungen auf einen Blick: Zeitzone (plus lokales Datum und Uhrzeit), Widget-Sprache, bevorzugte Gewichts- und Längeneinheit, ob In-Chat-Widgets angezeigt werden und ob die Alkohol-Erfassung eingeschaltet ist.",
             params: {},
             example: "Welche Einstellungen habe ich gerade?",
         },
@@ -502,7 +550,7 @@ export const TOOLS_DE: ToolsDoc = {
             "delete-account": {
                 question: "Wie lösche ich mein Konto?",
                 answerHtml:
-                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie bittet dich um Bestätigung und löscht dann endgültig deine Mahlzeiten, Wasser- und Gewichtseinträge, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen – exportiere deine Daten also vorher, wenn du eine Kopie behalten willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, wird ein neues, leeres Konto angelegt.',
+                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie bittet dich um Bestätigung und löscht dann endgültig deine Mahlzeiten, Wasser-, Gewichts- und Körpermaß-Einträge, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen – exportiere deine Daten also vorher, wenn du eine Kopie behalten willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, wird ein neues, leeres Konto angelegt.',
             },
             "report-a-problem": {
                 question:

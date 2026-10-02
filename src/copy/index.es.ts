@@ -8,7 +8,7 @@
 // Locale notes: numbers follow Spanish conventions as CLDR has them — no
 // separator in a four-digit figure ("2000", "1830"), a decimal comma
 // ("78,4 kg") — the same formatting the cards on the page get from
-// toLocaleString("es"). The tool count ("36") is hand-typed here exactly as
+// toLocaleString("es"). The tool count ("41") is hand-typed here exactly as
 // in index.ts — see CLAUDE.md's "Registered tool set".
 
 import type { IndexDoc } from "./index.js";
@@ -172,7 +172,7 @@ export const INDEX_ES: IndexDoc = {
         note: "Todo esto es opcional. Puedes hacerlo ahora, más tarde o nunca: empieza a registrar y ajústalo cuando quieras.",
         toolsCta: {
             heading: "¿Te preguntas qué puede hacer de verdad?",
-            body: "Explora las 36 herramientas (registro, códigos de barras, agua, peso, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
+            body: "Explora las 41 herramientas (registro, códigos de barras, agua, peso y medidas corporales, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
             arrow: "Ver las herramientas",
         },
     },
@@ -597,10 +597,10 @@ export const INDEX_ES: IndexDoc = {
                 id: "export-data",
                 title: "Llévate tus datos",
                 description:
-                    "Una sola petición reúne todo lo que se guarda sobre ti (comidas, agua, pesajes, objetivos, ajustes del perfil, el registro de tu cuenta, la telemetría de uso y las conexiones de apps) en un ZIP de archivos CSV con un README. Las marcas de tiempo usan tu zona horaria, y meals.csv se vuelve a importar tal cual.",
+                    "Una sola petición reúne todo lo que se guarda sobre ti (comidas, agua, pesajes, medidas corporales, objetivos, ajustes del perfil, el registro de tu cuenta, la telemetría de uso y las conexiones de apps) en un ZIP de archivos CSV con un README. Las marcas de tiempo usan tu zona horaria, y meals.csv se vuelve a importar tal cual.",
                 toolNotes: {
                     export_all_data:
-                        "Empaqueta ocho CSV y un README en un ZIP con un enlace válido durante 60 minutos",
+                        "Empaqueta nueve CSV y un README en un ZIP con un enlace válido durante 60 minutos",
                 },
                 messages: [
                     {
@@ -672,7 +672,7 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 title: "Seguimiento de peso",
-                body: "Registra tu peso corporal en kg o lb, consulta tendencias de 7/14/30 días y sigue el progreso hacia un peso objetivo.",
+                body: "Registra tu peso corporal en kg o lb, consulta tendencias de 7/14/30 días y sigue el progreso hacia un peso objetivo. A su lado, puedes registrar en cm o in medidas con cinta métrica de nueve partes del cuerpo, de la cintura a la pantorrilla.",
             },
             {
                 title: "Siempre en tu zona horaria",
@@ -684,7 +684,7 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 title: "Exporta: tus datos son tuyos",
-                body: "Llévate todo lo que almacenamos sobre ti (comidas, agua, peso, objetivos y perfil, además del registro de tu cuenta, la telemetría de uso y las apps conectadas) como un único ZIP de archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. Y elimina tu cuenta y tus datos cuando quieras.",
+                body: "Llévate todo lo que almacenamos sobre ti (comidas, agua, peso, medidas corporales, objetivos y perfil, además del registro de tu cuenta, la telemetría de uso y las apps conectadas) como un único ZIP de archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. Y elimina tu cuenta y tus datos cuando quieras.",
             },
         ],
     },
@@ -816,7 +816,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué puedo registrar?",
             visibleHtml:
-                "Calorías, proteína, carbohidratos, grasa, fibra, azúcares totales y agua en cada entrada, descritos en lenguaje natural o obtenidos del código de barras de un producto a través de Open Food Facts. La cafeína también se registra, en miligramos, la unidad que usan todas las etiquetas, y no aporta calorías. El alcohol también puede controlarse, en gramos de etanol puro; se muestra en cuanto activas su seguimiento. También puedes registrar tu peso corporal en kg o lb y seguir tendencias hacia un peso objetivo. Consulta resúmenes diarios, busca comidas por rango de fechas, actualiza o elimina entradas pasadas, define objetivos y sigue tu evolución con el tiempo.",
+                "Calorías, proteína, carbohidratos, grasa, fibra, azúcares totales y agua en cada entrada, descritos en lenguaje natural o obtenidos del código de barras de un producto a través de Open Food Facts. La cafeína también se registra, en miligramos, la unidad que usan todas las etiquetas, y no aporta calorías. El alcohol también puede controlarse, en gramos de etanol puro; se muestra en cuanto activas su seguimiento. También puedes registrar tu peso corporal en kg o lb y seguir tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) también se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, actualiza o elimina entradas pasadas, define objetivos y sigue tu evolución con el tiempo.",
         },
         {
             question: "¿Qué precisión tiene el conteo de calorías?",

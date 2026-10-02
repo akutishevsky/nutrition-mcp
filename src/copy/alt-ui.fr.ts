@@ -37,7 +37,7 @@ export const ALT_UI_FR: AltUiCopy = {
             },
             {
                 title: "Poids et objectifs",
-                body: "Enregistre ton poids en kg ou en lb, fixe tes objectifs de calories, de macros, de fibres, de sucres, de caféine et d'eau (les fibres comme cible à atteindre, les sucres et la caféine comme limites à ne pas dépasser) et suis ton évolution vers un poids cible. Le suivi de l'alcool est là aussi, en option et désactivé tant que tu ne l'actives pas.",
+                body: "Enregistre ton poids en kg ou en lb et tes mensurations de neuf zones du corps en cm ou en pouces, fixe tes objectifs de calories, de macros, de fibres, de sucres, de caféine et d'eau (les fibres comme cible à atteindre, les sucres et la caféine comme limites à ne pas dépasser) et suis ton évolution vers un poids cible. Le suivi de l'alcool est là aussi, en option et désactivé tant que tu ne l'actives pas.",
             },
             {
                 title: "Résumés et tendances",
@@ -45,7 +45,7 @@ export const ALT_UI_FR: AltUiCopy = {
             },
             {
                 title: "Importe tes données, elles restent à toi",
-                body: "Importe ton historique de repas depuis l'export CSV d'une autre app : il est analysé dans ton navigateur, pas par l'IA. Récupère tout quand tu veux : un ZIP avec tes repas, ton hydratation, ton poids, tes objectifs et ton profil, plus les données de ton compte, ta télémétrie d'utilisation et tes applications connectées, en fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Et tu peux supprimer ton compte tout aussi facilement.",
+                body: "Importe ton historique de repas depuis l'export CSV d'une autre app : il est analysé dans ton navigateur, pas par l'IA. Récupère tout quand tu veux : un ZIP avec tes repas, ton hydratation, ton poids, tes mensurations, tes objectifs et ton profil, plus les données de ton compte, ta télémétrie d'utilisation et tes applications connectées, en fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Et tu peux supprimer ton compte tout aussi facilement.",
             },
             {
                 title: "Open source et gratuit",

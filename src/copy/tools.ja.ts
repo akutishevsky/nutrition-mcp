@@ -25,11 +25,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_JA: ToolsDoc = {
     meta: {
-        title: "カロリー計算・PFC・水分・体重管理の全36ツール",
+        title: "カロリー計算・PFC・水分・体重・体の計測値の全41ツール",
         description:
-            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全36ツール。食事記録、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重の記録に対応。",
+            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全41ツール。食事記録、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
         ogDescription:
-            "Nutrition MCPサーバーがお使いのAIに追加する全36ツールを、説明と例文つきで紹介。他のアプリの履歴を取り込めるCSVインポーターも含みます。",
+            "Nutrition MCPサーバーがお使いのAIに追加する全41ツールを、説明と例文つきで紹介。他のアプリの履歴を取り込めるCSVインポーターも含みます。",
     },
     hero: {
         eyebrow: "リファレンス",
@@ -37,7 +37,7 @@ export const TOOLS_JA: ToolsDoc = {
         titleEm: "できる",
         titleAfterEm: "こと、すべて",
         lead: "ツールを直接呼び出す必要はありません。Claude、ChatGPTなどのMCPクライアントに話しかけるだけで、AIが適切なツールを選びます。ここでは、Nutrition MCPサーバーが提供する食事・カロリーとPFC・水分・体重のツールをすべて取り上げ、それぞれの機能と、そのツールが使われるきっかけになるフレーズを紹介します。",
-        countBold: "全36ツール",
+        countBold: "全41ツール",
         countTail: "· 7分野",
     },
     categories: {
@@ -59,10 +59,10 @@ export const TOOLS_JA: ToolsDoc = {
             description: "食事と合わせて水分摂取量を記録します。",
         },
         weight: {
-            pillLabel: "体重",
-            title: "体重管理",
+            pillLabel: "体",
+            title: "体重と体の計測値",
             description:
-                "体重を記録して見返し、目標体重までの推移を確認できます。",
+                "体重と体の計測値を記録して見返し、目標体重までの推移を確認できます。",
         },
         "goals-progress": {
             pillLabel: "目標",
@@ -222,7 +222,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、water.csv、weight.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリ。トークンは含みません）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
+                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、water.csv、weight.csv、body_measurements.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリ。トークンは含みません）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
             params: {},
             example: "食事・水分・体重・目標、データを全部エクスポートして",
         },
@@ -313,6 +313,53 @@ export const TOOLS_JA: ToolsDoc = {
             params: {},
             example: "これからは体重をポンドにして",
         },
+        log_body_measurement: {
+            description:
+                "メジャーで測った体の1部位の計測値（ウエスト、ヒップ、首、胸囲、肩幅、上腕、前腕、太もも、ふくらはぎ）を、cmまたはインチで記録します。入力したとおりの値を標準化した値とあわせて保存するため、単位を切り替えても数値がずれることはありません。その部位として現実的な範囲から大きく外れた数値は、入力ミスの可能性が高いものとして受け付けません。",
+            params: {
+                kind: "部位：<code>waist</code>、<code>hips</code>、<code>neck</code>、<code>chest</code>、<code>shoulders</code>、<code>upper_arm</code>、<code>forearm</code>、<code>thigh</code>、<code>calf</code>のいずれか。1部位につき値は1つで、左右の区別はメモに書けます。",
+                value: "<code>unit</code>で指定した単位の計測値（&gt; 0）。",
+                unit: "<code>cm</code>または<code>in</code>。省略時は保存済みの長さの単位。",
+                logged_at: "測った時刻（今ではない場合）",
+                notes: "追加のメモ",
+            },
+            example: "ウエストを記録して。今朝は82cm",
+        },
+        get_body_measurements: {
+            description:
+                "体の計測値を日ごとに古い順で一覧表示します。1つの部位だけに絞ることもできます。日付を指定しなければ直近30日間が対象で、1回あたり最大366日まで指定できます。",
+            params: {
+                kind: "この部位だけ（例：<code>waist</code>）",
+                start_date: "開始日（YYYY-MM-DD）",
+                end_date: "終了日（YYYY-MM-DD）。開始日を含めて最大366日",
+            },
+            example: "この3か月のウエストの計測値を見せて",
+        },
+        update_body_measurement: {
+            description:
+                "記録済みの計測値（数値、単位、日時、メモ）を修正します。部位そのものは変更できず、別の部位は新しい記録になります。",
+            params: {
+                id: "更新する計測値のUUID",
+                value: "<code>unit</code>で指定した単位の新しい値。",
+                unit: "省略時は記録したときの単位。",
+                logged_at: "ISO 8601形式のタイムスタンプ",
+                notes: "置き換えるメモ",
+            },
+            example: "ヒップの計測値、89じゃなくて98cmだった",
+        },
+        delete_body_measurement: {
+            description: "体の計測値の記録を削除します。",
+            params: {
+                id: "削除する計測値のUUID",
+            },
+            example: "今日の首の計測値を消して",
+        },
+        set_length_unit: {
+            description:
+                "体の計測値の表示と入力の単位を、cmとインチから選びます。体重の単位とは別の設定です。保存済みの値は変わらず、変わるのは表示と、単位なしで入力したときの解釈だけです。",
+            params: {},
+            example: "計測値はこれからインチで表示して",
+        },
         set_nutrition_goals: {
             description:
                 "1日のカロリー、マクロ栄養素、食物繊維、糖類、アルコール、カフェイン、水分の目標と、必要に応じて目標体重を設定します。カロリー・タンパク質・炭水化物・脂質・食物繊維・水分は達成を目指す目標、糖類・アルコール・カフェインは超えないようにする上限で、進捗の伝え方もそれに合わせて変わります。更新されるのは指定した項目だけで、ほかはそのまま残ります。",
@@ -375,7 +422,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         get_profile: {
             description:
-                "現在の設定をまとめて確認できます。対象は、タイムゾーン（現地の日付と時刻も）、ウィジェットの言語、体重の単位、チャット内ウィジェットの表示の有無、アルコール記録のオン/オフです。",
+                "現在の設定をまとめて確認できます。対象は、タイムゾーン（現地の日付と時刻も）、ウィジェットの言語、体重と長さの単位、チャット内ウィジェットの表示の有無、アルコール記録のオン/オフです。",
             params: {},
             example: "今の設定を教えて",
         },
@@ -482,7 +529,7 @@ export const TOOLS_JA: ToolsDoc = {
             },
             "delete-account": {
                 question: "アカウントを削除するには？",
-                answerHtml: `AIにNutrition MCPのアカウントを削除するよう頼んでください（<a href="#delete_account"><code>delete_account</code></a>）。AIが確認を求め、確認すると食事、水分、体重、目標、設定、AIアプリがどのツールを使ったかの記録、エクスポートファイル（ある場合）、サインイン情報、そしてアカウント自体が完全に削除されます。元に戻せないため、コピーを残したい場合は先にデータをエクスポートしてください。そのあと、アプリからコネクタを削除してください。後で同じメールアドレスでサインインし直すと、新しい空のアカウントが作成されます。`,
+                answerHtml: `AIにNutrition MCPのアカウントを削除するよう頼んでください（<a href="#delete_account"><code>delete_account</code></a>）。AIが確認を求め、確認すると食事、水分、体重、体の計測値、目標、設定、AIアプリがどのツールを使ったかの記録、エクスポートファイル（ある場合）、サインイン情報、そしてアカウント自体が完全に削除されます。元に戻せないため、コピーを残したい場合は先にデータをエクスポートしてください。そのあと、アプリからコネクタを削除してください。後で同じメールアドレスでサインインし直すと、新しい空のアカウントが作成されます。`,
             },
             "report-a-problem": {
                 question: "バグやセキュリティの問題を報告するには？",

@@ -44,7 +44,7 @@ export const ALT_UI_DE: AltUiCopy = {
             },
             {
                 title: "Gewicht &amp; Ziele",
-                body: "Erfasse dein Körpergewicht in kg oder lb und leg Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Koffein und Wasser fest – Ballaststoffe als Ziel, das du erreichen willst, Zucker und Koffein als Limits, unter denen du bleiben willst – und verfolge deinen Trend in Richtung Zielgewicht. Auch Alkohol lässt sich erfassen – per Opt-in und standardmäßig aus, bis du es einschaltest.",
+                body: "Erfasse dein Körpergewicht in kg oder lb und Maßband-Maße von neun Körperstellen in cm oder in, leg Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Koffein und Wasser fest – Ballaststoffe als Ziel, das du erreichen willst, Zucker und Koffein als Limits, unter denen du bleiben willst – und verfolge deinen Trend in Richtung Zielgewicht. Auch Alkohol lässt sich erfassen – per Opt-in und standardmäßig aus, bis du es einschaltest.",
             },
             {
                 title: "Übersichten &amp; Trends",
@@ -52,7 +52,7 @@ export const ALT_UI_DE: AltUiCopy = {
             },
             {
                 title: "Import &amp; volle Kontrolle über deine Daten",
-                body: "Importier deinen Mahlzeiten-Verlauf aus dem CSV-Export einer anderen App – eingelesen in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit: ein ZIP mit deinen Mahlzeiten, Wasser, Gewicht, Zielen und deinem Profil, dazu deinen Kontodaten, der Nutzungs-Telemetrie und deinen verbundenen Apps, als CSV-Dateien. Bisher lassen sich nur Mahlzeiten wieder importieren. Oder lösch dein Konto – genauso einfach.",
+                body: "Importier deinen Mahlzeiten-Verlauf aus dem CSV-Export einer anderen App – eingelesen in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit: ein ZIP mit deinen Mahlzeiten, Wasser, Gewicht, Körpermaßen, Zielen und deinem Profil, dazu deinen Kontodaten, der Nutzungs-Telemetrie und deinen verbundenen Apps, als CSV-Dateien. Bisher lassen sich nur Mahlzeiten wieder importieren. Oder lösch dein Konto – genauso einfach.",
             },
             {
                 title: "Open Source &amp; kostenlos",

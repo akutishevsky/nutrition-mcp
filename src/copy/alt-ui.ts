@@ -185,7 +185,7 @@ export const ALT_UI_EN: AltUiCopy = {
             },
             {
                 title: "Weight &amp; goals",
-                body: "Log body weight in kg or lb, set calorie, macro, fiber, sugar, caffeine, and water goals — fiber a target to reach, sugar and caffeine limits to stay under — and track trends toward a goal weight. Alcohol tracking is there too, opt-in and off unless you turn it on.",
+                body: "Log body weight in kg or lb, and tape measurements of nine body sites in cm or in, set calorie, macro, fiber, sugar, caffeine, and water goals — fiber a target to reach, sugar and caffeine limits to stay under — and track trends toward a goal weight. Alcohol tracking is there too, opt-in and off unless you turn it on.",
             },
             {
                 title: "Summaries &amp; trends",
@@ -193,7 +193,7 @@ export const ALT_UI_EN: AltUiCopy = {
             },
             {
                 title: "Import &amp; own your data",
-                body: "Import your meal history from another app's CSV export — parsed in your browser, not by the AI. Take everything back out whenever you want: one ZIP with your meals, water, weight, goals and profile, plus your account record, usage telemetry and connected apps, as CSV files. Meals are the only part that can be imported back in for now. Or delete your account, just as easily.",
+                body: "Import your meal history from another app's CSV export — parsed in your browser, not by the AI. Take everything back out whenever you want: one ZIP with your meals, water, weight, body measurements, goals and profile, plus your account record, usage telemetry and connected apps, as CSV files. Meals are the only part that can be imported back in for now. Or delete your account, just as easily.",
             },
             {
                 title: "Open source &amp; free",

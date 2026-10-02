@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 36 tools" reference page), rendered
+// Typed content for /tools (the "all 41 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -128,12 +128,13 @@ export interface ToolIdentity {
 }
 
 /**
- * All 36 tools, in the exact document order of public/tools.html (grouped
- * by category — see CategoryId — for the reader). Cross-checked against
- * the 36 `server.registerTool()` calls in src/mcp.ts: the two orders
+ * All 41 tools, in the exact document order of public/tools.html (grouped
+ * by category — see CategoryId — for the reader). The *set* of names must
+ * equal the 41 `server.registerTool()` calls in src/mcp.ts; the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
- * reader-facing grouping) but the *set* of 36 tool names is identical —
- * nothing here was dropped or invented.
+ * reader-facing grouping). "the registered tool set and every hand-typed
+ * tool count agree" in src/site-copy.test.ts enforces the set and the
+ * count fields of every locale.
  */
 export const TOOLS: ToolIdentity[] = [
     {
@@ -344,6 +345,57 @@ export const TOOLS: ToolIdentity[] = [
     },
     {
         name: "set_weight_unit",
+        category: "weight",
+        badges: ["setting"],
+        params: [],
+        hasPhotoHint: false,
+    },
+    {
+        name: "log_body_measurement",
+        category: "weight",
+        badges: ["log"],
+        params: [
+            { name: "kind", required: true },
+            { name: "value", required: true },
+            { name: "unit", required: false },
+            { name: "logged_at", required: false },
+            { name: "notes", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "get_body_measurements",
+        category: "weight",
+        badges: ["view"],
+        params: [
+            { name: "kind", required: false },
+            { name: "start_date", required: false },
+            { name: "end_date", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "update_body_measurement",
+        category: "weight",
+        badges: ["edit"],
+        params: [
+            { name: "id", required: true },
+            { name: "value", required: false },
+            { name: "unit", required: false },
+            { name: "logged_at", required: false },
+            { name: "notes", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "delete_body_measurement",
+        category: "weight",
+        badges: ["remove"],
+        params: [{ name: "id", required: true }],
+        hasPhotoHint: false,
+    },
+    {
+        name: "set_length_unit",
         category: "weight",
         badges: ["setting"],
         params: [],
@@ -597,11 +649,11 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "36 Calorie, Macro, Water & Weight Tools",
+        title: "41 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 36 Nutrition MCP tools for Claude, ChatGPT and other AI apps: log meals, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water and weight.",
+            "All 41 Nutrition MCP tools for Claude, ChatGPT and more: log meals, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 36 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
+            "All 41 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
@@ -609,7 +661,7 @@ const TOOLS_EN: ToolsDoc = {
         titleEm: "do",
         titleAfterEm: "",
         lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
-        countBold: "36 tools",
+        countBold: "41 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -631,10 +683,10 @@ const TOOLS_EN: ToolsDoc = {
             description: "Track hydration alongside your food.",
         },
         weight: {
-            pillLabel: "Weight",
-            title: "Weight tracking",
+            pillLabel: "Body",
+            title: "Weight & body measurements",
             description:
-                "Log weigh-ins, review them, and watch the trend toward your target.",
+                "Log weigh-ins and tape measurements, review them, and watch your weight trend toward your target.",
         },
         "goals-progress": {
             pillLabel: "Goals",
@@ -795,7 +847,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps, without any tokens), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
+                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps, without any tokens), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
             params: {},
             example: "Export all of my data — meals, water, weight, and goals",
         },
@@ -887,6 +939,54 @@ const TOOLS_EN: ToolsDoc = {
             params: {},
             example: "Use pounds for my weight from now on",
         },
+        log_body_measurement: {
+            description:
+                "Record a tape measurement of one body site — waist, hips, neck, chest, shoulders, upper arm, forearm, thigh or calf — in cm or inches. Stored exactly as entered alongside a canonical value, so switching units never shifts a number. Numbers far outside a realistic range for the site are refused as likely typos.",
+            params: {
+                kind: "Which site: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> or <code>calf</code>. One value per site; a side (left/right) can go in notes.",
+                value: "The measurement, in <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> or <code>in</code>; defaults to your saved length unit.",
+                logged_at: "When it was measured, if not now",
+                notes: "Additional notes",
+            },
+            example: "Log my waist — 82 cm this morning",
+        },
+        get_body_measurements: {
+            description:
+                "List your body measurements by day, oldest first, optionally for one site only. Covers the last 30 days unless you give dates, up to 366 days per call.",
+            params: {
+                kind: "Only this site (e.g. <code>waist</code>)",
+                start_date: "Start date (YYYY-MM-DD)",
+                end_date:
+                    "End date (YYYY-MM-DD), up to 366 days including the start",
+            },
+            example: "Show my waist measurements from the last three months",
+        },
+        update_body_measurement: {
+            description:
+                "Correct an existing measurement — the value, its unit, the time, or notes. The site itself is fixed; a different site is a new entry.",
+            params: {
+                id: "UUID of the measurement to update",
+                value: "New value, in <code>unit</code>.",
+                unit: "Defaults to the unit the entry was recorded in.",
+                logged_at: "ISO 8601 timestamp",
+                notes: "Replacement notes",
+            },
+            example: "That hip measurement was 98 cm, not 89",
+        },
+        delete_body_measurement: {
+            description: "Remove a body measurement entry.",
+            params: {
+                id: "UUID of the measurement to delete",
+            },
+            example: "Delete today's neck measurement",
+        },
+        set_length_unit: {
+            description:
+                "Choose whether body measurements are shown and entered in centimetres or inches. Separate from your weight unit. Stored values are unaffected — only display and default parsing change.",
+            params: {},
+            example: "Use inches for my measurements",
+        },
         set_nutrition_goals: {
             description:
                 "Set your daily calorie, macro, fiber, sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
@@ -951,7 +1051,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_profile: {
             description:
-                "See your current settings in one go: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on.",
+                "See your current settings in one go: timezone (plus local date and time), widget language, preferred weight and length units, whether in-chat widgets are shown, and whether alcohol tracking is on.",
             params: {},
             example: "What are my current settings?",
         },
@@ -1067,7 +1167,7 @@ const TOOLS_EN: ToolsDoc = {
             "delete-account": {
                 question: "How do I delete my account?",
                 answerHtml:
-                    'Ask the AI to delete your Nutrition MCP account (<a href="#delete_account"><code>delete_account</code></a>). It will ask you to confirm, then permanently delete your meals, water, weight, goals, settings, the record of which tools your AI app used, any export file, your sign-in and the account itself. This cannot be undone, so export your data first if you want a copy. Then remove the connector from your app. Signing in again with the same email later creates a new, empty account.',
+                    'Ask the AI to delete your Nutrition MCP account (<a href="#delete_account"><code>delete_account</code></a>). It will ask you to confirm, then permanently delete your meals, water, weight, body measurements, goals, settings, the record of which tools your AI app used, any export file, your sign-in and the account itself. This cannot be undone, so export your data first if you want a copy. Then remove the connector from your app. Signing in again with the same email later creates a new, empty account.',
             },
             "report-a-problem": {
                 question: "How do I report a bug or a security issue?",

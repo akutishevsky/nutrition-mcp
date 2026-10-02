@@ -50,7 +50,7 @@ export const ALT_UI_IT: AltUiCopy = {
             },
             {
                 title: "Peso e obiettivi",
-                body: "Registra il peso in kg o lb e imposta obiettivi per calorie, macro, fibre, zuccheri, caffeina e acqua: le fibre come traguardo da raggiungere, zuccheri e caffeina come limiti da non superare. Poi segui l'andamento verso il tuo peso obiettivo. C'è anche il monitoraggio dell'alcol, facoltativo e disattivato finché non lo attivi.",
+                body: "Registra il peso in kg o lb e le misure di nove zone del corpo in cm o pollici e imposta obiettivi per calorie, macro, fibre, zuccheri, caffeina e acqua: le fibre come traguardo da raggiungere, zuccheri e caffeina come limiti da non superare. Poi segui l'andamento verso il tuo peso obiettivo. C'è anche il monitoraggio dell'alcol, facoltativo e disattivato finché non lo attivi.",
             },
             {
                 title: "Riepiloghi e andamenti",
@@ -58,7 +58,7 @@ export const ALT_UI_IT: AltUiCopy = {
             },
             {
                 title: "Importa i dati e tienili tuoi",
-                body: "Importa lo storico dei pasti dall'esportazione CSV di un'altra app: il file viene letto nel tuo browser, non dall'IA. Riprenditi tutto quando vuoi: un unico ZIP con pasti, acqua, peso, obiettivi e profilo, più i dati dell'account, la telemetria di utilizzo e le app collegate, in file CSV. Per ora solo i pasti si possono reimportare. Oppure elimina l'account, con la stessa facilità.",
+                body: "Importa lo storico dei pasti dall'esportazione CSV di un'altra app: il file viene letto nel tuo browser, non dall'IA. Riprenditi tutto quando vuoi: un unico ZIP con pasti, acqua, peso, misure corporee, obiettivi e profilo, più i dati dell'account, la telemetria di utilizzo e le app collegate, in file CSV. Per ora solo i pasti si possono reimportare. Oppure elimina l'account, con la stessa facilità.",
             },
             {
                 title: "Open source e gratuito",

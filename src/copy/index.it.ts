@@ -181,7 +181,7 @@ export const INDEX_IT: IndexDoc = {
         note: "È tutto facoltativo. Puoi farlo ora, più tardi o mai: inizia pure a registrare e imposta queste opzioni quando vuoi.",
         toolsCta: {
             heading: "Vuoi sapere cosa sa fare davvero?",
-            body: "Sfoglia tutti i 36 strumenti (registrazione, codici a barre, acqua, peso, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
+            body: "Sfoglia tutti i 41 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
             arrow: "Esplora gli strumenti",
         },
     },
@@ -609,10 +609,10 @@ export const INDEX_IT: IndexDoc = {
                 id: "export-data",
                 title: "Porta via i tuoi dati",
                 description:
-                    "Con una sola richiesta raccoglie tutto ciò che è conservato su di te (pasti, acqua, pesate, obiettivi, impostazioni del profilo, dati dell'account, telemetria di utilizzo e app collegate) in uno ZIP di file CSV con un README. Gli orari sono nel tuo fuso orario, e meals.csv si reimporta direttamente.",
+                    "Con una sola richiesta raccoglie tutto ciò che è conservato su di te (pasti, acqua, pesate, misure corporee, obiettivi, impostazioni del profilo, dati dell'account, telemetria di utilizzo e app collegate) in uno ZIP di file CSV con un README. Gli orari sono nel tuo fuso orario, e meals.csv si reimporta direttamente.",
                 toolNotes: {
                     export_all_data:
-                        "Crea uno ZIP con otto file CSV e un README, scaricabile da un link valido 60 minuti",
+                        "Crea uno ZIP con nove file CSV e un README, scaricabile da un link valido 60 minuti",
                 },
                 messages: [
                     {
@@ -684,7 +684,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Monitoraggio del peso",
-                body: "Registra il tuo peso corporeo in kg o lb, visualizza gli andamenti a 7/14/30 giorni e segui i progressi verso un peso obiettivo.",
+                body: "Registra il tuo peso corporeo in kg o lb, visualizza gli andamenti a 7/14/30 giorni e segui i progressi verso un peso obiettivo. Accanto al peso puoi registrare, in cm o pollici, le misure prese con il metro in nove zone del corpo, dalla vita al polpaccio.",
             },
             {
                 title: "Fuso orario intelligente",
@@ -696,7 +696,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Esporta i tuoi dati: restano tuoi",
-                body: "Porta via tutto ciò che conserviamo su di te (pasti, acqua, peso, obiettivi e profilo, oltre ai dati dell'account, alla telemetria di utilizzo e alle app collegate) in un unico ZIP di file CSV. Per ora i pasti sono l'unica parte che si può reimportare. Puoi eliminare account e dati quando vuoi.",
+                body: "Porta via tutto ciò che conserviamo su di te (pasti, acqua, peso, misure corporee, obiettivi e profilo, oltre ai dati dell'account, alla telemetria di utilizzo e alle app collegate) in un unico ZIP di file CSV. Per ora i pasti sono l'unica parte che si può reimportare. Puoi eliminare account e dati quando vuoi.",
             },
         ],
     },
@@ -816,7 +816,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Anche le misure corporee (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
         },
         {
             question: "Quanto sono precisi i conteggi delle calorie?",

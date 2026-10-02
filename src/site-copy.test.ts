@@ -153,6 +153,7 @@ const ARCHIVE_FILES = [
     "meals.csv",
     "water.csv",
     "weight.csv",
+    "body_measurements.csv",
     "goals.csv",
     "profile.csv",
     "account.csv",
@@ -161,7 +162,14 @@ const ARCHIVE_FILES = [
     "README.txt",
 ];
 // The tables behind those CSVs, as the prose names them.
-const ARCHIVE_TABLES = ["meals", "water", "weight", "goals", "profile"];
+const ARCHIVE_TABLES = [
+    "meals",
+    "water",
+    "weight",
+    "body measurements",
+    "goals",
+    "profile",
+];
 
 // The list above is a mirror, and mirrors drift. src/export.ts owns the real
 // archive, so whenever it names its members, the two must agree exactly — a
@@ -250,7 +258,7 @@ test("llms.txt names the export tool and the archive members", async () => {
     for (const file of ARCHIVE_FILES) {
         expect(llms, `llms.txt omits ${file}`).toContain(file);
     }
-    // Water, weight, goals and profile leave but do not return, and an LLM
+    // Water, weight, body measurements, goals and profile leave but do not return, and an LLM
     // reading this file is exactly who would otherwise promise a round trip.
     expect(llms).toContain("export-only");
 });
@@ -279,7 +287,7 @@ test("the comparison-page card names every table it promises back", async () => 
             html,
             `${slug}.html was not regenerated from alt-ui.ts`,
         ).toContain(
-            "one ZIP with your meals, water, weight, goals and profile",
+            "one ZIP with your meals, water, weight, body measurements, goals and profile",
         );
     }
 });
@@ -427,6 +435,56 @@ test("every /tools param has prose in every locale", () => {
         }
     }
     expect(missing).toEqual([]);
+});
+
+// The tool count is hand-typed in a dozen places — the /tools title, meta and
+// OG descriptions and count pill in every locale, every locale's landing-page
+// "Browse all N tools" CTA, and llms.txt — and nothing else ties them to the
+// tools the server actually registers. Consolidating five settings tools into
+// get_profile left stale counts behind that only a grep caught. So the set of
+// names in TOOLS must equal the `server.registerTool()` names in src/mcp.ts
+// (scraped from source rather than imported: building the server needs
+// Supabase credentials), and every count field must name that many. README's
+// table and the directory listing are still checked by hand.
+test("the registered tool set and every hand-typed tool count agree", async () => {
+    const mcpSrc = await Bun.file("./src/mcp.ts").text();
+    const registered = [
+        ...mcpSrc.matchAll(/server\.registerTool\(\s*"([a-z0-9_]+)"/g),
+    ]
+        .map((m) => m[1]!)
+        .sort();
+    // Guard the guard: a scrape that finds nothing would agree with an empty
+    // TOOLS and pass vacuously.
+    expect(
+        registered.length,
+        "scraped no registerTool names out of src/mcp.ts — this guard's regex has gone stale, not the copy",
+    ).toBeGreaterThan(0);
+    expect(
+        TOOLS.map((t) => t.name).sort(),
+        "TOOLS in src/copy/tools.ts and the registerTool() calls in src/mcp.ts disagree",
+    ).toEqual(registered);
+
+    const n = registered.length;
+    const hasCount = (text: string) =>
+        new RegExp(`(?<!\\d)${n}(?!\\d)`).test(text);
+    const stale: string[] = [];
+    for (const [locale, doc] of Object.entries(TOOLS_COPY)) {
+        const fields: [string, string][] = [
+            ["meta.title", doc!.meta.title],
+            ["meta.description", doc!.meta.description],
+            ["meta.ogDescription", doc!.meta.ogDescription],
+            ["hero.countBold", doc!.hero.countBold],
+        ];
+        for (const [field, text] of fields)
+            if (!hasCount(text)) stale.push(`tools.${locale}: ${field}`);
+    }
+    for (const [locale, doc] of Object.entries(INDEX))
+        if (!hasCount(doc!.onboarding.toolsCta.body))
+            stale.push(`index.${locale}: onboarding.toolsCta.body`);
+    expect(stale, `these do not name ${n} tools`).toEqual([]);
+
+    const llms = await Bun.file("./public/llms.txt").text();
+    expect(llms).toContain(`all ${n} MCP tools`);
 });
 
 // get_trends ranks best/worst day by calories only (computeTrends in

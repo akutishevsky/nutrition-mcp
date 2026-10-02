@@ -38,7 +38,7 @@ export const ALT_UI_ES: AltUiCopy = {
             },
             {
                 title: "Peso y objetivos",
-                body: "Registra tu peso en kg o lb; fija objetivos de calorías, macros, fibra, azúcar, cafeína y agua (la fibra como mínimo que alcanzar; el azúcar y la cafeína como límites que no superar) y sigue tu tendencia hacia un peso objetivo. También puedes registrar el alcohol: es opcional y está desactivado hasta que lo actives.",
+                body: "Registra tu peso en kg o lb y medidas con cinta métrica de nueve partes del cuerpo en cm o in; fija objetivos de calorías, macros, fibra, azúcar, cafeína y agua (la fibra como mínimo que alcanzar; el azúcar y la cafeína como límites que no superar) y sigue tu tendencia hacia un peso objetivo. También puedes registrar el alcohol: es opcional y está desactivado hasta que lo actives.",
             },
             {
                 title: "Resúmenes y tendencias",
@@ -46,7 +46,7 @@ export const ALT_UI_ES: AltUiCopy = {
             },
             {
                 title: "Importa y controla tus datos",
-                body: "Importa tu historial de comidas desde la exportación CSV de otra app: el archivo se analiza en tu navegador, no lo procesa la IA. Llévatelo todo cuando quieras: un ZIP con tus comidas, agua, peso, objetivos y perfil, además de los datos de tu cuenta, la telemetría de uso y las apps conectadas, en archivos CSV. Por ahora, las comidas son lo único que se puede volver a importar. O elimina tu cuenta, igual de fácil.",
+                body: "Importa tu historial de comidas desde la exportación CSV de otra app: el archivo se analiza en tu navegador, no lo procesa la IA. Llévatelo todo cuando quieras: un ZIP con tus comidas, agua, peso, medidas corporales, objetivos y perfil, además de los datos de tu cuenta, la telemetría de uso y las apps conectadas, en archivos CSV. Por ahora, las comidas son lo único que se puede volver a importar. O elimina tu cuenta, igual de fácil.",
             },
             {
                 title: "Código abierto y gratis",
