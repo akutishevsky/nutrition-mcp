@@ -5,6 +5,8 @@ import {
     widgetsEnabledFromProfile,
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
+    preferredLengthUnitFromProfile,
+    bodyMeasurementIdempotencyKey,
     timezoneFromProfile,
     fetchAllPages,
     assertWindowComplete,
@@ -268,6 +270,7 @@ function profile(overrides: Partial<Profile> = {}): Profile {
         user_id: USER,
         timezone: "Europe/Kyiv",
         preferred_weight_unit: "kg",
+        preferred_length_unit: null,
         widgets_enabled: true,
         alcohol_tracking_enabled: false,
         preferred_drink_unit: null,
@@ -388,6 +391,116 @@ describe("preferredDrinkUnitFromProfile", () => {
     });
 });
 
+describe("preferredLengthUnitFromProfile", () => {
+    test("is null when never chosen", () => {
+        expect(preferredLengthUnitFromProfile(null)).toBeNull();
+        expect(preferredLengthUnitFromProfile(undefined)).toBeNull();
+        expect(
+            preferredLengthUnitFromProfile(
+                profile({ preferred_length_unit: null }),
+            ),
+        ).toBeNull();
+        expect(
+            preferredLengthUnitFromProfile(
+                withoutColumn("preferred_length_unit"),
+            ),
+        ).toBeNull();
+    });
+
+    test("returns a saved preference", () => {
+        expect(
+            preferredLengthUnitFromProfile(
+                profile({ preferred_length_unit: "cm" }),
+            ),
+        ).toBe("cm");
+        expect(
+            preferredLengthUnitFromProfile(
+                profile({ preferred_length_unit: "in" }),
+            ),
+        ).toBe("in");
+    });
+
+    test("degrades unrecognised column values to null", () => {
+        for (const junk of ["mm", 'cm"', "CM", "", 1]) {
+            expect(
+                preferredLengthUnitFromProfile(
+                    profile({ preferred_length_unit: junk as never }),
+                ),
+            ).toBeNull();
+        }
+    });
+
+    test("is never derived from the weight unit", () => {
+        expect(
+            preferredLengthUnitFromProfile(
+                profile({
+                    preferred_weight_unit: "lb",
+                    preferred_length_unit: null,
+                }),
+            ),
+        ).toBeNull();
+    });
+});
+
+describe("bodyMeasurementIdempotencyKey", () => {
+    const base = { kind: "waist" as const, value_mm: 800, notes: undefined };
+
+    test("is deterministic and server-prefixed", () => {
+        const a = bodyMeasurementIdempotencyKey(USER, base, LOGGED_AT);
+        expect(a).toBe(bodyMeasurementIdempotencyKey(USER, base, LOGGED_AT));
+        expect(a.startsWith("auto:")).toBe(true);
+    });
+
+    test("waist and hips with the same value and instant are two rows", () => {
+        expect(bodyMeasurementIdempotencyKey(USER, base, LOGGED_AT)).not.toBe(
+            bodyMeasurementIdempotencyKey(
+                USER,
+                { ...base, kind: "hips" },
+                LOGGED_AT,
+            ),
+        );
+    });
+
+    test("value_mm and logged_at change the key", () => {
+        const a = bodyMeasurementIdempotencyKey(USER, base, LOGGED_AT);
+        expect(
+            bodyMeasurementIdempotencyKey(
+                USER,
+                { ...base, value_mm: 801 },
+                LOGGED_AT,
+            ),
+        ).not.toBe(a);
+        expect(
+            bodyMeasurementIdempotencyKey(
+                USER,
+                base,
+                "2026-03-14T12:00:01.000Z",
+            ),
+        ).not.toBe(a);
+    });
+
+    test("value_entered and entered_unit do not enter the key", () => {
+        // 80 cm and 31.5 in of the same site are one 800 mm measurement.
+        const asCm = { ...base, value_entered: 80, entered_unit: "cm" };
+        const asIn = { ...base, value_entered: 31.5, entered_unit: "in" };
+        expect(bodyMeasurementIdempotencyKey(USER, asCm, LOGGED_AT)).toBe(
+            bodyMeasurementIdempotencyKey(USER, asIn, LOGGED_AT),
+        );
+    });
+
+    test("insertBodyMeasurement decodes notes before hashing them", async () => {
+        const body = fnBody(
+            await Bun.file("./src/supabase.ts").text(),
+            "insertBodyMeasurement",
+        );
+        const decode = body.indexOf("decodeEscapeSequences(");
+        expect(decode).toBeGreaterThan(-1);
+        expect(decode).toBeLessThan(
+            body.indexOf("bodyMeasurementIdempotencyKey("),
+        );
+    });
+});
+
 describe("no-profile defaults, together", () => {
     test("a user with no profile row gets widgets on, alcohol off, no drink unit", () => {
         // The exact triple buildMcpServer derives from one getProfile call.
@@ -455,6 +568,14 @@ describe("exportStoragePaths", () => {
             src.indexOf("export async function deleteAllUserData"),
         );
         expect(body).toContain("exportStoragePaths(userId)");
+    });
+
+    test("deleteAllUserData removes body measurements", async () => {
+        const src = await Bun.file("./src/supabase.ts").text();
+        const body = src.slice(
+            src.indexOf("export async function deleteAllUserData"),
+        );
+        expect(body).toContain('.from("body_measurement_log")');
     });
 });
 
@@ -580,17 +701,16 @@ function fnBody(src: string, name: string): string {
 }
 
 describe("window readers route through the paged reader", () => {
-    test.each(["getMealsInRange", "getWaterInRange", "getWeightInRange"])(
-        "%s pages",
-        async (name) => {
-            const body = fnBody(
-                await Bun.file("./src/supabase.ts").text(),
-                name,
-            );
-            expect(body).toContain("selectLoggedWindow<");
-            expect(body).not.toContain(".from(");
-        },
-    );
+    test.each([
+        "getMealsInRange",
+        "getWaterInRange",
+        "getWeightInRange",
+        "getBodyMeasurementsInRange",
+    ])("%s pages", async (name) => {
+        const body = fnBody(await Bun.file("./src/supabase.ts").text(), name);
+        expect(body).toContain("selectLoggedWindow<");
+        expect(body).not.toContain(".from(");
+    });
 
     test.each([
         ["getMealsByDate", "getMealsInRange"],

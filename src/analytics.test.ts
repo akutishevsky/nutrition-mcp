@@ -6,6 +6,17 @@ import {
 } from "./analytics.js";
 import { ToolError } from "./errors.js";
 import { LoggedAtError } from "./tz.js";
+import { assertPlausibleLength, pickLengthWriteUnit } from "./units.js";
+
+// The real text of a throw, so these rows can't drift from the source wording.
+function thrownMessage(fn: () => unknown): string {
+    try {
+        fn();
+    } catch (e) {
+        return (e as Error).message;
+    }
+    throw new Error("expected a throw");
+}
 
 // Each case below is the literal (or representative) wording of a real throw
 // site, not an invented string — see the file/line noted in each comment.
@@ -168,6 +179,62 @@ describe("categorizeError", () => {
         // src/foods.ts Open Food Facts
         ["Open Food Facts request failed: 429", "rate_limited"],
         ["Open Food Facts request failed: 500", "unknown"],
+
+        // Body measurements: src/supabase.ts updateBodyMeasurement, and
+        // src/mcp.ts notUuidText("body measurement", …)
+        [
+            "No body measurement found with id 00000000-0000-4000-8000-000000000004.",
+            "record_not_found",
+        ],
+        [
+            'No body measurement found with id "not a real calendar date": ids are UUIDs like "3f2b9c1e-…". Get one from get_body_measurements.',
+            "record_not_found",
+        ],
+        // src/units.ts assertPlausibleLength / toMillimetres
+        [
+            thrownMessage(() => assertPlausibleLength("waist", 300, "cm")),
+            "invalid_numeric_value",
+        ],
+        ["Invalid length value: NaN", "invalid_numeric_value"],
+        // src/mcp.ts set_length_unit
+        [
+            "Invalid length unit: mm. Valid values are 'cm', 'in', or null to clear.",
+            "invalid_param_value",
+        ],
+        // src/units.ts pickLengthWriteUnit
+        [
+            thrownMessage(() => pickLengthWriteUnit(undefined, null)),
+            "missing_required_param",
+        ],
+        // src/mcp.ts update_body_measurement with nothing to change — must not
+        // fall to tier 3's "date" keyword (which "update" would contain).
+        [
+            "Nothing to change: value, unit, logged_at or notes is needed.",
+            "missing_required_param",
+        ],
+        // src/supabase.ts body-measurement persistence
+        [
+            "Failed to insert body measurement: connection reset",
+            "supabase_error",
+        ],
+        [
+            'Failed to insert body measurement: new row for relation "body_measurement_log" violates check constraint "body_measurement_log_kind_check"',
+            "db_rejected_value",
+        ],
+        [
+            "Failed to get body measurements: fetched 1000 of 1400 rows — result would be truncated",
+            "read_truncated",
+        ],
+        [
+            "Failed to get body measurements: fetched 5 of 10 rows — export would be truncated",
+            "export_error",
+        ],
+        // Regression: the new length phrase must not swallow or shadow the
+        // body-weight one (src/mcp.ts assertPlausibleWeight).
+        [
+            "80 lb is outside the plausible body-weight range (20–500 kg / 44–1102 lb). Double-check the number and unit.",
+            "invalid_numeric_value",
+        ],
 
         // Native/third-party network errors
         ["fetch failed", "network_error"],
