@@ -4,12 +4,14 @@ import {
     getAllMeals,
     getAllWater,
     getAllWeight,
+    getAllBodyMeasurements,
     getAllOAuthGrants,
     getAllToolAnalytics,
     getAuthAccount,
     getNutritionGoals,
     getProfile,
     timezoneFromProfile,
+    type BodyMeasurementEntry,
     type Meal,
     type NutritionGoals,
     type OAuthGrantRow,
@@ -219,6 +221,58 @@ export function buildWeightCsv(
 }
 
 /**
+ * Column order for body_measurements.csv. Parallel array with the row builder
+ * below.
+ *
+ * value_mm is what is stored; value_entered + entered_unit is what the user
+ * typed, which is already readable, so there is no preference-based display
+ * column (unlike weight_display).
+ */
+const BODY_MEASUREMENT_CSV_COLUMNS = [
+    "id",
+    "logged_at",
+    // The zone logged_at is rendered in, so an offset-less wall clock never
+    // re-resolves against a later account timezone (#97).
+    "timezone",
+    "kind",
+    "value_mm",
+    "value_entered",
+    "entered_unit",
+    "notes",
+    // When the entry was written; see the same column in water.csv.
+    "created_at",
+] as const;
+
+/**
+ * Build body_measurements.csv. Emits its header even with zero rows, like
+ * every other file in the archive.
+ */
+export function buildBodyMeasurementsCsv(
+    entries: BodyMeasurementEntry[],
+    tz: string,
+): string {
+    const rows = [BODY_MEASUREMENT_CSV_COLUMNS.join(",")];
+    for (const e of entries) {
+        rows.push(
+            [
+                csvEscape(e.id),
+                csvEscape(formatLocalDateTime(e.logged_at, tz)),
+                csvEscape(tz),
+                csvEscape(e.kind),
+                csvEscape(e.value_mm),
+                // As typed: the numeric column may come back as a string, and
+                // either way it is written through untouched.
+                csvEscape(e.value_entered),
+                csvEscape(e.entered_unit),
+                csvEscape(e.notes),
+                csvEscape(localOrNull(e.created_at, tz)),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
+
+/**
  * Column order for goals.csv. Parallel array with the row builder below.
  *
  * `daily_caffeine_mg` is milligrams while its neighbours are grams, and
@@ -290,6 +344,9 @@ const PROFILE_CSV_COLUMNS = [
     "locale",
     "created_at",
     "updated_at",
+    // Raw: empty means set_length_unit never ran; never derived from the
+    // weight unit. Appended last so every earlier column keeps its position.
+    "preferred_length_unit",
 ] as const;
 
 /**
@@ -316,6 +373,7 @@ export function buildProfileCsv(profile: Profile | null, tz: string): string {
                 csvEscape(profile.locale),
                 csvEscape(formatLocalDateTime(profile.created_at, tz)),
                 csvEscape(formatLocalDateTime(profile.updated_at, tz)),
+                csvEscape(profile.preferred_length_unit),
             ].join(","),
         );
     }
@@ -519,6 +577,7 @@ export const EXPORT_ARCHIVE_FILES = [
     "meals.csv",
     "water.csv",
     "weight.csv",
+    "body_measurements.csv",
     "goals.csv",
     "profile.csv",
     "account.csv",
@@ -566,8 +625,9 @@ export function buildExportReadme(opts: {
         `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros.`,
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
+        `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
         "goals.csv    your current daily targets — one row, or a header alone if you have never set goals.",
-        "profile.csv  your settings: timezone, preferred units, display toggles and widget language — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
+        "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles and widget language — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         'account.csv  your sign-in account: one "account" row (account id, email address, when the account was created, when the email was confirmed, last sign-in, sign-in methods) and one "identity" row per sign-in method (the provider, the provider\'s id for you, and any name or picture it sent — Google accounts created before September 27, 2026 may still hold them).',
         `telemetry.csv ${rows(counts.telemetry)} — one per tool call your AI app made: which tool, when, whether it succeeded, how long it took, the error category if it failed, the date-range length asked for, the MCP session id, the protocol revision and the app name it reported. None of it contains what you logged.`,
         `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty.`,
@@ -580,13 +640,14 @@ export function buildExportReadme(opts: {
         "  * caffeine_mg and daily_caffeine_mg are MILLIGRAMS, unlike every gram column beside them. A cup of coffee is about 95 mg.",
         "  * amount_ml and daily_water_ml are millilitres.",
         `  * weight_g and target_weight_g are grams — the canonical form the server stores. weight.csv also gives weight_display in ${weightUnit}, with weight_unit naming it, so you do not have to divide anything by hand.`,
+        "  * value_mm is millimetres, the canonical stored form; value_entered is the number as typed, in entered_unit.",
         "  * calories are kcal.",
         "An empty cell means nothing was ever recorded there. It does not mean zero — a meal logged before caffeine tracking existed has an empty caffeine_mg, not a 0.",
         "",
         "Re-importing",
         "------------",
         "Only meals.csv can be read back in. Hand it to start_meal_import (which parses it in your browser) or to bulk_import_meals; its column names are exactly the ones the importer expects, and re-importing the same file twice is a no-op rather than a set of duplicates.",
-        "Every other file is export-only — there is no import path for water, weight, goals, profile, account, telemetry or connections, so keep this archive if you want that history back.",
+        "Every other file is export-only — there is no import path for water, weight, body measurements, goals, profile, account, telemetry or connections, so keep this archive if you want that history back.",
         "",
         "Not in this archive",
         "-------------------",
@@ -594,7 +655,7 @@ export function buildExportReadme(opts: {
         "  * the server runtime log — a short rolling buffer of requests that does not contain your account id or email, so it cannot be looked up by account;",
         "  * our providers' own short-lived operational logs (including the sign-in provider's audit records) and their rolling backups, which age out on their own schedule;",
         "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes;",
-        "  * internal bookkeeping: the de-duplication keys stored beside meals, water and weight entries, and the PKCE challenge of a pending sign-in;",
+        "  * internal bookkeeping: the de-duplication keys stored beside meals, water, weight and body measurement entries, and the PKCE challenge of a pending sign-in;",
         "  * a sign-in session record at our sign-in provider (IP address and browser), if one was ever left behind after sign-in; it is deleted with your account.",
         "",
     ].join("\n");
@@ -604,6 +665,7 @@ export interface ExportCounts {
     meals: number;
     water: number;
     weight: number;
+    bodyMeasurements: number;
     telemetry: number;
     connections: number;
 }
@@ -618,7 +680,8 @@ export interface FullExportResult {
 }
 
 /**
- * Build the whole-account archive — every log, the goals, the profile, the
+ * Build the whole-account archive — every log (meals, water, weight and body
+ * measurements), the goals, the profile, the
  * Auth account, the tool telemetry and the OAuth grants —
  * upload it to the private `exports` bucket under a fixed per-user path (so
  * each export overwrites the previous one), and return a signed download link
@@ -635,6 +698,7 @@ export async function exportAllData(userId: string): Promise<FullExportResult> {
         meals,
         water,
         weight,
+        bodyMeasurements,
         goals,
         profile,
         account,
@@ -644,6 +708,7 @@ export async function exportAllData(userId: string): Promise<FullExportResult> {
         getAllMeals(userId),
         getAllWater(userId),
         getAllWeight(userId),
+        getAllBodyMeasurements(userId),
         getNutritionGoals(userId),
         getProfile(userId),
         getAuthAccount(userId),
@@ -655,6 +720,7 @@ export async function exportAllData(userId: string): Promise<FullExportResult> {
         meals: meals.length,
         water: water.length,
         weight: weight.length,
+        bodyMeasurements: bodyMeasurements.length,
         telemetry: telemetry.length,
         connections: connections.length,
     };
@@ -698,6 +764,7 @@ export async function exportAllData(userId: string): Promise<FullExportResult> {
         "meals.csv": buildMealsCsv(meals, tz),
         "water.csv": buildWaterCsv(water, tz),
         "weight.csv": buildWeightCsv(weight, tz, weightUnit),
+        "body_measurements.csv": buildBodyMeasurementsCsv(bodyMeasurements, tz),
         "goals.csv": buildGoalsCsv(goals, tz),
         "profile.csv": buildProfileCsv(profile, tz),
         "account.csv": buildAccountCsv(account, tz),

@@ -9,6 +9,7 @@ import {
 } from "bun:test";
 import {
     buildAccountCsv,
+    buildBodyMeasurementsCsv,
     buildConnectionsCsv,
     buildExportReadme,
     buildGoalsCsv,
@@ -21,6 +22,7 @@ import {
 } from "./export.js";
 import type { User } from "@supabase/supabase-js";
 import type {
+    BodyMeasurementEntry,
     Meal,
     NutritionGoals,
     OAuthGrantRow,
@@ -30,6 +32,7 @@ import type {
     WeightEntry,
 } from "./supabase.js";
 import {
+    getAllBodyMeasurements,
     getAllOAuthGrants,
     getAllToolAnalytics,
     getAuthAccount,
@@ -342,6 +345,24 @@ function weight(overrides: Partial<WeightEntry> = {}): WeightEntry {
     };
 }
 
+function measurement(
+    overrides: Partial<BodyMeasurementEntry> = {},
+): BodyMeasurementEntry {
+    return {
+        id: "44444444-4444-4444-4444-444444444444",
+        user_id: "user-1",
+        kind: "waist",
+        value_mm: 815,
+        value_entered: 81.5,
+        entered_unit: "cm",
+        logged_at: "2026-06-20T14:30:00.000Z",
+        notes: null,
+        created_at: "2026-06-20T14:30:05.000Z",
+        idempotency_key: null,
+        ...overrides,
+    };
+}
+
 function goals(overrides: Partial<NutritionGoals> = {}): NutritionGoals {
     return {
         user_id: "user-1",
@@ -369,6 +390,7 @@ function profile(overrides: Partial<Profile> = {}): Profile {
         alcohol_tracking_enabled: false,
         preferred_drink_unit: "us",
         locale: null,
+        preferred_length_unit: null,
         created_at: "2026-01-02T14:30:00.000Z",
         updated_at: "2026-06-20T14:30:00.000Z",
         ...overrides,
@@ -381,7 +403,9 @@ const WEIGHT_HEADER =
 const GOALS_HEADER =
     "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
 const PROFILE_HEADER =
-    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at";
+    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit";
+const BODY_MEASUREMENT_HEADER =
+    "id,logged_at,timezone,kind,value_mm,value_entered,entered_unit,notes,created_at";
 
 test("water.csv header names carry the unit and the zone", () => {
     expect(parseCsv(buildWaterCsv([], "UTC"))[0]).toEqual([
@@ -531,6 +555,66 @@ test("weight.csv survives commas, quotes and newlines in notes", () => {
     expect(f.weight_display).toBe("75");
 });
 
+test("body_measurements.csv is header-only when nothing was measured", () => {
+    expect(buildBodyMeasurementsCsv([], "UTC")).toBe(BODY_MEASUREMENT_HEADER);
+});
+
+test("body_measurements.csv header and data rows have identical field counts", () => {
+    const csv = buildBodyMeasurementsCsv(
+        [
+            measurement(),
+            measurement({ notes: null }),
+            measurement({ notes: 'left side, "relaxed"\nafter run' }),
+        ],
+        "UTC",
+    );
+    const rows = parseCsv(csv);
+    expect(rows[0]!.length).toBe(BODY_MEASUREMENT_HEADER.split(",").length);
+    expect(rows).toHaveLength(4);
+    for (const row of rows.slice(1)) {
+        expect(row.length).toBe(rows[0]!.length);
+    }
+    expect(fieldsByName(csv, 3).notes).toBe('left side, "relaxed"\nafter run');
+});
+
+test("every body measurement value lands under its own header name", () => {
+    const f = fieldsByName(
+        buildBodyMeasurementsCsv(
+            [measurement({ notes: "morning" })],
+            "Europe/Berlin",
+        ),
+    );
+    expect(f).toEqual({
+        id: "44444444-4444-4444-4444-444444444444",
+        logged_at: "2026-06-20 16:30:00",
+        timezone: "Europe/Berlin",
+        kind: "waist",
+        value_mm: "815",
+        value_entered: "81.5",
+        entered_unit: "cm",
+        notes: "morning",
+        created_at: "2026-06-20 16:30:05",
+    });
+});
+
+test("body_measurements.csv keeps an inch entry as typed beside its millimetres", () => {
+    const f = fieldsByName(
+        buildBodyMeasurementsCsv(
+            [
+                measurement({
+                    value_mm: 819,
+                    value_entered: 32.25,
+                    entered_unit: "in",
+                }),
+            ],
+            "UTC",
+        ),
+    );
+    expect(f.value_mm).toBe("819");
+    expect(f.value_entered).toBe("32.25");
+    expect(f.entered_unit).toBe("in");
+});
+
 test("goals.csv is header-only when the account has never set goals", () => {
     // Header-only, not absent and not empty: the archive always has the same
     // six files with the same headers, so a reader never has to discover which
@@ -624,7 +708,17 @@ test("every profile value lands under its own header name", () => {
         locale: "",
         created_at: "2026-01-02 15:30:00",
         updated_at: "2026-06-20 16:30:00",
+        // Never ran set_length_unit: empty, not derived from the weight unit.
+        preferred_length_unit: "",
     });
+});
+
+test("profile.csv carries the chosen length unit", () => {
+    const f = fieldsByName(
+        buildProfileCsv(profile({ preferred_length_unit: "in" }), "UTC"),
+    );
+    expect(f.preferred_length_unit).toBe("in");
+    expect(f.preferred_weight_unit).toBe("kg");
 });
 
 // The privacy policy says the export holds your settings; the widget
@@ -682,6 +776,7 @@ const README_OPTS = {
         meals: 120,
         water: 45,
         weight: 12,
+        bodyMeasurements: 7,
         telemetry: 830,
         connections: 3,
     },
@@ -701,6 +796,7 @@ test("the README states when, in which zone, and that the zone was chosen", () =
     expect(readme).toContain("120 rows");
     expect(readme).toContain("45 rows");
     expect(readme).toContain("12 rows");
+    expect(readme).toContain("7 rows");
     expect(readme).toContain("830 rows");
     expect(readme).toContain("3 rows");
 });
@@ -725,6 +821,7 @@ test("the README spells out the mixed units", () => {
     expect(readme).toContain("amount_ml");
     expect(readme).toContain("ethanol");
     expect(readme).toContain("weight_g");
+    expect(readme).toContain("value_mm");
 });
 
 test("the README says only meals.csv can be re-imported", () => {
@@ -1020,7 +1117,9 @@ describe("export-only readers", () => {
         selects.push({ table, select });
         const columns = select.split(",").map((c) => c.trim());
         const project = (r: Row) =>
-            Object.fromEntries(columns.map((c) => [c, r[c]]));
+            select === "*"
+                ? { ...r }
+                : Object.fromEntries(columns.map((c) => [c, r[c]]));
 
         if (table === "oauth_clients") {
             const ids = inValues(q.get("client_id") ?? "");
@@ -1116,8 +1215,32 @@ describe("export-only readers", () => {
             id: crypto.randomUUID(),
             user_id: OTHER,
         });
+        const measurements: Row[] = [];
+        for (let i = 0; i < 1300; i++) {
+            measurements.push({
+                id: crypto.randomUUID(),
+                user_id: USER,
+                kind: i % 2 === 0 ? "waist" : "hips",
+                value_mm: 800 + (i % 50),
+                value_entered: (800 + (i % 50)) / 10,
+                entered_unit: "cm",
+                // Two rows per timestamp, so ties straddle page edges.
+                logged_at: new Date(
+                    Date.UTC(2026, 0, 1, 0, Math.floor(i / 2)),
+                ).toISOString(),
+                notes: null,
+                created_at: null,
+                idempotency_key: null,
+            });
+        }
+        measurements.push({
+            ...measurements[0]!,
+            id: crypto.randomUUID(),
+            user_id: OTHER,
+        });
         tables = {
             tool_analytics: telemetry.sort(() => Math.random() - 0.5),
+            body_measurement_log: measurements.sort(() => Math.random() - 0.5),
             oauth_tokens: [
                 {
                     token: "hash-a",
@@ -1200,6 +1323,28 @@ describe("export-only readers", () => {
         maxRows = 400;
         await expect(getAllToolAnalytics(USER)).rejects.toThrow(
             "export would be truncated",
+        );
+    });
+
+    test("getAllBodyMeasurements returns every row past the 1000-row cap, in order", async () => {
+        const rows = await getAllBodyMeasurements(USER);
+        expect(rows).toHaveLength(1300);
+        expect(new Set(rows.map((r) => r.id)).size).toBe(1300);
+        expect(rows.every((r) => r.user_id === USER)).toBe(true);
+        for (let i = 1; i < rows.length; i++) {
+            const a = rows[i - 1]!;
+            const b = rows[i]!;
+            expect(
+                a.logged_at < b.logged_at ||
+                    (a.logged_at === b.logged_at && a.id < b.id),
+            ).toBe(true);
+        }
+    });
+
+    test("getAllBodyMeasurements throws rather than export a truncated history", async () => {
+        maxRows = 400;
+        await expect(getAllBodyMeasurements(USER)).rejects.toThrow(
+            "would be truncated",
         );
     });
 
@@ -1297,6 +1442,7 @@ test("EXPORT_ARCHIVE_FILES is the archive's real, ordered file list", () => {
         "meals.csv",
         "water.csv",
         "weight.csv",
+        "body_measurements.csv",
         "goals.csv",
         "profile.csv",
         "account.csv",
@@ -1315,6 +1461,7 @@ test("an archive assembled from the builders reads back file for file", () => {
         "meals.csv": buildMealsCsv([meal()], tz),
         "water.csv": buildWaterCsv([water()], tz),
         "weight.csv": buildWeightCsv([weight()], tz, "kg"),
+        "body_measurements.csv": buildBodyMeasurementsCsv([measurement()], tz),
         "goals.csv": buildGoalsCsv(goals(), tz),
         "profile.csv": buildProfileCsv(profile(), tz),
         "account.csv": buildAccountCsv(authUser(), tz),
@@ -1344,6 +1491,7 @@ test("an archive assembled from the builders reads back file for file", () => {
         "meals.csv",
         "water.csv",
         "weight.csv",
+        "body_measurements.csv",
         "account.csv",
         "telemetry.csv",
         "connections.csv",
