@@ -48,7 +48,8 @@
  * first, or this has nothing to depersonalize on a fresh clone.
  *
  * NOT auto-handled (edit by hand if you want): marketing copy/tone, the
- * brand images (public/og.png, favicon.ico, apple-touch-icon.png), the
+ * brand images (public/og.png, favicon.ico, favicon.svg, apple-touch-icon.png,
+ * icon-192.png, icon-512.png), the
  * page <title>/meta description wording, and the privacy policy and terms
  * prose in src/copy/legal*.ts, which still say the site runs Google
  * Analytics and Microsoft Clarity after both are stripped — rewrite them to
@@ -206,7 +207,7 @@ const PERSONAL_SWEEP_RULES: Rule[] = [
  */
 const FAQ_PATREON_RULE: Rule = {
     name: "FAQ Patreon donation sentence (any locale)",
-    find: /(?<=[.。])[ \t]?[^.。<>"\n]*\bPatreon\b[^.。<>"\n]*[.。]/g,
+    find: /(?<=[.。])[ \t]?[^.。<>"\n]*\bPatreon\p{L}*[^.。<>"\n]*[.。]/gu,
     replace: "",
 };
 
@@ -218,25 +219,8 @@ const FAQ_PATREON_RULE: Rule = {
  */
 const TERMS_PATREON_RULE: Rule = {
     name: "terms: Patreon -> [YOUR DONATION PAGE]",
-    find: /\bPatreon\b/g,
+    find: /\bPatreon\p{L}*/gu,
     replace: "[YOUR DONATION PAGE]",
-};
-
-/**
- * Nav links to the Support/Contact sections we're deleting. nav() is shared
- * chrome, so these render on every page (landing page and alternatives
- * pages alike), not just the landing page. hashPath() prefixes a
- * locale-aware path ("/#support" in English, "/de#support" in German, ...)
- * and the label is translated per locale, so match on the hash target only
- * and capture-drop the label rather than hardcoding either.
- */
-const NAV_SUPPORT_RULE: Rule = {
-    name: "nav: Support link",
-    find: /[ \t]*<a href="[^"]*#support">[^<]*<\/a>\n/g,
-};
-const NAV_CONTACT_RULE: Rule = {
-    name: "nav: Contact link",
-    find: /[ \t]*<a href="[^"]*#contact">[^<]*<\/a>\n/g,
 };
 
 /** Personal content that only lives in the landing page. */
@@ -251,14 +235,12 @@ const LANDING_RULES: Rule[] = [
         replace: "$1",
     },
     FAQ_PATREON_RULE,
-    NAV_SUPPORT_RULE,
-    NAV_CONTACT_RULE,
-    // Hero secondary "Support" button. Label captured rather than hardcoded
-    // (translated per locale); href keeps the same "#support" drift as the
-    // nav link above.
+    // Hero secondary "Support" button. Matched on its "#support" target, not
+    // its classes (the redesign restyles it), and the label is captured
+    // rather than hardcoded since it is translated per locale.
     {
         name: "hero: Support button",
-        find: /[ \t]*<a class="btn btn-secondary" href="#support"[\s\S]*?<\/a\s*>\n/,
+        find: /[ \t]*<a class="[^"]*" href="#support"[\s\S]*?<\/a\s*>\n/,
     },
     // Whole Support (Patreon) and Contact sections.
     {
@@ -276,11 +258,6 @@ const LANDING_RULES: Rule[] = [
     },
     // Every remaining link to the maintainer's repo (nav, footer, CTA button).
     GITHUB_LINKS_RULE,
-    // The live star-count fetch (its target span was in the CTA button above).
-    {
-        name: "live GitHub star-count script",
-        find: /[ \t]*\/\/ -+ live GitHub star count -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n/,
-    },
     // The recent-Patreon-posts fetch. Its target block (#patreon-updates) lives
     // inside the "section: Support (Patreon)" HTML this file already strips
     // wholesale above, so only the script needs its own rule here.
@@ -289,6 +266,16 @@ const LANDING_RULES: Rule[] = [
         find: /[ \t]*\/\/ -+ recent Patreon posts -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n/,
     },
 ];
+
+/**
+ * The live star-count fetch in public/site.js (every page's target span sits
+ * inside a repo link, which GITHUB_LINKS_RULE removes). With no badge left to
+ * fill it would only call /api/github-stars for nothing, so it goes whole.
+ */
+const STAR_COUNT_RULE: Rule = {
+    name: "site.js: live GitHub star-count script",
+    find: /[ \t]*\/\/ -+ live GitHub star count -+\n[\s\S]*?\.catch\(function \(\) \{\}\);\n[ \t]*\}\n\n?/,
+};
 
 /**
  * The Glama connector-ownership route (`/.well-known/glama.json`) exists only to
@@ -301,11 +288,11 @@ const GLAMA_RULE: Rule = {
     find: /[ \t]*\/\/ Glama connector ownership verification\.[\s\S]*?app\.get\("\/\.well-known\/glama\.json"[\s\S]*?\n\}\);\n\n/,
 };
 
-/** Tighten the Content-Security-Policy: drop the GA, Clarity and GitHub API hosts. */
+/** Tighten the Content-Security-Policy: drop the GA and Clarity hosts. */
 const CSP_RULES: Rule[] = [
     {
-        name: "CSP: connect-src GA + github hosts",
-        find: / https:\/\/www\.google-analytics\.com https:\/\/\*\.google-analytics\.com https:\/\/\*\.analytics\.google\.com https:\/\/analytics\.google\.com https:\/\/www\.google\.com https:\/\/\*\.googletagmanager\.com https:\/\/api\.github\.com/,
+        name: "CSP: connect-src GA hosts",
+        find: / https:\/\/www\.google-analytics\.com https:\/\/\*\.google-analytics\.com https:\/\/\*\.analytics\.google\.com https:\/\/analytics\.google\.com https:\/\/www\.google\.com https:\/\/\*\.googletagmanager\.com/,
         replace: "",
     },
     {
@@ -330,15 +317,11 @@ const DOMAIN_RULE: Rule = {
 // The generated "alternative to X" comparison pages carry the same personal
 // bits as the landing page (analytics + consent banner, GitHub links, contact mailto, the domain) but
 // none of the Patreon/Medium/Contact-section markup, so they get a focused set.
-// They do still render the shared nav() chrome, though, which links to the
-// landing page's #support/#contact anchors — those need stripping here too.
 // Mailto rules run before DOMAIN_RULE so the email is removed before the domain
 // sweep could rewrite it to a placeholder address.
 const ALT_RULES: Rule[] = [
     ...ANALYTICS_RULES,
     GITHUB_LINKS_RULE,
-    NAV_SUPPORT_RULE,
-    NAV_CONTACT_RULE,
     {
         // The hub's closing "Request a comparison." is nothing but a mailto
         // link and its full stop, so unwrapping it (what INLINE_MAILTO_RULE
@@ -406,24 +389,18 @@ const altPageJobs = (
 const RULES_BY_FILENAME: Record<string, Rule[]> = {
     "login.html": [
         // No analytics rules: login carries no snippet, banner or button.
-        NAV_SUPPORT_RULE,
-        NAV_CONTACT_RULE,
         GITHUB_LINKS_RULE,
         MAILTO_RULE,
         DOMAIN_RULE,
     ],
     "privacy.html": [
         ...ANALYTICS_RULES,
-        NAV_SUPPORT_RULE,
-        NAV_CONTACT_RULE,
         GITHUB_LINKS_RULE,
         MAILTO_RULE,
         DOMAIN_RULE,
     ],
     "terms.html": [
         ...ANALYTICS_RULES,
-        NAV_SUPPORT_RULE,
-        NAV_CONTACT_RULE,
         // Prose-embedded, so unwrap to text first — same reasoning as
         // LANDING_RULES: run before the generic sweeps below so they can't
         // gut a sentence. The footer and mobile-menu also render a
@@ -466,8 +443,6 @@ const RULES_BY_FILENAME: Record<string, Rule[]> = {
             replace: "$1",
         },
         GITHUB_LINKS_RULE,
-        NAV_SUPPORT_RULE,
-        NAV_CONTACT_RULE,
         MAILTO_RULE,
         DOMAIN_RULE,
     ],
@@ -528,9 +503,23 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     // line) is wrong here: swap the URL for a placeholder and keep the bullet.
     // (The global sweep's repo-URL rule swaps the URL for a placeholder.)
     { path: "public/llms.txt", rules: [DOMAIN_RULE] },
+    { path: "public/site.js", rules: [STAR_COUNT_RULE] },
     { path: "public/sitemap.xml", rules: [DOMAIN_RULE] },
     { path: "public/robots.txt", rules: [DOMAIN_RULE] },
     { path: "src/index.ts", rules: [GLAMA_RULE, ...CSP_RULES] },
+    // /api/github-stars asks GitHub for the maintainer's repo server-side;
+    // point it at the placeholder, so a fork's (now badge-less) endpoint
+    // never reports someone else's stars.
+    {
+        path: "src/github-stars.ts",
+        rules: [
+            {
+                name: "github-stars: repo slug -> your-org placeholder",
+                find: /"akutishevsky\/nutrition-mcp"/,
+                replace: '"your-org/nutrition-mcp"',
+            },
+        ],
+    },
     {
         path: "src/security-txt.ts",
         rules: [SECURITY_TXT_RULE, SECURITY_TXT_REPO_RULE],
@@ -618,7 +607,7 @@ console.log(
         "edits in the sources (src/copy/legal*.ts for all 9 locales, nav()/footer() " +
         "in scripts/site-partials.ts), since `bun run gen:all` regenerates the pages " +
         "from them and brings the maintainer's details back. Also swap in your own " +
-        "og.png / favicon.ico / apple-touch-icon.png, adjust page copy (the privacy " +
+        "og.png / favicon.ico / favicon.svg / apple-touch-icon.png / icon-192.png / icon-512.png, adjust page copy (the privacy " +
         "policy and terms still name Google Analytics and Microsoft Clarity), and " +
         `replace the ${PLACEHOLDER_DOMAIN} placeholder with your real domain and ` +
         "github.com/your-org/nutrition-mcp with your repo. The Claude install " +
@@ -659,10 +648,19 @@ for (const f of await Array.fromAsync(
 )) {
     if (!scanned.has(f)) scanned.set(f, await Bun.file(f).text());
 }
+// The brand word in served copy or JSON-LD, inflected forms included (Polish
+// "na Patreonie"): a donation sentence or link label a rule above missed.
+// Case-sensitive and checked under public/ only, so the lowercase
+// `patreon` class names in page CSS and the server's own Patreon code
+// (src/index.ts) aren't mistaken for copy.
+const PUBLIC_PERSONAL_TOKENS: RegExp[] = [/\bPatreon\p{L}*/u];
 const residue: string[] = [];
 for (const [path, text] of scanned) {
+    const tokens = path.startsWith("public/")
+        ? [...PERSONAL_TOKENS, ...PUBLIC_PERSONAL_TOKENS]
+        : PERSONAL_TOKENS;
     text.split("\n").forEach((line, i) => {
-        for (const token of PERSONAL_TOKENS) {
+        for (const token of tokens) {
             const m = line.match(token);
             if (m) residue.push(`${path}:${i + 1}: ${m[0]}`);
         }

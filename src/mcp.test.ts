@@ -5457,9 +5457,12 @@ describe("/mcp transport posture", () => {
             "u1",
             { pin: "2026-07-28" },
             async (client) => {
-                expect(client.getServerVersion()?.icons?.[0]?.src).toBe(
+                const icons = client.getServerVersion()?.icons ?? [];
+                expect(icons.map((i) => i.src)).toEqual([
                     "https://nutrition-mcp.com/favicon.ico",
-                );
+                    "https://nutrition-mcp.com/icon-192.png",
+                    "https://nutrition-mcp.com/icon-512.png",
+                ]);
             },
             {
                 "x-forwarded-proto": "https",

@@ -83,6 +83,15 @@ export interface LoginDoc {
     privacyLinkText: string;
     newHereNote: string;
     afterConnectNote: string;
+    /** aria-label of the Sign in / Create account segmented control above
+     * the forms (plain text, escaped). The control only chooses which of
+     * the two submit buttons is shown; it never changes what either posts.
+     * It is hidden without JavaScript, where both buttons show. */
+    modeGroupAriaLabel: string;
+    /** aria-label of the eye button inside the password field, in its two
+     * states (plain text, escaped; also the button's tooltip). */
+    showPasswordLabel: string;
+    hidePasswordLabel: string;
 }
 
 /**
@@ -147,6 +156,9 @@ const EN: LoginDoc = {
         "New here? Enter your email and a password, then choose Create account.",
     afterConnectNote:
         "After successful connection in your client, save your password somewhere and close this browser tab.",
+    modeGroupAriaLabel: "Account",
+    showPasswordLabel: "Show password",
+    hidePasswordLabel: "Hide password",
 };
 
 export const LOGIN: Record<SiteLocale, LoginDoc> = {

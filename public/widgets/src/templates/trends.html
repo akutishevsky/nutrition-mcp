@@ -369,8 +369,12 @@
 
             initWidget({
                 name: "trends-widget",
-                loading:
-                    '<div class="empty"><div class="big">📈</div><div>Loading your trends…</div></div>',
+                // A function: bridge.js calls it with the strings for the
+                // browser language, since the payload's locale isn't known yet.
+                loading: (strings) =>
+                    '<div class="empty"><div class="big">📈</div><div>' +
+                    esc(strings.trends.loading) +
+                    "</div></div>",
                 coerce,
                 render,
                 sample: SAMPLE,

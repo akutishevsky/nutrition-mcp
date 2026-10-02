@@ -47,11 +47,11 @@ export type CategoryId =
     | "insights-trends"
     | "settings-account";
 
-/** Badge ("chip") kinds shown in a tool card's header. Two kinds can
- * share a CSS class but carry different text — "log" and "import" both
- * render as chip-log, "view" and "export" both render as chip-view — see
- * BADGE_META for that structural wiring and ToolsDoc.badges for the
- * (locale-translatable) label text, kept once here rather than per tool. */
+/** Badge ("chip") kinds shown in a tool card's header. Whether a kind
+ * renders accent or grey is decided in scripts/gen-tools.ts
+ * (ACCENT_BADGES), the optional icon in BADGE_META below, and the
+ * (locale-translatable) label text in ToolsDoc.badges, kept once there
+ * rather than per tool. */
 export type BadgeKind =
     | "log"
     | "import"
@@ -63,19 +63,19 @@ export type BadgeKind =
     | "remove"
     | "widget";
 
-/** CSS class + optional Font Awesome icon per badge kind — structural,
- * identical across every locale, so it lives beside TOOLS rather than
- * inside ToolsDoc. */
-export const BADGE_META: Record<BadgeKind, { cls: string; icon?: string }> = {
-    log: { cls: "chip-log" },
-    import: { cls: "chip-log" },
-    edit: { cls: "chip-edit" },
-    setting: { cls: "chip-setting" },
-    lookup: { cls: "chip-lookup" },
-    view: { cls: "chip-view" },
-    export: { cls: "chip-view" },
-    remove: { cls: "chip-remove" },
-    widget: { cls: "chip-widget", icon: "fa-solid fa-table-cells-large" },
+/** Optional Font Awesome icon per badge kind — structural, identical
+ * across every locale, so it lives beside TOOLS rather than inside
+ * ToolsDoc. */
+export const BADGE_META: Record<BadgeKind, { icon?: string }> = {
+    log: {},
+    import: {},
+    edit: {},
+    setting: {},
+    lookup: {},
+    view: {},
+    export: {},
+    remove: {},
+    widget: { icon: "fa-solid fa-table-cells-large" },
 };
 
 /** The 7 categories in page order, and each one's Font Awesome icon class
@@ -95,10 +95,10 @@ export const CATEGORIES: CategoryId[] = [
 export const CATEGORY_META: Record<CategoryId, { icon: string }> = {
     "logging-food-meals": { icon: "fa-solid fa-utensils" },
     "reviewing-your-meals": { icon: "fa-solid fa-clock-rotate-left" },
-    water: { icon: "fa-solid fa-droplet" },
+    water: { icon: "fa-solid fa-glass-water" },
     weight: { icon: "fa-solid fa-weight-scale" },
     "goals-progress": { icon: "fa-solid fa-bullseye" },
-    "insights-trends": { icon: "fa-solid fa-chart-line" },
+    "insights-trends": { icon: "fa-solid fa-chart-area" },
     "settings-account": { icon: "fa-solid fa-gear" },
 };
 
@@ -537,8 +537,16 @@ export interface ToolsDoc {
         ogDescription: string;
     };
     hero: {
+        /** The pill above the h1 reads "{eyebrow} · {countBold}
+         * {countTail}" — the " · " separator is the generator's. */
         eyebrow: string;
-        title: string;
+        /** The h1, split around its accent word the same way
+         * IndexDoc.hero is ("Everything your AI can " + <em>"do"</em> +
+         * ""), so all three stay plain text (escaped) and each locale picks
+         * its own accented word. Either outer part may be "". */
+        titleBeforeEm: string;
+        titleEm: string;
+        titleAfterEm: string;
         lead: string;
         /** The bold "N tools" lead-in of the hero's count pill. */
         countBold: string;
@@ -562,6 +570,8 @@ export interface ToolsDoc {
         optionalLabel: string;
         /** The label above each card's example prompt. */
         trySayingLabel: string;
+        /** aria-label of the sticky category-chip <nav>. */
+        categoriesLabel: string;
     };
     /** Keyed by ToolIdentity.name. */
     tools: Record<string, ToolProse>;
@@ -576,6 +586,9 @@ export interface ToolsDoc {
         pillLabel: string;
         title: string;
         description: string;
+        /** Plain text (escaped) in the section's intro column; the
+         * generator follows it with the contact mailto link. */
+        stillStuck: string;
         items: Record<TroubleshootingId, TroubleshootingEntry>;
     };
 }
@@ -584,16 +597,18 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "Tools Reference: All 36 Tools",
+        title: "36 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 36 tools the Nutrition MCP server gives your AI — log meals, scan barcodes, import your history from another app, track water and weight, set goals, and review trends. Full reference with descriptions and example prompts.",
+            "All 36 Nutrition MCP tools for Claude, ChatGPT and other AI apps: log meals, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water and weight.",
         ogDescription:
             "All 36 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
-        title: "Everything your AI can do",
-        lead: "You never call these directly — you just talk, and the assistant picks the right tool. Here's the full set the Nutrition MCP server exposes, with what each one does and a phrase that triggers it.",
+        titleBeforeEm: "Everything your AI can ",
+        titleEm: "do",
+        titleAfterEm: "",
+        lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
         countBold: "36 tools",
         countTail: "across 7 areas",
     },
@@ -612,12 +627,12 @@ const TOOLS_EN: ToolsDoc = {
         },
         water: {
             pillLabel: "Water",
-            title: "Water",
+            title: "Water tracking",
             description: "Track hydration alongside your food.",
         },
         weight: {
             pillLabel: "Weight",
-            title: "Weight",
+            title: "Weight tracking",
             description:
                 "Log weigh-ins, review them, and watch the trend toward your target.",
         },
@@ -655,6 +670,7 @@ const TOOLS_EN: ToolsDoc = {
         requiredLabel: "required",
         optionalLabel: "optional",
         trySayingLabel: "Try saying",
+        categoriesLabel: "Tool categories",
     },
     tools: {
         log_meal: {
@@ -685,7 +701,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Fetch a packaged product's label nutrition from Open Food Facts by its barcode (8–14 digit EAN/UPC). You can type the digits or read them off a photo of the package; the result can then be logged, scaled to how much you ate.",
+                "Fetch a packaged product's label nutrition from Open Food Facts by its barcode (8–14 digit EAN/UPC), plus its Nutri-Score and NOVA processing group when Open Food Facts has them. You can type the digits or read them off a photo of the package; the result can then be logged, scaled to how much you ate.",
             params: {},
             example: "Scan this barcode: 3017620422003",
             photoHint:
@@ -693,7 +709,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open an importer in the chat to bring your history over from another app — pick the file you exported from MyFitnessPal, Cronometer, Lose It! or MacroFactor, match its columns to calories, macros, fiber, sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
+                "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
             params: {},
             example: "Import my meal history from MyFitnessPal",
         },
@@ -779,7 +795,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps, without any tokens), and a README.txt explaining the columns, the units and what is not included — with the same private link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
+                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps, without any tokens), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
             params: {},
             example: "Export all of my data — meals, water, weight, and goals",
         },
@@ -814,7 +830,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Record a body-weight measurement in kg or lb. Multiple weigh-ins per day are fine, and the server stores it canonically so your unit preference never distorts the number.",
             params: {
-                weight: "Body weight value, in `unit` (&gt; 0).",
+                weight: "Body weight value, in <code>unit</code> (&gt; 0).",
             },
             example: "Log my weight — 74.2 kg this morning",
         },
@@ -823,7 +839,7 @@ const TOOLS_EN: ToolsDoc = {
                 "Correct an existing weigh-in — the value, the timestamp, or its notes.",
             params: {
                 id: "UUID of the weight entry to update",
-                weight: "New weight value, in `unit`.",
+                weight: "New weight value, in <code>unit</code>.",
                 logged_at: "ISO 8601 timestamp",
                 notes: "",
             },
@@ -886,7 +902,7 @@ const TOOLS_EN: ToolsDoc = {
                 daily_alcohol_g:
                     "Daily alcohol limit in grams of <b>pure ethanol</b>, a maximum to stay under. One US standard drink is 14 g, one UK unit 7.9 g. Null to clear.",
                 daily_caffeine_mg:
-                    "Daily caffeine limit in <b>milligrams</b>, a maximum to stay under. The EFSA and FDA ceiling for healthy adults is 400 mg a day (roughly four brewed coffees), and 200 mg in pregnancy. 0 is a real limit meaning none at all. Null to clear.",
+                    "Daily caffeine limit in <b>milligrams</b>, a maximum to stay under. EFSA and the FDA put the ceiling for healthy adults at 400 mg a day (roughly four brewed coffees); EFSA's figure for pregnancy is 200 mg. 0 is a real limit meaning none at all. Null to clear.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -949,7 +965,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Set the UI language for in-chat widgets — the dashboards and charts, not what the AI writes back to you.",
             params: {
-                locale: "ISO 639-1 code, e.g. <code>de</code>, <code>uk</code>. Supported: English, German, Spanish, French, Dutch, Polish, Italian, Ukrainian.",
+                locale: "ISO 639-1 code, e.g. <code>de</code>, <code>ja</code>. Supported: English, German, Spanish, French, Dutch, Polish, Italian, Ukrainian, Japanese.",
             },
             example: "Show my widgets in German",
         },
@@ -980,7 +996,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         delete_account: {
             description:
-                "Permanently delete your Nutrition MCP account and all the data it stores about you. This is irreversible — the AI always confirms with you first.",
+                "Permanently delete your Nutrition MCP account and all the data it stores about you. This is irreversible, so the tool does nothing without an explicit confirmation, and the AI is asked to check with you before sending it.",
             params: {},
             example: "Delete my account and all my data",
         },
@@ -989,6 +1005,7 @@ const TOOLS_EN: ToolsDoc = {
         pillLabel: "Help",
         title: "Troubleshooting",
         description: "Something not working? Most problems have a quick fix.",
+        stillStuck: "Still stuck?",
         items: {
             "cannot-connect": {
                 question:

@@ -11,8 +11,8 @@ export const CHROME_FR: ChromeCopy = {
         examples: "Exemples",
         liveStats: "Stats en direct",
         liveStatsBadgeLabel: {
-            one: "nouveau repas enregistré depuis l'ouverture de la page",
-            other: "nouveaux repas enregistrés depuis l'ouverture de la page",
+            one: "nouveau repas enregistré depuis ton arrivée",
+            other: "nouveaux repas enregistrés depuis ton arrivée",
         },
         faq: "FAQ",
     },
@@ -38,26 +38,14 @@ export const CHROME_FR: ChromeCopy = {
     closeMenuAriaLabel: "Fermer le menu",
 
     menu: {
-        howSmall: "3 étapes",
-        installSmall: "moins d'une minute",
-        toolsSmall: "36 outils",
-        examplesSmall: "démos en direct",
-        liveStatsSmall: "depuis l'ouverture",
-        alternatives: "Alternatives",
-        alternativesSmall: "changer d'appli",
-        support: "Soutien",
-        contact: "Contact",
         github: "GitHub",
-        privacy: "Confidentialité",
-        terms: "Conditions",
-        connectInMinute: "Connecte-toi en une minute",
     },
 
     footer: {
         tools: "Outils",
         troubleshooting: "Dépannage",
         alternatives: "Alternatives",
-        howIBuiltThis: "Comment j'ai construit ça",
+        howIBuiltThis: "Comment je l'ai conçu",
         demo: "Démo",
         github: "GitHub",
         contact: "Contact",
@@ -68,7 +56,7 @@ export const CHROME_FR: ChromeCopy = {
 
     consent: {
         title: "Cookies de mesure d'audience.",
-        body: "Avec ton accord, Google Analytics et Microsoft Clarity nous montrent quelles pages sont utiles et où les gens bloquent. Rien n'est chargé tant que tu n'as pas accepté.",
+        body: "Avec ton accord, Google Analytics compte les visites et Microsoft Clarity enregistre les clics et le défilement sous forme de rediffusions de session. Cela nous permet de voir quelles pages sont utiles et où ça coince. Aucun des deux ne se charge tant que tu n'as pas accepté.",
         accept: "Accepter",
         reject: "Refuser",
         settings: "Paramètres des cookies",
