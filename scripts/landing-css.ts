@@ -119,7 +119,7 @@ ${themeHostCss()}
 #itab-claude:checked ~ .lp-panel-claude,
 #itab-chatgpt:checked ~ .lp-panel-chatgpt,
 #itab-other:checked ~ .lp-panel-other { display: block; }
-.lp-claude-btn { display: flex; align-items: center; justify-content: center; gap: 12px; height: 58px; margin-bottom: 22px; padding: 0 24px; background: var(--claude); color: var(--claude-ink); border-radius: 999px; font-weight: 700; font-size: 17px; box-shadow: 0 14px 34px -14px color-mix(in srgb, var(--claude) 75%, transparent); transition: transform .2s, filter .2s; }
+.lp-claude-btn { display: flex; align-items: center; justify-content: center; gap: 12px; height: 58px; margin: 0 -8px 22px; /* cancel .lp-panel's side padding so it spans the tab bar */ padding: 0 24px; background: var(--claude); color: var(--claude-ink); border-radius: 999px; font-weight: 700; font-size: 17px; box-shadow: 0 14px 34px -14px color-mix(in srgb, var(--claude) 75%, transparent); transition: transform .2s, filter .2s; }
 .lp-claude-btn:hover { transform: translateY(-2px); filter: brightness(.94); color: var(--claude-ink); }
 .lp-claude-btn .fa-claude { font-size: 20px; }
 .lp-claude-btn .fa-arrow-up-right-from-square { font-size: 12px; opacity: .85; }
