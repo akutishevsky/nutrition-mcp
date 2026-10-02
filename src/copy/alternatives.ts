@@ -99,14 +99,14 @@ export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
     es: {
         appTitle: "¿Servidor MCP para {app}? Nutrición en Claude y ChatGPT",
         appDesc:
-            "¿{app} sin servidor MCP oficial? Nutrition MCP registra comidas y macros en Claude o ChatGPT — gratis, de código abierto y con importación CSV.",
+            "¿{app} sin servidor MCP oficial? Nutrition MCP registra comidas y macros en Claude o ChatGPT: gratis, de código abierto y con importación CSV.",
         appOgDesc:
-            "{app} no tiene servidor MCP oficial. Nutrition MCP es una alternativa gratuita y de código abierto que registra comidas, macros y peso en Claude o ChatGPT — e importa tu historial de {app} desde una exportación CSV.",
+            "{app} no tiene servidor MCP oficial. Nutrition MCP es una alternativa gratuita y de código abierto que registra comidas, macros y peso en Claude o ChatGPT, e importa tu historial de {app} desde una exportación CSV.",
         hubTitle: "Alternativa a MyFitnessPal y Cronometer en Claude y ChatGPT",
         hubDesc:
             "MyFitnessPal, Cronometer y Lose It! no tienen servidor MCP oficial. Nutrition MCP: gratis, de código abierto, para Claude y ChatGPT, con importación CSV.",
         hubOgDesc:
-            "Tu app de nutrición no tiene servidor MCP oficial. Nutrition MCP es una alternativa gratuita y de código abierto que funciona dentro de Claude o ChatGPT — e importa tu historial desde una exportación CSV.",
+            "Tu app de nutrición no tiene servidor MCP oficial. Nutrition MCP es una alternativa gratuita y de código abierto que funciona dentro de Claude o ChatGPT, e importa tu historial desde una exportación CSV.",
     },
     fr: {
         appTitle: "Serveur MCP pour {app} ? Nutrition dans Claude et ChatGPT",
