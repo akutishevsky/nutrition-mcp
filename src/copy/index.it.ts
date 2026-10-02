@@ -200,7 +200,7 @@ export const INDEX_IT: IndexDoc = {
         photoMealAlt:
             "Foto: una scodella di borscht con un cucchiaio di panna acida e aneto, e accanto una fetta di pane di segale",
         photoPackageAlt:
-            "Foto: il codice a barre su una lattina di Coca-Cola, numero 5449000000996",
+            "Foto: il codice a barre su un vasetto di yogurt greco bianco, numero 2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -314,27 +314,27 @@ export const INDEX_IT: IndexDoc = {
                     "Fotografa la confezione: le cifre sotto il codice a barre vengono cercate su Open Food Facts, poi ti chiede quanto ne hai consumato. Open Food Facts non riporta la caffeina, quindi quella si ricava dall'etichetta o da valori tipici; se mancano fibre o zuccheri, vengono stimati invece di restare vuoti.",
                 toolNotes: {
                     lookup_barcode:
-                        "Recupera da Open Food Facts i valori in etichetta della lattina, il Nutri-Score e il gruppo NOVA",
+                        "Recupera da Open Food Facts i valori in etichetta e il Nutri-Score del vasetto",
                     log_meal:
-                        "Registra la lattina intera come pranzo, con un valore tipico di caffeina",
+                        "Registra il vasetto intero a colazione, calcolato dai valori per 100 g",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "l'ho bevuta a pranzo. dimmi la verità, quanto è grave?",
+                        text: "l'ho mangiato a colazione. va bene?",
                     },
                     {
                         from: "ai",
-                        text: "È una lattina di Coca-Cola da 330 ml: 139 kcal e 35 g di zuccheri, e Open Food Facts le assegna Nutri-Score E e NOVA 4, cioè ultra-processata. L'hai bevuta tutta?",
+                        text: "È un vasetto da 150 g di yogurt greco bianco (0% di grassi): 87 kcal, 15 g di proteine e 5 g di zuccheri, e Open Food Facts gli dà Nutri-Score A. Hai mangiato tutto il vasetto?",
                     },
                     {
                         from: "user",
-                        text: "tutta",
+                        text: "tutto il vasetto",
                     },
                     {
                         from: "ai",
-                        text: "Registrata come pranzo: 139 kcal, 35 g di zuccheri e circa 32 mg di caffeina, un valore tipico per una cola da 330 ml, perché Open Food Facts non riporta la caffeina. Già solo con gli zuccheri sei a 35 dei 60 g del tuo limite giornaliero.",
+                        text: "Registrato a colazione: 87 kcal, 15 g di proteine e 5 g di zuccheri. Ti mancano ancora 145 g di proteine per oggi.",
                     },
                 ],
                 cards: [
@@ -343,7 +343,7 @@ export const INDEX_IT: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (lattina da 330 ml)"],
+                cardMeals: ["Yogurt greco bianco 0% (vasetto da 150 g)"],
             },
             {
                 id: "goals-progress",

@@ -209,7 +209,7 @@ export const INDEX_JA: IndexDoc = {
         photoMealAlt:
             "写真：サワークリームとディルをのせたボルシチと、横に添えたライ麦パン1枚",
         photoPackageAlt:
-            "写真：コカ・コーラの缶のバーコード、番号5449000000996",
+            "写真：プレーンのギリシャヨーグルトのカップのバーコード、番号2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -321,27 +321,27 @@ export const INDEX_JA: IndexDoc = {
                     "パッケージを撮影すると、バーコードの下の数字をOpen Food Factsで検索し、どれだけ口にしたかをたずねます。Open Food Factsにはカフェインの情報がないため、カフェインはラベルや一般的な含有量から補います。食物繊維や糖類の数値が欠けている場合も、空欄にせず推定します。",
                 toolNotes: {
                     lookup_barcode:
-                        "缶のラベルの数値、Nutri-Score、NOVA分類をOpen Food Factsから取得",
+                        "カップのラベルの数値とNutri-ScoreをOpen Food Factsから取得",
                     log_meal:
-                        "缶1本分を、一般的なカフェイン量とともに昼食として記録",
+                        "カップ1個分を、100 gあたりの値から換算して朝食として記録",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "これお昼と一緒に飲んだ。実際どれくらい体に悪い？",
+                        text: "朝ごはんに食べた。これって体にいい？",
                     },
                     {
                         from: "ai",
-                        text: "コカ・コーラの330 ml缶ですね。139 kcal、糖類35 gで、Open Food Factsの評価はNutri-Score E、NOVA 4（超加工食品）です。1缶まるごと飲みましたか？",
+                        text: "プレーンのギリシャヨーグルト（無脂肪）150 gカップですね。87 kcal、タンパク質15 g、糖類5 gで、Open Food Factsの評価はNutri-Score Aです。1カップまるごと食べましたか？",
                     },
                     {
                         from: "user",
-                        text: "1缶全部",
+                        text: "1カップ全部",
                     },
                     {
                         from: "ai",
-                        text: "昼食として記録しました：139 kcal、糖類35 g、カフェイン約32 mg。Open Food Factsにはカフェインの記載がないため、カフェインは330 mlのコーラの一般的な値です。糖類だけで、1日の上限60 gのうち35 gになります。",
+                        text: "朝食として記録しました：87 kcal、タンパク質15 g、糖類5 g。今日のタンパク質の目標まで、あと145 gです。",
                     },
                 ],
                 cards: [
@@ -350,7 +350,7 @@ export const INDEX_JA: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["コカ・コーラ（330 ml缶）"],
+                cardMeals: ["プレーンギリシャヨーグルト 無脂肪（150 gカップ）"],
             },
             {
                 id: "goals-progress",

@@ -190,7 +190,7 @@ export const INDEX_DE: IndexDoc = {
         photoMealAlt:
             "Foto: ein Teller Borschtsch mit einem Löffel Schmand und Dill, daneben eine Scheibe Roggenbrot",
         photoPackageAlt:
-            "Foto: der Barcode auf einer Dose Coca-Cola, Nummer 5449000000996",
+            "Foto: der Barcode auf einem Becher Naturjoghurt griechischer Art, Nummer 2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -304,27 +304,27 @@ export const INDEX_DE: IndexDoc = {
                     "Fotografier die Verpackung: Die Ziffern unter dem Barcode werden in Open Food Facts nachgeschlagen, dann kommt die Frage, wie viel du hattest. Open Food Facts führt kein Koffein, deshalb kommt es vom Etikett oder aus typischen Mengen; fehlen Ballaststoffe oder Zucker, werden sie geschätzt statt leer gelassen.",
                 toolNotes: {
                     lookup_barcode:
-                        "Holt die Etikettwerte, den Nutri-Score und die NOVA-Gruppe der Dose aus Open Food Facts",
+                        "Holt die Etikettwerte und den Nutri-Score des Bechers aus Open Food Facts",
                     log_meal:
-                        "Erfasst die ganze Dose zum Mittagessen, mit einem typischen Koffeinwert",
+                        "Erfasst den ganzen Becher zum Frühstück, umgerechnet von den Werten pro 100 g",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "hatte ich zum Mittagessen. wie schlimm ist das wirklich?",
+                        text: "hatte ich zum Frühstück. ist der gut?",
                     },
                     {
                         from: "ai",
-                        text: "Das ist eine 330-ml-Dose Coca-Cola: 139 kcal und 35 g Zucker, und Open Food Facts bewertet sie mit Nutri-Score E und NOVA 4 (hochverarbeitet). Hattest du die ganze Dose?",
+                        text: "Das ist ein 150-g-Becher Naturjoghurt griechischer Art (0 % Fett): 87 kcal, 15 g Protein und 5 g Zucker, und Open Food Facts bewertet ihn mit Nutri-Score A. Hattest du den ganzen Becher?",
                     },
                     {
                         from: "user",
-                        text: "die ganze Dose",
+                        text: "den ganzen Becher",
                     },
                     {
                         from: "ai",
-                        text: "Zum Mittagessen erfasst: 139 kcal, 35 g Zucker und etwa 32 mg Koffein – ein typischer Wert für 330 ml Cola, da Open Food Facts kein Koffein angibt. Allein der Zucker macht schon 35 g deines Tageslimits von 60 g aus.",
+                        text: "Zum Frühstück erfasst: 87 kcal, 15 g Protein und 5 g Zucker. Für heute fehlen noch 145 g Protein.",
                     },
                 ],
                 cards: [
@@ -333,7 +333,7 @@ export const INDEX_DE: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (330-ml-Dose)"],
+                cardMeals: ["Naturjoghurt griechischer Art 0 % (150-g-Becher)"],
             },
             {
                 id: "goals-progress",

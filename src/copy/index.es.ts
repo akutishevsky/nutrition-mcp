@@ -191,7 +191,7 @@ export const INDEX_ES: IndexDoc = {
         photoMealAlt:
             "Foto: un plato de borsch con una cucharada de crema agria y eneldo, y una rebanada de pan de centeno al lado",
         photoPackageAlt:
-            "Foto: el código de barras de una lata de Coca-Cola, número 5449000000996",
+            "Foto: el código de barras de un envase de yogur griego natural, número 2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -305,27 +305,27 @@ export const INDEX_ES: IndexDoc = {
                     "Fotografía el envase: busca en Open Food Facts los números que hay bajo el código de barras y te pregunta cuánto tomaste. Open Food Facts no incluye la cafeína, así que se toma de la etiqueta o de cantidades habituales; si falta la fibra o el azúcar, se estima en vez de dejarlo en blanco.",
                 toolNotes: {
                     lookup_barcode:
-                        "Obtiene de Open Food Facts los datos de la etiqueta de la lata, el Nutri-Score y el grupo NOVA",
+                        "Obtiene de Open Food Facts los valores de la etiqueta y el Nutri-Score del envase",
                     log_meal:
-                        "Registra la lata entera como almuerzo, con una cifra de cafeína habitual",
+                        "Registra el envase entero como desayuno, a partir de los valores por 100 g",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "me tomé esto con el almuerzo. ¿de verdad es tan malo?",
+                        text: "me lo tomé en el desayuno. ¿está bien?",
                     },
                     {
                         from: "ai",
-                        text: "Es una lata de Coca-Cola de 330 ml: 139 kcal y 35 g de azúcar, y Open Food Facts le da Nutri-Score E y NOVA 4, ultraprocesado. ¿Te tomaste la lata entera?",
+                        text: "Es un envase de 150 g de yogur griego natural (0 % de grasa): 87 kcal, 15 g de proteína y 5 g de azúcar, y Open Food Facts le da un Nutri-Score A. ¿Te tomaste el envase entero?",
                     },
                     {
                         from: "user",
-                        text: "entera",
+                        text: "el envase entero",
                     },
                     {
                         from: "ai",
-                        text: "Registrada como almuerzo: 139 kcal, 35 g de azúcar y unos 32 mg de cafeína, una cantidad habitual para una cola de 330 ml, ya que Open Food Facts no indica la cafeína. Solo con el azúcar ya llevas 35 de los 60 g de tu límite diario.",
+                        text: "Registrado como desayuno: 87 kcal, 15 g de proteína y 5 g de azúcar. Te quedan 145 g de proteína para hoy.",
                     },
                 ],
                 cards: [
@@ -334,7 +334,7 @@ export const INDEX_ES: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (lata de 330 ml)"],
+                cardMeals: ["Yogur griego natural 0 % (envase de 150 g)"],
             },
             {
                 id: "goals-progress",

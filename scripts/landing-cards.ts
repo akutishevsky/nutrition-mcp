@@ -173,17 +173,17 @@ const MEAL_CARDS: Partial<
     },
     "scan-barcode": {
         date: "2026-03-17",
-        type: "lunch",
+        type: "breakfast",
         totals: {
-            kcal: 139,
-            pro: 0,
-            car: 35,
+            // A 150 g pot of plain 0% Greek yogurt, scaled from the
+            // per-100 g label figures lookup_barcode returns.
+            kcal: 87,
+            pro: 15,
+            car: 5,
             fat: 0,
             fib: 0,
-            sug: 35,
-            // Open Food Facts carries no caffeine: log_meal's typical 34 mg
-            // per 355 ml cola, scaled to the 330 ml can.
-            caf: 32,
+            sug: 5,
+            caf: null,
             water: 0,
         },
     },
@@ -636,22 +636,30 @@ export function borschtSvg(): string {
     return `<svg viewBox="0 0 300 170" width="100%" height="170" aria-hidden="true" focusable="false"><rect width="300" height="170" fill="#6b4a34"/><path d="M0 40h300M0 92h300M0 140h300" stroke="#5c3e2b" stroke-width="2"/><ellipse cx="128" cy="92" rx="78" ry="72" fill="#000" opacity=".18"/><circle cx="124" cy="86" r="72" fill="#f4efe6"/><circle cx="124" cy="86" r="58" fill="#e8e0d2"/><circle cx="124" cy="86" r="50" fill="#8e1b2c"/><circle cx="116" cy="80" r="34" fill="#a3233a" opacity=".7"/><path d="M110 78c6-12 26-12 30 0c6 4 2 16-8 16c-6 6-22 4-24-4c-6-2-4-10 2-12z" fill="#fbf7ef"/><ellipse cx="120" cy="82" rx="8" ry="4" fill="#fff" opacity=".8"/>${dill}<g transform="rotate(-12 236 96)"><rect x="200" y="58" width="74" height="80" rx="22" fill="#3b2417"/><rect x="207" y="66" width="60" height="65" rx="17" fill="#7a5236"/>${seeds}</g><path d="M196 30l40 52" stroke="#c9ccd2" stroke-width="7" stroke-linecap="round"/><ellipse cx="190" cy="24" rx="10" ry="14" fill="#d7dade" transform="rotate(-38 190 24)"/></svg>`;
 }
 
-/** The "Scan a barcode" photo: the barcode label on a red can. */
-export function canSvg(): string {
+/** The "Scan a barcode" photo: the barcode label on a pot of plain Greek
+ * yogurt. The bars are scaled to the label's inner width, so however the
+ * pattern below is edited they stay inside the white label. The number is an
+ * in-store EAN-13 (prefix 2, valid check digit), so it names no real product. */
+export function packageSvg(): string {
     const widths = [
-        2, 1, 1, 2, 3, 1, 1, 1, 2, 2, 1, 3, 1, 1, 2, 1, 2, 1, 1, 3, 1, 1, 2, 1,
-        1, 2, 2, 1, 1, 3, 1, 2, 1, 1, 2, 1, 3, 1, 1, 2, 1, 1, 2, 2,
+        1, 1, 1, 2, 1, 3, 1, 1, 2, 2, 1, 3, 1, 1, 2, 1, 2, 1, 1, 3, 1, 1, 2, 1,
+        1, 1, 1, 2, 2, 1, 1, 3, 1, 2, 1, 1, 2, 1, 3, 1, 1, 2, 1, 1, 1, 1,
     ];
-    let x = 94;
+    const left = 108;
+    const span = 84;
+    const gap = 0.6;
+    const unit =
+        (span - gap * (widths.length - 1)) / widths.reduce((a, b) => a + b, 0);
+    let x = left;
     const bars = widths
         .map((w, i) => {
             const out =
                 i % 2
                     ? ""
-                    : `<rect x="${x.toFixed(1)}" y="64" width="${(w * 1.6).toFixed(1)}" height="58" fill="#111"/>`;
-            x += w * 1.6 + 1.2;
+                    : `<rect x="${x.toFixed(2)}" y="92" width="${(w * unit).toFixed(2)}" height="38" fill="#111"/>`;
+            x += w * unit + gap;
             return out;
         })
         .join("");
-    return `<svg viewBox="0 0 300 170" width="100%" height="170" aria-hidden="true" focusable="false"><defs><linearGradient id="lp-can-grad" x1="0" x2="1"><stop offset="0" stop-color="#8f0a12"/><stop offset=".35" stop-color="#e01b24"/><stop offset=".55" stop-color="#f04a50"/><stop offset="1" stop-color="#7d0a10"/></linearGradient></defs><rect width="300" height="170" fill="#d9dde3"/><rect x="30" y="-10" width="240" height="190" rx="18" fill="url(#lp-can-grad)"/><path d="M30 14c60 10 180 10 240 0" stroke="#fff" stroke-opacity=".5" stroke-width="3" fill="none"/><path d="M30 150c60 10 180 10 240 0" stroke="#fff" stroke-opacity=".35" stroke-width="2" fill="none"/><rect x="84" y="52" width="132" height="92" rx="6" fill="#fff"/>${bars}<text x="150" y="136" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" letter-spacing="1.5" fill="#111">5 449000 000996</text><text x="150" y="36" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="13" fill="#fff" opacity=".9">330 ml</text></svg>`;
+    return `<svg viewBox="0 0 300 170" width="100%" height="170" aria-hidden="true" focusable="false"><defs><clipPath id="lp-pot-clip"><path d="M72 34h156l-16 136H88z"/></clipPath><linearGradient id="lp-pot-shade" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".1"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient></defs><rect width="300" height="170" fill="#e7e2d9"/><path d="M0 150h300v20H0z" fill="#d9d2c5"/><ellipse cx="150" cy="168" rx="80" ry="8" fill="#000" opacity=".12"/><g clip-path="url(#lp-pot-clip)"><rect x="60" y="30" width="180" height="145" fill="#fbfaf6"/><rect x="60" y="46" width="180" height="26" fill="#2f7fbf"/><rect x="60" y="72" width="180" height="4" fill="#9cc7e8"/><rect x="60" y="30" width="180" height="145" fill="url(#lp-pot-shade)"/></g><text x="150" y="64" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="700" font-size="14" fill="#fff">0%</text><ellipse cx="150" cy="34" rx="80" ry="9" fill="#cfd5dc"/><ellipse cx="150" cy="32" rx="74" ry="6" fill="#e3e7ec"/><rect x="100" y="84" width="100" height="62" rx="5" fill="#fff" stroke="#d6d6d0"/>${bars}<text x="150" y="141" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9" letter-spacing="1" fill="#111">2 001234 567893</text></svg>`;
 }

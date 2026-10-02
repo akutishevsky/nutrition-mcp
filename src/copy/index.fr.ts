@@ -202,7 +202,7 @@ export const INDEX_FR: IndexDoc = {
         photoMealAlt:
             "Photo : un bol de bortsch avec une cuillerée de crème fraîche et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:
-            "Photo : le code-barres d'une canette de Coca-Cola, numéro 5449000000996",
+            "Photo : le code-barres d'un pot de yaourt à la grecque nature, numéro 2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -316,27 +316,27 @@ export const INDEX_FR: IndexDoc = {
                     "Prends l'emballage en photo : les chiffres sous le code-barres sont recherchés dans Open Food Facts, puis il te demande quelle quantité tu as prise. Open Food Facts n'indique pas la caféine : elle vient donc de l'étiquette ou de valeurs courantes. Si les fibres ou les sucres manquent, ils sont estimés plutôt que laissés vides.",
                 toolNotes: {
                     lookup_barcode:
-                        "Récupère dans Open Food Facts les valeurs de l'étiquette, le Nutri-Score et le groupe NOVA de la canette",
+                        "Récupère les valeurs de l'étiquette et le Nutri-Score du pot dans Open Food Facts",
                     log_meal:
-                        "Enregistre la canette entière au déjeuner, avec une teneur en caféine courante",
+                        "Enregistre le pot entier au petit-déjeuner, calculé à partir des valeurs pour 100 g",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "bu ça au déj. c'est si grave que ça ?",
+                        text: "mangé au petit-déj. c'est bien ?",
                     },
                     {
                         from: "ai",
-                        text: "C'est une canette de Coca-Cola de 330 ml : 139 kcal et 35 g de sucres, et Open Food Facts la classe Nutri-Score E et NOVA 4, ultra-transformée. Tu as bu toute la canette ?",
+                        text: "C'est un pot de 150 g de yaourt à la grecque nature (0 % de matières grasses) : 87 kcal, 15 g de protéines et 5 g de sucres, et Open Food Facts lui donne un Nutri-Score A. Tu as mangé tout le pot ?",
                     },
                     {
                         from: "user",
-                        text: "toute la canette",
+                        text: "tout le pot",
                     },
                     {
                         from: "ai",
-                        text: "Enregistrée au déjeuner : 139 kcal, 35 g de sucres et environ 32 mg de caféine, la teneur courante d'un cola de 330 ml, puisqu'Open Food Facts n'indique pas la caféine. Rien qu'avec ces sucres, tu en es à 35 g sur ta limite de 60 g par jour.",
+                        text: "Enregistré au petit-déjeuner : 87 kcal, 15 g de protéines et 5 g de sucres. Il te reste 145 g de protéines pour aujourd'hui.",
                     },
                 ],
                 cards: [
@@ -345,7 +345,7 @@ export const INDEX_FR: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (canette de 330 ml)"],
+                cardMeals: ["Yaourt à la grecque nature 0 % (pot de 150 g)"],
             },
             {
                 id: "goals-progress",

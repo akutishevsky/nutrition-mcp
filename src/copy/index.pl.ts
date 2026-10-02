@@ -195,7 +195,7 @@ export const INDEX_PL: IndexDoc = {
         photoMealAlt:
             "Zdjęcie: miska barszczu z łyżką śmietany i koperkiem, a obok kromka żytniego chleba",
         photoPackageAlt:
-            "Zdjęcie: kod kreskowy na puszce napoju Coca-Cola, numer 5449000000996",
+            "Zdjęcie: kod kreskowy na kubeczku naturalnego jogurtu greckiego, numer 2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -309,27 +309,27 @@ export const INDEX_PL: IndexDoc = {
                     "Zrób zdjęcie opakowania: cyfry spod kodu kreskowego są wyszukiwane w Open Food Facts, a AI pyta, ile tego było. Open Food Facts nie podaje kofeiny, więc jej ilość pochodzi z etykiety albo z typowych wartości; brakująca wartość błonnika czy cukrów zostaje oszacowana, a nie pominięta.",
                 toolNotes: {
                     lookup_barcode:
-                        "Pobiera z Open Food Facts dane z etykiety puszki, Nutri-Score i grupę NOVA",
+                        "Pobiera z Open Food Facts wartości z etykiety i Nutri-Score kubeczka",
                     log_meal:
-                        "Zapisuje całą puszkę do obiadu, z typową ilością kofeiny",
+                        "Zapisuje cały kubeczek jako śniadanie, przeliczając wartości na 100 g",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "to było do obiadu. jak bardzo to jest niezdrowe?",
+                        text: "to było na śniadanie. jest w porządku?",
                     },
                     {
                         from: "ai",
-                        text: "To puszka Coca-Cola 330 ml: 139 kcal i 35 g cukru, a Open Food Facts przyznaje jej Nutri-Score E i NOVA 4, czyli produkt ultraprzetworzony. Cała puszka?",
+                        text: "To kubeczek naturalnego jogurtu greckiego 150 g (0% tłuszczu): 87 kcal, 15 g białka i 5 g cukru, a Open Food Facts daje mu Nutri-Score A. Cały kubeczek?",
                     },
                     {
                         from: "user",
-                        text: "cała",
+                        text: "cały kubeczek",
                     },
                     {
                         from: "ai",
-                        text: "Zapisano do obiadu: 139 kcal, 35 g cukru i około 32 mg kofeiny, czyli typowa ilość dla coli 330 ml, bo Open Food Facts nie podaje kofeiny. Sam cukier to już 35 z Twojego dziennego limitu 60 g.",
+                        text: "Zapisano jako śniadanie: 87 kcal, 15 g białka i 5 g cukru. Do dzisiejszego celu brakuje jeszcze 145 g białka.",
                     },
                 ],
                 cards: [
@@ -338,7 +338,7 @@ export const INDEX_PL: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (puszka 330 ml)"],
+                cardMeals: ["Naturalny jogurt grecki 0% (kubeczek 150 g)"],
             },
             {
                 id: "goals-progress",

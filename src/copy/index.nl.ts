@@ -193,7 +193,7 @@ export const INDEX_NL: IndexDoc = {
         photoMealAlt:
             "Foto: een kom borsjtsj met een schepje zure room en dille, met een snee roggebrood ernaast",
         photoPackageAlt:
-            "Foto: de barcode op een blikje Coca-Cola, nummer 5449000000996",
+            "Foto: de barcode op een bakje Griekse yoghurt naturel, nummer 2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -307,27 +307,27 @@ export const INDEX_NL: IndexDoc = {
                     "Fotografeer de verpakking: de cijfers onder de barcode worden opgezocht in Open Food Facts, en er volgt de vraag hoeveel je ervan nam. Open Food Facts vermeldt geen cafeïne, dus die komt van het etiket of uit gangbare hoeveelheden; ontbreken vezels of suiker, dan worden die geschat in plaats van leeg gelaten.",
                 toolNotes: {
                     lookup_barcode:
-                        "Haalt de etiketwaarden, Nutri-Score en NOVA-groep van het blikje uit Open Food Facts",
+                        "Haalt de etiketwaarden en de Nutri-Score van het bakje op uit Open Food Facts",
                     log_meal:
-                        "Logt het hele blikje als lunch, met een gangbare hoeveelheid cafeïne",
+                        "Registreert het hele bakje als ontbijt, omgerekend van de waarden per 100 g",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "had ik bij de lunch. hoe erg is het eigenlijk?",
+                        text: "had ik bij het ontbijt. is dit goed?",
                     },
                     {
                         from: "ai",
-                        text: "Dat is een blikje Coca-Cola van 330 ml: 139 kcal en 35 g suiker, en Open Food Facts geeft het Nutri-Score E en NOVA 4, ultrabewerkt. Heb je het hele blikje opgedronken?",
+                        text: "Dat is een bakje Griekse yoghurt naturel van 150 g (0% vet): 87 kcal, 15 g eiwit en 5 g suiker, en Open Food Facts geeft het Nutri-Score A. Heb je het hele bakje gegeten?",
                     },
                     {
                         from: "user",
-                        text: "het hele blikje",
+                        text: "het hele bakje",
                     },
                     {
                         from: "ai",
-                        text: "Gelogd als lunch: 139 kcal, 35 g suiker en ongeveer 32 mg cafeïne, een gangbare hoeveelheid voor 330 ml cola, want Open Food Facts vermeldt geen cafeïne. Alleen de suiker brengt je al op 35 van je daglimiet van 60 g.",
+                        text: "Geregistreerd als ontbijt: 87 kcal, 15 g eiwit en 5 g suiker. Nog 145 g eiwit te gaan vandaag.",
                     },
                 ],
                 cards: [
@@ -336,7 +336,7 @@ export const INDEX_NL: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (blikje van 330 ml)"],
+                cardMeals: ["Griekse yoghurt naturel 0% (bakje van 150 g)"],
             },
             {
                 id: "goals-progress",

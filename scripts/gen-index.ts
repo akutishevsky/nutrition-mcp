@@ -44,7 +44,7 @@ import {
 } from "../src/copy/index.js";
 import {
     borschtSvg,
-    canSvg,
+    packageSvg,
     renderCard,
     smoothieSvg,
     type DemoCardId,
@@ -510,7 +510,7 @@ ${cards}
 function exampleMessage(m: ExampleMessage, doc: IndexDoc): string {
     const e = doc.examples;
     if (m.from === "user" && m.photo) {
-        const svg = m.photo === "meal" ? borschtSvg() : canSvg();
+        const svg = m.photo === "meal" ? borschtSvg() : packageSvg();
         const alt = m.photo === "meal" ? e.photoMealAlt : e.photoPackageAlt;
         return `<div class="lp-msg-photo"><div role="img" aria-label="${esc(alt)}">${svg}</div>${m.text ? `<p>${esc(m.text)}</p>` : ""}</div>`;
     }

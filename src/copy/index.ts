@@ -578,7 +578,7 @@ const INDEX_EN: IndexDoc = {
         photoMealAlt:
             "Photo: a bowl of borscht with a spoonful of sour cream and dill, and a slice of rye bread beside it",
         photoPackageAlt:
-            "Photo: the barcode on a can of Coca-Cola, number 5449000000996",
+            "Photo: the barcode on a pot of plain Greek yogurt, number 2001234567893",
         slides: [
             {
                 id: "log-meal",
@@ -692,27 +692,27 @@ const INDEX_EN: IndexDoc = {
                     "Photograph the package: the digits under the barcode are looked up in Open Food Facts, and it asks how much you had. Open Food Facts carries no caffeine, so that comes from the label or typical amounts; a missing fiber or sugar figure is estimated rather than left blank.",
                 toolNotes: {
                     lookup_barcode:
-                        "Pulls the can's label figures, Nutri-Score and NOVA group from Open Food Facts",
+                        "Pulls the pot's label figures and Nutri-Score from Open Food Facts",
                     log_meal:
-                        "Logs the whole can as lunch, with a typical caffeine figure",
+                        "Logs the whole pot as breakfast, scaled from the per-100 g figures",
                 },
                 messages: [
                     {
                         from: "user",
                         photo: "package",
-                        text: "had this with lunch. how bad is it really?",
+                        text: "had this for breakfast. is it any good?",
                     },
                     {
                         from: "ai",
-                        text: "That's a 330 ml can of Coca-Cola: 139 kcal and 35 g of sugar, and Open Food Facts rates it Nutri-Score E and NOVA 4, ultra-processed. Did you have the whole can?",
+                        text: "That's a 150 g pot of plain Greek yogurt (0% fat): 87 kcal, 15 g protein and 5 g sugar, and Open Food Facts rates it Nutri-Score A. Did you have the whole pot?",
                     },
                     {
                         from: "user",
-                        text: "whole can",
+                        text: "whole pot",
                     },
                     {
                         from: "ai",
-                        text: "Logged as lunch: 139 kcal, 35 g sugar and about 32 mg caffeine, a typical amount for a 330 ml cola, since Open Food Facts doesn't list caffeine. The sugar alone puts you at 35 of your 60 g daily limit.",
+                        text: "Logged as breakfast: 87 kcal, 15 g protein and 5 g sugar. 145 g of protein to go today.",
                     },
                 ],
                 cards: [
@@ -721,7 +721,7 @@ const INDEX_EN: IndexDoc = {
                         after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (330 ml can)"],
+                cardMeals: ["Plain Greek yogurt 0% (150 g pot)"],
             },
             {
                 id: "goals-progress",
