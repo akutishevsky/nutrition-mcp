@@ -569,8 +569,12 @@
                         showTyping();
                         await wait(1100, id);
                     } else if (kind === "card") {
+                        // A card sits between a turn and its reply, so the
+                        // reply is still being written once it lands.
                         push(node);
                         await wait(1400, id);
+                        showTyping();
+                        await wait(700, id);
                     } else {
                         push(node);
                         await wait(2600, id);

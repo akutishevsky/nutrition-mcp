@@ -358,13 +358,15 @@ function heroThread(doc: IndexDoc, locale: SiteLocale): string {
                 `<div class="lp-msg-u" data-kind="user">${esc(ex.userText)}</div>`,
             );
         }
-        out.push(
-            `<div class="lp-msg-a" data-kind="ai">${esc(ex.aiText)}</div>`,
-        );
+        // The widget lands where the host draws it: under the turn whose tool
+        // call produced it, above the assistant's reply (as in the examples).
         if (ex.card)
             out.push(
                 `<div class="lp-card-slot" data-kind="card">${cardFor(ex)}</div>`,
             );
+        out.push(
+            `<div class="lp-msg-a" data-kind="ai">${esc(ex.aiText)}</div>`,
+        );
     }
     return out.map((m) => `                            ${m}`).join("\n");
 }
