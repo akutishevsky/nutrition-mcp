@@ -70,7 +70,7 @@ html.js .lp-thread > * { animation: nm-msg .7s var(--ease-out) both; }
 .lp-msg-a { align-self: flex-start; max-width: 88%; padding: 11px 15px; background: var(--bg2); color: var(--ink); border-radius: 20px 20px 20px 6px; font-size: 15px; line-height: 1.45; }
 .lp-msg-photo { align-self: flex-end; width: min(80%, 300px); padding: 6px; background: var(--ink); border-radius: 20px 20px 6px 20px; }
 .lp-msg-photo > [role="img"] { border-radius: 16px; overflow: hidden; line-height: 0; }
-.lp-msg-photo > [role="img"] svg { display: block; border-radius: 15px; }
+.lp-msg-photo > [role="img"] svg { display: block; width: 100%; height: auto; aspect-ratio: 300 / 170; border-radius: 15px; } /* height:auto: a fixed 170px height letterboxed the 300x170 drawing inside the rounded clip */
 .lp-msg-photo > p { margin: 0; padding: 8px 9px 4px; color: var(--bg); font-size: 15px; font-weight: 500; }
 .lp-typing { align-self: flex-start; padding: 12px 16px; background: var(--bg2); border-radius: 20px 20px 20px 6px; display: inline-flex; gap: 5px; }
 .lp-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--ink3); animation: nm-dot 1.2s infinite; }
