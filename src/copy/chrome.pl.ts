@@ -11,10 +11,10 @@ export const CHROME_PL: ChromeCopy = {
         examples: "Przykłady",
         liveStats: "Statystyki na żywo",
         liveStatsBadgeLabel: {
-            one: "nowy wpis jedzenia od otwarcia strony",
-            few: "nowe wpisy jedzenia od otwarcia strony",
-            many: "nowych wpisów jedzenia od otwarcia strony",
-            other: "nowych wpisów jedzenia od otwarcia strony",
+            one: "nowy posiłek zapisany od otwarcia strony",
+            few: "nowe posiłki zapisane od otwarcia strony",
+            many: "nowych posiłków zapisanych od otwarcia strony",
+            other: "nowych posiłków zapisanych od otwarcia strony",
         },
         faq: "FAQ",
     },
@@ -25,7 +25,7 @@ export const CHROME_PL: ChromeCopy = {
         footer: "Stopka",
     },
 
-    githubAriaLabel: "Repozytorium na GitHub",
+    githubAriaLabel: "Repozytorium na GitHubie",
     changeLanguageAriaLabel: "Zmień język",
     languageTitle: "Język",
     theme: {
@@ -53,12 +53,12 @@ export const CHROME_PL: ChromeCopy = {
         contact: "Kontakt",
         privacyPolicy: "Polityka prywatności",
         termsOfService: "Regulamin",
-        note: "Darmowy i open source. Wartości odżywcze są szacunkowe, nie stanowią porady medycznej.",
+        note: "Darmowy projekt open source. Wartości odżywcze są szacunkowe i nie stanowią porady medycznej.",
     },
 
     consent: {
         title: "Analityczne pliki cookie.",
-        body: "Za Twoją zgodą Google Analytics zlicza odwiedziny, a Microsoft Clarity rejestruje kliknięcia i przewijanie w postaci nagrań sesji, abyśmy widzieli, które strony pomagają i gdzie ludzie utykają. Żadne z tych narzędzi nie wczyta się, dopóki nie wyrazisz zgody.",
+        body: "Za Twoją zgodą Google Analytics zlicza odwiedziny, a Microsoft Clarity rejestruje kliknięcia i przewijanie w postaci nagrań sesji, abyśmy wiedzieli, które strony są pomocne, a gdzie użytkownicy się gubią. Żadne z nich nie uruchomi się, dopóki nie wyrazisz zgody.",
         accept: "Akceptuj",
         reject: "Odrzuć",
         settings: "Ustawienia plików cookie",

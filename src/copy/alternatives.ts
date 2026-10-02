@@ -142,9 +142,9 @@ export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
         hubTitle:
             "Alternatywa dla MyFitnessPal i Cronometer w Claude i ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer i Lose It! nie mają oficjalnego serwera MCP. Nutrition MCP to darmowa alternatywa open source dla Claude i ChatGPT z importem historii.",
+            "MyFitnessPal, Cronometer i Lose It! nie mają oficjalnego serwera MCP. Nutrition MCP to darmowa alternatywa open source dla Claude i ChatGPT, z importem CSV.",
         hubOgDesc:
-            "Twoja aplikacja żywieniowa nie ma oficjalnego serwera MCP. Nutrition MCP to darmowa alternatywa open source, działająca w Claude lub ChatGPT — i importuje Twoją historię z eksportu CSV.",
+            "Twoja aplikacja żywieniowa nie ma oficjalnego serwera MCP. Nutrition MCP to darmowa alternatywa open source, która działa w Claude lub ChatGPT i importuje Twoją historię z eksportu CSV.",
     },
     it: {
         appTitle: "Server MCP per {app}? Conta le calorie in Claude e ChatGPT",

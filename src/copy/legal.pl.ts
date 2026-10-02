@@ -19,13 +19,13 @@ const ul = (items: string[]): { type: "ul"; items: string[] } => ({
 
 export const PRIVACY_PL: LegalDoc = {
     title: "Polityka prywatności",
-    lead: "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
+    lead: "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, do czego ich używamy, gdzie się znajdują i jak w każdej chwili usunąć konto ze wszystkimi danymi.",
     documentsLabel: "Dokumenty prawne",
     tocLabel: "Na tej stronie",
     metaDescription:
-        "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
+        "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, do czego ich używamy, gdzie się znajdują i jak w każdej chwili usunąć konto ze wszystkimi danymi.",
     ogDescription:
-        "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, jak to wykorzystujemy, gdzie to się znajduje i jak w dowolnej chwili usunąć swoje konto oraz wszystko, co w nim jest.",
+        "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, do czego ich używamy, gdzie się znajdują i jak w każdej chwili usunąć konto ze wszystkimi danymi.",
     lastUpdated: "29 września 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
@@ -33,55 +33,55 @@ export const PRIVACY_PL: LegalDoc = {
             heading: "Co zbieramy",
             blocks: [
                 p(
-                    "Podczas rejestracji przechowujemy Twój <strong>adres e-mail</strong> oraz bezpiecznie zahaszowane hasło za pośrednictwem Supabase Auth. Jeśli zamiast tego logujesz się przez Google, prosimy Google wyłącznie o Twój adres e-mail i otrzymujemy go razem z identyfikatorem Twojego konta Google, który Supabase Auth przechowuje, aby rozpoznać Cię przy kolejnym logowaniu przez Google. Nigdy nie widzimy hasła do konta Google. Konta, do których logowano się przez Google przed 27 września 2026, mogą nadal zawierać imię i nazwisko oraz zdjęcie profilowe przekazane wtedy przez Google; żadna część usługi ich nie odczytuje ani nie wyświetla poza eksportem Twoich danych, a zostaną usunięte razem z Twoim kontem.",
+                    "Przy rejestracji przechowujemy, za pośrednictwem Supabase Auth, Twój <strong>adres e-mail</strong> i hasło zapisane w postaci bezpiecznego skrótu (hasha). Jeśli zamiast tego logujesz się przez Google, prosimy Google wyłącznie o Twój adres e-mail i otrzymujemy go razem z identyfikatorem Twojego konta Google, który Supabase Auth przechowuje, aby rozpoznać Cię przy następnym logowaniu przez Google. Nigdy nie widzimy hasła do konta Google. Konta, do których logowano się przez Google przed 27 września 2026, mogą nadal zawierać imię i nazwisko oraz zdjęcie profilowe przekazane wtedy przez Google. Usługa nigdzie ich nie odczytuje ani nie wyświetla poza eksportem Twoich danych; są one usuwane razem z Twoim kontem.",
                 ),
-                p("Podczas korzystania z usługi przechowujemy:"),
+                p("Gdy korzystasz z usługi, przechowujemy:"),
                 ul([
-                    "<strong>Wpisy posiłków</strong> — opis, typ posiłku, kalorie, makroskładniki, błonnik, cukry ogółem, gramy alkoholu, miligramy kofeiny, notatki i znaczniki czasu. Zdjęcia jedzenia są interpretowane przez Twojego asystenta AI i nigdy nie są przesyłane do nas ani przez nas przechowywane.",
+                    "<strong>Wpisy posiłków</strong> — opis, typ posiłku, kalorie, makroskładniki, błonnik, cukry ogółem, gramy alkoholu, miligramy kofeiny, notatki i znaczniki czasu. Zdjęcia jedzenia interpretuje Twój asystent AI — nigdy nie są do nas przesyłane ani przez nas przechowywane.",
                     "<strong>Wpisy wody</strong> — ilość, notatki i znaczniki czasu.",
-                    "<strong>Wpisy masy ciała</strong> — waga, notatki i znaczniki czasu. To dane dotyczące zdrowia i są traktowane dokładnie tak samo jak reszta Twoich wpisów.",
-                    "<strong>Cele</strong> — Twoje dzienne cele dotyczące kalorii, białka, węglowodanów, tłuszczu, błonnika, cukru, alkoholu, kofeiny i wody, a także docelowa waga.",
-                    "<strong>Ustawienia profilu</strong> — Twoja strefa czasowa IANA, preferowana jednostka wagi, informacja, czy śledzenie alkoholu jest włączone i w jakim standardowym drinku jest pokazywane, czy widżety w czacie są włączone oraz w jakim języku są wyświetlane.",
-                    "<strong>Telemetria korzystania z narzędzi</strong> — dla każdego wywołania narzędzia MCP: które narzędzie zostało uruchomione, czy zakończyło się sukcesem, ile trwało, ogólna kategoria błędu w razie niepowodzenia, długość w dniach każdego zapytanego zakresu dat, identyfikator sesji MCP, wersja protokołu MCP, z którą połączyła się Twoja aplikacja AI, oraz nazwa i wersja, pod którymi ta aplikacja się przedstawia (na przykład &bdquo;claude-ai/1.0&rdquo;), jeśli je przesyła. Jest powiązana z Twoim identyfikatorem konta. Nigdy nie zawiera treści Twoich wpisów.",
-                    "<strong>Dziennik działania serwera</strong> — dla każdego żądania do serwera: metoda, ścieżka, status i czas odpowiedzi, Twój adres IP bez ostatniej części oraz, w przypadku żądań MCP, wersja protokołu i nazwa oraz wersja podawane przez Twoją aplikację AI. Dla każdego wywołania narzędzia zapisuje też nazwę narzędzia, czy wywołanie się powiodło, ile trwało oraz, w razie niepowodzenia, krótki kod referencyjny i komunikat błędu — który może powtarzać wartość przesłaną przez Twoją aplikację AI, na przykład nieprawidłową datę. Gdy Twoja aplikacja AI loguje się lub odnawia połączenie, zapisuje wynik, losowy identyfikator nadany Twojej aplikacji AI przy rejestracji w naszej usłudze logowania oraz witrynę, na którą aplikacja poprosiła o przekierowanie z powrotem (na przykład claude.ai). Trafia do dziennika działania naszego dostawcy hostingu, nie zawiera Twojego identyfikatora konta ani adresu e-mail i jest przechowywany tylko krótko: ten dziennik to bufor cykliczny, który nadpisuje starsze wiersze w miarę napływu nowego ruchu.",
+                    "<strong>Wpisy masy ciała</strong> — waga, notatki i znaczniki czasu. To dane dotyczące zdrowia i traktujemy je dokładnie tak samo jak pozostałe wpisy.",
+                    "<strong>Cele</strong> — Twoje dzienne cele dla kalorii, białka, węglowodanów, tłuszczu, błonnika, cukru, alkoholu, kofeiny i wody oraz Twoja waga docelowa.",
+                    "<strong>Ustawienia profilu</strong> — Twoja strefa czasowa IANA, preferowana jednostka wagi, informacja, czy śledzenie alkoholu jest włączone i w jakich porcjach standardowych wyświetlany jest alkohol, czy widżety w czacie są włączone oraz w jakim języku się wyświetlają.",
+                    "<strong>Telemetria korzystania z narzędzi</strong> — dla każdego wywołania narzędzia MCP: które narzędzie zostało uruchomione, czy wywołanie się powiodło, ile trwało, ogólna kategoria błędu w razie niepowodzenia, długość w dniach każdego zakresu dat, o który prosisz, identyfikator sesji MCP, wersja protokołu MCP, z którą połączyła się Twoja aplikacja AI, a także nazwa i wersja, jakimi ta aplikacja się przedstawia (na przykład &bdquo;claude-ai/1.0&rdquo;), o ile je przesyła. Telemetria jest powiązana z identyfikatorem Twojego konta. Nigdy nie zawiera treści Twoich wpisów.",
+                    "<strong>Dziennik zdarzeń serwera</strong> — dla każdego żądania do serwera: metoda, ścieżka, status i czas odpowiedzi, Twój adres IP z usuniętą ostatnią częścią, a w przypadku żądań MCP także wersja protokołu oraz nazwa i wersja, jakie podaje Twoja aplikacja AI. Przy każdym wywołaniu narzędzia dziennik zapisuje również nazwę narzędzia, informację, czy wywołanie się powiodło, i czas jego trwania, a w razie niepowodzenia krótki kod referencyjny i komunikat błędu, który może powtarzać wartość przesłaną przez Twoją aplikację AI, na przykład nieprawidłową datę. Gdy Twoja aplikacja AI loguje się lub odnawia połączenie, rejestrowane są: wynik tej operacji, losowy identyfikator, który aplikacja otrzymała przy rejestracji w naszej usłudze logowania, oraz witryna, na którą aplikacja chciała wrócić (na przykład claude.ai). Dziennik jest prowadzony u naszego dostawcy hostingu, nie zawiera identyfikatora Twojego konta ani adresu e-mail i jest przechowywany tylko przez krótki czas: to bufor cykliczny, w którym nowy ruch na bieżąco nadpisuje starsze wiersze.",
                 ]),
                 p(
-                    "<strong>Alkohol również jest daną dotyczącą zdrowia</strong>, i to bardziej wrażliwą niż liczba kalorii, więc działa to inaczej niż wszystko powyżej. Śledzenie alkoholu jest domyślnie wyłączone, a my zapisujemy alkohol wyłącznie wtedy, gdy pochodzi od Ciebie — z zapisanego przez Ciebie drinka albo z kolumny w importowanym pliku. Nic nie jest wnioskowane w Twoim imieniu. Wyłączenie tego ustawienia robi dwie rzeczy: importer zbiorczy przestaje odczytywać kolumnę alkoholu z przesyłanych przez Ciebie plików, a wszystko inne przestaje pokazywać alkohol w posiłkach, celach, postępach i widżetach, które widzisz. To nie jest przełącznik usuwania. Alkohol zapisany przez Ciebie bezpośrednio jest nadal rejestrowany niezależnie od tego ustawienia, wszystko, co już zostało zapisane, pozostaje w bazie danych, a to wszystko nadal pojawia się w pliku posiłków każdego eksportu, który wykonasz. Aby faktycznie usunąć wartość alkoholu, usuń posiłek, do którego należy, albo usuń swoje konto.",
+                    "<strong>Informacje o alkoholu to również dane dotyczące zdrowia</strong>, i to bardziej wrażliwe niż liczba kalorii, dlatego obowiązują tu inne zasady niż w przypadku wszystkiego powyżej. Śledzenie alkoholu jest domyślnie wyłączone, a alkohol zapisujemy wyłącznie wtedy, gdy pochodzi od Ciebie — z zapisanego przez Ciebie drinka albo z kolumny w importowanym pliku. Nic nie ustala go za Ciebie. Wyłączenie tego ustawienia ma dwa skutki: importer zbiorczy przestaje odczytywać kolumnę alkoholu z przesyłanych przez Ciebie plików, a pozostałe funkcje przestają pokazywać Ci alkohol w posiłkach, celach, postępach i widżetach. Nie jest to przełącznik usuwania danych. Alkohol zapisany bezpośrednio przez Ciebie jest rejestrowany bez względu na to, czy ustawienie jest włączone. Wszystko, co już zapisano, zostaje w bazie danych i nadal trafia do pliku z posiłkami w każdym eksporcie, jaki wykonasz. Aby naprawdę usunąć zapisaną ilość alkoholu, usuń posiłek, do którego należy, albo usuń konto.",
                 ),
                 p(
-                    "Przechowujemy też tokeny dostępu i odświeżania OAuth oraz kody autoryzacyjne, które pozwalają Twojemu asystentowi AI pozostać połączonym z Twoim kontem; jak długo ważny jest każdy z nich, opisujemy w sekcji &bdquo;Jak długo przechowujemy dane&rdquo;. Są przechowywane wyłącznie w postaci jednokierunkowych skrótów (hashy).",
+                    "Przechowujemy też tokeny dostępu i odświeżania OAuth oraz kody autoryzacyjne, dzięki którym Twój asystent AI pozostaje połączony z Twoim kontem; okres ważności każdego z nich opisujemy w sekcji &bdquo;Jak długo przechowujemy dane&rdquo;. Przechowujemy je wyłącznie w postaci jednokierunkowych skrótów (hashy).",
                 ),
             ],
         },
         {
-            heading: "Jak to wykorzystujemy",
+            heading: "Jak wykorzystujemy dane",
             blocks: [
                 p(
-                    "Dane o Twoich posiłkach, wodzie, wadze i celach są wykorzystywane wyłącznie do świadczenia usługi śledzenia odżywiania oraz, w anonimowej, zbiorczej postaci, do publicznych statystyk na stronie głównej. <strong>Nigdy ich nie sprzedajemy, nigdy nie udostępniamy stronom trzecim ani nie wykorzystujemy do reklam</strong>, ani nie zasilamy nimi żadnego systemu reklamowego czy profilującego.",
+                    "Dane o Twoich posiłkach, wodzie, wadze i celach wykorzystujemy wyłącznie do świadczenia usługi śledzenia odżywiania oraz — w anonimowej, zbiorczej postaci — do publicznych statystyk na stronie głównej. <strong>Nigdy ich nie sprzedajemy, nie udostępniamy podmiotom trzecim ani nie wykorzystujemy do reklam</strong> i nie przekazujemy ich do żadnych systemów reklamowych ani profilujących.",
                 ),
                 p(
-                    "Strona główna i zasilający ją publiczny kanał statystyk pokazują anonimowe sumy dla całej usługi — ile posiłków zapisano, ich kalorie i makroskładniki, ilość zapisanej wody oraz łączny spadek wagi netto na wszystkich kontach — a także strefy czasowe ustawione w profilach, które strona główna przedstawia na mapie świata. Strefa czasowa pojawia się na mapie dopiero wtedy, gdy używają jej co najmniej trzy profile, a żadna liczba nie jest powiązana z konkretną osobą.",
+                    "Strona główna i publiczne źródło statystyk, z którego korzysta, pokazują anonimowe sumy dla całej usługi — ile posiłków zapisano, ich kalorie i makroskładniki, ilość zapisanej wody oraz łączny spadek wagi netto ze wszystkich kont — a także strefy czasowe ustawione w profilach, które strona główna przedstawia na mapie świata. Strefa czasowa pojawia się na mapie dopiero wtedy, gdy używają jej co najmniej trzy profile, a żadna liczba nie jest powiązana z konkretną osobą.",
                 ),
                 p(
-                    'Gdy kod kreskowy wyszukujesz Ty lub Twój asystent AI, nasz serwer wysyła do <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> wyłącznie cyfry kodu kreskowego — nigdy Twojego konta, adresu e-mail ani wpisów — a zwrócone dane produktu przechowuje we wspólnej pamięci podręcznej, która nie jest powiązana z żadnym użytkownikiem.',
+                    'Gdy Ty lub Twój asystent AI wyszukujecie kod kreskowy, nasz serwer wysyła do <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> wyłącznie cyfry kodu — nigdy danych Twojego konta, adresu e-mail ani wpisów — a zwrócone dane produktu przechowuje we wspólnej pamięci podręcznej, która nie jest powiązana z żadnym użytkownikiem.',
                 ),
                 p(
-                    "Istnieją dwa rodzaje analityki, i żaden nie dotyka treści Twoich wpisów:",
+                    "Prowadzimy dwa rodzaje analityki i żaden z nich nie obejmuje treści Twoich wpisów:",
                 ),
                 ul([
-                    "<strong>Analityka strony.</strong> Za Twoją zgodą te strony wczytują Google Analytics, który daje nam zbiorcze statystyki ruchu — odsłony, źródła odwiedzin, przybliżoną geografię, typ urządzenia — oraz Microsoft Clarity, który rejestruje, jak odwiedzający korzystają z witryny — kliknięcia, dotknięcia, przewijanie, ruchy myszy — w postaci nagrań sesji i map cieplnych, abyśmy widzieli, gdzie strony są niejasne. Żadne z tych narzędzi nie wczytuje się, dopóki nie wyrazisz zgody w banerze cookies; jeśli odmówisz, żadne z nich się nie wczyta, a jeśli Twoja przeglądarka wysyła sygnał Global Privacy Control, żadne z nich się nie wczyta, chyba że wyrazisz zgodę w stopce. Zgoda obejmuje wyłącznie przechowywanie danych analitycznych: przechowywanie danych reklamowych i Google Signals pozostają wyłączone. Google otrzymuje Twój adres IP przy każdym żądaniu, ale według Google nie zapisuje go ani nie przechowuje w przypadku odwiedzających z UE, Szwajcarii i Wielkiej Brytanii, a używa go tylko do ustalenia przybliżonej lokalizacji. Clarity maskuje to, co wpisujesz w formularze, i również otrzymuje Twój adres IP oraz dane przeglądarki. Żadne z nich nie działa na stronie logowania. Zgodę możesz w każdej chwili wycofać przyciskiem &bdquo;Ustawienia plików cookie&rdquo; w stopce, co usuwa też analityczne pliki cookie ustawione przez tę witrynę; Twój wybór jest przechowywany w pamięci lokalnej przeglądarki przez maksymalnie 6 miesięcy.",
-                    "<strong>Telemetria serwera.</strong> Każde wywołanie narzędzia MCP zapisuje jeden wiersz telemetrii użycia — które narzędzie zostało uruchomione, czy się powiodło, ile trwało, która wersja protokołu MCP i która aplikacja AI (według podawanej przez nią nazwy i wersji) wykonała wywołanie — powiązany z Twoim identyfikatorem konta, ale nie z tym, co zapisałeś/aś. Wykorzystujemy to, żeby znajdować wolne i uszkodzone narzędzia. Nie jest to udostępniane nikomu i jest usuwane razem ze wszystkim innym, gdy usuwasz swoje konto.",
+                    "<strong>Analityka strony.</strong> Za Twoją zgodą te strony wczytują Google Analytics, który dostarcza nam zbiorczych statystyk ruchu (odsłony, strony odsyłające, przybliżona lokalizacja, typ urządzenia), oraz Microsoft Clarity, który rejestruje, jak odwiedzający korzystają z witryny (kliknięcia, dotknięcia, przewijanie, ruchy myszy), w postaci nagrań sesji i map cieplnych, dzięki czemu widzimy, w których miejscach odwiedzający się gubią. Żadne z tych narzędzi nie wczytuje się, dopóki nie wyrazisz zgody w banerze plików cookie; jeśli odmówisz, nie wczyta się żadne z nich, a jeśli Twoja przeglądarka wysyła sygnał Global Privacy Control, nie wczytają się, chyba że samodzielnie wyrazisz zgodę w stopce. Zgoda obejmuje wyłącznie przechowywanie danych analitycznych: przechowywanie danych reklamowych i Google Signals pozostają wyłączone. Google otrzymuje Twój adres IP przy każdym żądaniu, ale — jak deklaruje Google — w przypadku odwiedzających z UE, Szwajcarii i Wielkiej Brytanii nie zapisuje go w logach ani nie przechowuje, a wykorzystuje wyłącznie do ustalenia przybliżonej lokalizacji. Clarity maskuje to, co wpisujesz w formularzach, i również otrzymuje Twój adres IP oraz informacje o przeglądarce. Żadne z nich nie działa na stronie logowania. Zgodę możesz w każdej chwili wycofać przyciskiem &bdquo;Ustawienia plików cookie&rdquo; w stopce, co usuwa też analityczne pliki cookie zapisane przez tę witrynę; Twój wybór jest przechowywany w pamięci lokalnej przeglądarki przez maksymalnie 6 miesięcy.",
+                    "<strong>Telemetria serwera.</strong> Każde wywołanie narzędzia MCP zapisuje jeden wiersz telemetrii użycia — które narzędzie zostało uruchomione, czy się powiodło, ile trwało oraz która wersja protokołu MCP i która aplikacja AI (według podawanej przez nią nazwy i wersji) wykonała wywołanie. Wiersz jest powiązany z identyfikatorem Twojego konta, ale nie z treścią Twoich wpisów. Te dane służą nam do wykrywania wolnych i niedziałających narzędzi. Nie udostępniamy ich nikomu, a gdy usuwasz konto, są usuwane razem z całą resztą.",
                 ]),
                 p(
-                    "Ponieważ strona wczytuje czcionki i ikony z Google Fonts i jsDelivr, odwiedzanie tych stron ujawnia Twój adres IP tym dostawcom. Liczbę gwiazdek projektu na GitHubie pobiera nasz serwer, a nie Twoja przeglądarka, więc GitHub nie widzi Twojej wizyty.",
+                    "Ponieważ strona wczytuje czcionki i ikony z Google Fonts i jsDelivr, przy odwiedzaniu tych stron Twój adres IP trafia do tych dostawców. Liczbę gwiazdek projektu na GitHubie pobiera nasz serwer, a nie Twoja przeglądarka, więc GitHub nigdy nie widzi Twojej wizyty.",
                 ),
             ],
         },
         {
-            heading: "Gdzie to jest przechowywane",
+            heading: "Gdzie przechowujemy dane",
             blocks: [
                 p(
-                    'Wszystkie dane są przechowywane w <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) w UE, w irlandzkim regionie AWS (eu-west-1). Uwierzytelnianie i przechowywanie eksportów obsługuje Supabase w tym samym regionie. Serwer działa na DigitalOcean we Frankfurcie nad Menem w Niemczech. Żądania do strony i serwera przechodzą przez sieć Cloudflare (z której korzysta nasz dostawca hostingu), która odszyfrowuje połączenie, a więc przetwarza w trakcie przesyłania wszystko, co jest wysyłane do usługi i z niej, w tym Twój adres IP, i może ustawić ściśle niezbędny plik cookie chroniący przed botami (<code>__cf_bm</code>, 30 minut).',
+                    'Wszystkie dane są przechowywane w <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">Supabase</a> (PostgreSQL) w UE, w irlandzkim regionie AWS (eu-west-1). Uwierzytelnianie i przechowywanie eksportów obsługuje Supabase w tym samym regionie. Serwer działa w infrastrukturze DigitalOcean we Frankfurcie nad Menem w Niemczech. Żądania do strony i serwera przechodzą przez sieć Cloudflare (z której korzysta nasz dostawca hostingu). Cloudflare odszyfrowuje połączenie, więc w trakcie przesyłania przetwarza wszystko, co trafia do usługi i z niej wychodzi, w tym Twój adres IP, a także może ustawić ściśle niezbędny plik cookie chroniący przed botami (<code>__cf_bm</code>, 30 minut).',
                 ),
             ],
         },
@@ -89,13 +89,13 @@ export const PRIVACY_PL: LegalDoc = {
             heading: "Jak długo przechowujemy dane",
             blocks: [
                 p(
-                    "Twoje wpisy posiłków, wody i wagi, cele, ustawienia profilu oraz telemetria korzystania z narzędzi są przechowywane tak długo, jak istnieje Twoje konto — żadne z nich nie ma osobnej daty wygaśnięcia ani zaplanowanego czyszczenia. Gdy usuwasz konto, wszystko to jest usuwane natychmiast i nieodwracalnie, jak opisano poniżej. Jedynymi śladami pozostają: wiersz telemetrii dotyczący samego usunięcia, zapisywany bez identyfikatora Twojego konta; opisany wyżej krótkotrwały dziennik działania serwera, który nigdy nie zawiera identyfikatora Twojego konta; własne dzienniki operacyjne naszego dostawcy bazy danych, przechowywane przez ograniczony czas (do 7 dni w naszym planie); oraz jego rotacyjne kopie zapasowe, które wygasają według jego własnego harmonogramu.",
+                    "Twoje wpisy posiłków, wody i wagi, cele, ustawienia profilu oraz telemetrię korzystania z narzędzi przechowujemy tak długo, jak istnieje Twoje konto — żadne z tych danych nie mają osobnego terminu wygaśnięcia ani zaplanowanego usunięcia. Po usunięciu konta wszystkie są usuwane natychmiast i nieodwracalnie, jak opisano poniżej. Jedyne ślady, jakie pozostają, to: wiersz telemetrii dotyczący samego usunięcia, zapisany bez identyfikatora Twojego konta; opisany wyżej krótkotrwały dziennik zdarzeń serwera, który nigdy nie zawiera identyfikatora Twojego konta; własne dzienniki operacyjne naszego dostawcy bazy danych, przechowywane przez ograniczony czas (w naszym planie do 7 dni); oraz jego rotacyjne kopie zapasowe, które wygasają zgodnie z jego własnym harmonogramem.",
                 ),
                 p(
-                    "Poświadczenia logowania są z założenia krótkotrwałe. Sesja strony logowania trwa 10 minut i jest przechowywana w pamięci serwera; jest powiązana z Twoją przeglądarką za pomocą ściśle niezbędnego pliku cookie, który zawiera wyłącznie losową wartość, wygasa po tych samych 10 minutach i jest usuwany po zakończeniu logowania. Do sprawdzenia Twojego hasła lub logowania przez Google używamy Supabase Auth, który za każdym razem tworzy sesję logowania Supabase; nigdy z niej nie korzystamy i natychmiast ją kończymy. Jednorazowy kod autoryzacyjny przekazywany Twojej aplikacji AI wygasa po 10 minutach i jest usuwany, gdy tylko zostanie użyty. Token dostępu jest ważny przez 24 godziny (nieliczne tokeny wydane do 27 września 2026 włącznie wygasają najpóźniej 6 października 2026); token odświeżania jest ważny przez 90 dni i jest usuwany w chwili, gdy zostanie użyty do uzyskania nowej pary. Wygasłe tokeny i kody są usuwane automatycznie w ciągu godziny. Usunięcie konta natychmiast usuwa je wszystkie.",
+                    "Dane uwierzytelniające są z założenia krótkotrwałe. Sesja strony logowania trwa 10 minut i jest przechowywana w pamięci serwera; z Twoją przeglądarką wiąże ją ściśle niezbędny plik cookie, który zawiera wyłącznie losową wartość, wygasa po tych samych 10 minutach i jest usuwany po zakończeniu logowania. Do sprawdzenia Twojego hasła lub logowania przez Google używamy Supabase Auth, który za każdym razem tworzy sesję logowania Supabase; nigdy z niej nie korzystamy i od razu ją kończymy. Jednorazowy kod autoryzacyjny przekazywany Twojej aplikacji AI wygasa po 10 minutach i jest usuwany, gdy tylko zostanie użyty. Token dostępu jest ważny przez 24 godziny (nieliczne tokeny wydane do 27 września 2026 włącznie wygasają najpóźniej 6 października 2026); token odświeżania jest ważny przez 90 dni i jest usuwany w chwili, gdy zostanie użyty do uzyskania nowej pary tokenów. Wygasłe tokeny i kody są usuwane automatycznie w ciągu godziny. Usunięcie konta natychmiast usuwa je wszystkie.",
                 ),
                 p(
-                    "Archiwa eksportu są krótkotrwałe. Każdy nowy eksport nadpisuje poprzedni, a plik jest automatycznie usuwany, gdy tylko wygaśnie jego 60-minutowy link do pobrania — czyszczenie uruchamia się co dziesięć minut, więc archiwum zwykle nie pozostaje w pamięci dłużej niż około 70 minut.",
+                    "Archiwa eksportu są krótkotrwałe. Każdy nowy eksport nadpisuje poprzedni, a plik jest automatycznie usuwany, gdy tylko wygaśnie jego link do pobrania, ważny 60 minut. Czyszczenie uruchamia się co dziesięć minut, więc archiwum jest zwykle przechowywane nie dłużej niż około 70 minut.",
                 ),
             ],
         },
@@ -103,7 +103,7 @@ export const PRIVACY_PL: LegalDoc = {
             heading: "Usuwanie danych",
             blocks: [
                 p(
-                    "Możesz w dowolnej chwili usunąć swoje konto i wszystkie powiązane dane, prosząc swojego asystenta AI o <strong>usunięcie konta</strong> podczas połączenia z serwerem Nutrition MCP. Ta czynność jest natychmiastowa i nieodwracalna. Usuwa Twoje wpisy posiłków, wody i wagi, cele, ustawienia profilu, wszelkie wciąż przechowywane archiwum eksportu, Twoją telemetrię korzystania z narzędzi, tokeny dostępu oraz samo konto. Obejmuje to każdą wartość alkoholu, jaką kiedykolwiek zapisałeś/aś, niezależnie od tego, czy śledzenie alkoholu było włączone.",
+                    "W każdej chwili możesz usunąć konto i wszystkie powiązane z nim dane: wystarczy, że poprosisz asystenta AI połączonego z serwerem Nutrition MCP o <strong>usunięcie konta</strong>. Usunięcie następuje natychmiast i jest nieodwracalne. Obejmuje Twoje wpisy posiłków, wody i wagi, cele, ustawienia profilu, archiwum eksportu, jeśli jest jeszcze przechowywane, telemetrię korzystania z narzędzi, tokeny dostępu oraz samo konto. Dotyczy to również każdej ilości alkoholu, jaką kiedykolwiek zapisano na Twoim koncie, niezależnie od tego, czy śledzenie alkoholu było włączone.",
                 ),
             ],
         },
@@ -111,29 +111,29 @@ export const PRIVACY_PL: LegalDoc = {
             heading: "Kontakt i Twoje prawa",
             blocks: [
                 p(
-                    'Nutrition MCP prowadzi Anton Kutishevskyi, niezależny programista, który jest administratorem Twoich danych osobowych w ramach tej usługi. We wszystkich sprawach dotyczących Twoich danych lub tej polityki napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Nutrition MCP prowadzi Anton Kutishevskyi, niezależny programista, który jest administratorem Twoich danych osobowych w związku z tą usługą. W sprawach dotyczących Twoich danych lub tej polityki napisz na adres <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
                 ),
-                p("Na jakiej podstawie możemy je przetwarzać:"),
+                p("Na jakiej podstawie przetwarzamy Twoje dane:"),
                 ul([
-                    "<strong>Twoje konto i wpisy</strong> — aby świadczyć usługę, na którą się zarejestrowałeś/aś (wykonanie umowy). Posiłki, waga i alkohol to dane dotyczące zdrowia, więc przetwarzamy je na podstawie Twojej wyraźnej zgody, wyrażanej przy zakładaniu konta i przy każdym logowaniu (w przypadku aplikacji połączonej, zanim strona logowania zaczęła prosić o tę zgodę — poprzez zapisywanie wpisów aż do kolejnego logowania), którą możesz w każdej chwili wycofać, usuwając wpisy albo swoje konto.",
-                    "<strong>Telemetria korzystania z narzędzi i dziennik działania serwera</strong> — nasz prawnie uzasadniony interes w utrzymaniu sprawnego, szybkiego i bezpiecznego działania usługi (wykrywanie uszkodzonych narzędzi, ograniczanie nadużyć). Żadne z nich nie zawiera treści Twoich wpisów.",
-                    "<strong>Analityka strony</strong> — Twoja zgoda, wyrażona w banerze cookies i możliwa do wycofania w każdej chwili przyciskiem &bdquo;Ustawienia plików cookie&rdquo; w stopce.",
+                    "<strong>Twoje konto i wpisy</strong> — aby świadczyć Ci usługę, w której masz konto (wykonanie umowy). Posiłki, waga i alkohol to dane dotyczące zdrowia, więc przetwarzamy je na podstawie Twojej wyraźnej zgody. Wyrażasz ją przy zakładaniu konta i przy każdym logowaniu (a jeśli aplikację połączono, zanim strona logowania zaczęła prosić o tę zgodę — zapisując wpisy aż do najbliższego logowania). Możesz ją w każdej chwili wycofać, usuwając wpisy albo konto.",
+                    "<strong>Telemetria korzystania z narzędzi i dziennik zdarzeń serwera</strong> — nasz prawnie uzasadniony interes w utrzymaniu sprawnego, szybkiego i bezpiecznego działania usługi (wykrywanie niedziałających narzędzi, ograniczanie nadużyć za pomocą limitów zapytań). Żadne z nich nie zawiera treści Twoich wpisów.",
+                    "<strong>Analityka strony</strong> — Twoja zgoda, wyrażona w banerze plików cookie, którą możesz w każdej chwili wycofać przyciskiem &bdquo;Ustawienia plików cookie&rdquo; w stopce.",
                 ]),
                 p(
-                    "Twoje prawa i jak z nich skorzystać — do większości nie potrzebujesz nawet e-maila:",
+                    "Twoje prawa i jak z nich skorzystać — w większości przypadków nie musisz nawet do nas pisać:",
                 ),
                 ul([
-                    "<strong>Dostęp i przenoszenie danych</strong> — poproś asystenta AI o eksport swoich danych. Otrzymasz archiwum ZIP z plikami CSV zawierającymi wszystko, co o Tobie przechowujemy: Twoje wpisy posiłków, wody i wagi, Twoje cele, ustawienia, dane Twojego konta (adres e-mail, metody logowania i daty logowań oraz imię i nazwisko lub zdjęcie, jeśli przekazał je Google), telemetrię korzystania z narzędzi oraz połączenia, dzięki którym Twoje aplikacje AI pozostają zalogowane — bez samych tokenów. Nie zawiera ono: wartości, które ze względów bezpieczeństwa przechowujemy wyłącznie w postaci jednokierunkowych skrótów (Twojego hasła i tokenów Twoich połączeń), wewnętrznych danych technicznych, takich jak klucze wykrywania duplikatów, logu działania serwera, w którym nie ma identyfikatora Twojego konta, ani krótkotrwałych logów i rotacyjnych kopii zapasowych prowadzonych przez naszych dostawców.",
+                    "<strong>Dostęp i przenoszenie danych</strong> — poproś asystenta AI o eksport swoich danych. Otrzymasz archiwum ZIP z plikami CSV zawierającymi wszystko, co o Tobie przechowujemy: Twoje wpisy posiłków, wody i wagi, cele, ustawienia, dane konta (adres e-mail, metody i daty logowania oraz imię i nazwisko lub zdjęcie, jeśli przekazał je Google), telemetrię korzystania z narzędzi oraz połączenia, dzięki którym Twoje aplikacje AI pozostają zalogowane — bez samych tokenów. Archiwum nie obejmuje: wartości, które ze względów bezpieczeństwa przechowujemy wyłącznie w postaci jednokierunkowych skrótów (Twojego hasła i tokenów Twoich połączeń), wewnętrznych danych technicznych, takich jak klucze do wykrywania duplikatów, dziennika zdarzeń serwera, który nie zawiera identyfikatora Twojego konta, ani własnych krótkotrwałych dzienników i rotacyjnych kopii zapasowych naszych dostawców.",
                     "<strong>Sprostowanie</strong> — poproś asystenta AI o poprawienie lub usunięcie dowolnego wpisu posiłku, wody czy wagi albo o zmianę celów i ustawień.",
-                    "<strong>Usunięcie danych</strong> — poproś asystenta AI o usunięcie konta, co od razu usuwa wszystko.",
+                    "<strong>Usunięcie danych</strong> — poproś asystenta AI o usunięcie konta; wszystkie dane zostaną od razu usunięte.",
                     "<strong>Sprzeciw i ograniczenie przetwarzania</strong> — napisz do nas.",
-                    "<strong>Skarga</strong> — możesz złożyć skargę do organu ochrony danych w kraju, w którym mieszkasz lub pracujesz. Będziemy jednak wdzięczni, jeśli najpierw dasz nam szansę rozwiązać problem.",
+                    "<strong>Skarga</strong> — możesz złożyć skargę do organu nadzorczego ds. ochrony danych w miejscu, w którym mieszkasz lub pracujesz. Będziemy jednak wdzięczni, jeśli najpierw dasz nam szansę rozwiązać problem.",
                 ]),
                 p(
                     "Wszystko, co przechowujemy, pozostaje we wskazanym wyżej regionie UE. To, co Twój asystent AI odczytuje za pomocą narzędzi, trafia do dostawcy tego asystenta, który może znajdować się poza UE; dzieje się to na podstawie Twojej własnej umowy z tym dostawcą, a nie naszej. Poza UE znajdują się również Cloudflare (sieć, przez którą przechodzi każde żądanie), Google i Microsoft (analityka strony, Google Sign-In) oraz Google i jsDelivr (opisane wyżej zapytania o czcionki i ikony); jeśli otrzymują dane osobowe poza UE, opierają się na standardowych klauzulach umownych Komisji Europejskiej albo na ramach ochrony danych UE–USA (EU–US Data Privacy Framework).",
                 ),
                 p(
-                    'Usługa nie jest przeznaczona dla osób poniżej 16. roku życia, a <a href="/terms" data-legal-link="terms">Regulamin</a> wymaga ukończenia 16 lat. Jeśli uważasz, że konto założyła młodsza osoba, napisz do nas, a usuniemy je.',
+                    'Usługa nie jest przeznaczona dla osób poniżej 16 lat, a <a href="/terms" data-legal-link="terms">Regulamin</a> wymaga ukończenia 16 lat. Jeśli uważasz, że konto założyła młodsza osoba, napisz do nas, a je usuniemy.',
                 ),
                 p(
                     "Jeśli ta polityka się zmieni, zmieni się też data na górze strony.",
@@ -144,7 +144,7 @@ export const PRIVACY_PL: LegalDoc = {
             heading: "Regulamin",
             blocks: [
                 p(
-                    'Korzystanie z usługi podlega również naszemu <a href="/terms" data-legal-link="terms">Regulaminowi</a>, który obejmuje dopuszczalny sposób korzystania, fakt, że nic tutaj nie stanowi porady medycznej, oraz brak jakiejkolwiek gwarancji — usługa jest świadczona w stanie, w jakim się znajduje, bezpłatnie, bez żadnych gwarancji dostępności, dokładności czy przydatności do jakiegokolwiek celu.',
+                    'Korzystanie z usługi podlega również naszemu <a href="/terms" data-legal-link="terms">Regulaminowi</a>, który określa zasady dopuszczalnego korzystania, wyjaśnia, że nic w usłudze nie stanowi porady medycznej, i informuje o braku jakichkolwiek gwarancji — usługa jest świadczona &bdquo;tak, jak jest&rdquo;, bezpłatnie, bez gwarancji dostępności, dokładności ani przydatności do jakiegokolwiek celu.',
                 ),
             ],
         },
@@ -153,13 +153,13 @@ export const PRIVACY_PL: LegalDoc = {
 
 export const TERMS_PL: LegalDoc = {
     title: "Regulamin",
-    lead: "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT.",
+    lead: "Zasady korzystania z Nutrition MCP — darmowej aplikacji open source do śledzenia odżywiania i zdalnego serwera MCP dla Claude i ChatGPT.",
     documentsLabel: "Dokumenty prawne",
     tocLabel: "Na tej stronie",
     metaDescription:
-        "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT. Regulamin napisany prostym językiem, obejmujący konta, dopuszczalne użycie, Twoje dane i odpowiedzialność.",
+        "Zasady korzystania z Nutrition MCP — darmowej aplikacji open source do śledzenia odżywiania i zdalnego serwera MCP dla Claude i ChatGPT. Regulamin prostym językiem: konto, dopuszczalne korzystanie, Twoje dane i odpowiedzialność.",
     ogDescription:
-        "Zasady korzystania z Nutrition MCP — darmowego trackera odżywiania open source i zdalnego serwera MCP dla Claude i ChatGPT.",
+        "Zasady korzystania z Nutrition MCP — darmowej aplikacji open source do śledzenia odżywiania i zdalnego serwera MCP dla Claude i ChatGPT.",
     lastUpdated: "29 września 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
@@ -167,10 +167,10 @@ export const TERMS_PL: LegalDoc = {
             heading: "Umowa",
             blocks: [
                 p(
-                    "Ten regulamin określa zasady korzystania z Nutrition MCP (&bdquo;usługi&rdquo;) — strony internetowej pod adresem nutrition-mcp.com oraz zdalnego serwera MCP pod adresem <strong>https://nutrition-mcp.com/mcp</strong>. Zakładając konto albo łącząc asystenta AI z serwerem, akceptujesz ten regulamin. Jeśli się nie zgadzasz, prosimy nie korzystać z usługi.",
+                    "Ten regulamin określa zasady korzystania z Nutrition MCP (dalej: &bdquo;usługa&rdquo;), czyli strony internetowej pod adresem nutrition-mcp.com oraz zdalnego serwera MCP pod adresem <strong>https://nutrition-mcp.com/mcp</strong>. Zakładając konto albo łącząc asystenta AI z serwerem, akceptujesz ten regulamin. Jeśli się z nim nie zgadzasz, nie korzystaj z usługi.",
                 ),
                 p(
-                    "Usługę prowadzi Anton Kutishevskyi, niezależny programista (&bdquo;my&rdquo;).",
+                    "Usługę prowadzi Anton Kutishevskyi, niezależny programista (dalej: &bdquo;my&rdquo;).",
                 ),
             ],
         },
@@ -178,7 +178,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Usługa",
             blocks: [
                 p(
-                    'Nutrition MCP to darmowy tracker odżywiania open source, działający jako serwer MCP, który pozwala asystentom AI, takim jak Claude i ChatGPT, zapisywać w Twoim imieniu posiłki, wodę i masę ciała. Nie ma płatnego poziomu, reklam ani opłat za korzystanie z usługi. Przyjmujemy dobrowolne darowizny na Patreon, żeby pomóc pokryć koszty hostingu i bazy danych; są one prezentem, a nie zakupem, i nie kupują żadnych funkcji, poziomu ani jakiegokolwiek priorytetu. Kod źródłowy jest opublikowany na licencji MIT na <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a>, a Ty możesz swobodnie hostować go samodzielnie.',
+                    'Nutrition MCP to darmowa aplikacja open source do śledzenia odżywiania, działająca jako serwer MCP: pozwala asystentom AI, takim jak Claude i ChatGPT, zapisywać w Twoim imieniu posiłki, wodę i masę ciała. Nie ma płatnego planu, reklam ani żadnych opłat za korzystanie z usługi. Przyjmujemy dobrowolne darowizny za pośrednictwem serwisu Patreon, które pomagają pokryć koszty hostingu i bazy danych; są one darowizną, a nie zakupem, i nie dają żadnych funkcji, planu ani jakiegokolwiek pierwszeństwa. Kod źródłowy jest opublikowany na licencji MIT w serwisie <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> i możesz go swobodnie hostować samodzielnie.',
                 ),
             ],
         },
@@ -186,7 +186,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Twoje konto",
             blocks: [
                 p(
-                    "Aby korzystać z usługi, musisz mieć ukończone 16 lat. Nie weryfikujemy wieku, więc zakładając konto, potwierdzasz, że spełniasz ten wymóg. Jesteś odpowiedzialny/a za zachowanie poufności swoich danych logowania oraz za wszelkie działania podejmowane na Twoim koncie. Podaj adres e-mail, do którego rzeczywiście masz dostęp — to jedyny sposób na odzyskanie dostępu.",
+                    "Aby korzystać z usługi, musisz mieć ukończone 16 lat. Nie weryfikujemy wieku, więc zakładając konto, potwierdzasz, że spełniasz ten wymóg. Odpowiadasz za zachowanie w poufności swoich danych logowania oraz za wszelkie działania wykonywane na Twoim koncie. Podaj adres e-mail, do którego faktycznie masz dostęp — tylko dzięki niemu odzyskasz dostęp do konta.",
                 ),
                 p(
                     "Z usługi możesz korzystać tylko tam, gdzie obsługuje ją Twój dostawca AI i gdzie pozwalają na to obowiązujące przepisy dotyczące sankcji i kontroli eksportu.",
@@ -197,33 +197,33 @@ export const TERMS_PL: LegalDoc = {
             heading: "To nie jest porada medyczna",
             blocks: [
                 p(
-                    "Nutrition MCP to narzędzie do zapisywania i raportowania, a nie usługa medyczna. Nic, co generuje — wartości kalorii i makroskładników, cele, trendy czy jakikolwiek komentarz dodany przez Twojego asystenta AI — nie jest poradą medyczną, żywieniową ani dietetyczną, i nic z tego nie zastępuje wykwalifikowanego specjalisty. Przed podjęciem decyzji dotyczących zdrowia skonsultuj się z lekarzem albo dietetykiem, zwłaszcza jeśli masz schorzenie albo historię zaburzeń odżywiania.",
+                    "Nutrition MCP to narzędzie do zapisywania i raportowania, a nie usługa medyczna. Nic, co generuje — wartości kalorii i makroskładników, cele, trendy ani komentarze dodawane przez Twojego asystenta AI — nie stanowi porady medycznej, żywieniowej ani dietetycznej i nie zastępuje wykwalifikowanego specjalisty. Przed podjęciem decyzji dotyczących zdrowia skonsultuj się z lekarzem albo dietetykiem, zwłaszcza jeśli masz problemy zdrowotne albo masz za sobą zaburzenia odżywiania.",
                 ),
                 p(
-                    "Usługa nie jest przeznaczona do zastosowań klinicznych i nie powinna być używana przez osoby z czynnym zaburzeniem odżywiania ani przez osoby w ciąży lub pod opieką kliniczną z powodu schorzenia związanego z odżywianiem, bez udziału ich lekarza prowadzącego. Śledzenie kalorii i makroskładników może być w takich sytuacjach szkodliwe. Jeśli to dotyczy Ciebie, porozmawiaj ze swoim lekarzem przed rozpoczęciem korzystania z usługi.",
+                    "Usługa nie jest przeznaczona do zastosowań klinicznych. Bez udziału lekarza prowadzącego nie powinny z niej korzystać osoby z aktywnymi zaburzeniami odżywiania ani osoby w ciąży lub pozostające pod opieką lekarską z powodu schorzenia związanego z odżywianiem. W takich sytuacjach śledzenie kalorii i makroskładników może szkodzić. Jeśli dotyczy to Ciebie, przed rozpoczęciem korzystania z usługi porozmawiaj ze swoim lekarzem prowadzącym.",
                 ),
                 p(
-                    "Wartości odżywcze to <strong>szacunki</strong>. Pochodzą z modeli AI interpretujących Twoje opisy i zdjęcia, z zewnętrznych baz danych, takich jak Open Food Facts, oraz z tego, co sam/a wprowadzisz. Mogą być błędne. Sprawdzaj wszystko, na czym Ci zależy.",
+                    "Wartości odżywcze to <strong>szacunki</strong>. Pochodzą z modeli AI interpretujących Twoje opisy i zdjęcia, z zewnętrznych baz danych, takich jak Open Food Facts, oraz z danych, które wprowadzasz samodzielnie. Mogą być błędne. Sprawdzaj wszystko, co jest dla Ciebie ważne.",
                 ),
                 p(
-                    "Zdjęcia jedzenia nigdy nie są wysyłane na nasz serwer. Twój asystent AI interpretuje obraz po swojej stronie i przesyła nam tylko wynikowy tekst i liczby — opis, typ posiłku, kalorie, makroskładniki, notatki, kod kreskowy.",
+                    "Zdjęcia jedzenia nigdy nie są wysyłane na nasz serwer. Twój asystent AI interpretuje zdjęcie po swojej stronie i przesyła nam wyłącznie wynik w postaci tekstu i liczb: opis, typ posiłku, kalorie, makroskładniki, notatki, kod kreskowy.",
                 ),
             ],
         },
         {
-            heading: "Dopuszczalne użycie",
+            heading: "Dopuszczalne korzystanie",
             blocks: [
                 p("Korzystając z usługi, zobowiązujesz się nie:"),
                 ul([
-                    "wykorzystywać jej do żadnego bezprawnego celu ani z naruszeniem obowiązującego prawa czy przepisów;",
-                    "próbować uzyskać dostęp do konta lub danych innego użytkownika ani omijać uwierzytelniania, limitów zapytań czy jakiejkolwiek innej technicznej kontroli;",
-                    "sondować, skanować, przeciążać ani zakłócać usługi lub infrastruktury, na której działa, w tym za pomocą zautomatyzowanych masowych zapytań;",
-                    "przesyłać treści, które są nielegalne albo do których udostępniania nie masz prawa;",
-                    "odsprzedawać hostowanej usługi ani przedstawiać jej jako własnej;",
-                    "wykorzystywać jej do dążenia do skrajnego ograniczania kalorii ani do promowania, coachowania czy zachęcania do tego kogokolwiek innego.",
+                    "wykorzystywać jej w celach niezgodnych z prawem ani z naruszeniem obowiązujących przepisów;",
+                    "próbować uzyskać dostępu do konta lub danych innego użytkownika ani omijać uwierzytelniania, limitów zapytań czy jakichkolwiek innych zabezpieczeń technicznych;",
+                    "badać, skanować ani przeciążać usługi lub infrastruktury, na której działa, ani zakłócać ich pracy, w tym za pomocą automatycznych masowych zapytań;",
+                    "przesyłać treści niezgodnych z prawem ani takich, do których udostępniania nie masz prawa;",
+                    "odsprzedawać hostowanej przez nas usługi ani przedstawiać jej jako własnej;",
+                    "wykorzystywać jej do skrajnego ograniczania kalorii ani do promowania takich praktyk, zachęcania do nich innych osób czy coachowania kogokolwiek w tym kierunku.",
                 ]),
                 p(
-                    "Usługa ma ograniczoną liczbę zapytań, żeby pozostała dostępna dla wszystkich. Jeśli potrzebujesz większej przepustowości, hostuj ją samodzielnie — właśnie do tego służy licencja MIT.",
+                    "Usługa ma limity zapytań, żeby pozostała dostępna dla wszystkich. Jeśli potrzebujesz większej liczby zapytań, hostuj ją samodzielnie — właśnie po to jest licencja MIT.",
                 ),
             ],
         },
@@ -231,16 +231,16 @@ export const TERMS_PL: LegalDoc = {
             heading: "Twoje dane",
             blocks: [
                 p(
-                    'Twoje wpisy pozostają Twoje. Przechowujemy je i przetwarzamy, żeby świadczyć Ci usługę, zgodnie z opisem w naszej <a href="/privacy" data-legal-link="privacy">Polityce prywatności</a>. Jesteś odpowiedzialny/a za treści, które zapisujesz.',
+                    'Twoje wpisy należą do Ciebie. Przechowujemy je i przetwarzamy, aby świadczyć Ci usługę, zgodnie z opisem w naszej <a href="/privacy" data-legal-link="privacy">Polityce prywatności</a>. Odpowiadasz za treści, które zapisujesz.',
                 ),
                 p(
-                    "Możesz w dowolnej chwili wyeksportować wszystkie swoje dane, prosząc asystenta AI o ich eksport. Eksport to archiwum ZIP z plikami CSV z Twoimi posiłkami, wodą, wagą, celami, ustawieniami profilu, danymi konta, telemetrią korzystania z narzędzi i połączonymi aplikacjami AI; alkohol jest uwzględniany niezależnie od tego, czy śledzenie alkoholu jest włączone. Zwracany przez nas link do pobrania jest prywatny i wygasa po 60 minutach.",
+                    "W każdej chwili możesz wyeksportować wszystkie swoje dane — wystarczy poprosić o to asystenta AI. Eksport to archiwum ZIP z plikami CSV zawierającymi Twoje posiłki, wodę, wagę, cele, ustawienia profilu, dane konta, telemetrię korzystania z narzędzi i połączone aplikacje AI; alkohol jest w nim uwzględniony niezależnie od tego, czy śledzenie alkoholu jest włączone. Link do pobrania, który przekazujemy, jest prywatny i wygasa po 60 minutach.",
                 ),
                 p(
-                    "Rejestrujemy też podstawową telemetrię operacyjną dotyczącą tego, jak usługa jest wykorzystywana: dla każdego wywołania narzędzia — jego nazwę, czy się powiodło, ile trwało, ogólną kategorię błędu w razie niepowodzenia, długość każdego zapytanego zakresu dat, identyfikator sesji, wersję protokołu MCP, z którą połączyła się Twoja aplikacja AI, oraz nazwę i wersję, pod którymi ta aplikacja się przedstawia. Te wiersze są powiązane z Twoim identyfikatorem konta. Nie zawierają tego, co zapisałeś/aś — żadnych opisów jedzenia, kalorii ani wag. Wykorzystujemy je, żeby utrzymać działanie usługi i sprawdzić, które narzędzia warto ulepszyć, a są usuwane razem ze wszystkim innym, gdy usuwasz swoje konto.",
+                    "Rejestrujemy też podstawową telemetrię operacyjną o tym, jak usługa jest wykorzystywana: dla każdego wywołania narzędzia jego nazwę, informację, czy się powiodło, czas trwania, ogólną kategorię błędu w razie niepowodzenia, długość każdego zakresu dat, o który prosisz, identyfikator sesji, wersję protokołu MCP, z którą połączyła się Twoja aplikacja AI, oraz nazwę i wersję, jakimi ta aplikacja się przedstawia. Te wiersze są powiązane z identyfikatorem Twojego konta. Nie zawierają treści Twoich wpisów — żadnych opisów jedzenia, kalorii ani wagi. Służą nam do utrzymania usługi w działaniu i oceny, które narzędzia warto ulepszyć, a gdy usuwasz konto, są usuwane razem z całą resztą.",
                 ),
                 p(
-                    "Możesz w dowolnej chwili usunąć swoje konto i wszystkie powiązane dane, prosząc swojego asystenta AI o <strong>usunięcie konta</strong> podczas połączenia — ta czynność jest natychmiastowa i nieodwracalna.",
+                    "W każdej chwili możesz usunąć konto i wszystkie powiązane z nim dane: wystarczy, że poprosisz połączonego asystenta AI o <strong>usunięcie konta</strong>. Usunięcie następuje natychmiast i jest nieodwracalne.",
                 ),
             ],
         },
@@ -248,24 +248,24 @@ export const TERMS_PL: LegalDoc = {
             heading: "Dostępność i zmiany",
             blocks: [
                 p(
-                    "Usługa jest oferowana bezpłatnie, bez gwarancji dostępności i bez umowy o gwarantowanym poziomie usług (SLA). Możemy w dowolnym momencie i bez uprzedzenia zmienić, zawiesić albo wycofać dowolną jej część — w tym narzędzia, funkcje i sam hostowany serwer. Możemy też modyfikować albo usuwać treści naruszające ten regulamin.",
+                    "Usługa jest oferowana bezpłatnie, bez zobowiązań co do ciągłości działania i bez umowy o poziomie usług (SLA). W dowolnym momencie i bez uprzedzenia możemy zmienić, zawiesić albo wycofać dowolną jej część — w tym narzędzia, funkcje i sam hostowany serwer. Możemy też modyfikować albo usuwać treści naruszające ten regulamin.",
                 ),
             ],
         },
         {
-            heading: "Usługi stron trzecich",
+            heading: "Usługi podmiotów trzecich",
             blocks: [
                 p(
-                    "Usługa zależy od stron trzecich: Supabase — baza danych, uwierzytelnianie i przechowywanie eksportów, DigitalOcean — hosting, Cloudflare (za pośrednictwem naszego dostawcy hostingu) — sieć, przez którą przechodzi każde żądanie, Open Food Facts — dane z kodów kreskowych, oraz dowolny asystent AI, z którego się łączysz.",
+                    "Usługa opiera się na podmiotach trzecich: Supabase (baza danych, uwierzytelnianie i przechowywanie eksportów), DigitalOcean (hosting), Cloudflare (za pośrednictwem naszego dostawcy hostingu; sieć, przez którą przechodzi każde żądanie), Open Food Facts (dane z kodów kreskowych) oraz asystent AI, przez którego się łączysz.",
                 ),
                 p(
                     'Dane produktów z kodów kreskowych &copy; współtwórcy <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, udostępniane na licencji <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
                 ),
                 p(
-                    "Sama strona internetowa korzysta też, za Twoją zgodą, z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz GitHub API, z którego liczbę gwiazdek projektu pobiera nasz serwer (a nie Twoja przeglądarka), więc żadne dane odwiedzających nie trafiają do GitHuba. Wczytanie strony wysyła więc zapytania do Google Fonts i jsDelivr, które mogą zobaczyć Twój adres IP i przeglądarkę; z Google Analytics i Microsoft Clarity strona łączy się dopiero po wyrażeniu zgody na analitykę.",
+                    "Sama strona internetowa korzysta też: za Twoją zgodą z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, z Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, z Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz z GitHub API, z którego liczbę gwiazdek projektu pobiera nasz serwer (a nie Twoja przeglądarka), dzięki czemu żadne dane odwiedzających nie trafiają do GitHuba. Wczytanie strony wysyła więc zapytania do Google Fonts i jsDelivr, które mogą widzieć Twój adres IP i przeglądarkę; z Google Analytics i Microsoft Clarity strona łączy się dopiero po wyrażeniu przez Ciebie zgody na analitykę.",
                 ),
                 p(
-                    "Ich regulaminy i dostępność są ich własną sprawą, i nie ponosimy za nie odpowiedzialności.",
+                    "Za swoje regulaminy i dostępność odpowiadają te podmioty, a my nie ponosimy za nie odpowiedzialności.",
                 ),
             ],
         },
@@ -273,7 +273,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Brak gwarancji",
             blocks: [
                 p(
-                    "Usługa jest świadczona <strong>&bdquo;tak, jak jest&rdquo; i &bdquo;w miarę dostępności&rdquo;</strong>, bez żadnych gwarancji, wyraźnych ani dorozumianych, w tym dorozumianych gwarancji przydatności handlowej, przydatności do określonego celu, dokładności czy nienaruszania praw. Nie gwarantujemy, że usługa będzie działać bez przerw, będzie bezpieczna, wolna od błędów, ani że jakiekolwiek generowane przez nią dane czy wartości odżywcze są dokładne. Korzystasz z niej na własne ryzyko.",
+                    "Usługa jest świadczona <strong>&bdquo;tak, jak jest&rdquo; i &bdquo;w miarę dostępności&rdquo;</strong>, bez jakichkolwiek gwarancji, wyraźnych ani dorozumianych, w tym dorozumianych gwarancji przydatności handlowej, przydatności do określonego celu, dokładności czy nienaruszania praw osób trzecich. Nie gwarantujemy, że usługa będzie działać bez przerw, bezpiecznie i bezbłędnie ani że jakiekolwiek generowane przez nią dane czy wartości odżywcze będą dokładne. Korzystasz z niej na własne ryzyko.",
                 ),
             ],
         },
@@ -281,7 +281,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Ograniczenie odpowiedzialności",
             blocks: [
                 p(
-                    "W najszerszym zakresie dozwolonym przez prawo nie ponosimy odpowiedzialności za jakiekolwiek szkody pośrednie, przypadkowe, szczególne, wtórne czy przykładowe, ani za utratę danych czy zysków, wynikające z korzystania przez Ciebie z usługi lub z nim związane.",
+                    "W najszerszym zakresie dozwolonym przez prawo nie ponosimy odpowiedzialności za jakiekolwiek szkody pośrednie, przypadkowe, szczególne ani następcze, za odszkodowanie o charakterze represyjnym ani za utratę danych lub zysków, wynikające z korzystania przez Ciebie z usługi lub z nim związane.",
                 ),
             ],
         },
@@ -289,18 +289,18 @@ export const TERMS_PL: LegalDoc = {
             heading: "Twoje prawa ustawowe",
             blocks: [
                 p(
-                    "Niektórej odpowiedzialności nigdy nie da się wyłączyć, i nie próbujemy tego robić. Ponosimy pełną odpowiedzialność za śmierć lub obrażenia ciała spowodowane naszym zaniedbaniem oraz za oszustwo lub celowe wprowadzenie w błąd.",
+                    "Pewnych rodzajów odpowiedzialności nigdy nie da się wyłączyć i nie próbujemy tego robić. Nadal ponosimy pełną odpowiedzialność za śmierć lub uszkodzenie ciała spowodowane naszym zaniedbaniem oraz za oszustwo lub podstępne wprowadzenie w błąd.",
                 ),
                 p(
-                    "Zachowujesz też każde prawo, jakie daje Ci ustawa jako konsumentowi/konsumentce. Ten regulamin obowiązuje obok tych praw i ich nie ogranicza. Jeśli którykolwiek z powyższych punktów jest sprzeczny z prawem, którego nie możesz się zrzec, pierwszeństwo ma Twoje prawo ustawowe.",
+                    "Zachowujesz też wszystkie uprawnienia, jakie przysługują Ci z mocy prawa jako konsumentowi. Ten regulamin obowiązuje obok tych uprawnień i ich nie ogranicza. Jeśli któreś z powyższych postanowień jest sprzeczne z uprawnieniem, którego nie możesz się zrzec, pierwszeństwo ma Twoje uprawnienie ustawowe.",
                 ),
             ],
         },
         {
-            heading: "Zakończenie",
+            heading: "Zakończenie korzystania z usługi",
             blocks: [
                 p(
-                    "Możesz w dowolnej chwili zaprzestać korzystania z usługi i usunąć swoje konto zgodnie z opisem powyżej. Możemy zawiesić albo zakończyć dostęp, który narusza ten regulamin albo zagraża stabilności czy bezpieczeństwu usługi. Sekcje &bdquo;Brak gwarancji&rdquo;, &bdquo;Ograniczenie odpowiedzialności&rdquo; i &bdquo;Twoje prawa ustawowe&rdquo; obowiązują nadal po zakończeniu.",
+                    "W każdej chwili możesz przestać korzystać z usługi i usunąć konto w sposób opisany powyżej. Możemy zawiesić albo odebrać dostęp, jeśli sposób korzystania z usługi narusza ten regulamin albo zagraża stabilności lub bezpieczeństwu usługi. Sekcje &bdquo;Brak gwarancji&rdquo;, &bdquo;Ograniczenie odpowiedzialności&rdquo; i &bdquo;Twoje prawa ustawowe&rdquo; pozostają w mocy także po zakończeniu korzystania z usługi.",
                 ),
             ],
         },
@@ -308,7 +308,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Zmiany w regulaminie",
             blocks: [
                 p(
-                    "Możemy od czasu do czasu aktualizować ten regulamin. Aktualna wersja zawsze znajduje się na tej stronie, z datą na górze wskazującą, kiedy została ostatnio zmieniona. Dalsze korzystanie z usługi po aktualizacji oznacza akceptację zmienionego regulaminu.",
+                    "Możemy od czasu do czasu aktualizować ten regulamin. Aktualna wersja zawsze znajduje się na tej stronie, a data na górze pokazuje, kiedy została ostatnio zmieniona. Dalsze korzystanie z usługi po aktualizacji oznacza akceptację zmienionego regulaminu.",
                 ),
             ],
         },
@@ -316,7 +316,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Rozdzielność postanowień",
             blocks: [
                 p(
-                    "Jeśli którakolwiek część tego regulaminu okaże się niewykonalna, ta część zostaje usunięta, a reszta pozostaje w mocy.",
+                    "Jeśli którekolwiek postanowienie tego regulaminu okaże się niewykonalne, zostaje ono pominięte, a pozostałe postanowienia pozostają w mocy.",
                 ),
             ],
         },
@@ -324,7 +324,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Kontakt",
             blocks: [
                 p(
-                    'Masz pytania dotyczące tego regulaminu lub swoich danych? Napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Masz pytania dotyczące tego regulaminu lub swoich danych? Napisz na adres <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
                 ),
             ],
         },
