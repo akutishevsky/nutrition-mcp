@@ -490,7 +490,7 @@ export function nav(
     currentSuffix?: string,
     opts?: {
         /**
-         * The static per-locale switcher below links to `urlFor(l, suffix)`
+         * The static per-locale switcher below links to `pathFor(l, suffix)`
          * — wrong for a page that isn't really "at" a locale-prefixed URL
          * (public/login.html is rendered per in-flight OAuth session, not
          * routed by path). When true, the whole <details class="lang-switch">
@@ -513,10 +513,13 @@ export function nav(
     const c = chromeFor(locale);
     const attr = (s: string) => esc(s).replace(/"/g, "&quot;");
     const code = (l: SiteLocale) => HTML_LANG[l].toUpperCase();
+    // Site-relative hrefs, so switching language stays on whatever host
+    // served the page (localhost, a dev deploy). hreflang/canonical <link>s
+    // in localeHead() stay absolute: crawlers need full URLs there.
     const switcherItems = SITE_LOCALES.map((l) => {
         const active = l === locale;
         return `                            <a
-                                href="${urlFor(l, suffix)}"
+                                href="${pathFor(l, suffix)}"
                                 lang="${HTML_LANG[l]}"
                                 hreflang="${HTML_LANG[l]}"${active ? '\n                                aria-current="page"' : ""}
                                 ><span>${esc(LOCALE_NAMES[l])}</span><span class="lang-menu-code">${code(l)}</span></a
@@ -524,7 +527,7 @@ export function nav(
     }).join("\n");
     const menuLangItems = SITE_LOCALES.map((l) => {
         const active = l === locale;
-        return `                    <a href="${urlFor(l, suffix)}" lang="${HTML_LANG[l]}" hreflang="${HTML_LANG[l]}" aria-label="${attr(LOCALE_NAMES[l])}" title="${attr(LOCALE_NAMES[l])}"${active ? ' aria-current="page"' : ""}>${code(l)}</a>`;
+        return `                    <a href="${pathFor(l, suffix)}" lang="${HTML_LANG[l]}" hreflang="${HTML_LANG[l]}" aria-label="${attr(LOCALE_NAMES[l])}" title="${attr(LOCALE_NAMES[l])}"${active ? ' aria-current="page"' : ""}>${code(l)}</a>`;
     }).join("\n");
     const themeSeg = THEME_MODES.map(
         ({ mode, icon }) =>
