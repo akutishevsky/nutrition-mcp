@@ -419,13 +419,16 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Volg je gewicht",
+                title: "Volg gewicht en lichaamsmaten",
                 description:
-                    "Log een weegmoment in kg of lb en zie de trend achter de dagelijkse schommelingen: een afgevlakt gemiddelde, de verandering over de maand en de afstand tot je streefgewicht. Een onmogelijke meting, zoals een vergeten komma, wordt tegengehouden voordat hij wordt opgeslagen.",
+                    "Log een weegmoment in kg of lb en zie de trend achter de dagelijkse schommelingen: een afgevlakt gemiddelde, de verandering over de maand en de afstand tot je streefgewicht. Omtrekmaten van negen lichaamsdelen, van taille tot kuit, log je ernaast in cm of inch. Een onmogelijke meting, zoals een vergeten komma, wordt tegengehouden voordat hij wordt opgeslagen.",
                 toolNotes: {
                     log_weight: "Slaat de weging van vanochtend op: 78,4 kg",
                     get_weight_trends:
                         "Vlakt 30 dagen af tot voortschrijdende gemiddelden en de afstand tot je doel",
+                    log_body_measurement: "Slaat de tailleomtrek van 84 cm op",
+                    get_body_measurements:
+                        "Zoekt de vorige taillemeting op om mee te vergelijken",
                 },
                 messages: [
                     {
@@ -435,6 +438,14 @@ export const INDEX_NL: IndexDoc = {
                     {
                         from: "ai",
                         text: "78,4 kg opgeslagen. Sinds 11 feb ben je 1,8 kg afgevallen (van 80,2 kg), en je 7-daags gemiddelde is 78,7 kg. Nog 3,4 kg tot je streefgewicht van 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "mijn taille was trouwens 84 cm. hoe verhoudt dat zich tot vorige keer?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Tailleomtrek van 84 cm opgeslagen. De vorige meting was 86,5 cm op 14 feb, dus dat is 2,5 cm minder.",
                     },
                 ],
                 cards: [

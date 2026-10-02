@@ -417,19 +417,30 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Controla tu peso",
+                title: "Peso y medidas",
                 description:
-                    "Registra tu peso en kg o lb y mira la tendencia más allá de las subidas y bajadas diarias: una media suavizada, el cambio del mes y lo que te falta para tu objetivo. Una lectura imposible, como una coma decimal olvidada, se detecta antes de guardarse.",
+                    "Registra tu peso en kg o lb y mira la tendencia más allá de las subidas y bajadas diarias: una media suavizada, el cambio del mes y lo que te falta para tu objetivo. A su lado, registra en cm o pulgadas las medidas con cinta métrica de nueve partes del cuerpo, de la cintura a la pantorrilla. Una lectura imposible, como una coma decimal olvidada, se detecta antes de guardarse.",
                 toolNotes: {
                     log_weight: "Guarda el peso de esta mañana: 78,4 kg",
                     get_weight_trends:
                         "Suaviza 30 días con medias móviles y calcula cuánto falta para el objetivo",
+                    log_body_measurement: "Guarda la medida de cintura: 84 cm",
+                    get_body_measurements:
+                        "Busca la última medida de cintura para compararla",
                 },
                 messages: [
                     { from: "user", text: "78,4 kg esta mañana. ¿cómo voy?" },
                     {
                         from: "ai",
                         text: "Guardado: 78,4 kg. Has bajado 1,8 kg desde el 11 de febrero (cuando pesabas 80,2 kg), y tu media de 7 días es de 78,7 kg. Te faltan 3,4 kg para tu objetivo de 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "y de cintura 84 cm. ¿qué tal comparado con antes?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Guardada tu cintura: 84 cm. La última medida fue de 86,5 cm el 14 de febrero, así que son 2,5 cm menos.",
                     },
                 ],
                 cards: [

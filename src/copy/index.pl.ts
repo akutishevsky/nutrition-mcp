@@ -421,13 +421,16 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Śledź swoją wagę",
+                title: "Śledź wagę i wymiary",
                 description:
-                    "Zapisz pomiar wagi w kg albo lb i zobacz trend ukryty pod codziennymi wahaniami: wygładzoną średnią, zmianę w ciągu miesiąca i to, ile zostało do wagi docelowej. Niemożliwy odczyt, np. ze zgubionym przecinkiem, zostaje wyłapany przed zapisem.",
+                    "Zapisz pomiar wagi w kg albo lb i zobacz trend ukryty pod codziennymi wahaniami: wygładzoną średnią, zmianę w ciągu miesiąca i to, ile zostało do wagi docelowej. Obok możesz zapisywać obwody dziewięciu partii ciała, od talii po łydkę, w cm albo calach. Niemożliwy odczyt, np. ze zgubionym przecinkiem, zostaje wyłapany przed zapisem.",
                 toolNotes: {
                     log_weight: "Zapisuje dzisiejsze poranne ważenie: 78,4 kg",
                     get_weight_trends:
                         "Wygładza 30 dni średnimi kroczącymi i liczy, ile zostało do celu",
+                    log_body_measurement: "Zapisuje obwód talii: 84 cm",
+                    get_body_measurements:
+                        "Szuka poprzedniego pomiaru talii do porównania",
                 },
                 messages: [
                     {
@@ -437,6 +440,14 @@ export const INDEX_PL: IndexDoc = {
                     {
                         from: "ai",
                         text: "Zapisano 78,4 kg. Od 11 lutego ubyło Ci 1,8 kg (z 80,2 kg), a średnia z 7 dni to 78,7 kg. Do celu 75 kg zostało 3,4 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "w talii 84 cm. jak to wypada w porównaniu z ostatnim razem?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano obwód talii: 84 cm. Poprzedni pomiar z 14 lutego to 86,5 cm, czyli masz o 2,5 cm mniej.",
                     },
                 ],
                 cards: [

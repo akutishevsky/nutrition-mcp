@@ -416,14 +416,17 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Gewicht verfolgen",
+                title: "Gewicht & Körpermaße",
                 description:
-                    "Trag dein Gewicht in kg oder lb ein und sieh den Trend hinter den täglichen Schwankungen: geglätteter Durchschnitt, Veränderung im Monat, Abstand zum Zielgewicht. Ein unmöglicher Wert, etwa mit vergessenem Komma, wird abgefangen, bevor er gespeichert wird.",
+                    "Trag dein Gewicht in kg oder lb ein und sieh den Trend hinter den täglichen Schwankungen: geglätteter Durchschnitt, Veränderung im Monat, Abstand zum Zielgewicht. Maßband-Maße von neun Körperstellen, von der Taille bis zur Wade, erfasst du daneben in cm oder Zoll. Ein unmöglicher Wert, etwa mit vergessenem Komma, wird abgefangen, bevor er gespeichert wird.",
                 toolNotes: {
                     log_weight:
                         "Speichert die Messung von heute Morgen: 78,4 kg",
                     get_weight_trends:
                         "Glättet 30 Tage zu gleitenden Durchschnitten und zeigt den Abstand zum Ziel",
+                    log_body_measurement: "Speichert den Taillenumfang: 84 cm",
+                    get_body_measurements:
+                        "Sucht den letzten Taillenwert zum Vergleich",
                 },
                 messages: [
                     {
@@ -433,6 +436,14 @@ export const INDEX_DE: IndexDoc = {
                     {
                         from: "ai",
                         text: "78,4 kg gespeichert. Seit dem 11. Februar hast du 1,8 kg abgenommen (von 80,2 kg), und dein 7-Tage-Schnitt liegt bei 78,7 kg. Noch 3,4 kg bis zu deinem Zielgewicht von 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "Taille war übrigens 84 cm. wie ist das im Vergleich?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Taillenumfang von 84 cm gespeichert. Am 14. Februar waren es noch 86,5 cm, also 2,5 cm weniger.",
                     },
                 ],
                 cards: [
