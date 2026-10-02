@@ -11,8 +11,8 @@ export const CHROME_FR: ChromeCopy = {
         examples: "Exemples",
         liveStats: "Stats en direct",
         liveStatsBadgeLabel: {
-            one: "nouveau repas enregistré depuis l'ouverture de la page",
-            other: "nouveaux repas enregistrés depuis l'ouverture de la page",
+            one: "nouveau repas enregistré depuis ton arrivée",
+            other: "nouveaux repas enregistrés depuis ton arrivée",
         },
         faq: "FAQ",
     },
@@ -45,7 +45,7 @@ export const CHROME_FR: ChromeCopy = {
         tools: "Outils",
         troubleshooting: "Dépannage",
         alternatives: "Alternatives",
-        howIBuiltThis: "Comment j'ai construit ça",
+        howIBuiltThis: "Comment je l'ai conçu",
         demo: "Démo",
         github: "GitHub",
         contact: "Contact",
@@ -56,7 +56,7 @@ export const CHROME_FR: ChromeCopy = {
 
     consent: {
         title: "Cookies de mesure d'audience.",
-        body: "Avec ton accord, Google Analytics compte les visites et Microsoft Clarity enregistre les clics et le défilement sous forme de rediffusions de sessions, pour que nous voyions quelles pages sont utiles et où les gens bloquent. Aucun des deux ne se charge tant que tu n'as pas accepté.",
+        body: "Avec ton accord, Google Analytics compte les visites et Microsoft Clarity enregistre les clics et le défilement sous forme de rediffusions de session. Cela nous permet de voir quelles pages sont utiles et où ça coince. Aucun des deux ne se charge tant que tu n'as pas accepté.",
         accept: "Accepter",
         reject: "Refuser",
         settings: "Paramètres des cookies",
