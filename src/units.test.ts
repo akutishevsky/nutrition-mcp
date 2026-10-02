@@ -8,7 +8,20 @@ import {
     isPlausibleWeightGrams,
     toStoredInteger,
     WEIGHT_UNITS,
+    toMillimetres,
+    fromMillimetres,
+    formatLength,
+    pickLengthWriteUnit,
+    isLengthUnit,
+    isBodyMeasurementKind,
+    isPlausibleLengthMm,
+    assertPlausibleLength,
+    measurementLabel,
+    BODY_MEASUREMENT_KINDS,
+    PLAUSIBLE_LENGTH_MM,
+    LENGTH_UNITS,
 } from "./units.js";
+import { ToolError } from "./errors.js";
 
 test("toGrams converts kg to integer grams", () => {
     expect(toGrams(75, "kg")).toBe(75000);
@@ -111,4 +124,125 @@ test("toStoredInteger rounds fractional values for the integer columns", () => {
     // idempotency-key dedup for every past meal.
     expect(toStoredInteger(300)).toBe(300);
     expect(toStoredInteger(0)).toBe(0);
+});
+
+// ---------- Length (body measurements) ----------
+
+test("toMillimetres converts cm and in to integer millimetres", () => {
+    expect(toMillimetres(80, "cm")).toBe(800);
+    expect(toMillimetres(32, "in")).toBe(813); // 812.8 rounds up
+    expect(toMillimetres(0.1, "cm")).toBe(1);
+});
+
+test("toMillimetres rejects non-finite values with a ToolError", () => {
+    for (const bad of [NaN, Infinity, -Infinity]) {
+        expect(() => toMillimetres(bad, "cm")).toThrow(ToolError);
+        expect(() => toMillimetres(bad, "in")).toThrow(/Invalid length value/);
+    }
+});
+
+test("fromMillimetres / formatLength render at 1 decimal", () => {
+    expect(formatLength(800, "cm")).toBe("80 cm");
+    expect(formatLength(813, "in")).toBe("32 in");
+    for (const cm of [35.5, 80, 102.3]) {
+        expect(fromMillimetres(toMillimetres(cm, "cm"), "cm")).toBe(cm);
+    }
+    for (const inches of [12.5, 31.5, 40.2]) {
+        expect(fromMillimetres(toMillimetres(inches, "in"), "in")).toBe(inches);
+    }
+});
+
+test("pickLengthWriteUnit: explicit > preference > refuse", () => {
+    expect(pickLengthWriteUnit("in", "cm")).toBe("in");
+    expect(pickLengthWriteUnit("cm", null)).toBe("cm");
+    expect(pickLengthWriteUnit(undefined, "in")).toBe("in");
+    expect(() => pickLengthWriteUnit(undefined, null)).toThrow(ToolError);
+    expect(() => pickLengthWriteUnit(undefined, null)).toThrow(
+        /No length unit given and no preference set/,
+    );
+});
+
+test("isLengthUnit guards cm/in only; isBodyMeasurementKind the nine sites", () => {
+    expect(isLengthUnit("cm")).toBe(true);
+    expect(isLengthUnit("in")).toBe(true);
+    expect(isLengthUnit("mm")).toBe(false);
+    expect(isLengthUnit("")).toBe(false);
+    expect(isLengthUnit(undefined)).toBe(false);
+    for (const u of LENGTH_UNITS) expect(isLengthUnit(u)).toBe(true);
+    expect(BODY_MEASUREMENT_KINDS).toHaveLength(9);
+    for (const k of BODY_MEASUREMENT_KINDS) {
+        expect(isBodyMeasurementKind(k)).toBe(true);
+    }
+    expect(isBodyMeasurementKind("bicep")).toBe(false);
+});
+
+test("isPlausibleLengthMm accepts each site's bounds and rejects just outside", () => {
+    for (const k of BODY_MEASUREMENT_KINDS) {
+        const { min, max } = PLAUSIBLE_LENGTH_MM[k];
+        expect(isPlausibleLengthMm(k, min)).toBe(true);
+        expect(isPlausibleLengthMm(k, max)).toBe(true);
+        expect(isPlausibleLengthMm(k, min - 1)).toBe(false);
+        expect(isPlausibleLengthMm(k, max + 1)).toBe(false);
+        expect(isPlausibleLengthMm(k, NaN)).toBe(false);
+    }
+    expect(isPlausibleLengthMm("waist", 8000)).toBe(false);
+});
+
+test("assertPlausibleLength returns mm in range and explains out-of-range values", () => {
+    expect(assertPlausibleLength("waist", 80, "cm")).toBe(800);
+    expect(assertPlausibleLength("neck", 15, "in")).toBe(381);
+
+    // Out of range in both units: no other-unit hint.
+    let msg = "";
+    try {
+        assertPlausibleLength("upper_arm", 250, "cm");
+    } catch (e) {
+        expect(e).toBeInstanceOf(ToolError);
+        msg = (e as Error).message;
+    }
+    expect(msg).toContain(
+        "Upper arm 250 cm is outside the plausible range for this site",
+    );
+    expect(msg).not.toContain("As 250");
+
+    // 45 in is out of range for a neck, 45 cm is in: hint at cm.
+    expect(() => assertPlausibleLength("neck", 45, "in")).toThrow(
+        /As 45 cm it would be in range/,
+    );
+    // 10 cm is out of range for a calf, 10 in is in: hint at in.
+    expect(() => assertPlausibleLength("calf", 10, "cm")).toThrow(
+        /As 10 in it would be in range/,
+    );
+});
+
+test("assertPlausibleLength messages carry no article before the site", () => {
+    // Regression: an earlier draft read "for a upper arm".
+    for (const k of BODY_MEASUREMENT_KINDS) {
+        for (const unit of LENGTH_UNITS) {
+            try {
+                assertPlausibleLength(k, 9999, unit);
+                throw new Error("expected a throw");
+            } catch (e) {
+                expect((e as Error).message).not.toContain("for a ");
+            }
+        }
+    }
+});
+
+test("measurementLabel turns a kind into a capitalised label", () => {
+    expect(measurementLabel("upper_arm")).toBe("Upper arm");
+    expect(measurementLabel("waist")).toBe("Waist");
+});
+
+test("BODY_MEASUREMENT_KINDS matches the migration's kind check", async () => {
+    const sql = await Bun.file(
+        new URL(
+            "../supabase/migrations/20261002120000_body_measurements.sql",
+            import.meta.url,
+        ),
+    ).text();
+    const m = sql.match(/kind in \(([^)]*)\)/);
+    expect(m).not.toBeNull();
+    const fromSql = [...m![1]!.matchAll(/'([a-z_]+)'/g)].map((x) => x[1]!);
+    expect([...fromSql].sort()).toEqual([...BODY_MEASUREMENT_KINDS].sort());
 });
