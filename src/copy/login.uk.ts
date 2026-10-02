@@ -15,7 +15,7 @@ export const LOGIN_UK: LoginDoc = {
     // "погоджуєшся з" governs the instrumental case, so both link texts are
     // in the instrumental rather than the nominative the footer uses.
     consentNote:
-        "Продовжуючи, ти підтверджуєш, що тобі щонайменше 16 років, погоджуєшся з {terms} та {privacy} і даєш згоду на те, щоб ми зберігали записані тобою прийоми їжі, вагу й алкоголь (це дані про здоров’я).",
+        "Продовжуючи, ти підтверджуєш, що тобі щонайменше 16 років, погоджуєшся з {terms} та {privacy} і даєш згоду на те, щоб ми зберігали записані тобою прийоми їжі, вагу, заміри тіла й алкоголь (це дані про здоров’я).",
     termsLinkText: "Умовами використання",
     privacyLinkText: "Політикою приватності",
     newHereNote:

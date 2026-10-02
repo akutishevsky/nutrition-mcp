@@ -13,7 +13,7 @@ export const LOGIN_JA: LoginDoc = {
     showPasswordLabel: "パスワードを表示",
     hidePasswordLabel: "パスワードを非表示",
     consentNote:
-        "続行すると、16歳以上であることを確認し、{terms}と{privacy}に同意します。また、記録する食事・体重・アルコール（健康データにあたります）を本サービスが保存することにも同意します。",
+        "続行すると、16歳以上であることを確認し、{terms}と{privacy}に同意します。また、記録する食事・体重・体の計測値・アルコール（健康データにあたります）を本サービスが保存することにも同意します。",
     termsLinkText: "利用規約",
     privacyLinkText: "プライバシーポリシー",
     newHereNote:

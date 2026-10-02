@@ -16,7 +16,7 @@ export const LOGIN_PL: LoginDoc = {
     // texts are in the accusative — Polish inflects them there, and the
     // nominative "Polityka prywatności" would read as a grammatical error.
     consentNote:
-        "Kontynuując, potwierdzasz, że masz ukończone 16 lat, akceptujesz {terms} i {privacy} oraz zgadzasz się, abyśmy przechowywali zapisywane przez Ciebie posiłki, wagę i spożycie alkoholu, które są danymi dotyczącymi zdrowia.",
+        "Kontynuując, potwierdzasz, że masz ukończone 16 lat, akceptujesz {terms} i {privacy} oraz zgadzasz się, abyśmy przechowywali zapisywane przez Ciebie posiłki, wagę, wymiary ciała i spożycie alkoholu, które są danymi dotyczącymi zdrowia.",
     termsLinkText: "Regulamin",
     privacyLinkText: "Politykę prywatności",
     newHereNote:

@@ -149,7 +149,7 @@ const EN: LoginDoc = {
     signInButton: "Sign in",
     createAccountButton: "Create account",
     consentNote:
-        "By continuing you confirm you're at least 16, agree to the {terms} and {privacy}, and consent to us storing the meals, weight and alcohol you log, which is health data.",
+        "By continuing you confirm you're at least 16, agree to the {terms} and {privacy}, and consent to us storing the meals, weight, body measurements and alcohol you log, which is health data.",
     termsLinkText: "Terms of Service",
     privacyLinkText: "Privacy Policy",
     newHereNote:
