@@ -140,7 +140,7 @@ const LOGIN_STYLE = `        <style>
                 color: var(--ink2);
             }
 
-            /* {{CLIENT_NOTICE}}: the .client-notice paragraph (data-warn optional)
+            /* CLIENT_NOTICE token: the .client-notice paragraph (data-warn optional)
                from src/oauth.ts's renderClientNotice(). The host may be
                long, so it wraps anywhere rather than widening the card. */
             body.auth .auth-card .client-notice {
@@ -175,7 +175,7 @@ const LOGIN_STYLE = `        <style>
                 color: var(--cal-icon);
             }
 
-            /* {{TRANSLATION_NOTICE}}: compact, like the client notice. */
+            /* TRANSLATION_NOTICE token: compact, like the client notice. */
             body.auth .auth-card .translation-notice {
                 padding: 12px 16px;
                 border-radius: 18px;
@@ -229,7 +229,7 @@ const LOGIN_STYLE = `        <style>
                     0 4px 12px -6px rgba(16, 19, 24, 0.2);
             }
 
-            /* {{ERROR}}: the .error-banner div from src/oauth.ts. */
+            /* ERROR token: the .error-banner div from src/oauth.ts. */
             body.auth .auth-card .error-banner {
                 display: grid;
                 grid-template-columns: auto minmax(0, 1fr);

@@ -442,6 +442,20 @@ test("every landmark region is named in the page's own language", async () => {
 const loginPath = (locale: (typeof SITE_LOCALES)[number]) =>
     locale === "en" ? "./public/login.html" : `./public/${locale}/login.html`;
 
+// renderLoginPage() substitutes every occurrence of each {{TOKEN}}, so a
+// token inside the <style> block would splice per-session HTML (the client
+// notice carries an attacker-registered redirect URI) into the CSS, where a
+// "*/" ends a comment and turns the rest into stylesheet text.
+test("no login page carries a template token inside its <style>", async () => {
+    for (const locale of SITE_LOCALES) {
+        const html = await Bun.file(loginPath(locale)).text();
+        for (const [, css] of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g))
+            expect(
+                `${loginPath(locale)}: ${/\{\{[A-Z_]+\}\}/.test(css!)}`,
+            ).toBe(`${loginPath(locale)}: false`);
+    }
+});
+
 test("every locale has a built login page, in its own language", async () => {
     for (const locale of SITE_LOCALES) {
         const path = loginPath(locale);
