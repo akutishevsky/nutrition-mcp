@@ -29,6 +29,13 @@ import {
     getLatestWeight,
     updateWeight,
     deleteWeight,
+    insertBodyMeasurement,
+    getBodyMeasurementsInRange,
+    getBodyMeasurement,
+    updateBodyMeasurement,
+    deleteBodyMeasurement,
+    preferredLengthUnitFromProfile,
+    getPreferredLengthUnit,
     getUserTimezone,
     getPreferredWeightUnit,
     getUserLocale,
@@ -48,6 +55,7 @@ import {
     type NutritionGoals,
     type WaterEntry,
     type WeightEntry,
+    type BodyMeasurementEntry,
 } from "./supabase.js";
 import {
     DELETED_ACCOUNT_ANALYTICS_ID,
@@ -85,6 +93,14 @@ import {
     pickWriteUnit,
     isPlausibleWeightGrams,
     type WeightUnit,
+    BODY_MEASUREMENT_KINDS,
+    type BodyMeasurementKind,
+    type LengthUnit,
+    isLengthUnit,
+    fromMillimetres,
+    assertPlausibleLength,
+    pickLengthWriteUnit,
+    measurementLabel,
 } from "./units.js";
 import { formatAlcohol, isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { exportAllData } from "./export.js";
@@ -108,6 +124,7 @@ import {
     formatMg,
     formatMealFull,
     renderMealListing,
+    MEAL_LISTING_MAX_CHARS,
     type AlcoholDisplay,
 } from "./meal-listing.js";
 
@@ -158,9 +175,11 @@ const NUTRIENT_COVERAGE = `Fiber, sugar and caffeine are tracked alongside the h
 // conversation: the directory policy asks tool text to describe what the tool
 // does, not how Claude should behave, and to name no external tool (so no "search
 // the web") the user did not ask for.
-const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, goals, and trends, per-user with timezone support.
+const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, body measurements, goals, and trends, per-user with timezone support.
 
 All nutrition figures are estimates and this server does not provide medical or dietary advice.
+
+Body measurements are circumferences of nine sites (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf), stored with the number and unit (cm or in) they were given in; the server converts between units itself. They are recorded as given, with no targets or interpretation.
 
 Current time — some hosts put the current date and time in context and some do not; this server always knows both the clock and the user's timezone, and get_current_time returns them.
 - Entries that omit logged_at are stamped by the server with the current time, which is more accurate than a reconstructed one; something that just happened needs no time from the user.
@@ -1187,12 +1206,39 @@ function formatWeightEntry(
     return `- ${formatWeight(entry.weight_g, unit)} at ${localTimeOf(entry.logged_at, tz, withDate)}${entry.notes ? ` (${entry.notes})` : ""} [id: ${entry.id}]`;
 }
 
+// In its own unit the value prints as typed (84.5 cm stays 84.5, not a mm round
+// trip); in the other unit it is converted from value_mm. value_entered is a
+// `numeric` column PostgREST may hand back as a string, hence Number().
+function formatMeasurementValue(
+    e: BodyMeasurementEntry,
+    unit: LengthUnit,
+): string {
+    return unit === e.entered_unit
+        ? `${Number(e.value_entered)} ${unit}`
+        : `${fromMillimetres(e.value_mm, unit)} ${unit}`;
+}
+
+// unit null = no saved preference: each row shows in the unit it was entered in.
+function formatMeasurementEntry(
+    e: BodyMeasurementEntry,
+    unit: LengthUnit | null,
+    tz: string,
+    withDate = false,
+): string {
+    return `- ${measurementLabel(e.kind)} ${formatMeasurementValue(e, unit ?? e.entered_unit)} at ${localTimeOf(e.logged_at, tz, withDate)}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`;
+}
+
 // Shared `logged_at` description for every manual write tool. The three forms
 // and the "don't convert to UTC yourself" rule are the whole point: a model
 // knows the wall-clock time the user just said, but not the zone's historical
 // offset for that date, and guessing it lands the entry on the wrong day.
 const LOGGED_AT_FORMS =
     'Accepts a full ISO 8601 timestamp with an offset or Z ("2026-01-05T08:30:00+02:00"), an offset-less local time ("2026-01-05T08:30"), or a bare date ("2026-01-05", anchored at local noon). Offset-less values are resolved in the user\'s saved timezone, so pass the local time exactly as the user gives it and do NOT convert it to UTC yourself.';
+
+// Descriptive variant for tools added after the directory review: same three
+// forms, no imperative. The older tools move to it under #198.
+const LOGGED_AT_FORMS_PLAIN =
+    'Accepts a full ISO 8601 timestamp with an offset or Z ("2026-01-05T08:30:00+02:00"), an offset-less local time ("2026-01-05T08:30"), or a bare date ("2026-01-05", anchored at local noon). Offset-less values are read as wall-clock time in the user\'s saved timezone, and the server works out that date\'s UTC offset itself, so the local time as the user states it is the expected form.';
 
 // Appended to `logged_at` on the three "log it now" tools. This used to say
 // "ask the user" — which fired on every single log from any host that keeps the
@@ -1202,6 +1248,12 @@ const LOGGED_AT_FORMS =
 // server stamps `new Date()` and it genuinely knows the time.
 const LOGGED_AT_OMIT_IF_NOW =
     " The server knows the current time and the user's timezone, so there is no need to ask the user for it: for something that just happened, omit this field entirely and the server stamps the entry with the current time. Only supply it for an entry that happened at some other moment; get_current_time returns the user's local clock for working that moment out.";
+
+// Descriptive counterpart of LOGGED_AT_OMIT_IF_NOW for tools added after the
+// directory review: says what an omitted value means without telling the
+// assistant what to do. The older tools move to it under #198.
+const LOGGED_AT_OMITTED_PLAIN =
+    " Omitted, the server stamps the entry with the current time in the user's timezone; get_current_time returns the user's local clock.";
 
 // What the derived "auto:" key really guarantees: it hashes the RESOLVED
 // logged_at, and an omitted logged_at resolves to the arrival instant (ms), so
@@ -1217,6 +1269,17 @@ function idempotencyKeyDescription(
         `Optional key that makes a retry safe. Without one, the server derives a key from the ${entry}'s content and its resolved logged_at: replaying a call that carries an explicit logged_at returns the original ${entry} instead of adding another, but a call that omits logged_at is stamped with the moment it arrives, so replaying it adds a new ${entry}. ` +
         `If a call that omits logged_at may need to be retried (for example after a timeout), pass any unique string here, such as a UUID, and send the same value on the retry. ` +
         `Two genuinely separate ${entry}s with identical content and the same logged_at are also treated as one — ${sameTimeAdvice}. Never reuse a key for a different ${entry}.`
+    );
+}
+
+// Descriptive variant of idempotencyKeyDescription for tools added after the
+// directory review: the same guarantees, stated as behaviour rather than as
+// instructions to the assistant. The older tools move to it under #198.
+function idempotencyKeyDescriptionPlain(entry: string): string {
+    return (
+        `Optional key that makes a retry safe. Without one, the server derives a key from the ${entry}'s content and its resolved logged_at: replaying a call that carries an explicit logged_at returns the original ${entry} instead of adding another, but a call that omits logged_at is stamped with the moment it arrives, so replaying it adds a new ${entry}. ` +
+        `A call that repeats an earlier key, such as a retry after a timeout, returns the ${entry} that key already recorded rather than adding another, so any unique string (a UUID, for example) serves. ` +
+        `Two separate ${entry}s with identical content and the same logged_at are treated as one unless their logged_at values or keys differ, and a key repeated for a different ${entry} returns the earlier one instead of recording the new one.`
     );
 }
 
@@ -1314,6 +1377,16 @@ async function resolveWriteWeightUnit(
     return pickWriteUnit(explicit, await getPreferredWeightUnit(userId));
 }
 
+// The same contract for a body measurement's length unit: explicit, then the
+// saved length preference, then refuse. The weight unit is never consulted.
+async function resolveWriteLengthUnit(
+    userId: string,
+    explicit: LengthUnit | undefined,
+): Promise<LengthUnit> {
+    if (explicit) return explicit; // no profile read
+    return pickLengthWriteUnit(undefined, await getPreferredLengthUnit(userId));
+}
+
 // Reject magnitude mistakes (value typed in grams, an extra digit, a sub-unit
 // typo). Suggests the other unit when the same number would be plausible there.
 function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
@@ -1361,6 +1434,12 @@ export const SUMMARY_RANGE_MAX_DAYS = 92;
 // character budget like MEAL_LISTING_MAX_CHARS: at most 366 short lines (a
 // weigh-in or two a day) stays proportionate on its own.
 export const WEIGHT_RANGE_MAX_DAYS = 366;
+
+// get_body_measurements: a year, like weight. Several sites a day, each
+// possibly several times, can outrun a year of weigh-ins, so the listing also
+// stops at MEAL_LISTING_MAX_CHARS on a whole-day boundary.
+export const BODY_MEASUREMENT_RANGE_MAX_DAYS = 366;
+const BODY_MEASUREMENT_DEFAULT_DAYS = 30;
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -1426,6 +1505,7 @@ const MEAL_ID_SOURCES =
 const WATER_ID_SOURCES = "get_water_today or get_water_by_date";
 const WEIGHT_ID_SOURCES =
     "get_weight_today, get_weight_by_date or get_weight_by_date_range";
+const MEASUREMENT_ID_SOURCES = "get_body_measurements";
 
 // A non-uuid id would otherwise reach Postgres and come back as a uuid cast
 // error. Echoed JSON-quoted and clipped: it is caller text. Worded like the
@@ -1535,7 +1615,7 @@ export function registerTools(
     // is exactly what a non-HTTP embedding should record.
     protocolEra?: "legacy" | "modern",
 ) {
-    // One context for all 36 tools. clientInfo is a getter, not a value: at
+    // One context for all 41 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
     // modern leg it backfills the identity per request before dispatch.
     const analytics = {
@@ -4192,6 +4272,453 @@ export function registerTools(
     );
 
     server.registerTool(
+        "log_body_measurement",
+        {
+            title: "Log Body Measurement",
+            description:
+                "Log one body circumference measurement — waist, hips, neck, chest, shoulders, upper arm, forearm, thigh or calf — in centimetres or inches. Without `unit`, the user's saved length unit (set_length_unit) applies; with neither, the call fails and says a unit is needed. The server stores the number and unit exactly as given and does any cm/in conversion itself. Each entry is one site with no left/right field; a side or other detail goes in notes. A site can be measured several times a day. A number far outside a realistic range for the site is refused as a likely typo. Measurements are recorded as given, without targets or interpretation, and this server does not provide medical advice.",
+            annotations: {
+                title: "Log Body Measurement",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                kind: z
+                    .enum(BODY_MEASUREMENT_KINDS)
+                    .describe(
+                        "Body site measured: waist, hips, neck, chest, shoulders, upper_arm (upper arm / biceps), forearm, thigh or calf.",
+                    ),
+                value: z.coerce
+                    .number()
+                    .positive()
+                    .describe(
+                        "Circumference in `unit` (> 0), as the user stated it.",
+                    ),
+                unit: z
+                    .enum(["cm", "in"])
+                    .optional()
+                    .describe(
+                        "Unit of the value: 'cm' or 'in'. Defaults to the user's saved length unit; with neither, the call fails.",
+                    ),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "When the measurement was taken (defaults to now). " +
+                            LOGGED_AT_FORMS_PLAIN +
+                            LOGGED_AT_OMITTED_PLAIN,
+                    ),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Optional notes (e.g. 'left side', 'at the navel', 'morning, relaxed').",
+                    ),
+                idempotency_key: z
+                    .string()
+                    .min(1)
+                    .max(255)
+                    .optional()
+                    .describe(idempotencyKeyDescriptionPlain("measurement")),
+            }),
+        },
+        async (args) => {
+            return withAnalytics(
+                "log_body_measurement",
+                async () => {
+                    const { iso, note, tz } = await resolveWriteTimestamp(
+                        userId,
+                        args.logged_at,
+                    );
+                    const unit = await resolveWriteLengthUnit(
+                        userId,
+                        args.unit,
+                    );
+                    const value_mm = assertPlausibleLength(
+                        args.kind,
+                        args.value,
+                        unit,
+                    );
+                    const { entry, deduplicated } = await insertBodyMeasurement(
+                        userId,
+                        {
+                            kind: args.kind,
+                            value_mm,
+                            value_entered: args.value,
+                            entered_unit: unit,
+                            logged_at: iso,
+                            notes: args.notes,
+                            idempotency_key: args.idempotency_key,
+                        },
+                    );
+                    const prefix = deduplicated
+                        ? "Already logged — this matched an existing entry, so nothing new was added"
+                        : "Body measurement logged";
+                    // Rendered from the stored row, so a deduplicated call
+                    // shows the entry that already exists.
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${prefix}: ${measurementLabel(entry.kind)} ${formatMeasurementValue(entry, entry.entered_unit)} at ${localTimeOf(entry.logged_at, tz, true)} (${tz})${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_body_measurements",
+        {
+            title: "Get Body Measurements",
+            description: `Get body measurements between two dates (inclusive), optionally for one site, oldest first and grouped by local day, each with the id that update_body_measurement and delete_body_measurement take. Defaults to the 30 days ending today; a range spans at most ${BODY_MEASUREMENT_RANGE_MAX_DAYS} days, and a long listing stops at a whole day and names the date to continue from. Values are shown in the user's saved length unit, or in the unit each was entered in when none is saved.`,
+            annotations: {
+                title: "Get Body Measurements",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                kind: z
+                    .enum(BODY_MEASUREMENT_KINDS)
+                    .optional()
+                    .describe("Only this site. Omitted: every site."),
+                start_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Start date YYYY-MM-DD (default: 29 days before end_date).",
+                    ),
+                end_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "End date YYYY-MM-DD (default: today in the user's timezone).",
+                    ),
+            }),
+        },
+        async ({ kind, start_date, end_date }) => {
+            return withAnalytics(
+                "get_body_measurements",
+                async () => {
+                    // Before shiftLocalDate, which rolls bad dates over.
+                    if (start_date !== undefined)
+                        assertCalendarDate("start_date", start_date);
+                    if (end_date !== undefined)
+                        assertCalendarDate("end_date", end_date);
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
+                    const pref = preferredLengthUnitFromProfile(profile);
+                    const end = end_date ?? todayInTz(tz);
+                    const start =
+                        start_date ??
+                        shiftLocalDate(
+                            end,
+                            -(BODY_MEASUREMENT_DEFAULT_DAYS - 1),
+                        );
+                    assertDateRange(
+                        start,
+                        end,
+                        BODY_MEASUREMENT_RANGE_MAX_DAYS,
+                        "Split the range into yearly calls.",
+                    );
+                    const entries = await getBodyMeasurementsInRange(
+                        userId,
+                        start,
+                        end,
+                        tz,
+                        kind,
+                    );
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No ${kind ? `${measurementLabel(kind).toLowerCase()} measurements` : "body measurements"} found between ${start} and ${end}.`,
+                                },
+                            ],
+                        };
+                    }
+
+                    const byDate = new Map<string, BodyMeasurementEntry[]>();
+                    for (const e of entries) {
+                        const date = dateInTz(e.logged_at, tz);
+                        const existing = byDate.get(date) ?? [];
+                        existing.push(e);
+                        byDate.set(date, existing);
+                    }
+
+                    // Whole days while they fit the budget; the first day is
+                    // always shown, however long.
+                    const header = timesAreLocal(tz);
+                    const sections: string[] = [];
+                    let length = header.length;
+                    let lastDate = "";
+                    let truncated = false;
+                    for (const [date, dayEntries] of [
+                        ...byDate.entries(),
+                    ].sort()) {
+                        const section = `## ${date}\n${dayEntries
+                            .map((e) => formatMeasurementEntry(e, pref, tz))
+                            .join("\n")}`;
+                        if (
+                            sections.length > 0 &&
+                            length + 2 + section.length > MEAL_LISTING_MAX_CHARS
+                        ) {
+                            truncated = true;
+                            break;
+                        }
+                        sections.push(section);
+                        length += 2 + section.length;
+                        lastDate = date;
+                    }
+                    const notice = truncated
+                        ? `\n\n(Listing stops after ${lastDate} to keep the response short; get_body_measurements with start_date ${shiftLocalDate(lastDate, 1)}, end_date ${end}${kind ? ` and kind ${kind}` : ""} returns the rest.)`
+                        : "";
+
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${header}\n\n${sections.join("\n\n")}${notice}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+                { start_date, end_date },
+            );
+        },
+    );
+
+    server.registerTool(
+        "update_body_measurement",
+        {
+            title: "Update Body Measurement",
+            description:
+                "Update an existing body measurement's value, unit, time or notes. The site (kind) cannot be changed; a measurement of a different site is a new entry. A new `value` is read in `unit`, which defaults to the unit the entry was originally entered in, not the saved preference. Passing `unit` without `value` re-reads the stored number in that unit, which corrects an entry logged with the wrong unit. A value far outside a realistic range for the site is refused.",
+            annotations: {
+                title: "Update Body Measurement",
+                readOnlyHint: false,
+                // Overwrites a stored record with no undo — "false" would mean
+                // "only additive updates", which this is not.
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the body measurement to update, from ${MEASUREMENT_ID_SOURCES}.`,
+                    ),
+                value: z.coerce
+                    .number()
+                    .positive()
+                    .optional()
+                    .describe("New circumference value, in `unit`."),
+                unit: z
+                    .enum(["cm", "in"])
+                    .optional()
+                    .describe(
+                        "Unit of the value. Defaults to the unit this entry was entered in.",
+                    ),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "When the measurement was taken. " +
+                            LOGGED_AT_FORMS_PLAIN,
+                    ),
+                notes: z.string().optional(),
+            }),
+        },
+        async ({ id, value, unit, logged_at, notes }) => {
+            return withAnalytics(
+                "update_body_measurement",
+                async () => {
+                    // Before resolveWriteTimestamp, which reads the profile.
+                    if (!isUuid(id))
+                        throw new ToolError(
+                            notUuidText(
+                                "body measurement",
+                                id,
+                                MEASUREMENT_ID_SOURCES,
+                            ),
+                        );
+                    // Worded without "update": categorizeError's tier 3 reads
+                    // any "date" substring as invalid_date_format.
+                    if (
+                        value === undefined &&
+                        unit === undefined &&
+                        logged_at === undefined &&
+                        notes === undefined
+                    )
+                        throw new ToolError(
+                            "Nothing to change: value, unit, logged_at or notes is needed.",
+                        );
+                    const { iso, note, tz } = await resolveWriteTimestamp(
+                        userId,
+                        logged_at,
+                    );
+                    const patch: {
+                        value_mm?: number;
+                        value_entered?: number;
+                        entered_unit?: LengthUnit;
+                        logged_at?: string;
+                        notes?: string | null;
+                    } = {};
+                    if (value !== undefined || unit !== undefined) {
+                        // Always read: the plausible range depends on the
+                        // row's kind, and a missing half comes from the row.
+                        const current = await getBodyMeasurement(userId, id);
+                        if (!current)
+                            throw new ToolError(
+                                `No body measurement found with id ${id}.`,
+                            );
+                        const u: LengthUnit = unit ?? current.entered_unit;
+                        const v = value ?? Number(current.value_entered);
+                        const kindOf: BodyMeasurementKind = current.kind;
+                        patch.value_mm = assertPlausibleLength(kindOf, v, u);
+                        patch.value_entered = v;
+                        patch.entered_unit = u;
+                    }
+                    if (iso !== undefined) patch.logged_at = iso;
+                    if (notes !== undefined) patch.notes = notes;
+                    const entry = await updateBodyMeasurement(
+                        userId,
+                        id,
+                        patch,
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Body measurement updated (${tz} time):\n${formatMeasurementEntry(entry, entry.entered_unit, tz, true)}${note}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "delete_body_measurement",
+        {
+            title: "Delete Body Measurement",
+            description: "Delete a body measurement by ID.",
+            annotations: {
+                title: "Delete Body Measurement",
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the body measurement to delete, from ${MEASUREMENT_ID_SOURCES}.`,
+                    ),
+            }),
+        },
+        async ({ id }) => {
+            return withAnalytics(
+                "delete_body_measurement",
+                async () => {
+                    // Answered, not thrown: nothing with that id exists, the
+                    // same as a well-formed id that matches no row.
+                    if (!isUuid(id)) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: notUuidText(
+                                        "body measurement",
+                                        id,
+                                        MEASUREMENT_ID_SOURCES,
+                                    ),
+                                },
+                            ],
+                        };
+                    }
+                    const deleted = await deleteBodyMeasurement(userId, id);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: deleted
+                                    ? `Body measurement ${id} deleted.`
+                                    : `No body measurement found with id ${id}.`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "set_length_unit",
+        {
+            title: "Set Length Unit",
+            description:
+                "Set the user's preferred length unit for body measurements ('cm' or 'in'), or pass null to clear it. It decides how measurements are shown and which unit a number logged without `unit` is read in. Stored measurements keep the number and unit they were entered with; only display and default parsing change. It is independent of the weight unit. While unset, logging a measurement needs an explicit unit and each one is shown in the unit it was entered in.",
+            annotations: {
+                title: "Set Length Unit",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                unit: z
+                    .enum(["cm", "in"])
+                    .nullable()
+                    .describe(
+                        "Preferred length unit: 'cm' or 'in'. null clears the preference.",
+                    ),
+            }),
+        },
+        async ({ unit }) => {
+            return withAnalytics(
+                "set_length_unit",
+                async () => {
+                    if (unit !== null && !isLengthUnit(unit)) {
+                        throw new ToolError(
+                            `Invalid length unit: ${unit}. Valid values are 'cm', 'in', or null to clear.`,
+                        );
+                    }
+                    const profile = await upsertProfile(userId, {
+                        preferred_length_unit: unit,
+                    });
+                    const saved = preferredLengthUnitFromProfile(profile);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: saved
+                                    ? `Preferred length unit set to ${saved}.`
+                                    : "Preferred length unit cleared. Logging a measurement now needs an explicit unit, and each measurement is shown in the unit it was entered in.",
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
         "set_widget_display",
         {
             title: "Set Widget Display",
@@ -4491,7 +5018,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERYTHING this server stores about the user — meals, water, weight, nutrition goals, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry and the AI-app connections (OAuth grants, without the tokens) — as a single ZIP archive (meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv, telemetry.csv, connections.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
+                "Export EVERYTHING this server stores about the user — meals, water, weight, body measurements, nutrition goals, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry and the AI-app connections (OAuth grants, without the tokens) — as a single ZIP archive (meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv, telemetry.csv, connections.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,
@@ -4526,6 +5053,7 @@ export function registerTools(
                         `${counts.meals} meal${counts.meals === 1 ? "" : "s"}`,
                         `${counts.water} water ${counts.water === 1 ? "entry" : "entries"}`,
                         `${counts.weight} weight ${counts.weight === 1 ? "entry" : "entries"}`,
+                        `${counts.bodyMeasurements} body measurement${counts.bodyMeasurements === 1 ? "" : "s"}`,
                         goals ? "nutrition goals" : "no nutrition goals set",
                         profile ? "profile settings" : "no profile settings",
                         account ? "account details" : "no account record",
@@ -4604,7 +5132,7 @@ export function registerTools(
         {
             title: "Get Profile",
             description:
-                "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
+                "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, preferred length unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_length_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
             annotations: {
                 title: "Get Profile",
                 readOnlyHint: true,
@@ -4621,6 +5149,7 @@ export function registerTools(
                     const tz = timezoneFromProfile(profile);
                     const locale = localeFromProfile(profile);
                     const weightUnit = preferredWeightUnitFromProfile(profile);
+                    const lengthUnit = preferredLengthUnitFromProfile(profile);
                     const widgetsEnabled = widgetsEnabledFromProfile(profile);
                     const alcoholEnabled =
                         alcoholTrackingEnabledFromProfile(profile);
@@ -4637,6 +5166,9 @@ export function registerTools(
                         weightUnit
                             ? `Weight unit: ${weightUnit}.`
                             : "Weight unit: not set. Weights display in kg by default, and logging requires an explicit unit ('kg' or 'lb').",
+                        lengthUnit
+                            ? `Length unit: ${lengthUnit}.`
+                            : "Length unit: not set. Body measurements display in the unit each was entered in, and logging one needs an explicit unit ('cm' or 'in').",
                         widgetsEnabled
                             ? "Widgets: enabled. Supported tools show a visual widget alongside their text."
                             : "Widgets: disabled. Supported tools return text and data only.",
@@ -4664,7 +5196,7 @@ export function registerTools(
         {
             title: "Set Timezone",
             description:
-                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water and weight are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). Until one is set, the account uses UTC.",
+                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water, weight and body measurements are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). Until one is set, the account uses UTC.",
             annotations: {
                 title: "Set Timezone",
                 readOnlyHint: false,
@@ -4798,7 +5330,7 @@ export function registerTools(
         {
             title: "Delete Nutrition Account",
             description:
-                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, goals, settings, exports, usage records and sign-in tokens). Irreversible. Always confirm with the user before calling this tool.",
+                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, body measurements, goals, settings, exports, usage records and sign-in tokens). Irreversible. Always confirm with the user before calling this tool.",
             annotations: {
                 title: "Delete Nutrition Account",
                 readOnlyHint: false,
