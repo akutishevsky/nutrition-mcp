@@ -330,23 +330,23 @@ ${ogAlternates}${localeFontLinks(locale)}`;
 
 /**
  * Script fonts for the locales Urbanist can't set. Urbanist ships Latin only,
- * so /uk and /ja used to fall back to whatever the OS had. Mulish (Cyrillic)
- * is the closest Google Fonts match — single-storey a/g like Urbanist, x-height
- * 0.503em vs 0.501em; M PLUS 2 (Japanese) has the same geometric construction
- * and a variable 100–900 axis. Weight ranges here and in STYLE_ASSETS match
- * what the pages compute: 400 (unstyled body text) through 900 (`<b>` inside
- * an 800 element computes `bolder` = 900), plus 400 italic for `<em>` in
- * prose; M PLUS 2 has no italic. Geist Mono
- * already carries Cyrillic. Loaded only on the page that needs it, and the
- * public/styles.css `html[lang] body` overrides put each after Urbanist, so Latin
- * runs keep Urbanist and only the script's own glyphs come from here (Google's
- * unicode-range slicing downloads just the slices a page uses). Rationale and
- * measurements: the fonts spec of the redesign. Called from localeHead() and
+ * so /uk used to fall back to whatever the OS had. Mulish (Cyrillic) is the
+ * closest Google Fonts match — single-storey a/g like Urbanist, x-height
+ * 0.503em vs 0.501em. The weight range matches what the pages compute: 400
+ * (unstyled body text) through 900 (`<b>` inside an 800 element computes
+ * `bolder` = 900), plus 400 italic for `<em>` in prose. Geist Mono already
+ * carries Cyrillic. Loaded only on the page that needs it, and the
+ * public/styles.css `html[lang] body` overrides put it after Urbanist, so Latin
+ * runs keep Urbanist and only Cyrillic glyphs come from here.
+ *
+ * /ja deliberately has no entry: it uses the visitor's system Japanese fonts
+ * (Hiragino, Yu Gothic, Meiryo, Noto Sans CJK — chained in the
+ * `html[lang="ja"] body` override) instead of downloading M PLUS 2, which cost
+ * ~1 MB across ~40 unicode-range slices per page. Called from localeHead() and
  * directly by gen-login.ts, which has no localeHead().
  */
 const LOCALE_FONT_FAMILY: Partial<Record<SiteLocale, string>> = {
     uk: "Mulish:ital,wght@0,400..900;1,400",
-    ja: "M+PLUS+2:wght@400..900",
 };
 
 export function localeFontLinks(locale: SiteLocale): string {

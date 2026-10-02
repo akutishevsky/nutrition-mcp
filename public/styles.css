@@ -131,11 +131,14 @@ body {
     color-scheme: light;
 }
 
-/* Script fonts. Urbanist is Latin-only, so /uk and /ja chain a matching
-   family after it (loaded only on those pages — localeFontLinks() in
-   scripts/site-partials.ts): Latin runs stay Urbanist, the script's own
-   glyphs come from the second family. Geist Mono has Cyrillic already; on
-   /ja mono labels borrow M PLUS 2 for kana/kanji rather than the OS font.
+/* Script fonts. Urbanist is Latin-only. /uk chains Mulish after it (loaded
+   only on that page — localeFontLinks() in scripts/site-partials.ts): Latin
+   runs stay Urbanist, Cyrillic glyphs come from Mulish, and Geist Mono has
+   Cyrillic already. /ja downloads nothing extra: Latin runs stay Urbanist /
+   Geist Mono and kana/kanji fall through to the best system Japanese font
+   (Hiragino on Apple, Yu Gothic / Meiryo on Windows, Noto CJK on Linux and
+   Android), named before system-ui so a non-Japanese OS locale still picks a
+   Japanese face rather than a Chinese one.
    Scoped to `html[lang] body`, not `html[lang]`: the token block above
    declares --font/--mono on body itself, which would shadow a value body
    only inherited from html. */
@@ -146,12 +149,24 @@ html[lang="uk"] body {
 }
 html[lang="ja"] body {
     --font:
-        "Urbanist", "M PLUS 2", system-ui, -apple-system, BlinkMacSystemFont,
-        "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo",
-        "Noto Sans JP", sans-serif;
+        "Urbanist", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+        "Yu Gothic UI", "Yu Gothic", YuGothic, Meiryo, "Noto Sans JP",
+        "Noto Sans CJK JP", system-ui, sans-serif;
     --mono:
-        "Geist Mono", "M PLUS 2", ui-monospace, SFMono-Regular, "SF Mono",
-        Menlo, monospace;
+        "Geist Mono", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+        "Yu Gothic UI", "Yu Gothic", YuGothic, Meiryo, "Noto Sans JP",
+        "Noto Sans CJK JP", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+        monospace;
+}
+/* Japanese has no spaces, so headings wrap per character and can split a
+   word (できる at 390px on /ja/tools). `auto-phrase` (Chrome/Edge 119+) breaks
+   at phrase boundaries; browsers without it drop the declaration and keep
+   `normal`, which never breaks inside a Latin word. `line-break: strict`
+   additionally keeps small kana and prolonged-sound marks off a line start. */
+html[lang="ja"] :is(h1, h2, h3, .nm-h1) {
+    word-break: normal;
+    word-break: auto-phrase;
+    line-break: strict;
 }
 
 /* Dark palette — copy 1 of 2, the OS path. */
