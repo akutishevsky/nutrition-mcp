@@ -426,13 +426,17 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Tieni d'occhio il peso",
+                title: "Tieni d'occhio peso e misure",
                 description:
-                    "Registra una pesata in kg o lb e guarda l'andamento al di là delle oscillazioni quotidiane: media smussata, variazione nel mese e quanto manca all'obiettivo. Un valore impossibile, come una virgola dimenticata, viene bloccato prima di essere salvato.",
+                    "Registra una pesata in kg o lb e guarda l'andamento al di là delle oscillazioni quotidiane: media smussata, variazione nel mese e quanto manca all'obiettivo. Accanto al peso puoi registrare, in cm o pollici, le misure prese con il metro in nove zone del corpo, dalla vita al polpaccio. Un valore impossibile, come una virgola dimenticata, viene bloccato prima di essere salvato.",
                 toolNotes: {
                     log_weight: "Salva la pesata di stamattina: 78,4 kg",
                     get_weight_trends:
                         "Smussa 30 giorni con medie mobili e calcola la distanza dall'obiettivo",
+                    log_body_measurement:
+                        "Salva la misura del giro vita: 84 cm",
+                    get_body_measurements:
+                        "Trova l'ultima misura del giro vita da confrontare",
                 },
                 messages: [
                     {
@@ -442,6 +446,14 @@ export const INDEX_IT: IndexDoc = {
                     {
                         from: "ai",
                         text: "Salvati 78,4 kg. Hai perso 1,8 kg dall'11 febbraio (eri a 80,2 kg) e la tua media a 7 giorni è di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "anche il giro vita: 84 cm. rispetto a prima?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Salvato il giro vita a 84 cm. L'ultima misura era 86,5 cm il 14 febbraio, quindi 2,5 cm in meno.",
                     },
                 ],
                 cards: [

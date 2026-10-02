@@ -85,7 +85,7 @@ const TRENDS_DAYS: [
 ];
 
 /** Weigh-ins, [days before the last one, kg], oldest first: 80.2 kg on
- * 11 Feb down to 78.4 kg on 12 Mar (the "Track your weight" slide). */
+ * 11 Feb down to 78.4 kg on 12 Mar (the "Track weight and measurements" slide). */
 const WEIGH_INS: [number, number][] = [
     [29, 80.2],
     [26, 80.0],

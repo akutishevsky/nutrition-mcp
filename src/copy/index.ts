@@ -807,13 +807,16 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Track your weight",
+                title: "Track weight and measurements",
                 description:
-                    "Log a weigh-in in kg or lb and see the trend under the day-to-day noise: a smoothed average, the change over the month and the gap to your target. An impossible reading, like a missed decimal point, is caught before it's saved.",
+                    "Log a weigh-in in kg or lb and see the trend under the day-to-day noise: a smoothed average, the change over the month and the gap to your target. Tape measurements of nine body sites, waist to calf, sit alongside it in cm or in. An impossible reading, like a missed decimal point, is caught before it's saved.",
                 toolNotes: {
                     log_weight: "Saves this morning's 78.4 kg weigh-in",
                     get_weight_trends:
                         "Smooths 30 days into moving averages and the gap to target",
+                    log_body_measurement: "Saves the 84 cm waist measurement",
+                    get_body_measurements:
+                        "Finds the last waist entry to compare against",
                 },
                 messages: [
                     {
@@ -823,6 +826,14 @@ const INDEX_EN: IndexDoc = {
                     {
                         from: "ai",
                         text: "Saved 78.4 kg. You're down 1.8 kg since 11 Feb (from 80.2 kg), and your 7-day average is 78.7 kg. 3.4 kg to go to your 75 kg target.",
+                    },
+                    {
+                        from: "user",
+                        text: "waist was 84 cm too. how does that compare?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Saved your waist at 84 cm. Your last one was 86.5 cm on 14 Feb, so that's 2.5 cm less.",
                     },
                 ],
                 cards: [

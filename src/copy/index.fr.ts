@@ -428,13 +428,17 @@ export const INDEX_FR: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Suis ton poids",
+                title: "Suis ton poids et tes mensurations",
                 description:
-                    "Enregistre une pesée en kg ou en lb et vois la tendance derrière les variations du quotidien : moyenne lissée, évolution sur le mois, écart avec ton poids cible. Une valeur impossible, comme une virgule oubliée, est repérée avant l'enregistrement.",
+                    "Enregistre une pesée en kg ou en lb et vois la tendance derrière les variations du quotidien : moyenne lissée, évolution sur le mois, écart avec ton poids cible. Tes mensurations de neuf zones du corps, de la taille au mollet, s'y ajoutent en cm ou en pouces. Une valeur impossible, comme une virgule oubliée, est repérée avant l'enregistrement.",
                 toolNotes: {
                     log_weight: "Enregistre la pesée de ce matin : 78,4 kg",
                     get_weight_trends:
                         "Lisse 30 jours en moyennes mobiles, avec l'écart à la cible",
+                    log_body_measurement:
+                        "Enregistre le tour de taille : 84 cm",
+                    get_body_measurements:
+                        "Retrouve le dernier tour de taille pour comparer",
                 },
                 messages: [
                     {
@@ -444,6 +448,14 @@ export const INDEX_FR: IndexDoc = {
                     {
                         from: "ai",
                         text: "78,4 kg enregistrés. Tu as perdu 1,8 kg depuis le 11 février (tu étais à 80,2 kg), et ta moyenne sur 7 jours est de 78,7 kg. Encore 3,4 kg avant ton objectif de 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "et 84 cm de tour de taille. ça donne quoi par rapport à avant ?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Tour de taille de 84 cm enregistré. Ta dernière mesure était de 86,5 cm le 14 février : 2,5 cm de moins.",
                     },
                 ],
                 cards: [
