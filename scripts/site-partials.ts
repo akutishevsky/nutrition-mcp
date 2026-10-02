@@ -17,6 +17,7 @@ import {
     SITE,
     SITE_LOCALES,
     TRANSLATION_NOTICE,
+    LEGAL_TRANSLATION_NOTICE,
     hashPath,
     pathFor,
     urlFor,
@@ -38,10 +39,18 @@ export function esc(s: string): string {
  * shipped translation should have one before it ships, but a missing entry
  * degrading to "no notice" is safer than the alternative). `suffix` is the
  * page's PAGE_ROUTES key, used to link back to the *same* page in English.
+ * `kind: "legal"` (privacy, terms) swaps in LEGAL_TRANSLATION_NOTICE, which
+ * says the English version is the one that applies.
  */
-export function translationNotice(locale: SiteLocale, suffix: string): string {
+export function translationNotice(
+    locale: SiteLocale,
+    suffix: string,
+    kind: "page" | "legal" = "page",
+): string {
     if (locale === "en") return "";
-    const notice = TRANSLATION_NOTICE[locale];
+    const notice = (
+        kind === "legal" ? LEGAL_TRANSLATION_NOTICE : TRANSLATION_NOTICE
+    )[locale];
     if (!notice) return "";
     return `                    <div class="translation-notice">
                         <p>

@@ -85,6 +85,49 @@ export const TRANSLATION_NOTICE: Partial<
     },
 };
 
+/**
+ * The stronger notice the privacy policy and terms carry instead of
+ * `TRANSLATION_NOTICE`: these are legal documents translated by AI with no
+ * human review, so the translation says the English version is the one that
+ * applies and links to it (same page, via `pathFor("en", suffix)`).
+ */
+export const LEGAL_TRANSLATION_NOTICE: Partial<
+    Record<Locale, { text: string; linkText: string }>
+> = {
+    de: {
+        text: "Diese Übersetzung wurde mit KI erstellt und kann Fehler enthalten. Maßgeblich ist die englische Fassung.",
+        linkText: "Englische Fassung lesen",
+    },
+    es: {
+        text: "Esta traducción se hizo con IA y puede contener errores. La versión en inglés es la que prevalece.",
+        linkText: "Leer la versión en inglés",
+    },
+    fr: {
+        text: "Cette traduction a été réalisée avec l'IA et peut contenir des erreurs. Seule la version anglaise fait foi.",
+        linkText: "Lire la version anglaise",
+    },
+    nl: {
+        text: "Deze vertaling is gemaakt met AI en kan fouten bevatten. De Engelse versie is leidend.",
+        linkText: "Engelse versie lezen",
+    },
+    pl: {
+        text: "To tłumaczenie powstało przy użyciu AI i może zawierać błędy. Wiążąca jest wersja angielska.",
+        linkText: "Przeczytaj wersję angielską",
+    },
+    it: {
+        text: "Questa traduzione è stata realizzata con l'IA e può contenere errori. Fa fede la versione inglese.",
+        linkText: "Leggi la versione inglese",
+    },
+    uk: {
+        text: "Цей переклад зроблено за допомогою ШІ, і він може містити помилки. Чинною є англійська версія.",
+        linkText: "Читати англійську версію",
+    },
+    ja: {
+        text: "この翻訳はAIによるもので、誤りを含む可能性があります。正式な内容は英語版をご確認ください。",
+        linkText: "英語版を読む",
+    },
+};
+
 /** IETF BCP 47 tag for `<html lang>` — a bare 2-letter code for every locale
  * here, since none needs a region qualifier (no en-US vs en-GB split, etc). */
 export const HTML_LANG: Record<SiteLocale, string> = {

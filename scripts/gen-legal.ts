@@ -634,7 +634,7 @@ ${s.blocks.map((b) => renderBlock(b, locale)).join("\n")}
         )
         .join("\n\n");
 
-    const notice = translationNotice(locale, suffix);
+    const notice = translationNotice(locale, suffix, "legal");
 
     return `<!doctype html>
 <html lang="${HTML_LANG[locale]}">
